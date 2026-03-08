@@ -98,6 +98,12 @@ const indicadores = {
   ],
 };
 
+const renderLabel = (props: {name?: string; percent?: number}) => {
+  const name = props.name ?? "";
+  const percent = props.percent ?? 0;
+  return `${name} ${(percent * 100).toFixed(0)}%`;
+};
+
 export default function Relatorios() {
   const router = useRouter();
   const { t, idioma } = useLanguage();
@@ -184,7 +190,7 @@ export default function Relatorios() {
             <h3 className="font-bold mb-6" style={{color: "#c8d8f0"}}>{distTitle[idioma]}</h3>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
-                <Pie data={pizzaAtual} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({name, percent}: {name: string, percent: number}) => `${name} ${((percent ?? 0)*100).toFixed(0)}%`}>
+                <Pie data={pizzaAtual} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={renderLabel}>
                   {pizzaAtual.map((entry, i) => <Cell key={i} fill={entry.color}/>)}
                 </Pie>
                 <Tooltip contentStyle={{background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0"}} formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`}/>
