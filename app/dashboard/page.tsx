@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, Bell, Settings, LogOut, BarChart2, Users, FileText, ShoppingCart, Truck } from "lucide-react";
 
@@ -15,10 +14,19 @@ const dados = [
 export default function Dashboard() {
   return (
     <div className="min-h-screen flex" style={{background: "#020810"}}>
+
+      {/* Sidebar */}
       <div className="w-64 min-h-screen flex flex-col" style={{background: "rgba(10,22,40,0.95)", borderRight: "1px solid rgba(59,111,212,0.15)"}}>
+        
+        {/* Logo */}
         <div className="p-6 border-b" style={{borderColor: "rgba(59,111,212,0.15)"}}>
-          <Image src="/logo.png" alt="Axioma" width={140} height={50} className="object-contain"/>
+          <h1 className="text-xl font-black tracking-widest" style={{background: "linear-gradient(180deg, #ffffff 0%, #8aaad4 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"}}>
+            AXIOMA
+          </h1>
+          <p className="text-xs mt-1" style={{color: "#3a5a8a"}}>Copiloto Financeiro</p>
         </div>
+
+        {/* Menu */}
         <nav className="flex-1 p-4 space-y-1">
           {[
             { icon: BarChart2, label: "Dashboard", active: true },
@@ -35,6 +43,8 @@ export default function Dashboard() {
             </div>
           ))}
         </nav>
+
+        {/* Bottom */}
         <div className="p-4 border-t space-y-1" style={{borderColor: "rgba(59,111,212,0.15)"}}>
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer" style={{color: "#3a5a8a"}}>
             <Settings size={18} />
@@ -46,7 +56,11 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Main */}
       <div className="flex-1 p-8 overflow-auto">
+
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-2xl font-bold" style={{color: "#c8d8f0"}}>Dashboard</h2>
@@ -63,6 +77,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Cards */}
         <div className="grid grid-cols-4 gap-4 mb-8">
           {[
             { label: "Faturamento", value: "R$ 62.000", change: "+12%", up: true, icon: TrendingUp },
@@ -82,6 +98,8 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        {/* Gráfico */}
         <div className="rounded-2xl p-6 mb-6" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
           <h3 className="text-sm font-semibold mb-6" style={{color: "#c8d8f0"}}>Receitas vs Custos — 2026</h3>
           <ResponsiveContainer width="100%" height={250}>
@@ -105,6 +123,8 @@ export default function Dashboard() {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Alertas IA */}
         <div className="rounded-2xl p-6" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
           <h3 className="text-sm font-semibold mb-4" style={{color: "#c8d8f0"}}>🤖 Insights da IA</h3>
           <div className="space-y-3">
@@ -120,6 +140,7 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+
       </div>
     </div>
   );
