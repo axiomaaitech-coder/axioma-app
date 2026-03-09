@@ -11,14 +11,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-```
-
-Salva **Ctrl+S** e no terminal:
-```
-git add .
-```
-```
-git commit -m "ignore typescript errors on build"
-```
-```
-git push
