@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../lib/LanguageContext'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '../lib/supabase'
 
 export default function Login() {
   const router = useRouter()
@@ -12,7 +12,6 @@ export default function Login() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(false)
-  const supabase = createClient()
 
   const mensagemErro = {
     pt: 'Email ou senha incorretos.',
