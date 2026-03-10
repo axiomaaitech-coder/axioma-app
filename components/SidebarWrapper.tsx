@@ -5,8 +5,7 @@ import Sidebar from "./Sidebar";
 export default function SidebarWrapper() {
   const pathname = usePathname();
   
-  // Não mostra sidebar na tela de login
-  if (pathname === "/") return null;
+  if (pathname === "/" || pathname === "/login") return null;
   
   return <Sidebar/>;
 }
