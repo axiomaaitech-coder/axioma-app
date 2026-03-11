@@ -5,7 +5,7 @@ import Sidebar from "./Sidebar";
 export default function SidebarWrapper() {
   const pathname = usePathname();
   
-  if (pathname === "/" || pathname === "/login") return null;
+  if (pathname === "/" || pathname === "/login" || pathname === "/cadastro" || pathname === "/recuperar-senha") return null;
   
   return <Sidebar/>;
 }
