@@ -1,122 +1,291 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../lib/LanguageContext";
-import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle, Target, Activity, CreditCard } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Image from "next/image";
+import { createBrowserClient } from "@supabase/ssr";
 
-const dados = [
-  { mes: "Jan", receita: 42000, custos: 28000 },
-  { mes: "Fev", receita: 48000, custos: 31000 },
-  { mes: "Mar", receita: 45000, custos: 29000 },
-  { mes: "Abr", receita: 53000, custos: 33000 },
-  { mes: "Mai", receita: 58000, custos: 35000 },
-  { mes: "Jun", receita: 62000, custos: 38000 },
-];
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Dashboard() {
   const router = useRouter();
   const { t, idioma } = useLanguage();
 
+  const [loading, setLoading] = useState(true);
+  const [receitas, setReceitas] = useState(0);
+  const [custosFixos, setCustosFixos] = useState(0);
+  const [custosVariaveis, setCustosVariaveis] = useState(0);
+  const [dividas, setDividas] = useState(0);
+  const [dadosGrafico, setDadosGrafico] = useState<any[]>([]);
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  async function carregarDados() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const mesAtual = new Date().getMonth() + 1;
+    const anoAtual = new Date().getFullYear();
+    const inicioMes = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-01`;
+    const fimMes = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-31`;
+
+    // Receitas do mês
+    const { data: rec } = await supabase
+      .from("receitas")
+      .select("valor")
+      .eq("user_id", user.id)
+      .gte("data", inicioMes)
+      .lte("data", fimMes);
+    const totalReceitas = rec?.reduce((s, r) => s + (r.valor || 0), 0) || 0;
+    setReceitas(totalReceitas);
+
+    // Custos Fixos do mês
+    const { data: cf } = await supabase
+      .from("custos_fixos")
+      .select("valor_mensal")
+      .eq("user_id", user.id);
+    const totalFixos = cf?.reduce((s, r) => s + (r.valor_mensal || 0), 0) || 0;
+    setCustosFixos(totalFixos);
+
+    // Custos Variáveis do mês
+    const { data: cv } = await supabase
+      .from("custos_variaveis")
+      .select("valor")
+      .eq("user_id", user.id)
+      .gte("data", inicioMes)
+      .lte("data", fimMes);
+    const totalVariaveis = cv?.reduce((s, r) => s + (r.valor || 0), 0) || 0;
+    setCustosVariaveis(totalVariaveis);
+
+    // Dívidas
+    const { data: div } = await supabase
+      .from("dividas")
+      .select("valor_total")
+      .eq("user_id", user.id);
+    const totalDividas = div?.reduce((s, r) => s + (r.valor_total || 0), 0) || 0;
+    setDividas(totalDividas);
+
+    // Dados para o gráfico (últimos 6 meses)
+    const meses = [];
+    const nomesMeses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const m = d.getMonth() + 1;
+      const a = d.getFullYear();
+      const inicio = `${a}-${String(m).padStart(2, "0")}-01`;
+      const fim = `${a}-${String(m).padStart(2, "0")}-31`;
+
+      const { data: rMes } = await supabase.from("receitas").select("valor").eq("user_id", user.id).gte("data", inicio).lte("data", fim);
+      const { data: cMes } = await supabase.from("custos_variaveis").select("valor").eq("user_id", user.id).gte("data", inicio).lte("data", fim);
+
+      const rTotal = rMes?.reduce((s, r) => s + (r.valor || 0), 0) || 0;
+      const cTotal = (cMes?.reduce((s, r) => s + (r.valor || 0), 0) || 0) + totalFixos;
+
+      meses.push({ mes: nomesMeses[m - 1], receita: rTotal, custos: cTotal });
+    }
+    setDadosGrafico(meses);
+    setLoading(false);
+  }
+
+  // KPIs calculados
+  const lucro = receitas - custosFixos - custosVariaveis;
+  const margemContribuicao = receitas - custosVariaveis;
+  const margemPerc = receitas > 0 ? ((margemContribuicao / receitas) * 100).toFixed(1) : "0";
+  const pontoEquilibrio = margemContribuicao > 0 ? (custosFixos / (margemContribuicao / (receitas || 1))) : 0;
+  const capitalGiro = receitas - custosFixos - custosVariaveis;
+  const indiceEndividamento = receitas > 0 ? ((dividas / receitas) * 100).toFixed(1) : "0";
+  const previsao30 = receitas * 1;
+  const previsao60 = receitas * 2;
+  const previsao90 = receitas * 3;
+  const score = Math.min(100, Math.max(0, Math.round(50 + (lucro / (receitas || 1)) * 100)));
+
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   const cards = [
-    { label: t.dashboard.faturamento, value: "R$ 62.000", change: "+12%", up: true, icon: TrendingUp },
-    { label: t.dashboard.custos, value: "R$ 38.000", change: "+5%", up: false, icon: TrendingDown },
-    { label: t.dashboard.lucro, value: "R$ 24.000", change: "+18%", up: true, icon: DollarSign },
-    { label: t.dashboard.score, value: "87/100", change: "+3pts", up: true, icon: BarChart2 },
+    { label: t.dashboard.faturamento, value: fmt(receitas), change: "mês atual", up: true, icon: TrendingUp },
+    { label: t.dashboard.custos, value: fmt(custosFixos + custosVariaveis), change: "fixos + variáveis", up: false, icon: TrendingDown },
+    { label: t.dashboard.lucro, value: fmt(lucro), change: lucro >= 0 ? "positivo" : "negativo", up: lucro >= 0, icon: DollarSign },
+    { label: t.dashboard.score, value: `${score}/100`, change: score >= 70 ? "bom" : "atenção", up: score >= 70, icon: BarChart2 },
+  ];
+
+  const kpisAvancados = [
+    {
+      label: "Margem de Contribuição",
+      value: fmt(margemContribuicao),
+      sub: `${margemPerc}% da receita`,
+      cor: margemContribuicao >= 0 ? "#34d399" : "#f87171",
+      icon: "📊",
+    },
+    {
+      label: "Ponto de Equilíbrio",
+      value: fmt(pontoEquilibrio),
+      sub: receitas >= pontoEquilibrio ? "✓ Acima do ponto" : "⚠ Abaixo do ponto",
+      cor: receitas >= pontoEquilibrio ? "#34d399" : "#f87171",
+      icon: "⚖️",
+    },
+    {
+      label: "Capital de Giro",
+      value: fmt(capitalGiro),
+      sub: capitalGiro >= 0 ? "Situação saudável" : "Atenção necessária",
+      cor: capitalGiro >= 0 ? "#34d399" : "#f87171",
+      icon: "💧",
+    },
+    {
+      label: "Índice de Endividamento",
+      value: `${indiceEndividamento}%`,
+      sub: Number(indiceEndividamento) <= 30 ? "Nível saudável" : "Nível elevado",
+      cor: Number(indiceEndividamento) <= 30 ? "#34d399" : "#f87171",
+      icon: "📉",
+    },
   ];
 
   const insights = {
     pt: [
-      { tipo: "alerta", texto: "Custos com fornecedores aumentaram 8% em relação ao mês anterior." },
-      { tipo: "positivo", texto: "Faturamento cresceu 12% — melhor resultado do trimestre." },
-      { tipo: "alerta", texto: "Margem líquida abaixo do ideal. Recomendado revisar custos variáveis." },
+      { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `Lucro de ${fmt(lucro)} este mês. Bom desempenho!` : `Prejuízo de ${fmt(Math.abs(lucro))} este mês. Revise seus custos.` },
+      { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `Índice de endividamento em ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? "Situação controlada." : "Recomendado reduzir dívidas."}` },
+      { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `Margem de contribuição de ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? "Cobrindo os custos fixos." : "Insuficiente para cobrir custos fixos."}` },
     ],
     en: [
-      { tipo: "alerta", texto: "Supplier costs increased 8% compared to last month." },
-      { tipo: "positivo", texto: "Revenue grew 12% — best result of the quarter." },
-      { tipo: "alerta", texto: "Net margin below ideal. Recommended to review variable costs." },
+      { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `Profit of ${fmt(lucro)} this month. Good performance!` : `Loss of ${fmt(Math.abs(lucro))} this month. Review your costs.` },
+      { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `Debt index at ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? "Controlled situation." : "Recommended to reduce debts."}` },
+      { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `Contribution margin of ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? "Covering fixed costs." : "Insufficient to cover fixed costs."}` },
     ],
     es: [
-      { tipo: "alerta", texto: "Los costos con proveedores aumentaron 8% respecto al mes anterior." },
-      { tipo: "positivo", texto: "La facturación creció 12% — mejor resultado del trimestre." },
-      { tipo: "alerta", texto: "Margen neto por debajo del ideal. Se recomienda revisar costos variables." },
+      { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `Beneficio de ${fmt(lucro)} este mes. ¡Buen rendimiento!` : `Pérdida de ${fmt(Math.abs(lucro))} este mes. Revise sus costos.` },
+      { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `Índice de endeudamiento en ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? "Situación controlada." : "Se recomienda reducir deudas."}` },
+      { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `Margen de contribución de ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? "Cubriendo costos fijos." : "Insuficiente para cubrir costos fijos."}` },
     ],
   };
 
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "#020810" }}>
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <p style={{ color: "#3a5a8a" }}>Carregando...</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen p-8 overflow-auto" style={{background: "#020810"}}>
+    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
+
+      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-5">
-          <div style={{filter: "drop-shadow(0 0 20px rgba(106,176,255,0.5))"}}>
-            <Image src="/logo-aitech.png" alt="Axioma" width={60} height={60} className="object-contain"/>
+          <div style={{ filter: "drop-shadow(0 0 20px rgba(106,176,255,0.5))" }}>
+            <Image src="/logo-aitech.png" alt="Axioma" width={60} height={60} className="object-contain" />
           </div>
           <div>
-            <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{color: "#3a5a8a"}}>{t.dashboard.inteligencia}</p>
-            <h2 className="text-2xl font-bold" style={{color: "#c8d8f0"}}>{t.dashboard.bemvindo}</h2>
+            <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: "#3a5a8a" }}>{t.dashboard.inteligencia}</p>
+            <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{t.dashboard.bemvindo}</h2>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative cursor-pointer p-2 rounded-xl" style={{background: "rgba(59,111,212,0.1)"}}>
-            <Bell size={20} style={{color: "#6ab0ff"}}/>
-            <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500"/>
+          <div className="relative cursor-pointer p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.1)" }}>
+            <Bell size={20} style={{ color: "#6ab0ff" }} />
+            <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{background: "rgba(59,111,212,0.1)"}}>
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff"}}>E</div>
-            <span className="text-sm" style={{color: "#c8d8f0"}}>Elias</span>
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: "rgba(59,111,212,0.1)" }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>E</div>
+            <span className="text-sm" style={{ color: "#c8d8f0" }}>Elias</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      {/* Cards principais */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-2xl p-5" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
+          <div key={card.label} className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
             <div className="flex justify-between items-start mb-3">
-              <p className="text-xs font-semibold tracking-wider uppercase" style={{color: "#3a5a8a"}}>{card.label}</p>
-              <card.icon size={16} style={{color: card.up ? "#34d399" : "#f87171"}}/>
+              <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: "#3a5a8a" }}>{card.label}</p>
+              <card.icon size={16} style={{ color: card.up ? "#34d399" : "#f87171" }} />
             </div>
-            <p className="text-2xl font-bold mb-2" style={{color: "#c8d8f0"}}>{card.value}</p>
-            <span className="text-xs px-2 py-1 rounded-full" style={{background: card.up ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: card.up ? "#34d399" : "#f87171"}}>
+            <p className="text-2xl font-bold mb-2" style={{ color: "#c8d8f0" }}>{card.value}</p>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: card.up ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: card.up ? "#34d399" : "#f87171" }}>
               {card.change}
             </span>
           </div>
         ))}
       </div>
 
-      <div className="rounded-2xl p-6 mb-6" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-        <h3 className="text-sm font-semibold mb-6" style={{color: "#c8d8f0"}}>{t.dashboard.grafico}</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <AreaChart data={dados}>
-            <defs>
-              <linearGradient id="receita" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b6fd4" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#3b6fd4" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="custos" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#34d399" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(59,111,212,0.1)"/>
-            <XAxis dataKey="mes" stroke="#3a5a8a" tick={{fontSize: 12}}/>
-            <YAxis stroke="#3a5a8a" tick={{fontSize: 12}}/>
-            <Tooltip contentStyle={{background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0"}}/>
-            <Area type="monotone" dataKey="receita" stroke="#3b6fd4" fill="url(#receita)" strokeWidth={2} name={t.dashboard.receitas}/>
-            <Area type="monotone" dataKey="custos" stroke="#34d399" fill="url(#custos)" strokeWidth={2} name={t.dashboard.custos}/>
-          </AreaChart>
-        </ResponsiveContainer>
+      {/* KPIs Avançados */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {kpisAvancados.map((kpi, i) => (
+          <div key={i} className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${kpi.cor}25` }}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">{kpi.icon}</span>
+              <p className="text-xs font-semibold" style={{ color: "#3a5a8a" }}>{kpi.label}</p>
+            </div>
+            <p className="text-xl font-bold mb-1" style={{ color: kpi.cor }}>{kpi.value}</p>
+            <p className="text-xs" style={{ color: "#3a5a8a" }}>{kpi.sub}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="rounded-2xl p-6" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-        <h3 className="text-sm font-semibold mb-4" style={{color: "#c8d8f0"}}>{t.dashboard.insights}</h3>
-        <div className="space-y-3">
-          {insights[idioma].map((insight, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{background: insight.tipo === "alerta" ? "rgba(248,113,113,0.05)" : "rgba(52,211,153,0.05)", border: `1px solid ${insight.tipo === "alerta" ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)"}`}}>
-              <AlertTriangle size={16} style={{color: insight.tipo === "alerta" ? "#f87171" : "#34d399", marginTop: 2}}/>
-              <p className="text-sm" style={{color: "#8aaad4"}}>{insight.texto}</p>
+      {/* Previsão de Caixa */}
+      <div className="rounded-2xl p-5 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <p className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>🔮 Previsão de Caixa</p>
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: "30 dias", valor: previsao30 },
+            { label: "60 dias", valor: previsao60 },
+            { label: "90 dias", valor: previsao90 },
+          ].map((p, i) => (
+            <div key={i} className="rounded-xl p-4 text-center" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(59,111,212,0.1)" }}>
+              <p className="text-xs mb-2" style={{ color: "#3a5a8a" }}>{p.label}</p>
+              <p className="text-lg font-bold" style={{ color: "#6ab0ff" }}>{fmt(p.valor)}</p>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Gráfico */}
+      <div className="rounded-2xl p-6 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <h3 className="text-sm font-semibold mb-6" style={{ color: "#c8d8f0" }}>{t.dashboard.grafico}</h3>
+        <ResponsiveContainer width="100%" height={250}>
+          <AreaChart data={dadosGrafico}>
+            <defs>
+              <linearGradient id="receita" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b6fd4" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#3b6fd4" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="custos" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#34d399" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(59,111,212,0.1)" />
+            <XAxis dataKey="mes" stroke="#3a5a8a" tick={{ fontSize: 12 }} />
+            <YAxis stroke="#3a5a8a" tick={{ fontSize: 12 }} />
+            <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0" }} />
+            <Area type="monotone" dataKey="receita" stroke="#3b6fd4" fill="url(#receita)" strokeWidth={2} name={t.dashboard.receitas} />
+            <Area type="monotone" dataKey="custos" stroke="#34d399" fill="url(#custos)" strokeWidth={2} name={t.dashboard.custos} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Insights da IA */}
+      <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <h3 className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{t.dashboard.insights}</h3>
+        <div className="space-y-3">
+          {insights[idioma].map((insight, i) => (
+            <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: insight.tipo === "alerta" ? "rgba(248,113,113,0.05)" : "rgba(52,211,153,0.05)", border: `1px solid ${insight.tipo === "alerta" ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)"}` }}>
+              <AlertTriangle size={16} style={{ color: insight.tipo === "alerta" ? "#f87171" : "#34d399", marginTop: 2 }} />
+              <p className="text-sm" style={{ color: "#8aaad4" }}>{insight.texto}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }
