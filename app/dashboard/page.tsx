@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../lib/LanguageContext";
-import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle, Target, Activity, CreditCard } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Image from "next/image";
 import { createBrowserClient } from "@supabase/ssr";
@@ -15,6 +15,7 @@ const supabase = createBrowserClient(
 export default function Dashboard() {
   const router = useRouter();
   const { t, idioma } = useLanguage();
+  const d = t.dashboard;
 
   const [loading, setLoading] = useState(true);
   const [receitas, setReceitas] = useState(0);
@@ -23,9 +24,7 @@ export default function Dashboard() {
   const [dividas, setDividas] = useState(0);
   const [dadosGrafico, setDadosGrafico] = useState<any[]>([]);
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
+  useEffect(() => { carregarDados(); }, []);
 
   async function carregarDados() {
     setLoading(true);
@@ -37,140 +36,75 @@ export default function Dashboard() {
     const inicioMes = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-01`;
     const fimMes = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-31`;
 
-    // Receitas do mês
-    const { data: rec } = await supabase
-      .from("receitas")
-      .select("valor")
-      .eq("user_id", user.id)
-      .gte("data", inicioMes)
-      .lte("data", fimMes);
+    const { data: rec } = await supabase.from("receitas").select("valor").eq("user_id", user.id).gte("data", inicioMes).lte("data", fimMes);
     const totalReceitas = rec?.reduce((s, r) => s + (r.valor || 0), 0) || 0;
     setReceitas(totalReceitas);
 
-    // Custos Fixos do mês
-    const { data: cf } = await supabase
-      .from("custos_fixos")
-      .select("valor_mensal")
-      .eq("user_id", user.id);
+    const { data: cf } = await supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id);
     const totalFixos = cf?.reduce((s, r) => s + (r.valor_mensal || 0), 0) || 0;
     setCustosFixos(totalFixos);
 
-    // Custos Variáveis do mês
-    const { data: cv } = await supabase
-      .from("custos_variaveis")
-      .select("valor")
-      .eq("user_id", user.id)
-      .gte("data", inicioMes)
-      .lte("data", fimMes);
+    const { data: cv } = await supabase.from("custos_variaveis").select("valor").eq("user_id", user.id).gte("data", inicioMes).lte("data", fimMes);
     const totalVariaveis = cv?.reduce((s, r) => s + (r.valor || 0), 0) || 0;
     setCustosVariaveis(totalVariaveis);
 
-    // Dívidas
-    const { data: div } = await supabase
-      .from("dividas")
-      .select("valor_total")
-      .eq("user_id", user.id);
+    const { data: div } = await supabase.from("dividas").select("valor_total").eq("user_id", user.id);
     const totalDividas = div?.reduce((s, r) => s + (r.valor_total || 0), 0) || 0;
     setDividas(totalDividas);
 
-    // Dados para o gráfico (últimos 6 meses)
-    const meses = [];
     const nomesMeses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+    const meses = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const m = d.getMonth() + 1;
-      const a = d.getFullYear();
+      const dt = new Date();
+      dt.setMonth(dt.getMonth() - i);
+      const m = dt.getMonth() + 1;
+      const a = dt.getFullYear();
       const inicio = `${a}-${String(m).padStart(2, "0")}-01`;
       const fim = `${a}-${String(m).padStart(2, "0")}-31`;
-
       const { data: rMes } = await supabase.from("receitas").select("valor").eq("user_id", user.id).gte("data", inicio).lte("data", fim);
       const { data: cMes } = await supabase.from("custos_variaveis").select("valor").eq("user_id", user.id).gte("data", inicio).lte("data", fim);
-
       const rTotal = rMes?.reduce((s, r) => s + (r.valor || 0), 0) || 0;
       const cTotal = (cMes?.reduce((s, r) => s + (r.valor || 0), 0) || 0) + totalFixos;
-
       meses.push({ mes: nomesMeses[m - 1], receita: rTotal, custos: cTotal });
     }
     setDadosGrafico(meses);
     setLoading(false);
   }
 
-  // KPIs calculados
   const lucro = receitas - custosFixos - custosVariaveis;
   const margemContribuicao = receitas - custosVariaveis;
   const margemPerc = receitas > 0 ? ((margemContribuicao / receitas) * 100).toFixed(1) : "0";
   const pontoEquilibrio = margemContribuicao > 0 ? (custosFixos / (margemContribuicao / (receitas || 1))) : 0;
   const capitalGiro = receitas - custosFixos - custosVariaveis;
   const indiceEndividamento = receitas > 0 ? ((dividas / receitas) * 100).toFixed(1) : "0";
-  const previsao30 = receitas * 1;
-  const previsao60 = receitas * 2;
-  const previsao90 = receitas * 3;
   const score = Math.min(100, Math.max(0, Math.round(50 + (lucro / (receitas || 1)) * 100)));
-
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const cards = [
-    { label: t.dashboard.faturamento, value: fmt(receitas), change: "mês atual", up: true, icon: TrendingUp },
-    { label: t.dashboard.custos, value: fmt(custosFixos + custosVariaveis), change: "fixos + variáveis", up: false, icon: TrendingDown },
-    { label: t.dashboard.lucro, value: fmt(lucro), change: lucro >= 0 ? "positivo" : "negativo", up: lucro >= 0, icon: DollarSign },
-    { label: t.dashboard.score, value: `${score}/100`, change: score >= 70 ? "bom" : "atenção", up: score >= 70, icon: BarChart2 },
+    { label: d.faturamento, value: fmt(receitas), change: d.mesAtual, up: true, icon: TrendingUp },
+    { label: d.custos, value: fmt(custosFixos + custosVariaveis), change: d.fixosVariaveis, up: false, icon: TrendingDown },
+    { label: d.lucro, value: fmt(lucro), change: lucro >= 0 ? d.positivo : d.negativo, up: lucro >= 0, icon: DollarSign },
+    { label: d.score, value: `${score}/100`, change: score >= 70 ? d.bomScore : d.atencao, up: score >= 70, icon: BarChart2 },
   ];
 
   const kpisAvancados = [
-    {
-      label: "Margem de Contribuição",
-      value: fmt(margemContribuicao),
-      sub: `${margemPerc}% da receita`,
-      cor: margemContribuicao >= 0 ? "#34d399" : "#f87171",
-      icon: "📊",
-    },
-    {
-      label: "Ponto de Equilíbrio",
-      value: fmt(pontoEquilibrio),
-      sub: receitas >= pontoEquilibrio ? "✓ Acima do ponto" : "⚠ Abaixo do ponto",
-      cor: receitas >= pontoEquilibrio ? "#34d399" : "#f87171",
-      icon: "⚖️",
-    },
-    {
-      label: "Capital de Giro",
-      value: fmt(capitalGiro),
-      sub: capitalGiro >= 0 ? "Situação saudável" : "Atenção necessária",
-      cor: capitalGiro >= 0 ? "#34d399" : "#f87171",
-      icon: "💧",
-    },
-    {
-      label: "Índice de Endividamento",
-      value: `${indiceEndividamento}%`,
-      sub: Number(indiceEndividamento) <= 30 ? "Nível saudável" : "Nível elevado",
-      cor: Number(indiceEndividamento) <= 30 ? "#34d399" : "#f87171",
-      icon: "📉",
-    },
+    { label: d.margemContribuicao, value: fmt(margemContribuicao), sub: `${margemPerc}% ${d.daReceita}`, cor: margemContribuicao >= 0 ? "#34d399" : "#f87171", icon: "📊" },
+    { label: d.pontoEquilibrio, value: fmt(pontoEquilibrio), sub: receitas >= pontoEquilibrio ? d.acimaPonto : d.abaixoPonto, cor: receitas >= pontoEquilibrio ? "#34d399" : "#f87171", icon: "⚖️" },
+    { label: d.capitalGiro, value: fmt(capitalGiro), sub: capitalGiro >= 0 ? d.situacaoSaudavel : d.atencaoNecessaria, cor: capitalGiro >= 0 ? "#34d399" : "#f87171", icon: "💧" },
+    { label: d.indiceEndividamento, value: `${indiceEndividamento}%`, sub: Number(indiceEndividamento) <= 30 ? d.nivelSaudavel : d.nivelElevado, cor: Number(indiceEndividamento) <= 30 ? "#34d399" : "#f87171", icon: "📉" },
   ];
 
-  const insights = {
-    pt: [
-      { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `Lucro de ${fmt(lucro)} este mês. Bom desempenho!` : `Prejuízo de ${fmt(Math.abs(lucro))} este mês. Revise seus custos.` },
-      { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `Índice de endividamento em ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? "Situação controlada." : "Recomendado reduzir dívidas."}` },
-      { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `Margem de contribuição de ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? "Cobrindo os custos fixos." : "Insuficiente para cobrir custos fixos."}` },
-    ],
-    en: [
-      { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `Profit of ${fmt(lucro)} this month. Good performance!` : `Loss of ${fmt(Math.abs(lucro))} this month. Review your costs.` },
-      { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `Debt index at ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? "Controlled situation." : "Recommended to reduce debts."}` },
-      { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `Contribution margin of ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? "Covering fixed costs." : "Insufficient to cover fixed costs."}` },
-    ],
-    es: [
-      { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `Beneficio de ${fmt(lucro)} este mes. ¡Buen rendimiento!` : `Pérdida de ${fmt(Math.abs(lucro))} este mes. Revise sus costos.` },
-      { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `Índice de endeudamiento en ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? "Situación controlada." : "Se recomienda reducir deudas."}` },
-      { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `Margen de contribución de ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? "Cubriendo costos fijos." : "Insuficiente para cubrir costos fijos."}` },
-    ],
-  };
+  const insights = [
+    { tipo: lucro >= 0 ? "positivo" : "alerta", texto: lucro >= 0 ? `${d.lucro}: ${fmt(lucro)}. ${d.bom}!` : `${d.lucro}: ${fmt(lucro)}. ${d.atencaoNecessaria}.` },
+    { tipo: Number(indiceEndividamento) <= 30 ? "positivo" : "alerta", texto: `${d.indiceEndividamento}: ${indiceEndividamento}%. ${Number(indiceEndividamento) <= 30 ? d.situacaoControlada : d.recomendadoReduzir}` },
+    { tipo: margemContribuicao >= custosFixos ? "positivo" : "alerta", texto: `${d.margemContribuicao}: ${fmt(margemContribuicao)}. ${margemContribuicao >= custosFixos ? d.cobrindoFixos : d.insuficienteFixos}` },
+  ];
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#020810" }}>
       <div className="text-center">
         <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-        <p style={{ color: "#3a5a8a" }}>Carregando...</p>
+        <p style={{ color: "#3a5a8a" }}>{t.geral.carregando}</p>
       </div>
     </div>
   );
@@ -185,8 +119,8 @@ export default function Dashboard() {
             <Image src="/logo-aitech.png" alt="Axioma" width={60} height={60} className="object-contain" />
           </div>
           <div>
-            <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: "#3a5a8a" }}>{t.dashboard.inteligencia}</p>
-            <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{t.dashboard.bemvindo}</h2>
+            <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: "#3a5a8a" }}>{d.inteligencia}</p>
+            <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{d.bemvindo}</h2>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -233,12 +167,12 @@ export default function Dashboard() {
 
       {/* Previsão de Caixa */}
       <div className="rounded-2xl p-5 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-        <p className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>🔮 Previsão de Caixa</p>
+        <p className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{d.previsaoCaixa}</p>
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "30 dias", valor: previsao30 },
-            { label: "60 dias", valor: previsao60 },
-            { label: "90 dias", valor: previsao90 },
+            { label: d.trintaDias, valor: receitas },
+            { label: d.sessentaDias, valor: receitas * 2 },
+            { label: d.noventaDias, valor: receitas * 3 },
           ].map((p, i) => (
             <div key={i} className="rounded-xl p-4 text-center" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(59,111,212,0.1)" }}>
               <p className="text-xs mb-2" style={{ color: "#3a5a8a" }}>{p.label}</p>
@@ -250,7 +184,7 @@ export default function Dashboard() {
 
       {/* Gráfico */}
       <div className="rounded-2xl p-6 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-        <h3 className="text-sm font-semibold mb-6" style={{ color: "#c8d8f0" }}>{t.dashboard.grafico}</h3>
+        <h3 className="text-sm font-semibold mb-6" style={{ color: "#c8d8f0" }}>{d.grafico}</h3>
         <ResponsiveContainer width="100%" height={250}>
           <AreaChart data={dadosGrafico}>
             <defs>
@@ -267,17 +201,17 @@ export default function Dashboard() {
             <XAxis dataKey="mes" stroke="#3a5a8a" tick={{ fontSize: 12 }} />
             <YAxis stroke="#3a5a8a" tick={{ fontSize: 12 }} />
             <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0" }} />
-            <Area type="monotone" dataKey="receita" stroke="#3b6fd4" fill="url(#receita)" strokeWidth={2} name={t.dashboard.receitas} />
-            <Area type="monotone" dataKey="custos" stroke="#34d399" fill="url(#custos)" strokeWidth={2} name={t.dashboard.custos} />
+            <Area type="monotone" dataKey="receita" stroke="#3b6fd4" fill="url(#receita)" strokeWidth={2} name={d.receitas} />
+            <Area type="monotone" dataKey="custos" stroke="#34d399" fill="url(#custos)" strokeWidth={2} name={d.custos} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Insights da IA */}
+      {/* Insights */}
       <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-        <h3 className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{t.dashboard.insights}</h3>
+        <h3 className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{d.insights}</h3>
         <div className="space-y-3">
-          {insights[idioma].map((insight, i) => (
+          {insights.map((insight, i) => (
             <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: insight.tipo === "alerta" ? "rgba(248,113,113,0.05)" : "rgba(52,211,153,0.05)", border: `1px solid ${insight.tipo === "alerta" ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)"}` }}>
               <AlertTriangle size={16} style={{ color: insight.tipo === "alerta" ? "#f87171" : "#34d399", marginTop: 2 }} />
               <p className="text-sm" style={{ color: "#8aaad4" }}>{insight.texto}</p>
