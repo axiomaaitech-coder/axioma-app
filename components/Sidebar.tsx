@@ -16,6 +16,7 @@ export default function Sidebar() {
     { label: t.nav.fornecedores, path: "/fornecedores" },
     { label: t.nav.endividamento, path: "/endividamento" },
     { label: t.nav.fluxoCaixa, path: "/fluxo-caixa" },
+    { label: t.nav.centrosCusto, path: "/centros-custo" },
     { label: t.nav.iaFinanceira, path: "/ia-financeira" },
     { label: t.nav.iaTributaria, path: "/ia-tributaria" },
     { label: t.nav.empresa, path: "/empresa" },
@@ -34,7 +35,7 @@ export default function Sidebar() {
         <p className="text-xs tracking-widest" style={{color: "#3a5a8a"}}>AI.TECH</p>
       </div>
 
-      {/* Seletor de idioma — logo abaixo do logo */}
+      {/* Seletor de idioma */}
       <div className="px-4 py-3 border-b" style={{borderColor: "rgba(59,111,212,0.15)"}}>
         <SeletorIdioma/>
       </div>
