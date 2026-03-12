@@ -1,6 +1,5 @@
 export const traducoes = {
   pt: {
-    // Navegação
     nav: {
       dashboard: "Dashboard",
       receitas: "Receitas",
@@ -14,10 +13,10 @@ export const traducoes = {
       empresa: "Empresa",
       relatorios: "Relatórios",
       centrosCusto: "Centros de Custo",
+      importar: "Importar Documentos",
       iaTributariaPremium: "⚡ IA Tributária Premium",
       pagarMenos: "Pague menos impostos",
     },
-    // Geral
     geral: {
       salvar: "Salvar",
       salvo: "✓ Salvo!",
@@ -38,7 +37,6 @@ export const traducoes = {
       categoria: "Categoria",
       todas: "Todas",
     },
-    // Login
     login: {
       bemvindo: "Bem-vindo de volta",
       email: "E-mail",
@@ -51,7 +49,6 @@ export const traducoes = {
       placeholder_email: "seu@email.com.br",
       rodape: "© 2026 Axioma AI.Tech — Todos os direitos reservados",
     },
-    // Dashboard
     dashboard: {
       inteligencia: "INTELIGÊNCIA FINANCEIRA COM IA",
       bemvindo: "Bem-vindo, Elias Tavares 👋",
@@ -67,7 +64,6 @@ export const traducoes = {
       fixos: "Fixos + Variáveis",
       mes: "+12% este mês",
     },
-    // Receitas
     receitas: {
       titulo: "Receitas",
       subtitulo: "Gerencie suas entradas e faturamento",
@@ -83,7 +79,6 @@ export const traducoes = {
       status: "Status",
       salvarReceita: "Salvar Receita",
     },
-    // Custos Fixos
     custosFixos: {
       titulo: "Custos Fixos",
       subtitulo: "Gerencie seus custos recorrentes mensais",
@@ -97,7 +92,6 @@ export const traducoes = {
       vencimento: "Dia Vencimento",
       salvarCusto: "Salvar Custo Fixo",
     },
-    // Custos Variáveis
     custosVariaveis: {
       titulo: "Custos Variáveis",
       subtitulo: "Gerencie seus custos por demanda",
@@ -109,7 +103,6 @@ export const traducoes = {
       percentual: "% do Total",
       salvarCusto: "Salvar Custo",
     },
-    // Fornecedores
     fornecedores: {
       titulo: "Fornecedores",
       subtitulo: "Gerencie seus fornecedores e gastos",
@@ -125,7 +118,6 @@ export const traducoes = {
       valorMensal: "Valor Mensal (R$)",
       salvarFornecedor: "Salvar Fornecedor",
     },
-    // Endividamento
     endividamento: {
       titulo: "Endividamento",
       subtitulo: "Gerencie empréstimos, financiamentos e dívidas",
@@ -143,7 +135,6 @@ export const traducoes = {
       parcelas: "parcelas",
       salvarDivida: "Salvar Dívida",
     },
-    // Fluxo de Caixa
     fluxoCaixa: {
       titulo: "Fluxo de Caixa",
       subtitulo: "Entradas, saídas e previsão 30/60/90 dias",
@@ -161,7 +152,6 @@ export const traducoes = {
       previsto: "⏳ Previsto",
       salvarLancamento: "Salvar Lançamento",
     },
-    // Relatórios
     relatorios: {
       titulo: "Relatórios",
       subtitulo: "Análises completas do seu negócio",
@@ -173,7 +163,6 @@ export const traducoes = {
       abaixoMeta: "↓ Abaixo da meta",
       meta: "Meta",
     },
-    // Empresa
     empresa: {
       titulo: "Configurações",
       subtitulo: "Gerencie sua empresa e preferências",
@@ -184,7 +173,6 @@ export const traducoes = {
       dadosEmpresa: "Dados da Empresa",
       planoAtual: "PLANO ATUAL",
     },
-    // Centros de Custo
     centrosCusto: {
       titulo: "Centros de Custo",
       subtitulo: "Gerencie e distribua seus custos por área",
@@ -214,6 +202,35 @@ export const traducoes = {
       salvarLancamento: "Salvar Lançamento",
       comparativo: "Comparativo por Centro",
     },
+    importar: {
+      titulo: "Importar Documentos",
+      subtitulo: "A IA lê seu documento e lança automaticamente",
+      arrasteAqui: "Arraste seu arquivo aqui",
+      ouClique: "ou clique para selecionar",
+      formatosAceitos: "PDF, XML, Excel e CSV aceitos",
+      analisando: "Analisando documento...",
+      tipoIdentificado: "Tipo identificado",
+      destinoSugerido: "Destino sugerido",
+      confirmarLancamento: "Confirmar e Lançar",
+      cancelar: "Cancelar",
+      novoImporte: "Importar Novo",
+      historico: "Histórico de Importações",
+      semImportacoes: "Nenhuma importação realizada ainda.",
+      sucesso: "✓ Lançado com sucesso!",
+      erro: "Erro ao processar documento.",
+      processado: "Processado",
+      falhou: "Falhou",
+      arquivo: "Arquivo",
+      data: "Data",
+      destino: "Destino",
+      status: "Status",
+      extratoBancario: "Extrato Bancário → Fluxo de Caixa + Receitas",
+      notaFiscal: "Nota Fiscal → Fornecedores + Custos",
+      planilhaVendas: "Planilha de Vendas → Receitas",
+      contratoDivida: "Contrato de Dívida → Endividamento",
+      folhaPagamento: "Folha de Pagamento → Custos Fixos",
+      documentoFiscal: "Documento Fiscal → IA Tributária",
+    },
   },
 
   en: {
@@ -230,6 +247,7 @@ export const traducoes = {
       empresa: "Company",
       relatorios: "Reports",
       centrosCusto: "Cost Centers",
+      importar: "Import Documents",
       iaTributariaPremium: "⚡ Tax AI Premium",
       pagarMenos: "Pay less taxes",
     },
@@ -418,6 +436,35 @@ export const traducoes = {
       salvarLancamento: "Save Entry",
       comparativo: "Comparison by Center",
     },
+    importar: {
+      titulo: "Import Documents",
+      subtitulo: "AI reads your document and launches automatically",
+      arrasteAqui: "Drag your file here",
+      ouClique: "or click to select",
+      formatosAceitos: "PDF, XML, Excel and CSV accepted",
+      analisando: "Analyzing document...",
+      tipoIdentificado: "Identified type",
+      destinoSugerido: "Suggested destination",
+      confirmarLancamento: "Confirm and Launch",
+      cancelar: "Cancel",
+      novoImporte: "Import New",
+      historico: "Import History",
+      semImportacoes: "No imports yet.",
+      sucesso: "✓ Successfully launched!",
+      erro: "Error processing document.",
+      processado: "Processed",
+      falhou: "Failed",
+      arquivo: "File",
+      data: "Date",
+      destino: "Destination",
+      status: "Status",
+      extratoBancario: "Bank Statement → Cash Flow + Revenue",
+      notaFiscal: "Invoice → Suppliers + Costs",
+      planilhaVendas: "Sales Spreadsheet → Revenue",
+      contratoDivida: "Debt Contract → Debt",
+      folhaPagamento: "Payroll → Fixed Costs",
+      documentoFiscal: "Tax Document → Tax AI",
+    },
   },
 
   es: {
@@ -434,6 +481,7 @@ export const traducoes = {
       empresa: "Empresa",
       relatorios: "Informes",
       centrosCusto: "Centros de Costo",
+      importar: "Importar Documentos",
       iaTributariaPremium: "⚡ IA Tributaria Premium",
       pagarMenos: "Paga menos impuestos",
     },
@@ -621,6 +669,35 @@ export const traducoes = {
       semLancamentos: "No se encontraron registros.",
       salvarLancamento: "Guardar Registro",
       comparativo: "Comparativo por Centro",
+    },
+    importar: {
+      titulo: "Importar Documentos",
+      subtitulo: "La IA lee su documento y lanza automáticamente",
+      arrasteAqui: "Arrastre su archivo aquí",
+      ouClique: "o haga clic para seleccionar",
+      formatosAceitos: "PDF, XML, Excel y CSV aceptados",
+      analisando: "Analizando documento...",
+      tipoIdentificado: "Tipo identificado",
+      destinoSugerido: "Destino sugerido",
+      confirmarLancamento: "Confirmar y Lanzar",
+      cancelar: "Cancelar",
+      novoImporte: "Importar Nuevo",
+      historico: "Historial de Importaciones",
+      semImportacoes: "Ninguna importación realizada aún.",
+      sucesso: "✓ ¡Lanzado con éxito!",
+      erro: "Error al procesar documento.",
+      processado: "Procesado",
+      falhou: "Fallido",
+      arquivo: "Archivo",
+      data: "Fecha",
+      destino: "Destino",
+      status: "Estado",
+      extratoBancario: "Extracto Bancario → Flujo de Caja + Ingresos",
+      notaFiscal: "Factura → Proveedores + Costos",
+      planilhaVendas: "Hoja de Ventas → Ingresos",
+      contratoDivida: "Contrato de Deuda → Endeudamiento",
+      folhaPagamento: "Nómina → Costos Fijos",
+      documentoFiscal: "Documento Fiscal → IA Tributaria",
     },
   },
 };
