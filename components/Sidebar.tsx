@@ -16,6 +16,7 @@ export default function Sidebar() {
     { label: t.nav.fornecedores, path: "/fornecedores" },
     { label: t.nav.endividamento, path: "/endividamento" },
     { label: t.nav.fluxoCaixa, path: "/fluxo-caixa" },
+    { label: "📈 " + t.nav.dre, path: "/dre" },
     { label: t.nav.centrosCusto, path: "/centros-custo" },
     { label: "📄 " + t.nav.importar, path: "/importar" },
     { label: t.nav.iaFinanceira, path: "/ia-financeira" },

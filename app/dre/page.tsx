@@ -1,0 +1,172 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useLanguage } from "../../lib/LanguageContext";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export default function DREPage() {
+  const { t } = useLanguage();
+  const d = t.dre;
+
+  const [loading, setLoading] = useState(true);
+  const [periodo, setPeriodo] = useState("mes");
+  const [receitas, setReceitas] = useState(0);
+  const [custosFixos, setCustosFixos] = useState(0);
+  const [custosVariaveis, setCustosVariaveis] = useState(0);
+
+  useEffect(() => { carregarDados(); }, [periodo]);
+
+  async function carregarDados() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const hoje = new Date();
+    let inicio = "";
+    let fim = "";
+
+    if (periodo === "mes") {
+      inicio = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+      fim = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-31`;
+    } else if (periodo === "trimestre") {
+      const trimInicio = Math.floor(hoje.getMonth() / 3) * 3;
+      inicio = `${hoje.getFullYear()}-${String(trimInicio + 1).padStart(2, "0")}-01`;
+      fim = `${hoje.getFullYear()}-${String(trimInicio + 3).padStart(2, "0")}-31`;
+    } else {
+      inicio = `${hoje.getFullYear()}-01-01`;
+      fim = `${hoje.getFullYear()}-12-31`;
+    }
+
+    const { data: rec } = await supabase.from("receitas").select("valor").eq("user_id", user.id).gte("data", inicio).lte("data", fim);
+    const { data: cf } = await supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id);
+    const { data: cv } = await supabase.from("custos_variaveis").select("valor").eq("user_id", user.id).gte("data", inicio).lte("data", fim);
+
+    const meses = periodo === "mes" ? 1 : periodo === "trimestre" ? 3 : 12;
+
+    setReceitas(rec?.reduce((s, r) => s + (r.valor || 0), 0) || 0);
+    setCustosFixos((cf?.reduce((s, r) => s + (r.valor_mensal || 0), 0) || 0) * meses);
+    setCustosVariaveis(cv?.reduce((s, r) => s + (r.valor || 0), 0) || 0);
+    setLoading(false);
+  }
+
+  const impostos = receitas * 0.06;
+  const receitaLiquida = receitas - impostos;
+  const lucroBruto = receitaLiquida - custosVariaveis;
+  const ebitda = lucroBruto - custosFixos;
+  const lucroLiquido = ebitda;
+  const margemBruta = receitas > 0 ? ((lucroBruto / receitas) * 100).toFixed(1) : "0";
+  const margemLiquida = receitas > 0 ? ((lucroLiquido / receitas) * 100).toFixed(1) : "0";
+
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const linhas = [
+    { label: d.receitaBruta, valor: receitas, nivel: 0, destaque: true, cor: "#6ab0ff" },
+    { label: d.deducoes, valor: -impostos, nivel: 1, destaque: false, cor: "#f87171" },
+    { label: d.receitaLiquida, valor: receitaLiquida, nivel: 0, destaque: true, cor: "#c8d8f0", separador: true },
+    { label: d.custosVariaveis, valor: -custosVariaveis, nivel: 1, destaque: false, cor: "#f87171" },
+    { label: d.lucroBruto, valor: lucroBruto, nivel: 0, destaque: true, cor: lucroBruto >= 0 ? "#34d399" : "#f87171", separador: true },
+    { label: d.custosFixos, valor: -custosFixos, nivel: 1, destaque: false, cor: "#f87171" },
+    { label: d.ebitda, valor: ebitda, nivel: 0, destaque: true, cor: ebitda >= 0 ? "#34d399" : "#f87171", separador: true },
+    { label: d.lucroLiquido, valor: lucroLiquido, nivel: 0, destaque: true, cor: lucroLiquido >= 0 ? "#34d399" : "#f87171", separador: true },
+  ];
+
+  return (
+    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>📈 {d.titulo}</h1>
+          <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{d.subtitulo}</p>
+        </div>
+
+        {/* Filtro de período */}
+        <div className="flex gap-2">
+          {[
+            { key: "mes", label: d.mesAtual },
+            { key: "trimestre", label: d.trimestre },
+            { key: "ano", label: d.anoAtual },
+          ].map((p) => (
+            <button key={p.key} onClick={() => setPeriodo(p.key)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: periodo === p.key ? "rgba(59,111,212,0.3)" : "rgba(10,22,40,0.8)", color: periodo === p.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${periodo === p.key ? "rgba(59,111,212,0.4)" : "rgba(59,111,212,0.15)"}` }}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-6">
+
+          {/* Coluna principal — DRE */}
+          <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+            <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(59,111,212,0.1)" }}>
+              <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#3a5a8a" }}>{d.periodo}: {d[periodo as keyof typeof d] || d.mesAtual}</p>
+            </div>
+
+            <div className="p-6 space-y-1">
+              {linhas.map((linha, i) => (
+                <div key={i}>
+                  {linha.separador && <div className="my-3" style={{ borderTop: "1px solid rgba(59,111,212,0.1)" }} />}
+                  <div className="flex justify-between items-center py-2.5 px-3 rounded-xl transition-all hover:bg-white/5" style={{ paddingLeft: linha.nivel === 1 ? "2rem" : "0.75rem" }}>
+                    <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.destaque ? "#c8d8f0" : "#5a7a9a" }}>
+                      {linha.label}
+                    </span>
+                    <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.cor }}>
+                      {fmt(linha.valor)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Coluna lateral — Indicadores */}
+          <div className="space-y-4">
+
+            {/* Margem Bruta */}
+            <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.margemBruta}</p>
+              <p className="text-3xl font-black" style={{ color: Number(margemBruta) >= 0 ? "#34d399" : "#f87171" }}>{margemBruta}%</p>
+              <div className="mt-3 rounded-full h-2" style={{ background: "rgba(59,111,212,0.1)" }}>
+                <div className="h-2 rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, Number(margemBruta)))}%`, background: Number(margemBruta) >= 0 ? "#34d399" : "#f87171" }} />
+              </div>
+            </div>
+
+            {/* Margem Líquida */}
+            <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.margemLiquida}</p>
+              <p className="text-3xl font-black" style={{ color: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171" }}>{margemLiquida}%</p>
+              <div className="mt-3 rounded-full h-2" style={{ background: "rgba(59,111,212,0.1)" }}>
+                <div className="h-2 rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, Number(margemLiquida)))}%`, background: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171" }} />
+              </div>
+            </div>
+
+            {/* Lucro Líquido */}
+            <div className="rounded-2xl p-5" style={{ background: lucroLiquido >= 0 ? "rgba(52,211,153,0.08)" : "rgba(248,113,113,0.08)", border: `1px solid ${lucroLiquido >= 0 ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)"}` }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.lucroLiquido}</p>
+              <p className="text-2xl font-black" style={{ color: lucroLiquido >= 0 ? "#34d399" : "#f87171" }}>{fmt(lucroLiquido)}</p>
+              <p className="text-xs mt-2" style={{ color: lucroLiquido >= 0 ? "#34d399" : "#f87171" }}>
+                {lucroLiquido >= 0 ? "✓ Resultado positivo" : "⚠ Resultado negativo"}
+              </p>
+            </div>
+
+            {/* EBITDA */}
+            <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.ebitda}</p>
+              <p className="text-2xl font-black" style={{ color: ebitda >= 0 ? "#6ab0ff" : "#f87171" }}>{fmt(ebitda)}</p>
+            </div>
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
