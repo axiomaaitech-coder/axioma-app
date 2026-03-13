@@ -1,7 +1,10 @@
 ﻿"use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,14 +34,16 @@ type Lancamento = {
 };
 
 export default function CentrosCustoPage() {
-  const { t } = useLanguage();
+  const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
+  const conteudoRef = useRef<HTMLDivElement>(null);
 
   const [aba, setAba] = useState<"visao" | "centros" | "lancamentos">("visao");
   const [centros, setCentros] = useState<Centro[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
 
   const [modalCentro, setModalCentro] = useState(false);
   const [editandoCentro, setEditandoCentro] = useState<Centro | null>(null);
@@ -137,21 +142,57 @@ export default function CentrosCustoPage() {
     setCorCentro("#6ab0ff");
   }
 
+  const exportarPDF = async () => {
+    if (!conteudoRef.current) return;
+    setExportando(true);
+    try {
+      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.setFillColor(2, 8, 16);
+      pdf.rect(0, 0, pdfWidth, 20, "F");
+      pdf.setTextColor(106, 176, 255);
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("AXIOMA AI.TECH", 14, 13);
+      pdf.setTextColor(58, 90, 138);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${cc.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
+
+      let position = 22;
+      let remaining = pdfHeight;
+      while (remaining > 0) {
+        const sliceHeight = Math.min(pageHeight - position, remaining);
+        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
+        const sourceH = sliceHeight * (canvas.height / pdfHeight);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sourceH;
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.fillStyle = "#020810";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
+        remaining -= sliceHeight;
+        position = 0;
+        if (remaining > 0) { pdf.addPage(); position = 0; }
+      }
+      pdf.save(`axioma-centros-custo-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) { console.error(err); }
+    setExportando(false);
+  };
+
   const totalCustos = lancamentos.filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
   const totalReceitas = lancamentos.filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
   const saldoGeral = totalReceitas - totalCustos;
 
-  function getLancamentosPorCentro(centroId: string) {
-    return lancamentos.filter(l => l.centro_id === centroId);
-  }
-
-  function getCustosPorCentro(centroId: string) {
-    return getLancamentosPorCentro(centroId).filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
-  }
-
-  function getReceitasPorCentro(centroId: string) {
-    return getLancamentosPorCentro(centroId).filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
-  }
+  function getLancamentosPorCentro(centroId: string) { return lancamentos.filter(l => l.centro_id === centroId); }
+  function getCustosPorCentro(centroId: string) { return getLancamentosPorCentro(centroId).filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0); }
+  function getReceitasPorCentro(centroId: string) { return getLancamentosPorCentro(centroId).filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0); }
 
   const lancamentosFiltrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(busca.toLowerCase()));
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -168,13 +209,15 @@ export default function CentrosCustoPage() {
   return (
     <div className="flex-1 p-6 overflow-auto" style={{ background: "#020810", minHeight: "100vh" }}>
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>🏢 {cc.titulo}</h1>
           <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{cc.subtitulo}</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
+            <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
+          </button>
           <button onClick={() => setModalLancamento(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
             + {cc.novoLancamento}
           </button>
@@ -184,50 +227,45 @@ export default function CentrosCustoPage() {
         </div>
       </div>
 
-      {/* Cards KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: cc.totalCentros, valor: centros.length.toString(), cor: "#6ab0ff" },
-          { label: cc.totalCustos, valor: fmt(totalCustos), cor: "#f87171" },
-          { label: cc.totalReceitas, valor: fmt(totalReceitas), cor: "#34d399" },
-          { label: cc.saldoGeral, valor: fmt(saldoGeral), cor: saldoGeral >= 0 ? "#34d399" : "#f87171" },
-        ].map((card, i) => (
-          <div key={i} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-            <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
-            <p className="text-xl font-bold" style={{ color: card.cor }}>{card.valor}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Abas */}
-      <div className="flex gap-2 mb-6">
-        {[
-          { key: "visao", label: cc.abaVisaoGeral },
-          { key: "centros", label: cc.abaCentros },
-          { key: "lancamentos", label: cc.abaLancamentos },
-        ].map((a) => (
-          <button key={a.key} onClick={() => setAba(a.key as typeof aba)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
-            {a.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ABA VISAO GERAL */}
-      {aba === "visao" && (
-        <div className="space-y-4">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>📊 {cc.comparativo}</h2>
-          {centros.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-              <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
+      <div ref={conteudoRef}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: cc.totalCentros, valor: centros.length.toString(), cor: "#6ab0ff" },
+            { label: cc.totalCustos, valor: fmt(totalCustos), cor: "#f87171" },
+            { label: cc.totalReceitas, valor: fmt(totalReceitas), cor: "#34d399" },
+            { label: cc.saldoGeral, valor: fmt(saldoGeral), cor: saldoGeral >= 0 ? "#34d399" : "#f87171" },
+          ].map((card, i) => (
+            <div key={i} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
+              <p className="text-xl font-bold" style={{ color: card.cor }}>{card.valor}</p>
             </div>
-          ) : (
-            centros.map((centro) => {
+          ))}
+        </div>
+
+        <div className="flex gap-2 mb-6">
+          {[
+            { key: "visao", label: cc.abaVisaoGeral },
+            { key: "centros", label: cc.abaCentros },
+            { key: "lancamentos", label: cc.abaLancamentos },
+          ].map((a) => (
+            <button key={a.key} onClick={() => setAba(a.key as typeof aba)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        {aba === "visao" && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>📊 {cc.comparativo}</h2>
+            {centros.length === 0 ? (
+              <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+                <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
+              </div>
+            ) : centros.map((centro) => {
               const custos = getCustosPorCentro(centro.id);
               const receitas = getReceitasPorCentro(centro.id);
               const saldo = receitas - custos;
               const maxVal = Math.max(totalCustos, totalReceitas, 1);
-              const percCusto = (custos / maxVal) * 100;
-              const percReceita = (receitas / maxVal) * 100;
               return (
                 <div key={centro.id} className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${centro.cor}25` }}>
                   <div className="flex justify-between items-center mb-3">
@@ -239,38 +277,31 @@ export default function CentrosCustoPage() {
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <div className="flex justify-between text-xs mb-1" style={{ color: "#3a5a8a" }}>
-                        <span>{cc.custo}</span><span>{fmt(custos)}</span>
-                      </div>
+                      <div className="flex justify-between text-xs mb-1" style={{ color: "#3a5a8a" }}><span>{cc.custo}</span><span>{fmt(custos)}</span></div>
                       <div className="rounded-full h-1.5" style={{ background: "rgba(59,111,212,0.1)" }}>
-                        <div className="h-1.5 rounded-full" style={{ width: `${percCusto}%`, background: "#f87171" }} />
+                        <div className="h-1.5 rounded-full" style={{ width: `${(custos / maxVal) * 100}%`, background: "#f87171" }} />
                       </div>
                     </div>
                     <div>
-                      <div className="flex justify-between text-xs mb-1" style={{ color: "#3a5a8a" }}>
-                        <span>{cc.receita}</span><span>{fmt(receitas)}</span>
-                      </div>
+                      <div className="flex justify-between text-xs mb-1" style={{ color: "#3a5a8a" }}><span>{cc.receita}</span><span>{fmt(receitas)}</span></div>
                       <div className="rounded-full h-1.5" style={{ background: "rgba(59,111,212,0.1)" }}>
-                        <div className="h-1.5 rounded-full" style={{ width: `${percReceita}%`, background: "#34d399" }} />
+                        <div className="h-1.5 rounded-full" style={{ width: `${(receitas / maxVal) * 100}%`, background: "#34d399" }} />
                       </div>
                     </div>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-      )}
+            })}
+          </div>
+        )}
 
-      {/* ABA CENTROS */}
-      {aba === "centros" && (
-        <div className="space-y-3">
-          {centros.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-              <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
-            </div>
-          ) : (
-            centros.map((centro) => (
+        {aba === "centros" && (
+          <div className="space-y-3">
+            {centros.length === 0 ? (
+              <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+                <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
+              </div>
+            ) : centros.map((centro) => (
               <div key={centro.id} className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${centro.cor}25` }}>
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full" style={{ background: centro.cor }} />
@@ -284,22 +315,19 @@ export default function CentrosCustoPage() {
                   <button onClick={() => excluirCentro(centro.id)} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{cc.excluirCentro}</button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* ABA LANCAMENTOS */}
-      {aba === "lancamentos" && (
-        <div>
-          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar} className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
-          <div className="space-y-3">
-            {lancamentosFiltrados.length === 0 ? (
-              <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-                <p style={{ color: "#3a5a8a" }}>{cc.semLancamentos}</p>
-              </div>
-            ) : (
-              lancamentosFiltrados.map((lanc) => {
+        {aba === "lancamentos" && (
+          <div>
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar} className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
+            <div className="space-y-3">
+              {lancamentosFiltrados.length === 0 ? (
+                <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+                  <p style={{ color: "#3a5a8a" }}>{cc.semLancamentos}</p>
+                </div>
+              ) : lancamentosFiltrados.map((lanc) => {
                 const centro = centros.find(c => c.id === lanc.centro_id);
                 return (
                   <div key={lanc.id} className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
@@ -315,13 +343,12 @@ export default function CentrosCustoPage() {
                     </span>
                   </div>
                 );
-              })
-            )}
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* MODAL CENTRO */}
       {modalCentro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
@@ -354,7 +381,6 @@ export default function CentrosCustoPage() {
         </div>
       )}
 
-      {/* MODAL LANCAMENTO */}
       {modalLancamento && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
@@ -399,7 +425,6 @@ export default function CentrosCustoPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
