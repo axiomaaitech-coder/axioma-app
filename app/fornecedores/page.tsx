@@ -172,14 +172,14 @@ export default function Fornecedores() {
             <table className="w-full">
               <thead>
                 <tr style={{borderBottom: "1px solid rgba(59,111,212,0.15)"}}>
-                  {[t.fornecedores.nome, t.fornecedores.produto, t.fornecedores.contato, t.geral.mensal, t.geral.anual, t.geral.acoes].map(h => (
+                  {[t.fornecedores.nome, t.geral.categoria, t.fornecedores.produto, t.fornecedores.contato, t.geral.mensal, t.geral.anual, t.geral.acoes].map(h => (
                     <th key={h} className="text-left px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{color: "#3a5a8a"}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {fornecedoresFiltrados.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-12" style={{color: "#3a5a8a"}}>{t.fornecedores.semFornecedores}</td></tr>
+                  <tr><td colSpan={7} className="text-center py-12" style={{color: "#3a5a8a"}}>{t.fornecedores.semFornecedores}</td></tr>
                 ) : fornecedoresFiltrados.map((f, i) => (
                   <tr key={f.id} style={{borderBottom: i < fornecedoresFiltrados.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none"}}>
                     <td className="px-6 py-4">
@@ -188,6 +188,7 @@ export default function Fornecedores() {
                         <span className="text-sm" style={{color: "#c8d8f0"}}>{f.nome}</span>
                       </div>
                     </td>
+                    <td className="px-6 py-4"><span className="text-xs px-3 py-1 rounded-full" style={{background: "rgba(59,111,212,0.1)", color: "#6ab0ff"}}>{(f as any).categoria || "-"}</span></td>
                     <td className="px-6 py-4 text-sm" style={{color: "#c8d8f0"}}>{f.produto_servico}</td>
                     <td className="px-6 py-4 text-sm" style={{color: "#3a5a8a"}}>{f.contato}</td>
                     <td className="px-6 py-4 text-sm font-bold" style={{color: "#f87171"}}>R$ {f.valor_mensal.toLocaleString("pt-BR")}</td>
@@ -212,6 +213,12 @@ export default function Fornecedores() {
               <div>
                 <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.fornecedores.nome}</label>
                 <input value={novo.nome} onChange={(e) => setNovo({...novo, nome: e.target.value})} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
+              </div>
+              <div>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.geral.categoria}</label>
+                <select value={novo.categoria} onChange={(e) => setNovo({...novo, categoria: e.target.value})} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}>
+                  {categorias.map(c => <option key={c}>{c}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.fornecedores.produto}</label>
