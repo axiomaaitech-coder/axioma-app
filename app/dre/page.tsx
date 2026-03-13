@@ -1,7 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,14 +12,16 @@ const supabase = createBrowserClient(
 );
 
 export default function DREPage() {
-  const { t } = useLanguage();
+  const { t, idioma } = useLanguage();
   const d = t.dre;
+  const conteudoRef = useRef<HTMLDivElement>(null);
 
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("mes");
   const [receitas, setReceitas] = useState(0);
   const [custosFixos, setCustosFixos] = useState(0);
   const [custosVariaveis, setCustosVariaveis] = useState(0);
+  const [exportando, setExportando] = useState(false);
 
   useEffect(() => { carregarDados(); }, [periodo]);
 
@@ -53,6 +58,50 @@ export default function DREPage() {
     setLoading(false);
   }
 
+  const exportarPDF = async () => {
+    if (!conteudoRef.current) return;
+    setExportando(true);
+    try {
+      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.setFillColor(2, 8, 16);
+      pdf.rect(0, 0, pdfWidth, 20, "F");
+      pdf.setTextColor(106, 176, 255);
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("AXIOMA AI.TECH", 14, 13);
+      pdf.setTextColor(58, 90, 138);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${d.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
+
+      let position = 22;
+      let remaining = pdfHeight;
+      while (remaining > 0) {
+        const sliceHeight = Math.min(pageHeight - position, remaining);
+        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
+        const sourceH = sliceHeight * (canvas.height / pdfHeight);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sourceH;
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.fillStyle = "#020810";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
+        remaining -= sliceHeight;
+        position = 0;
+        if (remaining > 0) { pdf.addPage(); position = 0; }
+      }
+      pdf.save(`axioma-dre-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) { console.error(err); }
+    setExportando(false);
+  };
+
   const impostos = receitas * 0.06;
   const receitaLiquida = receitas - impostos;
   const lucroBruto = receitaLiquida - custosVariaveis;
@@ -76,7 +125,6 @@ export default function DREPage() {
 
   return (
     <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
-
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>
@@ -84,25 +132,30 @@ export default function DREPage() {
           </h1>
           <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{d.subtitulo}</p>
         </div>
-        <div className="flex gap-2">
-          {[
-            { key: "mes", label: d.mesAtual },
-            { key: "trimestre", label: d.trimestre },
-            { key: "ano", label: d.anoAtual },
-          ].map((p) => (
-            <button
-              key={p.key}
-              onClick={() => setPeriodo(p.key)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-              style={{
-                background: periodo === p.key ? "rgba(59,111,212,0.3)" : "rgba(10,22,40,0.8)",
-                color: periodo === p.key ? "#6ab0ff" : "#3a5a8a",
-                border: `1px solid ${periodo === p.key ? "rgba(59,111,212,0.4)" : "rgba(59,111,212,0.15)"}`,
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2">
+            {[
+              { key: "mes", label: d.mesAtual },
+              { key: "trimestre", label: d.trimestre },
+              { key: "ano", label: d.anoAtual },
+            ].map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPeriodo(p.key)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  background: periodo === p.key ? "rgba(59,111,212,0.3)" : "rgba(10,22,40,0.8)",
+                  color: periodo === p.key ? "#6ab0ff" : "#3a5a8a",
+                  border: `1px solid ${periodo === p.key ? "rgba(59,111,212,0.4)" : "rgba(59,111,212,0.15)"}`,
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{background: "#dc2626", color: "#fff"}}>
+            <Download size={18}/>{exportando ? "Gerando..." : "Exportar PDF"}
+          </button>
         </div>
       </div>
 
@@ -111,8 +164,7 @@ export default function DREPage() {
           <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-6">
-
+        <div ref={conteudoRef} className="grid grid-cols-3 gap-6">
           <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
             <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(59,111,212,0.1)" }}>
               <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#3a5a8a" }}>
@@ -129,16 +181,10 @@ export default function DREPage() {
                     className="flex justify-between items-center py-2.5 rounded-xl transition-all hover:bg-white/5"
                     style={{ paddingLeft: linha.nivel === 1 ? "2rem" : "0.75rem", paddingRight: "0.75rem" }}
                   >
-                    <span
-                      className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`}
-                      style={{ color: linha.destaque ? "#c8d8f0" : "#5a7a9a" }}
-                    >
+                    <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.destaque ? "#c8d8f0" : "#5a7a9a" }}>
                       {linha.label}
                     </span>
-                    <span
-                      className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`}
-                      style={{ color: linha.cor }}
-                    >
+                    <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.cor }}>
                       {fmt(linha.valor)}
                     </span>
                   </div>
@@ -177,7 +223,6 @@ export default function DREPage() {
               <p className="text-2xl font-black" style={{ color: ebitda >= 0 ? "#6ab0ff" : "#f87171" }}>{fmt(ebitda)}</p>
             </div>
           </div>
-
         </div>
       )}
     </div>
