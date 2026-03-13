@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, ArrowLeft, Trash2, X, Download } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,6 +32,7 @@ export default function CustosFixos() {
   const [novo, setNovo] = useState({ descricao: "", valor: "", vencimento: "", categoria: categorias[0] });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const conteudoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { carregarCustos(); }, []);
 
@@ -73,11 +74,15 @@ export default function CustosFixos() {
     setCustos(custos.filter(c => c.id !== id));
   };
 
-  const exportarPDF = () => {
+  const exportarPDF = async () => {
+    if (!conteudoRef.current) return;
     setExportando(true);
     try {
+      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
       pdf.setFillColor(2, 8, 16);
       pdf.rect(0, 0, pdfWidth, 20, "F");
@@ -88,33 +93,26 @@ export default function CustosFixos() {
       pdf.setTextColor(58, 90, 138);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
-      pdf.text(
-        `${t.custosFixos.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`,
-        pdfWidth - 14, 13, { align: "right" }
-      );
+      pdf.text(`${t.custosFixos.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
 
-      pdf.setFontSize(10);
-      pdf.setTextColor(200, 216, 240);
-      pdf.text(`Total Mensal: R$ ${totalMensal.toLocaleString("pt-BR")}`, 14, 30);
-      pdf.text(`Total Anual: R$ ${(totalMensal * 12).toLocaleString("pt-BR")}`, 14, 37);
-      pdf.text(`Itens: ${custos.length}`, 14, 44);
-
-      autoTable(pdf, {
-        startY: 50,
-        head: [[t.geral.descricao, t.geral.categoria, t.custosFixos.vencimento, t.custosFixos.valorMensal, t.custosFixos.valorAnual]],
-        body: custosFiltrados.map(c => [
-          c.descricao,
-          c.categoria,
-          `Dia ${c.dia_vencimento}`,
-          `R$ ${c.valor_mensal.toLocaleString("pt-BR")}`,
-          `R$ ${(c.valor_mensal * 12).toLocaleString("pt-BR")}`,
-        ]),
-        styles: { fontSize: 9, textColor: [200, 216, 240], fillColor: [10, 22, 40] },
-        headStyles: { fillColor: [26, 58, 143], textColor: [255, 255, 255], fontStyle: "bold" },
-        alternateRowStyles: { fillColor: [15, 30, 55] },
-        theme: "grid",
-      });
-
+      let position = 22;
+      let remaining = pdfHeight;
+      while (remaining > 0) {
+        const sliceHeight = Math.min(pageHeight - position, remaining);
+        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
+        const sourceH = sliceHeight * (canvas.height / pdfHeight);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sourceH;
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.fillStyle = "#020810";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
+        remaining -= sliceHeight;
+        position = 0;
+        if (remaining > 0) { pdf.addPage(); position = 0; }
+      }
       pdf.save(`axioma-custos-fixos-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) { console.error(err); }
     setExportando(false);
@@ -146,54 +144,56 @@ export default function CustosFixos() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: t.custosFixos.totalMensal, value: `R$ ${totalMensal.toLocaleString("pt-BR")}`, color: "#f87171" },
-          { label: t.custosFixos.totalAnual, value: `R$ ${(totalMensal * 12).toLocaleString("pt-BR")}`, color: "#fbbf24" },
-          { label: t.custosFixos.itens, value: `${custos.length}`, color: "#6ab0ff" },
-        ].map((card) => (
-          <div key={card.label} className="rounded-2xl p-5" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{color: "#3a5a8a"}}>{card.label}</p>
-            <p className="text-2xl font-bold" style={{color: card.color}}>{card.value}</p>
-          </div>
-        ))}
-      </div>
+      <div ref={conteudoRef}>
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          {[
+            { label: t.custosFixos.totalMensal, value: `R$ ${totalMensal.toLocaleString("pt-BR")}`, color: "#f87171" },
+            { label: t.custosFixos.totalAnual, value: `R$ ${(totalMensal * 12).toLocaleString("pt-BR")}`, color: "#fbbf24" },
+            { label: t.custosFixos.itens, value: `${custos.length}`, color: "#6ab0ff" },
+          ].map((card) => (
+            <div key={card.label} className="rounded-2xl p-5" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{color: "#3a5a8a"}}>{card.label}</p>
+              <p className="text-2xl font-bold" style={{color: card.color}}>{card.value}</p>
+            </div>
+          ))}
+        </div>
 
-      <div className="flex items-center gap-2 mb-6 px-4 py-3 rounded-xl" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-        <Search size={16} style={{color: "#3a5a8a"}}/>
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.custosFixos.buscar} className="bg-transparent flex-1 focus:outline-none text-sm" style={{color: "#c8d8f0"}}/>
-      </div>
+        <div className="flex items-center gap-2 mb-6 px-4 py-3 rounded-xl" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
+          <Search size={16} style={{color: "#3a5a8a"}}/>
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.custosFixos.buscar} className="bg-transparent flex-1 focus:outline-none text-sm" style={{color: "#c8d8f0"}}/>
+        </div>
 
-      <div className="rounded-2xl overflow-hidden" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-        {carregando ? (
-          <div className="flex items-center justify-center py-16">
-            <p style={{color: "#3a5a8a"}}>{t.geral.carregando}</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr style={{borderBottom: "1px solid rgba(59,111,212,0.15)"}}>
-                {[t.geral.descricao, t.geral.categoria, t.custosFixos.vencimento, t.custosFixos.valorMensal, t.custosFixos.valorAnual, t.geral.acoes].map(h => (
-                  <th key={h} className="text-left px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{color: "#3a5a8a"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {custosFiltrados.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12" style={{color: "#3a5a8a"}}>{t.custosFixos.semCustos}</td></tr>
-              ) : custosFiltrados.map((c, i) => (
-                <tr key={c.id} style={{borderBottom: i < custosFiltrados.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none"}}>
-                  <td className="px-6 py-4 text-sm" style={{color: "#c8d8f0"}}>{c.descricao}</td>
-                  <td className="px-6 py-4"><span className="text-xs px-3 py-1 rounded-full" style={{background: "rgba(59,111,212,0.1)", color: "#6ab0ff"}}>{c.categoria}</span></td>
-                  <td className="px-6 py-4 text-sm" style={{color: "#3a5a8a"}}>Dia {c.dia_vencimento}</td>
-                  <td className="px-6 py-4 text-sm font-bold" style={{color: "#f87171"}}>R$ {c.valor_mensal.toLocaleString("pt-BR")}</td>
-                  <td className="px-6 py-4 text-sm font-bold" style={{color: "#fbbf24"}}>R$ {(c.valor_mensal * 12).toLocaleString("pt-BR")}</td>
-                  <td className="px-6 py-4"><button onClick={() => excluirCusto(c.id)} style={{color: "#f87171"}}><Trash2 size={16}/></button></td>
+        <div className="rounded-2xl overflow-hidden" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
+          {carregando ? (
+            <div className="flex items-center justify-center py-16">
+              <p style={{color: "#3a5a8a"}}>{t.geral.carregando}</p>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr style={{borderBottom: "1px solid rgba(59,111,212,0.15)"}}>
+                  {[t.geral.descricao, t.geral.categoria, t.custosFixos.vencimento, t.custosFixos.valorMensal, t.custosFixos.valorAnual, t.geral.acoes].map(h => (
+                    <th key={h} className="text-left px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{color: "#3a5a8a"}}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {custosFiltrados.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-12" style={{color: "#3a5a8a"}}>{t.custosFixos.semCustos}</td></tr>
+                ) : custosFiltrados.map((c, i) => (
+                  <tr key={c.id} style={{borderBottom: i < custosFiltrados.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none"}}>
+                    <td className="px-6 py-4 text-sm" style={{color: "#c8d8f0"}}>{c.descricao}</td>
+                    <td className="px-6 py-4"><span className="text-xs px-3 py-1 rounded-full" style={{background: "rgba(59,111,212,0.1)", color: "#6ab0ff"}}>{c.categoria}</span></td>
+                    <td className="px-6 py-4 text-sm" style={{color: "#3a5a8a"}}>Dia {c.dia_vencimento}</td>
+                    <td className="px-6 py-4 text-sm font-bold" style={{color: "#f87171"}}>R$ {c.valor_mensal.toLocaleString("pt-BR")}</td>
+                    <td className="px-6 py-4 text-sm font-bold" style={{color: "#fbbf24"}}>R$ {(c.valor_mensal * 12).toLocaleString("pt-BR")}</td>
+                    <td className="px-6 py-4"><button onClick={() => excluirCusto(c.id)} style={{color: "#f87171"}}><Trash2 size={16}/></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       {modalAberto && (
