@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, ArrowLeft, Trash2, X, Download } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
@@ -89,7 +89,7 @@ export default function CustosFixos() {
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
       pdf.text(
-        `${t.custosFixos.titulo} — ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`,
+        `${t.custosFixos.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`,
         pdfWidth - 14, 13, { align: "right" }
       );
 
