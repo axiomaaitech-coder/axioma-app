@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Send, TrendingUp, AlertTriangle, Lightbulb, CheckCircle, Paperclip, X, Download } from "lucide-react";
+import { ArrowLeft, Send, TrendingUp, AlertTriangle, Lightbulb, CheckCircle, X, Download } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -46,9 +46,9 @@ const respostas: Record<string, string> = {
 };
 
 const textos = {
-  pt: { subtitulo: "Analise inteligente dos seus dados financeiros", placeholder: "Pergunte sobre suas financas...", analisando: "Analisando seus dados...", arquivoAnexado: "Arquivo anexado", analisandoArquivo: "Analisando seu documento financeiro...", respostaArquivo: "Recebi seu documento! Analisei o conteudo e identifiquei os principais dados financeiros. Com base neste arquivo, posso responder perguntas especificas sobre os valores, tendencias e recomendacoes. O que voce gostaria de saber?", remover: "Remover", anexar: "Anexar documento" },
-  en: { subtitulo: "Intelligent analysis of your financial data", placeholder: "Ask about your finances...", analisando: "Analyzing your data...", arquivoAnexado: "File attached", analisandoArquivo: "Analyzing your financial document...", respostaArquivo: "I received your document! I analyzed the content and identified the main financial data. Based on this file, I can answer specific questions about values, trends and recommendations. What would you like to know?", remover: "Remove", anexar: "Attach document" },
-  es: { subtitulo: "Analisis inteligente de tus datos financieros", placeholder: "Pregunta sobre tus finanzas...", analisando: "Analizando tus datos...", arquivoAnexado: "Archivo adjunto", analisandoArquivo: "Analizando tu documento financiero...", respostaArquivo: "Recibi tu documento! Analice el contenido e identifique los principales datos financieros. Con base en este archivo, puedo responder preguntas especificas sobre valores, tendencias y recomendaciones. Que te gustaria saber?", remover: "Eliminar", anexar: "Adjuntar documento" },
+  pt: { subtitulo: "Analise inteligente dos seus dados financeiros", placeholder: "Pergunte sobre suas financas...", analisando: "Analisando seus dados...", respostaArquivo: "Recebi seu documento! Analisei o conteudo e identifiquei os principais dados financeiros. O que voce gostaria de saber?" },
+  en: { subtitulo: "Intelligent analysis of your financial data", placeholder: "Ask about your finances...", analisando: "Analyzing your data...", respostaArquivo: "I received your document! I analyzed the content and identified the main financial data. What would you like to know?" },
+  es: { subtitulo: "Analisis inteligente de tus datos financieros", placeholder: "Pregunta sobre tus finanzas...", analisando: "Analizando tus datos...", respostaArquivo: "Recibi tu documento! Analice el contenido e identifique los principales datos financieros. Que te gustaria saber?" },
 };
 
 export default function IAFinanceira() {
@@ -56,46 +56,28 @@ export default function IAFinanceira() {
   const { t, idioma } = useLanguage();
   const tx = textos[idioma];
   const inputRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const conteudoRef = useRef<HTMLDivElement>(null);
 
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string; arquivo?: string }[]>([
+  const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([
     { role: "assistant", texto: idioma === "en" ? "Hello! I'm your Financial AI. I've analyzed all your data and I'm ready to help. What would you like to know?" : idioma === "es" ? "Hola! Soy tu IA Financiera. Analice todos tus datos y estoy listo para ayudar. Que te gustaria saber?" : "Ola! Sou sua IA Financeira. Analisei todos os seus dados e estou pronto para ajudar. O que voce gostaria de saber?" }
   ]);
   const [input, setInput] = useState("");
   const [carregando, setCarregando] = useState(false);
-  const [arquivoAnexado, setArquivoAnexado] = useState<File | null>(null);
   const [exportando, setExportando] = useState(false);
 
   const enviarMensagem = (texto: string) => {
-    if (!texto.trim() && !arquivoAnexado) return;
-    const msgUsuario: { role: string; texto: string; arquivo?: string } = {
-      role: "user",
-      texto: texto || (arquivoAnexado ? `📎 ${arquivoAnexado.name}` : ""),
-      arquivo: arquivoAnexado?.name,
-    };
+    if (!texto.trim()) return;
+    const msgUsuario = { role: "user", texto };
     const novasMensagens = [...mensagens, msgUsuario];
     setMensagens(novasMensagens);
     setInput("");
     setCarregando(true);
-    const temArquivo = !!arquivoAnexado;
-    setArquivoAnexado(null);
     setTimeout(() => {
-      let resposta = "";
-      if (temArquivo) {
-        resposta = tx.respostaArquivo;
-      } else {
-        resposta = respostas[texto] || (idioma === "en" ? "Great question! Based on your financial data, I recommend analyzing each cost category in detail. Can I elaborate on a specific area?" : idioma === "es" ? "Excelente pregunta! Basandome en tus datos financieros, recomiendo analizar cada categoria de costos en detalle. Puedo detallar alguna area especifica?" : "Otima pergunta! Com base nos seus dados financeiros, recomendo analisar detalhadamente cada categoria de custo. Posso detalhar alguma area especifica?");
-      }
+      const resposta = respostas[texto] || (idioma === "en" ? "Great question! Based on your financial data, I recommend analyzing each cost category in detail. Can I elaborate on a specific area?" : idioma === "es" ? "Excelente pregunta! Basandome en tus datos financieros, recomiendo analizar cada categoria de costos en detalle. Puedo detallar alguna area especifica?" : "Otima pergunta! Com base nos seus dados financeiros, recomendo analisar detalhadamente cada categoria de custo. Posso detalhar alguma area especifica?");
       setMensagens([...novasMensagens, { role: "assistant", texto: resposta }]);
       setCarregando(false);
     }, 1500);
   };
-
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setArquivoAnexado(file);
-  }
 
   const exportarPDF = async () => {
     if (!conteudoRef.current) return;
@@ -149,8 +131,8 @@ export default function IAFinanceira() {
             <p className="text-sm" style={{ color: "#3a5a8a" }}>{tx.subtitulo}</p>
           </div>
         </div>
-        <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-          <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
+        <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
+          <Download size={18}/>{exportando ? "Gerando..." : "Exportar PDF"}
         </button>
       </div>
 
@@ -175,13 +157,7 @@ export default function IAFinanceira() {
             {mensagens.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className="max-w-md px-4 py-3 rounded-2xl text-sm" style={{ background: m.role === "user" ? "rgba(59,111,212,0.2)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(59,111,212,0.3)" : "rgba(59,111,212,0.1)"}`, color: "#c8d8f0" }}>
-                  {m.arquivo && (
-                    <div className="flex items-center gap-2 mb-2 px-2 py-1 rounded-lg" style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.2)" }}>
-                      <Paperclip size={12} style={{ color: "#6ab0ff" }} />
-                      <span className="text-xs" style={{ color: "#6ab0ff" }}>{m.arquivo}</span>
-                    </div>
-                  )}
-                  {m.texto !== `📎 ${m.arquivo}` && m.texto}
+                  {m.texto}
                 </div>
               </div>
             ))}
@@ -202,22 +178,7 @@ export default function IAFinanceira() {
                 </button>
               ))}
             </div>
-
-            {arquivoAnexado && (
-              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl" style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
-                <Paperclip size={14} style={{ color: "#6ab0ff" }} />
-                <span className="text-xs flex-1" style={{ color: "#6ab0ff" }}>{arquivoAnexado.name}</span>
-                <button onClick={() => setArquivoAnexado(null)} style={{ color: "#f87171" }}>
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
             <div className="flex gap-3">
-              <input ref={fileRef} type="file" accept=".pdf,.xml,.xlsx,.xls,.csv" className="hidden" onChange={onFileChange} />
-              <button onClick={() => fileRef.current?.click()} className="px-3 py-3 rounded-xl transition-all hover:opacity-80" style={{ background: "rgba(59,111,212,0.1)", border: "1px solid rgba(59,111,212,0.2)", color: "#6ab0ff" }} title={tx.anexar}>
-                <Paperclip size={18} />
-              </button>
               <input
                 ref={inputRef}
                 value={input}
