@@ -1,7 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import { Download } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,8 +38,9 @@ type Conta = {
 };
 
 export default function ClientesPage() {
-  const { t } = useLanguage();
+  const { t, idioma } = useLanguage();
   const cl = t.clientes;
+  const conteudoRef = useRef<HTMLDivElement>(null);
 
   const [aba, setAba] = useState<"clientes" | "contas">("clientes");
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -44,6 +48,7 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [exportando, setExportando] = useState(false);
 
   const [modalCliente, setModalCliente] = useState(false);
   const [editandoCliente, setEditandoCliente] = useState<Cliente | null>(null);
@@ -143,6 +148,50 @@ export default function ClientesPage() {
     setCidadeCliente("");
   }
 
+  const exportarPDF = async () => {
+    if (!conteudoRef.current) return;
+    setExportando(true);
+    try {
+      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.setFillColor(2, 8, 16);
+      pdf.rect(0, 0, pdfWidth, 20, "F");
+      pdf.setTextColor(106, 176, 255);
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("AXIOMA AI.TECH", 14, 13);
+      pdf.setTextColor(58, 90, 138);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${cl.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
+
+      let position = 22;
+      let remaining = pdfHeight;
+      while (remaining > 0) {
+        const sliceHeight = Math.min(pageHeight - position, remaining);
+        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
+        const sourceH = sliceHeight * (canvas.height / pdfHeight);
+        const sliceCanvas = document.createElement("canvas");
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sourceH;
+        const ctx = sliceCanvas.getContext("2d")!;
+        ctx.fillStyle = "#020810";
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
+        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
+        remaining -= sliceHeight;
+        position = 0;
+        if (remaining > 0) { pdf.addPage(); position = 0; }
+      }
+      pdf.save(`axioma-clientes-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) { console.error(err); }
+    setExportando(false);
+  };
+
   const hoje = new Date().toISOString().split("T")[0];
   const totalReceber = contas.filter(c => c.status === "pendente").reduce((s, c) => s + c.valor, 0);
   const totalRecebido = contas.filter(c => c.status === "recebido").reduce((s, c) => s + c.valor, 0);
@@ -168,13 +217,15 @@ export default function ClientesPage() {
   return (
     <div className="flex-1 p-6 overflow-auto" style={{ background: "#020810", minHeight: "100vh" }}>
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>👥 {cl.titulo}</h1>
           <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{cl.subtitulo}</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
+            <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
+          </button>
           <button onClick={() => setModalConta(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
             + {cl.novaCobranca}
           </button>
@@ -184,45 +235,41 @@ export default function ClientesPage() {
         </div>
       </div>
 
-      {/* Cards KPI */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: cl.totalClientes, valor: clientes.length.toString(), cor: "#6ab0ff" },
-          { label: cl.totalReceber, valor: fmt(totalReceber), cor: "#fbbf24" },
-          { label: cl.totalRecebido, valor: fmt(totalRecebido), cor: "#34d399" },
-          { label: cl.totalVencido, valor: fmt(totalVencido), cor: "#f87171" },
-        ].map((card, i) => (
-          <div key={i} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-            <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
-            <p className="text-xl font-bold" style={{ color: card.cor }}>{card.valor}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Abas */}
-      <div className="flex gap-2 mb-4">
-        {[
-          { key: "clientes", label: cl.abaClientes },
-          { key: "contas", label: cl.abaContas },
-        ].map((a) => (
-          <button key={a.key} onClick={() => { setAba(a.key as typeof aba); setBusca(""); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
-            {a.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Busca */}
-      <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cl.buscar} className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
-
-      {/* ABA CLIENTES */}
-      {aba === "clientes" && (
-        <div className="space-y-3">
-          {clientesFiltrados.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-              <p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p>
+      <div ref={conteudoRef}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: cl.totalClientes, valor: clientes.length.toString(), cor: "#6ab0ff" },
+            { label: cl.totalReceber, valor: fmt(totalReceber), cor: "#fbbf24" },
+            { label: cl.totalRecebido, valor: fmt(totalRecebido), cor: "#34d399" },
+            { label: cl.totalVencido, valor: fmt(totalVencido), cor: "#f87171" },
+          ].map((card, i) => (
+            <div key={i} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
+              <p className="text-xl font-bold" style={{ color: card.cor }}>{card.valor}</p>
             </div>
-          ) : (
-            clientesFiltrados.map((cliente) => (
+          ))}
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          {[
+            { key: "clientes", label: cl.abaClientes },
+            { key: "contas", label: cl.abaContas },
+          ].map((a) => (
+            <button key={a.key} onClick={() => { setAba(a.key as typeof aba); setBusca(""); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cl.buscar} className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
+
+        {aba === "clientes" && (
+          <div className="space-y-3">
+            {clientesFiltrados.length === 0 ? (
+              <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+                <p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p>
+              </div>
+            ) : clientesFiltrados.map((cliente) => (
               <div key={cliente.id} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -244,20 +291,17 @@ export default function ClientesPage() {
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* ABA CONTAS A RECEBER */}
-      {aba === "contas" && (
-        <div className="space-y-3">
-          {contasFiltradas.length === 0 ? (
-            <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-              <p style={{ color: "#3a5a8a" }}>{cl.semContas}</p>
-            </div>
-          ) : (
-            contasFiltradas.map((conta) => {
+        {aba === "contas" && (
+          <div className="space-y-3">
+            {contasFiltradas.length === 0 ? (
+              <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+                <p style={{ color: "#3a5a8a" }}>{cl.semContas}</p>
+              </div>
+            ) : contasFiltradas.map((conta) => {
               const cliente = clientes.find(c => c.id === conta.cliente_id);
               const statusInfo = getStatusCor(conta.status, conta.data_vencimento);
               return (
@@ -281,12 +325,11 @@ export default function ClientesPage() {
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </div>
 
-      {/* MODAL CLIENTE */}
       {modalCliente && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
@@ -315,7 +358,6 @@ export default function ClientesPage() {
         </div>
       )}
 
-      {/* MODAL CONTA */}
       {modalConta && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
