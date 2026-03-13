@@ -36,15 +36,15 @@ export default function ImportarPage() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const tiposDocumento: TipoDocumento[] = [
-    { tipo: idioma === "pt" ? "Extrato Bancário" : idioma === "en" ? "Bank Statement" : "Extracto Bancario", destino: idioma === "pt" ? "Fluxo de Caixa + Receitas" : idioma === "en" ? "Cash Flow + Revenue" : "Flujo de Caja + Ingresos", icon: "🏦", cor: "#6ab0ff" },
+    { tipo: idioma === "pt" ? "Extrato Bancario" : idioma === "en" ? "Bank Statement" : "Extracto Bancario", destino: idioma === "pt" ? "Fluxo de Caixa + Receitas" : idioma === "en" ? "Cash Flow + Revenue" : "Flujo de Caja + Ingresos", icon: "🏦", cor: "#6ab0ff" },
     { tipo: idioma === "pt" ? "Nota Fiscal (XML/PDF)" : idioma === "en" ? "Invoice (XML/PDF)" : "Factura (XML/PDF)", destino: idioma === "pt" ? "Fornecedores + Custos" : idioma === "en" ? "Suppliers + Costs" : "Proveedores + Costos", icon: "🧾", cor: "#34d399" },
     { tipo: idioma === "pt" ? "Planilha de Vendas" : idioma === "en" ? "Sales Spreadsheet" : "Hoja de Ventas", destino: idioma === "pt" ? "Receitas" : idioma === "en" ? "Revenue" : "Ingresos", icon: "📊", cor: "#fbbf24" },
-    { tipo: idioma === "pt" ? "Contrato de Dívida" : idioma === "en" ? "Debt Contract" : "Contrato de Deuda", destino: idioma === "pt" ? "Endividamento" : idioma === "en" ? "Debt" : "Endeudamiento", icon: "📋", cor: "#f87171" },
-    { tipo: idioma === "pt" ? "Folha de Pagamento" : idioma === "en" ? "Payroll" : "Nómina", destino: idioma === "pt" ? "Custos Fixos" : idioma === "en" ? "Fixed Costs" : "Costos Fijos", icon: "👥", cor: "#a78bfa" },
-    { tipo: idioma === "pt" ? "Documento Fiscal" : idioma === "en" ? "Tax Document" : "Documento Fiscal", destino: idioma === "pt" ? "IA Tributária" : idioma === "en" ? "Tax AI" : "IA Tributaria", icon: "🧾", cor: "#fb923c" },
+    { tipo: idioma === "pt" ? "Contrato de Divida" : idioma === "en" ? "Debt Contract" : "Contrato de Deuda", destino: idioma === "pt" ? "Endividamento" : idioma === "en" ? "Debt" : "Endeudamiento", icon: "📋", cor: "#f87171" },
+    { tipo: idioma === "pt" ? "Folha de Pagamento" : idioma === "en" ? "Payroll" : "Nomina", destino: idioma === "pt" ? "Custos Fixos" : idioma === "en" ? "Fixed Costs" : "Costos Fijos", icon: "👥", cor: "#a78bfa" },
+    { tipo: idioma === "pt" ? "Documento Fiscal" : idioma === "en" ? "Tax Document" : "Documento Fiscal", destino: idioma === "pt" ? "IA Tributaria" : idioma === "en" ? "Tax AI" : "IA Tributaria", icon: "🧾", cor: "#fb923c" },
   ];
 
-  const tituloSecao = idioma === "pt" ? "📋 TIPOS DE DOCUMENTO" : idioma === "en" ? "📋 DOCUMENT TYPES" : "📋 TIPOS DE DOCUMENTO";
+  const tituloSecao = idioma === "pt" ? "TIPOS DE DOCUMENTO" : idioma === "en" ? "DOCUMENT TYPES" : "TIPOS DE DOCUMENTO";
 
   const [arrastandoArquivo, setArrastandoArquivo] = useState(false);
   const [arquivoSelecionado, setArquivoSelecionado] = useState<File | null>(null);
@@ -63,10 +63,8 @@ export default function ImportarPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     const { data: empresa } = await supabase.from("empresas").select("id").eq("user_id", user.id).single();
     setEmpresaId(empresa?.id || null);
-
     const { data } = await supabase.from("importacoes").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
     setImportacoes(data || []);
     setLoading(false);
@@ -143,7 +141,6 @@ export default function ImportarPage() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       pdf.setFillColor(2, 8, 16);
       pdf.rect(0, 0, pdfWidth, 20, "F");
       pdf.setTextColor(106, 176, 255);
@@ -154,7 +151,6 @@ export default function ImportarPage() {
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
       pdf.text(`${imp.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-
       let position = 22;
       let remaining = pdfHeight;
       while (remaining > 0) {
@@ -180,7 +176,6 @@ export default function ImportarPage() {
 
   return (
     <div className="flex-1 p-6 overflow-auto" style={{ background: "#020810", minHeight: "100vh" }}>
-
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>📄 {imp.titulo}</h1>
@@ -192,7 +187,6 @@ export default function ImportarPage() {
       </div>
 
       <div ref={conteudoRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
         <div className="space-y-4">
           {!arquivoSelecionado && !sucesso && (
             <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={() => inputRef.current?.click()} className="rounded-2xl p-10 text-center cursor-pointer transition-all" style={{ background: arrastandoArquivo ? "rgba(106,176,255,0.1)" : "rgba(10,22,40,0.8)", border: `2px dashed ${arrastandoArquivo ? "#6ab0ff" : "rgba(59,111,212,0.3)"}` }}>
