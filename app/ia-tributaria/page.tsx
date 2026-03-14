@@ -6,33 +6,122 @@ import { useLanguage } from "../../lib/LanguageContext";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const alertas = [
-  { icon: AlertTriangle, texto: "Reforma Tributaria 2026: IBS e CBS substituem PIS/COFINS. Sua empresa pode ser impactada.", cor: "#f87171" },
-  { icon: Lightbulb, texto: "Simples Nacional: verifique se seu faturamento ainda permite enquadramento (ate R$ 4,8M/ano).", cor: "#fbbf24" },
-  { icon: CheckCircle, texto: "JCP (Juros sobre Capital Proprio): sua empresa pode deduzir ate R$ 18.000/mes.", cor: "#34d399" },
-  { icon: Shield, texto: "Incentivos fiscais disponiveis para seu setor: Lei do Bem, Rota 2030, Pro-Inovacao.", cor: "#a78bfa" },
-];
-
-const economias = [
-  { titulo: "Troca de Regime", descricao: "Lucro Real para Lucro Presumido", economia: "ate 30%", cor: "#34d399" },
-  { titulo: "JCP", descricao: "Juros sobre Capital Proprio", economia: "ate 15%", cor: "#6ab0ff" },
-  { titulo: "Reforma Tributaria", descricao: "Planejamento antecipado", economia: "ate 34%", cor: "#a78bfa" },
-  { titulo: "Incentivos Fiscais", descricao: "Lei do Bem e similares", economia: "ate 75%", cor: "#fbbf24" },
-];
-
-const respostas: Record<string, string> = {
-  "Qual regime tributario e melhor para mim?": "Analisando seu faturamento de R$ 62.000/mes (R$ 744.000/ano), o Simples Nacional pode ser vantajoso se sua margem for alta. Porem, se voce tem muitos funcionarios CLT, o Lucro Presumido pode reduzir a carga em ate 22%. Recomendo uma simulacao com seu contador usando esses dados.",
-  "Como funciona o JCP?": "JCP (Juros sobre Capital Proprio) permite remunerar socios com tributacao menor (15% IR na fonte vs 27,5% no pro-labore). Com patrimonio liquido de R$ 200.000, voce pode distribuir ate R$ 18.000/mes via JCP, economizando aproximadamente R$ 2.700/mes em impostos.",
-  "O que muda com a Reforma Tributaria?": "A Reforma unifica PIS, COFINS e IPI no CBS, e ICMS e ISS no IBS. Transicao: 2026-2032. Para PMEs: o Simples Nacional permanece, mas havera ajustes nas aliquotas. Recomendo mapear agora seus principais insumos e clientes para simular o impacto antes de 2027.",
-  "Quais deducoes posso usar?": "Para sua empresa, identifiquei: 1) Depreciacao acelerada de equipamentos; 2) Deducao de despesas com P&D (Lei do Bem); 3) PAT - Programa de Alimentacao do Trabalhador; 4) Vale-transporte e beneficios dedutiveis. Potencial de reducao na base de calculo: R$ 8.400/mes.",
+const alertasData = {
+  pt: [
+    { icon: AlertTriangle, texto: "Reforma Tributaria 2026: IBS e CBS substituem PIS/COFINS. Sua empresa pode ser impactada.", cor: "#f87171" },
+    { icon: Lightbulb, texto: "Simples Nacional: verifique se seu faturamento ainda permite enquadramento (ate R$ 4,8M/ano).", cor: "#fbbf24" },
+    { icon: CheckCircle, texto: "JCP (Juros sobre Capital Proprio): sua empresa pode deduzir ate R$ 18.000/mes.", cor: "#34d399" },
+    { icon: Shield, texto: "Incentivos fiscais disponiveis para seu setor: Lei do Bem, Rota 2030, Pro-Inovacao.", cor: "#a78bfa" },
+  ],
+  en: [
+    { icon: AlertTriangle, texto: "Tax Reform 2026: IBS and CBS replace PIS/COFINS. Your company may be impacted.", cor: "#f87171" },
+    { icon: Lightbulb, texto: "Simples Nacional: check if your revenue still qualifies (up to R$ 4.8M/year).", cor: "#fbbf24" },
+    { icon: CheckCircle, texto: "JCP (Interest on Net Equity): your company may deduct up to R$ 18,000/month.", cor: "#34d399" },
+    { icon: Shield, texto: "Tax incentives available for your sector: Lei do Bem, Rota 2030, Pro-Inovacao.", cor: "#a78bfa" },
+  ],
+  es: [
+    { icon: AlertTriangle, texto: "Reforma Tributaria 2026: IBS y CBS reemplazan PIS/COFINS. Su empresa puede verse afectada.", cor: "#f87171" },
+    { icon: Lightbulb, texto: "Simples Nacional: verifique si su facturacion aun permite el encuadramiento (hasta R$ 4,8M/ano).", cor: "#fbbf24" },
+    { icon: CheckCircle, texto: "JCP (Intereses sobre Capital Propio): su empresa puede deducir hasta R$ 18.000/mes.", cor: "#34d399" },
+    { icon: Shield, texto: "Incentivos fiscales disponibles para su sector: Lei do Bem, Rota 2030, Pro-Inovacao.", cor: "#a78bfa" },
+  ],
 };
 
-const perguntasSugeridas = [
-  "Qual regime tributario e melhor para mim?",
-  "Como funciona o JCP?",
-  "O que muda com a Reforma Tributaria?",
-  "Quais deducoes posso usar?",
-];
+const economiasData = {
+  pt: [
+    { titulo: "Troca de Regime", descricao: "Lucro Real para Lucro Presumido", economia: "ate 30%", cor: "#34d399" },
+    { titulo: "JCP", descricao: "Juros sobre Capital Proprio", economia: "ate 15%", cor: "#6ab0ff" },
+    { titulo: "Reforma Tributaria", descricao: "Planejamento antecipado", economia: "ate 34%", cor: "#a78bfa" },
+    { titulo: "Incentivos Fiscais", descricao: "Lei do Bem e similares", economia: "ate 75%", cor: "#fbbf24" },
+  ],
+  en: [
+    { titulo: "Regime Change", descricao: "Real Profit to Presumed Profit", economia: "up to 30%", cor: "#34d399" },
+    { titulo: "JCP", descricao: "Interest on Net Equity", economia: "up to 15%", cor: "#6ab0ff" },
+    { titulo: "Tax Reform", descricao: "Early planning", economia: "up to 34%", cor: "#a78bfa" },
+    { titulo: "Tax Incentives", descricao: "Lei do Bem and similar", economia: "up to 75%", cor: "#fbbf24" },
+  ],
+  es: [
+    { titulo: "Cambio de Regimen", descricao: "Lucro Real a Lucro Presumido", economia: "hasta 30%", cor: "#34d399" },
+    { titulo: "JCP", descricao: "Intereses sobre Capital Propio", economia: "hasta 15%", cor: "#6ab0ff" },
+    { titulo: "Reforma Tributaria", descricao: "Planificacion anticipada", economia: "hasta 34%", cor: "#a78bfa" },
+    { titulo: "Incentivos Fiscales", descricao: "Lei do Bem y similares", economia: "hasta 75%", cor: "#fbbf24" },
+  ],
+};
+
+const perguntasData = {
+  pt: ["Qual regime tributario e melhor para mim?", "Como funciona o JCP?", "O que muda com a Reforma Tributaria?", "Quais deducoes posso usar?"],
+  en: ["Which tax regime is best for me?", "How does JCP work?", "What changes with the Tax Reform?", "Which deductions can I use?"],
+  es: ["Que regimen tributario es mejor para mi?", "Como funciona el JCP?", "Que cambia con la Reforma Tributaria?", "Que deducciones puedo usar?"],
+};
+
+const respostasData: Record<string, Record<string, string>> = {
+  pt: {
+    "Qual regime tributario e melhor para mim?": "Analisando seu faturamento de R$ 62.000/mes (R$ 744.000/ano), o Simples Nacional pode ser vantajoso se sua margem for alta. Porem, se voce tem muitos funcionarios CLT, o Lucro Presumido pode reduzir a carga em ate 22%. Recomendo uma simulacao com seu contador usando esses dados.",
+    "Como funciona o JCP?": "JCP (Juros sobre Capital Proprio) permite remunerar socios com tributacao menor (15% IR na fonte vs 27,5% no pro-labore). Com patrimonio liquido de R$ 200.000, voce pode distribuir ate R$ 18.000/mes via JCP, economizando aproximadamente R$ 2.700/mes em impostos.",
+    "O que muda com a Reforma Tributaria?": "A Reforma unifica PIS, COFINS e IPI no CBS, e ICMS e ISS no IBS. Transicao: 2026-2032. Para PMEs: o Simples Nacional permanece, mas havera ajustes nas aliquotas. Recomendo mapear agora seus principais insumos e clientes para simular o impacto antes de 2027.",
+    "Quais deducoes posso usar?": "Para sua empresa, identifiquei: 1) Depreciacao acelerada de equipamentos; 2) Deducao de despesas com P&D (Lei do Bem); 3) PAT - Programa de Alimentacao do Trabalhador; 4) Vale-transporte e beneficios dedutiveis. Potencial de reducao na base de calculo: R$ 8.400/mes.",
+  },
+  en: {
+    "Which tax regime is best for me?": "Analyzing your revenue of R$ 62,000/month (R$ 744,000/year), Simples Nacional may be advantageous if your margin is high. However, if you have many CLT employees, Lucro Presumido can reduce the tax burden by up to 22%. I recommend a simulation with your accountant using this data.",
+    "How does JCP work?": "JCP (Interest on Net Equity) allows remunerating partners with lower taxation (15% IR at source vs 27.5% on pro-labore). With net equity of R$ 200,000, you can distribute up to R$ 18,000/month via JCP, saving approximately R$ 2,700/month in taxes.",
+    "What changes with the Tax Reform?": "The Reform unifies PIS, COFINS and IPI into CBS, and ICMS and ISS into IBS. Transition: 2026-2032. For SMEs: Simples Nacional remains, but there will be adjustments in rates. I recommend mapping your main inputs and clients now to simulate the impact before 2027.",
+    "Which deductions can I use?": "For your company, I identified: 1) Accelerated depreciation of equipment; 2) Deduction of R&D expenses (Lei do Bem); 3) PAT - Worker Meal Program; 4) Transportation voucher and deductible benefits. Potential reduction in tax base: R$ 8,400/month.",
+  },
+  es: {
+    "Que regimen tributario es mejor para mi?": "Analizando su facturacion de R$ 62.000/mes (R$ 744.000/ano), el Simples Nacional puede ser ventajoso si su margen es alto. Sin embargo, si tiene muchos empleados CLT, el Lucro Presumido puede reducir la carga hasta un 22%. Recomiendo una simulacion con su contador usando estos datos.",
+    "Como funciona el JCP?": "JCP (Intereses sobre Capital Propio) permite remunerar socios con menor tributacion (15% IR en la fuente vs 27,5% en el pro-labore). Con patrimonio neto de R$ 200.000, puede distribuir hasta R$ 18.000/mes via JCP, ahorrando aproximadamente R$ 2.700/mes en impuestos.",
+    "Que cambia con la Reforma Tributaria?": "La Reforma unifica PIS, COFINS e IPI en CBS, e ICMS e ISS en IBS. Transicion: 2026-2032. Para PyMEs: el Simples Nacional permanece, pero habra ajustes en las alicuotas. Recomiendo mapear ahora sus principales insumos y clientes para simular el impacto antes de 2027.",
+    "Que deducciones puedo usar?": "Para su empresa, identifique: 1) Depreciacion acelerada de equipos; 2) Deduccion de gastos de I+D (Lei do Bem); 3) PAT - Programa de Alimentacion del Trabajador; 4) Bono de transporte y beneficios deducibles. Reduccion potencial en la base imponible: R$ 8.400/mes.",
+  },
+};
+
+const mensagemInicial = {
+  pt: "Ola! Sou sua IA Tributaria Premium. Analisei seu perfil fiscal e estou pronto para ajudar com planejamento tributario legal e estrategico. Como posso reduzir sua carga tributaria?",
+  en: "Hello! I am your Premium Tax AI. I analyzed your tax profile and I am ready to help with legal and strategic tax planning. How can I reduce your tax burden?",
+  es: "Hola! Soy tu IA Tributaria Premium. Analice tu perfil fiscal y estoy listo para ayudar con la planificacion tributaria legal y estrategica. Como puedo reducir tu carga tributaria?",
+};
+
+const respostaGenerica = {
+  pt: "Otima questao tributaria! Para uma analise precisa, recomendo combinar este planejamento com seu contador. Posso detalhar alguma estrategia especifica de reducao de impostos dentro da legalidade?",
+  en: "Great tax question! For a precise analysis, I recommend combining this planning with your accountant. Can I detail a specific tax reduction strategy within the law?",
+  es: "Excelente pregunta tributaria! Para un analisis preciso, recomiendo combinar esta planificacion con su contador. Puedo detallar alguna estrategia especifica de reduccion de impuestos dentro de la legalidad?",
+};
+
+const textoConsultando = {
+  pt: "Consultando legislacao tributaria...",
+  en: "Consulting tax legislation...",
+  es: "Consultando legislacion tributaria...",
+};
+
+const textoSubtitulo = {
+  pt: "Planejamento tributario legal e estrategico",
+  en: "Legal and strategic tax planning",
+  es: "Planificacion tributaria legal y estrategica",
+};
+
+const textoPlaceholder = {
+  pt: "Pergunte sobre impostos e planejamento tributario...",
+  en: "Ask about taxes and tax planning...",
+  es: "Pregunta sobre impuestos y planificacion tributaria...",
+};
+
+const textoAviso = {
+  pt: "As informacoes sao educativas. Consulte sempre um contador para decisoes fiscais.",
+  en: "Information is educational. Always consult an accountant for tax decisions.",
+  es: "La informacion es educativa. Consulte siempre a un contador para decisiones fiscales.",
+};
+
+const textoExportar = {
+  pt: "Exportar PDF",
+  en: "Export PDF",
+  es: "Exportar PDF",
+};
+
+const textoGerando = {
+  pt: "Gerando...",
+  en: "Generating...",
+  es: "Generando...",
+};
 
 const paises = ["🇧🇷 Brasil", "🇺🇸 EUA", "🇵🇹 Portugal", "🇩🇪 Alemanha", "🇬🇧 Reino Unido", "🇨🇦 Canada", "🇦🇺 Australia"];
 
@@ -42,12 +131,17 @@ export default function IATributaria() {
   const conteudoRef = useRef<HTMLDivElement>(null);
 
   const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([
-    { role: "assistant", texto: "Ola! Sou sua IA Tributaria Premium. Analisei seu perfil fiscal e estou pronto para ajudar com planejamento tributario legal e estrategico. Como posso reduzir sua carga tributaria?" }
+    { role: "assistant", texto: mensagemInicial[idioma] }
   ]);
   const [input, setInput] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [paisSelecionado, setPaisSelecionado] = useState("🇧🇷 Brasil");
   const [exportando, setExportando] = useState(false);
+
+  const alertas = alertasData[idioma];
+  const economias = economiasData[idioma];
+  const perguntasSugeridas = perguntasData[idioma];
+  const respostas = respostasData[idioma];
 
   const enviarMensagem = (texto: string) => {
     if (!texto.trim()) return;
@@ -57,7 +151,7 @@ export default function IATributaria() {
     setInput("");
     setCarregando(true);
     setTimeout(() => {
-      const resposta = respostas[texto] || "Otima questao tributaria! Para uma analise precisa, recomendo combinar este planejamento com seu contador. Posso detalhar alguma estrategia especifica de reducao de impostos dentro da legalidade?";
+      const resposta = respostas[texto] || respostaGenerica[idioma];
       setMensagens([...novasMensagens, { role: "assistant", texto: resposta }]);
       setCarregando(false);
     }, 1500);
@@ -115,7 +209,7 @@ export default function IATributaria() {
               <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{t.nav.iaTributaria}</h2>
               <span className="text-xs px-3 py-1 rounded-full font-bold" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>PREMIUM</span>
             </div>
-            <p className="text-sm" style={{ color: "#3a5a8a" }}>Planejamento tributario legal e estrategico</p>
+            <p className="text-sm" style={{ color: "#3a5a8a" }}>{textoSubtitulo[idioma]}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -123,7 +217,7 @@ export default function IATributaria() {
             {paises.map(p => <option key={p}>{p}</option>)}
           </select>
           <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-            <Download size={18}/>{exportando ? "Gerando..." : "Exportar PDF"}
+            <Download size={18}/>{exportando ? textoGerando[idioma] : textoExportar[idioma]}
           </button>
         </div>
       </div>
@@ -166,7 +260,7 @@ export default function IATributaria() {
             {carregando && (
               <div className="flex justify-start">
                 <div className="px-4 py-3 rounded-2xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(167,139,250,0.1)", color: "#3a5a8a" }}>
-                  Consultando legislacao tributaria...
+                  {textoConsultando[idioma]}
                 </div>
               </div>
             )}
@@ -185,7 +279,7 @@ export default function IATributaria() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && enviarMensagem(input)}
-                placeholder="Pergunte sobre impostos e planejamento tributario..."
+                placeholder={textoPlaceholder[idioma]}
                 className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(167,139,250,0.2)", color: "#c8d8f0" }}
               />
@@ -193,7 +287,7 @@ export default function IATributaria() {
                 <Send size={18} />
               </button>
             </div>
-            <p className="text-xs mt-3 text-center" style={{ color: "#1a3a5a" }}>As informacoes sao educativas. Consulte sempre um contador para decisoes fiscais.</p>
+            <p className="text-xs mt-3 text-center" style={{ color: "#1a3a5a" }}>{textoAviso[idioma]}</p>
           </div>
         </div>
       </div>
