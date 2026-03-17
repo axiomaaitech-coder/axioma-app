@@ -112,6 +112,35 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
 
+      {/* Badge IA Tributária PREMIUM — topo */}
+      <div className="flex justify-center mb-6">
+        <div
+          className="flex items-center gap-3 px-6 py-3 rounded-2xl cursor-pointer hover:scale-105 transition-all"
+          style={{
+            background: "linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(251,146,60,0.15) 100%)",
+            border: "1px solid rgba(234,179,8,0.4)",
+            boxShadow: "0 0 30px rgba(234,179,8,0.15)",
+          }}
+          onClick={() => router.push("/ia-tributaria")}
+        >
+          <span className="text-xl">⭐</span>
+          <div>
+            <p className="text-xs font-black tracking-widest uppercase" style={{ color: "#fbbf24" }}>
+              {idioma === "pt" ? "IA Tributária" : idioma === "en" ? "Tax AI" : "IA Tributaria"}
+            </p>
+            <p className="text-xs" style={{ color: "#f97316" }}>
+              {idioma === "pt" ? "Reduza impostos com inteligência artificial" : idioma === "en" ? "Reduce taxes with artificial intelligence" : "Reduzca impuestos con inteligencia artificial"}
+            </p>
+          </div>
+          <span
+            className="text-xs font-black px-3 py-1 rounded-full"
+            style={{ background: "linear-gradient(135deg, #ca8a04, #ea580c)", color: "#fff", letterSpacing: "0.1em" }}
+          >
+            PREMIUM
+          </span>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-5">

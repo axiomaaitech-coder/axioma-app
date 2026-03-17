@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
-import { supabase } from '../../lib/supabase'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AtualizarSenha() {
   const router = useRouter()
@@ -15,6 +15,35 @@ export default function AtualizarSenha() {
   const [sucesso, setSucesso] = useState(false)
   const [verSenha, setVerSenha] = useState(false)
   const [verConfirmar, setVerConfirmar] = useState(false)
+
+  const traduzirErro = (mensagem: string): string => {
+    if (mensagem.includes('Auth session missing')) {
+      return idioma === 'pt'
+        ? 'Sessão expirada. Solicite um novo link de recuperação de senha.'
+        : idioma === 'en'
+        ? 'Session expired. Please request a new password recovery link.'
+        : 'Sesión expirada. Solicite un nuevo enlace de recuperación de contraseña.'
+    }
+    if (mensagem.includes('Password should be at least')) {
+      return idioma === 'pt'
+        ? 'A senha deve ter pelo menos 6 caracteres.'
+        : idioma === 'en'
+        ? 'Password must be at least 6 characters.'
+        : 'La contraseña debe tener al menos 6 caracteres.'
+    }
+    if (mensagem.includes('Invalid login credentials')) {
+      return idioma === 'pt'
+        ? 'Credenciais inválidas.'
+        : idioma === 'en'
+        ? 'Invalid credentials.'
+        : 'Credenciales inválidas.'
+    }
+    return idioma === 'pt'
+      ? 'Ocorreu um erro. Tente novamente.'
+      : idioma === 'en'
+      ? 'An error occurred. Please try again.'
+      : 'Ocurrió un error. Inténtalo de nuevo.'
+  }
 
   const handleAtualizar = async () => {
     if (!senha || !confirmarSenha) {
@@ -33,10 +62,11 @@ export default function AtualizarSenha() {
     setCarregando(true)
     setErro('')
 
+    const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password: senha })
 
     if (error) {
-      setErro(error.message)
+      setErro(traduzirErro(error.message))
       setCarregando(false)
     } else {
       setSucesso(true)
@@ -142,7 +172,9 @@ export default function AtualizarSenha() {
           <button onClick={handleAtualizar} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
             style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
-            {carregando ? (idioma === 'pt' ? 'Atualizando...' : 'Updating...') : (idioma === 'pt' ? 'Atualizar Senha' : idioma === 'en' ? 'Update Password' : 'Actualizar Contraseña')}
+            {carregando
+              ? (idioma === 'pt' ? 'Atualizando...' : idioma === 'en' ? 'Updating...' : 'Actualizando...')
+              : (idioma === 'pt' ? 'Atualizar Senha' : idioma === 'en' ? 'Update Password' : 'Actualizar Contraseña')}
           </button>
         </div>
       </div>
