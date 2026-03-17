@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const rotasPublicas = ['/', '/cadastro', '/recuperar-senha', '/atualizar-senha']
+  const rotasPublicas = ['/login', '/cadastro', '/recuperar-senha', '/atualizar-senha']
   const isRotaPublica = rotasPublicas.some(rota => request.nextUrl.pathname === rota)
 
   const isRotaProtegida =
@@ -41,7 +41,14 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/ia-financeira') ||
     request.nextUrl.pathname.startsWith('/ia-tributaria') ||
     request.nextUrl.pathname.startsWith('/relatorios') ||
-    request.nextUrl.pathname.startsWith('/empresa')
+    request.nextUrl.pathname.startsWith('/empresa') ||
+    request.nextUrl.pathname.startsWith('/planos') ||
+    request.nextUrl.pathname.startsWith('/metas') ||
+    request.nextUrl.pathname.startsWith('/investimentos') ||
+    request.nextUrl.pathname.startsWith('/simulacoes') ||
+    request.nextUrl.pathname.startsWith('/precificacao') ||
+    request.nextUrl.pathname.startsWith('/contas-receber') ||
+    request.nextUrl.pathname.startsWith('/inadimplencia')
 
   if (!user && isRotaProtegida) {
     return NextResponse.redirect(new URL('/', request.url))
