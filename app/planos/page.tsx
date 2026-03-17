@@ -5,88 +5,105 @@ import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
 import { Check, X } from 'lucide-react'
 
-const planos = [
-  {
-    id: 'starter',
-    nome: 'Starter',
-    mensal: 49,
-    anual: 490,
-    usuarios: 1,
-    cor: '#3b6fd4',
-    destaque: false,
-    recursos: [
-      { label: 'Receitas', ok: true },
-      { label: 'Custos Fixos', ok: true },
-      { label: 'Custos Variáveis', ok: true },
-      { label: 'Fornecedores', ok: true },
-      { label: 'Endividamento', ok: true },
-      { label: 'Fluxo de Caixa', ok: true },
-      { label: 'DRE', ok: true },
-      { label: 'Clientes', ok: true },
-      { label: 'Centros de Custo', ok: true },
-      { label: 'Importar Documentos', ok: true },
-      { label: 'Empresa', ok: true },
-      { label: 'Relatórios', ok: true },
-      { label: 'IA Financeira', ok: false },
-      { label: 'IA Tributária', ok: false },
-    ]
-  },
-  {
-    id: 'pro',
-    nome: 'Pro',
-    mensal: 97,
-    anual: 970,
-    usuarios: 4,
-    cor: '#f59e0b',
-    destaque: true,
-    recursos: [
-      { label: 'Receitas', ok: true },
-      { label: 'Custos Fixos', ok: true },
-      { label: 'Custos Variáveis', ok: true },
-      { label: 'Fornecedores', ok: true },
-      { label: 'Endividamento', ok: true },
-      { label: 'Fluxo de Caixa', ok: true },
-      { label: 'DRE', ok: true },
-      { label: 'Clientes', ok: true },
-      { label: 'Centros de Custo', ok: true },
-      { label: 'Importar Documentos', ok: true },
-      { label: 'Empresa', ok: true },
-      { label: 'Relatórios', ok: true },
-      { label: 'IA Financeira', ok: true },
-      { label: 'IA Tributária', ok: false },
-    ]
-  },
-  {
-    id: 'business',
-    nome: 'Business',
-    mensal: 197,
-    anual: 1970,
-    usuarios: 10,
-    cor: '#34d399',
-    destaque: false,
-    recursos: [
-      { label: 'Receitas', ok: true },
-      { label: 'Custos Fixos', ok: true },
-      { label: 'Custos Variáveis', ok: true },
-      { label: 'Fornecedores', ok: true },
-      { label: 'Endividamento', ok: true },
-      { label: 'Fluxo de Caixa', ok: true },
-      { label: 'DRE', ok: true },
-      { label: 'Clientes', ok: true },
-      { label: 'Centros de Custo', ok: true },
-      { label: 'Importar Documentos', ok: true },
-      { label: 'Empresa', ok: true },
-      { label: 'Relatórios', ok: true },
-      { label: 'IA Financeira', ok: true },
-      { label: 'IA Tributária', ok: true },
-    ]
-  },
-]
-
 export default function Planos() {
   const router = useRouter()
   const { idioma } = useLanguage()
   const [anual, setAnual] = useState(false)
+
+  const recursos = {
+    receitas: idioma === 'pt' ? 'Receitas' : idioma === 'en' ? 'Revenue' : 'Ingresos',
+    custosFixos: idioma === 'pt' ? 'Custos Fixos' : idioma === 'en' ? 'Fixed Costs' : 'Costos Fijos',
+    custosVariaveis: idioma === 'pt' ? 'Custos Variáveis' : idioma === 'en' ? 'Variable Costs' : 'Costos Variables',
+    fornecedores: idioma === 'pt' ? 'Fornecedores' : idioma === 'en' ? 'Suppliers' : 'Proveedores',
+    endividamento: idioma === 'pt' ? 'Endividamento' : idioma === 'en' ? 'Debt Control' : 'Endeudamiento',
+    fluxoCaixa: idioma === 'pt' ? 'Fluxo de Caixa' : idioma === 'en' ? 'Cash Flow' : 'Flujo de Caja',
+    dre: idioma === 'pt' ? 'DRE' : idioma === 'en' ? 'Income Statement' : 'Estado de Resultados',
+    clientes: idioma === 'pt' ? 'Clientes' : idioma === 'en' ? 'Clients' : 'Clientes',
+    centrosCusto: idioma === 'pt' ? 'Centros de Custo' : idioma === 'en' ? 'Cost Centers' : 'Centros de Costo',
+    importar: idioma === 'pt' ? 'Importar Documentos' : idioma === 'en' ? 'Import Documents' : 'Importar Documentos',
+    empresa: idioma === 'pt' ? 'Empresa' : idioma === 'en' ? 'Company' : 'Empresa',
+    relatorios: idioma === 'pt' ? 'Relatórios' : idioma === 'en' ? 'Reports' : 'Informes',
+    iaFinanceira: idioma === 'pt' ? 'IA Financeira' : idioma === 'en' ? 'Financial AI' : 'IA Financiera',
+    iaTributaria: idioma === 'pt' ? 'IA Tributária' : idioma === 'en' ? 'Tax AI' : 'IA Tributaria',
+  }
+
+  const planos = [
+    {
+      id: 'starter',
+      nome: 'Starter',
+      mensal: 49,
+      anual: 490,
+      usuarios: 1,
+      cor: '#3b6fd4',
+      destaque: false,
+      recursos: [
+        { label: recursos.receitas, ok: true },
+        { label: recursos.custosFixos, ok: true },
+        { label: recursos.custosVariaveis, ok: true },
+        { label: recursos.fornecedores, ok: true },
+        { label: recursos.endividamento, ok: true },
+        { label: recursos.fluxoCaixa, ok: true },
+        { label: recursos.dre, ok: true },
+        { label: recursos.clientes, ok: true },
+        { label: recursos.centrosCusto, ok: true },
+        { label: recursos.importar, ok: true },
+        { label: recursos.empresa, ok: true },
+        { label: recursos.relatorios, ok: true },
+        { label: recursos.iaFinanceira, ok: false },
+        { label: recursos.iaTributaria, ok: false },
+      ]
+    },
+    {
+      id: 'pro',
+      nome: 'Pro',
+      mensal: 97,
+      anual: 970,
+      usuarios: 4,
+      cor: '#f59e0b',
+      destaque: true,
+      recursos: [
+        { label: recursos.receitas, ok: true },
+        { label: recursos.custosFixos, ok: true },
+        { label: recursos.custosVariaveis, ok: true },
+        { label: recursos.fornecedores, ok: true },
+        { label: recursos.endividamento, ok: true },
+        { label: recursos.fluxoCaixa, ok: true },
+        { label: recursos.dre, ok: true },
+        { label: recursos.clientes, ok: true },
+        { label: recursos.centrosCusto, ok: true },
+        { label: recursos.importar, ok: true },
+        { label: recursos.empresa, ok: true },
+        { label: recursos.relatorios, ok: true },
+        { label: recursos.iaFinanceira, ok: true },
+        { label: recursos.iaTributaria, ok: false },
+      ]
+    },
+    {
+      id: 'business',
+      nome: 'Business',
+      mensal: 197,
+      anual: 1970,
+      usuarios: 10,
+      cor: '#34d399',
+      destaque: false,
+      recursos: [
+        { label: recursos.receitas, ok: true },
+        { label: recursos.custosFixos, ok: true },
+        { label: recursos.custosVariaveis, ok: true },
+        { label: recursos.fornecedores, ok: true },
+        { label: recursos.endividamento, ok: true },
+        { label: recursos.fluxoCaixa, ok: true },
+        { label: recursos.dre, ok: true },
+        { label: recursos.clientes, ok: true },
+        { label: recursos.centrosCusto, ok: true },
+        { label: recursos.importar, ok: true },
+        { label: recursos.empresa, ok: true },
+        { label: recursos.relatorios, ok: true },
+        { label: recursos.iaFinanceira, ok: true },
+        { label: recursos.iaTributaria, ok: true },
+      ]
+    },
+  ]
 
   return (
     <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
@@ -174,7 +191,7 @@ export default function Planos() {
                     : <X size={16} style={{ color: "#f87171", flexShrink: 0 }} />
                   }
                   <span className="text-sm" style={{ color: r.ok ? "#c8d8f0" : "#3a6090" }}>{r.label}</span>
-                  {!r.ok && r.label.includes('IA') && (
+                  {!r.ok && (r.label.includes('IA') || r.label.includes('AI')) && (
                     <span className="text-xs px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.2)" }}>
                       🔒
                     </span>
