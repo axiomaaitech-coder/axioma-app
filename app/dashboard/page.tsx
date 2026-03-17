@@ -110,70 +110,63 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
+    <div className="min-h-screen p-4 md:p-8 overflow-auto" style={{ background: "#020810" }}>
 
-      {/* Badge IA Tributária PREMIUM — topo */}
-      <div className="flex justify-center mb-6">
+      {/* Badge IA Tributária PREMIUM */}
+      <div className="flex justify-center mb-4 md:mb-6">
         <div
-          className="flex items-center gap-3 px-6 py-3 rounded-2xl cursor-pointer hover:scale-105 transition-all"
-          style={{
-            background: "linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(251,146,60,0.15) 100%)",
-            border: "1px solid rgba(234,179,8,0.4)",
-            boxShadow: "0 0 30px rgba(234,179,8,0.15)",
-          }}
+          className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 rounded-2xl cursor-pointer hover:scale-105 transition-all w-full md:w-auto"
+          style={{ background: "linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(251,146,60,0.15) 100%)", border: "1px solid rgba(234,179,8,0.4)", boxShadow: "0 0 30px rgba(234,179,8,0.15)" }}
           onClick={() => router.push("/ia-tributaria")}
         >
-          <span className="text-xl">⭐</span>
-          <div>
+          <span className="text-lg md:text-xl">⭐</span>
+          <div className="flex-1">
             <p className="text-xs font-black tracking-widest uppercase" style={{ color: "#fbbf24" }}>
               {idioma === "pt" ? "IA Tributária" : idioma === "en" ? "Tax AI" : "IA Tributaria"}
             </p>
-            <p className="text-xs" style={{ color: "#f97316" }}>
+            <p className="text-xs hidden md:block" style={{ color: "#f97316" }}>
               {idioma === "pt" ? "Reduza impostos com inteligência artificial" : idioma === "en" ? "Reduce taxes with artificial intelligence" : "Reduzca impuestos con inteligencia artificial"}
             </p>
           </div>
-          <span
-            className="text-xs font-black px-3 py-1 rounded-full"
-            style={{ background: "linear-gradient(135deg, #ca8a04, #ea580c)", color: "#fff", letterSpacing: "0.1em" }}
-          >
+          <span className="text-xs font-black px-2 md:px-3 py-1 rounded-full" style={{ background: "linear-gradient(135deg, #ca8a04, #ea580c)", color: "#fff" }}>
             PREMIUM
           </span>
         </div>
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-5">
+      <div className="flex justify-between items-center mb-6 md:mb-8">
+        <div className="flex items-center gap-3 md:gap-5">
           <div style={{ filter: "drop-shadow(0 0 20px rgba(106,176,255,0.5))" }}>
-            <Image src="/logo-aitech.png" alt="Axioma" width={60} height={60} className="object-contain" />
+            <Image src="/logo-aitech.png" alt="Axioma" width={40} height={40} className="object-contain md:w-[60px] md:h-[60px]" />
           </div>
           <div>
-            <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: "#3a5a8a" }}>{d.inteligencia}</p>
-            <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{d.bemvindo}</h2>
+            <p className="text-xs font-semibold tracking-widest uppercase mb-0.5 hidden md:block" style={{ color: "#3a5a8a" }}>{d.inteligencia}</p>
+            <h2 className="text-lg md:text-2xl font-bold" style={{ color: "#c8d8f0" }}>{d.bemvindo}</h2>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <div className="relative cursor-pointer p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.1)" }}>
-            <Bell size={20} style={{ color: "#6ab0ff" }} />
-            <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500" />
+            <Bell size={18} style={{ color: "#6ab0ff" }} />
+            <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500" />
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: "rgba(59,111,212,0.1)" }}>
-            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>E</div>
-            <span className="text-sm" style={{ color: "#c8d8f0" }}>Elias</span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(59,111,212,0.1)" }}>
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>E</div>
+            <span className="text-sm hidden md:block" style={{ color: "#c8d8f0" }}>Elias</span>
           </div>
         </div>
       </div>
 
       {/* Cards principais */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-            <div className="flex justify-between items-start mb-3">
+          <div key={card.label} className="rounded-2xl p-4 md:p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+            <div className="flex justify-between items-start mb-2 md:mb-3">
               <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: "#3a5a8a" }}>{card.label}</p>
-              <card.icon size={16} style={{ color: card.up ? "#34d399" : "#f87171" }} />
+              <card.icon size={14} style={{ color: card.up ? "#34d399" : "#f87171" }} />
             </div>
-            <p className="text-2xl font-bold mb-2" style={{ color: "#c8d8f0" }}>{card.value}</p>
-            <span className="text-xs px-2 py-1 rounded-full" style={{ background: card.up ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: card.up ? "#34d399" : "#f87171" }}>
+            <p className="text-lg md:text-2xl font-bold mb-2" style={{ color: "#c8d8f0" }}>{card.value}</p>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: card.up ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: card.up ? "#34d399" : "#f87171" }}>
               {card.change}
             </span>
           </div>
@@ -181,40 +174,40 @@ export default function Dashboard() {
       </div>
 
       {/* KPIs Avançados */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
         {kpisAvancados.map((kpi, i) => (
-          <div key={i} className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${kpi.cor}25` }}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">{kpi.icon}</span>
+          <div key={i} className="rounded-2xl p-4 md:p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${kpi.cor}25` }}>
+            <div className="flex items-center gap-2 mb-2 md:mb-3">
+              <span className="text-base md:text-lg">{kpi.icon}</span>
               <p className="text-xs font-semibold" style={{ color: "#3a5a8a" }}>{kpi.label}</p>
             </div>
-            <p className="text-xl font-bold mb-1" style={{ color: kpi.cor }}>{kpi.value}</p>
+            <p className="text-base md:text-xl font-bold mb-1" style={{ color: kpi.cor }}>{kpi.value}</p>
             <p className="text-xs" style={{ color: "#3a5a8a" }}>{kpi.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Previsão de Caixa */}
-      <div className="rounded-2xl p-5 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-        <p className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{d.previsaoCaixa}</p>
-        <div className="grid grid-cols-3 gap-4">
+      <div className="rounded-2xl p-4 md:p-5 mb-4 md:mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <p className="text-sm font-semibold mb-3 md:mb-4" style={{ color: "#c8d8f0" }}>{d.previsaoCaixa}</p>
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
           {[
             { label: d.trintaDias, valor: receitas },
             { label: d.sessentaDias, valor: receitas * 2 },
             { label: d.noventaDias, valor: receitas * 3 },
           ].map((p, i) => (
-            <div key={i} className="rounded-xl p-4 text-center" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(59,111,212,0.1)" }}>
-              <p className="text-xs mb-2" style={{ color: "#3a5a8a" }}>{p.label}</p>
-              <p className="text-lg font-bold" style={{ color: "#6ab0ff" }}>{fmt(p.valor)}</p>
+            <div key={i} className="rounded-xl p-3 md:p-4 text-center" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(59,111,212,0.1)" }}>
+              <p className="text-xs mb-1 md:mb-2" style={{ color: "#3a5a8a" }}>{p.label}</p>
+              <p className="text-sm md:text-lg font-bold" style={{ color: "#6ab0ff" }}>{fmt(p.valor)}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Gráfico */}
-      <div className="rounded-2xl p-6 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-        <h3 className="text-sm font-semibold mb-6" style={{ color: "#c8d8f0" }}>{d.grafico}</h3>
-        <ResponsiveContainer width="100%" height={250}>
+      <div className="rounded-2xl p-4 md:p-6 mb-4 md:mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <h3 className="text-sm font-semibold mb-4 md:mb-6" style={{ color: "#c8d8f0" }}>{d.grafico}</h3>
+        <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={dadosGrafico}>
             <defs>
               <linearGradient id="receita" x1="0" y1="0" x2="0" y2="1">
@@ -227,9 +220,9 @@ export default function Dashboard() {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(59,111,212,0.1)" />
-            <XAxis dataKey="mes" stroke="#3a5a8a" tick={{ fontSize: 12 }} />
-            <YAxis stroke="#3a5a8a" tick={{ fontSize: 12 }} />
-            <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0" }} />
+            <XAxis dataKey="mes" stroke="#3a5a8a" tick={{ fontSize: 10 }} />
+            <YAxis stroke="#3a5a8a" tick={{ fontSize: 10 }} width={40} />
+            <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0", fontSize: 12 }} />
             <Area type="monotone" dataKey="receita" stroke="#3b6fd4" fill="url(#receita)" strokeWidth={2} name={d.receitas} />
             <Area type="monotone" dataKey="custos" stroke="#34d399" fill="url(#custos)" strokeWidth={2} name={d.custos} />
           </AreaChart>
@@ -237,13 +230,13 @@ export default function Dashboard() {
       </div>
 
       {/* Insights */}
-      <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-        <h3 className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{d.insights}</h3>
-        <div className="space-y-3">
+      <div className="rounded-2xl p-4 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <h3 className="text-sm font-semibold mb-3 md:mb-4" style={{ color: "#c8d8f0" }}>{d.insights}</h3>
+        <div className="space-y-2 md:space-y-3">
           {insights.map((insight, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: insight.tipo === "alerta" ? "rgba(248,113,113,0.05)" : "rgba(52,211,153,0.05)", border: `1px solid ${insight.tipo === "alerta" ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)"}` }}>
-              <AlertTriangle size={16} style={{ color: insight.tipo === "alerta" ? "#f87171" : "#34d399", marginTop: 2 }} />
-              <p className="text-sm" style={{ color: "#8aaad4" }}>{insight.texto}</p>
+            <div key={i} className="flex items-start gap-2 md:gap-3 p-3 rounded-xl" style={{ background: insight.tipo === "alerta" ? "rgba(248,113,113,0.05)" : "rgba(52,211,153,0.05)", border: `1px solid ${insight.tipo === "alerta" ? "rgba(248,113,113,0.15)" : "rgba(52,211,153,0.15)"}` }}>
+              <AlertTriangle size={14} style={{ color: insight.tipo === "alerta" ? "#f87171" : "#34d399", marginTop: 2, flexShrink: 0 }} />
+              <p className="text-xs md:text-sm" style={{ color: "#8aaad4" }}>{insight.texto}</p>
             </div>
           ))}
         </div>
