@@ -169,7 +169,7 @@ export default function ImportarPage() {
         position = 0;
         if (remaining > 0) { pdf.addPage(); position = 0; }
       }
-      pdf.save(`axioma-importar-documentos-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.save(`axioma-importar-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) { console.error(err); }
     setExportando(false);
   };
