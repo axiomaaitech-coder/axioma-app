@@ -42,11 +42,7 @@ export default function Receitas() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const { data } = await supabase
-      .from("receitas")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("data", { ascending: false });
+    const { data } = await supabase.from("receitas").select("*").eq("user_id", user.id).order("data", { ascending: false });
     setReceitas(data || []);
     setCarregando(false);
   };
@@ -57,12 +53,9 @@ export default function Receitas() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const { error } = await supabase.from("receitas").insert({
-      descricao: novo.descricao,
-      valor: parseFloat(novo.valor),
+      descricao: novo.descricao, valor: parseFloat(novo.valor),
       data: novo.data || new Date().toISOString().slice(0, 10),
-      categoria: novo.categoria,
-      status: novo.status,
-      user_id: user.id,
+      categoria: novo.categoria, status: novo.status, user_id: user.id,
     });
     if (!error) {
       setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" });
@@ -86,7 +79,6 @@ export default function Receitas() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       pdf.setFillColor(2, 8, 16);
       pdf.rect(0, 0, pdfWidth, 20, "F");
       pdf.setTextColor(106, 176, 255);
@@ -97,7 +89,6 @@ export default function Receitas() {
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
       pdf.text(`${t.receitas.titulo} — ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-
       let position = 22;
       let remaining = pdfHeight;
       while (remaining > 0) {
@@ -131,40 +122,42 @@ export default function Receitas() {
   const totalPendente = receitas.filter(r => r.status === "pendente").reduce((acc, r) => acc + r.valor, 0);
 
   return (
-    <div className="min-h-screen p-8 overflow-auto" style={{background: "#020810"}}>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <button onClick={() => router.push("/dashboard")} style={{color: "#3a5a8a"}}><ArrowLeft size={20}/></button>
-            <h2 className="text-2xl font-bold" style={{color: "#c8d8f0"}}>{t.receitas.titulo}</h2>
-          </div>
-          <p className="text-sm" style={{color: "#3a5a8a"}}>{t.receitas.subtitulo}</p>
+    <div className="min-h-screen p-4 md:p-8 overflow-auto" style={{background: "#020810"}}>
+
+      {/* Header mobile-friendly */}
+      <div className="mb-6 md:mb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <button onClick={() => router.push("/dashboard")} style={{color: "#3a5a8a"}}><ArrowLeft size={20}/></button>
+          <h2 className="text-xl md:text-2xl font-bold" style={{color: "#c8d8f0"}}>{t.receitas.titulo}</h2>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{background: "#dc2626", color: "#fff"}}>
-            <Download size={18}/>{exportando ? "Gerando..." : "Exportar PDF"}
+        <p className="text-sm ml-7" style={{color: "#3a5a8a"}}>{t.receitas.subtitulo}</p>
+        <div className="flex gap-2 mt-4 flex-wrap">
+          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105 disabled:opacity-60" style={{background: "#dc2626", color: "#fff"}}>
+            <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
           </button>
-          <button onClick={() => setModalAberto(true)} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105" style={{background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff"}}>
-            <Plus size={18}/>{t.receitas.novaReceita}
+          <button onClick={() => setModalAberto(true)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105" style={{background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff"}}>
+            <Plus size={16}/>{t.receitas.novaReceita}
           </button>
         </div>
       </div>
 
       <div ref={conteudoRef}>
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        {/* Cards */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8">
           {[
             { label: t.receitas.totalReceitas, value: `R$ ${totalReceitas.toLocaleString("pt-BR")}`, color: "#6ab0ff" },
             { label: t.receitas.recebido, value: `R$ ${totalRecebido.toLocaleString("pt-BR")}`, color: "#34d399" },
             { label: t.receitas.pendente, value: `R$ ${totalPendente.toLocaleString("pt-BR")}`, color: "#fbbf24" },
           ].map((card) => (
-            <div key={card.label} className="rounded-2xl p-5" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{color: "#3a5a8a"}}>{card.label}</p>
-              <p className="text-2xl font-bold" style={{color: card.color}}>{card.value}</p>
+            <div key={card.label} className="rounded-2xl p-3 md:p-5" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{color: "#3a5a8a"}}>{card.label}</p>
+              <p className="text-base md:text-2xl font-bold" style={{color: card.color}}>{card.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="flex gap-3 mb-6">
+        {/* Busca */}
+        <div className="flex flex-col md:flex-row gap-3 mb-6">
           <div className="flex items-center gap-2 flex-1 px-4 py-3 rounded-xl" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
             <Search size={16} style={{color: "#3a5a8a"}}/>
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.receitas.buscar} className="bg-transparent flex-1 focus:outline-none text-sm" style={{color: "#c8d8f0"}}/>
@@ -175,42 +168,46 @@ export default function Receitas() {
           </select>
         </div>
 
+        {/* Tabela — scroll horizontal no mobile */}
         <div className="rounded-2xl overflow-hidden" style={{background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)"}}>
-          {carregando ? (
-            <div className="flex items-center justify-center py-16">
-              <p style={{color: "#3a5a8a"}}>{t.geral.carregando}</p>
-            </div>
-          ) : (
-            <table className="w-full">
-              <thead>
-                <tr style={{borderBottom: "1px solid rgba(59,111,212,0.15)"}}>
-                  {[t.geral.descricao, t.geral.categoria, t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
-                    <th key={i} className="text-left px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{color: "#3a5a8a"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {receitasFiltradas.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-12" style={{color: "#3a5a8a"}}>{t.receitas.semReceitas}</td></tr>
-                ) : receitasFiltradas.map((r, i) => (
-                  <tr key={r.id} style={{borderBottom: i < receitasFiltradas.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none"}}>
-                    <td className="px-6 py-4 text-sm" style={{color: "#c8d8f0"}}>{r.descricao}</td>
-                    <td className="px-6 py-4"><span className="text-xs px-3 py-1 rounded-full" style={{background: "rgba(59,111,212,0.1)", color: "#6ab0ff"}}>{r.categoria}</span></td>
-                    <td className="px-6 py-4 text-sm" style={{color: "#3a5a8a"}}>{new Date(r.data).toLocaleDateString("pt-BR")}</td>
-                    <td className="px-6 py-4"><span className="text-xs px-3 py-1 rounded-full" style={{background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? "#34d399" : "#fbbf24"}}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
-                    <td className="px-6 py-4 text-sm font-bold" style={{color: "#34d399"}}>R$ {r.valor.toLocaleString("pt-BR")}</td>
-                    <td className="px-6 py-4"><button onClick={() => excluirReceita(r.id)} style={{color: "#f87171"}}><Trash2 size={16}/></button></td>
+          <div className="overflow-x-auto">
+            {carregando ? (
+              <div className="flex items-center justify-center py-16">
+                <p style={{color: "#3a5a8a"}}>{t.geral.carregando}</p>
+              </div>
+            ) : (
+              <table className="w-full min-w-[600px]">
+                <thead>
+                  <tr style={{borderBottom: "1px solid rgba(59,111,212,0.15)"}}>
+                    {[t.geral.descricao, t.geral.categoria, t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
+                      <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{color: "#3a5a8a"}}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {receitasFiltradas.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center py-12 text-sm" style={{color: "#3a5a8a"}}>{t.receitas.semReceitas}</td></tr>
+                  ) : receitasFiltradas.map((r, i) => (
+                    <tr key={r.id} style={{borderBottom: i < receitasFiltradas.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none"}}>
+                      <td className="px-4 md:px-6 py-3 text-sm" style={{color: "#c8d8f0"}}>{r.descricao}</td>
+                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{background: "rgba(59,111,212,0.1)", color: "#6ab0ff"}}>{r.categoria}</span></td>
+                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{color: "#3a5a8a"}}>{new Date(r.data).toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? "#34d399" : "#fbbf24"}}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-bold whitespace-nowrap" style={{color: "#34d399"}}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3"><button onClick={() => excluirReceita(r.id)} style={{color: "#f87171"}}><Trash2 size={16}/></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Modal */}
       {modalAberto && (
-        <div className="fixed inset-0 flex items-center justify-center z-50" style={{background: "rgba(0,0,0,0.7)"}}>
-          <div className="w-full max-w-md rounded-2xl p-8" style={{background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)"}}>
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{background: "rgba(0,0,0,0.7)"}}>
+          <div className="w-full max-w-md rounded-2xl p-6 md:p-8 max-h-screen overflow-y-auto" style={{background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)"}}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold" style={{color: "#c8d8f0"}}>{t.receitas.novaReceita}</h3>
               <button onClick={() => setModalAberto(false)} style={{color: "#3a5a8a"}}><X size={20}/></button>
