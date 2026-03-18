@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import { Download } from "lucide-react";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -190,44 +190,40 @@ export default function CentrosCustoPage() {
   const totalReceitas = lancamentos.filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
   const saldoGeral = totalReceitas - totalCustos;
 
-  function getLancamentosPorCentro(centroId: string) { return lancamentos.filter(l => l.centro_id === centroId); }
-  function getCustosPorCentro(centroId: string) { return getLancamentosPorCentro(centroId).filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0); }
-  function getReceitasPorCentro(centroId: string) { return getLancamentosPorCentro(centroId).filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0); }
+  function getCustosPorCentro(centroId: string) { return lancamentos.filter(l => l.centro_id === centroId && l.tipo === "custo").reduce((s, l) => s + l.valor, 0); }
+  function getReceitasPorCentro(centroId: string) { return lancamentos.filter(l => l.centro_id === centroId && l.tipo === "receita").reduce((s, l) => s + l.valor, 0); }
 
   const lancamentosFiltrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(busca.toLowerCase()));
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  const botaoLancamento = (
+    <button
+      onClick={() => setModalLancamento(true)}
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105"
+      style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}
+    >
+      + {cc.novoLancamento}
+    </button>
+  );
+
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center" style={{ background: "#020810" }}>
-      <div className="text-center">
-        <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-        <p style={{ color: "#3a5a8a" }}>{t.geral.carregando}</p>
-      </div>
+    <div className="flex-1 flex items-center justify-center" style={{ background: "#020810", minHeight: "100vh" }}>
+      <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   return (
-    <div className="flex-1 p-6 overflow-auto" style={{ background: "#020810", minHeight: "100vh" }}>
-
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>🏢 {cc.titulo}</h1>
-          <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{cc.subtitulo}</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-            <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
-          </button>
-          <button onClick={() => setModalLancamento(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-            + {cc.novoLancamento}
-          </button>
-          <button onClick={() => setModalCentro(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-            + {cc.novoCentro}
-          </button>
-        </div>
-      </div>
-
+    <ModuloLayout
+      titulo={`🏢 ${cc.titulo}`}
+      subtitulo={cc.subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+      onNovo={() => setModalCentro(true)}
+      labelBotao={cc.novoCentro}
+      botaoExtra={botaoLancamento}
+    >
       <div ref={conteudoRef}>
+        {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: cc.totalCentros, valor: centros.length.toString(), cor: "#6ab0ff" },
@@ -242,18 +238,22 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
-        <div className="flex gap-2 mb-6">
+        {/* Abas */}
+        <div className="flex gap-2 mb-6 flex-wrap">
           {[
             { key: "visao", label: cc.abaVisaoGeral },
             { key: "centros", label: cc.abaCentros },
             { key: "lancamentos", label: cc.abaLancamentos },
           ].map((a) => (
-            <button key={a.key} onClick={() => setAba(a.key as typeof aba)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
+            <button key={a.key} onClick={() => setAba(a.key as typeof aba)}
+              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
               {a.label}
             </button>
           ))}
         </div>
 
+        {/* Aba Visão Geral */}
         {aba === "visao" && (
           <div className="space-y-4">
             <h2 className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>📊 {cc.comparativo}</h2>
@@ -267,7 +267,7 @@ export default function CentrosCustoPage() {
               const saldo = receitas - custos;
               const maxVal = Math.max(totalCustos, totalReceitas, 1);
               return (
-                <div key={centro.id} className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${centro.cor}25` }}>
+                <div key={centro.id} className="rounded-2xl p-4 md:p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${centro.cor}25` }}>
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ background: centro.cor }} />
@@ -295,6 +295,7 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
+        {/* Aba Centros */}
         {aba === "centros" && (
           <div className="space-y-3">
             {centros.length === 0 ? (
@@ -302,7 +303,7 @@ export default function CentrosCustoPage() {
                 <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
               </div>
             ) : centros.map((centro) => (
-              <div key={centro.id} className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${centro.cor}25` }}>
+              <div key={centro.id} className="rounded-2xl p-4 flex items-center justify-between flex-wrap gap-3" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${centro.cor}25` }}>
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full" style={{ background: centro.cor }} />
                   <div>
@@ -319,9 +320,12 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
+        {/* Aba Lançamentos */}
         {aba === "lancamentos" && (
           <div>
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar} className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar}
+              className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none"
+              style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
             <div className="space-y-3">
               {lancamentosFiltrados.length === 0 ? (
                 <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
@@ -330,15 +334,15 @@ export default function CentrosCustoPage() {
               ) : lancamentosFiltrados.map((lanc) => {
                 const centro = centros.find(c => c.id === lanc.centro_id);
                 return (
-                  <div key={lanc.id} className="rounded-2xl p-4 flex items-center justify-between" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-                    <div className="flex items-center gap-3">
-                      {centro && <div className="w-3 h-3 rounded-full" style={{ background: centro.cor }} />}
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
+                  <div key={lanc.id} className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {centro && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: centro.cor }} />}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
                         <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} • {new Date(lanc.data).toLocaleDateString("pt-BR")}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
+                    <span className="text-sm font-bold flex-shrink-0" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
                       {lanc.tipo === "receita" ? "+" : "-"}{fmt(lanc.valor)}
                     </span>
                   </div>
@@ -349,9 +353,10 @@ export default function CentrosCustoPage() {
         )}
       </div>
 
+      {/* Modal Centro */}
       {modalCentro && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
-          <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: "#c8d8f0" }}>{editandoCentro ? cc.editarCentro : cc.novoCentro}</h3>
             <div className="space-y-4">
               <div>
@@ -381,9 +386,10 @@ export default function CentrosCustoPage() {
         </div>
       )}
 
+      {/* Modal Lançamento */}
       {modalLancamento && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
-          <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: "#c8d8f0" }}>{cc.novoLancamento}</h3>
             <div className="space-y-4">
               <div>
@@ -398,7 +404,8 @@ export default function CentrosCustoPage() {
                 <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{cc.tipo}</label>
                 <div className="flex gap-2">
                   {(["custo", "receita"] as const).map((tipo) => (
-                    <button key={tipo} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold" style={{ background: tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.2)" : "rgba(52,211,153,0.2)") : "rgba(59,111,212,0.05)", color: tipoLanc === tipo ? (tipo === "custo" ? "#f87171" : "#34d399") : "#3a5a8a", border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.3)" : "rgba(52,211,153,0.3)") : "rgba(59,111,212,0.1)"}` }}>
+                    <button key={tipo} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
+                      style={{ background: tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.2)" : "rgba(52,211,153,0.2)") : "rgba(59,111,212,0.05)", color: tipoLanc === tipo ? (tipo === "custo" ? "#f87171" : "#34d399") : "#3a5a8a", border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.3)" : "rgba(52,211,153,0.3)") : "rgba(59,111,212,0.1)"}` }}>
                       {tipo === "custo" ? cc.custo : cc.receita}
                     </button>
                   ))}
@@ -425,6 +432,6 @@ export default function CentrosCustoPage() {
           </div>
         </div>
       )}
-    </div>
+    </ModuloLayout>
   );
 }
