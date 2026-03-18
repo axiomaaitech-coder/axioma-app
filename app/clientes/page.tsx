@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import { Download } from "lucide-react";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -208,34 +208,34 @@ export default function ClientesPage() {
     return { cor: "#fbbf24", bg: "rgba(251,191,36,0.1)", label: cl.pendente };
   }
 
+  const botaoCobranca = (
+    <button
+      onClick={() => setModalConta(true)}
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105"
+      style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}
+    >
+      + {cl.novaCobranca}
+    </button>
+  );
+
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center" style={{ background: "#020810" }}>
+    <div className="flex-1 flex items-center justify-center" style={{ background: "#020810", minHeight: "100vh" }}>
       <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   return (
-    <div className="flex-1 p-6 overflow-auto" style={{ background: "#020810", minHeight: "100vh" }}>
-
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>👥 {cl.titulo}</h1>
-          <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{cl.subtitulo}</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-            <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
-          </button>
-          <button onClick={() => setModalConta(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-            + {cl.novaCobranca}
-          </button>
-          <button onClick={() => setModalCliente(true)} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-            + {cl.novoCliente}
-          </button>
-        </div>
-      </div>
-
+    <ModuloLayout
+      titulo={`👥 ${cl.titulo}`}
+      subtitulo={cl.subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+      onNovo={() => setModalCliente(true)}
+      labelBotao={cl.novoCliente}
+      botaoExtra={botaoCobranca}
+    >
       <div ref={conteudoRef}>
+        {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: cl.totalClientes, valor: clientes.length.toString(), cor: "#6ab0ff" },
@@ -250,19 +250,26 @@ export default function ClientesPage() {
           ))}
         </div>
 
+        {/* Abas */}
         <div className="flex gap-2 mb-4">
           {[
             { key: "clientes", label: cl.abaClientes },
             { key: "contas", label: cl.abaContas },
           ].map((a) => (
-            <button key={a.key} onClick={() => { setAba(a.key as typeof aba); setBusca(""); }} className="px-4 py-2 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
+            <button key={a.key} onClick={() => { setAba(a.key as typeof aba); setBusca(""); }}
+              className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
               {a.label}
             </button>
           ))}
         </div>
 
-        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cl.buscar} className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
+        {/* Busca */}
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cl.buscar}
+          className="w-full px-4 py-2.5 rounded-xl mb-4 text-sm focus:outline-none"
+          style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)", color: "#c8d8f0" }} />
 
+        {/* Lista Clientes */}
         {aba === "clientes" && (
           <div className="space-y-3">
             {clientesFiltrados.length === 0 ? (
@@ -271,18 +278,18 @@ export default function ClientesPage() {
               </div>
             ) : clientesFiltrados.map((cliente) => (
               <div key={cliente.id} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                       {cliente.nome.charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{cliente.nome}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{cliente.email} {cliente.telefone ? `• ${cliente.telefone}` : ""}</p>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: "#3a5a8a" }}>{cliente.email}{cliente.telefone ? ` • ${cliente.telefone}` : ""}</p>
                       {cliente.cidade && <p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.cidade}</p>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: cliente.status === "ativo" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: cliente.status === "ativo" ? "#34d399" : "#f87171" }}>
                       {cliente.status === "ativo" ? cl.ativo : cl.inativo}
                     </span>
@@ -295,6 +302,7 @@ export default function ClientesPage() {
           </div>
         )}
 
+        {/* Lista Contas */}
         {aba === "contas" && (
           <div className="space-y-3">
             {contasFiltradas.length === 0 ? (
@@ -306,14 +314,14 @@ export default function ClientesPage() {
               const statusInfo = getStatusCor(conta.status, conta.data_vencimento);
               return (
                 <div key={conta.id} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${statusInfo.cor}25` }}>
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
                       <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{conta.descricao}</p>
                       <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>
                         {cliente ? `${cliente.nome} • ` : ""}{cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="text-base font-bold" style={{ color: statusInfo.cor }}>{fmt(conta.valor)}</p>
                       <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: statusInfo.bg, color: statusInfo.cor }}>{statusInfo.label}</span>
                       {conta.status === "pendente" && (
@@ -330,9 +338,10 @@ export default function ClientesPage() {
         )}
       </div>
 
+      {/* Modal Cliente */}
       {modalCliente && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
-          <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: "#c8d8f0" }}>{editandoCliente ? cl.editarCliente : cl.novoCliente}</h3>
             <div className="space-y-3">
               {[
@@ -358,9 +367,10 @@ export default function ClientesPage() {
         </div>
       )}
 
+      {/* Modal Conta */}
       {modalConta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)" }}>
-          <div className="rounded-2xl p-6 w-full max-w-md" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <h3 className="text-lg font-bold mb-4" style={{ color: "#c8d8f0" }}>{cl.novaCobranca}</h3>
             <div className="space-y-3">
               <div>
@@ -392,7 +402,6 @@ export default function ClientesPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </ModuloLayout>
   );
 }
