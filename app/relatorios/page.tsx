@@ -1,9 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from "recharts";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -110,11 +109,8 @@ const dreTitle = { pt: "Demonstracao do Resultado - Marco 2026", en: "Income Sta
 const evolTitle = { pt: "Evolucao Financeira 2026", en: "Financial Evolution 2026", es: "Evolucion Financiera 2026" };
 const distTitle = { pt: "Distribuicao de Custos", en: "Cost Distribution", es: "Distribucion de Costos" };
 const detTitle = { pt: "Detalhamento", en: "Details", es: "Detalle" };
-const textoExportar = { pt: "Exportar PDF", en: "Export PDF", es: "Exportar PDF" };
-const textoExportando = { pt: "Gerando PDF...", en: "Generating PDF...", es: "Generando PDF..." };
 
 export default function Relatorios() {
-  const router = useRouter();
   const { t, idioma } = useLanguage();
   const [aba, setAba] = useState("dre");
   const [exportando, setExportando] = useState(false);
@@ -166,44 +162,43 @@ export default function Relatorios() {
     setExportando(false);
   };
 
-  return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} style={{ color: "#3a5a8a" }}><ArrowLeft size={20} /></button>
-          <div>
-            <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{t.relatorios.titulo}</h2>
-            <p className="text-sm" style={{ color: "#3a5a8a" }}>{t.relatorios.subtitulo}</p>
-          </div>
-        </div>
-        <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-          <Download size={18}/>{exportando ? textoExportando[idioma] : textoExportar[idioma]}
+  const botaoAbas = (
+    <div className="flex gap-2 flex-wrap">
+      {[
+        { key: "dre", label: t.relatorios.dre },
+        { key: "evolucao", label: t.relatorios.evolucao },
+        { key: "distribuicao", label: t.relatorios.distribuicao },
+        { key: "indicadores", label: t.relatorios.indicadores },
+      ].map((a) => (
+        <button key={a.key} onClick={() => setAba(a.key)}
+          className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+          style={{ background: aba === a.key ? "rgba(59,111,212,0.2)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.3)" : "rgba(59,111,212,0.15)"}` }}>
+          {a.label}
         </button>
-      </div>
+      ))}
+    </div>
+  );
 
-      <div className="flex gap-2 mb-8">
-        {[
-          { key: "dre", label: t.relatorios.dre },
-          { key: "evolucao", label: t.relatorios.evolucao },
-          { key: "distribuicao", label: t.relatorios.distribuicao },
-          { key: "indicadores", label: t.relatorios.indicadores },
-        ].map((a) => (
-          <button key={a.key} onClick={() => setAba(a.key)} className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all" style={{ background: aba === a.key ? "rgba(59,111,212,0.2)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.3)" : "rgba(59,111,212,0.15)"}` }}>
-            {a.label}
-          </button>
-        ))}
-      </div>
-
+  return (
+    <ModuloLayout
+      titulo={t.relatorios.titulo}
+      subtitulo={t.relatorios.subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+      botaoExtra={botaoAbas}
+    >
       <div ref={conteudoRef}>
+        {/* DRE */}
         {aba === "dre" && (
-          <div className="rounded-2xl overflow-hidden max-w-2xl" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-            <div className="px-6 py-4 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
-              <h3 className="font-bold" style={{ color: "#c8d8f0" }}>{dreTitle[idioma]}</h3>
+          <div className="rounded-2xl overflow-hidden w-full md:max-w-2xl" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+            <div className="px-4 md:px-6 py-4 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
+              <h3 className="font-bold text-sm md:text-base" style={{ color: "#c8d8f0" }}>{dreTitle[idioma]}</h3>
             </div>
             {dreAtual.map((item, i) => (
-              <div key={i} className="flex justify-between items-center px-6 py-4" style={{ borderBottom: i < dreAtual.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none", background: item.tipo === "subtotal" || item.tipo === "lucro" ? "rgba(59,111,212,0.05)" : "transparent" }}>
-                <span className="text-sm font-medium" style={{ color: item.tipo === "subtotal" || item.tipo === "lucro" ? "#c8d8f0" : "#8aaad4", paddingLeft: item.tipo === "subtotal" || item.tipo === "lucro" ? 0 : "16px" }}>{item.label}</span>
-                <span className="font-bold" style={{ color: item.valor > 0 ? "#34d399" : "#f87171", fontSize: item.tipo === "lucro" ? "18px" : "14px" }}>
+              <div key={i} className="flex justify-between items-center px-4 md:px-6 py-3 md:py-4"
+                style={{ borderBottom: i < dreAtual.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none", background: item.tipo === "subtotal" || item.tipo === "lucro" ? "rgba(59,111,212,0.05)" : "transparent" }}>
+                <span className="text-sm font-medium" style={{ color: item.tipo === "subtotal" || item.tipo === "lucro" ? "#c8d8f0" : "#8aaad4", paddingLeft: item.tipo === "subtotal" || item.tipo === "lucro" ? 0 : "12px" }}>{item.label}</span>
+                <span className="font-bold" style={{ color: item.valor > 0 ? "#34d399" : "#f87171", fontSize: item.tipo === "lucro" ? "16px" : "14px" }}>
                   {item.valor > 0 ? "+" : ""}R$ {Math.abs(item.valor).toLocaleString("pt-BR")}
                 </span>
               </div>
@@ -211,10 +206,11 @@ export default function Relatorios() {
           </div>
         )}
 
+        {/* Evolução */}
         {aba === "evolucao" && (
-          <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-            <h3 className="font-bold mb-6" style={{ color: "#c8d8f0" }}>{evolTitle[idioma]}</h3>
-            <ResponsiveContainer width="100%" height={350}>
+          <div className="rounded-2xl p-4 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+            <h3 className="font-bold mb-4 md:mb-6" style={{ color: "#c8d8f0" }}>{evolTitle[idioma]}</h3>
+            <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={dadosEvolucao}>
                 <defs>
                   <linearGradient id="receita" x1="0" y1="0" x2="0" y2="1">
@@ -227,8 +223,8 @@ export default function Relatorios() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(59,111,212,0.1)" />
-                <XAxis dataKey="mes" stroke="#3a5a8a" tick={{ fontSize: 12 }} />
-                <YAxis stroke="#3a5a8a" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="mes" stroke="#3a5a8a" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#3a5a8a" tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0" }} />
                 <Legend />
                 <Area type="monotone" dataKey="receita" stroke="#3b6fd4" fill="url(#receita)" strokeWidth={2} name={idioma === "pt" ? "Receita" : idioma === "en" ? "Revenue" : "Ingresos"} />
@@ -238,26 +234,27 @@ export default function Relatorios() {
           </div>
         )}
 
+        {/* Distribuição */}
         {aba === "distribuicao" && (
-          <div className="grid grid-cols-2 gap-6">
-            <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-              <h3 className="font-bold mb-6" style={{ color: "#c8d8f0" }}>{distTitle[idioma]}</h3>
-              <ResponsiveContainer width="100%" height={280}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-2xl p-4 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <h3 className="font-bold mb-4" style={{ color: "#c8d8f0" }}>{distTitle[idioma]}</h3>
+              <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={pizzaAtual} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={renderLabel}>
+                  <Pie data={pizzaAtual} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={renderLabel}>
                     {pizzaAtual.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0" }} formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-              <h3 className="font-bold mb-6" style={{ color: "#c8d8f0" }}>{detTitle[idioma]}</h3>
-              <ResponsiveContainer width="100%" height={280}>
+            <div className="rounded-2xl p-4 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <h3 className="font-bold mb-4" style={{ color: "#c8d8f0" }}>{detTitle[idioma]}</h3>
+              <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={pizzaAtual} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(59,111,212,0.1)" />
                   <XAxis type="number" stroke="#3a5a8a" tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" stroke="#3a5a8a" tick={{ fontSize: 11 }} width={100} />
+                  <YAxis dataKey="name" type="category" stroke="#3a5a8a" tick={{ fontSize: 11 }} width={90} />
                   <Tooltip contentStyle={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)", borderRadius: "12px", color: "#c8d8f0" }} formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                     {pizzaAtual.map((entry, i) => <Cell key={i} fill={entry.color} />)}
@@ -268,12 +265,13 @@ export default function Relatorios() {
           </div>
         )}
 
+        {/* Indicadores */}
         {aba === "indicadores" && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {indicadoresAtual.map((ind, i) => (
-              <div key={i} className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+              <div key={i} className="rounded-2xl p-4 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "#3a5a8a" }}>{ind.nome}</p>
-                <p className="text-3xl font-black mb-2" style={{ color: ind.atingido ? "#34d399" : "#f87171" }}>{ind.valor}</p>
+                <p className="text-2xl md:text-3xl font-black mb-2" style={{ color: ind.atingido ? "#34d399" : "#f87171" }}>{ind.valor}</p>
                 <span className="text-xs px-2 py-1 rounded-full" style={{ background: ind.atingido ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: ind.atingido ? "#34d399" : "#f87171" }}>
                   {ind.atingido ? t.relatorios.acimaMeta : t.relatorios.abaixoMeta}
                 </span>
@@ -283,6 +281,6 @@ export default function Relatorios() {
           </div>
         )}
       </div>
-    </div>
+    </ModuloLayout>
   );
 }
