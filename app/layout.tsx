@@ -34,7 +34,7 @@ export default function RootLayout({
         <LanguageProvider>
           <div className="flex min-h-screen">
             <SidebarWrapper />
-            <main className="flex-1 overflow-auto min-w-0">
+            <main className="flex-1 overflow-auto min-w-0 pt-16 md:pt-0">
               {children}
             </main>
           </div>
