@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import { Download } from "lucide-react";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -175,21 +175,22 @@ export default function ImportarPage() {
   };
 
   return (
-    <div className="flex-1 p-6 overflow-auto" style={{ background: "#020810", minHeight: "100vh" }}>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>📄 {imp.titulo}</h1>
-          <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{imp.subtitulo}</p>
-        </div>
-        <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-          <Download size={16}/>{exportando ? "Gerando..." : "Exportar PDF"}
-        </button>
-      </div>
-
+    <ModuloLayout
+      titulo={`📄 ${imp.titulo}`}
+      subtitulo={imp.subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+    >
       <div ref={conteudoRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Coluna esquerda — upload e tipos */}
         <div className="space-y-4">
           {!arquivoSelecionado && !sucesso && (
-            <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop} onClick={() => inputRef.current?.click()} className="rounded-2xl p-10 text-center cursor-pointer transition-all" style={{ background: arrastandoArquivo ? "rgba(106,176,255,0.1)" : "rgba(10,22,40,0.8)", border: `2px dashed ${arrastandoArquivo ? "#6ab0ff" : "rgba(59,111,212,0.3)"}` }}>
+            <div
+              onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+              onClick={() => inputRef.current?.click()}
+              className="rounded-2xl p-8 md:p-10 text-center cursor-pointer transition-all"
+              style={{ background: arrastandoArquivo ? "rgba(106,176,255,0.1)" : "rgba(10,22,40,0.8)", border: `2px dashed ${arrastandoArquivo ? "#6ab0ff" : "rgba(59,111,212,0.3)"}` }}
+            >
               <div className="text-5xl mb-4">📂</div>
               <p className="text-lg font-semibold mb-1" style={{ color: "#c8d8f0" }}>{imp.arrasteAqui}</p>
               <p className="text-sm mb-3" style={{ color: "#3a5a8a" }}>{imp.ouClique}</p>
@@ -207,8 +208,8 @@ export default function ImportarPage() {
           )}
 
           {tipoDetectado && !sucesso && (
-            <div className="rounded-2xl p-6 space-y-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${tipoDetectado.cor}40` }}>
-              <div className="flex items-center gap-3 mb-2">
+            <div className="rounded-2xl p-5 space-y-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${tipoDetectado.cor}40` }}>
+              <div className="flex items-center gap-3">
                 <span className="text-3xl">{tipoDetectado.icon}</span>
                 <div>
                   <p className="text-xs" style={{ color: "#3a5a8a" }}>{imp.tipoIdentificado}</p>
@@ -240,6 +241,7 @@ export default function ImportarPage() {
             </div>
           )}
 
+          {/* Tipos de documento */}
           <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
             <p className="text-xs font-semibold mb-3" style={{ color: "#3a5a8a" }}>{tituloSecao}</p>
             <div className="space-y-2">
@@ -256,6 +258,7 @@ export default function ImportarPage() {
           </div>
         </div>
 
+        {/* Coluna direita — histórico */}
         <div>
           <p className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>🕓 {imp.historico}</p>
           {loading ? (
@@ -272,16 +275,16 @@ export default function ImportarPage() {
                 const tipo = tiposDocumento.find(tp => tp.tipo === item.tipo_documento) || tiposDocumento[0];
                 return (
                   <div key={item.id} className="rounded-2xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">{tipo.icon}</span>
-                        <div>
-                          <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{item.nome_arquivo}</p>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-xl flex-shrink-0">{tipo.icon}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{item.nome_arquivo}</p>
                           <p className="text-xs mt-0.5" style={{ color: tipo.cor }}>→ {item.destino}</p>
                           <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{new Date(item.created_at).toLocaleDateString("pt-BR")}</p>
                         </div>
                       </div>
-                      <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: item.status === "processado" ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: item.status === "processado" ? "#34d399" : "#f87171" }}>
+                      <span className="px-2 py-1 rounded-lg text-xs font-semibold flex-shrink-0" style={{ background: item.status === "processado" ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: item.status === "processado" ? "#34d399" : "#f87171" }}>
                         {item.status === "processado" ? imp.processado : imp.falhou}
                       </span>
                     </div>
@@ -292,6 +295,6 @@ export default function ImportarPage() {
           )}
         </div>
       </div>
-    </div>
+    </ModuloLayout>
   );
 }
