@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import { Download } from "lucide-react";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -123,55 +123,53 @@ export default function DREPage() {
     { label: d.lucroLiquido, valor: lucroLiquido, nivel: 0, destaque: true, cor: lucroLiquido >= 0 ? "#34d399" : "#f87171", separador: true },
   ];
 
-  return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>
-            📈 {d.titulo}
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>{d.subtitulo}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2">
-            {[
-              { key: "mes", label: d.mesAtual },
-              { key: "trimestre", label: d.trimestre },
-              { key: "ano", label: d.anoAtual },
-            ].map((p) => (
-              <button
-                key={p.key}
-                onClick={() => setPeriodo(p.key)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  background: periodo === p.key ? "rgba(59,111,212,0.3)" : "rgba(10,22,40,0.8)",
-                  color: periodo === p.key ? "#6ab0ff" : "#3a5a8a",
-                  border: `1px solid ${periodo === p.key ? "rgba(59,111,212,0.4)" : "rgba(59,111,212,0.15)"}`,
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{background: "#dc2626", color: "#fff"}}>
-            <Download size={18}/>{exportando ? "Gerando..." : "Exportar PDF"}
-          </button>
-        </div>
-      </div>
+  // Botão de período como botaoExtra
+  const botaoPeriodo = (
+    <div className="flex gap-2 flex-wrap">
+      {[
+        { key: "mes", label: d.mesAtual },
+        { key: "trimestre", label: d.trimestre },
+        { key: "ano", label: d.anoAtual },
+      ].map((p) => (
+        <button
+          key={p.key}
+          onClick={() => setPeriodo(p.key)}
+          className="px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            background: periodo === p.key ? "rgba(59,111,212,0.3)" : "rgba(10,22,40,0.8)",
+            color: periodo === p.key ? "#6ab0ff" : "#3a5a8a",
+            border: `1px solid ${periodo === p.key ? "rgba(59,111,212,0.4)" : "rgba(59,111,212,0.15)"}`,
+          }}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
 
+  return (
+    <ModuloLayout
+      titulo={`📈 ${d.titulo}`}
+      subtitulo={d.subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+      botaoExtra={botaoPeriodo}
+    >
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       ) : (
-        <div ref={conteudoRef} className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-            <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(59,111,212,0.1)" }}>
+        <div ref={conteudoRef} className="flex flex-col gap-6">
+
+          {/* Tabela DRE */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+            <div className="px-4 md:px-6 py-4" style={{ borderBottom: "1px solid rgba(59,111,212,0.1)" }}>
               <p className="text-xs font-bold tracking-widest uppercase" style={{ color: "#3a5a8a" }}>
                 {d.periodo}: {periodo === "mes" ? d.mesAtual : periodo === "trimestre" ? d.trimestre : d.anoAtual}
               </p>
             </div>
-            <div className="p-6 space-y-1">
+            <div className="p-4 md:p-6 space-y-1">
               {linhas.map((linha, i) => (
                 <div key={i}>
                   {linha.separador && (
@@ -179,7 +177,7 @@ export default function DREPage() {
                   )}
                   <div
                     className="flex justify-between items-center py-2.5 rounded-xl transition-all hover:bg-white/5"
-                    style={{ paddingLeft: linha.nivel === 1 ? "2rem" : "0.75rem", paddingRight: "0.75rem" }}
+                    style={{ paddingLeft: linha.nivel === 1 ? "1.5rem" : "0.75rem", paddingRight: "0.75rem" }}
                   >
                     <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.destaque ? "#c8d8f0" : "#5a7a9a" }}>
                       {linha.label}
@@ -193,26 +191,27 @@ export default function DREPage() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Cards de margem — grid responsivo */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
               <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.margemBruta}</p>
-              <p className="text-3xl font-black" style={{ color: Number(margemBruta) >= 0 ? "#34d399" : "#f87171" }}>{margemBruta}%</p>
+              <p className="text-2xl font-black" style={{ color: Number(margemBruta) >= 0 ? "#34d399" : "#f87171" }}>{margemBruta}%</p>
               <div className="mt-3 rounded-full h-2" style={{ background: "rgba(59,111,212,0.1)" }}>
-                <div className="h-2 rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, Number(margemBruta)))}%`, background: Number(margemBruta) >= 0 ? "#34d399" : "#f87171" }} />
+                <div className="h-2 rounded-full" style={{ width: `${Math.min(100, Math.max(0, Number(margemBruta)))}%`, background: Number(margemBruta) >= 0 ? "#34d399" : "#f87171" }} />
               </div>
             </div>
 
             <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
               <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.margemLiquida}</p>
-              <p className="text-3xl font-black" style={{ color: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171" }}>{margemLiquida}%</p>
+              <p className="text-2xl font-black" style={{ color: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171" }}>{margemLiquida}%</p>
               <div className="mt-3 rounded-full h-2" style={{ background: "rgba(59,111,212,0.1)" }}>
-                <div className="h-2 rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, Number(margemLiquida)))}%`, background: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171" }} />
+                <div className="h-2 rounded-full" style={{ width: `${Math.min(100, Math.max(0, Number(margemLiquida)))}%`, background: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171" }} />
               </div>
             </div>
 
             <div className="rounded-2xl p-5" style={{ background: lucroLiquido >= 0 ? "rgba(52,211,153,0.08)" : "rgba(248,113,113,0.08)", border: `1px solid ${lucroLiquido >= 0 ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)"}` }}>
               <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.lucroLiquido}</p>
-              <p className="text-2xl font-black" style={{ color: lucroLiquido >= 0 ? "#34d399" : "#f87171" }}>{fmt(lucroLiquido)}</p>
+              <p className="text-xl font-black" style={{ color: lucroLiquido >= 0 ? "#34d399" : "#f87171" }}>{fmt(lucroLiquido)}</p>
               <p className="text-xs mt-2" style={{ color: lucroLiquido >= 0 ? "#34d399" : "#f87171" }}>
                 {lucroLiquido >= 0 ? "Resultado positivo" : "Resultado negativo"}
               </p>
@@ -220,11 +219,12 @@ export default function DREPage() {
 
             <div className="rounded-2xl p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
               <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{d.ebitda}</p>
-              <p className="text-2xl font-black" style={{ color: ebitda >= 0 ? "#6ab0ff" : "#f87171" }}>{fmt(ebitda)}</p>
+              <p className="text-xl font-black" style={{ color: ebitda >= 0 ? "#6ab0ff" : "#f87171" }}>{fmt(ebitda)}</p>
             </div>
           </div>
+
         </div>
       )}
-    </div>
+    </ModuloLayout>
   );
 }
