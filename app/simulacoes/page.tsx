@@ -1,23 +1,25 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useLanguage } from '../../lib/LanguageContext'
 import { Calculator, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import ModuloLayout from '../../components/ModuloLayout'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 export default function Simulacoes() {
   const { idioma } = useLanguage()
   const [tipo, setTipo] = useState('lucro')
+  const [exportando, setExportando] = useState(false)
+  const conteudoRef = useRef<HTMLDivElement>(null)
 
-  // Simulação de Lucro
   const [receita, setReceita] = useState('')
   const [custoFixo, setCustoFixo] = useState('')
   const [custoVariavel, setCustoVariavel] = useState('')
 
-  // Simulação de Ponto de Equilíbrio
   const [precoVenda, setPrecoVenda] = useState('')
   const [custoProduto, setCustoProduto] = useState('')
   const [custoFixoTotal, setCustoFixoTotal] = useState('')
 
-  // Simulação de Crescimento
   const [valorAtual, setValorAtual] = useState('')
   const [taxaCrescimento, setTaxaCrescimento] = useState('')
   const [meses, setMeses] = useState('')
@@ -50,158 +52,155 @@ export default function Simulacoes() {
   const pontoEq = calcularPontoEquilibrio()
   const valorFinal = calcularCrescimento()
 
+  const exportarPDF = async () => {
+    if (!conteudoRef.current) return
+    setExportando(true)
+    try {
+      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true })
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+      const pageHeight = pdf.internal.pageSize.getHeight()
+
+      pdf.setFillColor(2, 8, 16)
+      pdf.rect(0, 0, pdfWidth, 20, "F")
+      pdf.setTextColor(106, 176, 255)
+      pdf.setFontSize(14)
+      pdf.setFont("helvetica", "bold")
+      pdf.text("AXIOMA AI.TECH", 14, 13)
+      pdf.setTextColor(58, 90, 138)
+      pdf.setFontSize(9)
+      pdf.setFont("helvetica", "normal")
+      pdf.text(`${idioma === 'pt' ? 'Simulações Financeiras' : idioma === 'en' ? 'Financial Simulations' : 'Simulaciones Financieras'} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" })
+
+      let position = 22
+      let remaining = pdfHeight
+      while (remaining > 0) {
+        const sliceHeight = Math.min(pageHeight - position, remaining)
+        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight)
+        const sourceH = sliceHeight * (canvas.height / pdfHeight)
+        const sliceCanvas = document.createElement("canvas")
+        sliceCanvas.width = canvas.width
+        sliceCanvas.height = sourceH
+        const ctx = sliceCanvas.getContext("2d")!
+        ctx.fillStyle = "#020810"
+        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
+        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH)
+        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight)
+        remaining -= sliceHeight
+        position = 0
+        if (remaining > 0) { pdf.addPage(); position = 0 }
+      }
+      pdf.save(`axioma-simulacoes-${new Date().toISOString().slice(0, 10)}.pdf`)
+    } catch (err) { console.error(err) }
+    setExportando(false)
+  }
+
   const tipos = [
-    { id: 'lucro', label: idioma === 'pt' ? '💰 Lucro' : idioma === 'en' ? '💰 Profit' : '💰 Ganancia', icon: DollarSign },
-    { id: 'equilibrio', label: idioma === 'pt' ? '⚖️ Ponto de Equilíbrio' : idioma === 'en' ? '⚖️ Break Even' : '⚖️ Punto de Equilibrio', icon: TrendingDown },
-    { id: 'crescimento', label: idioma === 'pt' ? '📈 Crescimento' : idioma === 'en' ? '📈 Growth' : '📈 Crecimiento', icon: TrendingUp },
+    { id: 'lucro', label: idioma === 'pt' ? '💰 Lucro' : idioma === 'en' ? '💰 Profit' : '💰 Ganancia' },
+    { id: 'equilibrio', label: idioma === 'pt' ? '⚖️ Equilíbrio' : idioma === 'en' ? '⚖️ Break Even' : '⚖️ Equilibrio' },
+    { id: 'crescimento', label: idioma === 'pt' ? '📈 Crescimento' : idioma === 'en' ? '📈 Growth' : '📈 Crecimiento' },
   ]
 
+  const titulo = idioma === 'pt' ? 'Simulações Financeiras' : idioma === 'en' ? 'Financial Simulations' : 'Simulaciones Financieras'
+  const subtitulo = idioma === 'pt' ? 'Simule cenários e tome decisões mais inteligentes' : idioma === 'en' ? 'Simulate scenarios and make smarter decisions' : 'Simula escenarios y toma decisiones más inteligentes'
+
+  const botaoTipos = (
+    <div className="flex gap-2 flex-wrap">
+      {tipos.map((t) => (
+        <button key={t.id} onClick={() => setTipo(t.id)}
+          className="px-4 py-2 rounded-xl font-bold text-sm transition-all"
+          style={{
+            background: tipo === t.id ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.8)",
+            color: tipo === t.id ? "#fff" : "#3a6090",
+            border: tipo === t.id ? "1px solid rgba(59,111,212,0.5)" : "1px solid rgba(59,111,212,0.15)",
+          }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+
   return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
-
-      <div className="flex items-center gap-3 mb-2">
-        <Calculator size={24} style={{ color: "#a78bfa" }} />
-        <h1 className="text-2xl font-black" style={{ color: "#c8d8f0" }}>
-          {idioma === 'pt' ? 'Simulações Financeiras' : idioma === 'en' ? 'Financial Simulations' : 'Simulaciones Financieras'}
-        </h1>
-      </div>
-      <p className="text-sm mb-8" style={{ color: "#3a6090" }}>
-        {idioma === 'pt' ? 'Simule cenários e tome decisões mais inteligentes' : idioma === 'en' ? 'Simulate scenarios and make smarter decisions' : 'Simula escenarios y toma decisiones más inteligentes'}
-      </p>
-
-      {/* Tabs */}
-      <div className="flex gap-3 mb-8">
-        {tipos.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTipo(t.id)}
-            className="px-5 py-3 rounded-xl font-bold text-sm transition-all"
-            style={{
-              background: tipo === t.id ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.8)",
-              color: tipo === t.id ? "#fff" : "#3a6090",
-              border: tipo === t.id ? "1px solid rgba(59,111,212,0.5)" : "1px solid rgba(59,111,212,0.15)",
-              boxShadow: tipo === t.id ? "0 4px 20px rgba(42,95,212,0.3)" : "none"
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-6">
+    <ModuloLayout
+      titulo={titulo}
+      subtitulo={subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+      botaoExtra={botaoTipos}
+    >
+      <div ref={conteudoRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* Formulário */}
-        <div className="rounded-2xl p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
+        <div className="rounded-2xl p-5 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
           <h3 className="text-sm font-bold mb-6" style={{ color: "#c8d8f0" }}>
             {idioma === 'pt' ? 'Dados da Simulação' : idioma === 'en' ? 'Simulation Data' : 'Datos de la Simulación'}
           </h3>
 
           {tipo === 'lucro' && (
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Receita Total' : idioma === 'en' ? 'Total Revenue' : 'Ingresos Totales'}
-                </label>
-                <input value={receita} onChange={e => setReceita(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Custos Fixos' : idioma === 'en' ? 'Fixed Costs' : 'Costos Fijos'}
-                </label>
-                <input value={custoFixo} onChange={e => setCustoFixo(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Custos Variáveis' : idioma === 'en' ? 'Variable Costs' : 'Costos Variables'}
-                </label>
-                <input value={custoVariavel} onChange={e => setCustoVariavel(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
+              {[
+                { label: idioma === 'pt' ? 'Receita Total' : idioma === 'en' ? 'Total Revenue' : 'Ingresos Totales', value: receita, set: setReceita },
+                { label: idioma === 'pt' ? 'Custos Fixos' : idioma === 'en' ? 'Fixed Costs' : 'Costos Fijos', value: custoFixo, set: setCustoFixo },
+                { label: idioma === 'pt' ? 'Custos Variáveis' : idioma === 'en' ? 'Variable Costs' : 'Costos Variables', value: custoVariavel, set: setCustoVariavel },
+              ].map((campo) => (
+                <div key={campo.label}>
+                  <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>{campo.label}</label>
+                  <input value={campo.value} onChange={e => campo.set(e.target.value)} type="number"
+                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
+                    placeholder="0,00" />
+                </div>
+              ))}
             </div>
           )}
 
           {tipo === 'equilibrio' && (
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Preço de Venda (un.)' : idioma === 'en' ? 'Selling Price (unit)' : 'Precio de Venta (un.)'}
-                </label>
-                <input value={precoVenda} onChange={e => setPrecoVenda(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Custo por Produto (un.)' : idioma === 'en' ? 'Product Cost (unit)' : 'Costo por Producto (un.)'}
-                </label>
-                <input value={custoProduto} onChange={e => setCustoProduto(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Custos Fixos Totais' : idioma === 'en' ? 'Total Fixed Costs' : 'Costos Fijos Totales'}
-                </label>
-                <input value={custoFixoTotal} onChange={e => setCustoFixoTotal(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
+              {[
+                { label: idioma === 'pt' ? 'Preço de Venda (un.)' : idioma === 'en' ? 'Selling Price (unit)' : 'Precio de Venta (un.)', value: precoVenda, set: setPrecoVenda },
+                { label: idioma === 'pt' ? 'Custo por Produto (un.)' : idioma === 'en' ? 'Product Cost (unit)' : 'Costo por Producto (un.)', value: custoProduto, set: setCustoProduto },
+                { label: idioma === 'pt' ? 'Custos Fixos Totais' : idioma === 'en' ? 'Total Fixed Costs' : 'Costos Fijos Totales', value: custoFixoTotal, set: setCustoFixoTotal },
+              ].map((campo) => (
+                <div key={campo.label}>
+                  <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>{campo.label}</label>
+                  <input value={campo.value} onChange={e => campo.set(e.target.value)} type="number"
+                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
+                    placeholder="0,00" />
+                </div>
+              ))}
             </div>
           )}
 
           {tipo === 'crescimento' && (
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Valor Atual' : idioma === 'en' ? 'Current Value' : 'Valor Actual'}
-                </label>
-                <input value={valorAtual} onChange={e => setValorAtual(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0,00" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Taxa de Crescimento Mensal (%)' : idioma === 'en' ? 'Monthly Growth Rate (%)' : 'Tasa de Crecimiento Mensual (%)'}
-                </label>
-                <input value={taxaCrescimento} onChange={e => setTaxaCrescimento(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="0.00" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Quantidade de Meses' : idioma === 'en' ? 'Number of Months' : 'Cantidad de Meses'}
-                </label>
-                <input value={meses} onChange={e => setMeses(e.target.value)} type="number"
-                  className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                  placeholder="12" />
-              </div>
+              {[
+                { label: idioma === 'pt' ? 'Valor Atual' : idioma === 'en' ? 'Current Value' : 'Valor Actual', value: valorAtual, set: setValorAtual, placeholder: '0,00' },
+                { label: idioma === 'pt' ? 'Taxa de Crescimento Mensal (%)' : idioma === 'en' ? 'Monthly Growth Rate (%)' : 'Tasa de Crecimiento Mensual (%)', value: taxaCrescimento, set: setTaxaCrescimento, placeholder: '0.00' },
+                { label: idioma === 'pt' ? 'Quantidade de Meses' : idioma === 'en' ? 'Number of Months' : 'Cantidad de Meses', value: meses, set: setMeses, placeholder: '12' },
+              ].map((campo) => (
+                <div key={campo.label}>
+                  <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>{campo.label}</label>
+                  <input value={campo.value} onChange={e => campo.set(e.target.value)} type="number"
+                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
+                    placeholder={campo.placeholder} />
+                </div>
+              ))}
             </div>
           )}
         </div>
 
         {/* Resultado */}
-        <div className="rounded-2xl p-6 flex flex-col justify-center items-center text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(167,139,250,0.2)" }}>
+        <div className="rounded-2xl p-5 md:p-6 flex flex-col justify-center items-center text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(167,139,250,0.2)" }}>
           <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: "#3a5a8a" }}>
             {idioma === 'pt' ? 'Resultado da Simulação' : idioma === 'en' ? 'Simulation Result' : 'Resultado de la Simulación'}
           </p>
 
           {tipo === 'lucro' && (
             <>
-              <p className="text-5xl font-black mb-3" style={{ color: lucro >= 0 ? "#34d399" : "#f87171" }}>
+              <p className="text-4xl md:text-5xl font-black mb-3" style={{ color: lucro >= 0 ? "#34d399" : "#f87171" }}>
                 {fmt(lucro)}
               </p>
               <p className="text-sm" style={{ color: lucro >= 0 ? "#34d399" : "#f87171" }}>
@@ -224,7 +223,7 @@ export default function Simulacoes() {
 
           {tipo === 'equilibrio' && (
             <>
-              <p className="text-5xl font-black mb-3" style={{ color: "#a78bfa" }}>
+              <p className="text-4xl md:text-5xl font-black mb-3" style={{ color: "#a78bfa" }}>
                 {Math.ceil(pontoEq)} {idioma === 'pt' ? 'un.' : 'units'}
               </p>
               <p className="text-sm mb-2" style={{ color: "#3a6090" }}>
@@ -241,7 +240,7 @@ export default function Simulacoes() {
 
           {tipo === 'crescimento' && (
             <>
-              <p className="text-5xl font-black mb-3" style={{ color: "#34d399" }}>
+              <p className="text-4xl md:text-5xl font-black mb-3" style={{ color: "#34d399" }}>
                 {fmt(valorFinal)}
               </p>
               <p className="text-sm mb-4" style={{ color: "#3a6090" }}>
@@ -257,6 +256,6 @@ export default function Simulacoes() {
           )}
         </div>
       </div>
-    </div>
+    </ModuloLayout>
   )
 }
