@@ -94,8 +94,13 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex flex-col items-center py-6 px-4 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
+      {/* Logo — clicável vai para o Dashboard */}
+      <div
+        className="flex flex-col items-center py-6 px-4 border-b cursor-pointer transition-all hover:opacity-80"
+        style={{ borderColor: "rgba(59,111,212,0.15)" }}
+        onClick={() => navegar("/dashboard")}
+        title="Ir para o Dashboard"
+      >
         <div style={{ filter: "drop-shadow(0 0 30px rgba(106,176,255,0.6))" }}>
           <Image src="/logo-aitech.png" alt="Axioma" width={72} height={72} className="object-contain" />
         </div>
@@ -219,7 +224,10 @@ export default function Sidebar() {
         borderBottom: "1px solid rgba(59,111,212,0.2)",
         backdropFilter: "blur(10px)",
       }}>
-        <div className="flex items-center gap-3">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navegar("/dashboard")}
+        >
           <div style={{ filter: "drop-shadow(0 0 10px rgba(106,176,255,0.6))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={36} height={36} className="object-contain" />
           </div>

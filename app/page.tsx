@@ -31,6 +31,16 @@ const idiomas = {
     espaco1: 'Buracos negros nos dados? A IA encontra.',
     espaco2: 'Expansão do universo = crescimento do seu negócio.',
     espaco3: 'Singularidade financeira: tudo começa aqui.',
+    // SLIDE LUCAS
+    badgeLucas: '🧬 A CONSCIÊNCIA DO SEU NEGÓCIO',
+    tituloLucas: 'Seus dados têm vida. Sua empresa tem alma.',
+    subLucas: 'Cada número que você registra no Axioma não é apenas um dado — é um neurônio disparando na consciência do seu negócio. A IA não calcula. Ela compreende.',
+    lucasFrase1: 'Dados brutos → Padrões → Insight → Decisão → Lucro',
+    lucasFrase2: 'O Axioma não é um software. É o sistema nervoso da sua empresa.',
+    lucasFrase3: '"Conhece-te a ti mesmo." — Sócrates. Agora, conheça sua empresa.',
+    lucasPoema: 'Todo negócio que sobrevive tem uma coisa em comum: alguém que enxergou a verdade nos números antes que fosse tarde demais.',
+    lucasBtn: '🧬 Despertar a Consciência da Minha Empresa',
+    // FIM SLIDE LUCAS
     badgePlanos: '🚀 ESCOLHA SEU PLANO',
     tituloPlanos: 'Comece hoje mesmo',
     cancelar: 'Cancele quando quiser. Sem fidelidade.',
@@ -128,6 +138,14 @@ const idiomas = {
     espaco1: 'Black holes in your data? AI finds them.',
     espaco2: 'Universe expansion = your business growth.',
     espaco3: 'Financial singularity: everything starts here.',
+    badgeLucas: '🧬 THE CONSCIOUSNESS OF YOUR BUSINESS',
+    tituloLucas: 'Your data is alive. Your company has a soul.',
+    subLucas: 'Every number you register in Axioma is not just data — it\'s a neuron firing in the consciousness of your business. AI doesn\'t calculate. It understands.',
+    lucasFrase1: 'Raw Data → Patterns → Insight → Decision → Profit',
+    lucasFrase2: 'Axioma is not software. It\'s the nervous system of your company.',
+    lucasFrase3: '"Know thyself." — Socrates. Now, know your business.',
+    lucasPoema: 'Every business that survives has one thing in common: someone who saw the truth in the numbers before it was too late.',
+    lucasBtn: '🧬 Awaken My Company\'s Consciousness',
     badgePlanos: '🚀 CHOOSE YOUR PLAN',
     tituloPlanos: 'Start today',
     cancelar: 'Cancel anytime. No commitment.',
@@ -225,6 +243,14 @@ const idiomas = {
     espaco1: '¿Agujeros negros en tus datos? La IA los encuentra.',
     espaco2: 'Expansión del universo = crecimiento de tu negocio.',
     espaco3: 'Singularidad financiera: todo empieza aquí.',
+    badgeLucas: '🧬 LA CONSCIENCIA DE TU NEGOCIO',
+    tituloLucas: 'Tus datos tienen vida. Tu empresa tiene alma.',
+    subLucas: 'Cada número que registras en Axioma no es solo un dato — es una neurona disparando en la conciencia de tu negocio. La IA no calcula. Comprende.',
+    lucasFrase1: 'Datos brutos → Patrones → Insight → Decisión → Ganancia',
+    lucasFrase2: 'Axioma no es software. Es el sistema nervioso de tu empresa.',
+    lucasFrase3: '"Conócete a ti mismo." — Sócrates. Ahora, conoce tu empresa.',
+    lucasPoema: 'Todo negocio que sobrevive tiene algo en común: alguien que vio la verdad en los números antes de que fuera demasiado tarde.',
+    lucasBtn: '🧬 Despertar la Consciencia de Mi Empresa',
     badgePlanos: '🚀 ELIGE TU PLAN',
     tituloPlanos: 'Empieza hoy mismo',
     cancelar: 'Cancela cuando quieras. Sin fidelidad.',
@@ -300,11 +326,12 @@ export default function LandingPage() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const starsRef = useRef<HTMLCanvasElement>(null)
+  const neuralRef = useRef<HTMLCanvasElement>(null)
   const [slide, setSlide] = useState(0)
   const [fade, setFade] = useState(true)
   const [lang, setLang] = useState<'pt'|'en'|'es'>('pt')
   const t = idiomas[lang]
-  const totalSlides = 5
+  const totalSlides = 6
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -371,6 +398,87 @@ export default function LandingPage() {
     return () => clearInterval(interval)
   }, [])
 
+  // NEURAL NETWORK CANVAS — slide Lucas
+  useEffect(() => {
+    if (slide !== 4) return
+    const canvas = neuralRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    canvas.width = 420
+    canvas.height = 420
+    const nodes: {x:number,y:number,vx:number,vy:number,r:number,color:string,pulse:number}[] = []
+    const colors = ['#6ab0ff','#34d399','#a78bfa','#fbbf24','#f87171']
+    for (let i = 0; i < 28; i++) {
+      nodes.push({
+        x: 40 + Math.random() * 340,
+        y: 40 + Math.random() * 340,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        r: 3 + Math.random() * 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        pulse: Math.random() * Math.PI * 2
+      })
+    }
+    let frame = 0
+    function draw() {
+      ctx!.clearRect(0, 0, 420, 420)
+      frame++
+      nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy; n.pulse += 0.04
+        if (n.x < 20 || n.x > 400) n.vx *= -1
+        if (n.y < 20 || n.y > 400) n.vy *= -1
+      })
+      // conexões
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x
+          const dy = nodes[i].y - nodes[j].y
+          const dist = Math.sqrt(dx*dx + dy*dy)
+          if (dist < 120) {
+            const alpha = (1 - dist/120) * 0.5
+            const grad = ctx!.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y)
+            grad.addColorStop(0, nodes[i].color.replace(')', `,${alpha})`).replace('rgb', 'rgba'))
+            grad.addColorStop(1, nodes[j].color.replace(')', `,${alpha})`).replace('rgb', 'rgba'))
+            ctx!.beginPath()
+            ctx!.strokeStyle = `rgba(106,176,255,${alpha * 0.8})`
+            ctx!.lineWidth = 0.8
+            ctx!.moveTo(nodes[i].x, nodes[i].y)
+            ctx!.lineTo(nodes[j].x, nodes[j].y)
+            ctx!.stroke()
+          }
+        }
+      }
+      // nós
+      nodes.forEach(n => {
+        const pulse = Math.sin(n.pulse) * 2
+        ctx!.beginPath()
+        ctx!.arc(n.x, n.y, n.r + pulse, 0, Math.PI * 2)
+        ctx!.fillStyle = n.color
+        ctx!.shadowBlur = 12
+        ctx!.shadowColor = n.color
+        ctx!.fill()
+        ctx!.shadowBlur = 0
+      })
+      // impulsos elétricos
+      if (frame % 40 === 0 && nodes.length > 1) {
+        const a = nodes[Math.floor(Math.random() * nodes.length)]
+        const b = nodes[Math.floor(Math.random() * nodes.length)]
+        ctx!.beginPath()
+        ctx!.strokeStyle = 'rgba(255,255,255,0.9)'
+        ctx!.lineWidth = 1.5
+        ctx!.shadowBlur = 8
+        ctx!.shadowColor = '#fff'
+        ctx!.moveTo(a.x, a.y)
+        ctx!.lineTo(b.x, b.y)
+        ctx!.stroke()
+        ctx!.shadowBlur = 0
+      }
+    }
+    const interval = setInterval(draw, 30)
+    return () => clearInterval(interval)
+  }, [slide])
+
   useEffect(() => {
     const timer = setInterval(() => {
       setFade(false)
@@ -416,7 +524,7 @@ export default function LandingPage() {
           {/* Slides */}
           <div className="flex-1 flex items-center justify-center px-4 md:px-12 overflow-hidden" style={{ opacity: fade ? 1 : 0, transition: 'opacity 0.8s ease' }}>
 
-            {/* SLIDE 1 — Logo */}
+            {/* SLIDE 1 */}
             {slide === 0 && (
               <div className="w-full flex flex-col items-center justify-center text-center">
                 <div className="relative flex items-center justify-center mb-4 md:mb-8" style={{ width: 200, height: 200 }}>
@@ -448,7 +556,7 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* SLIDE 2 — Einstein Mobile friendly */}
+            {/* SLIDE 2 — Einstein */}
             {slide === 1 && (
               <div className="w-full flex flex-col md:grid md:grid-cols-2 md:gap-16 items-center">
                 <div className="hidden md:flex justify-center items-center" style={{ height: 400 }}>
@@ -551,8 +659,65 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* SLIDE 5 — Planos */}
+            {/* ===== SLIDE 5 — LUCAS ===== */}
             {slide === 4 && (
+              <div className="w-full flex flex-col md:grid md:grid-cols-2 md:gap-12 items-center">
+                {/* Visual — Rede Neural */}
+                <div className="hidden md:flex justify-center items-center relative" style={{ height: 420 }}>
+                  <canvas ref={neuralRef} width={420} height={420} style={{ borderRadius: '50%', background: 'radial-gradient(circle, rgba(10,22,40,0.9) 0%, transparent 70%)' }} />
+                  {/* Centro pulsante */}
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'radial-gradient(circle, rgba(106,176,255,0.3), transparent)', border: '2px solid rgba(106,176,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'pulse 2s ease-in-out infinite alternate', boxShadow: '0 0 40px rgba(106,176,255,0.4)' }}>
+                      <span style={{ fontSize: 32 }}>🧠</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Texto */}
+                <div className="w-full px-2">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3" style={{ background: 'linear-gradient(135deg, rgba(106,176,255,0.15), rgba(167,139,250,0.15))', border: '1px solid rgba(106,176,255,0.4)' }}>
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#6ab0ff' }} />
+                    <span className="text-xs font-bold tracking-widest" style={{ color: '#6ab0ff' }}>{t.badgeLucas}</span>
+                  </div>
+
+                  <h2 className="text-2xl md:text-4xl font-black leading-tight mb-3" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #6ab0ff 40%, #a78bfa 70%, #34d399 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    {t.tituloLucas}
+                  </h2>
+
+                  <p className="text-sm mb-4 leading-relaxed" style={{ color: '#5a8ab4' }}>{t.subLucas}</p>
+
+                  {/* Pipeline de dados → lucro */}
+                  <div className="mb-4 px-3 py-3 rounded-xl font-mono text-xs font-bold tracking-wide" style={{ background: 'linear-gradient(135deg, rgba(106,176,255,0.08), rgba(52,211,153,0.08))', border: '1px solid rgba(106,176,255,0.2)', color: '#6ab0ff' }}>
+                    {t.lucasFrase1}
+                  </div>
+
+                  {/* Frases impactantes */}
+                  <div className="space-y-2 mb-4">
+                    <div className="px-3 py-2 rounded-xl text-xs font-medium" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', color: '#a78bfa' }}>
+                      🧬 {t.lucasFrase2}
+                    </div>
+                    <div className="px-3 py-2 rounded-xl text-xs font-medium italic" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', color: '#34d399' }}>
+                      💡 {t.lucasFrase3}
+                    </div>
+                  </div>
+
+                  {/* Citação cinematográfica */}
+                  <div className="px-4 py-3 rounded-xl mb-4 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(2,8,16,0.9), rgba(10,22,40,0.8))', border: '1px solid rgba(106,176,255,0.15)' }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: 'linear-gradient(180deg, #6ab0ff, #a78bfa, #34d399)' }} />
+                    <p className="text-xs italic pl-3 leading-relaxed" style={{ color: '#8aaad4' }}>"{t.lucasPoema}"</p>
+                    <p className="text-xs pl-3 mt-1 font-bold" style={{ color: '#3a5a8a' }}>— Lucas, IA Axioma AI.Tech</p>
+                  </div>
+
+                  <button onClick={() => router.push('/cadastro')} className="w-full py-3 rounded-xl font-black text-xs tracking-widest uppercase transition-all hover:scale-105" style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4, #a78bfa)', color: '#fff', boxShadow: '0 8px 40px rgba(106,176,255,0.3)' }}>
+                    {t.lucasBtn}
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* ===== FIM SLIDE LUCAS ===== */}
+
+            {/* SLIDE 6 — Planos */}
+            {slide === 5 && (
               <div className="w-full px-2">
                 <div className="text-center mb-4 md:mb-8">
                   <h2 className="text-2xl md:text-5xl font-black mb-2" style={{ background: 'linear-gradient(135deg, #fff, #34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t.tituloPlanos}</h2>
@@ -560,7 +725,7 @@ export default function LandingPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
-                    { nome: 'Starter', preco: 'R$ 49', cor: '#3b6fd4', usuarios: lang==='pt'?'1 usuário':lang==='en'?'1 user':'1 usuario', ia: false, desc: lang==='pt'?'Ideal para MEI':lang==='en'?'Ideal for freelancers':'Ideal para autónomos' },
+                    { nome: 'Starter', preco: 'R$ 45', cor: '#3b6fd4', usuarios: lang==='pt'?'1 usuário':lang==='en'?'1 user':'1 usuario', ia: false, desc: lang==='pt'?'Ideal para MEI':lang==='en'?'Ideal for freelancers':'Ideal para autónomos' },
                     { nome: 'Pro', preco: 'R$ 97', cor: '#f59e0b', usuarios: lang==='pt'?'até 4 usuários':lang==='en'?'up to 4 users':'hasta 4 usuarios', ia: true, desc: lang==='pt'?'Pequenas empresas':lang==='en'?'Small businesses':'Pequeñas empresas', destaque: true },
                     { nome: 'Business', preco: 'R$ 197', cor: '#34d399', usuarios: lang==='pt'?'até 10 usuários':lang==='en'?'up to 10 users':'hasta 10 usuarios', ia: true, desc: lang==='pt'?'Em crescimento':lang==='en'?'Growing companies':'En crecimiento' },
                   ].map((p: any, i) => (
@@ -592,8 +757,6 @@ export default function LandingPage() {
       </div>
 
       {/* SEÇÕES SCROLLÁVEIS */}
-
-      {/* Crise */}
       <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: 'linear-gradient(180deg, #020810 0%, #0a0515 100%)', borderTop: '1px solid rgba(248,113,113,0.1)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
@@ -616,7 +779,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Problema vs Solução */}
       <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: '#020810' }}>
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
           <div>
@@ -638,7 +800,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Impostos */}
       <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.05), rgba(10,22,40,0.8))', borderTop: '1px solid rgba(234,179,8,0.1)', borderBottom: '1px solid rgba(234,179,8,0.1)' }}>
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-5xl mb-4">💰</div>
@@ -650,7 +811,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Módulos */}
       <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: '#020810' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
@@ -674,7 +834,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Diferenciais */}
       <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: 'linear-gradient(180deg, #020810 0%, #060f1e 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
@@ -692,7 +851,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Como Funciona */}
       <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: '#020810' }}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10 md:mb-16">
@@ -713,6 +871,51 @@ export default function LandingPage() {
             </button>
             <p className="text-xs mt-3" style={{ color: '#1a3a5a' }}>{t.semCartao}</p>
           </div>
+        </div>
+      </div>
+
+      {/* PLANOS — seção scrollável antes dos depoimentos */}
+      <div className="py-16 md:py-24 px-4 md:px-12" style={{ background: 'linear-gradient(135deg, rgba(52,211,153,0.04), rgba(10,22,40,0.95))', borderTop: '1px solid rgba(52,211,153,0.1)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10 md:mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+              <span className="text-sm font-black tracking-widest" style={{ color: '#34d399' }}>{t.badgePlanos}</span>
+            </div>
+            <h2 className="text-2xl md:text-5xl font-black mb-3" style={{ background: 'linear-gradient(135deg, #fff, #34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{t.tituloPlanos}</h2>
+            <p className="text-sm" style={{ color: '#3a6090' }}>{t.cancelar}</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { nome: 'Starter', preco: 'R$ 45', cor: '#3b6fd4', usuarios: lang==='pt'?'1 usuário':lang==='en'?'1 user':'1 usuario', ia: false, desc: lang==='pt'?'Ideal para MEI e autônomos':lang==='en'?'Ideal for freelancers':'Ideal para autónomos', features: lang==='pt'?['13+ módulos financeiros','Dashboard com KPIs','Exportar PDF','Suporte por email']:lang==='en'?['13+ financial modules','Dashboard with KPIs','Export PDF','Email support']:['13+ módulos financieros','Dashboard con KPIs','Exportar PDF','Soporte por email'] },
+              { nome: 'Pro', preco: 'R$ 97', cor: '#f59e0b', usuarios: lang==='pt'?'até 4 usuários':lang==='en'?'up to 4 users':'hasta 4 usuarios', ia: true, desc: lang==='pt'?'Perfeito para pequenas empresas':lang==='en'?'Perfect for small businesses':'Perfecto para pequeñas empresas', destaque: true, features: lang==='pt'?['Tudo do Starter','IA Financeira Premium','Multi-idioma PT/EN/ES','Relatórios avançados']:lang==='en'?['Everything in Starter','Premium Financial AI','Multi-language PT/EN/ES','Advanced reports']:['Todo de Starter','IA Financiera Premium','Multi-idioma PT/EN/ES','Reportes avanzados'] },
+              { nome: 'Business', preco: 'R$ 197', cor: '#34d399', usuarios: lang==='pt'?'até 10 usuários':lang==='en'?'up to 10 users':'hasta 10 usuarios', ia: true, desc: lang==='pt'?'Para empresas em crescimento':lang==='en'?'For growing companies':'Para empresas en crecimiento', features: lang==='pt'?['Tudo do Pro','IA Tributária Premium','Multi-empresas','Suporte prioritário']:lang==='en'?['Everything in Pro','Premium Tax AI','Multi-company','Priority support']:['Todo de Pro','IA Tributaria Premium','Multi-empresa','Soporte prioritario'] },
+            ].map((p: any, i) => (
+              <div key={i} className="rounded-2xl p-6 relative flex flex-col" style={{ background: p.destaque ? 'linear-gradient(135deg, rgba(245,158,11,0.08), rgba(10,22,40,0.98))' : 'rgba(10,22,40,0.8)', border: p.destaque ? `2px solid ${p.cor}` : `1px solid ${p.cor}30`, boxShadow: p.destaque ? `0 0 40px ${p.cor}20` : 'none' }}>
+                {p.destaque && <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-black" style={{ background: 'linear-gradient(135deg, #ca8a04, #ea580c)', color: '#fff', boxShadow: '0 4px 20px rgba(245,158,11,0.4)' }}>{t.maisPopular}</div>}
+                <div className="text-center mb-4">
+                  <h3 className="text-2xl font-black mb-1" style={{ color: p.cor }}>{p.nome}</h3>
+                  <p className="text-xs mb-3" style={{ color: '#3a6090' }}>{p.desc}</p>
+                  <div className="flex items-end justify-center gap-1">
+                    <span className="text-4xl font-black" style={{ color: '#c8d8f0' }}>{p.preco}</span>
+                    <span className="text-sm mb-1" style={{ color: '#3a6090' }}>{lang==='pt'?'/mês':lang==='en'?'/mo':'/mes'}</span>
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: '#3a5a8a' }}>{p.usuarios}</p>
+                  {p.ia && <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)' }}><span className="text-xs font-bold" style={{ color: '#fbbf24' }}>{t.iaPremium}</span></div>}
+                </div>
+                <div className="space-y-2 mb-6 flex-1">
+                  {p.features.map((f: string, j: number) => (
+                    <div key={j} className="flex items-center gap-2 text-xs" style={{ color: '#8aaad4' }}>
+                      <span style={{ color: p.cor }}>✓</span> {f}
+                    </div>
+                  ))}
+                </div>
+                <button onClick={() => router.push('/cadastro')} className="w-full py-3 rounded-xl font-black text-xs tracking-widest uppercase transition-all hover:scale-105" style={{ background: p.destaque ? `linear-gradient(135deg, #ca8a04, #ea580c)` : `linear-gradient(135deg, #1a3a8f, ${p.cor})`, color: '#fff', boxShadow: p.destaque ? '0 4px 20px rgba(245,158,11,0.3)' : 'none' }}>
+                  {t.comecar}
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-xs mt-6" style={{ color: '#1a3a5a' }}>{t.semCartao}</p>
         </div>
       </div>
 
