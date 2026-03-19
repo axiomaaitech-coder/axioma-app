@@ -1,8 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Send, TrendingUp, AlertTriangle, Lightbulb, CheckCircle, X, Download } from "lucide-react";
+import { Send, TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -46,13 +46,12 @@ const respostas: Record<string, string> = {
 };
 
 const textos = {
-  pt: { subtitulo: "Analise inteligente dos seus dados financeiros", placeholder: "Pergunte sobre suas financas...", analisando: "Analisando seus dados...", respostaArquivo: "Recebi seu documento! Analisei o conteudo e identifiquei os principais dados financeiros. O que voce gostaria de saber?" },
-  en: { subtitulo: "Intelligent analysis of your financial data", placeholder: "Ask about your finances...", analisando: "Analyzing your data...", respostaArquivo: "I received your document! I analyzed the content and identified the main financial data. What would you like to know?" },
-  es: { subtitulo: "Analisis inteligente de tus datos financieros", placeholder: "Pregunta sobre tus finanzas...", analisando: "Analizando tus datos...", respostaArquivo: "Recibi tu documento! Analice el contenido e identifique los principales datos financieros. Que te gustaria saber?" },
+  pt: { subtitulo: "Analise inteligente dos seus dados financeiros", placeholder: "Pergunte sobre suas financas...", analisando: "Analisando seus dados..." },
+  en: { subtitulo: "Intelligent analysis of your financial data", placeholder: "Ask about your finances...", analisando: "Analyzing your data..." },
+  es: { subtitulo: "Analisis inteligente de tus datos financieros", placeholder: "Pregunta sobre tus finanzas...", analisando: "Analizando tus datos..." },
 };
 
 export default function IAFinanceira() {
-  const router = useRouter();
   const { t, idioma } = useLanguage();
   const tx = textos[idioma];
   const inputRef = useRef<HTMLInputElement>(null);
@@ -122,41 +121,35 @@ export default function IAFinanceira() {
   };
 
   return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} style={{ color: "#3a5a8a" }}><ArrowLeft size={20} /></button>
-          <div>
-            <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{t.nav.iaFinanceira}</h2>
-            <p className="text-sm" style={{ color: "#3a5a8a" }}>{tx.subtitulo}</p>
-          </div>
-        </div>
-        <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-          <Download size={18}/>{exportando ? "Gerando..." : "Exportar PDF"}
-        </button>
-      </div>
-
+    <ModuloLayout
+      titulo={t.nav.iaFinanceira}
+      subtitulo={tx.subtitulo}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+    >
       <div ref={conteudoRef}>
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        {/* Insights — grid responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {insights[idioma].map((insight, i) => (
-            <div key={i} className="rounded-2xl p-5 flex items-start gap-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${insight.cor}22` }}>
+            <div key={i} className="rounded-2xl p-4 md:p-5 flex items-start gap-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${insight.cor}22` }}>
               <div className="p-2 rounded-xl flex-shrink-0" style={{ background: `${insight.cor}15` }}>
-                <insight.icon size={20} style={{ color: insight.cor }} />
+                <insight.icon size={18} style={{ color: insight.cor }} />
               </div>
               <p className="text-sm" style={{ color: "#8aaad4" }}>{insight.texto}</p>
             </div>
           ))}
         </div>
 
+        {/* Chat */}
         <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
-          <div className="px-6 py-4 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
+          <div className="px-4 md:px-6 py-4 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
             <h3 className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>🤖 {t.nav.iaFinanceira}</h3>
           </div>
 
-          <div className="p-6 space-y-4 min-h-64 max-h-96 overflow-auto">
+          <div className="p-4 md:p-6 space-y-4 min-h-64 max-h-96 overflow-auto">
             {mensagens.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-md px-4 py-3 rounded-2xl text-sm" style={{ background: m.role === "user" ? "rgba(59,111,212,0.2)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(59,111,212,0.3)" : "rgba(59,111,212,0.1)"}`, color: "#c8d8f0" }}>
+                <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl text-sm" style={{ background: m.role === "user" ? "rgba(59,111,212,0.2)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(59,111,212,0.3)" : "rgba(59,111,212,0.1)"}`, color: "#c8d8f0" }}>
                   {m.texto}
                 </div>
               </div>
@@ -170,10 +163,12 @@ export default function IAFinanceira() {
             )}
           </div>
 
-          <div className="px-6 pb-4">
+          <div className="px-4 md:px-6 pb-4">
             <div className="flex gap-2 mb-4 flex-wrap">
               {perguntasSugeridas[idioma].map((p, i) => (
-                <button key={i} onClick={() => enviarMensagem(p)} className="text-xs px-3 py-2 rounded-xl transition-all hover:scale-105" style={{ background: "rgba(59,111,212,0.1)", border: "1px solid rgba(59,111,212,0.2)", color: "#6ab0ff" }}>
+                <button key={i} onClick={() => enviarMensagem(p)}
+                  className="text-xs px-3 py-2 rounded-xl transition-all hover:scale-105"
+                  style={{ background: "rgba(59,111,212,0.1)", border: "1px solid rgba(59,111,212,0.2)", color: "#6ab0ff" }}>
                   {p}
                 </button>
               ))}
@@ -188,13 +183,15 @@ export default function IAFinanceira() {
                 className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
               />
-              <button onClick={() => enviarMensagem(input)} className="px-4 py-3 rounded-xl transition-all hover:scale-105" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+              <button onClick={() => enviarMensagem(input)}
+                className="px-4 py-3 rounded-xl transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                 <Send size={18} />
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ModuloLayout>
   );
 }
