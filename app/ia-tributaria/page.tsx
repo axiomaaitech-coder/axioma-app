@@ -1,8 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Send, AlertTriangle, CheckCircle, Lightbulb, Shield, Download } from "lucide-react";
+import { Send, AlertTriangle, CheckCircle, Lightbulb, Shield } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
+import ModuloLayout from "../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -62,16 +62,16 @@ const respostasData: Record<string, Record<string, string>> = {
     "Quais deducoes posso usar?": "Para sua empresa, identifiquei: 1) Depreciacao acelerada de equipamentos; 2) Deducao de despesas com P&D (Lei do Bem); 3) PAT - Programa de Alimentacao do Trabalhador; 4) Vale-transporte e beneficios dedutiveis. Potencial de reducao na base de calculo: R$ 8.400/mes.",
   },
   en: {
-    "Which tax regime is best for me?": "Analyzing your revenue of R$ 62,000/month (R$ 744,000/year), Simples Nacional may be advantageous if your margin is high. However, if you have many CLT employees, Lucro Presumido can reduce the tax burden by up to 22%. I recommend a simulation with your accountant using this data.",
+    "Which tax regime is best for me?": "Analyzing your revenue of R$ 62,000/month (R$ 744,000/year), Simples Nacional may be advantageous if your margin is high. However, if you have many CLT employees, Lucro Presumido can reduce the tax burden by up to 22%.",
     "How does JCP work?": "JCP (Interest on Net Equity) allows remunerating partners with lower taxation (15% IR at source vs 27.5% on pro-labore). With net equity of R$ 200,000, you can distribute up to R$ 18,000/month via JCP, saving approximately R$ 2,700/month in taxes.",
-    "What changes with the Tax Reform?": "The Reform unifies PIS, COFINS and IPI into CBS, and ICMS and ISS into IBS. Transition: 2026-2032. For SMEs: Simples Nacional remains, but there will be adjustments in rates. I recommend mapping your main inputs and clients now to simulate the impact before 2027.",
-    "Which deductions can I use?": "For your company, I identified: 1) Accelerated depreciation of equipment; 2) Deduction of R&D expenses (Lei do Bem); 3) PAT - Worker Meal Program; 4) Transportation voucher and deductible benefits. Potential reduction in tax base: R$ 8,400/month.",
+    "What changes with the Tax Reform?": "The Reform unifies PIS, COFINS and IPI into CBS, and ICMS and ISS into IBS. Transition: 2026-2032. For SMEs: Simples Nacional remains, but there will be adjustments in rates.",
+    "Which deductions can I use?": "For your company: 1) Accelerated depreciation of equipment; 2) Deduction of R&D expenses (Lei do Bem); 3) PAT - Worker Meal Program; 4) Transportation voucher and deductible benefits. Potential reduction in tax base: R$ 8,400/month.",
   },
   es: {
-    "Que regimen tributario es mejor para mi?": "Analizando su facturacion de R$ 62.000/mes (R$ 744.000/ano), el Simples Nacional puede ser ventajoso si su margen es alto. Sin embargo, si tiene muchos empleados CLT, el Lucro Presumido puede reducir la carga hasta un 22%. Recomiendo una simulacion con su contador usando estos datos.",
-    "Como funciona el JCP?": "JCP (Intereses sobre Capital Propio) permite remunerar socios con menor tributacion (15% IR en la fuente vs 27,5% en el pro-labore). Con patrimonio neto de R$ 200.000, puede distribuir hasta R$ 18.000/mes via JCP, ahorrando aproximadamente R$ 2.700/mes en impuestos.",
-    "Que cambia con la Reforma Tributaria?": "La Reforma unifica PIS, COFINS e IPI en CBS, e ICMS e ISS en IBS. Transicion: 2026-2032. Para PyMEs: el Simples Nacional permanece, pero habra ajustes en las alicuotas. Recomiendo mapear ahora sus principales insumos y clientes para simular el impacto antes de 2027.",
-    "Que deducciones puedo usar?": "Para su empresa, identifique: 1) Depreciacion acelerada de equipos; 2) Deduccion de gastos de I+D (Lei do Bem); 3) PAT - Programa de Alimentacion del Trabajador; 4) Bono de transporte y beneficios deducibles. Reduccion potencial en la base imponible: R$ 8.400/mes.",
+    "Que regimen tributario es mejor para mi?": "Analizando su facturacion de R$ 62.000/mes (R$ 744.000/ano), el Simples Nacional puede ser ventajoso si su margen es alto. Sin embargo, si tiene muchos empleados CLT, el Lucro Presumido puede reducir la carga hasta un 22%.",
+    "Como funciona el JCP?": "JCP (Intereses sobre Capital Propio) permite remunerar socios con menor tributacion (15% IR en la fuente vs 27,5% en el pro-labore). Con patrimonio neto de R$ 200.000, puede distribuir hasta R$ 18.000/mes via JCP.",
+    "Que cambia con la Reforma Tributaria?": "La Reforma unifica PIS, COFINS e IPI en CBS, e ICMS e ISS en IBS. Transicion: 2026-2032. Para PyMEs: el Simples Nacional permanece, pero habra ajustes en las alicuotas.",
+    "Que deducciones puedo usar?": "Para su empresa: 1) Depreciacion acelerada de equipos; 2) Deduccion de gastos de I+D (Lei do Bem); 3) PAT - Programa de Alimentacion del Trabajador; 4) Bono de transporte y beneficios deducibles.",
   },
 };
 
@@ -82,51 +82,18 @@ const mensagemInicial = {
 };
 
 const respostaGenerica = {
-  pt: "Otima questao tributaria! Para uma analise precisa, recomendo combinar este planejamento com seu contador. Posso detalhar alguma estrategia especifica de reducao de impostos dentro da legalidade?",
-  en: "Great tax question! For a precise analysis, I recommend combining this planning with your accountant. Can I detail a specific tax reduction strategy within the law?",
-  es: "Excelente pregunta tributaria! Para un analisis preciso, recomiendo combinar esta planificacion con su contador. Puedo detallar alguna estrategia especifica de reduccion de impuestos dentro de la legalidad?",
+  pt: "Otima questao tributaria! Para uma analise precisa, recomendo combinar este planejamento com seu contador. Posso detalhar alguma estrategia especifica?",
+  en: "Great tax question! For a precise analysis, I recommend combining this planning with your accountant. Can I detail a specific strategy?",
+  es: "Excelente pregunta tributaria! Para un analisis preciso, recomiendo combinar esta planificacion con su contador. Puedo detallar alguna estrategia especifica?",
 };
 
-const textoConsultando = {
-  pt: "Consultando legislacao tributaria...",
-  en: "Consulting tax legislation...",
-  es: "Consultando legislacion tributaria...",
-};
-
-const textoSubtitulo = {
-  pt: "Planejamento tributario legal e estrategico",
-  en: "Legal and strategic tax planning",
-  es: "Planificacion tributaria legal y estrategica",
-};
-
-const textoPlaceholder = {
-  pt: "Pergunte sobre impostos e planejamento tributario...",
-  en: "Ask about taxes and tax planning...",
-  es: "Pregunta sobre impuestos y planificacion tributaria...",
-};
-
-const textoAviso = {
-  pt: "As informacoes sao educativas. Consulte sempre um contador para decisoes fiscais.",
-  en: "Information is educational. Always consult an accountant for tax decisions.",
-  es: "La informacion es educativa. Consulte siempre a un contador para decisiones fiscales.",
-};
-
-const textoExportar = {
-  pt: "Exportar PDF",
-  en: "Export PDF",
-  es: "Exportar PDF",
-};
-
-const textoGerando = {
-  pt: "Gerando...",
-  en: "Generating...",
-  es: "Generando...",
-};
-
+const textoConsultando = { pt: "Consultando legislacao tributaria...", en: "Consulting tax legislation...", es: "Consultando legislacion tributaria..." };
+const textoSubtitulo = { pt: "Planejamento tributario legal e estrategico", en: "Legal and strategic tax planning", es: "Planificacion tributaria legal y estrategica" };
+const textoPlaceholder = { pt: "Pergunte sobre impostos e planejamento tributario...", en: "Ask about taxes and tax planning...", es: "Pregunta sobre impuestos y planificacion tributaria..." };
+const textoAviso = { pt: "As informacoes sao educativas. Consulte sempre um contador para decisoes fiscais.", en: "Information is educational. Always consult an accountant for tax decisions.", es: "La informacion es educativa. Consulte siempre a un contador para decisiones fiscales." };
 const paises = ["🇧🇷 Brasil", "🇺🇸 EUA", "🇵🇹 Portugal", "🇩🇪 Alemanha", "🇬🇧 Reino Unido", "🇨🇦 Canada", "🇦🇺 Australia"];
 
 export default function IATributaria() {
-  const router = useRouter();
   const { t, idioma } = useLanguage();
   const conteudoRef = useRef<HTMLDivElement>(null);
 
@@ -199,60 +166,57 @@ export default function IATributaria() {
     setExportando(false);
   };
 
-  return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/dashboard")} style={{ color: "#3a5a8a" }}><ArrowLeft size={20} /></button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold" style={{ color: "#c8d8f0" }}>{t.nav.iaTributaria}</h2>
-              <span className="text-xs px-3 py-1 rounded-full font-bold" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>PREMIUM</span>
-            </div>
-            <p className="text-sm" style={{ color: "#3a5a8a" }}>{textoSubtitulo[idioma]}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <select value={paisSelecionado} onChange={(e) => setPaisSelecionado(e.target.value)} className="px-4 py-2 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(167,139,250,0.3)", color: "#c8d8f0" }}>
-            {paises.map(p => <option key={p}>{p}</option>)}
-          </select>
-          <button onClick={exportarPDF} disabled={exportando} className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "#dc2626", color: "#fff" }}>
-            <Download size={18}/>{exportando ? textoGerando[idioma] : textoExportar[idioma]}
-          </button>
-        </div>
-      </div>
+  const botaoPais = (
+    <select value={paisSelecionado} onChange={(e) => setPaisSelecionado(e.target.value)}
+      className="px-3 py-2 rounded-xl focus:outline-none text-sm"
+      style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(167,139,250,0.3)", color: "#c8d8f0" }}>
+      {paises.map(p => <option key={p}>{p}</option>)}
+    </select>
+  );
 
+  return (
+    <ModuloLayout
+      titulo={t.nav.iaTributaria}
+      subtitulo={textoSubtitulo[idioma]}
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+      botaoExtra={botaoPais}
+    >
       <div ref={conteudoRef}>
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        {/* Cards de economia — grid responsivo */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {economias.map((e, i) => (
-            <div key={i} className="rounded-2xl p-5 text-center" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${e.cor}22` }}>
-              <p className="text-3xl font-black mb-1" style={{ color: e.cor }}>{e.economia}</p>
+            <div key={i} className="rounded-2xl p-4 md:p-5 text-center" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${e.cor}22` }}>
+              <p className="text-2xl md:text-3xl font-black mb-1" style={{ color: e.cor }}>{e.economia}</p>
               <p className="text-sm font-bold mb-1" style={{ color: "#c8d8f0" }}>{e.titulo}</p>
               <p className="text-xs" style={{ color: "#3a5a8a" }}>{e.descricao}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        {/* Alertas — grid responsivo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {alertas.map((a, i) => (
-            <div key={i} className="rounded-2xl p-5 flex items-start gap-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${a.cor}22` }}>
+            <div key={i} className="rounded-2xl p-4 md:p-5 flex items-start gap-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${a.cor}22` }}>
               <div className="p-2 rounded-xl flex-shrink-0" style={{ background: `${a.cor}15` }}>
-                <a.icon size={20} style={{ color: a.cor }} />
+                <a.icon size={18} style={{ color: a.cor }} />
               </div>
               <p className="text-sm" style={{ color: "#8aaad4" }}>{a.texto}</p>
             </div>
           ))}
         </div>
 
+        {/* Chat */}
         <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(167,139,250,0.2)" }}>
-          <div className="px-6 py-4 border-b" style={{ borderColor: "rgba(167,139,250,0.15)" }}>
-            <h3 className="text-sm font-semibold" style={{ color: "#a78bfa" }}>⚡ {t.nav.iaTributariaPremium}</h3>
+          <div className="px-4 md:px-6 py-4 border-b flex items-center gap-3" style={{ borderColor: "rgba(167,139,250,0.15)" }}>
+            <h3 className="text-sm font-semibold" style={{ color: "#a78bfa" }}>⚡ {t.nav.iaTributaria}</h3>
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>PREMIUM</span>
           </div>
 
-          <div className="p-6 space-y-4 min-h-64 max-h-96 overflow-auto">
+          <div className="p-4 md:p-6 space-y-4 min-h-64 max-h-96 overflow-auto">
             {mensagens.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-md px-4 py-3 rounded-2xl text-sm" style={{ background: m.role === "user" ? "rgba(167,139,250,0.15)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(167,139,250,0.3)" : "rgba(167,139,250,0.1)"}`, color: "#c8d8f0" }}>
+                <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl text-sm" style={{ background: m.role === "user" ? "rgba(167,139,250,0.15)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(167,139,250,0.3)" : "rgba(167,139,250,0.1)"}`, color: "#c8d8f0" }}>
                   {m.texto}
                 </div>
               </div>
@@ -266,10 +230,12 @@ export default function IATributaria() {
             )}
           </div>
 
-          <div className="px-6 pb-4">
+          <div className="px-4 md:px-6 pb-4">
             <div className="flex gap-2 mb-4 flex-wrap">
               {perguntasSugeridas.map((p, i) => (
-                <button key={i} onClick={() => enviarMensagem(p)} className="text-xs px-3 py-2 rounded-xl transition-all hover:scale-105" style={{ background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.2)", color: "#a78bfa" }}>
+                <button key={i} onClick={() => enviarMensagem(p)}
+                  className="text-xs px-3 py-2 rounded-xl transition-all hover:scale-105"
+                  style={{ background: "rgba(167,139,250,0.1)", border: "1px solid rgba(167,139,250,0.2)", color: "#a78bfa" }}>
                   {p}
                 </button>
               ))}
@@ -283,7 +249,9 @@ export default function IATributaria() {
                 className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(167,139,250,0.2)", color: "#c8d8f0" }}
               />
-              <button onClick={() => enviarMensagem(input)} className="px-4 py-3 rounded-xl transition-all hover:scale-105" style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
+              <button onClick={() => enviarMensagem(input)}
+                className="px-4 py-3 rounded-xl transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
                 <Send size={18} />
               </button>
             </div>
@@ -291,6 +259,6 @@ export default function IATributaria() {
           </div>
         </div>
       </div>
-    </div>
+    </ModuloLayout>
   );
 }
