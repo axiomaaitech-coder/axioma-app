@@ -18,6 +18,8 @@ export default function Dashboard() {
   const d = t.dashboard;
 
   const [loading, setLoading] = useState(true);
+  const [nomeUsuario, setNomeUsuario] = useState("");
+  const [inicialUsuario, setInicialUsuario] = useState("U");
   const [receitas, setReceitas] = useState(0);
   const [custosFixos, setCustosFixos] = useState(0);
   const [custosVariaveis, setCustosVariaveis] = useState(0);
@@ -30,6 +32,11 @@ export default function Dashboard() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Busca o nome salvo no metadata do cadastro
+    const nome = user.user_metadata?.nome || user.user_metadata?.full_name || user.email || "";
+    setNomeUsuario(nome);
+    setInicialUsuario(nome.charAt(0).toUpperCase() || "U");
 
     const mesAtual = new Date().getMonth() + 1;
     const anoAtual = new Date().getFullYear();
@@ -79,6 +86,9 @@ export default function Dashboard() {
   const indiceEndividamento = receitas > 0 ? ((dividas / receitas) * 100).toFixed(1) : "0";
   const score = Math.min(100, Math.max(0, Math.round(50 + (lucro / (receitas || 1)) * 100)));
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  // Nome curto: apenas o primeiro nome para exibir no header
+  const primeiroNome = nomeUsuario.split(" ")[0] || nomeUsuario;
 
   const cards = [
     { label: d.faturamento, value: fmt(receitas), change: d.mesAtual, up: true, icon: TrendingUp },
@@ -142,7 +152,9 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase mb-0.5 hidden md:block" style={{ color: "#3a5a8a" }}>{d.inteligencia}</p>
-            <h2 className="text-lg md:text-2xl font-bold" style={{ color: "#c8d8f0" }}>{d.bemvindo}</h2>
+            <h2 className="text-lg md:text-2xl font-bold" style={{ color: "#c8d8f0" }}>
+              {d.bemvindo}{primeiroNome ? `, ${primeiroNome}` : ""} 👋
+            </h2>
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-3">
@@ -151,8 +163,10 @@ export default function Dashboard() {
             <div className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-500" />
           </div>
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(59,111,212,0.1)" }}>
-            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>E</div>
-            <span className="text-sm hidden md:block" style={{ color: "#c8d8f0" }}>Elias</span>
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+              {inicialUsuario}
+            </div>
+            <span className="text-sm hidden md:block" style={{ color: "#c8d8f0" }}>{primeiroNome}</span>
           </div>
         </div>
       </div>
