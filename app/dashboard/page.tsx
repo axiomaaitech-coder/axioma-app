@@ -33,7 +33,9 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const nome = user.user_metadata?.nome || user.user_metadata?.full_name || user.email || "";
+    const nomeCompleto = user.user_metadata?.nome || user.user_metadata?.full_name || "";
+    const emailPrefix = user.email?.split("@")[0] || "";
+    const nome = nomeCompleto || emailPrefix;
     const primeiroNome = nome.split(" ")[0] || nome;
     setNomeUsuario(primeiroNome);
     setInicialUsuario(primeiroNome.charAt(0).toUpperCase() || "U");
