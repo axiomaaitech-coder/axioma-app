@@ -23,8 +23,17 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const rotasPublicas = ['/login', '/cadastro', '/recuperar-senha', '/atualizar-senha']
+  const rotasPublicas = [
+    '/',
+    '/login',
+    '/cadastro',
+    '/recuperar-senha',
+    '/atualizar-senha',
+    '/auth/callback',
+  ]
+
   const isRotaPublica = rotasPublicas.some(rota => request.nextUrl.pathname === rota)
+  const isCallback = request.nextUrl.pathname.startsWith('/auth/')
 
   const isRotaProtegida =
     request.nextUrl.pathname.startsWith('/dashboard') ||
@@ -49,6 +58,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/precificacao') ||
     request.nextUrl.pathname.startsWith('/contas-receber') ||
     request.nextUrl.pathname.startsWith('/inadimplencia')
+
+  // Nunca bloquear rotas de auth — deixa o callback processar
+  if (isCallback) {
+    return supabaseResponse
+  }
 
   if (!user && isRotaProtegida) {
     return NextResponse.redirect(new URL('/', request.url))
