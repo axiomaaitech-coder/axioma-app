@@ -33,10 +33,10 @@ export default function Dashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Busca o nome salvo no metadata do cadastro
     const nome = user.user_metadata?.nome || user.user_metadata?.full_name || user.email || "";
-    setNomeUsuario(nome);
-    setInicialUsuario(nome.charAt(0).toUpperCase() || "U");
+    const primeiroNome = nome.split(" ")[0] || nome;
+    setNomeUsuario(primeiroNome);
+    setInicialUsuario(primeiroNome.charAt(0).toUpperCase() || "U");
 
     const mesAtual = new Date().getMonth() + 1;
     const anoAtual = new Date().getFullYear();
@@ -87,9 +87,6 @@ export default function Dashboard() {
   const score = Math.min(100, Math.max(0, Math.round(50 + (lucro / (receitas || 1)) * 100)));
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-  // Nome curto: apenas o primeiro nome para exibir no header
-  const primeiroNome = nomeUsuario.split(" ")[0] || nomeUsuario;
-
   const cards = [
     { label: d.faturamento, value: fmt(receitas), change: d.mesAtual, up: true, icon: TrendingUp },
     { label: d.custos, value: fmt(custosFixos + custosVariaveis), change: d.fixosVariaveis, up: false, icon: TrendingDown },
@@ -122,7 +119,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen p-4 md:p-8 overflow-auto" style={{ background: "#020810" }}>
 
-      {/* Badge IA Tributária PREMIUM */}
       <div className="flex justify-center mb-4 md:mb-6">
         <div
           className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 rounded-2xl cursor-pointer hover:scale-105 transition-all w-full md:w-auto"
@@ -144,7 +140,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Header */}
       <div className="flex justify-between items-center mb-6 md:mb-8">
         <div className="flex items-center gap-3 md:gap-5">
           <div style={{ filter: "drop-shadow(0 0 20px rgba(106,176,255,0.5))" }}>
@@ -153,7 +148,7 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase mb-0.5 hidden md:block" style={{ color: "#3a5a8a" }}>{d.inteligencia}</p>
             <h2 className="text-lg md:text-2xl font-bold" style={{ color: "#c8d8f0" }}>
-              {d.bemvindo}{primeiroNome ? `, ${primeiroNome}` : ""} 👋
+              {d.bemvindo}, {nomeUsuario} 👋
             </h2>
           </div>
         </div>
@@ -166,12 +161,11 @@ export default function Dashboard() {
             <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
               {inicialUsuario}
             </div>
-            <span className="text-sm hidden md:block" style={{ color: "#c8d8f0" }}>{primeiroNome}</span>
+            <span className="text-sm hidden md:block" style={{ color: "#c8d8f0" }}>{nomeUsuario}</span>
           </div>
         </div>
       </div>
 
-      {/* Cards principais */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
         {cards.map((card) => (
           <div key={card.label} className="rounded-2xl p-4 md:p-5" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
@@ -187,7 +181,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* KPIs Avançados */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
         {kpisAvancados.map((kpi, i) => (
           <div key={i} className="rounded-2xl p-4 md:p-5" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${kpi.cor}25` }}>
@@ -201,7 +194,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Previsão de Caixa */}
       <div className="rounded-2xl p-4 md:p-5 mb-4 md:mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
         <p className="text-sm font-semibold mb-3 md:mb-4" style={{ color: "#c8d8f0" }}>{d.previsaoCaixa}</p>
         <div className="grid grid-cols-3 gap-2 md:gap-4">
@@ -218,7 +210,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Gráfico */}
       <div className="rounded-2xl p-4 md:p-6 mb-4 md:mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
         <h3 className="text-sm font-semibold mb-4 md:mb-6" style={{ color: "#c8d8f0" }}>{d.grafico}</h3>
         <ResponsiveContainer width="100%" height={200}>
@@ -243,7 +234,6 @@ export default function Dashboard() {
         </ResponsiveContainer>
       </div>
 
-      {/* Insights */}
       <div className="rounded-2xl p-4 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
         <h3 className="text-sm font-semibold mb-3 md:mb-4" style={{ color: "#c8d8f0" }}>{d.insights}</h3>
         <div className="space-y-2 md:space-y-3">
