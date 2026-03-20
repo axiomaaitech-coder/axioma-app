@@ -54,7 +54,7 @@ export const traducoes = {
     },
     dashboard: {
       inteligencia: "INTELIGÊNCIA FINANCEIRA COM IA",
-      bemvindo: "Bem-vindo, Elias Tavares 👋",
+      bemvindo: "Bem-vindo",
       faturamento: "Faturamento Mensal",
       custos: "Custos Totais",
       lucro: "Lucro Líquido",
@@ -372,7 +372,7 @@ export const traducoes = {
     },
     dashboard: {
       inteligencia: "AI-POWERED FINANCIAL INTELLIGENCE",
-      bemvindo: "Welcome, Elias Tavares 👋",
+      bemvindo: "Welcome",
       faturamento: "Monthly Revenue",
       custos: "Total Costs",
       lucro: "Net Profit",
@@ -690,7 +690,7 @@ export const traducoes = {
     },
     dashboard: {
       inteligencia: "INTELIGENCIA FINANCIERA CON IA",
-      bemvindo: "Bienvenido, Elias Tavares 👋",
+      bemvindo: "Bienvenido",
       faturamento: "Facturación Mensual",
       custos: "Costos Totales",
       lucro: "Beneficio Neto",
@@ -712,7 +712,7 @@ export const traducoes = {
       atencaoNecessaria: "Atención necesaria",
       nivelSaudavel: "Nivel saludable",
       nivelElevado: "Nivel elevado",
-      acimaPonto: "✓ Por encima del punto",
+      acimaPunto: "✓ Por encima del punto",
       abaixoPonto: "⚠ Por debajo del punto",
       previsaoCaixa: "🔮 Previsión de Caja",
       trintaDias: "30 días",
