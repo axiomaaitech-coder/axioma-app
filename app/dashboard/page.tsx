@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../lib/LanguageContext";
-import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle, LogOut } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Image from "next/image";
 import { createBrowserClient } from "@supabase/ssr";
@@ -79,6 +79,12 @@ export default function Dashboard() {
     setDadosGrafico(meses);
     setLoading(false);
   }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
   const lucro = receitas - custosFixos - custosVariaveis;
   const margemContribuicao = receitas - custosVariaveis;
@@ -165,6 +171,14 @@ export default function Dashboard() {
             </div>
             <span className="text-sm hidden md:block" style={{ color: "#c8d8f0" }}>{nomeUsuario}</span>
           </div>
+          {/* Botão logout visível no mobile */}
+          <button
+            onClick={handleLogout}
+            className="md:hidden p-2 rounded-xl transition-all"
+            style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.2)" }}
+          >
+            <LogOut size={18} style={{ color: "#f87171" }} />
+          </button>
         </div>
       </div>
 
