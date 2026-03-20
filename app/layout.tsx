@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "../lib/LanguageContext";
 import SidebarWrapper from "../components/SidebarWrapper";
+import { PostHogProvider } from "../components/PostHogProvider";
+import { PostHogPageView } from "../components/PostHogPageView";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,14 +34,19 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <LanguageProvider>
-          <div className="flex min-h-screen">
-            <SidebarWrapper />
-            <main className="flex-1 overflow-auto min-w-0 pt-16 md:pt-0">
-              {children}
-            </main>
-          </div>
-        </LanguageProvider>
+        <PostHogProvider>
+          <Suspense fallback={null}>
+            <PostHogPageView />
+          </Suspense>
+          <LanguageProvider>
+            <div className="flex min-h-screen">
+              <SidebarWrapper />
+              <main className="flex-1 overflow-auto min-w-0 pt-16 md:pt-0">
+                {children}
+              </main>
+            </div>
+          </LanguageProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
