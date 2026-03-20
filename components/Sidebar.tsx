@@ -3,7 +3,13 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, X, LogOut } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 const grupos = [
   {
@@ -92,14 +98,19 @@ export default function Sidebar() {
     setMenuAberto(false);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo — clicável vai para o Dashboard */}
+      {/* Logo */}
       <div
         className="flex flex-col items-center py-6 px-4 border-b cursor-pointer transition-all hover:opacity-80"
         style={{ borderColor: "rgba(59,111,212,0.15)" }}
         onClick={() => navegar("/dashboard")}
-        title="Ir para o Dashboard"
       >
         <div style={{ filter: "drop-shadow(0 0 30px rgba(106,176,255,0.6))" }}>
           <Image src="/logo-aitech.png" alt="Axioma" width={72} height={72} className="object-contain" />
@@ -186,8 +197,24 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Badge Premium */}
-      <div className="p-4 border-t" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
+      {/* Rodapé — Logout + Badge Premium */}
+      <div className="p-4 border-t space-y-3" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
+
+        {/* Botão Logout */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:scale-105"
+          style={{
+            background: "rgba(248,113,113,0.08)",
+            border: "1px solid rgba(248,113,113,0.2)",
+            color: "#f87171",
+          }}
+        >
+          <LogOut size={15} style={{ color: "#f87171" }} />
+          <span className="text-xs font-bold tracking-wider uppercase">Sair da conta</span>
+        </button>
+
+        {/* Badge Premium */}
         <div
           className="rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-105"
           onClick={() => navegar("/ia-tributaria")}
@@ -209,7 +236,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* DESKTOP — sidebar fixo */}
+      {/* DESKTOP */}
       <div className="hidden md:flex w-64 min-h-screen flex-col flex-shrink-0" style={{
         background: "linear-gradient(180deg, #060f1e 0%, #020810 100%)",
         borderRight: "1px solid rgba(59,111,212,0.2)",
@@ -218,16 +245,13 @@ export default function Sidebar() {
         <SidebarContent />
       </div>
 
-      {/* MOBILE — header fixo com hambúrguer */}
+      {/* MOBILE — header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3" style={{
         background: "rgba(6,15,30,0.97)",
         borderBottom: "1px solid rgba(59,111,212,0.2)",
         backdropFilter: "blur(10px)",
       }}>
-        <div
-          className="flex items-center gap-3 cursor-pointer"
-          onClick={() => navegar("/dashboard")}
-        >
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navegar("/dashboard")}>
           <div style={{ filter: "drop-shadow(0 0 10px rgba(106,176,255,0.6))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={36} height={36} className="object-contain" />
           </div>
@@ -248,7 +272,7 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* MOBILE — menu drawer */}
+      {/* MOBILE — drawer */}
       {menuAberto && (
         <div className="md:hidden fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setMenuAberto(false)}>
           <div
@@ -266,7 +290,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* MOBILE — espaço para o header fixo */}
+      {/* MOBILE — espaço header */}
       <div className="md:hidden h-16 flex-shrink-0" />
     </>
   );
