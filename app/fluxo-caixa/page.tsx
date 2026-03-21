@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { TrendingUp, TrendingDown, AlertTriangle, Plus, X } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../components/ModuloLayout";
@@ -35,7 +35,6 @@ type Lancamento = {
   valor: number;
   data: string;
   status: string;
-  categoria: string;
 };
 
 export default function FluxoCaixa() {
@@ -43,7 +42,8 @@ export default function FluxoCaixa() {
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
-  const [novo, setNovo] = useState({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto", categoria: "" });
+  const [editando, setEditando] = useState<Lancamento | null>(null);
+  const [novo, setNovo] = useState({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const conteudoRef = useRef<HTMLDivElement>(null);
@@ -63,26 +63,51 @@ export default function FluxoCaixa() {
     setCarregando(false);
   };
 
-  const adicionarLancamento = async () => {
+  const abrirEdicao = (l: Lancamento) => {
+    setEditando(l);
+    setNovo({ descricao: l.descricao, tipo: l.tipo, valor: String(l.valor), data: l.data, status: l.status });
+    setModalAberto(true);
+  };
+
+  const fecharModal = () => {
+    setModalAberto(false);
+    setEditando(null);
+    setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" });
+  };
+
+  const salvarLancamento = async () => {
     if (!novo.descricao || !novo.valor || !novo.data) return;
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
-    const { error } = await supabase.from("fluxo_caixa").insert({
-      descricao: novo.descricao,
-      tipo: novo.tipo,
-      valor: parseFloat(novo.valor),
-      data: novo.data,
-      status: novo.status,
-      categoria: novo.categoria,
-      user_id: user.id,
-    });
-    if (!error) {
-      setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto", categoria: "" });
-      setModalAberto(false);
-      await carregarLancamentos();
+
+    if (editando) {
+      await supabase.from("fluxo_caixa").update({
+        descricao: novo.descricao,
+        tipo: novo.tipo,
+        valor: parseFloat(novo.valor),
+        data: novo.data,
+        status: novo.status,
+      }).eq("id", editando.id);
+    } else {
+      await supabase.from("fluxo_caixa").insert({
+        descricao: novo.descricao,
+        tipo: novo.tipo,
+        valor: parseFloat(novo.valor),
+        data: novo.data,
+        status: novo.status,
+        user_id: user.id,
+      });
     }
+
+    fecharModal();
+    await carregarLancamentos();
     setSalvando(false);
+  };
+
+  const excluirLancamento = async (id: string) => {
+    await supabase.from("fluxo_caixa").delete().eq("id", id);
+    setLancamentos(lancamentos.filter(l => l.id !== id));
   };
 
   const exportarPDF = async () => {
@@ -94,7 +119,6 @@ export default function FluxoCaixa() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       pdf.setFillColor(2, 8, 16);
       pdf.rect(0, 0, pdfWidth, 20, "F");
       pdf.setTextColor(106, 176, 255);
@@ -105,7 +129,6 @@ export default function FluxoCaixa() {
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
       pdf.text(`${t.fluxoCaixa.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-
       let position = 22;
       let remaining = pdfHeight;
       while (remaining > 0) {
@@ -143,7 +166,6 @@ export default function FluxoCaixa() {
       labelBotao={t.fluxoCaixa.novoLancamento}
     >
       <div ref={conteudoRef}>
-        {/* Cards de resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           {[
             { label: t.fluxoCaixa.totalEntradas, value: `R$ ${totalEntradas.toLocaleString("pt-BR")}`, color: "#34d399", icon: TrendingUp },
@@ -160,7 +182,6 @@ export default function FluxoCaixa() {
           ))}
         </div>
 
-        {/* Gráfico histórico */}
         <div className="rounded-2xl p-4 md:p-6 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
           <h3 className="text-sm font-semibold mb-4" style={{ color: "#c8d8f0" }}>{t.fluxoCaixa.historico}</h3>
           <ResponsiveContainer width="100%" height={220}>
@@ -176,7 +197,6 @@ export default function FluxoCaixa() {
           </ResponsiveContainer>
         </div>
 
-        {/* Gráfico previsão */}
         <div className="rounded-2xl p-4 md:p-6 mb-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
           <h3 className="text-sm font-semibold mb-1" style={{ color: "#c8d8f0" }}>{t.fluxoCaixa.previsao}</h3>
           <p className="text-xs mb-4" style={{ color: "#3a5a8a" }}>{t.fluxoCaixa.cenarios}</p>
@@ -204,7 +224,6 @@ export default function FluxoCaixa() {
           </ResponsiveContainer>
         </div>
 
-        {/* Lançamentos — tabela desktop / cards mobile */}
         <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
           <div className="px-4 md:px-6 py-4 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
             <h3 className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{t.fluxoCaixa.lancamentos}</h3>
@@ -219,12 +238,11 @@ export default function FluxoCaixa() {
             </div>
           ) : (
             <>
-              {/* Tabela — apenas md+ */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr style={{ borderBottom: "1px solid rgba(59,111,212,0.15)" }}>
-                      {[t.geral.descricao, t.fluxoCaixa.tipo, t.geral.data, t.geral.status, t.geral.valor].map((h, i) => (
+                      {[t.geral.descricao, "Tipo", t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
                         <th key={i} className="text-left px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "#3a5a8a" }}>{h}</th>
                       ))}
                     </tr>
@@ -247,13 +265,18 @@ export default function FluxoCaixa() {
                         <td className="px-6 py-4 text-sm font-bold" style={{ color: l.tipo === "entrada" ? "#34d399" : "#f87171" }}>
                           {l.tipo === "entrada" ? "+" : "-"} R$ {l.valor.toLocaleString("pt-BR")}
                         </td>
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            <button onClick={() => abrirEdicao(l)} style={{ color: "#6ab0ff" }}><Pencil size={15} /></button>
+                            <button onClick={() => excluirLancamento(l.id)} style={{ color: "#f87171" }}><Trash2 size={15} /></button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Cards — apenas mobile */}
               <div className="md:hidden divide-y" style={{ borderColor: "rgba(59,111,212,0.08)" }}>
                 {lancamentos.map((l) => (
                   <div key={l.id} className="p-4 flex flex-col gap-2">
@@ -263,7 +286,7 @@ export default function FluxoCaixa() {
                         {l.tipo === "entrada" ? "+" : "-"} R$ {l.valor.toLocaleString("pt-BR")}
                       </span>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap items-center">
                       <span className="text-xs px-2 py-1 rounded-full" style={{ background: l.tipo === "entrada" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: l.tipo === "entrada" ? "#34d399" : "#f87171" }}>
                         {l.tipo === "entrada" ? t.fluxoCaixa.entrada : t.fluxoCaixa.saida}
                       </span>
@@ -271,6 +294,10 @@ export default function FluxoCaixa() {
                         {l.status === "realizado" ? t.fluxoCaixa.realizado : t.fluxoCaixa.previsto}
                       </span>
                       <span className="text-xs" style={{ color: "#3a5a8a" }}>{new Date(l.data).toLocaleDateString("pt-BR")}</span>
+                      <div className="ml-auto flex gap-2">
+                        <button onClick={() => abrirEdicao(l)} style={{ color: "#6ab0ff" }}><Pencil size={15} /></button>
+                        <button onClick={() => excluirLancamento(l.id)} style={{ color: "#f87171" }}><Trash2 size={15} /></button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -280,13 +307,14 @@ export default function FluxoCaixa() {
         </div>
       </div>
 
-      {/* Modal */}
       {modalAberto && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="w-full max-w-md rounded-2xl p-6 md:p-8 max-h-screen overflow-y-auto" style={{ background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)" }}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{t.fluxoCaixa.novoLancamento}</h3>
-              <button onClick={() => setModalAberto(false)} style={{ color: "#3a5a8a" }}>✕</button>
+              <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>
+                {editando ? "Editar Lançamento" : t.fluxoCaixa.novoLancamento}
+              </h3>
+              <button onClick={fecharModal} style={{ color: "#3a5a8a" }}><X size={20} /></button>
             </div>
             <div className="space-y-4">
               <div>
@@ -294,7 +322,7 @@ export default function FluxoCaixa() {
                 <input value={novo.descricao} onChange={(e) => setNovo({ ...novo, descricao: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
               </div>
               <div>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.fluxoCaixa.tipo}</label>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>Tipo</label>
                 <select value={novo.tipo} onChange={(e) => setNovo({ ...novo, tipo: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
                   <option value="entrada">{t.fluxoCaixa.entrada}</option>
                   <option value="saida">{t.fluxoCaixa.saida}</option>
@@ -315,8 +343,8 @@ export default function FluxoCaixa() {
                   <option value="realizado">{t.fluxoCaixa.realizado}</option>
                 </select>
               </div>
-              <button onClick={adicionarLancamento} disabled={salvando} className="w-full py-4 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                {salvando ? t.geral.carregando : t.fluxoCaixa.salvarLancamento}
+              <button onClick={salvarLancamento} disabled={salvando} className="w-full py-4 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-60" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.fluxoCaixa.salvarLancamento}
               </button>
             </div>
           </div>
