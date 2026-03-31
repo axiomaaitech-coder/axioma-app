@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, X, Pencil } from "lucide-react";
+import { Plus, Search, Trash2, X, Download, Pencil } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import jsPDF from "jspdf";
@@ -51,13 +51,13 @@ export default function CustosFixos() {
     setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0] });
   };
 
-  const abrirEdicao = (c: CustoFixo) => {
-    setEditando(c);
+  const abrirEdicao = (custo: CustoFixo) => {
+    setEditando(custo);
     setNovo({
-      descricao: c.descricao,
-      valor: String(c.valor_mensal),
-      vencimento: String(c.dia_vencimento),
-      categoria: c.categoria,
+      descricao: custo.descricao,
+      valor: String(custo.valor_mensal),
+      vencimento: String(custo.dia_vencimento),
+      categoria: custo.categoria,
     });
     setModalAberto(true);
   };
@@ -203,30 +203,64 @@ export default function CustosFixos() {
               <h3 className="text-lg font-bold" style={{color: "#c8d8f0"}}>{editando ? "Editar Custo Fixo" : t.custosFixos.novoCusto}</h3>
               <button onClick={fecharModal} style={{color: "#3a5a8a"}}><X size={20}/></button>
             </div>
+
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.geral.descricao}</label>
-                <input value={novo.descricao} onChange={(e) => setNovo({...novo, descricao: e.target.value})} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
+                <input
+                  value={novo.descricao}
+                  onChange={(e) => setNovo({...novo, descricao: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                  style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}
+                />
               </div>
 
               <div>
                 <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.custosFixos.valorMensal}</label>
-                <input type="number" step="0.01" min="0" value={novo.valor} onChange={(e) => setNovo({...novo, valor: e.target.value})} placeholder="0,00" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={novo.valor}
+                  onChange={(e) => setNovo({...novo, valor: e.target.value})}
+                  placeholder="0,00"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                  style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}
+                />
               </div>
 
               <div>
                 <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.custosFixos.vencimento}</label>
-                <input type="number" min="1" max="31" value={novo.vencimento} onChange={(e) => setNovo({...novo, vencimento: e.target.value})} placeholder="Dia 1 a 31" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
+                <input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={novo.vencimento}
+                  onChange={(e) => setNovo({...novo, vencimento: e.target.value})}
+                  placeholder="Dia 1 a 31"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                  style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}
+                />
               </div>
 
               <div>
                 <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.geral.categoria}</label>
-                <select value={novo.categoria} onChange={(e) => setNovo({...novo, categoria: e.target.value})} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}>
+                <select
+                  value={novo.categoria}
+                  onChange={(e) => setNovo({...novo, categoria: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                  style={{background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}
+                >
                   {categorias.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
 
-              <button onClick={adicionarCusto} disabled={salvando} className="w-full py-4 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-60" style={{background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff"}}>
+              <button
+                onClick={adicionarCusto}
+                disabled={salvando}
+                className="w-full py-4 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-60"
+                style={{background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff"}}
+              >
                 {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.custosFixos.salvarCusto}
               </button>
             </div>
