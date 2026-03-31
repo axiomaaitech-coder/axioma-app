@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Trash2, X, Download } from "lucide-react";
+import { Search, Trash2, X, Pencil } from "lucide-react";
 import { useLanguage } from "../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import jsPDF from "jspdf";
@@ -28,6 +28,7 @@ export default function CustosFixos() {
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
+  const [editando, setEditando] = useState<CustoFixo | null>(null);
   const [novo, setNovo] = useState({ descricao: "", valor: "", vencimento: "", categoria: categorias[0] });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
@@ -44,20 +45,45 @@ export default function CustosFixos() {
     setCarregando(false);
   };
 
+  const fecharModal = () => {
+    setModalAberto(false);
+    setEditando(null);
+    setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0] });
+  };
+
+  const abrirEdicao = (c: CustoFixo) => {
+    setEditando(c);
+    setNovo({
+      descricao: c.descricao,
+      valor: String(c.valor_mensal),
+      vencimento: String(c.dia_vencimento),
+      categoria: c.categoria,
+    });
+    setModalAberto(true);
+  };
+
   const adicionarCusto = async () => {
     if (!novo.descricao || !novo.valor) return;
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
-    const { error } = await supabase.from("custos_fixos").insert({
-      descricao: novo.descricao, valor_mensal: parseFloat(novo.valor),
-      dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, user_id: user.id,
-    });
+
+    const payload = {
+      descricao: novo.descricao,
+      valor_mensal: parseFloat(novo.valor),
+      dia_vencimento: parseInt(novo.vencimento || "1"),
+      categoria: novo.categoria,
+    };
+
+    const { error } = editando
+      ? await supabase.from("custos_fixos").update(payload).eq("id", editando.id)
+      : await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id });
+
     if (!error) {
-      setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0] });
-      setModalAberto(false);
+      fecharModal();
       await carregarCustos();
     }
+
     setSalvando(false);
   };
 
@@ -155,7 +181,12 @@ export default function CustosFixos() {
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{color: "#3a5a8a"}}>Dia {c.dia_vencimento}</td>
                       <td className="px-4 md:px-6 py-3 text-sm font-bold whitespace-nowrap" style={{color: "#f87171"}}>R$ {c.valor_mensal.toLocaleString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-3 text-sm font-bold whitespace-nowrap" style={{color: "#fbbf24"}}>R$ {(c.valor_mensal * 12).toLocaleString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3"><button onClick={() => excluirCusto(c.id)} style={{color: "#f87171"}}><Trash2 size={16}/></button></td>
+                      <td className="px-4 md:px-6 py-3">
+                        <div className="flex items-center gap-3">
+                          <button onClick={() => abrirEdicao(c)} style={{color: "#6ab0ff"}}><Pencil size={16}/></button>
+                          <button onClick={() => excluirCusto(c.id)} style={{color: "#f87171"}}><Trash2 size={16}/></button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -169,8 +200,8 @@ export default function CustosFixos() {
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{background: "rgba(0,0,0,0.7)"}}>
           <div className="w-full max-w-md rounded-2xl p-6 md:p-8" style={{background: "#0a1628", border: "1px solid rgba(59,111,212,0.3)"}}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-bold" style={{color: "#c8d8f0"}}>{t.custosFixos.novoCusto}</h3>
-              <button onClick={() => setModalAberto(false)} style={{color: "#3a5a8a"}}><X size={20}/></button>
+              <h3 className="text-lg font-bold" style={{color: "#c8d8f0"}}>{editando ? "Editar Custo Fixo" : t.custosFixos.novoCusto}</h3>
+              <button onClick={fecharModal} style={{color: "#3a5a8a"}}><X size={20}/></button>
             </div>
             <div className="space-y-4">
               <div>
@@ -178,48 +209,14 @@ export default function CustosFixos() {
                 <input value={novo.descricao} onChange={(e) => setNovo({...novo, descricao: e.target.value})} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
               </div>
 
-              {/* AJUSTE SOMENTE DE FORMATAÇÃO DO CAMPO VALOR */}
               <div>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
-                  {t.custosFixos.valorMensal}
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  inputMode="decimal"
-                  value={novo.valor}
-                  onChange={(e) => setNovo({ ...novo, valor: e.target.value })}
-                  placeholder="0,00"
-                  className="w-full h-12 px-4 rounded-xl focus:outline-none text-sm"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(59,111,212,0.2)",
-                    color: "#c8d8f0",
-                  }}
-                />
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.custosFixos.valorMensal}</label>
+                <input type="number" step="0.01" min="0" value={novo.valor} onChange={(e) => setNovo({...novo, valor: e.target.value})} placeholder="0,00" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
               </div>
 
-              {/* AJUSTE SOMENTE DE FORMATAÇÃO DO CAMPO VENCIMENTO */}
               <div>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
-                  {t.custosFixos.vencimento}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  inputMode="numeric"
-                  value={novo.vencimento}
-                  onChange={(e) => setNovo({ ...novo, vencimento: e.target.value })}
-                  placeholder="Dia 1 a 31"
-                  className="w-full h-12 px-4 rounded-xl focus:outline-none text-sm"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(59,111,212,0.2)",
-                    color: "#c8d8f0",
-                  }}
-                />
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{color: "#5a8fd4"}}>{t.custosFixos.vencimento}</label>
+                <input type="number" min="1" max="31" value={novo.vencimento} onChange={(e) => setNovo({...novo, vencimento: e.target.value})} placeholder="Dia 1 a 31" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0"}}/>
               </div>
 
               <div>
@@ -230,7 +227,7 @@ export default function CustosFixos() {
               </div>
 
               <button onClick={adicionarCusto} disabled={salvando} className="w-full py-4 rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-60" style={{background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff"}}>
-                {salvando ? t.geral.carregando : t.custosFixos.salvarCusto}
+                {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.custosFixos.salvarCusto}
               </button>
             </div>
           </div>
