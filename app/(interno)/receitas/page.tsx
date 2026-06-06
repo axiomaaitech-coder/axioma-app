@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, ArrowLeft, Trash2, X, Download, Pencil } from "lucide-react";
-import { useLanguage } from "../../lib/LanguageContext";
+import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";

@@ -1,8 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
 import { Send, TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from "lucide-react";
-import { useLanguage } from "../../lib/LanguageContext";
-import ModuloLayout from "../../components/ModuloLayout";
+import { useLanguage } from "../../../lib/LanguageContext";
+import ModuloLayout from "../../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 

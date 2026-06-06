@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { useLanguage } from '../../lib/LanguageContext'
+import { useLanguage } from '../../../lib/LanguageContext'
 import { Check, X } from 'lucide-react'
 
 export default function Planos() {

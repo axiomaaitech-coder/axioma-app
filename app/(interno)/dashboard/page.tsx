@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useLanguage } from "../../lib/LanguageContext";
+import { useLanguage } from "../../../lib/LanguageContext";
 import { TrendingUp, TrendingDown, DollarSign, BarChart2, Bell, AlertTriangle, LogOut } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import Image from "next/image";

@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X } from "lucide-react";
-import { useLanguage } from "../../lib/LanguageContext";
+import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import ModuloLayout from "../../components/ModuloLayout";
+import ModuloLayout from "../../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";

@@ -1,8 +1,8 @@
-ï»¿"use client";
+"use client";
 import { useState, useEffect, useRef } from "react";
-import { useLanguage } from "../../lib/LanguageContext";
+import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import ModuloLayout from "../../components/ModuloLayout";
+import ModuloLayout from "../../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -214,7 +214,7 @@ export default function CentrosCustoPage() {
 
   return (
     <ModuloLayout
-      titulo={`ðŸ¢ ${cc.titulo}`}
+      titulo={`?? ${cc.titulo}`}
       subtitulo={cc.subtitulo}
       onExportarPDF={exportarPDF}
       exportando={exportando}
@@ -253,10 +253,10 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
-        {/* Aba VisÃ£o Geral */}
+        {/* Aba Visão Geral */}
         {aba === "visao" && (
           <div className="space-y-4">
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>ðŸ“Š {cc.comparativo}</h2>
+            <h2 className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>?? {cc.comparativo}</h2>
             {centros.length === 0 ? (
               <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
                 <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
@@ -320,7 +320,7 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
-        {/* Aba LanÃ§amentos */}
+        {/* Aba Lançamentos */}
         {aba === "lancamentos" && (
           <div>
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar}
@@ -339,7 +339,7 @@ export default function CentrosCustoPage() {
                       {centro && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: centro.cor }} />}
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} â€¢ {new Date(lanc.data).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} • {new Date(lanc.data).toLocaleDateString("pt-BR")}</p>
                       </div>
                     </div>
                     <span className="text-sm font-bold flex-shrink-0" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
@@ -386,7 +386,7 @@ export default function CentrosCustoPage() {
         </div>
       )}
 
-      {/* Modal LanÃ§amento */}
+      {/* Modal Lançamento */}
       {modalLancamento && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>

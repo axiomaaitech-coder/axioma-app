@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { useLanguage } from "../../lib/LanguageContext";
-import ModuloLayout from "../../components/ModuloLayout";
+import { useLanguage } from "../../../lib/LanguageContext";
+import ModuloLayout from "../../../components/ModuloLayout";
 
 export default function Empresa() {
   const { t, idioma } = useLanguage();

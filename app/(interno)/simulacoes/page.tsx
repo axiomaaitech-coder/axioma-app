@@ -1,8 +1,8 @@
 'use client'
 import { useState, useRef } from 'react'
-import { useLanguage } from '../../lib/LanguageContext'
+import { useLanguage } from '../../../lib/LanguageContext'
 import { Calculator, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
-import ModuloLayout from '../../components/ModuloLayout'
+import ModuloLayout from '../../../components/ModuloLayout'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
