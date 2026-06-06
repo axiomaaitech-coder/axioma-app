@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "../lib/LanguageContext";
-import SidebarWrapper from "../components/SidebarWrapper";
 import { PostHogProvider } from "../components/PostHogProvider";
 import { PostHogPageView } from "../components/PostHogPageView";
 import { Suspense } from "react";
@@ -44,12 +43,7 @@ export default function RootLayout({
             <PostHogPageView />
           </Suspense>
           <LanguageProvider>
-            <div className="flex min-h-screen">
-              <SidebarWrapper />
-              <main className="flex-1 overflow-auto min-w-0 pt-16 md:pt-0">
-                {children}
-              </main>
-            </div>
+            {children}
           </LanguageProvider>
         </PostHogProvider>
       </body>

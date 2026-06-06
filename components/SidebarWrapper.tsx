@@ -1,11 +1,6 @@
 "use client";
-import { usePathname } from "next/navigation";
-import Sidebar from "./Sidebar";
+import TopNav from "./TopNav";
 
 export default function SidebarWrapper() {
-  const pathname = usePathname();
-  
-  if (pathname === "/" || pathname === "/login" || pathname === "/cadastro" || pathname === "/recuperar-senha") return null;
-  
-  return <Sidebar/>;
+  return <TopNav />;
 }
