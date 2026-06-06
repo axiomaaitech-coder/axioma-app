@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { Pencil, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const supabase = createBrowserClient(
@@ -12,98 +13,107 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Partículas flutuantes de fundo
-function ParticleField() {
-  const particles = Array.from({ length: 30 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 3 + 1,
-    duration: Math.random() * 8 + 4,
-    delay: Math.random() * 4,
-    opacity: Math.random() * 0.5 + 0.1,
-  }));
+// Canvas com efeito neural/matrix igual à landing page
+function DRECanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let animId: number;
+    const resize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    // Partículas
+    const particles = Array.from({ length: 60 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      size: Math.random() * 2 + 0.5,
+      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6"][Math.floor(Math.random() * 4)],
+      opacity: Math.random() * 0.6 + 0.2,
+    }));
+
+    // Letras flutuantes
+    const letters = "AXIOMA DRE AI TECH FINANCE".split(" ").flatMap(w => w.split(""));
+    const floaters = Array.from({ length: 20 }, (_, i) => ({
+      char: letters[i % letters.length],
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 32 + 16,
+      opacity: Math.random() * 0.06 + 0.02,
+      speed: Math.random() * 0.3 + 0.1,
+      color: ["#6ab0ff", "#34d399", "#a78bfa"][Math.floor(Math.random() * 3)],
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Letras flutuantes
+      floaters.forEach(f => {
+        ctx.save();
+        ctx.font = `900 ${f.size}px Arial`;
+        ctx.fillStyle = f.color;
+        ctx.globalAlpha = f.opacity;
+        ctx.fillText(f.char, f.x, f.y);
+        ctx.restore();
+        f.y -= f.speed;
+        if (f.y < -50) { f.y = canvas.height + 50; f.x = Math.random() * canvas.width; }
+      });
+
+      // Conexões entre partículas próximas
+      particles.forEach((p, i) => {
+        particles.slice(i + 1).forEach(q => {
+          const dx = p.x - q.x, dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.save();
+            ctx.globalAlpha = (1 - dist / 120) * 0.15;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.stroke();
+            ctx.restore();
+          }
+        });
+      });
+
+      // Partículas
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      });
+
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size,
-            background: p.id % 3 === 0 ? "#6ab0ff" : p.id % 3 === 1 ? "#34d399" : "#a78bfa",
-            opacity: p.opacity,
-            boxShadow: `0 0 ${p.size * 3}px currentColor`,
-          }}
-          animate={{
-            y: [-10, 10, -10],
-            x: [-5, 5, -5],
-            opacity: [p.opacity, p.opacity * 2, p.opacity],
-          }}
-          transition={{
-            duration: p.duration,
-            delay: p.delay,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Siglas flutuantes no fundo
-function FloatingLetters() {
-  const letters = ["A", "X", "I", "O", "M", "A", "D", "R", "E", "A", "I", "T", "E", "C", "H"];
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl">
-      {letters.map((letter, i) => (
-        <motion.span
-          key={i}
-          className="absolute font-black select-none"
-          style={{
-            left: `${(i * 7.2) % 95}%`,
-            top: `${(i * 13.7) % 90}%`,
-            fontSize: Math.random() * 40 + 20,
-            color: i % 3 === 0 ? "#6ab0ff" : i % 3 === 1 ? "#34d399" : "#a78bfa",
-            opacity: 0.04,
-            filter: "blur(0.5px)",
-          }}
-          animate={{
-            opacity: [0.03, 0.07, 0.03],
-            scale: [1, 1.05, 1],
-          }}
-          transition={{
-            duration: 4 + i * 0.3,
-            delay: i * 0.2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          {letter}
-        </motion.span>
-      ))}
-    </div>
-  );
-}
-
-// Linha neon animada
-function NeonLine({ valor, max, cor }: { valor: number; max: number; cor: string }) {
-  const pct = max > 0 ? Math.min(100, Math.max(0, (Math.abs(valor) / max) * 100)) : 0;
-  return (
-    <div className="w-full h-1.5 rounded-full mt-1" style={{ background: "rgba(59,111,212,0.1)" }}>
-      <motion.div
-        initial={{ width: 0 }}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-        className="h-1.5 rounded-full"
-        style={{ background: `linear-gradient(90deg, ${cor}80, ${cor})`, boxShadow: `0 0 8px ${cor}` }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      style={{ opacity: 0.8 }}
+    />
   );
 }
 
@@ -232,7 +242,7 @@ export default function DREPage() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => setPeriodo(p.key)}
-          className="px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+          className="px-3 py-2 rounded-xl text-sm font-semibold"
           style={{
             background: periodo === p.key ? "rgba(59,111,212,0.3)" : "rgba(10,22,40,0.8)",
             color: periodo === p.key ? "#6ab0ff" : "#3a5a8a",
@@ -254,186 +264,152 @@ export default function DREPage() {
       exportando={exportando}
       botaoExtra={botaoPeriodo}
     >
-      <AnimatePresence mode="wait">
-        {loading ? (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex items-center justify-center h-64"
-          >
-            <div className="text-center">
-              <div className="w-12 h-12 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <motion.p
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                style={{ color: "#6ab0ff", fontSize: 13 }}
-              >
-                Carregando DRE...
-              </motion.p>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            ref={conteudoRef}
-            className="flex flex-col gap-6"
-          >
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div ref={conteudoRef} className="flex flex-col gap-6">
 
-            {/* TABELA DRE — com efeito de outro mundo */}
-            <div className="relative rounded-2xl overflow-hidden" style={{
-              background: "rgba(4,10,22,0.95)",
-              border: "1px solid rgba(106,176,255,0.2)",
-              boxShadow: "0 0 60px rgba(106,176,255,0.08), 0 0 120px rgba(52,211,153,0.04)",
-            }}>
-              {/* Fundo especial */}
-              <FloatingLetters />
-              <ParticleField />
+          {/* TABELA DRE com Canvas animado */}
+          <div className="relative rounded-2xl overflow-hidden" style={{
+            background: "rgba(4,10,22,0.97)",
+            border: "1px solid rgba(106,176,255,0.2)",
+            boxShadow: "0 0 80px rgba(106,176,255,0.08), 0 0 40px rgba(52,211,153,0.04)",
+            minHeight: "500px",
+          }}>
+            {/* Canvas neural animado */}
+            <DRECanvas />
 
-              {/* Glow central pulsante */}
-              <motion.div
-                animate={{
-                  opacity: [0.3, 0.6, 0.3],
-                  scale: [1, 1.05, 1],
-                }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background: "radial-gradient(ellipse at 50% 50%, rgba(106,176,255,0.06) 0%, transparent 70%)",
-                }}
-              />
+            {/* Bordas neon nos cantos */}
+            {[
+              { pos: "top-0 left-0", w: "w-24 h-[2.5px]", bg: "linear-gradient(90deg, #6ab0ff, transparent)", glow: "#6ab0ff" },
+              { pos: "top-0 left-0", w: "w-[2.5px] h-24", bg: "linear-gradient(180deg, #6ab0ff, transparent)", glow: "#6ab0ff" },
+              { pos: "top-0 right-0", w: "w-24 h-[2.5px]", bg: "linear-gradient(270deg, #34d399, transparent)", glow: "#34d399" },
+              { pos: "top-0 right-0", w: "w-[2.5px] h-24", bg: "linear-gradient(180deg, #34d399, transparent)", glow: "#34d399" },
+              { pos: "bottom-0 left-0", w: "w-24 h-[2.5px]", bg: "linear-gradient(90deg, #a78bfa, transparent)", glow: "#a78bfa" },
+              { pos: "bottom-0 left-0", w: "w-[2.5px] h-24", bg: "linear-gradient(0deg, #a78bfa, transparent)", glow: "#a78bfa" },
+              { pos: "bottom-0 right-0", w: "w-24 h-[2.5px]", bg: "linear-gradient(270deg, #f472b6, transparent)", glow: "#f472b6" },
+              { pos: "bottom-0 right-0", w: "w-[2.5px] h-24", bg: "linear-gradient(0deg, #f472b6, transparent)", glow: "#f472b6" },
+            ].map((b, i) => (
+              <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 16px ${b.glow}, 0 0 32px ${b.glow}60`, borderRadius: "999px" }} />
+            ))}
 
-              {/* Bordas neon nos cantos */}
-              <motion.div initial={{ width: 0 }} animate={{ width: "100px" }} transition={{ duration: 1 }} className="absolute top-0 left-0 h-[2px]" style={{ background: "linear-gradient(90deg, #6ab0ff, transparent)", boxShadow: "0 0 16px #6ab0ff" }} />
-              <motion.div initial={{ height: 0 }} animate={{ height: "100px" }} transition={{ duration: 1 }} className="absolute top-0 left-0 w-[2px]" style={{ background: "linear-gradient(180deg, #6ab0ff, transparent)", boxShadow: "0 0 16px #6ab0ff" }} />
-              <motion.div initial={{ width: 0 }} animate={{ width: "100px" }} transition={{ duration: 1, delay: 0.2 }} className="absolute top-0 right-0 h-[2px]" style={{ background: "linear-gradient(270deg, #34d399, transparent)", boxShadow: "0 0 16px #34d399" }} />
-              <motion.div initial={{ height: 0 }} animate={{ height: "100px" }} transition={{ duration: 1, delay: 0.2 }} className="absolute top-0 right-0 w-[2px]" style={{ background: "linear-gradient(180deg, #34d399, transparent)", boxShadow: "0 0 16px #34d399" }} />
-              <motion.div initial={{ width: 0 }} animate={{ width: "100px" }} transition={{ duration: 1, delay: 0.4 }} className="absolute bottom-0 left-0 h-[2px]" style={{ background: "linear-gradient(90deg, #a78bfa, transparent)", boxShadow: "0 0 16px #a78bfa" }} />
-              <motion.div initial={{ height: 0 }} animate={{ height: "100px" }} transition={{ duration: 1, delay: 0.4 }} className="absolute bottom-0 left-0 w-[2px]" style={{ background: "linear-gradient(0deg, #a78bfa, transparent)", boxShadow: "0 0 16px #a78bfa" }} />
-              <motion.div initial={{ width: 0 }} animate={{ width: "100px" }} transition={{ duration: 1, delay: 0.6 }} className="absolute bottom-0 right-0 h-[2px]" style={{ background: "linear-gradient(270deg, #f472b6, transparent)", boxShadow: "0 0 16px #f472b6" }} />
-              <motion.div initial={{ height: 0 }} animate={{ height: "100px" }} transition={{ duration: 1, delay: 0.6 }} className="absolute bottom-0 right-0 w-[2px]" style={{ background: "linear-gradient(0deg, #f472b6, transparent)", boxShadow: "0 0 16px #f472b6" }} />
+            {/* Partícula correndo no topo */}
+            <motion.div
+              animate={{ left: ["-5%", "105%", "-5%"] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-0 h-[2.5px] w-28 z-20 pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, #fff, #6ab0ff, transparent)", boxShadow: "0 0 24px #fff, 0 0 48px #6ab0ff", borderRadius: "999px" }}
+            />
+            <motion.div
+              animate={{ right: ["-5%", "105%", "-5%"] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
+              className="absolute bottom-0 h-[2.5px] w-28 z-20 pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, #34d399, #fff, transparent)", boxShadow: "0 0 24px #34d399", borderRadius: "999px", position: "absolute" }}
+            />
 
-              {/* Partícula correndo no topo */}
-              <motion.div
-                animate={{ left: ["-5%", "105%", "-5%"] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute top-0 h-[2px] w-24 z-20 pointer-events-none"
-                style={{ background: "linear-gradient(90deg, transparent, #fff, #6ab0ff, transparent)", boxShadow: "0 0 20px #fff, 0 0 40px #6ab0ff", borderRadius: "999px" }}
-              />
-              <motion.div
-                animate={{ right: ["-5%", "105%", "-5%"] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-                className="absolute bottom-0 h-[2px] w-24 z-20 pointer-events-none"
-                style={{ background: "linear-gradient(90deg, transparent, #34d399, #fff, transparent)", boxShadow: "0 0 20px #34d399", borderRadius: "999px", position: "absolute" }}
-              />
-
-              {/* Header DRE */}
-              <div className="relative z-10 px-4 md:px-6 py-5" style={{ borderBottom: "1px solid rgba(106,176,255,0.1)" }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <motion.p
-                      animate={{ opacity: [0.7, 1, 0.7] }}
-                      transition={{ duration: 3, repeat: Infinity }}
-                      className="text-xs font-black tracking-[0.3em] uppercase"
-                      style={{ color: "#6ab0ff" }}
-                    >
-                      AXIOMA AI.TECH
-                    </motion.p>
-                    <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>
-                      {d.periodo}: {periodo === "mes" ? d.mesAtual : periodo === "trimestre" ? d.trimestre : d.anoAtual}
-                    </p>
-                  </div>
-                  <motion.div
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="w-10 h-10 rounded-full border-2 opacity-30"
-                    style={{ borderColor: "#6ab0ff", borderTopColor: "transparent" }}
-                  />
-                </div>
-              </div>
-
-              {/* Linhas DRE */}
-              <div className="relative z-10 p-4 md:p-6 space-y-1">
-                {linhas.map((linha, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.08, duration: 0.4 }}
+            {/* Header */}
+            <div className="relative z-10 px-4 md:px-6 py-5" style={{ borderBottom: "1px solid rgba(106,176,255,0.1)" }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <motion.p
+                    animate={{ opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                    className="text-xs font-black tracking-[0.3em] uppercase"
+                    style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}
                   >
-                    {linha.sep && <div className="my-3" style={{ borderTop: "1px solid rgba(106,176,255,0.08)" }} />}
-                    <motion.div
-                      whileHover={{
-                        backgroundColor: "rgba(106,176,255,0.04)",
-                        x: 4,
-                        transition: { duration: 0.15 }
-                      }}
-                      className="flex justify-between items-center py-2.5 rounded-xl cursor-default"
-                      style={{ paddingLeft: linha.nivel === 1 ? "1.5rem" : "0.75rem", paddingRight: "0.75rem" }}
-                    >
-                      <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.destaque ? "#c8d8f0" : "#5a7a9a" }}>
-                        {linha.label}
-                      </span>
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.08 + 0.3 }}
-                        className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`}
-                        style={{ color: linha.cor, textShadow: linha.destaque ? `0 0 20px ${linha.cor}60` : "none" }}
-                      >
-                        {fmt(linha.valor)}
-                      </motion.span>
-                    </motion.div>
-                    {linha.destaque && (
-                      <NeonLine valor={linha.valor} max={receitas || 1} cor={linha.cor} />
-                    )}
-                  </motion.div>
-                ))}
+                    AXIOMA AI.TECH
+                  </motion.p>
+                  <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>
+                    {d.periodo}: {periodo === "mes" ? d.mesAtual : periodo === "trimestre" ? d.trimestre : d.anoAtual}
+                  </p>
+                </div>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  className="w-8 h-8 rounded-full border opacity-40"
+                  style={{ borderColor: "#6ab0ff", borderTopColor: "transparent", borderRightColor: "#34d399" }}
+                />
               </div>
             </div>
 
-            {/* Cards de margem com NeonBox */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: d.margemBruta, value: `${margemBruta}%`, cor: Number(margemBruta) >= 0 ? "#34d399" : "#f87171", pct: Number(margemBruta) },
-                { label: d.margemLiquida, value: `${margemLiquida}%`, cor: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171", pct: Number(margemLiquida) },
-                { label: d.lucroLiquido, value: fmt(lucroLiquido), cor: lucroLiquido >= 0 ? "#34d399" : "#f87171", pct: null },
-                { label: d.ebitda, value: fmt(ebitda), cor: ebitda >= 0 ? "#6ab0ff" : "#f87171", pct: null },
-              ].map((card, i) => (
+            {/* Linhas DRE */}
+            <div className="relative z-10 p-4 md:p-6 space-y-1">
+              {linhas.map((linha, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 + i * 0.1 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.07 }}
                 >
-                  <NeonBox cor={card.cor}>
-                    <div className="p-5">
-                      <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
-                      <p className="text-xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.value}</p>
-                      {card.pct !== null && (
-                        <div className="mt-3 rounded-full h-1.5" style={{ background: "rgba(59,111,212,0.1)" }}>
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${Math.min(100, Math.max(0, card.pct))}%` }}
-                            transition={{ duration: 1, ease: "easeOut", delay: 0.8 }}
-                            className="h-1.5 rounded-full"
-                            style={{ background: card.cor, boxShadow: `0 0 8px ${card.cor}` }}
-                          />
-                        </div>
-                      )}
+                  {linha.sep && <div className="my-3" style={{ borderTop: "1px solid rgba(106,176,255,0.08)" }} />}
+                  <motion.div
+                    whileHover={{ x: 6, backgroundColor: "rgba(106,176,255,0.05)" }}
+                    transition={{ duration: 0.15 }}
+                    className="flex justify-between items-center py-3 rounded-xl px-3 cursor-default"
+                    style={{ paddingLeft: linha.nivel === 1 ? "2rem" : "0.75rem" }}
+                  >
+                    <span className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`} style={{ color: linha.destaque ? "#c8d8f0" : "#5a7a9a" }}>
+                      {linha.label}
+                    </span>
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.07 + 0.3 }}
+                      className={`text-sm ${linha.destaque ? "font-bold" : "font-normal"}`}
+                      style={{ color: linha.cor, textShadow: linha.destaque ? `0 0 20px ${linha.cor}80` : "none" }}
+                    >
+                      {fmt(linha.valor)}
+                    </motion.span>
+                  </motion.div>
+                  {linha.destaque && receitas > 0 && (
+                    <div className="mx-3 h-1 rounded-full mb-1" style={{ background: "rgba(59,111,212,0.08)" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, Math.max(0, (Math.abs(linha.valor) / receitas) * 100))}%` }}
+                        transition={{ duration: 1, ease: "easeOut", delay: i * 0.07 + 0.4 }}
+                        className="h-1 rounded-full"
+                        style={{ background: linha.cor, boxShadow: `0 0 6px ${linha.cor}` }}
+                      />
                     </div>
-                  </NeonBox>
+                  )}
                 </motion.div>
               ))}
             </div>
+          </div>
 
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {/* Cards de margem */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: d.margemBruta, value: `${margemBruta}%`, cor: Number(margemBruta) >= 0 ? "#34d399" : "#f87171", pct: Number(margemBruta) },
+              { label: d.margemLiquida, value: `${margemLiquida}%`, cor: Number(margemLiquida) >= 0 ? "#34d399" : "#f87171", pct: Number(margemLiquida) },
+              { label: d.lucroLiquido, value: fmt(lucroLiquido), cor: lucroLiquido >= 0 ? "#34d399" : "#f87171", pct: null },
+              { label: d.ebitda, value: fmt(ebitda), cor: ebitda >= 0 ? "#6ab0ff" : "#f87171", pct: null },
+            ].map((card, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 + i * 0.1 }}>
+                <NeonBox cor={card.cor}>
+                  <div className="p-5">
+                    <p className="text-xs font-semibold mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
+                    <p className="text-xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.value}</p>
+                    {card.pct !== null && (
+                      <div className="mt-3 rounded-full h-1.5" style={{ background: "rgba(59,111,212,0.1)" }}>
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, Math.max(0, card.pct))}%` }}
+                          transition={{ duration: 1, ease: "easeOut", delay: 0.8 }}
+                          className="h-1.5 rounded-full"
+                          style={{ background: card.cor, boxShadow: `0 0 8px ${card.cor}` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </NeonBox>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
     </ModuloLayout>
   );
 }
