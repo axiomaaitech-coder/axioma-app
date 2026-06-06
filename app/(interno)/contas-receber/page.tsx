@@ -116,7 +116,7 @@ export default function ContasReceber() {
   const [editando, setEditando] = useState<any | null>(null)
   const [cliente, setCliente] = useState('')
   const [valor, setValor] = useState('')
-  const [vencimento, setVencimento] = useState('')
+  const [dataVencimento, setDataVencimento] = useState('')
   const [descricao, setDescricao] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [exportando, setExportando] = useState(false)
@@ -136,7 +136,7 @@ export default function ContasReceber() {
     vencido: idioma === 'pt' ? 'Vencido' : idioma === 'en' ? 'Overdue' : 'Vencido',
     clienteL: idioma === 'pt' ? 'Cliente' : idioma === 'en' ? 'Client' : 'Cliente',
     valorL: idioma === 'pt' ? 'Valor (R$)' : idioma === 'en' ? 'Value ($)' : 'Valor ($)',
-    vencimentoL: idioma === 'pt' ? 'Vencimento' : idioma === 'en' ? 'Due Date' : 'Vencimiento',
+    vencimentoL: idioma === 'pt' ? 'Data de Vencimento' : idioma === 'en' ? 'Due Date' : 'Fecha de Vencimiento',
     descricaoL: idioma === 'pt' ? 'Descrição' : idioma === 'en' ? 'Description' : 'Descripción',
   }
 
@@ -146,45 +146,57 @@ export default function ContasReceber() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase.from('contas_receber').select('*').eq('user_id', user.id).order('vencimento', { ascending: true })
+    const { data } = await supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true })
     setContas(data || [])
     setLoading(false)
   }
 
   function abrirNovo() {
     setEditando(null)
-    setCliente(''); setValor(''); setVencimento(''); setDescricao('')
+    setCliente(''); setValor(''); setDataVencimento(''); setDescricao('')
     setModalAberto(true)
   }
 
   function abrirEdicao(conta: any) {
     setEditando(conta)
     setCliente(conta.cliente || '')
-    setValor(String(conta.valor))
-    setVencimento(conta.vencimento || conta.data_vencimento || '')
+    setValor(String(conta.valor || ''))
+    setDataVencimento(conta.data_vencimento || '')
     setDescricao(conta.descricao || '')
     setModalAberto(true)
   }
 
   function fecharModal() {
     setModalAberto(false); setEditando(null)
-    setCliente(''); setValor(''); setVencimento(''); setDescricao('')
+    setCliente(''); setValor(''); setDataVencimento(''); setDescricao('')
   }
 
   async function salvar() {
-    if (!cliente || !valor || !vencimento) return
+    if (!cliente || !valor || !dataVencimento) return
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
-    const payload = { cliente, valor: parseFloat(valor), vencimento, descricao }
-    editando
-      ? await supabase.from('contas_receber').update(payload).eq('id', editando.id)
-      : await supabase.from('contas_receber').insert({ ...payload, user_id: user.id, recebido: false })
+    const payload = {
+      cliente,
+      valor: parseFloat(valor),
+      data_vencimento: dataVencimento,
+      descricao,
+      status: 'pendente',
+    }
+    if (editando) {
+      await supabase.from('contas_receber').update(payload).eq('id', editando.id)
+    } else {
+      await supabase.from('contas_receber').insert({ ...payload, user_id: user.id })
+    }
     fecharModal(); setSalvando(false); carregar()
   }
 
-  async function marcarRecebido(id: string, status: boolean) {
-    await supabase.from('contas_receber').update({ recebido: !status }).eq('id', id)
+  async function marcarRecebido(id: string, statusAtual: string) {
+    const novoStatus = statusAtual === 'recebido' ? 'pendente' : 'recebido'
+    await supabase.from('contas_receber').update({
+      status: novoStatus,
+      data_recebimento: novoStatus === 'recebido' ? new Date().toISOString().split('T')[0] : null
+    }).eq('id', id)
     carregar()
   }
 
@@ -227,10 +239,10 @@ export default function ContasReceber() {
   }
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  const totalPendente = contas.filter(c => !c.recebido).reduce((s, c) => s + (c.valor || 0), 0)
-  const totalRecebido = contas.filter(c => c.recebido).reduce((s, c) => s + (c.valor || 0), 0)
+  const totalPendente = contas.filter(c => c.status === 'pendente').reduce((s, c) => s + (c.valor || 0), 0)
+  const totalRecebido = contas.filter(c => c.status === 'recebido').reduce((s, c) => s + (c.valor || 0), 0)
   const hoje = new Date().toISOString().split('T')[0]
-  const vencidoFn = (data: string) => data < hoje
+  const isVencido = (data: string, status: string) => data < hoje && status !== 'recebido'
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#020810' }}>
@@ -265,22 +277,22 @@ export default function ContasReceber() {
         ) : (
           <div className="space-y-3">
             {contas.map((conta, i) => {
-              const isVencido = vencidoFn(conta.vencimento || conta.data_vencimento || '') && !conta.recebido
-              const cor = conta.recebido ? '#34d399' : isVencido ? '#f87171' : '#6ab0ff'
+              const vencido = isVencido(conta.data_vencimento || '', conta.status)
+              const cor = conta.status === 'recebido' ? '#34d399' : vencido ? '#f87171' : '#6ab0ff'
               return (
                 <motion.div key={conta.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
-                    <div className="flex items-center justify-between gap-3 flex-wrap" style={{ opacity: conta.recebido ? 0.75 : 1 }}>
+                    <div className="flex items-center justify-between gap-3 flex-wrap" style={{ opacity: conta.status === 'recebido' ? 0.75 : 1 }}>
                       <div className="flex items-center gap-4 min-w-0">
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => marcarRecebido(conta.id, conta.recebido)}>
-                          <CheckCircle2 size={22} style={{ color: conta.recebido ? '#34d399' : '#1a3a5a' }} />
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => marcarRecebido(conta.id, conta.status)}>
+                          <CheckCircle2 size={22} style={{ color: conta.status === 'recebido' ? '#34d399' : '#1a3a5a' }} />
                         </motion.button>
                         <div className="min-w-0">
                           <p className="font-bold text-sm truncate" style={{ color: '#c8d8f0' }}>{conta.cliente}</p>
                           <p className="text-xs truncate" style={{ color: '#3a6090' }}>{conta.descricao}</p>
-                          <p className="text-xs mt-1" style={{ color: isVencido ? '#f87171' : '#3a6090' }}>
-                            {txt.vence}{new Date((conta.vencimento || conta.data_vencimento || '') + 'T00:00:00').toLocaleDateString('pt-BR')}
-                            {isVencido && ` ⚠️ ${txt.vencido}`}
+                          <p className="text-xs mt-1" style={{ color: vencido ? '#f87171' : '#3a6090' }}>
+                            {txt.vence}{new Date((conta.data_vencimento || '') + 'T00:00:00').toLocaleDateString('pt-BR')}
+                            {vencido && ` ⚠️ ${txt.vencido}`}
                           </p>
                         </div>
                       </div>
@@ -333,7 +345,7 @@ export default function ContasReceber() {
                   {[
                     { label: txt.clienteL, value: cliente, set: setCliente, type: 'text' },
                     { label: txt.valorL, value: valor, set: setValor, type: 'number' },
-                    { label: txt.vencimentoL, value: vencimento, set: setVencimento, type: 'date' },
+                    { label: txt.vencimentoL, value: dataVencimento, set: setDataVencimento, type: 'date' },
                     { label: txt.descricaoL, value: descricao, set: setDescricao, type: 'text' },
                   ].map((c) => (
                     <div key={c.label}>
