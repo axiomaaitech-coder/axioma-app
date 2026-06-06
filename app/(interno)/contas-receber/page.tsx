@@ -74,9 +74,7 @@ function CanvasBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bf
 }) {
   return (
     <div className="relative rounded-2xl overflow-hidden" style={{
-      background: 'rgba(4,10,22,0.97)',
-      border: `1px solid ${cor}30`,
-      boxShadow: `0 0 60px ${cor}10`,
+      background: 'rgba(4,10,22,0.97)', border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
     }}>
       <CanvasNeural />
       {[
@@ -91,18 +89,12 @@ function CanvasBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bf
       ].map((b, i) => (
         <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: '999px' }} />
       ))}
-      <motion.div
-        animate={{ left: ['-5%', '105%', '-5%'] }}
-        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+      <motion.div animate={{ left: ['-5%', '105%', '-5%'] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
         className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: '999px' }}
-      />
-      <motion.div
-        animate={{ right: ['-5%', '105%', '-5%'] }}
-        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 2.5 }}
+        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: '999px' }} />
+      <motion.div animate={{ right: ['-5%', '105%', '-5%'] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 2.5 }}
         className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: '999px', position: 'absolute' }}
-      />
+        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: '999px', position: 'absolute' }} />
       <div className="relative z-10 p-4 md:p-5">{children}</div>
     </div>
   )
@@ -114,30 +106,28 @@ export default function ContasReceber() {
   const [loading, setLoading] = useState(true)
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<any | null>(null)
-  const [cliente, setCliente] = useState('')
+  const [descricao, setDescricao] = useState('')
   const [valor, setValor] = useState('')
   const [dataVencimento, setDataVencimento] = useState('')
-  const [descricao, setDescricao] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [exportando, setExportando] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const txt = {
     titulo: idioma === 'pt' ? 'Contas a Receber' : idioma === 'en' ? 'Accounts Receivable' : 'Cuentas por Cobrar',
-    subtitulo: idioma === 'pt' ? 'Gerencie os valores que seus clientes devem pagar' : idioma === 'en' ? 'Manage the amounts your clients owe you' : 'Gestiona los montos que tus clientes deben pagar',
+    subtitulo: idioma === 'pt' ? 'Gerencie os valores que seus clientes devem pagar' : idioma === 'en' ? 'Manage amounts your clients owe' : 'Gestiona los montos que deben pagar',
     novo: idioma === 'pt' ? 'Nova Conta' : idioma === 'en' ? 'New Account' : 'Nueva Cuenta',
     editar: idioma === 'pt' ? 'Editar Conta' : idioma === 'en' ? 'Edit Account' : 'Editar Cuenta',
     salvar: idioma === 'pt' ? 'Salvar' : idioma === 'en' ? 'Save' : 'Guardar',
     cancelar: idioma === 'pt' ? 'Cancelar' : idioma === 'en' ? 'Cancel' : 'Cancelar',
     pendente: idioma === 'pt' ? 'Total Pendente' : idioma === 'en' ? 'Total Pending' : 'Total Pendiente',
-    recebido: idioma === 'pt' ? 'Total Recebido' : idioma === 'en' ? 'Total Received' : 'Total Recibido',
+    recebidoL: idioma === 'pt' ? 'Total Recebido' : idioma === 'en' ? 'Total Received' : 'Total Recibido',
     semContas: idioma === 'pt' ? 'Nenhuma conta cadastrada.' : idioma === 'en' ? 'No accounts yet.' : 'Sin cuentas aún.',
-    vence: idioma === 'pt' ? 'Vence em: ' : idioma === 'en' ? 'Due: ' : 'Vence: ',
+    vence: idioma === 'pt' ? 'Vence: ' : idioma === 'en' ? 'Due: ' : 'Vence: ',
     vencido: idioma === 'pt' ? 'Vencido' : idioma === 'en' ? 'Overdue' : 'Vencido',
-    clienteL: idioma === 'pt' ? 'Cliente' : idioma === 'en' ? 'Client' : 'Cliente',
+    descricaoL: idioma === 'pt' ? 'Descrição / Cliente' : idioma === 'en' ? 'Description / Client' : 'Descripción / Cliente',
     valorL: idioma === 'pt' ? 'Valor (R$)' : idioma === 'en' ? 'Value ($)' : 'Valor ($)',
     vencimentoL: idioma === 'pt' ? 'Data de Vencimento' : idioma === 'en' ? 'Due Date' : 'Fecha de Vencimiento',
-    descricaoL: idioma === 'pt' ? 'Descrição' : idioma === 'en' ? 'Description' : 'Descripción',
   }
 
   useEffect(() => { carregar() }, [])
@@ -152,39 +142,36 @@ export default function ContasReceber() {
   }
 
   function abrirNovo() {
-    setEditando(null)
-    setCliente(''); setValor(''); setDataVencimento(''); setDescricao('')
+    setEditando(null); setDescricao(''); setValor(''); setDataVencimento('')
     setModalAberto(true)
   }
 
   function abrirEdicao(conta: any) {
     setEditando(conta)
-    setCliente(conta.cliente || '')
+    setDescricao(conta.descricao || '')
     setValor(String(conta.valor || ''))
     setDataVencimento(conta.data_vencimento || '')
-    setDescricao(conta.descricao || '')
     setModalAberto(true)
   }
 
   function fecharModal() {
     setModalAberto(false); setEditando(null)
-    setCliente(''); setValor(''); setDataVencimento(''); setDescricao('')
+    setDescricao(''); setValor(''); setDataVencimento('')
   }
 
   async function salvar() {
-    if (!cliente || !valor || !dataVencimento) return
+    if (!descricao || !valor || !dataVencimento) return
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
     const payload = {
-      cliente,
+      descricao,
       valor: parseFloat(valor),
       data_vencimento: dataVencimento,
-      descricao,
       status: 'pendente',
     }
     if (editando) {
-      await supabase.from('contas_receber').update(payload).eq('id', editando.id)
+      await supabase.from('contas_receber').update({ descricao, valor: parseFloat(valor), data_vencimento: dataVencimento }).eq('id', editando.id)
     } else {
       await supabase.from('contas_receber').insert({ ...payload, user_id: user.id })
     }
@@ -254,19 +241,17 @@ export default function ContasReceber() {
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
       <div ref={conteudoRef} className="space-y-4">
 
-        {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CanvasBox cor="#f87171" corB="#34d399" corC="#a78bfa" corD="#6ab0ff">
             <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#3a5a8a' }}>{txt.pendente}</p>
             <p className="text-2xl md:text-3xl font-black" style={{ color: '#f87171', textShadow: '0 0 20px rgba(248,113,113,0.6)' }}>{fmt(totalPendente)}</p>
           </CanvasBox>
           <CanvasBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
-            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#3a5a8a' }}>{txt.recebido}</p>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#3a5a8a' }}>{txt.recebidoL}</p>
             <p className="text-2xl md:text-3xl font-black" style={{ color: '#34d399', textShadow: '0 0 20px rgba(52,211,153,0.6)' }}>{fmt(totalRecebido)}</p>
           </CanvasBox>
         </div>
 
-        {/* Lista */}
         {contas.length === 0 ? (
           <CanvasBox cor="#6ab0ff">
             <div className="flex flex-col items-center justify-center py-16">
@@ -277,19 +262,18 @@ export default function ContasReceber() {
         ) : (
           <div className="space-y-3">
             {contas.map((conta, i) => {
-              const vencido = isVencido(conta.data_vencimento || '', conta.status)
+              const vencido = isVencido(conta.data_vencimento || '', conta.status || 'pendente')
               const cor = conta.status === 'recebido' ? '#34d399' : vencido ? '#f87171' : '#6ab0ff'
               return (
                 <motion.div key={conta.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
                     <div className="flex items-center justify-between gap-3 flex-wrap" style={{ opacity: conta.status === 'recebido' ? 0.75 : 1 }}>
                       <div className="flex items-center gap-4 min-w-0">
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => marcarRecebido(conta.id, conta.status)}>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => marcarRecebido(conta.id, conta.status || 'pendente')}>
                           <CheckCircle2 size={22} style={{ color: conta.status === 'recebido' ? '#34d399' : '#1a3a5a' }} />
                         </motion.button>
                         <div className="min-w-0">
-                          <p className="font-bold text-sm truncate" style={{ color: '#c8d8f0' }}>{conta.cliente}</p>
-                          <p className="text-xs truncate" style={{ color: '#3a6090' }}>{conta.descricao}</p>
+                          <p className="font-bold text-sm truncate" style={{ color: '#c8d8f0' }}>{conta.descricao}</p>
                           <p className="text-xs mt-1" style={{ color: vencido ? '#f87171' : '#3a6090' }}>
                             {txt.vence}{new Date((conta.data_vencimento || '') + 'T00:00:00').toLocaleDateString('pt-BR')}
                             {vencido && ` ⚠️ ${txt.vencido}`}
@@ -314,39 +298,29 @@ export default function ContasReceber() {
         )}
       </div>
 
-      {/* Modal Premium */}
       <AnimatePresence>
         {modalAberto && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-              className="w-full max-w-md max-h-screen overflow-y-auto"
-            >
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="w-full max-w-md max-h-screen overflow-y-auto">
               <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
                       className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                      style={{ color: '#6ab0ff', textShadow: '0 0 20px #6ab0ff' }}>
-                      AXIOMA AI.TECH
-                    </motion.p>
+                      style={{ color: '#6ab0ff', textShadow: '0 0 20px #6ab0ff' }}>AXIOMA AI.TECH</motion.p>
                     <h3 className="text-lg font-bold" style={{ color: '#c8d8f0' }}>{editando ? txt.editar : txt.novo}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: '#3a5a8a' }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-4">
                   {[
-                    { label: txt.clienteL, value: cliente, set: setCliente, type: 'text' },
+                    { label: txt.descricaoL, value: descricao, set: setDescricao, type: 'text' },
                     { label: txt.valorL, value: valor, set: setValor, type: 'number' },
                     { label: txt.vencimentoL, value: dataVencimento, set: setDataVencimento, type: 'date' },
-                    { label: txt.descricaoL, value: descricao, set: setDescricao, type: 'text' },
                   ].map((c) => (
                     <div key={c.label}>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a8fd4' }}>{c.label}</label>
@@ -357,7 +331,7 @@ export default function ContasReceber() {
                   ))}
                   <div className="flex gap-3 pt-2">
                     <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(59,111,212,0.1)', color: '#3a5a8a' }}>{txt.cancelar}</button>
-                    <motion.button whileHover={{ scale: 1.02, boxShadow: '0 0 20px rgba(106,176,255,0.4)' }} whileTap={{ scale: 0.98 }}
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={salvar} disabled={salvando}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
