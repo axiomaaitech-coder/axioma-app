@@ -59,7 +59,6 @@ export default function CentrosCustoPage() {
   const [dataLanc, setDataLanc] = useState(new Date().toISOString().split("T")[0]);
   const [centroLanc, setCentroLanc] = useState("");
   const [salvandoLanc, setSalvandoLanc] = useState(false);
-
   const [busca, setBusca] = useState("");
 
   const cores = ["#6ab0ff", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
@@ -70,13 +69,10 @@ export default function CentrosCustoPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     const { data: empresa } = await supabase.from("empresas").select("id").eq("user_id", user.id).single();
     setEmpresaId(empresa?.id || null);
-
     const { data: centrosData } = await supabase.from("centros_custo").select("*").eq("user_id", user.id).order("created_at", { ascending: true });
     const { data: lancamentosData } = await supabase.from("lancamentos_centro").select("*").eq("user_id", user.id).order("data", { ascending: false });
-
     setCentros(centrosData || []);
     setLancamentos(lancamentosData || []);
     setLoading(false);
@@ -87,13 +83,11 @@ export default function CentrosCustoPage() {
     setSalvandoCentro(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     if (editandoCentro) {
       await supabase.from("centros_custo").update({ nome: nomeCentro, descricao: descricaoCentro, cor: corCentro }).eq("id", editandoCentro.id);
     } else {
       await supabase.from("centros_custo").insert({ nome: nomeCentro, descricao: descricaoCentro, cor: corCentro, user_id: user.id, empresa_id: empresaId });
     }
-
     setModalCentro(false);
     setNomeCentro("");
     setDescricaoCentro("");
@@ -113,9 +107,7 @@ export default function CentrosCustoPage() {
     setSalvandoLanc(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     await supabase.from("lancamentos_centro").insert({ descricao: descricaoLanc, valor: parseFloat(valorLanc), tipo: tipoLanc, data: dataLanc, centro_id: centroLanc, user_id: user.id, empresa_id: empresaId });
-
     setModalLancamento(false);
     setDescricaoLanc("");
     setValorLanc("");
@@ -151,7 +143,6 @@ export default function CentrosCustoPage() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       pdf.setFillColor(2, 8, 16);
       pdf.rect(0, 0, pdfWidth, 20, "F");
       pdf.setTextColor(106, 176, 255);
@@ -161,8 +152,7 @@ export default function CentrosCustoPage() {
       pdf.setTextColor(58, 90, 138);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
-      pdf.text(`${cc.titulo} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-
+      pdf.text(`${cc.titulo} - ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
       let position = 22;
       let remaining = pdfHeight;
       while (remaining > 0) {
@@ -214,7 +204,7 @@ export default function CentrosCustoPage() {
 
   return (
     <ModuloLayout
-      titulo={`?? ${cc.titulo}`}
+      titulo={`ðŸ—‚ï¸ ${cc.titulo}`}
       subtitulo={cc.subtitulo}
       onExportarPDF={exportarPDF}
       exportando={exportando}
@@ -223,7 +213,6 @@ export default function CentrosCustoPage() {
       botaoExtra={botaoLancamento}
     >
       <div ref={conteudoRef}>
-        {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: cc.totalCentros, valor: centros.length.toString(), cor: "#6ab0ff" },
@@ -238,7 +227,6 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
-        {/* Abas */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {[
             { key: "visao", label: cc.abaVisaoGeral },
@@ -253,10 +241,8 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
-        {/* Aba Visão Geral */}
         {aba === "visao" && (
           <div className="space-y-4">
-            <h2 className="text-sm font-semibold mb-3" style={{ color: "#6ab0ff" }}>?? {cc.comparativo}</h2>
             {centros.length === 0 ? (
               <div className="rounded-2xl p-8 text-center" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}>
                 <p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p>
@@ -295,7 +281,6 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
-        {/* Aba Centros */}
         {aba === "centros" && (
           <div className="space-y-3">
             {centros.length === 0 ? (
@@ -320,7 +305,6 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
-        {/* Aba Lançamentos */}
         {aba === "lancamentos" && (
           <div>
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar}
@@ -339,7 +323,7 @@ export default function CentrosCustoPage() {
                       {centro && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: centro.cor }} />}
                       <div className="min-w-0">
                         <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} • {new Date(lanc.data).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} Â· {new Date(lanc.data).toLocaleDateString("pt-BR")}</p>
                       </div>
                     </div>
                     <span className="text-sm font-bold flex-shrink-0" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
@@ -353,7 +337,6 @@ export default function CentrosCustoPage() {
         )}
       </div>
 
-      {/* Modal Centro */}
       {modalCentro && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
@@ -386,7 +369,6 @@ export default function CentrosCustoPage() {
         </div>
       )}
 
-      {/* Modal Lançamento */}
       {modalLancamento && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="rounded-2xl p-6 w-full max-w-md max-h-screen overflow-y-auto" style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(59,111,212,0.3)" }}>
