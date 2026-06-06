@@ -1,30 +1,147 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { Tag, Plus, Trash2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Tag, Trash2, Pencil, X } from 'lucide-react'
+import { createBrowserClient } from '@supabase/ssr'
 import ModuloLayout from '../../../components/ModuloLayout'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { motion, AnimatePresence } from 'framer-motion'
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+function CanvasNeural() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    let animId: number
+    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
+    resize()
+    window.addEventListener('resize', resize)
+    const particles = Array.from({ length: 50 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      size: Math.random() * 2 + 0.5,
+      color: ['#6ab0ff', '#34d399', '#a78bfa', '#f59e0b', '#f472b6'][Math.floor(Math.random() * 5)],
+      opacity: Math.random() * 0.6 + 0.2,
+    }))
+    const floaters = 'AXIOMA PRECIFICAÇÃO PRICE AI TECH FINANCE MARGIN'.split('').map((char) => ({
+      char, x: Math.random() * 100, y: Math.random() * 100,
+      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
+      speed: Math.random() * 0.25 + 0.08,
+      color: ['#6ab0ff', '#34d399', '#f59e0b'][Math.floor(Math.random() * 3)],
+    }))
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      floaters.forEach(f => {
+        ctx.save(); ctx.font = `900 ${f.size}px Arial`
+        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity
+        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height)
+        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105
+      })
+      particles.forEach((p, i) => {
+        particles.slice(i + 1).forEach(q => {
+          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 110) {
+            ctx.save(); ctx.globalAlpha = (1 - dist / 110) * 0.12
+            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore()
+          }
+        })
+        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color
+        ctx.shadowColor = p.color; ctx.shadowBlur = 6
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+        p.x += p.vx; p.y += p.vy
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
+      })
+      animId = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
+  }, [])
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />
+}
+
+function CanvasBox({ children, cor = "#f59e0b", corB = "#6ab0ff", corC = "#34d399", corD = "#a78bfa" }: {
+  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string
+}) {
+  return (
+    <div className="relative rounded-2xl overflow-hidden" style={{
+      background: "rgba(4,10,22,0.97)",
+      border: `1px solid ${cor}30`,
+      boxShadow: `0 0 60px ${cor}10`,
+    }}>
+      <CanvasNeural />
+      {[
+        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
+        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
+        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
+        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
+        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
+        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
+        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
+        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
+      ].map((b, i) => (
+        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
+      ))}
+      <motion.div
+        animate={{ left: ["-5%", "105%", "-5%"] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }}
+      />
+      <motion.div
+        animate={{ right: ["-5%", "105%", "-5%"] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
+        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }}
+      />
+      <div className="relative z-10 p-5 md:p-6">{children}</div>
+    </div>
+  )
+}
 
 export default function Precificacao() {
   const { idioma } = useLanguage()
   const [produtos, setProdutos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [mostrarForm, setMostrarForm] = useState(false)
+  const [modalAberto, setModalAberto] = useState(false)
+  const [editando, setEditando] = useState<any | null>(null)
   const [nome, setNome] = useState('')
   const [custo, setCusto] = useState('')
   const [margem, setMargem] = useState('')
   const [impostos, setImpostos] = useState('')
   const [despesas, setDespesas] = useState('')
+  const [salvando, setSalvando] = useState(false)
   const [exportando, setExportando] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
+
+  const txt = {
+    titulo: idioma === 'pt' ? 'Precificação' : idioma === 'en' ? 'Pricing' : 'Precios',
+    subtitulo: idioma === 'pt' ? 'Calcule o preço ideal dos seus produtos e serviços' : idioma === 'en' ? 'Calculate the ideal price for your products and services' : 'Calcula el precio ideal de tus productos',
+    novo: idioma === 'pt' ? 'Novo Produto' : idioma === 'en' ? 'New Product' : 'Nuevo Producto',
+    editar: idioma === 'pt' ? 'Editar Produto' : idioma === 'en' ? 'Edit Product' : 'Editar Producto',
+    salvar: idioma === 'pt' ? 'Salvar' : idioma === 'en' ? 'Save' : 'Guardar',
+    cancelar: idioma === 'pt' ? 'Cancelar' : idioma === 'en' ? 'Cancel' : 'Cancelar',
+    semProdutos: idioma === 'pt' ? 'Nenhum produto cadastrado.' : idioma === 'en' ? 'No products yet.' : 'Sin productos aún.',
+    precoSugerido: idioma === 'pt' ? 'Preço Sugerido' : idioma === 'en' ? 'Suggested Price' : 'Precio Sugerido',
+    custo: idioma === 'pt' ? 'Custo' : idioma === 'en' ? 'Cost' : 'Costo',
+    lucro: idioma === 'pt' ? 'Lucro' : idioma === 'en' ? 'Profit' : 'Ganancia',
+    margem: idioma === 'pt' ? 'Margem' : idioma === 'en' ? 'Margin' : 'Margen',
+    dadosProduto: idioma === 'pt' ? 'Dados do Produto' : idioma === 'en' ? 'Product Data' : 'Datos del Producto',
+  }
 
   useEffect(() => { carregar() }, [])
 
   async function carregar() {
     setLoading(true)
-    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const { data } = await supabase.from('precificacao').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
@@ -32,28 +149,50 @@ export default function Precificacao() {
     setLoading(false)
   }
 
-  async function adicionar() {
-    if (!nome || !custo || !margem) return
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const custoNum = parseFloat(custo)
-    const margemNum = parseFloat(margem) / 100
-    const impostosNum = parseFloat(impostos || '0') / 100
-    const despesasNum = parseFloat(despesas || '0') / 100
-    const precoSugerido = custoNum / (1 - margemNum - impostosNum - despesasNum)
-    await supabase.from('precificacao').insert({
-      user_id: user.id, nome, custo: custoNum, margem: parseFloat(margem),
-      impostos: parseFloat(impostos || '0'), despesas: parseFloat(despesas || '0'),
-      preco_sugerido: precoSugerido
-    })
+  function calcularPreco(c: string, m: string, imp: string, desp: string) {
+    const custoNum = parseFloat(c || '0')
+    const margemNum = parseFloat(m || '0') / 100
+    const impostosNum = parseFloat(imp || '0') / 100
+    const despesasNum = parseFloat(desp || '0') / 100
+    const divisor = 1 - margemNum - impostosNum - despesasNum
+    if (divisor <= 0) return 0
+    return custoNum / divisor
+  }
+
+  const precoPreview = calcularPreco(custo, margem, impostos, despesas)
+
+  function abrirNovo() {
+    setEditando(null)
     setNome(''); setCusto(''); setMargem(''); setImpostos(''); setDespesas('')
-    setMostrarForm(false)
-    carregar()
+    setModalAberto(true)
+  }
+
+  function abrirEdicao(p: any) {
+    setEditando(p)
+    setNome(p.nome); setCusto(String(p.custo)); setMargem(String(p.margem))
+    setImpostos(String(p.impostos || '')); setDespesas(String(p.despesas || ''))
+    setModalAberto(true)
+  }
+
+  function fecharModal() {
+    setModalAberto(false); setEditando(null)
+    setNome(''); setCusto(''); setMargem(''); setImpostos(''); setDespesas('')
+  }
+
+  async function salvar() {
+    if (!nome || !custo || !margem) return
+    setSalvando(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setSalvando(false); return }
+    const precoSugerido = calcularPreco(custo, margem, impostos, despesas)
+    const payload = { nome, custo: parseFloat(custo), margem: parseFloat(margem), impostos: parseFloat(impostos || '0'), despesas: parseFloat(despesas || '0'), preco_sugerido: precoSugerido }
+    editando
+      ? await supabase.from('precificacao').update(payload).eq('id', editando.id)
+      : await supabase.from('precificacao').insert({ ...payload, user_id: user.id })
+    fecharModal(); setSalvando(false); carregar()
   }
 
   async function excluir(id: string) {
-    const supabase = createClient()
     await supabase.from('precificacao').delete().eq('id', id)
     carregar()
   }
@@ -67,34 +206,23 @@ export default function Precificacao() {
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width
       const pageHeight = pdf.internal.pageSize.getHeight()
-
-      pdf.setFillColor(2, 8, 16)
-      pdf.rect(0, 0, pdfWidth, 20, "F")
-      pdf.setTextColor(106, 176, 255)
-      pdf.setFontSize(14)
-      pdf.setFont("helvetica", "bold")
+      pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, "F")
+      pdf.setTextColor(106, 176, 255); pdf.setFontSize(14); pdf.setFont("helvetica", "bold")
       pdf.text("AXIOMA AI.TECH", 14, 13)
-      pdf.setTextColor(58, 90, 138)
-      pdf.setFontSize(9)
-      pdf.setFont("helvetica", "normal")
-      pdf.text(`${idioma === 'pt' ? 'Precificação' : idioma === 'en' ? 'Pricing' : 'Precios'} - ${new Date().toLocaleDateString(idioma === "en" ? "en-US" : idioma === "es" ? "es-ES" : "pt-BR")}`, pdfWidth - 14, 13, { align: "right" })
-
-      let position = 22
-      let remaining = pdfHeight
+      pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont("helvetica", "normal")
+      pdf.text(`${txt.titulo} - ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" })
+      let position = 22; let remaining = pdfHeight
       while (remaining > 0) {
         const sliceHeight = Math.min(pageHeight - position, remaining)
         const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight)
         const sourceH = sliceHeight * (canvas.height / pdfHeight)
         const sliceCanvas = document.createElement("canvas")
-        sliceCanvas.width = canvas.width
-        sliceCanvas.height = sourceH
-        const ctx = sliceCanvas.getContext("2d")!
-        ctx.fillStyle = "#020810"
-        ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH)
+        sliceCanvas.width = canvas.width; sliceCanvas.height = sourceH
+        const ctx2 = sliceCanvas.getContext("2d")!
+        ctx2.fillStyle = "#020810"; ctx2.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
+        ctx2.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH)
         pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight)
-        remaining -= sliceHeight
-        position = 0
+        remaining -= sliceHeight; position = 0
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-precificacao-${new Date().toISOString().slice(0, 10)}.pdf`)
@@ -104,130 +232,144 @@ export default function Precificacao() {
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-  const calcularPreco = () => {
-    const custoNum = parseFloat(custo || '0')
-    const margemNum = parseFloat(margem || '0') / 100
-    const impostosNum = parseFloat(impostos || '0') / 100
-    const despesasNum = parseFloat(despesas || '0') / 100
-    const divisor = 1 - margemNum - impostosNum - despesasNum
-    if (divisor <= 0) return 0
-    return custoNum / divisor
-  }
-
-  const titulo = idioma === 'pt' ? 'Precificação' : idioma === 'en' ? 'Pricing' : 'Precios'
-  const subtitulo = idioma === 'pt' ? 'Calcule o preço ideal dos seus produtos e serviços' : idioma === 'en' ? 'Calculate the ideal price for your products and services' : 'Calcula el precio ideal de tus productos y servicios'
-  const labelNovo = idioma === 'pt' ? 'Novo Produto' : idioma === 'en' ? 'New Product' : 'Nuevo Producto'
-
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: "#020810" }}>
       <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
-  return (
-    <ModuloLayout
-      titulo={titulo}
-      subtitulo={subtitulo}
-      onExportarPDF={exportarPDF}
-      exportando={exportando}
-      onNovo={() => setMostrarForm(!mostrarForm)}
-      labelBotao={labelNovo}
-    >
-      <div ref={conteudoRef}>
-        {/* Formulário */}
-        {mostrarForm && (
-          <div className="rounded-2xl p-5 md:p-6 mb-6" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.3)" }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold" style={{ color: "#c8d8f0" }}>
-                  {idioma === 'pt' ? 'Dados do Produto' : idioma === 'en' ? 'Product Data' : 'Datos del Producto'}
-                </h3>
-                {[
-                  { label: idioma === 'pt' ? 'Nome do Produto/Serviço' : idioma === 'en' ? 'Product/Service Name' : 'Nombre del Producto/Servicio', value: nome, set: setNome, type: 'text', placeholder: idioma === 'pt' ? 'Ex: Consultoria Financeira' : 'Ex: Financial Consulting' },
-                  { label: idioma === 'pt' ? 'Custo Direto (R$)' : idioma === 'en' ? 'Direct Cost ($)' : 'Costo Directo ($)', value: custo, set: setCusto, type: 'number', placeholder: '0,00' },
-                  { label: idioma === 'pt' ? 'Margem de Lucro Desejada (%)' : idioma === 'en' ? 'Desired Profit Margin (%)' : 'Margen de Ganancia Deseado (%)', value: margem, set: setMargem, type: 'number', placeholder: '30' },
-                  { label: idioma === 'pt' ? 'Impostos (%)' : idioma === 'en' ? 'Taxes (%)' : 'Impuestos (%)', value: impostos, set: setImpostos, type: 'number', placeholder: '0' },
-                  { label: idioma === 'pt' ? 'Despesas Operacionais (%)' : idioma === 'en' ? 'Operating Expenses (%)' : 'Gastos Operativos (%)', value: despesas, set: setDespesas, type: 'number', placeholder: '0' },
-                ].map((campo) => (
-                  <div key={campo.label}>
-                    <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{ color: "#3a5a8a" }}>{campo.label}</label>
-                    <input value={campo.value} onChange={e => campo.set(e.target.value)} type={campo.type}
-                      className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-                      placeholder={campo.placeholder} />
-                  </div>
-                ))}
-              </div>
+  const inputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }
 
-              {/* Preview */}
-              <div className="rounded-2xl p-5 flex flex-col justify-center items-center text-center" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(245,158,11,0.2)" }}>
-                <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: "#3a5a8a" }}>
-                  {idioma === 'pt' ? 'Preço Sugerido' : idioma === 'en' ? 'Suggested Price' : 'Precio Sugerido'}
-                </p>
-                <p className="text-4xl md:text-5xl font-black mb-4" style={{ color: "#f59e0b" }}>
-                  {fmt(calcularPreco())}
-                </p>
-                <div className="w-full space-y-2 text-left">
-                  <div className="flex justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(248,113,113,0.1)" }}>
-                    <span className="text-xs" style={{ color: "#3a6090" }}>{idioma === 'pt' ? 'Custo' : 'Cost'}</span>
-                    <span className="text-xs font-bold" style={{ color: "#f87171" }}>{fmt(parseFloat(custo || '0'))}</span>
-                  </div>
-                  <div className="flex justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(52,211,153,0.1)" }}>
-                    <span className="text-xs" style={{ color: "#3a6090" }}>{idioma === 'pt' ? 'Lucro' : 'Profit'}</span>
-                    <span className="text-xs font-bold" style={{ color: "#34d399" }}>{fmt(calcularPreco() * (parseFloat(margem || '0') / 100))}</span>
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6 w-full">
-                  <button onClick={adicionar}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                    {idioma === 'pt' ? 'Salvar' : idioma === 'en' ? 'Save' : 'Guardar'}
-                  </button>
-                  <button onClick={() => setMostrarForm(false)}
-                    className="flex-1 py-3 rounded-xl font-bold text-sm"
-                    style={{ background: "rgba(255,255,255,0.05)", color: "#3a6090" }}>
-                    {idioma === 'pt' ? 'Cancelar' : idioma === 'en' ? 'Cancel' : 'Cancelar'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+  return (
+    <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
+      <div ref={conteudoRef} className="space-y-6">
 
         {/* Lista de produtos */}
         {produtos.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Tag size={48} style={{ color: "#1a3a5a" }} className="mb-4" />
-            <p className="text-sm" style={{ color: "#3a6090" }}>
-              {idioma === 'pt' ? 'Nenhum produto cadastrado.' : idioma === 'en' ? 'No products yet.' : 'Sin productos aún.'}
-            </p>
-          </div>
+          <CanvasBox cor="#f59e0b">
+            <div className="flex flex-col items-center justify-center py-16">
+              <Tag size={48} style={{ color: "#1a3a5a" }} className="mb-4" />
+              <p className="text-sm" style={{ color: "#3a6090" }}>{txt.semProdutos}</p>
+            </div>
+          </CanvasBox>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {produtos.map((p) => (
-              <div key={p.id} className="rounded-2xl p-5 md:p-6" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(245,158,11,0.15)" }}>
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bold text-sm truncate mr-2" style={{ color: "#c8d8f0" }}>{p.nome}</h3>
-                  <button onClick={() => excluir(p.id)} className="flex-shrink-0">
-                    <Trash2 size={16} style={{ color: "#f87171" }} />
-                  </button>
-                </div>
-                <p className="text-2xl font-black mb-3" style={{ color: "#f59e0b" }}>{fmt(p.preco_sugerido)}</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-xs" style={{ color: "#3a6090" }}>{idioma === 'pt' ? 'Custo' : 'Cost'}</span>
-                    <span className="text-xs font-bold" style={{ color: "#f87171" }}>{fmt(p.custo)}</span>
+            {produtos.map((p, i) => (
+              <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+                <CanvasBox cor="#f59e0b" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="font-bold text-sm truncate mr-2" style={{ color: "#c8d8f0" }}>{p.nome}</h3>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}>
+                        <Pencil size={15} style={{ color: "#6ab0ff" }} />
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(p.id)}>
+                        <Trash2 size={15} style={{ color: "#f87171" }} />
+                      </motion.button>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-xs" style={{ color: "#3a6090" }}>{idioma === 'pt' ? 'Margem' : 'Margin'}</span>
-                    <span className="text-xs font-bold" style={{ color: "#34d399" }}>{p.margem}%</span>
+                  <p className="text-2xl font-black mb-3" style={{ color: "#f59e0b", textShadow: "0 0 20px rgba(245,158,11,0.6)" }}>{fmt(p.preco_sugerido)}</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-xs" style={{ color: "#3a6090" }}>{txt.custo}</span>
+                      <span className="text-xs font-bold" style={{ color: "#f87171" }}>{fmt(p.custo)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-xs" style={{ color: "#3a6090" }}>{txt.margem}</span>
+                      <span className="text-xs font-bold" style={{ color: "#34d399" }}>{p.margem}%</span>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CanvasBox>
+              </motion.div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal Premium com Canvas */}
+      <AnimatePresence>
+        {modalAberto && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="w-full max-w-2xl rounded-2xl max-h-screen overflow-y-auto"
+            >
+              <CanvasBox cor="#f59e0b" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                      className="text-xs font-black tracking-[0.3em] uppercase mb-1"
+                      style={{ color: "#f59e0b", textShadow: "0 0 20px #f59e0b" }}>
+                      AXIOMA AI.TECH
+                    </motion.p>
+                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? txt.editar : txt.novo}</h3>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Campos */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{txt.dadosProduto}</h4>
+                    {[
+                      { label: idioma === 'pt' ? 'Nome do Produto/Serviço' : idioma === 'en' ? 'Product/Service Name' : 'Nombre', value: nome, set: setNome, type: 'text' },
+                      { label: idioma === 'pt' ? 'Custo Direto (R$)' : idioma === 'en' ? 'Direct Cost ($)' : 'Costo Directo', value: custo, set: setCusto, type: 'number' },
+                      { label: idioma === 'pt' ? 'Margem de Lucro (%)' : idioma === 'en' ? 'Profit Margin (%)' : 'Margen de Ganancia (%)', value: margem, set: setMargem, type: 'number' },
+                      { label: idioma === 'pt' ? 'Impostos (%)' : idioma === 'en' ? 'Taxes (%)' : 'Impuestos (%)', value: impostos, set: setImpostos, type: 'number' },
+                      { label: idioma === 'pt' ? 'Despesas Operacionais (%)' : idioma === 'en' ? 'Operating Expenses (%)' : 'Gastos Operativos (%)', value: despesas, set: setDespesas, type: 'number' },
+                    ].map((c) => (
+                      <div key={c.label}>
+                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
+                        <input type={c.type} value={c.value} onChange={e => c.set(e.target.value)} placeholder="0"
+                          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Preview */}
+                  <div className="flex flex-col justify-center items-center text-center">
+                    <p className="text-xs font-semibold tracking-wider uppercase mb-4" style={{ color: "#3a5a8a" }}>{txt.precoSugerido}</p>
+                    <motion.p
+                      key={precoPreview}
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="text-4xl font-black mb-4"
+                      style={{ color: "#f59e0b", textShadow: "0 0 30px rgba(245,158,11,0.8)" }}>
+                      {fmt(precoPreview)}
+                    </motion.p>
+                    <div className="w-full space-y-2">
+                      <div className="flex justify-between px-3 py-2 rounded-xl" style={{ background: "rgba(248,113,113,0.1)" }}>
+                        <span className="text-xs" style={{ color: "#3a6090" }}>{txt.custo}</span>
+                        <span className="text-xs font-bold" style={{ color: "#f87171" }}>{fmt(parseFloat(custo || '0'))}</span>
+                      </div>
+                      <div className="flex justify-between px-3 py-2 rounded-xl" style={{ background: "rgba(52,211,153,0.1)" }}>
+                        <span className="text-xs" style={{ color: "#3a6090" }}>{txt.lucro}</span>
+                        <span className="text-xs font-bold" style={{ color: "#34d399" }}>{fmt(precoPreview * (parseFloat(margem || '0') / 100))}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-6 w-full">
+                      <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{txt.cancelar}</button>
+                      <motion.button whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(245,158,11,0.4)" }} whileTap={{ scale: 0.98 }}
+                        onClick={salvar} disabled={salvando}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                        style={{ background: "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
+                        {salvando ? '...' : txt.salvar}
+                      </motion.button>
+                    </div>
+                  </div>
+                </div>
+              </CanvasBox>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </ModuloLayout>
   )
 }
