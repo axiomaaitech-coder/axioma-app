@@ -17,25 +17,20 @@ function SimCanvas() {
     const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
     resize()
     window.addEventListener('resize', resize)
-
     const particles = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
       size: Math.random() * 2 + 0.5,
       color: ['#6ab0ff', '#34d399', '#a78bfa', '#f472b6', '#fbbf24'][Math.floor(Math.random() * 5)],
       opacity: Math.random() * 0.6 + 0.2,
     }))
-
-    const floaters = 'AXIOMA SIMULAÇÕES FINANCE AI TECH GROWTH'.split('').map((char, i) => ({
+    const floaters = 'AXIOMA SIMULAÇÕES FINANCE AI TECH GROWTH'.split('').map((char) => ({
       char, x: Math.random() * 100, y: Math.random() * 100,
       size: Math.random() * 28 + 14,
       opacity: Math.random() * 0.06 + 0.02,
       speed: Math.random() * 0.25 + 0.08,
       color: ['#6ab0ff', '#34d399', '#a78bfa'][Math.floor(Math.random() * 3)],
     }))
-
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       floaters.forEach(f => {
@@ -80,22 +75,42 @@ function SimCanvas() {
   return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />
 }
 
-function NeonBox({ children, cor = "#6ab0ff" }: { children: React.ReactNode; cor?: string }) {
+function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
+  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string
+}) {
   return (
     <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(10,22,40,0.85)",
+      background: "rgba(4,10,22,0.97)",
       border: `1px solid ${cor}30`,
-      boxShadow: `0 0 20px ${cor}10, inset 0 1px 0 ${cor}15`,
+      boxShadow: `0 0 60px ${cor}10`,
+      minHeight: "350px",
     }}>
+      <SimCanvas />
+      {[
+        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
+        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
+        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
+        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
+        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
+        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
+        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
+        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
+      ].map((b, i) => (
+        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
+      ))}
       <motion.div
-        animate={{ left: ["-15%", "115%", "-15%"] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
-        className="absolute top-0 h-[1.5px] w-16 z-10 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}`, borderRadius: "999px" }}
+        animate={{ left: ["-5%", "105%", "-5%"] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }}
       />
-      <div className="absolute top-0 left-0 w-20 h-20 pointer-events-none" style={{ background: `radial-gradient(circle at top left, ${cor}12 0%, transparent 70%)` }} />
-      <div className="absolute bottom-0 right-0 w-20 h-20 pointer-events-none" style={{ background: `radial-gradient(circle at bottom right, ${cor}08 0%, transparent 70%)` }} />
-      <div className="relative z-10">{children}</div>
+      <motion.div
+        animate={{ right: ["-5%", "105%", "-5%"] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
+        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }}
+      />
+      <div className="relative z-10 p-5 md:p-6">{children}</div>
     </div>
   )
 }
@@ -105,7 +120,6 @@ export default function Simulacoes() {
   const [tipo, setTipo] = useState('lucro')
   const [exportando, setExportando] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
-
   const [receita, setReceita] = useState('')
   const [custoFixo, setCustoFixo] = useState('')
   const [custoVariavel, setCustoVariavel] = useState('')
@@ -183,90 +197,72 @@ export default function Simulacoes() {
     <ModuloLayout titulo={titulo} subtitulo={subtitulo} onExportarPDF={exportarPDF} exportando={exportando} botaoExtra={botaoTipos}>
       <div ref={conteudoRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* Formulário */}
-        <NeonBox cor="#3b6fd4">
-          <div className="p-5 md:p-6">
-            <h3 className="text-sm font-bold mb-6" style={{ color: "#c8d8f0" }}>
-              {idioma === 'pt' ? 'Dados da Simulação' : 'Simulation Data'}
-            </h3>
-            {tipo === 'lucro' && (
-              <div className="space-y-4">
-                {[
-                  { label: idioma === 'pt' ? 'Receita Total' : 'Total Revenue', value: receita, set: setReceita },
-                  { label: idioma === 'pt' ? 'Custos Fixos' : 'Fixed Costs', value: custoFixo, set: setCustoFixo },
-                  { label: idioma === 'pt' ? 'Custos Variáveis' : 'Variable Costs', value: custoVariavel, set: setCustoVariavel },
-                ].map((c) => (
-                  <div key={c.label}>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
-                    <input value={c.value} onChange={e => c.set(e.target.value)} type="number" placeholder="0,00" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                  </div>
-                ))}
-              </div>
-            )}
-            {tipo === 'equilibrio' && (
-              <div className="space-y-4">
-                {[
-                  { label: idioma === 'pt' ? 'Preço de Venda (un.)' : 'Selling Price (unit)', value: precoVenda, set: setPrecoVenda },
-                  { label: idioma === 'pt' ? 'Custo por Produto (un.)' : 'Product Cost (unit)', value: custoProduto, set: setCustoProduto },
-                  { label: idioma === 'pt' ? 'Custos Fixos Totais' : 'Total Fixed Costs', value: custoFixoTotal, set: setCustoFixoTotal },
-                ].map((c) => (
-                  <div key={c.label}>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
-                    <input value={c.value} onChange={e => c.set(e.target.value)} type="number" placeholder="0,00" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                  </div>
-                ))}
-              </div>
-            )}
-            {tipo === 'crescimento' && (
-              <div className="space-y-4">
-                {[
-                  { label: idioma === 'pt' ? 'Valor Atual' : 'Current Value', value: valorAtual, set: setValorAtual },
-                  { label: idioma === 'pt' ? 'Taxa de Crescimento Mensal (%)' : 'Monthly Growth Rate (%)', value: taxaCrescimento, set: setTaxaCrescimento },
-                  { label: idioma === 'pt' ? 'Quantidade de Meses' : 'Number of Months', value: meses, set: setMeses },
-                ].map((c) => (
-                  <div key={c.label}>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
-                    <input value={c.value} onChange={e => c.set(e.target.value)} type="number" placeholder="0" className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </NeonBox>
+        {/* Formulário com Canvas */}
+        <CanvasBox cor="#6ab0ff" corB="#a78bfa" corC="#34d399" corD="#fbbf24">
+          <motion.p
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="text-xs font-black tracking-[0.3em] uppercase mb-1"
+            style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}
+          >
+            AXIOMA AI.TECH
+          </motion.p>
+          <h3 className="text-sm font-bold mb-6" style={{ color: "#c8d8f0" }}>
+            {idioma === 'pt' ? 'Dados da Simulação' : 'Simulation Data'}
+          </h3>
 
-        {/* Resultado com Canvas Neural */}
-        <div className="relative rounded-2xl overflow-hidden" style={{
-          background: "rgba(4,10,22,0.97)",
-          border: `1px solid ${corAtual}30`,
-          boxShadow: `0 0 60px ${corAtual}10`,
-          minHeight: "350px",
-        }}>
-          <SimCanvas />
+          {tipo === 'lucro' && (
+            <div className="space-y-4">
+              {[
+                { label: idioma === 'pt' ? 'Receita Total' : 'Total Revenue', value: receita, set: setReceita },
+                { label: idioma === 'pt' ? 'Custos Fixos' : 'Fixed Costs', value: custoFixo, set: setCustoFixo },
+                { label: idioma === 'pt' ? 'Custos Variáveis' : 'Variable Costs', value: custoVariavel, set: setCustoVariavel },
+              ].map((c) => (
+                <div key={c.label}>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
+                  <input value={c.value} onChange={e => c.set(e.target.value)} type="number" placeholder="0,00"
+                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                </div>
+              ))}
+            </div>
+          )}
 
-          {/* Bordas neon nos cantos */}
-          {[
-            { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corAtual}, transparent)`, glow: corAtual },
-            { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corAtual}, transparent)`, glow: corAtual },
-            { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, #34d399, transparent)`, glow: "#34d399" },
-            { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, #34d399, transparent)`, glow: "#34d399" },
-            { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, #a78bfa, transparent)`, glow: "#a78bfa" },
-            { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, #a78bfa, transparent)`, glow: "#a78bfa" },
-            { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, #f472b6, transparent)`, glow: "#f472b6" },
-            { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, #f472b6, transparent)`, glow: "#f472b6" },
-          ].map((b, i) => (
-            <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-          ))}
+          {tipo === 'equilibrio' && (
+            <div className="space-y-4">
+              {[
+                { label: idioma === 'pt' ? 'Preço de Venda (un.)' : 'Selling Price (unit)', value: precoVenda, set: setPrecoVenda },
+                { label: idioma === 'pt' ? 'Custo por Produto (un.)' : 'Product Cost (unit)', value: custoProduto, set: setCustoProduto },
+                { label: idioma === 'pt' ? 'Custos Fixos Totais' : 'Total Fixed Costs', value: custoFixoTotal, set: setCustoFixoTotal },
+              ].map((c) => (
+                <div key={c.label}>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
+                  <input value={c.value} onChange={e => c.set(e.target.value)} type="number" placeholder="0,00"
+                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                </div>
+              ))}
+            </div>
+          )}
 
-          {/* Partícula correndo */}
-          <motion.div
-            animate={{ left: ["-5%", "105%", "-5%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-            style={{ background: `linear-gradient(90deg, transparent, #fff, ${corAtual}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${corAtual}`, borderRadius: "999px" }}
-          />
+          {tipo === 'crescimento' && (
+            <div className="space-y-4">
+              {[
+                { label: idioma === 'pt' ? 'Valor Atual' : 'Current Value', value: valorAtual, set: setValorAtual },
+                { label: idioma === 'pt' ? 'Taxa de Crescimento Mensal (%)' : 'Monthly Growth Rate (%)', value: taxaCrescimento, set: setTaxaCrescimento },
+                { label: idioma === 'pt' ? 'Quantidade de Meses' : 'Number of Months', value: meses, set: setMeses },
+              ].map((c) => (
+                <div key={c.label}>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
+                  <input value={c.value} onChange={e => c.set(e.target.value)} type="number" placeholder="0"
+                    className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                </div>
+              ))}
+            </div>
+          )}
+        </CanvasBox>
 
-          {/* Conteúdo resultado */}
-          <div className="relative z-10 p-5 md:p-6 flex flex-col justify-center items-center text-center h-full min-h-[350px]">
+        {/* Resultado com Canvas */}
+        <CanvasBox cor={corAtual} corB="#34d399" corC="#a78bfa" corD="#f472b6">
+          <div className="flex flex-col justify-center items-center text-center min-h-[280px]">
             <motion.p
               animate={{ opacity: [0.6, 1, 0.6] }}
               transition={{ duration: 3, repeat: Infinity }}
@@ -335,7 +331,7 @@ export default function Simulacoes() {
               </>
             )}
           </div>
-        </div>
+        </CanvasBox>
       </div>
     </ModuloLayout>
   )
