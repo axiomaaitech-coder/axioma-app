@@ -138,7 +138,6 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
   );
 }
 
-// Cores disponíveis para centros (usamos como visual apenas, não salva no banco)
 const CORES_CENTRO = ["#6ab0ff", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
 const getCor = (index: number) => CORES_CENTRO[index % CORES_CENTRO.length];
 
@@ -152,7 +151,6 @@ export default function CentrosCustoPage() {
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
 
-  // Modal Centro
   const [modalCentro, setModalCentro] = useState(false);
   const [editandoCentro, setEditandoCentro] = useState<Centro | null>(null);
   const [nomeCentro, setNomeCentro] = useState("");
@@ -160,7 +158,6 @@ export default function CentrosCustoPage() {
   const [descricaoCentro, setDescricaoCentro] = useState("");
   const [salvandoCentro, setSalvandoCentro] = useState(false);
 
-  // Modal Lançamento
   const [modalLancamento, setModalLancamento] = useState(false);
   const [descricaoLanc, setDescricaoLanc] = useState("");
   const [valorLanc, setValorLanc] = useState("");
@@ -188,7 +185,7 @@ export default function CentrosCustoPage() {
     if (!nomeCentro.trim()) return;
     setSalvandoCentro(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setSalvandoCentro(false); return; }
     if (editandoCentro) {
       await supabase.from("centros_custo").update({ nome: nomeCentro, tipo: tipoCentro, descricao: descricaoCentro }).eq("id", editandoCentro.id);
     } else {
@@ -202,18 +199,28 @@ export default function CentrosCustoPage() {
   }
 
   async function salvarLancamento() {
-    if (!descricaoLanc.trim() || !valorLanc || !centroLanc) return;
+    if (!descricaoLanc.trim() || !valorLanc) return;
     setSalvandoLanc(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("lancamentos_centro").insert({
-      descricao: descricaoLanc, valor: parseFloat(valorLanc), tipo: tipoLanc,
-      data: dataLanc, centro_custo_id: centroLanc, categoria: categoriaLanc,
+    if (!user) { setSalvandoLanc(false); return; }
+    const payload: any = {
+      descricao: descricaoLanc,
+      valor: parseFloat(valorLanc),
+      tipo: tipoLanc,
+      data: dataLanc,
+      categoria: categoriaLanc || null,
       user_id: user.id,
-    });
-    setModalLancamento(false); setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
-    setDataLanc(new Date().toISOString().split("T")[0]); setCentroLanc(""); setCategoriaLanc("");
-    setSalvandoLanc(false); carregarDados();
+    };
+    if (centroLanc) payload.centro_custo_id = centroLanc;
+    const { error } = await supabase.from("lancamentos_centro").insert(payload);
+    if (!error) {
+      setModalLancamento(false);
+      setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
+      setDataLanc(new Date().toISOString().split("T")[0]);
+      setCentroLanc(""); setCategoriaLanc("");
+      carregarDados();
+    }
+    setSalvandoLanc(false);
   }
 
   function abrirEditarCentro(centro: Centro) {
@@ -289,7 +296,6 @@ export default function CentrosCustoPage() {
       labelBotao={cc.novoCentro} botaoExtra={botaoLancamento}>
       <div ref={conteudoRef} className="space-y-4">
 
-        {/* Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: cc.totalCentros, valor: centros.length.toString(), cor: "#6ab0ff" },
@@ -304,7 +310,6 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
-        {/* Abas */}
         <div className="flex gap-2 flex-wrap">
           {[
             { key: "visao", label: cc.abaVisaoGeral },
@@ -320,7 +325,6 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
-        {/* Aba Visão Geral */}
         {aba === "visao" && (
           <div className="space-y-4">
             {centros.length === 0 ? (
@@ -366,7 +370,6 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
-        {/* Aba Centros */}
         {aba === "centros" && (
           <div className="space-y-3">
             {centros.length === 0 ? (
@@ -400,7 +403,6 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
-        {/* Aba Lançamentos */}
         {aba === "lancamentos" && (
           <div className="space-y-3">
             <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
@@ -411,7 +413,8 @@ export default function CentrosCustoPage() {
               <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#3a5a8a" }}>{cc.semLancamentos}</p></div></CanvasBox>
             ) : lancFiltrados.map((lanc, i) => {
               const centro = centros.find(c => c.id === lanc.centro_custo_id);
-              const cor = getCor(centros.findIndex(c => c.id === lanc.centro_custo_id));
+              const idxCentro = centros.findIndex(c => c.id === lanc.centro_custo_id);
+              const cor = idxCentro >= 0 ? getCor(idxCentro) : "#6ab0ff";
               return (
                 <motion.div key={lanc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <CanvasBox cor={lanc.tipo === "receita" ? "#34d399" : "#f87171"} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
@@ -420,7 +423,7 @@ export default function CentrosCustoPage() {
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
-                          <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                          <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome || "Sem centro"} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}</p>
                         </div>
                       </div>
                       <span className="text-sm font-bold flex-shrink-0" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
@@ -440,7 +443,9 @@ export default function CentrosCustoPage() {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.nomeCentro}</label>
-            <input value={nomeCentro} onChange={(e) => setNomeCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input value={nomeCentro} onChange={(e) => setNomeCentro(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Tipo</label>
@@ -456,7 +461,9 @@ export default function CentrosCustoPage() {
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.descricaoCentro}</label>
-            <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
@@ -470,15 +477,19 @@ export default function CentrosCustoPage() {
       </ModalPremium>
 
       {/* Modal Lançamento */}
-      <ModalPremium aberto={modalLancamento} onFechar={() => setModalLancamento(false)} titulo={cc.novoLancamento} cor="#34d399">
+      <ModalPremium aberto={modalLancamento} onFechar={() => { setModalLancamento(false); setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo"); setDataLanc(new Date().toISOString().split("T")[0]); setCentroLanc(""); setCategoriaLanc(""); }} titulo={cc.novoLancamento} cor="#34d399">
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.descricao}</label>
-            <input value={descricaoLanc} onChange={(e) => setDescricaoLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input value={descricaoLanc} onChange={(e) => setDescricaoLanc(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.valor}</label>
-            <input type="number" value={valorLanc} onChange={(e) => setValorLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input type="number" value={valorLanc} onChange={(e) => setValorLanc(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.tipo}</label>
@@ -493,22 +504,30 @@ export default function CentrosCustoPage() {
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.data}</label>
-            <input type="date" value={dataLanc} onChange={(e) => setDataLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input type="date" value={dataLanc} onChange={(e) => setDataLanc(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.centroCusto}</label>
-            <select value={centroLanc} onChange={(e) => setCentroLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
-              <option value="">-- {cc.centroCusto} --</option>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.centroCusto} <span style={{ color: "#3a5a8a" }}>(opcional)</span></label>
+            <select value={centroLanc} onChange={(e) => setCentroLanc(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+              <option value="">-- Sem centro --</option>
               {centros.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Categoria</label>
-            <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)} placeholder="Ex: Marketing, RH, TI..." className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Categoria <span style={{ color: "#3a5a8a" }}>(opcional)</span></label>
+            <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)}
+              placeholder="Ex: Marketing, RH, TI..."
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => setModalLancamento(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarLancamento} disabled={salvandoLanc}
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={salvarLancamento} disabled={salvandoLanc}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
               {salvandoLanc ? "..." : cc.salvarLancamento}
