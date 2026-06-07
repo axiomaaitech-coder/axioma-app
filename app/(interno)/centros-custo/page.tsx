@@ -14,12 +14,13 @@ const supabase = createBrowserClient(
 );
 
 type Centro = {
-  id: string; nome: string; descricao: string; cor: string;
-  user_id: string; empresa_id: string; created_at: string;
+  id: string; nome: string; tipo: string; descricao: string; ativo: boolean;
+  user_id: string; created_at: string;
 };
 type Lancamento = {
-  id: string; descricao: string; valor: number; tipo: "custo" | "receita";
-  data: string; centro_id: string; user_id: string; empresa_id: string; created_at: string;
+  id: string; descricao: string; valor: number; tipo: string;
+  data: string; centro_custo_id: string; categoria: string;
+  user_id: string; created_at: string;
 };
 
 function CanvasNeural() {
@@ -137,6 +138,10 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
   );
 }
 
+// Cores disponíveis para centros (usamos como visual apenas, não salva no banco)
+const CORES_CENTRO = ["#6ab0ff", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
+const getCor = (index: number) => CORES_CENTRO[index % CORES_CENTRO.length];
+
 export default function CentrosCustoPage() {
   const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
@@ -145,23 +150,26 @@ export default function CentrosCustoPage() {
   const [centros, setCentros] = useState<Centro[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
-  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+
+  // Modal Centro
   const [modalCentro, setModalCentro] = useState(false);
   const [editandoCentro, setEditandoCentro] = useState<Centro | null>(null);
   const [nomeCentro, setNomeCentro] = useState("");
+  const [tipoCentro, setTipoCentro] = useState("operacional");
   const [descricaoCentro, setDescricaoCentro] = useState("");
-  const [corCentro, setCorCentro] = useState("#6ab0ff");
   const [salvandoCentro, setSalvandoCentro] = useState(false);
+
+  // Modal Lançamento
   const [modalLancamento, setModalLancamento] = useState(false);
   const [descricaoLanc, setDescricaoLanc] = useState("");
   const [valorLanc, setValorLanc] = useState("");
-  const [tipoLanc, setTipoLanc] = useState<"custo" | "receita">("custo");
+  const [tipoLanc, setTipoLanc] = useState("custo");
   const [dataLanc, setDataLanc] = useState(new Date().toISOString().split("T")[0]);
   const [centroLanc, setCentroLanc] = useState("");
+  const [categoriaLanc, setCategoriaLanc] = useState("");
   const [salvandoLanc, setSalvandoLanc] = useState(false);
   const [busca, setBusca] = useState("");
-  const cores = ["#6ab0ff", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
 
   useEffect(() => { carregarDados(); }, []);
 
@@ -169,8 +177,6 @@ export default function CentrosCustoPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: empresa } = await supabase.from("empresas").select("id").eq("user_id", user.id).single();
-    setEmpresaId(empresa?.id || null);
     const { data: centrosData } = await supabase.from("centros_custo").select("*").eq("user_id", user.id).order("created_at", { ascending: true });
     const { data: lancamentosData } = await supabase.from("lancamentos_centro").select("*").eq("user_id", user.id).order("data", { ascending: false });
     setCentros(centrosData || []);
@@ -184,9 +190,9 @@ export default function CentrosCustoPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     if (editandoCentro) {
-      await supabase.from("centros_custo").update({ nome: nomeCentro, descricao: descricaoCentro, cor: corCentro }).eq("id", editandoCentro.id);
+      await supabase.from("centros_custo").update({ nome: nomeCentro, tipo: tipoCentro, descricao: descricaoCentro }).eq("id", editandoCentro.id);
     } else {
-      await supabase.from("centros_custo").insert({ nome: nomeCentro, descricao: descricaoCentro, cor: corCentro, user_id: user.id, empresa_id: empresaId });
+      await supabase.from("centros_custo").insert({ nome: nomeCentro, tipo: tipoCentro, descricao: descricaoCentro, user_id: user.id, ativo: true });
     }
     fecharModalCentro(); setSalvandoCentro(false); carregarDados();
   }
@@ -200,17 +206,25 @@ export default function CentrosCustoPage() {
     setSalvandoLanc(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("lancamentos_centro").insert({ descricao: descricaoLanc, valor: parseFloat(valorLanc), tipo: tipoLanc, data: dataLanc, centro_id: centroLanc, user_id: user.id, empresa_id: empresaId });
-    setModalLancamento(false); setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo"); setDataLanc(new Date().toISOString().split("T")[0]); setCentroLanc("");
+    await supabase.from("lancamentos_centro").insert({
+      descricao: descricaoLanc, valor: parseFloat(valorLanc), tipo: tipoLanc,
+      data: dataLanc, centro_custo_id: centroLanc, categoria: categoriaLanc,
+      user_id: user.id,
+    });
+    setModalLancamento(false); setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
+    setDataLanc(new Date().toISOString().split("T")[0]); setCentroLanc(""); setCategoriaLanc("");
     setSalvandoLanc(false); carregarDados();
   }
 
   function abrirEditarCentro(centro: Centro) {
-    setEditandoCentro(centro); setNomeCentro(centro.nome); setDescricaoCentro(centro.descricao || ""); setCorCentro(centro.cor || "#6ab0ff"); setModalCentro(true);
+    setEditandoCentro(centro); setNomeCentro(centro.nome);
+    setTipoCentro(centro.tipo || "operacional"); setDescricaoCentro(centro.descricao || "");
+    setModalCentro(true);
   }
 
   function fecharModalCentro() {
-    setModalCentro(false); setEditandoCentro(null); setNomeCentro(""); setDescricaoCentro(""); setCorCentro("#6ab0ff");
+    setModalCentro(false); setEditandoCentro(null);
+    setNomeCentro(""); setTipoCentro("operacional"); setDescricaoCentro("");
   }
 
   const exportarPDF = async () => {
@@ -249,8 +263,8 @@ export default function CentrosCustoPage() {
   const totalCustos = lancamentos.filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
   const totalReceitas = lancamentos.filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
   const saldoGeral = totalReceitas - totalCustos;
-  const getCustos = (id: string) => lancamentos.filter(l => l.centro_id === id && l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
-  const getReceitas = (id: string) => lancamentos.filter(l => l.centro_id === id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+  const getCustos = (id: string) => lancamentos.filter(l => l.centro_custo_id === id && l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
+  const getReceitas = (id: string) => lancamentos.filter(l => l.centro_custo_id === id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
   const lancFiltrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(busca.toLowerCase()));
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -271,7 +285,7 @@ export default function CentrosCustoPage() {
 
   return (
     <ModuloLayout titulo={`🗂️ ${cc.titulo}`} subtitulo={cc.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
-      onNovo={() => { setEditandoCentro(null); setNomeCentro(""); setDescricaoCentro(""); setCorCentro("#6ab0ff"); setModalCentro(true); }}
+      onNovo={() => { setEditandoCentro(null); setNomeCentro(""); setTipoCentro("operacional"); setDescricaoCentro(""); setModalCentro(true); }}
       labelBotao={cc.novoCentro} botaoExtra={botaoLancamento}>
       <div ref={conteudoRef} className="space-y-4">
 
@@ -316,13 +330,15 @@ export default function CentrosCustoPage() {
               const receitas = getReceitas(centro.id);
               const saldo = receitas - custos;
               const maxVal = Math.max(totalCustos, totalReceitas, 1);
+              const cor = getCor(i);
               return (
                 <motion.div key={centro.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={centro.cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
+                  <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ background: centro.cor, boxShadow: `0 0 8px ${centro.cor}` }} />
+                        <div className="w-3 h-3 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
                         <span className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${cor}20`, color: cor }}>{centro.tipo}</span>
                       </div>
                       <span className="text-sm font-bold" style={{ color: saldo >= 0 ? "#34d399" : "#f87171" }}>{fmt(saldo)}</span>
                     </div>
@@ -355,29 +371,32 @@ export default function CentrosCustoPage() {
           <div className="space-y-3">
             {centros.length === 0 ? (
               <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p></div></CanvasBox>
-            ) : centros.map((centro, i) => (
-              <motion.div key={centro.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <CanvasBox cor={centro.cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
-                  <div className="flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full" style={{ background: centro.cor, boxShadow: `0 0 10px ${centro.cor}` }} />
-                      <div>
-                        <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</p>
-                        {centro.descricao && <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro.descricao}</p>}
+            ) : centros.map((centro, i) => {
+              const cor = getCor(i);
+              return (
+                <motion.div key={centro.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                  <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 10px ${cor}` }} />
+                        <div>
+                          <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</p>
+                          <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro.tipo}{centro.descricao ? ` · ${centro.descricao}` : ""}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
+                          <Pencil size={15} style={{ color: "#6ab0ff" }} />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
+                          <Trash2 size={15} style={{ color: "#f87171" }} />
+                        </motion.button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
-                        <Pencil size={15} style={{ color: "#6ab0ff" }} />
-                      </motion.button>
-                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
-                        <Trash2 size={15} style={{ color: "#f87171" }} />
-                      </motion.button>
-                    </div>
-                  </div>
-                </CanvasBox>
-              </motion.div>
-            ))}
+                  </CanvasBox>
+                </motion.div>
+              );
+            })}
           </div>
         )}
 
@@ -391,13 +410,14 @@ export default function CentrosCustoPage() {
             {lancFiltrados.length === 0 ? (
               <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#3a5a8a" }}>{cc.semLancamentos}</p></div></CanvasBox>
             ) : lancFiltrados.map((lanc, i) => {
-              const centro = centros.find(c => c.id === lanc.centro_id);
+              const centro = centros.find(c => c.id === lanc.centro_custo_id);
+              const cor = getCor(centros.findIndex(c => c.id === lanc.centro_custo_id));
               return (
                 <motion.div key={lanc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <CanvasBox cor={lanc.tipo === "receita" ? "#34d399" : "#f87171"} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        {centro && <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: centro.cor, boxShadow: `0 0 8px ${centro.cor}` }} />}
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
                           <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}</p>
@@ -423,18 +443,20 @@ export default function CentrosCustoPage() {
             <input value={nomeCentro} onChange={(e) => setNomeCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.descricaoCentro}</label>
-            <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.corCentro}</label>
-            <div className="flex gap-2 flex-wrap">
-              {cores.map((cor) => (
-                <motion.button key={cor} whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setCorCentro(cor)}
-                  className="w-8 h-8 rounded-full"
-                  style={{ background: cor, boxShadow: corCentro === cor ? `0 0 12px ${cor}` : "none", border: corCentro === cor ? "3px solid #fff" : "3px solid transparent" }} />
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Tipo</label>
+            <div className="grid grid-cols-2 gap-2">
+              {["operacional", "administrativo", "comercial", "financeiro"].map(tp => (
+                <motion.button key={tp} whileTap={{ scale: 0.97 }} onClick={() => setTipoCentro(tp)}
+                  className="py-2 rounded-xl text-xs font-semibold capitalize"
+                  style={{ background: tipoCentro === tp ? "rgba(106,176,255,0.2)" : "rgba(59,111,212,0.05)", color: tipoCentro === tp ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${tipoCentro === tp ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.1)"}` }}>
+                  {tp}
+                </motion.button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.descricaoCentro}</label>
+            <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
@@ -461,7 +483,7 @@ export default function CentrosCustoPage() {
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.tipo}</label>
             <div className="flex gap-2">
-              {(["custo", "receita"] as const).map((tipo) => (
+              {["custo", "receita"].map((tipo) => (
                 <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
                   style={{ background: tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.2)" : "rgba(52,211,153,0.2)") : "rgba(59,111,212,0.05)", color: tipoLanc === tipo ? (tipo === "custo" ? "#f87171" : "#34d399") : "#3a5a8a", border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.3)" : "rgba(52,211,153,0.3)") : "rgba(59,111,212,0.1)"}` }}>
                   {tipo === "custo" ? cc.custo : cc.receita}
@@ -479,6 +501,10 @@ export default function CentrosCustoPage() {
               <option value="">-- {cc.centroCusto} --</option>
               {centros.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Categoria</label>
+            <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)} placeholder="Ex: Marketing, RH, TI..." className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => setModalLancamento(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
