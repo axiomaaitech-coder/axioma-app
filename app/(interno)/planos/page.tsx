@@ -1,224 +1,401 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { Check, X } from 'lucide-react'
+import { Check, X, Zap, Crown, Building2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+function CanvasEpico() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); if (!ctx) return
+    let animId: number
+    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
+    resize(); window.addEventListener('resize', resize)
+    const particles = Array.from({ length: 80 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      size: Math.random() * 2.5 + 0.5,
+      color: ['#6ab0ff', '#34d399', '#a78bfa', '#f59e0b', '#f472b6', '#fbbf24'][Math.floor(Math.random() * 6)],
+      opacity: Math.random() * 0.7 + 0.2,
+    }))
+    const chars = 'AXIOMA AI TECH R$ 49 97 197 % STARTER PRO BUSINESS 0 1 2 3 4 5 6 7 8 9'.split(' ').map(char => ({
+      char, x: Math.random() * 100, y: Math.random() * 100,
+      size: Math.random() * 32 + 16, opacity: Math.random() * 0.05 + 0.015,
+      speed: Math.random() * 0.2 + 0.06,
+      color: ['#6ab0ff', '#34d399', '#f59e0b', '#a78bfa', '#f472b6'][Math.floor(Math.random() * 5)],
+    }))
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      chars.forEach(f => {
+        ctx.save(); ctx.font = `900 ${f.size}px Arial`
+        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity
+        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height)
+        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105
+      })
+      particles.forEach((p, i) => {
+        particles.slice(i + 1).forEach(q => {
+          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy)
+          if (dist < 130) {
+            ctx.save(); ctx.globalAlpha = (1 - dist / 130) * 0.1
+            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore()
+          }
+        })
+        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color
+        ctx.shadowColor = p.color; ctx.shadowBlur = 8
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore()
+        p.x += p.vx; p.y += p.vy
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
+      })
+      animId = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
+  }, [])
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.9 }} />
+}
 
 export default function Planos() {
   const router = useRouter()
   const { idioma } = useLanguage()
   const [anual, setAnual] = useState(false)
+  const [hover, setHover] = useState<string | null>(null)
 
-  const recursos = {
-    receitas: idioma === 'pt' ? 'Receitas' : idioma === 'en' ? 'Revenue' : 'Ingresos',
-    custosFixos: idioma === 'pt' ? 'Custos Fixos' : idioma === 'en' ? 'Fixed Costs' : 'Costos Fijos',
-    custosVariaveis: idioma === 'pt' ? 'Custos Variáveis' : idioma === 'en' ? 'Variable Costs' : 'Costos Variables',
-    fornecedores: idioma === 'pt' ? 'Fornecedores' : idioma === 'en' ? 'Suppliers' : 'Proveedores',
-    endividamento: idioma === 'pt' ? 'Endividamento' : idioma === 'en' ? 'Debt Control' : 'Endeudamiento',
-    fluxoCaixa: idioma === 'pt' ? 'Fluxo de Caixa' : idioma === 'en' ? 'Cash Flow' : 'Flujo de Caja',
-    dre: idioma === 'pt' ? 'DRE' : idioma === 'en' ? 'Income Statement' : 'Estado de Resultados',
-    clientes: idioma === 'pt' ? 'Clientes' : idioma === 'en' ? 'Clients' : 'Clientes',
-    centrosCusto: idioma === 'pt' ? 'Centros de Custo' : idioma === 'en' ? 'Cost Centers' : 'Centros de Costo',
-    importar: idioma === 'pt' ? 'Importar Documentos' : idioma === 'en' ? 'Import Documents' : 'Importar Documentos',
-    empresa: idioma === 'pt' ? 'Empresa' : idioma === 'en' ? 'Company' : 'Empresa',
-    relatorios: idioma === 'pt' ? 'Relatórios' : idioma === 'en' ? 'Reports' : 'Informes',
-    iaFinanceira: idioma === 'pt' ? 'IA Financeira' : idioma === 'en' ? 'Financial AI' : 'IA Financiera',
-    iaTributaria: idioma === 'pt' ? 'IA Tributária' : idioma === 'en' ? 'Tax AI' : 'IA Tributaria',
-  }
+  const txt = {
+    pt: {
+      titulo: 'Escolha seu Plano',
+      sub: 'Comece agora e escale conforme seu negócio cresce',
+      mensal: 'Mensal', anual: 'Anual', gratis: '🎉 2 meses grátis',
+      usuarios: 'usuário(s)', ate: 'até', assinar: 'Assinar agora',
+      popular: '⭐ Mais Popular', recomendado: '👑 Mais Completo',
+      cancelar: 'Cancele quando quiser. Sem fidelidade.',
+      economia: 'Economia de',
+    },
+    en: {
+      titulo: 'Choose Your Plan',
+      sub: 'Start now and scale as your business grows',
+      mensal: 'Monthly', anual: 'Annual', gratis: '🎉 2 months free',
+      usuarios: 'user(s)', ate: 'up to', assinar: 'Subscribe now',
+      popular: '⭐ Most Popular', recomendado: '👑 Most Complete',
+      cancelar: 'Cancel anytime. No commitment.',
+      economia: 'Save',
+    },
+    es: {
+      titulo: 'Elige tu Plan',
+      sub: 'Empieza ahora y escala según crece tu negocio',
+      mensal: 'Mensual', anual: 'Anual', gratis: '🎉 2 meses gratis',
+      usuarios: 'usuario(s)', ate: 'hasta', assinar: 'Suscribirse',
+      popular: '⭐ Más Popular', recomendado: '👑 Más Completo',
+      cancelar: 'Cancela cuando quieras. Sin fidelidad.',
+      economia: 'Ahorro de',
+    },
+  }[idioma]
+
+  const rec = {
+    pt: {
+      receitas: 'Receitas', custoFixo: 'Custos Fixos', custoVar: 'Custos Variáveis',
+      fornecedores: 'Fornecedores', endividamento: 'Endividamento', fluxo: 'Fluxo de Caixa',
+      dre: 'DRE', clientes: 'Clientes', centros: 'Centros de Custo',
+      importar: 'Importar Documentos', empresa: 'Empresa', relatorios: 'Relatórios',
+      iaFin: 'IA Financeira', iaTrib: 'IA Tributária',
+    },
+    en: {
+      receitas: 'Revenue', custoFixo: 'Fixed Costs', custoVar: 'Variable Costs',
+      fornecedores: 'Suppliers', endividamento: 'Debt Control', fluxo: 'Cash Flow',
+      dre: 'Income Statement', clientes: 'Clients', centros: 'Cost Centers',
+      importar: 'Import Documents', empresa: 'Company', relatorios: 'Reports',
+      iaFin: 'Financial AI', iaTrib: 'Tax AI',
+    },
+    es: {
+      receitas: 'Ingresos', custoFixo: 'Costos Fijos', custoVar: 'Costos Variables',
+      fornecedores: 'Proveedores', endividamento: 'Endeudamiento', fluxo: 'Flujo de Caja',
+      dre: 'Estado de Resultados', clientes: 'Clientes', centros: 'Centros de Costo',
+      importar: 'Importar Documentos', empresa: 'Empresa', relatorios: 'Informes',
+      iaFin: 'IA Financiera', iaTrib: 'IA Tributaria',
+    },
+  }[idioma]
 
   const planos = [
     {
-      id: 'starter',
-      nome: 'Starter',
-      mensal: 49,
-      anual: 490,
-      usuarios: 1,
-      cor: '#3b6fd4',
-      destaque: false,
+      id: 'starter', nome: 'Starter', Icon: Zap,
+      mensal: 49, anual: 490, usuarios: 1,
+      cor: '#6ab0ff', corGrad: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)',
+      destaque: false, badge: null,
+      desc: idioma === 'pt' ? 'Perfeito para começar' : idioma === 'en' ? 'Perfect to get started' : 'Perfecto para empezar',
       recursos: [
-        { label: recursos.receitas, ok: true },
-        { label: recursos.custosFixos, ok: true },
-        { label: recursos.custosVariaveis, ok: true },
-        { label: recursos.fornecedores, ok: true },
-        { label: recursos.endividamento, ok: true },
-        { label: recursos.fluxoCaixa, ok: true },
-        { label: recursos.dre, ok: true },
-        { label: recursos.clientes, ok: true },
-        { label: recursos.centrosCusto, ok: true },
-        { label: recursos.importar, ok: true },
-        { label: recursos.empresa, ok: true },
-        { label: recursos.relatorios, ok: true },
-        { label: recursos.iaFinanceira, ok: false },
-        { label: recursos.iaTributaria, ok: false },
+        { label: rec.receitas, ok: true }, { label: rec.custoFixo, ok: true },
+        { label: rec.custoVar, ok: true }, { label: rec.fornecedores, ok: true },
+        { label: rec.endividamento, ok: true }, { label: rec.fluxo, ok: true },
+        { label: rec.dre, ok: true }, { label: rec.clientes, ok: true },
+        { label: rec.centros, ok: true }, { label: rec.importar, ok: true },
+        { label: rec.empresa, ok: true }, { label: rec.relatorios, ok: true },
+        { label: rec.iaFin, ok: false }, { label: rec.iaTrib, ok: false },
       ]
     },
     {
-      id: 'pro',
-      nome: 'Pro',
-      mensal: 97,
-      anual: 970,
-      usuarios: 4,
-      cor: '#f59e0b',
-      destaque: true,
+      id: 'pro', nome: 'Pró', Icon: Crown,
+      mensal: 97, anual: 970, usuarios: 4,
+      cor: '#f59e0b', corGrad: 'linear-gradient(135deg, #92400e, #f59e0b)',
+      destaque: true, badge: txt.popular,
+      desc: idioma === 'pt' ? 'Para empresas em crescimento' : idioma === 'en' ? 'For growing businesses' : 'Para empresas en crecimiento',
       recursos: [
-        { label: recursos.receitas, ok: true },
-        { label: recursos.custosFixos, ok: true },
-        { label: recursos.custosVariaveis, ok: true },
-        { label: recursos.fornecedores, ok: true },
-        { label: recursos.endividamento, ok: true },
-        { label: recursos.fluxoCaixa, ok: true },
-        { label: recursos.dre, ok: true },
-        { label: recursos.clientes, ok: true },
-        { label: recursos.centrosCusto, ok: true },
-        { label: recursos.importar, ok: true },
-        { label: recursos.empresa, ok: true },
-        { label: recursos.relatorios, ok: true },
-        { label: recursos.iaFinanceira, ok: true },
-        { label: recursos.iaTributaria, ok: false },
+        { label: rec.receitas, ok: true }, { label: rec.custoFixo, ok: true },
+        { label: rec.custoVar, ok: true }, { label: rec.fornecedores, ok: true },
+        { label: rec.endividamento, ok: true }, { label: rec.fluxo, ok: true },
+        { label: rec.dre, ok: true }, { label: rec.clientes, ok: true },
+        { label: rec.centros, ok: true }, { label: rec.importar, ok: true },
+        { label: rec.empresa, ok: true }, { label: rec.relatorios, ok: true },
+        { label: rec.iaFin, ok: true }, { label: rec.iaTrib, ok: false },
       ]
     },
     {
-      id: 'business',
-      nome: 'Business',
-      mensal: 197,
-      anual: 1970,
-      usuarios: 10,
-      cor: '#34d399',
-      destaque: false,
+      id: 'business', nome: 'Business', Icon: Building2,
+      mensal: 197, anual: 1970, usuarios: 10,
+      cor: '#34d399', corGrad: 'linear-gradient(135deg, #064e3b, #059669)',
+      destaque: false, badge: txt.recomendado,
+      desc: idioma === 'pt' ? 'Tudo incluso, sem limites' : idioma === 'en' ? 'Everything included, no limits' : 'Todo incluido, sin límites',
       recursos: [
-        { label: recursos.receitas, ok: true },
-        { label: recursos.custosFixos, ok: true },
-        { label: recursos.custosVariaveis, ok: true },
-        { label: recursos.fornecedores, ok: true },
-        { label: recursos.endividamento, ok: true },
-        { label: recursos.fluxoCaixa, ok: true },
-        { label: recursos.dre, ok: true },
-        { label: recursos.clientes, ok: true },
-        { label: recursos.centrosCusto, ok: true },
-        { label: recursos.importar, ok: true },
-        { label: recursos.empresa, ok: true },
-        { label: recursos.relatorios, ok: true },
-        { label: recursos.iaFinanceira, ok: true },
-        { label: recursos.iaTributaria, ok: true },
+        { label: rec.receitas, ok: true }, { label: rec.custoFixo, ok: true },
+        { label: rec.custoVar, ok: true }, { label: rec.fornecedores, ok: true },
+        { label: rec.endividamento, ok: true }, { label: rec.fluxo, ok: true },
+        { label: rec.dre, ok: true }, { label: rec.clientes, ok: true },
+        { label: rec.centros, ok: true }, { label: rec.importar, ok: true },
+        { label: rec.empresa, ok: true }, { label: rec.relatorios, ok: true },
+        { label: rec.iaFin, ok: true }, { label: rec.iaTrib, ok: true },
       ]
     },
   ]
 
   return (
-    <div className="min-h-screen p-8 overflow-auto" style={{ background: "#020810" }}>
+    <div className="relative min-h-screen overflow-auto" style={{ background: "#020810" }}>
+      {/* Canvas de fundo épico cobrindo tudo */}
+      <CanvasEpico />
 
-      <div className="flex flex-col items-center mb-12">
-        <div style={{ filter: "drop-shadow(0 0 20px rgba(106,176,255,0.5))" }} className="mb-6">
-          <Image src="/logo-aitech.png" alt="Axioma" width={70} height={70} className="object-contain" />
-        </div>
-        <h1 className="text-4xl font-black mb-3 text-center" style={{ color: "#c8d8f0" }}>
-          {idioma === 'pt' ? 'Escolha seu plano' : idioma === 'en' ? 'Choose your plan' : 'Elige tu plan'}
-        </h1>
-        <p className="text-sm mb-8 text-center" style={{ color: "#3a6090" }}>
-          {idioma === 'pt' ? 'Comece agora e escale conforme seu negócio cresce' : idioma === 'en' ? 'Start now and scale as your business grows' : 'Empieza ahora y escala según crece tu negocio'}
-        </p>
+      {/* Glow central */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse at 50% 20%, rgba(106,176,255,0.08) 0%, transparent 60%)',
+      }} />
 
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-semibold" style={{ color: anual ? "#3a6090" : "#c8d8f0" }}>
-            {idioma === 'pt' ? 'Mensal' : idioma === 'en' ? 'Monthly' : 'Mensual'}
-          </span>
-          <div
-            className="w-14 h-7 rounded-full cursor-pointer relative transition-all"
-            style={{ background: anual ? "#3b6fd4" : "rgba(59,111,212,0.2)", border: "1px solid rgba(59,111,212,0.3)" }}
-            onClick={() => setAnual(!anual)}
+      <div className="relative z-10 px-4 py-12 md:py-16">
+
+        {/* Header épico */}
+        <div className="flex flex-col items-center mb-12 md:mb-16">
+          <motion.div
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+            className="w-16 h-16 rounded-full border-2 mb-6 opacity-60"
+            style={{ borderColor: '#6ab0ff', borderTopColor: '#34d399', borderRightColor: '#f59e0b' }}
+          />
+
+          <motion.div
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            className="text-xs font-black tracking-[0.4em] uppercase mb-3"
+            style={{ color: '#6ab0ff', textShadow: '0 0 30px #6ab0ff' }}
           >
-            <div
-              className="absolute top-1 w-5 h-5 rounded-full transition-all"
-              style={{ background: "#fff", left: anual ? "calc(100% - 24px)" : "4px" }}
-            />
-          </div>
-          <span className="text-sm font-semibold" style={{ color: anual ? "#c8d8f0" : "#3a6090" }}>
-            {idioma === 'pt' ? 'Anual' : idioma === 'en' ? 'Annual' : 'Anual'}
-          </span>
-          {anual && (
-            <span className="text-xs px-3 py-1 rounded-full font-bold" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-              🎉 {idioma === 'pt' ? '2 meses grátis' : idioma === 'en' ? '2 months free' : '2 meses gratis'}
-            </span>
-          )}
-        </div>
-      </div>
+            AXIOMA AI.TECH
+          </motion.div>
 
-      <div className="grid grid-cols-3 gap-6 max-w-5xl mx-auto">
-        {planos.map((plano) => (
-          <div
-            key={plano.id}
-            className="rounded-3xl p-8 flex flex-col relative"
-            style={{
-              background: plano.destaque ? `linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(10,22,40,0.95) 100%)` : "rgba(10,22,40,0.8)",
-              border: plano.destaque ? `2px solid ${plano.cor}` : "1px solid rgba(59,111,212,0.15)",
-              boxShadow: plano.destaque ? `0 0 40px ${plano.cor}25` : "none",
-            }}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-6xl font-black text-center mb-4"
+            style={{ color: '#c8d8f0', textShadow: '0 0 40px rgba(106,176,255,0.3)', lineHeight: 1.1 }}
           >
-            {plano.destaque && (
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <span className="text-xs font-black px-4 py-2 rounded-full" style={{ background: `linear-gradient(135deg, #ca8a04, #ea580c)`, color: "#fff" }}>
-                  ⭐ {idioma === 'pt' ? 'Mais popular' : idioma === 'en' ? 'Most popular' : 'Más popular'}
-                </span>
-              </div>
-            )}
+            {txt.titulo}
+          </motion.h1>
 
-            <div className="mb-6">
-              <h2 className="text-xl font-black mb-1" style={{ color: plano.cor }}>{plano.nome}</h2>
-              <p className="text-xs mb-4" style={{ color: "#3a6090" }}>
-                {idioma === 'pt' ? `até ${plano.usuarios} usuário(s)` : idioma === 'en' ? `up to ${plano.usuarios} user(s)` : `hasta ${plano.usuarios} usuario(s)`}
-              </p>
-              <div className="flex items-end gap-1">
-                <span className="text-4xl font-black" style={{ color: "#c8d8f0" }}>
-                  R$ {anual ? (plano.anual / 12).toFixed(0) : plano.mensal}
-                </span>
-                <span className="text-sm mb-1" style={{ color: "#3a6090" }}>
-                  {idioma === 'pt' ? '/mês' : idioma === 'en' ? '/mo' : '/mes'}
-                </span>
-              </div>
-              {anual && (
-                <p className="text-xs mt-1" style={{ color: "#34d399" }}>
-                  R$ {plano.anual} {idioma === 'pt' ? '/ano' : idioma === 'en' ? '/year' : '/año'}
-                </p>
-              )}
-            </div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm md:text-base text-center mb-8 max-w-md"
+            style={{ color: '#3a6090' }}
+          >
+            {txt.sub}
+          </motion.p>
 
-            <div className="flex-1 space-y-3 mb-8">
-              {plano.recursos.map((r, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  {r.ok
-                    ? <Check size={16} style={{ color: "#34d399", flexShrink: 0 }} />
-                    : <X size={16} style={{ color: "#f87171", flexShrink: 0 }} />
-                  }
-                  <span className="text-sm" style={{ color: r.ok ? "#c8d8f0" : "#3a6090" }}>{r.label}</span>
-                  {!r.ok && (r.label.includes('IA') || r.label.includes('AI')) && (
-                    <span className="text-xs px-2 py-0.5 rounded-full ml-auto" style={{ background: "rgba(248,113,113,0.1)", color: "#f87171", border: "1px solid rgba(248,113,113,0.2)" }}>
-                      🔒
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
-              style={{
-                background: plano.destaque ? `linear-gradient(135deg, #ca8a04, #ea580c)` : `linear-gradient(135deg, #1a3a8f, #2a5fd4)`,
-                color: "#fff",
-                boxShadow: plano.destaque ? "0 4px 30px rgba(234,179,8,0.3)" : "0 4px 30px rgba(42,95,212,0.3)",
-              }}
+          {/* Toggle Mensal/Anual */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+            className="flex items-center gap-4 p-2 rounded-2xl"
+            style={{ background: 'rgba(10,22,40,0.8)', border: '1px solid rgba(59,111,212,0.2)' }}>
+            <span className="text-sm font-semibold px-3" style={{ color: anual ? '#3a6090' : '#c8d8f0' }}>{txt.mensal}</span>
+            <motion.div
+              className="w-14 h-7 rounded-full cursor-pointer relative"
+              style={{ background: anual ? 'rgba(52,211,153,0.3)' : 'rgba(59,111,212,0.2)', border: `1px solid ${anual ? 'rgba(52,211,153,0.5)' : 'rgba(59,111,212,0.3)'}`, boxShadow: anual ? '0 0 15px rgba(52,211,153,0.3)' : 'none' }}
+              onClick={() => setAnual(!anual)}
             >
-              {idioma === 'pt' ? 'Assinar agora' : idioma === 'en' ? 'Subscribe now' : 'Suscribirse ahora'}
-            </button>
-          </div>
-        ))}
+              <motion.div animate={{ left: anual ? '26px' : '2px' }} transition={{ duration: 0.25 }}
+                className="absolute top-1 w-5 h-5 rounded-full"
+                style={{ background: anual ? '#34d399' : '#6ab0ff', boxShadow: `0 0 10px ${anual ? '#34d399' : '#6ab0ff'}` }} />
+            </motion.div>
+            <span className="text-sm font-semibold px-3" style={{ color: anual ? '#c8d8f0' : '#3a6090' }}>{txt.anual}</span>
+            <AnimatePresence>
+              {anual && (
+                <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
+                  className="text-xs px-3 py-1 rounded-full font-bold"
+                  style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+                  {txt.gratis}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+
+        {/* Cards dos planos */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {planos.map((plano, idx) => {
+            const isHover = hover === plano.id
+            const preco = anual ? Math.round(plano.anual / 12) : plano.mensal
+            const economia = anual ? plano.mensal * 2 : 0
+            return (
+              <motion.div
+                key={plano.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.15 }}
+                onHoverStart={() => setHover(plano.id)}
+                onHoverEnd={() => setHover(null)}
+                className="relative rounded-3xl overflow-hidden flex flex-col"
+                style={{
+                  background: 'rgba(4,10,22,0.97)',
+                  border: `1px solid ${plano.cor}${plano.destaque ? '60' : '30'}`,
+                  boxShadow: isHover || plano.destaque ? `0 0 80px ${plano.cor}25, 0 0 40px ${plano.cor}10` : 'none',
+                  transform: plano.destaque ? 'scale(1.03)' : 'scale(1)',
+                }}
+              >
+                {/* Canvas em cada card */}
+                <CanvasEpico />
+
+                {/* Bordas neon */}
+                {[
+                  { pos: 'top-0 left-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 left-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 right-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 right-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 left-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 left-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 right-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 right-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
+                ].map((b, i) => (
+                  <div key={i} className={`absolute ${b.pos} ${b.w} z-10`}
+                    style={{ background: b.bg, boxShadow: `0 0 16px ${plano.cor}`, borderRadius: '999px' }} />
+                ))}
+
+                {/* Partícula correndo */}
+                <motion.div
+                  animate={{ left: ['-5%', '105%', '-5%'] }}
+                  transition={{ duration: 4 + idx, repeat: Infinity, ease: 'easeInOut', delay: idx * 0.8 }}
+                  className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
+                  style={{ background: `linear-gradient(90deg, transparent, #fff, ${plano.cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${plano.cor}`, borderRadius: '999px' }}
+                />
+
+                {/* Badge */}
+                {plano.badge && (
+                  <div className="relative z-10 flex justify-center pt-4">
+                    <motion.span
+                      animate={{ opacity: [0.8, 1, 0.8] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="text-xs font-black px-4 py-1.5 rounded-full"
+                      style={{ background: `${plano.cor}20`, color: plano.cor, border: `1px solid ${plano.cor}50`, boxShadow: `0 0 15px ${plano.cor}30` }}>
+                      {plano.badge}
+                    </motion.span>
+                  </div>
+                )}
+
+                {/* Conteúdo */}
+                <div className="relative z-10 p-6 md:p-8 flex flex-col flex-1">
+
+                  {/* Ícone e nome */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 4, repeat: Infinity, delay: idx * 0.5 }}
+                      className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
+                      <plano.Icon size={22} style={{ color: plano.cor }} />
+                    </motion.div>
+                    <h2 className="text-2xl font-black" style={{ color: plano.cor, textShadow: `0 0 20px ${plano.cor}60` }}>{plano.nome}</h2>
+                  </div>
+
+                  <p className="text-xs mb-6" style={{ color: '#3a6090' }}>{plano.desc}</p>
+
+                  {/* Preço */}
+                  <div className="mb-6">
+                    <div className="flex items-end gap-2">
+                      <motion.span key={preco} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                        className="text-5xl md:text-6xl font-black"
+                        style={{ color: '#c8d8f0', textShadow: `0 0 30px ${plano.cor}40` }}>
+                        R$ {preco}
+                      </motion.span>
+                      <span className="text-sm mb-2" style={{ color: '#3a6090' }}>
+                        {idioma === 'pt' ? '/mês' : idioma === 'en' ? '/mo' : '/mes'}
+                      </span>
+                    </div>
+                    <AnimatePresence>
+                      {anual && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+                          <p className="text-xs mt-1" style={{ color: '#34d399' }}>
+                            R$ {plano.anual}{idioma === 'pt' ? '/ano' : '/year'} • {txt.economia} R$ {economia}
+                          </p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <p className="text-xs mt-2" style={{ color: '#3a6090' }}>
+                      {txt.ate} {plano.usuarios} {txt.usuarios}
+                    </p>
+                  </div>
+
+                  {/* Recursos */}
+                  <div className="flex-1 space-y-2.5 mb-8">
+                    {plano.recursos.map((r, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 + i * 0.03 }}
+                        className="flex items-center gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ background: r.ok ? `${plano.cor}20` : 'rgba(248,113,113,0.1)' }}>
+                          {r.ok
+                            ? <Check size={12} style={{ color: plano.cor }} />
+                            : <X size={12} style={{ color: '#f87171' }} />
+                          }
+                        </div>
+                        <span className="text-sm" style={{ color: r.ok ? '#c8d8f0' : '#3a6090' }}>{r.label}</span>
+                        {!r.ok && (r.label.includes('IA') || r.label.includes('AI')) && (
+                          <span className="text-xs ml-auto" style={{ color: '#f87171' }}>🔒</span>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Botão */}
+                  <motion.button
+                    whileHover={{ scale: 1.03, boxShadow: `0 0 40px ${plano.cor}50` }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => router.push('/dashboard')}
+                    className="w-full py-4 rounded-2xl font-black text-sm tracking-widest uppercase"
+                    style={{ background: plano.corGrad, color: '#fff', boxShadow: `0 4px 30px ${plano.cor}30` }}>
+                    {txt.assinar}
+                  </motion.button>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {/* Rodapé */}
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+          className="text-center text-xs mt-12" style={{ color: '#3a6090' }}>
+          {txt.cancelar}
+        </motion.p>
+
+        {/* Selo de segurança */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+          className="flex justify-center gap-6 mt-6 flex-wrap">
+          {['🔒 SSL Seguro', '💳 Pagamento Seguro', '⚡ Ativação Imediata', '🔄 Cancele Quando Quiser'].map((item, i) => (
+            <span key={i} className="text-xs" style={{ color: '#3a5a8a' }}>{item}</span>
+          ))}
+        </motion.div>
       </div>
-
-      <p className="text-center text-xs mt-12" style={{ color: "#3a6090" }}>
-        {idioma === 'pt' ? 'Cancele quando quiser. Sem fidelidade.' : idioma === 'en' ? 'Cancel anytime. No commitment.' : 'Cancela cuando quieras. Sin fidelidad.'}
-      </p>
-
     </div>
   )
 }
