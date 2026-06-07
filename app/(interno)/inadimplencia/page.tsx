@@ -122,11 +122,11 @@ export default function Inadimplencia() {
     salvar: idioma === 'pt' ? 'Salvar' : idioma === 'en' ? 'Save' : 'Guardar',
     cancelar: idioma === 'pt' ? 'Cancelar' : idioma === 'en' ? 'Cancel' : 'Cancelar',
     totalInad: idioma === 'pt' ? 'Total Inadimplente' : idioma === 'en' ? 'Total Delinquent' : 'Total Moroso',
-    totalReg: idioma === 'pt' ? 'Total Regularizado' : idioma === 'en' ? 'Total Regularized' : 'Total Regularizado',
+    totalReg: idioma === 'pt' ? 'Total Regularizado' : idioma === 'en' ? 'Total Regularizado' : 'Total Regularizado',
     clientes: idioma === 'pt' ? 'clientes' : idioma === 'en' ? 'clients' : 'clientes',
     semReg: idioma === 'pt' ? 'Nenhum registro de inadimplência.' : idioma === 'en' ? 'No delinquency records.' : 'Sin registros de morosidad.',
     regularizado: idioma === 'pt' ? '✅ Regularizado' : idioma === 'en' ? '✅ Regularized' : '✅ Regularizado',
-    diasAtraso: idioma === 'pt' ? 'dias em atraso' : idioma === 'en' ? 'days overdue' : 'días de atraso',
+    diasAtrasoTxt: idioma === 'pt' ? 'dias em atraso' : idioma === 'en' ? 'days overdue' : 'días de atraso',
     clienteL: idioma === 'pt' ? 'Cliente' : idioma === 'en' ? 'Client' : 'Cliente',
     valorL: idioma === 'pt' ? 'Valor em Atraso (R$)' : idioma === 'en' ? 'Overdue Amount ($)' : 'Monto Atrasado ($)',
     vencimentoL: idioma === 'pt' ? 'Data de Vencimento' : idioma === 'en' ? 'Due Date' : 'Fecha de Vencimiento',
@@ -165,17 +165,28 @@ export default function Inadimplencia() {
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
-    const payload = { cliente, valor: parseFloat(valor), vencimento, descricao }
+    const hoje = new Date()
+    const venc = new Date(vencimento)
+    const diasAtraso = Math.max(0, Math.floor((hoje.getTime() - venc.getTime()) / (1000 * 60 * 60 * 24)))
+    const payload = {
+      cliente,
+      valor: parseFloat(valor),
+      vencimento,
+      descricao,
+      dias_atraso: diasAtraso,
+      status: 'pendente',
+    }
     if (editando) {
-      await supabase.from('inadimplencia').update(payload).eq('id', editando.id)
+      await supabase.from('inadimplencia').update({ cliente, valor: parseFloat(valor), vencimento, descricao, dias_atraso: diasAtraso }).eq('id', editando.id)
     } else {
-      await supabase.from('inadimplencia').insert({ ...payload, user_id: user.id, regularizado: false })
+      await supabase.from('inadimplencia').insert({ ...payload, user_id: user.id })
     }
     fecharModal(); setSalvando(false); carregar()
   }
 
-  async function regularizar(id: string, status: boolean) {
-    await supabase.from('inadimplencia').update({ regularizado: !status }).eq('id', id)
+  async function regularizar(id: string, statusAtual: string) {
+    const novoStatus = statusAtual === 'regularizado' ? 'pendente' : 'regularizado'
+    await supabase.from('inadimplencia').update({ status: novoStatus }).eq('id', id)
     carregar()
   }
 
@@ -218,12 +229,8 @@ export default function Inadimplencia() {
   }
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  const totalInadimplente = registros.filter(r => !r.regularizado).reduce((s, r) => s + (r.valor || 0), 0)
-  const totalRegularizado = registros.filter(r => r.regularizado).reduce((s, r) => s + (r.valor || 0), 0)
-  const diasAtraso = (data: string) => {
-    const diff = Math.floor((new Date().getTime() - new Date(data).getTime()) / (1000 * 60 * 60 * 24))
-    return diff > 0 ? diff : 0
-  }
+  const totalInadimplente = registros.filter(r => r.status !== 'regularizado').reduce((s, r) => s + (r.valor || 0), 0)
+  const totalRegularizado = registros.filter(r => r.status === 'regularizado').reduce((s, r) => s + (r.valor || 0), 0)
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#020810' }}>
@@ -235,21 +242,19 @@ export default function Inadimplencia() {
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
       <div ref={conteudoRef} className="space-y-4">
 
-        {/* Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CanvasBox cor="#f87171" corB="#6ab0ff" corC="#a78bfa" corD="#34d399">
             <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#3a5a8a' }}>{txt.totalInad}</p>
             <p className="text-2xl md:text-3xl font-black" style={{ color: '#f87171', textShadow: '0 0 20px rgba(248,113,113,0.6)' }}>{fmt(totalInadimplente)}</p>
-            <p className="text-xs mt-1" style={{ color: '#3a6090' }}>{registros.filter(r => !r.regularizado).length} {txt.clientes}</p>
+            <p className="text-xs mt-1" style={{ color: '#3a6090' }}>{registros.filter(r => r.status !== 'regularizado').length} {txt.clientes}</p>
           </CanvasBox>
           <CanvasBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
             <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#3a5a8a' }}>{txt.totalReg}</p>
             <p className="text-2xl md:text-3xl font-black" style={{ color: '#34d399', textShadow: '0 0 20px rgba(52,211,153,0.6)' }}>{fmt(totalRegularizado)}</p>
-            <p className="text-xs mt-1" style={{ color: '#3a6090' }}>{registros.filter(r => r.regularizado).length} {txt.clientes}</p>
+            <p className="text-xs mt-1" style={{ color: '#3a6090' }}>{registros.filter(r => r.status === 'regularizado').length} {txt.clientes}</p>
           </CanvasBox>
         </div>
 
-        {/* Lista */}
         {registros.length === 0 ? (
           <CanvasBox cor="#f87171">
             <div className="flex flex-col items-center justify-center py-16">
@@ -260,20 +265,21 @@ export default function Inadimplencia() {
         ) : (
           <div className="space-y-3">
             {registros.map((r, i) => {
-              const cor = r.regularizado ? '#34d399' : '#f87171'
+              const isReg = r.status === 'regularizado'
+              const cor = isReg ? '#34d399' : '#f87171'
               return (
                 <motion.div key={r.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                   <CanvasBox cor={cor} corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
-                    <div className="flex items-center justify-between gap-3 flex-wrap" style={{ opacity: r.regularizado ? 0.75 : 1 }}>
+                    <div className="flex items-center justify-between gap-3 flex-wrap" style={{ opacity: isReg ? 0.75 : 1 }}>
                       <div className="flex items-center gap-4 min-w-0">
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => regularizar(r.id, r.regularizado)}>
-                          <CheckCircle2 size={22} style={{ color: r.regularizado ? '#34d399' : '#f87171' }} />
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => regularizar(r.id, r.status)}>
+                          <CheckCircle2 size={22} style={{ color: isReg ? '#34d399' : '#f87171' }} />
                         </motion.button>
                         <div className="min-w-0">
                           <p className="font-bold text-sm truncate" style={{ color: '#c8d8f0' }}>{r.cliente}</p>
                           <p className="text-xs truncate" style={{ color: '#3a6090' }}>{r.descricao}</p>
-                          <p className="text-xs mt-1" style={{ color: r.regularizado ? '#34d399' : '#f87171' }}>
-                            {r.regularizado ? txt.regularizado : `⚠️ ${diasAtraso(r.vencimento)} ${txt.diasAtraso}`}
+                          <p className="text-xs mt-1" style={{ color: isReg ? '#34d399' : '#f87171' }}>
+                            {isReg ? txt.regularizado : `⚠️ ${r.dias_atraso || 0} ${txt.diasAtrasoTxt}`}
                           </p>
                         </div>
                       </div>
@@ -295,7 +301,6 @@ export default function Inadimplencia() {
         )}
       </div>
 
-      {/* Modal Premium */}
       <AnimatePresence>
         {modalAberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
