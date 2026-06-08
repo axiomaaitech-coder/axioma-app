@@ -25,6 +25,7 @@ type Conta = {
   user_id: string; empresa_id: string; created_at: string;
 };
 
+// ✅ UM ÚNICO canvas para toda a página — sem oscilação
 function CanvasNeural() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -33,17 +34,17 @@ function CanvasNeural() {
     let animId: number;
     const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
     resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 50 }, () => ({
+    const particles = Array.from({ length: 60 }, () => ({
       x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
       size: Math.random() * 2 + 0.5,
       color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
+      opacity: Math.random() * 0.5 + 0.1,
     }));
     const chars = "AXIOMA CLIENTES AI TECH R$ 0 1 2 3 4 5 6 7 8 9 % CRM".split(" ").map((c) => ({
       char: c, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
+      size: Math.random() * 28 + 14, opacity: Math.random() * 0.05 + 0.01,
+      speed: Math.random() * 0.2 + 0.06,
       color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa"][Math.floor(Math.random() * 4)],
     }));
     const draw = () => {
@@ -57,14 +58,14 @@ function CanvasNeural() {
       particles.forEach((p, i) => {
         particles.slice(i + 1).forEach(q => {
           const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 110) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 110) * 0.12;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5;
+          if (dist < 120) {
+            ctx.save(); ctx.globalAlpha = (1 - dist / 120) * 0.08;
+            ctx.strokeStyle = p.color; ctx.lineWidth = 0.4;
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
           }
         });
         ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
+        ctx.shadowColor = p.color; ctx.shadowBlur = 4;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
         p.x += p.vx; p.y += p.vy;
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
@@ -75,36 +76,37 @@ function CanvasNeural() {
     draw();
     return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
   }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />;
+  return (
+    <canvas ref={canvasRef}
+      className="fixed inset-0 w-full h-full pointer-events-none"
+      style={{ opacity: 0.4, zIndex: 0 }} />
+  );
 }
 
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
+// ✅ Cards simples sem canvas interno — sem oscilação
+function Card({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
   children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
 }) {
   return (
     <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.97)", border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
+      background: "rgba(4,10,22,0.95)",
+      border: `1px solid ${cor}30`,
+      boxShadow: `0 0 30px ${cor}08`,
     }}>
-      <CanvasNeural />
-      {[
-        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }} />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
+      {/* Bordas neon estáticas */}
+      <div className="absolute top-0 left-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(90deg, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}` }} />
+      <div className="absolute top-0 left-0 w-[2px] h-16 rounded-full" style={{ background: `linear-gradient(180deg, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}` }} />
+      <div className="absolute top-0 right-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(270deg, ${corB}, transparent)`, boxShadow: `0 0 10px ${corB}` }} />
+      <div className="absolute top-0 right-0 w-[2px] h-16 rounded-full" style={{ background: `linear-gradient(180deg, ${corB}, transparent)`, boxShadow: `0 0 10px ${corB}` }} />
+      <div className="absolute bottom-0 left-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(90deg, ${corC}, transparent)`, boxShadow: `0 0 10px ${corC}` }} />
+      <div className="absolute bottom-0 right-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(270deg, ${corD}, transparent)`, boxShadow: `0 0 10px ${corD}` }} />
+      {/* Partícula correndo animada no topo */}
+      <motion.div
+        animate={{ left: ["-5%", "105%", "-5%"] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-0 h-[2px] w-16 pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 12px ${cor}`, borderRadius: "999px", zIndex: 1 }} />
+      <div className="relative p-4 md:p-5" style={{ zIndex: 2 }}>{children}</div>
     </div>
   );
 }
@@ -275,163 +277,151 @@ export default function ClientesPage() {
   );
 
   return (
-    <ModuloLayout titulo={`👥 ${cl.titulo}`} subtitulo={cl.subtitulo}
-      onExportarPDF={exportarPDF} exportando={exportando}
-      onNovo={() => { setEditandoCliente(null); setNomeCliente(""); setEmailCliente(""); setTelefoneCliente(""); setDocumentoCliente(""); setCidadeCliente(""); setModalCliente(true); }}
-      labelBotao={cl.novoCliente} botaoExtra={botaoCobranca}>
-      <div ref={conteudoRef} className="space-y-4">
+    <>
+      {/* Canvas único fixo no fundo — não causa oscilação */}
+      <CanvasNeural />
 
-        {/* Cards totais */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: cl.totalClientes, valor: clientes.length.toString(), cor: "#6ab0ff" },
-            { label: cl.totalReceber, valor: fmt(totalReceber), cor: "#fbbf24" },
-            { label: cl.totalRecebido, valor: fmt(totalRecebido), cor: "#34d399" },
-            { label: cl.totalVencido, valor: fmt(totalVencido), cor: "#f87171" },
-          ].map((card, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <CanvasBox cor={card.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
-                <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
-                <p className="text-xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.valor}</p>
-              </CanvasBox>
-            </motion.div>
-          ))}
-        </div>
+      <ModuloLayout titulo={`👥 ${cl.titulo}`} subtitulo={cl.subtitulo}
+        onExportarPDF={exportarPDF} exportando={exportando}
+        onNovo={() => { setEditandoCliente(null); setNomeCliente(""); setEmailCliente(""); setTelefoneCliente(""); setDocumentoCliente(""); setCidadeCliente(""); setModalCliente(true); }}
+        labelBotao={cl.novoCliente} botaoExtra={botaoCobranca}>
+        <div ref={conteudoRef} className="space-y-4 relative" style={{ zIndex: 1 }}>
 
-        {/* Abas */}
-        <div className="flex gap-2">
-          {[{ key: "clientes", label: cl.abaClientes }, { key: "contas", label: cl.abaContas }].map((a) => (
-            <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setAba(a.key as typeof aba); setBuscaClientes(""); setBuscaContas(""); setClienteSelecionado(null); }}
-              className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? "rgba(106,176,255,0.2)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}`, boxShadow: aba === a.key ? "0 0 12px rgba(106,176,255,0.2)" : "none" }}>
-              {a.label}
-            </motion.button>
-          ))}
-        </div>
-
-        {/* ABA CLIENTES */}
-        {aba === "clientes" && (
-          <div className="space-y-3">
-            <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
-              <input value={buscaClientes} onChange={(e) => setBuscaClientes(e.target.value)}
-                placeholder={cl.buscar}
-                className="w-full text-sm focus:outline-none bg-transparent py-1"
-                style={{ color: "#c8d8f0" }} />
-            </CanvasBox>
-
-            {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : clientesFiltrados.length === 0 ? (
-              <CanvasBox cor="#6ab0ff">
-                <div className="p-8 text-center"><p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p></div>
-              </CanvasBox>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {clientesFiltrados.map((cliente, i) => {
-                  const contasCliente = contas.filter(c => c.cliente_id === cliente.id);
-                  const aReceber = contasCliente.filter(c => c.status === "pendente").reduce((s, c) => s + c.valor, 0);
-                  const recebido = contasCliente.filter(c => c.status === "recebido").reduce((s, c) => s + c.valor, 0);
-                  const vencido = contasCliente.filter(c => c.status === "pendente" && c.data_vencimento < hoje).reduce((s, c) => s + c.valor, 0);
-                  return (
-                    <motion.div key={cliente.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                      <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
-                        {/* Header */}
-                        <div className="flex items-center gap-3 mb-3">
-                          <motion.div whileHover={{ scale: 1.1 }}
-                            className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-black"
-                            style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff", boxShadow: "0 0 12px rgba(106,176,255,0.4)" }}>
-                            {cliente.nome.charAt(0).toUpperCase()}
-                          </motion.div>
-                          <div className="flex-1 min-w-0">
-                            <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                              className="font-black tracking-[0.2em] uppercase"
-                              style={{ color: "#6ab0ff", fontSize: "8px" }}>AXIOMA AI.TECH</motion.p>
-                            <p className="font-bold text-sm" style={{ color: "#c8d8f0" }}>{cliente.nome}</p>
-                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: cliente.status === "ativo" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: cliente.status === "ativo" ? "#34d399" : "#f87171" }}>
-                              {cliente.status === "ativo" ? cl.ativo : cl.inativo}
-                            </span>
-                          </div>
-                          <div className="flex gap-1 flex-shrink-0">
-                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCliente(cliente)} style={{ color: "#6ab0ff" }}><Pencil size={14} /></motion.button>
-                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCliente(cliente.id)} style={{ color: "#f87171" }}><Trash2 size={14} /></motion.button>
-                          </div>
-                        </div>
-
-                        {/* Infos */}
-                        <div className="space-y-1 mb-3">
-                          {cliente.email && <div className="flex items-center gap-2"><Mail size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs truncate" style={{ color: "#3a5a8a" }}>{cliente.email}</p></div>}
-                          {cliente.telefone && <div className="flex items-center gap-2"><Phone size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.telefone}</p></div>}
-                          {cliente.cidade && <div className="flex items-center gap-2"><MapPin size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.cidade}</p></div>}
-                          {cliente.documento && <div className="flex items-center gap-2"><FileText size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.documento}</p></div>}
-                        </div>
-
-                        {/* Mini stats financeiros do cliente */}
-                        {contasCliente.length > 0 && (
-                          <div className="grid grid-cols-3 gap-2 mb-3">
-                            {[
-                              { label: idioma === "pt" ? "A Receber" : "Receivable", val: fmt(aReceber), cor: "#fbbf24" },
-                              { label: idioma === "pt" ? "Recebido" : "Received", val: fmt(recebido), cor: "#34d399" },
-                              { label: idioma === "pt" ? "Vencido" : "Overdue", val: fmt(vencido), cor: "#f87171" },
-                            ].map((stat, si) => (
-                              <div key={si} className="rounded-xl p-2 text-center" style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}25` }}>
-                                <p className="text-xs font-black" style={{ color: stat.cor }}>{stat.val}</p>
-                                <p style={{ color: "#3a5a8a", fontSize: "9px" }}>{stat.label}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Botão ver contas */}
-                        <motion.button
-                          whileHover={{ scale: 1.02, boxShadow: "0 0 15px rgba(251,191,36,0.3)" }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => verContasCliente(cliente)}
-                          className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-                          style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
-                          {idioma === "pt" ? "Ver Contas a Receber" : "View Receivables"} <ChevronRight size={14} />
-                        </motion.button>
-                      </CanvasBox>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+          {/* Cards totais */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: cl.totalClientes, valor: clientes.length.toString(), cor: "#6ab0ff" },
+              { label: cl.totalReceber, valor: fmt(totalReceber), cor: "#fbbf24" },
+              { label: cl.totalRecebido, valor: fmt(totalRecebido), cor: "#34d399" },
+              { label: cl.totalVencido, valor: fmt(totalVencido), cor: "#f87171" },
+            ].map((card, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
+                <Card cor={card.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
+                  <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
+                  <p className="text-xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.valor}</p>
+                </Card>
+              </motion.div>
+            ))}
           </div>
-        )}
 
-        {/* ABA CONTAS */}
-        {aba === "contas" && (
-          <div className="space-y-3">
-            <div className="flex flex-col md:flex-row gap-3 items-start">
-              <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
-                <input value={buscaContas} onChange={(e) => { setBuscaContas(e.target.value); setClienteSelecionado(null); }}
-                  placeholder={idioma === "pt" ? "Buscar por descrição ou cliente..." : "Search..."}
+          {/* Abas */}
+          <div className="flex gap-2">
+            {[{ key: "clientes", label: cl.abaClientes }, { key: "contas", label: cl.abaContas }].map((a) => (
+              <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => { setAba(a.key as typeof aba); setBuscaClientes(""); setBuscaContas(""); setClienteSelecionado(null); }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{ background: aba === a.key ? "rgba(106,176,255,0.2)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}`, boxShadow: aba === a.key ? "0 0 12px rgba(106,176,255,0.2)" : "none" }}>
+                {a.label}
+              </motion.button>
+            ))}
+          </div>
+
+          {/* ABA CLIENTES */}
+          {aba === "clientes" && (
+            <div className="space-y-3">
+              <Card cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+                <input value={buscaClientes} onChange={(e) => setBuscaClientes(e.target.value)}
+                  placeholder={cl.buscar}
                   className="w-full text-sm focus:outline-none bg-transparent py-1"
                   style={{ color: "#c8d8f0" }} />
-              </CanvasBox>
+              </Card>
 
-              {/* Badge cliente selecionado */}
-              {clienteSelecionado && (
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-2 px-4 py-3 rounded-2xl flex-shrink-0"
-                  style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                    {clienteSelecionado.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-bold" style={{ color: "#6ab0ff" }}>{clienteSelecionado.nome}</span>
-                  <motion.button whileHover={{ scale: 1.1 }} onClick={() => setClienteSelecionado(null)} style={{ color: "#3a5a8a" }}><X size={14} /></motion.button>
-                </motion.div>
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : clientesFiltrados.length === 0 ? (
+                <Card cor="#6ab0ff">
+                  <div className="p-8 text-center"><p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p></div>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {clientesFiltrados.map((cliente, i) => {
+                    const contasCliente = contas.filter(c => c.cliente_id === cliente.id);
+                    const aReceber = contasCliente.filter(c => c.status === "pendente").reduce((s, c) => s + c.valor, 0);
+                    const recebido = contasCliente.filter(c => c.status === "recebido").reduce((s, c) => s + c.valor, 0);
+                    const vencido = contasCliente.filter(c => c.status === "pendente" && c.data_vencimento < hoje).reduce((s, c) => s + c.valor, 0);
+                    return (
+                      <motion.div key={cliente.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                        <Card cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-black"
+                              style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff", boxShadow: "0 0 12px rgba(106,176,255,0.4)" }}>
+                              {cliente.nome.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm" style={{ color: "#c8d8f0" }}>{cliente.nome}</p>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: cliente.status === "ativo" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: cliente.status === "ativo" ? "#34d399" : "#f87171" }}>
+                                {cliente.status === "ativo" ? cl.ativo : cl.inativo}
+                              </span>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCliente(cliente)} style={{ color: "#6ab0ff" }}><Pencil size={14} /></motion.button>
+                              <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCliente(cliente.id)} style={{ color: "#f87171" }}><Trash2 size={14} /></motion.button>
+                            </div>
+                          </div>
+                          <div className="space-y-1 mb-3">
+                            {cliente.email && <div className="flex items-center gap-2"><Mail size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs truncate" style={{ color: "#3a5a8a" }}>{cliente.email}</p></div>}
+                            {cliente.telefone && <div className="flex items-center gap-2"><Phone size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.telefone}</p></div>}
+                            {cliente.cidade && <div className="flex items-center gap-2"><MapPin size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.cidade}</p></div>}
+                            {cliente.documento && <div className="flex items-center gap-2"><FileText size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.documento}</p></div>}
+                          </div>
+                          {contasCliente.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                              {[
+                                { label: idioma === "pt" ? "A Receber" : "Receivable", val: fmt(aReceber), cor: "#fbbf24" },
+                                { label: idioma === "pt" ? "Recebido" : "Received", val: fmt(recebido), cor: "#34d399" },
+                                { label: idioma === "pt" ? "Vencido" : "Overdue", val: fmt(vencido), cor: "#f87171" },
+                              ].map((stat, si) => (
+                                <div key={si} className="rounded-xl p-2 text-center" style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}25` }}>
+                                  <p className="text-xs font-black" style={{ color: stat.cor }}>{stat.val}</p>
+                                  <p style={{ color: "#3a5a8a", fontSize: "9px" }}>{stat.label}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <motion.button
+                            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                            onClick={() => verContasCliente(cliente)}
+                            className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
+                            style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                            {idioma === "pt" ? "Ver Contas a Receber" : "View Receivables"} <ChevronRight size={14} />
+                          </motion.button>
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               )}
             </div>
+          )}
 
-            {/* Mini stats do cliente selecionado */}
-            {clienteSelecionado && (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#fbbf24">
+          {/* ABA CONTAS */}
+          {aba === "contas" && (
+            <div className="space-y-3">
+              <div className="flex flex-col md:flex-row gap-3 items-start">
+                <Card cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+                  <input value={buscaContas} onChange={(e) => { setBuscaContas(e.target.value); setClienteSelecionado(null); }}
+                    placeholder={idioma === "pt" ? "Buscar por descrição ou cliente..." : "Search..."}
+                    className="w-full text-sm focus:outline-none bg-transparent py-1"
+                    style={{ color: "#c8d8f0" }} />
+                </Card>
+                {clienteSelecionado && (
+                  <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl flex-shrink-0"
+                    style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
+                      style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                      {clienteSelecionado.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-bold" style={{ color: "#6ab0ff" }}>{clienteSelecionado.nome}</span>
+                    <motion.button whileHover={{ scale: 1.1 }} onClick={() => setClienteSelecionado(null)} style={{ color: "#3a5a8a" }}><X size={14} /></motion.button>
+                  </motion.div>
+                )}
+              </div>
+
+              {clienteSelecionado && (
+                <Card cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#fbbf24">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {[
                       { label: idioma === "pt" ? "Total Contas" : "Total Bills", val: contasFiltradas.length, cor: "#6ab0ff" },
@@ -445,173 +435,168 @@ export default function ClientesPage() {
                       </div>
                     ))}
                   </div>
-                </CanvasBox>
+                </Card>
+              )}
+
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : contasFiltradas.length === 0 ? (
+                <Card cor="#34d399">
+                  <div className="p-8 text-center">
+                    <p style={{ color: "#3a5a8a" }}>
+                      {clienteSelecionado ? `${idioma === "pt" ? "Nenhuma conta para" : "No bills for"} ${clienteSelecionado.nome}` : cl.semContas}
+                    </p>
+                  </div>
+                </Card>
+              ) : contasFiltradas.map((conta, i) => {
+                const clienteDaConta = clientes.find(c => c.id === conta.cliente_id);
+                const statusInfo = getStatusCor(conta.status, conta.data_vencimento);
+                return (
+                  <motion.div key={conta.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                    <Card cor={statusInfo.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{conta.descricao}</p>
+                          {clienteDaConta && !clienteSelecionado && (
+                            <span className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block"
+                              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                              👤 {clienteDaConta.nome}
+                            </span>
+                          )}
+                          <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>
+                            {cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-base font-black" style={{ color: statusInfo.cor }}>{fmt(conta.valor)}</p>
+                          <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: statusInfo.bg, color: statusInfo.cor }}>{statusInfo.label}</span>
+                          {conta.status === "pendente" && (
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                              onClick={() => marcarRecebido(conta.id)}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                              style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+                              {cl.marcarRecebido}
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Modal Cliente */}
+        <AnimatePresence>
+          {modalCliente && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center px-4"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
+                className="w-full max-w-md max-h-screen overflow-y-auto">
+                <Card cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                        className="text-xs font-black tracking-[0.3em] uppercase mb-1"
+                        style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>AXIOMA AI.TECH</motion.p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoCliente ? cl.editarCliente : cl.novoCliente}</h3>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCliente} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { label: cl.nome, value: nomeCliente, set: setNomeCliente },
+                      { label: cl.email, value: emailCliente, set: setEmailCliente },
+                      { label: cl.telefone, value: telefoneCliente, set: setTelefoneCliente },
+                      { label: cl.documento, value: documentoCliente, set: setDocumentoCliente },
+                      { label: cl.cidade, value: cidadeCliente, set: setCidadeCliente },
+                    ].map((campo) => (
+                      <div key={campo.label}>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
+                        <input value={campo.value} onChange={(e) => campo.set(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                      </div>
+                    ))}
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={fecharModalCliente} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={salvarCliente} disabled={salvandoCliente}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold"
+                        style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                        {salvandoCliente ? "..." : cl.salvarCliente}
+                      </motion.button>
+                    </div>
+                  </div>
+                </Card>
               </motion.div>
-            )}
-
-            {loading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : contasFiltradas.length === 0 ? (
-              <CanvasBox cor="#34d399">
-                <div className="p-8 text-center">
-                  <p style={{ color: "#3a5a8a" }}>
-                    {clienteSelecionado
-                      ? `${idioma === "pt" ? "Nenhuma conta para" : "No bills for"} ${clienteSelecionado.nome}`
-                      : cl.semContas}
-                  </p>
-                </div>
-              </CanvasBox>
-            ) : contasFiltradas.map((conta, i) => {
-              const clienteDaConta = clientes.find(c => c.id === conta.cliente_id);
-              const statusInfo = getStatusCor(conta.status, conta.data_vencimento);
-              return (
-                <motion.div key={conta.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={statusInfo.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
-                    <div className="flex items-start justify-between gap-3 flex-wrap">
-                      <div className="min-w-0 flex-1">
-                        <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                          className="font-black tracking-[0.2em] uppercase mb-0.5"
-                          style={{ color: statusInfo.cor, fontSize: "8px" }}>AXIOMA AI.TECH</motion.p>
-                        <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{conta.descricao}</p>
-                        {clienteDaConta && !clienteSelecionado && (
-                          <span className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block"
-                            style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
-                            👤 {clienteDaConta.nome}
-                          </span>
-                        )}
-                        <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>
-                          {cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-base font-black" style={{ color: statusInfo.cor, textShadow: `0 0 10px ${statusInfo.cor}40` }}>{fmt(conta.valor)}</p>
-                        <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: statusInfo.bg, color: statusInfo.cor }}>{statusInfo.label}</span>
-                        {conta.status === "pendente" && (
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                            onClick={() => marcarRecebido(conta.id)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                            style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-                            {cl.marcarRecebido}
-                          </motion.button>
-                        )}
-                      </div>
-                    </div>
-                  </CanvasBox>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Modal Cliente */}
-      <AnimatePresence>
-        {modalCliente && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
-              className="w-full max-w-md max-h-screen overflow-y-auto">
-              <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                      className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                      style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>AXIOMA AI.TECH</motion.p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoCliente ? cl.editarCliente : cl.novoCliente}</h3>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCliente} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { label: cl.nome, value: nomeCliente, set: setNomeCliente },
-                    { label: cl.email, value: emailCliente, set: setEmailCliente },
-                    { label: cl.telefone, value: telefoneCliente, set: setTelefoneCliente },
-                    { label: cl.documento, value: documentoCliente, set: setDocumentoCliente },
-                    { label: cl.cidade, value: cidadeCliente, set: setCidadeCliente },
-                  ].map((campo) => (
-                    <div key={campo.label}>
-                      <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
-                      <input value={campo.value} onChange={(e) => campo.set(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
-                    </div>
-                  ))}
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={fecharModalCliente} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
-                    <motion.button whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(106,176,255,0.4)" }} whileTap={{ scale: 0.98 }}
-                      onClick={salvarCliente} disabled={salvandoCliente}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold"
-                      style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                      {salvandoCliente ? "..." : cl.salvarCliente}
-                    </motion.button>
-                  </div>
-                </div>
-              </CanvasBox>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Modal Conta */}
-      <AnimatePresence>
-        {modalConta && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
-              className="w-full max-w-md max-h-screen overflow-y-auto">
-              <CanvasBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                      className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                      style={{ color: "#34d399", textShadow: "0 0 20px #34d399" }}>AXIOMA AI.TECH</motion.p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cl.novaCobranca}</h3>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalConta(false)} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { label: cl.descricao, value: descricaoConta, set: setDescricaoConta, type: "text" },
-                    { label: cl.valor, value: valorConta, set: setValorConta, type: "number" },
-                    { label: cl.vencimento, value: vencimentoConta, set: setVencimentoConta, type: "date" },
-                  ].map((campo) => (
-                    <div key={campo.label}>
-                      <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
-                      <input type={campo.type} value={campo.value} onChange={(e) => campo.set(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+        {/* Modal Conta */}
+        <AnimatePresence>
+          {modalConta && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center px-4"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
+                className="w-full max-w-md max-h-screen overflow-y-auto">
+                <Card cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                        className="text-xs font-black tracking-[0.3em] uppercase mb-1"
+                        style={{ color: "#34d399", textShadow: "0 0 20px #34d399" }}>AXIOMA AI.TECH</motion.p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cl.novaCobranca}</h3>
                     </div>
-                  ))}
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{cl.cliente}</label>
-                    <select value={clienteConta} onChange={(e) => setClienteConta(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
-                      <option value="">-- {cl.cliente} --</option>
-                      {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalConta(false)} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
                   </div>
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={() => setModalConta(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
-                    <motion.button whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(52,211,153,0.4)" }} whileTap={{ scale: 0.98 }}
-                      onClick={salvarConta} disabled={salvandoConta}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold"
-                      style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
-                      {salvandoConta ? "..." : cl.salvarCobranca}
-                    </motion.button>
+                  <div className="space-y-3">
+                    {[
+                      { label: cl.descricao, value: descricaoConta, set: setDescricaoConta, type: "text" },
+                      { label: cl.valor, value: valorConta, set: setValorConta, type: "number" },
+                      { label: cl.vencimento, value: vencimentoConta, set: setVencimentoConta, type: "date" },
+                    ].map((campo) => (
+                      <div key={campo.label}>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
+                        <input type={campo.type} value={campo.value} onChange={(e) => campo.set(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                      </div>
+                    ))}
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{cl.cliente}</label>
+                      <select value={clienteConta} onChange={(e) => setClienteConta(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                        <option value="">-- {cl.cliente} --</option>
+                        {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setModalConta(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={salvarConta} disabled={salvandoConta}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold"
+                        style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
+                        {salvandoConta ? "..." : cl.salvarCobranca}
+                      </motion.button>
+                    </div>
                   </div>
-                </div>
-              </CanvasBox>
+                </Card>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </ModuloLayout>
+          )}
+        </AnimatePresence>
+      </ModuloLayout>
+    </>
   );
 }
