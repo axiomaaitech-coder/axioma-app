@@ -103,7 +103,6 @@ export default function Metas() {
   const [loading, setLoading] = useState(true)
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<any | null>(null)
-  // Campos corretos conforme tabela: titulo, valor_meta, prazo, tipo, valor_atual, status
   const [titulo, setTitulo] = useState('')
   const [valorMeta, setValorMeta] = useState('')
   const [prazo, setPrazo] = useState('')
@@ -126,6 +125,10 @@ export default function Metas() {
     tipoLabel: idioma === 'pt' ? 'Tipo' : idioma === 'en' ? 'Type' : 'Tipo',
     concluida: idioma === 'pt' ? 'Concluída' : idioma === 'en' ? 'Completed' : 'Completada',
     emAndamento: idioma === 'pt' ? 'Em andamento' : idioma === 'en' ? 'In progress' : 'En progreso',
+    totalMetas: idioma === 'pt' ? 'Total Metas' : idioma === 'en' ? 'Total Goals' : 'Total Metas',
+    concluidas: idioma === 'pt' ? 'Concluídas' : idioma === 'en' ? 'Completed' : 'Completadas',
+    emProgresso: idioma === 'pt' ? 'Em Progresso' : idioma === 'en' ? 'In Progress' : 'En Progreso',
+    valorTotal: idioma === 'pt' ? 'Valor Total' : idioma === 'en' ? 'Total Value' : 'Valor Total',
   }
 
   const tipoOpcoes = [
@@ -147,18 +150,13 @@ export default function Metas() {
   }
 
   function abrirNovo() {
-    setEditando(null)
-    setTitulo(''); setValorMeta(''); setPrazo(''); setTipo('receita')
+    setEditando(null); setTitulo(''); setValorMeta(''); setPrazo(''); setTipo('receita')
     setModalAberto(true)
   }
 
   function abrirEdicao(meta: any) {
-    setEditando(meta)
-    setTitulo(meta.titulo || '')
-    setValorMeta(String(meta.valor_meta || ''))
-    setPrazo(meta.prazo || '')
-    setTipo(meta.tipo || 'receita')
-    setModalAberto(true)
+    setEditando(meta); setTitulo(meta.titulo || ''); setValorMeta(String(meta.valor_meta || ''))
+    setPrazo(meta.prazo || ''); setTipo(meta.tipo || 'receita'); setModalAberto(true)
   }
 
   function fecharModal() {
@@ -171,36 +169,22 @@ export default function Metas() {
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
-
-    const payload = {
-      titulo,
-      valor_meta: parseFloat(valorMeta),
-      valor_atual: 0,
-      prazo: prazo || null,
-      tipo,
-      status: 'em_andamento',
-    }
-
+    const payload = { titulo, valor_meta: parseFloat(valorMeta), valor_atual: 0, prazo: prazo || null, tipo, status: 'em_andamento' }
     if (editando) {
-      const { error } = await supabase.from('metas').update(payload).eq('id', editando.id)
-      if (error) console.error('Erro ao editar:', error)
+      await supabase.from('metas').update(payload).eq('id', editando.id)
     } else {
-      const { error } = await supabase.from('metas').insert({ ...payload, user_id: user.id })
-      if (error) console.error('Erro ao inserir:', error)
+      await supabase.from('metas').insert({ ...payload, user_id: user.id })
     }
-
     fecharModal(); setSalvando(false); carregar()
   }
 
   async function excluir(id: string) {
-    await supabase.from('metas').delete().eq('id', id)
-    carregar()
+    await supabase.from('metas').delete().eq('id', id); carregar()
   }
 
   async function toggleStatus(meta: any) {
     const novoStatus = meta.status === 'concluida' ? 'em_andamento' : 'concluida'
-    await supabase.from('metas').update({ status: novoStatus }).eq('id', meta.id)
-    carregar()
+    await supabase.from('metas').update({ status: novoStatus }).eq('id', meta.id); carregar()
   }
 
   const exportarPDF = async () => {
@@ -242,93 +226,149 @@ export default function Metas() {
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={abrirNovo} labelBotao={txt.novo}>
-      <div ref={conteudoRef}>
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : metas.length === 0 ? (
-          <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
-            <div className="flex flex-col items-center justify-center py-16">
-              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                <Target size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
-              </motion.div>
-              <p className="text-sm" style={{ color: '#3a6090' }}>{txt.semMetas}</p>
+      <div ref={conteudoRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Coluna esquerda — metas */}
+        <div className="lg:col-span-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
             </div>
-          </CanvasBox>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {metas.map((meta, i) => {
-              const concluida = meta.status === 'concluida'
-              const progresso = meta.valor_meta > 0 ? Math.min(100, ((meta.valor_atual || 0) / meta.valor_meta) * 100) : 0
-              return (
-                <motion.div key={meta.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-                  <CanvasBox cor={concluida ? '#34d399' : '#6ab0ff'} corB={concluida ? '#6ab0ff' : '#34d399'} corC="#a78bfa" corD="#f472b6">
-                    <div style={{ opacity: concluida ? 0.8 : 1 }}>
-                      <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                        className="text-xs font-black tracking-[0.3em] uppercase mb-2"
-                        style={{ color: concluida ? '#34d399' : '#6ab0ff', textShadow: `0 0 15px ${concluida ? '#34d399' : '#6ab0ff'}` }}>
-                        AXIOMA AI.TECH
-                      </motion.p>
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="min-w-0 mr-2">
-                          <h3 className="font-bold text-sm mb-1 truncate" style={{ color: '#c8d8f0' }}>{meta.titulo}</h3>
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}>
-                            {tipoOpcoes.find(t => t.value === meta.tipo)?.label || meta.tipo}
+          ) : metas.length === 0 ? (
+            <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
+              <div className="flex flex-col items-center justify-center py-16">
+                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                  <Target size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
+                </motion.div>
+                <p className="text-sm" style={{ color: '#3a6090' }}>{txt.semMetas}</p>
+              </div>
+            </CanvasBox>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {metas.map((meta, i) => {
+                const concluida = meta.status === 'concluida'
+                const progresso = meta.valor_meta > 0 ? Math.min(100, ((meta.valor_atual || 0) / meta.valor_meta) * 100) : 0
+                return (
+                  <motion.div key={meta.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+                    <CanvasBox cor={concluida ? '#34d399' : '#6ab0ff'} corB={concluida ? '#6ab0ff' : '#34d399'} corC="#a78bfa" corD="#f472b6">
+                      <div style={{ opacity: concluida ? 0.8 : 1 }}>
+                        <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                          className="text-xs font-black tracking-[0.3em] uppercase mb-2"
+                          style={{ color: concluida ? '#34d399' : '#6ab0ff', textShadow: `0 0 15px ${concluida ? '#34d399' : '#6ab0ff'}` }}>
+                          AXIOMA AI.TECH
+                        </motion.p>
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="min-w-0 mr-2">
+                            <h3 className="font-bold text-sm mb-1 truncate" style={{ color: '#c8d8f0' }}>{meta.titulo}</h3>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399', border: '1px solid rgba(52,211,153,0.2)' }}>
+                              {tipoOpcoes.find(t => t.value === meta.tipo)?.label || meta.tipo}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => toggleStatus(meta)}>
+                              <CheckCircle2 size={18} style={{ color: concluida ? '#34d399' : '#1a3a5a' }} />
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(meta)}>
+                              <Pencil size={16} style={{ color: '#6ab0ff' }} />
+                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(meta.id)}>
+                              <Trash2 size={16} style={{ color: '#f87171' }} />
+                            </motion.button>
+                          </div>
+                        </div>
+                        <p className="text-2xl font-black mb-1" style={{ color: '#34d399', textShadow: '0 0 20px rgba(52,211,153,0.4)' }}>
+                          {fmt(meta.valor_meta)}
+                        </p>
+                        <div className="mb-3">
+                          <div className="flex justify-between text-xs mb-1" style={{ color: '#3a5a8a' }}>
+                            <span>{fmt(meta.valor_atual || 0)}</span>
+                            <span>{progresso.toFixed(0)}%</span>
+                          </div>
+                          <div className="w-full h-2 rounded-full" style={{ background: 'rgba(59,111,212,0.1)' }}>
+                            <motion.div initial={{ width: 0 }} animate={{ width: `${progresso}%` }}
+                              transition={{ duration: 1, ease: 'easeOut', delay: 0.3 + i * 0.1 }}
+                              className="h-2 rounded-full"
+                              style={{ background: concluida ? 'linear-gradient(90deg, #059669, #34d399)' : 'linear-gradient(90deg, #1a3a8f, #6ab0ff)', boxShadow: `0 0 8px ${concluida ? '#34d399' : '#6ab0ff'}` }} />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Clock size={12} style={{ color: '#3a6090' }} />
+                            <p className="text-xs" style={{ color: '#3a6090' }}>
+                              {meta.prazo ? new Date(meta.prazo + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}
+                            </p>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                            background: concluida ? 'rgba(52,211,153,0.15)' : 'rgba(106,176,255,0.1)',
+                            color: concluida ? '#34d399' : '#6ab0ff'
+                          }}>
+                            {concluida ? txt.concluida : txt.emAndamento}
                           </span>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
-                          <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => toggleStatus(meta)}>
-                            <CheckCircle2 size={18} style={{ color: concluida ? '#34d399' : '#1a3a5a' }} />
-                          </motion.button>
-                          <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(meta)}>
-                            <Pencil size={16} style={{ color: '#6ab0ff' }} />
-                          </motion.button>
-                          <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(meta.id)}>
-                            <Trash2 size={16} style={{ color: '#f87171' }} />
-                          </motion.button>
-                        </div>
                       </div>
+                    </CanvasBox>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
-                      <p className="text-2xl font-black mb-1" style={{ color: '#34d399', textShadow: '0 0 20px rgba(52,211,153,0.4)' }}>
-                        {fmt(meta.valor_meta)}
-                      </p>
-
-                      {/* Barra de progresso */}
-                      <div className="mb-3">
-                        <div className="flex justify-between text-xs mb-1" style={{ color: '#3a5a8a' }}>
-                          <span>{fmt(meta.valor_atual || 0)}</span>
-                          <span>{progresso.toFixed(0)}%</span>
-                        </div>
-                        <div className="w-full h-2 rounded-full" style={{ background: 'rgba(59,111,212,0.1)' }}>
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${progresso}%` }}
-                            transition={{ duration: 1, ease: 'easeOut', delay: 0.3 + i * 0.1 }}
-                            className="h-2 rounded-full"
-                            style={{ background: concluida ? 'linear-gradient(90deg, #059669, #34d399)' : 'linear-gradient(90deg, #1a3a8f, #6ab0ff)', boxShadow: `0 0 8px ${concluida ? '#34d399' : '#6ab0ff'}` }} />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock size={12} style={{ color: '#3a6090' }} />
-                          <p className="text-xs" style={{ color: '#3a6090' }}>
-                            {meta.prazo ? new Date(meta.prazo + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}
-                          </p>
-                        </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{
-                          background: concluida ? 'rgba(52,211,153,0.15)' : 'rgba(106,176,255,0.1)',
-                          color: concluida ? '#34d399' : '#6ab0ff'
-                        }}>
-                          {concluida ? txt.concluida : txt.emAndamento}
-                        </span>
-                      </div>
-                    </div>
-                  </CanvasBox>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
+        {/* Coluna direita — painel épico */}
+        <div className="hidden lg:block">
+          <CanvasBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
+            <div className="flex flex-col items-center justify-center gap-6 py-4 min-h-[400px]">
+              <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                className="text-xs font-black tracking-[0.3em] uppercase"
+                style={{ color: '#34d399', textShadow: '0 0 20px #34d399' }}>AXIOMA AI.TECH</motion.p>
+              <div className="flex gap-1">
+                {'METAS'.split('').map((letra, i) => (
+                  <motion.span key={i}
+                    animate={{ opacity: [0.5, 1, 0.5], y: [0, -4, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.15 }}
+                    className="text-4xl font-black"
+                    style={{ color: '#34d399', textShadow: '0 0 30px #34d399' }}>
+                    {letra}
+                  </motion.span>
+                ))}
+              </div>
+              <div className="relative flex items-center justify-center">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                  className="w-20 h-20 rounded-full border-2"
+                  style={{ borderColor: '#34d399', borderTopColor: 'transparent', borderRightColor: '#6ab0ff' }} />
+                <motion.div animate={{ rotate: -360 }} transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                  className="absolute w-12 h-12 rounded-full border-2"
+                  style={{ borderColor: '#a78bfa', borderTopColor: 'transparent', borderLeftColor: '#f472b6' }} />
+                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute w-6 h-6 rounded-full"
+                  style={{ background: 'radial-gradient(circle, #34d399, transparent)', boxShadow: '0 0 20px #34d399' }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 w-full">
+                {[
+                  { label: txt.totalMetas, valor: metas.length, cor: '#6ab0ff' },
+                  { label: txt.concluidas, valor: metas.filter(m => m.status === 'concluida').length, cor: '#34d399' },
+                  { label: txt.emProgresso, valor: metas.filter(m => m.status !== 'concluida').length, cor: '#fbbf24' },
+                  { label: txt.valorTotal, valor: `R$ ${metas.reduce((a, m) => a + (m.valor_meta || 0), 0).toLocaleString('pt-BR')}`, cor: '#a78bfa' },
+                ].map((stat, i) => (
+                  <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }}
+                    whileHover={{ scale: 1.05 }}
+                    className="rounded-xl p-3 text-center"
+                    style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}30` }}>
+                    <motion.p animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2 + i * 0.5, repeat: Infinity }}
+                      className="text-xl font-black mb-1" style={{ color: stat.cor, textShadow: `0 0 15px ${stat.cor}60` }}>
+                      {stat.valor}
+                    </motion.p>
+                    <p className="text-xs" style={{ color: '#3a5a8a' }}>{stat.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+              <motion.p animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 4, repeat: Infinity }}
+                className="text-xs text-center" style={{ color: '#3a5a8a' }}>
+                {idioma === 'pt' ? 'Defina metas e conquiste resultados' : idioma === 'en' ? 'Set goals and achieve results' : 'Define metas y logra resultados'}
+              </motion.p>
+            </div>
+          </CanvasBox>
+        </div>
       </div>
 
       {/* Modal Premium */}
