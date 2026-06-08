@@ -25,41 +25,55 @@ type Conta = {
   user_id: string; empresa_id: string; created_at: string;
 };
 
-// ✅ UM ÚNICO canvas para toda a página — sem oscilação
-function CanvasNeural() {
+// Canvas único fixo no fundo com letras e números
+function CanvasFundo() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     const ctx = canvas.getContext("2d"); if (!ctx) return;
     let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
     const particles = Array.from({ length: 60 }, () => ({
       x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-      size: Math.random() * 2 + 0.5,
+      vx: (Math.random() - 0.5) * 0.25, vy: (Math.random() - 0.5) * 0.25,
+      size: Math.random() * 1.8 + 0.4,
       color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.5 + 0.1,
+      opacity: Math.random() * 0.4 + 0.1,
     }));
-    const chars = "AXIOMA CLIENTES AI TECH R$ 0 1 2 3 4 5 6 7 8 9 % CRM".split(" ").map((c) => ({
-      char: c, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.05 + 0.01,
-      speed: Math.random() * 0.2 + 0.06,
+    const chars = "AXIOMA CLIENTES AI TECH R$ 0 1 2 3 4 5 6 7 8 9 % CRM FINANCE".split(" ").map((c) => ({
+      char: c,
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 26 + 12,
+      opacity: Math.random() * 0.055 + 0.015,
+      speed: Math.random() * 0.18 + 0.05,
       color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa"][Math.floor(Math.random() * 4)],
     }));
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Letras e números flutuando
       chars.forEach(f => {
         ctx.save(); ctx.font = `900 ${f.size}px Arial`;
         ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
+        ctx.fillText(f.char, f.x, f.y);
+        ctx.restore();
+        f.y -= f.speed;
+        if (f.y < -30) {
+          f.y = canvas.height + 10;
+          f.x = Math.random() * canvas.width;
+        }
       });
+      // Partículas e linhas neurais
       particles.forEach((p, i) => {
         particles.slice(i + 1).forEach(q => {
           const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 120) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 120) * 0.08;
+            ctx.save(); ctx.globalAlpha = (1 - dist / 120) * 0.07;
             ctx.strokeStyle = p.color; ctx.lineWidth = 0.4;
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
           }
@@ -74,39 +88,57 @@ function CanvasNeural() {
       animId = requestAnimationFrame(draw);
     };
     draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+    return () => cancelAnimationFrame(animId);
   }, []);
   return (
-    <canvas ref={canvasRef}
-      className="fixed inset-0 w-full h-full pointer-events-none"
-      style={{ opacity: 0.4, zIndex: 0 }} />
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        top: 0, left: 0,
+        width: "100vw",
+        height: "100vh",
+        pointerEvents: "none",
+        zIndex: 0,
+        opacity: 0.6,
+      }}
+    />
   );
 }
 
-// ✅ Cards simples sem canvas interno — sem oscilação
+// Card sem canvas — apenas bordas neon estáticas
 function Card({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
   children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
 }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.95)",
+    <div style={{
+      position: "relative",
+      borderRadius: "1rem",
+      overflow: "hidden",
+      background: "rgba(4,10,22,0.92)",
       border: `1px solid ${cor}30`,
       boxShadow: `0 0 30px ${cor}08`,
+      zIndex: 1,
     }}>
-      {/* Bordas neon estáticas */}
-      <div className="absolute top-0 left-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(90deg, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}` }} />
-      <div className="absolute top-0 left-0 w-[2px] h-16 rounded-full" style={{ background: `linear-gradient(180deg, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}` }} />
-      <div className="absolute top-0 right-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(270deg, ${corB}, transparent)`, boxShadow: `0 0 10px ${corB}` }} />
-      <div className="absolute top-0 right-0 w-[2px] h-16 rounded-full" style={{ background: `linear-gradient(180deg, ${corB}, transparent)`, boxShadow: `0 0 10px ${corB}` }} />
-      <div className="absolute bottom-0 left-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(90deg, ${corC}, transparent)`, boxShadow: `0 0 10px ${corC}` }} />
-      <div className="absolute bottom-0 right-0 w-16 h-[2px] rounded-full" style={{ background: `linear-gradient(270deg, ${corD}, transparent)`, boxShadow: `0 0 10px ${corD}` }} />
-      {/* Partícula correndo animada no topo */}
+      <div style={{ position: "absolute", top: 0, left: 0, width: "5rem", height: "2px", background: `linear-gradient(90deg, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}`, borderRadius: "999px" }} />
+      <div style={{ position: "absolute", top: 0, left: 0, width: "2px", height: "5rem", background: `linear-gradient(180deg, ${cor}, transparent)`, boxShadow: `0 0 10px ${cor}`, borderRadius: "999px" }} />
+      <div style={{ position: "absolute", top: 0, right: 0, width: "5rem", height: "2px", background: `linear-gradient(270deg, ${corB}, transparent)`, boxShadow: `0 0 10px ${corB}`, borderRadius: "999px" }} />
+      <div style={{ position: "absolute", top: 0, right: 0, width: "2px", height: "5rem", background: `linear-gradient(180deg, ${corB}, transparent)`, boxShadow: `0 0 10px ${corB}`, borderRadius: "999px" }} />
+      <div style={{ position: "absolute", bottom: 0, left: 0, width: "5rem", height: "2px", background: `linear-gradient(90deg, ${corC}, transparent)`, boxShadow: `0 0 10px ${corC}`, borderRadius: "999px" }} />
+      <div style={{ position: "absolute", bottom: 0, right: 0, width: "5rem", height: "2px", background: `linear-gradient(270deg, ${corD}, transparent)`, boxShadow: `0 0 10px ${corD}`, borderRadius: "999px" }} />
+      {/* Partícula animada no topo — leve, não causa reflow */}
       <motion.div
         animate={{ left: ["-5%", "105%", "-5%"] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2px] w-16 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 12px ${cor}`, borderRadius: "999px", zIndex: 1 }} />
-      <div className="relative p-4 md:p-5" style={{ zIndex: 2 }}>{children}</div>
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: "absolute", top: 0, height: "2px", width: "4rem",
+          background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`,
+          boxShadow: `0 0 10px ${cor}`,
+          borderRadius: "999px",
+          pointerEvents: "none",
+          zIndex: 2,
+        }} />
+      <div style={{ position: "relative", zIndex: 2, padding: "1rem 1.25rem" }}>{children}</div>
     </div>
   );
 }
@@ -193,9 +225,7 @@ export default function ClientesPage() {
   }
 
   function verContasCliente(cliente: Cliente) {
-    setClienteSelecionado(cliente);
-    setAba("contas");
-    setBuscaContas("");
+    setClienteSelecionado(cliente); setAba("contas"); setBuscaContas("");
   }
 
   function abrirEditarCliente(cliente: Cliente) {
@@ -278,14 +308,12 @@ export default function ClientesPage() {
 
   return (
     <>
-      {/* Canvas único fixo no fundo — não causa oscilação */}
-      <CanvasNeural />
-
+      <CanvasFundo />
       <ModuloLayout titulo={`👥 ${cl.titulo}`} subtitulo={cl.subtitulo}
         onExportarPDF={exportarPDF} exportando={exportando}
         onNovo={() => { setEditandoCliente(null); setNomeCliente(""); setEmailCliente(""); setTelefoneCliente(""); setDocumentoCliente(""); setCidadeCliente(""); setModalCliente(true); }}
         labelBotao={cl.novoCliente} botaoExtra={botaoCobranca}>
-        <div ref={conteudoRef} className="space-y-4 relative" style={{ zIndex: 1 }}>
+        <div ref={conteudoRef} className="space-y-4" style={{ position: "relative", zIndex: 1 }}>
 
           {/* Cards totais */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -325,15 +353,12 @@ export default function ClientesPage() {
                   className="w-full text-sm focus:outline-none bg-transparent py-1"
                   style={{ color: "#c8d8f0" }} />
               </Card>
-
               {loading ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : clientesFiltrados.length === 0 ? (
-                <Card cor="#6ab0ff">
-                  <div className="p-8 text-center"><p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p></div>
-                </Card>
+                <Card cor="#6ab0ff"><div className="p-8 text-center"><p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p></div></Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {clientesFiltrados.map((cliente, i) => {
@@ -355,7 +380,7 @@ export default function ClientesPage() {
                                 {cliente.status === "ativo" ? cl.ativo : cl.inativo}
                               </span>
                             </div>
-                            <div className="flex gap-1 flex-shrink-0">
+                            <div className="flex gap-2">
                               <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCliente(cliente)} style={{ color: "#6ab0ff" }}><Pencil size={14} /></motion.button>
                               <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCliente(cliente.id)} style={{ color: "#f87171" }}><Trash2 size={14} /></motion.button>
                             </div>
@@ -380,8 +405,7 @@ export default function ClientesPage() {
                               ))}
                             </div>
                           )}
-                          <motion.button
-                            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                             onClick={() => verContasCliente(cliente)}
                             className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
                             style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
@@ -419,7 +443,6 @@ export default function ClientesPage() {
                   </motion.div>
                 )}
               </div>
-
               {clienteSelecionado && (
                 <Card cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#fbbf24">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -437,7 +460,6 @@ export default function ClientesPage() {
                   </div>
                 </Card>
               )}
-
               {loading ? (
                 <div className="flex items-center justify-center py-16">
                   <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -445,9 +467,7 @@ export default function ClientesPage() {
               ) : contasFiltradas.length === 0 ? (
                 <Card cor="#34d399">
                   <div className="p-8 text-center">
-                    <p style={{ color: "#3a5a8a" }}>
-                      {clienteSelecionado ? `${idioma === "pt" ? "Nenhuma conta para" : "No bills for"} ${clienteSelecionado.nome}` : cl.semContas}
-                    </p>
+                    <p style={{ color: "#3a5a8a" }}>{clienteSelecionado ? `${idioma === "pt" ? "Nenhuma conta para" : "No bills for"} ${clienteSelecionado.nome}` : cl.semContas}</p>
                   </div>
                 </Card>
               ) : contasFiltradas.map((conta, i) => {
@@ -460,14 +480,9 @@ export default function ClientesPage() {
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{conta.descricao}</p>
                           {clienteDaConta && !clienteSelecionado && (
-                            <span className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block"
-                              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
-                              👤 {clienteDaConta.nome}
-                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>👤 {clienteDaConta.nome}</span>
                           )}
-                          <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>
-                            {cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}
-                          </p>
+                          <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>{cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-base font-black" style={{ color: statusInfo.cor }}>{fmt(conta.valor)}</p>
