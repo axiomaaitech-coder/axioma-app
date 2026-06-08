@@ -112,6 +112,8 @@ export default function Precificacao() {
   const [exportando, setExportando] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
+  const palavraPainel = idioma === 'pt' ? 'PRECO' : idioma === 'es' ? 'PRECIO' : 'PRICE'
+
   const txt = {
     titulo: idioma === 'pt' ? 'Precificação' : idioma === 'en' ? 'Pricing' : 'Precios',
     subtitulo: idioma === 'pt' ? 'Calcule o preço ideal dos seus produtos e serviços' : idioma === 'en' ? 'Calculate the ideal price for your products and services' : 'Calcula el precio ideal',
@@ -129,6 +131,7 @@ export default function Precificacao() {
     margemMedia: idioma === 'pt' ? 'Margem Média' : idioma === 'en' ? 'Avg Margin' : 'Margen Prom.',
     menorPreco: idioma === 'pt' ? 'Menor Preço' : idioma === 'en' ? 'Min Price' : 'Precio Mín.',
     maiorPreco: idioma === 'pt' ? 'Maior Preço' : idioma === 'en' ? 'Max Price' : 'Precio Máx.',
+    inteligencia: idioma === 'pt' ? 'Precifique com inteligência' : idioma === 'en' ? 'Price with intelligence' : 'Precifica con inteligencia',
   }
 
   useEffect(() => { carregar() }, [])
@@ -244,7 +247,7 @@ export default function Precificacao() {
 
       <div ref={conteudoRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Coluna esquerda — produtos */}
+        {/* Coluna esquerda */}
         <div className="lg:col-span-2 space-y-4">
           {loading ? (
             <div className="flex items-center justify-center py-16">
@@ -300,7 +303,7 @@ export default function Precificacao() {
           )}
         </div>
 
-        {/* Coluna direita — painel épico */}
+        {/* Painel direito épico */}
         <div className="hidden lg:block">
           <CanvasBox cor="#f59e0b" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
             <div className="flex flex-col items-center justify-center gap-6 py-4 min-h-[400px]">
@@ -308,7 +311,7 @@ export default function Precificacao() {
                 className="text-xs font-black tracking-[0.3em] uppercase"
                 style={{ color: '#f59e0b', textShadow: '0 0 20px #f59e0b' }}>AXIOMA AI.TECH</motion.p>
               <div className="flex gap-1">
-                {'PRICE'.split('').map((letra, i) => (
+                {palavraPainel.split('').map((letra, i) => (
                   <motion.span key={i}
                     animate={{ opacity: [0.5, 1, 0.5], y: [0, -4, 0] }}
                     transition={{ duration: 2, repeat: Infinity, delay: i * 0.15 }}
@@ -348,9 +351,7 @@ export default function Precificacao() {
                 ))}
               </div>
               <motion.p animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 4, repeat: Infinity }}
-                className="text-xs text-center" style={{ color: '#3a5a8a' }}>
-                {idioma === 'pt' ? 'Precifique com inteligência' : idioma === 'en' ? 'Price with intelligence' : 'Precifica con inteligencia'}
-              </motion.p>
+                className="text-xs text-center" style={{ color: '#3a5a8a' }}>{txt.inteligencia}</motion.p>
             </div>
           </CanvasBox>
         </div>
