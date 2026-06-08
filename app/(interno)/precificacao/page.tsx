@@ -103,7 +103,6 @@ export default function Precificacao() {
   const [loading, setLoading] = useState(true)
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<any | null>(null)
-  // Campos corretos conforme tabela: produto_servico, custo_total, margem_desejada, preco_sugerido
   const [produtoServico, setProdutoServico] = useState('')
   const [custoTotal, setCustoTotal] = useState('')
   const [margemDesejada, setMargemDesejada] = useState('')
@@ -126,6 +125,10 @@ export default function Precificacao() {
     lucro: idioma === 'pt' ? 'Lucro' : idioma === 'en' ? 'Profit' : 'Ganancia',
     margem: idioma === 'pt' ? 'Margem' : idioma === 'en' ? 'Margin' : 'Margen',
     dadosProduto: idioma === 'pt' ? 'Dados do Produto' : idioma === 'en' ? 'Product Data' : 'Datos del Producto',
+    produtos: idioma === 'pt' ? 'Produtos' : idioma === 'en' ? 'Products' : 'Productos',
+    margemMedia: idioma === 'pt' ? 'Margem Média' : idioma === 'en' ? 'Avg Margin' : 'Margen Prom.',
+    menorPreco: idioma === 'pt' ? 'Menor Preço' : idioma === 'en' ? 'Min Price' : 'Precio Mín.',
+    maiorPreco: idioma === 'pt' ? 'Maior Preço' : idioma === 'en' ? 'Max Price' : 'Precio Máx.',
   }
 
   useEffect(() => { carregar() }, [])
@@ -185,11 +188,9 @@ export default function Precificacao() {
       preco_sugerido: precoSugerido,
     }
     if (editando) {
-      const { error } = await supabase.from('precificacao').update(payload).eq('id', editando.id)
-      if (error) console.error('Erro ao editar:', error)
+      await supabase.from('precificacao').update(payload).eq('id', editando.id)
     } else {
-      const { error } = await supabase.from('precificacao').insert({ ...payload, user_id: user.id })
-      if (error) console.error('Erro ao inserir:', error)
+      await supabase.from('precificacao').insert({ ...payload, user_id: user.id })
     }
     fecharModal(); setSalvando(false); carregar()
   }
@@ -232,65 +233,127 @@ export default function Precificacao() {
   }
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const margemMedia = produtos.length > 0 ? (produtos.reduce((a, p) => a + (p.margem_desejada || 0), 0) / produtos.length).toFixed(0) : '0'
+  const menorPreco = produtos.length > 0 ? Math.min(...produtos.map(p => p.preco_sugerido || 0)) : 0
+  const maiorPreco = produtos.length > 0 ? Math.max(...produtos.map(p => p.preco_sugerido || 0)) : 0
 
   return (
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={abrirNovo} labelBotao={txt.novo}>
-      <div ref={conteudoRef} className="space-y-4">
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : produtos.length === 0 ? (
-          <CanvasBox cor="#f59e0b">
-            <div className="flex flex-col items-center justify-center py-16">
-              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                <Tag size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
-              </motion.div>
-              <p className="text-sm" style={{ color: '#3a6090' }}>{txt.semProdutos}</p>
+      <div ref={conteudoRef} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Coluna esquerda — produtos */}
+        <div className="lg:col-span-2 space-y-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : produtos.length === 0 ? (
+            <CanvasBox cor="#f59e0b">
+              <div className="flex flex-col items-center justify-center py-16">
+                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                  <Tag size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
+                </motion.div>
+                <p className="text-sm" style={{ color: '#3a6090' }}>{txt.semProdutos}</p>
+              </div>
+            </CanvasBox>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {produtos.map((p, i) => (
+                <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+                  <CanvasBox cor="#f59e0b" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                      className="text-xs font-black tracking-[0.3em] uppercase mb-2"
+                      style={{ color: '#f59e0b', textShadow: '0 0 15px #f59e0b' }}>AXIOMA AI.TECH</motion.p>
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="font-bold text-sm truncate mr-2" style={{ color: '#c8d8f0' }}>{p.produto_servico}</h3>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}>
+                          <Pencil size={15} style={{ color: '#6ab0ff' }} />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(p.id)}>
+                          <Trash2 size={15} style={{ color: '#f87171' }} />
+                        </motion.button>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-black mb-3" style={{ color: '#f59e0b', textShadow: '0 0 20px rgba(245,158,11,0.6)' }}>{fmt(p.preco_sugerido || 0)}</p>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: '#3a6090' }}>{txt.custo}</span>
+                        <span className="text-xs font-black" style={{ color: '#f87171' }}>{fmt(p.custo_total || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: '#3a6090' }}>{txt.margem}</span>
+                        <span className="text-xs font-black" style={{ color: '#34d399' }}>{p.margem_desejada}%</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs" style={{ color: '#3a6090' }}>{txt.lucro}</span>
+                        <span className="text-xs font-black" style={{ color: '#6ab0ff' }}>{fmt((p.preco_sugerido || 0) * ((p.margem_desejada || 0) / 100))}</span>
+                      </div>
+                    </div>
+                  </CanvasBox>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Coluna direita — painel épico */}
+        <div className="hidden lg:block">
+          <CanvasBox cor="#f59e0b" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+            <div className="flex flex-col items-center justify-center gap-6 py-4 min-h-[400px]">
+              <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
+                className="text-xs font-black tracking-[0.3em] uppercase"
+                style={{ color: '#f59e0b', textShadow: '0 0 20px #f59e0b' }}>AXIOMA AI.TECH</motion.p>
+              <div className="flex gap-1">
+                {'PRICE'.split('').map((letra, i) => (
+                  <motion.span key={i}
+                    animate={{ opacity: [0.5, 1, 0.5], y: [0, -4, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.15 }}
+                    className="text-4xl font-black"
+                    style={{ color: '#f59e0b', textShadow: '0 0 30px #f59e0b' }}>
+                    {letra}
+                  </motion.span>
+                ))}
+              </div>
+              <div className="relative flex items-center justify-center">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                  className="w-20 h-20 rounded-full border-2"
+                  style={{ borderColor: '#f59e0b', borderTopColor: 'transparent', borderRightColor: '#6ab0ff' }} />
+                <motion.div animate={{ rotate: -360 }} transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
+                  className="absolute w-12 h-12 rounded-full border-2"
+                  style={{ borderColor: '#34d399', borderTopColor: 'transparent', borderLeftColor: '#a78bfa' }} />
+                <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute w-6 h-6 rounded-full"
+                  style={{ background: 'radial-gradient(circle, #f59e0b, transparent)', boxShadow: '0 0 20px #f59e0b' }} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 w-full">
+                {[
+                  { label: txt.produtos, valor: produtos.length, cor: '#f59e0b' },
+                  { label: txt.margemMedia, valor: `${margemMedia}%`, cor: '#34d399' },
+                  { label: txt.menorPreco, valor: fmt(menorPreco), cor: '#6ab0ff' },
+                  { label: txt.maiorPreco, valor: fmt(maiorPreco), cor: '#a78bfa' },
+                ].map((stat, i) => (
+                  <motion.div key={i} whileHover={{ scale: 1.05 }}
+                    className="rounded-xl p-3 text-center"
+                    style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}30` }}>
+                    <motion.p animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2 + i * 0.5, repeat: Infinity }}
+                      className="text-lg font-black mb-1" style={{ color: stat.cor, textShadow: `0 0 15px ${stat.cor}60` }}>
+                      {stat.valor}
+                    </motion.p>
+                    <p className="text-xs" style={{ color: '#3a5a8a' }}>{stat.label}</p>
+                  </motion.div>
+                ))}
+              </div>
+              <motion.p animate={{ opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 4, repeat: Infinity }}
+                className="text-xs text-center" style={{ color: '#3a5a8a' }}>
+                {idioma === 'pt' ? 'Precifique com inteligência' : idioma === 'en' ? 'Price with intelligence' : 'Precifica con inteligencia'}
+              </motion.p>
             </div>
           </CanvasBox>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {produtos.map((p, i) => (
-              <motion.div key={p.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-                <CanvasBox cor="#f59e0b" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
-                  <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                    className="text-xs font-black tracking-[0.3em] uppercase mb-2"
-                    style={{ color: '#f59e0b', textShadow: '0 0 15px #f59e0b' }}>AXIOMA AI.TECH</motion.p>
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-bold text-sm truncate mr-2" style={{ color: '#c8d8f0' }}>{p.produto_servico}</h3>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}>
-                        <Pencil size={15} style={{ color: '#6ab0ff' }} />
-                      </motion.button>
-                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(p.id)}>
-                        <Trash2 size={15} style={{ color: '#f87171' }} />
-                      </motion.button>
-                    </div>
-                  </div>
-                  <p className="text-2xl font-black mb-3" style={{ color: '#f59e0b', textShadow: '0 0 20px rgba(245,158,11,0.6)' }}>{fmt(p.preco_sugerido || 0)}</p>
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between">
-                      <span className="text-xs" style={{ color: '#3a6090' }}>{txt.custo}</span>
-                      <span className="text-xs font-black" style={{ color: '#f87171' }}>{fmt(p.custo_total || 0)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs" style={{ color: '#3a6090' }}>{txt.margem}</span>
-                      <span className="text-xs font-black" style={{ color: '#34d399' }}>{p.margem_desejada}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-xs" style={{ color: '#3a6090' }}>{txt.lucro}</span>
-                      <span className="text-xs font-black" style={{ color: '#6ab0ff' }}>{fmt((p.preco_sugerido || 0) * ((p.margem_desejada || 0) / 100))}</span>
-                    </div>
-                  </div>
-                </CanvasBox>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Modal Premium */}
@@ -313,7 +376,6 @@ export default function Precificacao() {
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: '#3a5a8a' }}><X size={20} /></motion.button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Campos */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-bold" style={{ color: '#c8d8f0' }}>{txt.dadosProduto}</h4>
                     {[
@@ -331,7 +393,6 @@ export default function Precificacao() {
                       </div>
                     ))}
                   </div>
-                  {/* Preview */}
                   <div className="flex flex-col justify-center items-center text-center gap-4">
                     <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: '#3a5a8a' }}>{txt.precoSugerido}</p>
                     <motion.p key={precoPreview} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
