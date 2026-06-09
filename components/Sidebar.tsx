@@ -13,6 +13,15 @@ const supabase = createBrowserClient(
 
 const grupos = [
   {
+    label: "🟠 MEI",
+    cor: "#f97316",
+    corBg: "rgba(249,115,22,0.08)",
+    destaque: true,
+    itens: [
+      { label: "Gestão MEI", path: "/mei", emoji: "🏪" },
+    ]
+  },
+  {
     label: "💰 Financeiro",
     cor: "#3b6fd4",
     corBg: "rgba(59,111,212,0.08)",
@@ -81,7 +90,7 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useLanguage();
-  const [abertos, setAbertos] = useState<string[]>(["💰 Financeiro"]);
+  const [abertos, setAbertos] = useState<string[]>(["🟠 MEI", "💰 Financeiro"]);
   const [menuAberto, setMenuAberto] = useState(false);
 
   const toggleGrupo = (label: string) => {
@@ -106,7 +115,6 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div
         className="flex flex-col items-center py-6 px-4 border-b cursor-pointer transition-all hover:opacity-80"
         style={{ borderColor: "rgba(59,111,212,0.15)" }}
@@ -125,12 +133,10 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Seletor de idioma */}
       <div className="px-4 py-3 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
         <SeletorIdioma />
       </div>
 
-      {/* Dashboard fixo */}
       <div className="px-4 pt-4">
         <div
           onClick={() => navegar("/dashboard")}
@@ -147,27 +153,39 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Grupos recolhíveis */}
       <nav className="flex-1 px-4 pt-3 pb-4 space-y-1.5 overflow-auto">
         {grupos.map((grupo) => {
           const aberto = abertos.includes(grupo.label);
           const ativo = grupoAtivo(grupo.itens);
+          const ehMei = (grupo as any).destaque === true;
           return (
             <div key={grupo.label}>
               <div
                 onClick={() => toggleGrupo(grupo.label)}
                 className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all"
                 style={{
-                  background: ativo ? grupo.corBg : "transparent",
-                  border: ativo ? `1px solid ${grupo.cor}30` : "1px solid transparent",
-                  color: ativo ? grupo.cor : "#4a6a8a",
+                  background: ativo ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "transparent",
+                  border: ativo ? `1px solid ${grupo.cor}30` : ehMei ? "1px solid rgba(249,115,22,0.25)" : "1px solid transparent",
+                  color: ativo ? grupo.cor : ehMei ? "#f97316" : "#4a6a8a",
+                  boxShadow: ehMei ? "0 0 16px rgba(249,115,22,0.1), inset 0 0 20px rgba(249,115,22,0.03)" : "none",
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <div className="w-1 h-4 rounded-full" style={{ background: aberto ? grupo.cor : "rgba(59,111,212,0.2)" }} />
+                  <div className="w-1 h-4 rounded-full" style={{
+                    background: aberto ? grupo.cor : ehMei ? "rgba(249,115,22,0.5)" : "rgba(59,111,212,0.2)",
+                    boxShadow: ehMei && aberto ? "0 0 8px #f97316" : "none"
+                  }} />
                   <span className="text-xs font-bold tracking-wider uppercase">{grupo.label}</span>
+                  {ehMei && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-black animate-pulse"
+                      style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 9, border: "1px solid rgba(249,115,22,0.4)" }}>
+                      NOVO
+                    </span>
+                  )}
                 </div>
-                {aberto ? <ChevronDown size={13} style={{ color: grupo.cor }} /> : <ChevronRight size={13} style={{ color: "#4a6a8a" }} />}
+                {aberto
+                  ? <ChevronDown size={13} style={{ color: grupo.cor }} />
+                  : <ChevronRight size={13} style={{ color: ehMei ? "#f97316" : "#4a6a8a" }} />}
               </div>
               {aberto && (
                 <div className="ml-4 mt-1 space-y-0.5 mb-1 border-l-2 pl-3" style={{ borderColor: `${grupo.cor}40` }}>
@@ -197,10 +215,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Rodapé — Logout + Badge Premium */}
       <div className="p-4 border-t space-y-3" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
-
-        {/* Botão Logout */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all hover:scale-105"
@@ -214,7 +229,6 @@ export default function Sidebar() {
           <span className="text-xs font-bold tracking-wider uppercase">Sair da conta</span>
         </button>
 
-        {/* Badge Premium */}
         <div
           className="rounded-xl p-3 text-center cursor-pointer transition-all hover:scale-105"
           onClick={() => navegar("/ia-tributaria")}
@@ -236,7 +250,6 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* DESKTOP */}
       <div className="hidden md:flex w-64 min-h-screen flex-col flex-shrink-0" style={{
         background: "linear-gradient(180deg, #060f1e 0%, #020810 100%)",
         borderRight: "1px solid rgba(59,111,212,0.2)",
@@ -245,7 +258,6 @@ export default function Sidebar() {
         <SidebarContent />
       </div>
 
-      {/* MOBILE — header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3" style={{
         background: "rgba(6,15,30,0.97)",
         borderBottom: "1px solid rgba(59,111,212,0.2)",
@@ -272,7 +284,6 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* MOBILE — drawer */}
       {menuAberto && (
         <div className="md:hidden fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setMenuAberto(false)}>
           <div
@@ -290,7 +301,6 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* MOBILE — espaço header */}
       <div className="md:hidden h-16 flex-shrink-0" />
     </>
   );
