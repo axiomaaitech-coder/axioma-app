@@ -14,6 +14,15 @@ const supabase = createBrowserClient(
 
 const grupos = [
   {
+    label: { pt: "🟠 MEI", en: "🟠 MEI", es: "🟠 MEI" },
+    cor: "#f97316",
+    corBg: "rgba(249,115,22,0.12)",
+    destaque: true,
+    itens: [
+      { label: { pt: "Gestão MEI", en: "MEI Management", es: "Gestión MEI" }, path: "/mei", emoji: "🏪" },
+    ]
+  },
+  {
     label: { pt: "💰 Financeiro", en: "💰 Financial", es: "💰 Financiero" },
     cor: "#3b6fd4",
     corBg: "rgba(59,111,212,0.12)",
@@ -118,7 +127,7 @@ export default function TopNav() {
 
   return (
     <>
-      {/* ── DESKTOP TopNav ── */}
+      {/* DESKTOP */}
       <motion.nav
         ref={navRef}
         initial={{ y: -80, opacity: 0 }}
@@ -168,10 +177,11 @@ export default function TopNav() {
           <span>{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
         </motion.button>
 
-        {/* Grupos dropdown */}
+        {/* Grupos */}
         {grupos.map((grupo) => {
           const ativo = grupoAtivo(grupo.itens);
           const aberto = dropdown === grupo.label.pt;
+          const ehMei = (grupo as any).destaque === true;
           return (
             <div key={grupo.label.pt} className="relative">
               <motion.button
@@ -180,12 +190,19 @@ export default function TopNav() {
                 onClick={() => setDropdown(aberto ? null : grupo.label.pt)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  background: ativo || aberto ? grupo.corBg : "transparent",
-                  color: ativo || aberto ? grupo.cor : "#5a7a9a",
-                  border: ativo || aberto ? `1px solid ${grupo.cor}40` : "1px solid transparent",
+                  background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "transparent",
+                  color: ativo || aberto ? grupo.cor : ehMei ? "#f97316" : "#5a7a9a",
+                  border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(249,115,22,0.3)" : "1px solid transparent",
+                  boxShadow: ehMei ? "0 0 12px rgba(249,115,22,0.15)" : "none",
                 }}
               >
                 <span className="text-xs">{grupo.label[lang]}</span>
+                {ehMei && (
+                  <span className="text-xs px-1 py-0.5 rounded-full font-black animate-pulse"
+                    style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 8, border: "1px solid rgba(249,115,22,0.4)" }}>
+                    NOVO
+                  </span>
+                )}
                 <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown size={13} />
                 </motion.div>
@@ -227,11 +244,7 @@ export default function TopNav() {
                             <span className="text-base">{item.emoji}</span>
                             <span className="text-sm font-medium">{item.label[lang]}</span>
                             {itemAtivo && (
-                              <motion.div
-                                layoutId="activeItem"
-                                className="ml-auto w-2 h-2 rounded-full"
-                                style={{ background: grupo.cor }}
-                              />
+                              <motion.div layoutId="activeItem" className="ml-auto w-2 h-2 rounded-full" style={{ background: grupo.cor }} />
                             )}
                           </motion.button>
                         );
@@ -264,7 +277,7 @@ export default function TopNav() {
         </div>
       </motion.nav>
 
-      {/* ── MOBILE TopNav ── */}
+      {/* MOBILE */}
       <motion.div
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -276,33 +289,18 @@ export default function TopNav() {
           backdropFilter: "blur(16px)",
         }}
       >
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-2.5 cursor-pointer"
-          onClick={() => navegar("/dashboard")}
-        >
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-2.5 cursor-pointer" onClick={() => navegar("/dashboard")}>
           <div style={{ filter: "drop-shadow(0 0 10px rgba(106,176,255,0.6))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={30} height={30} className="object-contain" />
           </div>
           <div>
-            <p className="font-black tracking-[0.25em] text-xs leading-none" style={{
-              background: "linear-gradient(135deg, #c8d8f0, #6ab0ff, #fff)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
-            }}>AXIOMA</p>
+            <p className="font-black tracking-[0.25em] text-xs leading-none" style={{ background: "linear-gradient(135deg, #c8d8f0, #6ab0ff, #fff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AXIOMA</p>
             <p style={{ color: "#3a5a8a", fontSize: 8, letterSpacing: "0.3em" }}>AI.TECH</p>
           </div>
         </motion.div>
-
         <div className="flex items-center gap-2">
           <SeletorIdioma />
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setMenuMobile(!menuMobile)}
-            className="p-2 rounded-xl"
-            style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}
-          >
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <AnimatePresence mode="wait">
               {menuMobile
                 ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><X size={18} style={{ color: "#6ab0ff" }} /></motion.div>
@@ -313,99 +311,56 @@ export default function TopNav() {
         </div>
       </motion.div>
 
-      {/* ── MOBILE Drawer ── */}
+      {/* MOBILE Drawer */}
       <AnimatePresence>
         {menuMobile && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="md:hidden fixed inset-0 z-40"
-              style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
-              onClick={() => setMenuMobile(false)}
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+              className="md:hidden fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+              onClick={() => setMenuMobile(false)} />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.3, ease: "easeOut" }}
               className="md:hidden fixed top-14 right-0 bottom-0 w-80 z-50 overflow-auto"
-              style={{
-                background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)",
-                borderLeft: "1px solid rgba(59,111,212,0.2)",
-                boxShadow: "-20px 0 60px rgba(0,0,0,0.6)",
-              }}
-            >
+              style={{ background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)", borderLeft: "1px solid rgba(59,111,212,0.2)", boxShadow: "-20px 0 60px rgba(0,0,0,0.6)" }}>
               <div className="p-4 space-y-2">
-                {/* Dashboard mobile */}
-                <motion.button
-                  whileHover={{ x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navegar("/dashboard")}
+                <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
-                  style={{
-                    background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)",
-                    border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)",
-                    color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a",
-                  }}
-                >
+                  style={{ background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
                   <span>🏠</span>
                   <span className="font-semibold text-sm">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
                 </motion.button>
 
-                {/* Grupos mobile */}
                 {grupos.map((grupo) => {
                   const ativo = grupoAtivo(grupo.itens);
                   const aberto = grupoMobile === grupo.label.pt;
+                  const ehMei = (grupo as any).destaque === true;
                   return (
                     <div key={grupo.label.pt}>
-                      <motion.button
-                        whileHover={{ x: 2 }}
-                        whileTap={{ scale: 0.98 }}
+                      <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }}
                         onClick={() => setGrupoMobile(aberto ? null : grupo.label.pt)}
                         className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
                         style={{
-                          background: ativo || aberto ? grupo.corBg : "rgba(59,111,212,0.04)",
-                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : "1px solid rgba(59,111,212,0.08)",
-                          color: ativo || aberto ? grupo.cor : "#5a7a9a",
-                        }}
-                      >
-                        <span className="font-bold text-sm">{grupo.label[lang]}</span>
-                        <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                          <ChevronDown size={14} />
-                        </motion.div>
+                          background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "rgba(59,111,212,0.04)",
+                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(249,115,22,0.25)" : "1px solid rgba(59,111,212,0.08)",
+                          color: ativo || aberto ? grupo.cor : ehMei ? "#f97316" : "#5a7a9a",
+                        }}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm">{grupo.label[lang]}</span>
+                          {ehMei && <span className="text-xs px-1 py-0.5 rounded-full font-black animate-pulse" style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 8 }}>NOVO</span>}
+                        </div>
+                        <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown size={14} /></motion.div>
                       </motion.button>
 
                       <AnimatePresence>
                         {aberto && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.25, ease: "easeOut" }}
-                            className="overflow-hidden"
-                          >
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: "easeOut" }} className="overflow-hidden">
                             <div className="ml-3 mt-1 space-y-1 border-l-2 pl-3 pb-1" style={{ borderColor: `${grupo.cor}40` }}>
                               {grupo.itens.map((item, i) => {
                                 const itemAtivo = pathname === item.path;
                                 return (
-                                  <motion.button
-                                    key={item.path}
-                                    initial={{ opacity: 0, x: -8 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.05 }}
-                                    whileHover={{ x: 4 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => navegar(item.path)}
+                                  <motion.button key={item.path} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                                    whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(item.path)}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left"
-                                    style={{
-                                      background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}20, ${grupo.cor}08)` : "transparent",
-                                      color: itemAtivo ? grupo.cor : "#6a8aaa",
-                                      border: itemAtivo ? `1px solid ${grupo.cor}30` : "1px solid transparent",
-                                    }}
-                                  >
+                                    style={{ background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}20, ${grupo.cor}08)` : "transparent", color: itemAtivo ? grupo.cor : "#6a8aaa", border: itemAtivo ? `1px solid ${grupo.cor}30` : "1px solid transparent" }}>
                                     <span>{item.emoji}</span>
                                     <span className="text-sm font-medium">{item.label[lang]}</span>
                                     {itemAtivo && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: grupo.cor }} />}
@@ -420,18 +375,9 @@ export default function TopNav() {
                   );
                 })}
 
-                {/* Logout mobile */}
-                <motion.button
-                  whileHover={{ x: 2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleLogout}
+                <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl mt-4"
-                  style={{
-                    background: "rgba(248,113,113,0.08)",
-                    border: "1px solid rgba(248,113,113,0.2)",
-                    color: "#f87171",
-                  }}
-                >
+                  style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171" }}>
                   <LogOut size={15} />
                   <span className="font-bold text-sm">{lang === "pt" ? "Sair da conta" : lang === "en" ? "Logout" : "Cerrar sesión"}</span>
                 </motion.button>
@@ -441,7 +387,6 @@ export default function TopNav() {
         )}
       </AnimatePresence>
 
-      {/* Espaço fixo para o conteúdo não ficar atrás do nav */}
       <div className="h-16 md:h-16" />
     </>
   );
