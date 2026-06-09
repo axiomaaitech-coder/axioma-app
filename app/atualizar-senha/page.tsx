@@ -1,9 +1,14 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@supabase/ssr'
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function AtualizarSenha() {
   const router = useRouter()
@@ -15,37 +20,71 @@ export default function AtualizarSenha() {
   const [sucesso, setSucesso] = useState(false)
   const [verSenha, setVerSenha] = useState(false)
   const [verConfirmar, setVerConfirmar] = useState(false)
+  const [sessaoPronta, setSessaoPronta] = useState(false)
+
+  useEffect(() => {
+    // Supabase envia o token no hash da URL (#access_token=...&type=recovery)
+    // Precisamos detectar e trocar por sessão antes de permitir updateUser
+    const hash = window.location.hash
+    if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
+      const params = new URLSearchParams(hash.replace('#', ''))
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token') || ''
+      if (accessToken) {
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(({ error }) => {
+            if (error) {
+              setErro(
+                idioma === 'pt' ? 'Link inválido ou expirado. Solicite um novo.' :
+                idioma === 'en' ? 'Invalid or expired link. Please request a new one.' :
+                'Enlace inválido o expirado. Solicite uno nuevo.'
+              )
+            } else {
+              setSessaoPronta(true)
+            }
+          })
+      }
+    } else {
+      // Verifica se já tem sessão ativa (ex: usuário logado trocando senha)
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          setSessaoPronta(true)
+        } else {
+          setErro(
+            idioma === 'pt' ? 'Link inválido ou expirado. Solicite um novo link de recuperação.' :
+            idioma === 'en' ? 'Invalid or expired link. Please request a new recovery link.' :
+            'Enlace inválido o expirado. Solicite un nuevo enlace de recuperación.'
+          )
+        }
+      })
+    }
+  }, [])
 
   const traduzirErro = (mensagem: string): string => {
     if (mensagem.includes('Auth session missing')) {
-      return idioma === 'pt'
-        ? 'Sessão expirada. Solicite um novo link de recuperação de senha.'
-        : idioma === 'en'
-        ? 'Session expired. Please request a new password recovery link.'
-        : 'Sesión expirada. Solicite un nuevo enlace de recuperación de contraseña.'
+      return idioma === 'pt' ? 'Sessão expirada. Solicite um novo link de recuperação de senha.' :
+             idioma === 'en' ? 'Session expired. Please request a new password recovery link.' :
+             'Sesión expirada. Solicite un nuevo enlace de recuperación de contraseña.'
     }
     if (mensagem.includes('Password should be at least')) {
-      return idioma === 'pt'
-        ? 'A senha deve ter pelo menos 6 caracteres.'
-        : idioma === 'en'
-        ? 'Password must be at least 6 characters.'
-        : 'La contraseña debe tener al menos 6 caracteres.'
+      return idioma === 'pt' ? 'A senha deve ter pelo menos 6 caracteres.' :
+             idioma === 'en' ? 'Password must be at least 6 characters.' :
+             'La contraseña debe tener al menos 6 caracteres.'
     }
-    if (mensagem.includes('Invalid login credentials')) {
-      return idioma === 'pt'
-        ? 'Credenciais inválidas.'
-        : idioma === 'en'
-        ? 'Invalid credentials.'
-        : 'Credenciales inválidas.'
-    }
-    return idioma === 'pt'
-      ? 'Ocorreu um erro. Tente novamente.'
-      : idioma === 'en'
-      ? 'An error occurred. Please try again.'
-      : 'Ocurrió un error. Inténtalo de nuevo.'
+    return idioma === 'pt' ? 'Ocorreu um erro. Tente novamente.' :
+           idioma === 'en' ? 'An error occurred. Please try again.' :
+           'Ocurrió un error. Inténtalo de nuevo.'
   }
 
   const handleAtualizar = async () => {
+    if (!sessaoPronta) {
+      setErro(
+        idioma === 'pt' ? 'Sessão não encontrada. Solicite um novo link.' :
+        idioma === 'en' ? 'Session not found. Please request a new link.' :
+        'Sesión no encontrada. Solicite un nuevo enlace.'
+      )
+      return
+    }
     if (!senha || !confirmarSenha) {
       setErro(idioma === 'pt' ? 'Preencha todos os campos.' : idioma === 'en' ? 'Fill in all fields.' : 'Complete todos los campos.')
       return
@@ -62,7 +101,6 @@ export default function AtualizarSenha() {
     setCarregando(true)
     setErro('')
 
-    const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password: senha })
 
     if (error) {
@@ -71,6 +109,7 @@ export default function AtualizarSenha() {
     } else {
       setSucesso(true)
       setCarregando(false)
+      await supabase.auth.signOut()
       setTimeout(() => router.push('/'), 3000)
     }
   }
@@ -127,6 +166,15 @@ export default function AtualizarSenha() {
           {idioma === 'pt' ? 'Criar nova senha' : idioma === 'en' ? 'Create new password' : 'Crear nueva contraseña'}
         </p>
 
+        {!sessaoPronta && !erro && (
+          <div className="flex items-center justify-center py-4 mb-4">
+            <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"/>
+            <span className="ml-3 text-sm" style={{color: '#3a6090'}}>
+              {idioma === 'pt' ? 'Verificando sessão...' : idioma === 'en' ? 'Verifying session...' : 'Verificando sesión...'}
+            </span>
+          </div>
+        )}
+
         <div className="w-full space-y-4">
           <div>
             <label className="text-xs font-semibold tracking-widest uppercase block mb-2" style={{color: '#3a5a8a'}}>
@@ -134,9 +182,10 @@ export default function AtualizarSenha() {
             </label>
             <div className="relative">
               <input type={verSenha ? 'text' : 'password'} value={senha} onChange={(e) => setSenha(e.target.value)}
+                disabled={!sessaoPronta}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm pr-12"
-                style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0'}}/>
+                style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0', opacity: sessaoPronta ? 1 : 0.5}}/>
               <button type="button" onClick={() => setVerSenha(!verSenha)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-lg"
                 style={{color: '#3a5a8a'}}>
@@ -152,9 +201,10 @@ export default function AtualizarSenha() {
             <div className="relative">
               <input type={verConfirmar ? 'text' : 'password'} value={confirmarSenha} onChange={(e) => setConfirmarSenha(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAtualizar()}
+                disabled={!sessaoPronta}
                 placeholder="••••••••"
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm pr-12"
-                style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0'}}/>
+                style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0', opacity: sessaoPronta ? 1 : 0.5}}/>
               <button type="button" onClick={() => setVerConfirmar(!verConfirmar)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-lg"
                 style={{color: '#3a5a8a'}}>
@@ -169,9 +219,9 @@ export default function AtualizarSenha() {
             </p>
           )}
 
-          <button onClick={handleAtualizar} disabled={carregando}
+          <button onClick={handleAtualizar} disabled={carregando || !sessaoPronta}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
-            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
+            style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: (carregando || !sessaoPronta) ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
             {carregando
               ? (idioma === 'pt' ? 'Atualizando...' : idioma === 'en' ? 'Updating...' : 'Actualizando...')
               : (idioma === 'pt' ? 'Atualizar Senha' : idioma === 'en' ? 'Update Password' : 'Actualizar Contraseña')}
