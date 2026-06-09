@@ -4,7 +4,7 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import {
   FileText, AlertTriangle, Calculator, TrendingUp,
-  Bot, Bell, Menu, X
+  Bot, Bell, Menu, X, Pencil, Check
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import jsPDF from 'jspdf'
@@ -137,6 +137,14 @@ export default function MEI() {
   const [precoMargem, setPrecoMargem] = useState('30')
   const [precoResultado, setPrecoResultado] = useState<any>(null)
 
+  // Estados de edição inline DAS
+  const [editandoDas, setEditandoDas] = useState(false)
+  const [dasValorTemp, setDasValorTemp] = useState('')
+  const [statusDasn, setStatusDasn] = useState<'Pendente' | 'Entregue' | 'Atrasado'>('Pendente')
+  const [statusIrpf, setStatusIrpf] = useState<'Não obrigatório' | 'Pendente' | 'Entregue'>('Não obrigatório')
+  const [editandoStatusDasn, setEditandoStatusDasn] = useState(false)
+  const [editandoStatusIrpf, setEditandoStatusIrpf] = useState(false)
+
   const txt = {
     titulo: idioma === 'pt' ? 'MEI — Gestão Completa' : idioma === 'en' ? 'MEI — Complete Management' : 'MEI — Gestión Completa',
     subtitulo: idioma === 'pt' ? 'Painel inteligente para Microempreendedor Individual' : idioma === 'en' ? 'Smart dashboard for Individual Microentrepreneur' : 'Panel inteligente para Microempresario Individual',
@@ -188,6 +196,22 @@ export default function MEI() {
     carregar()
   }
 
+  async function salvarDasInline() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const novoValor = parseFloat(dasValorTemp)
+    if (isNaN(novoValor)) return
+    setDasValor(String(novoValor))
+    const payload = { das_valor: novoValor, updated_at: new Date().toISOString() }
+    if (meiDados) {
+      await supabase.from('mei_dados').update(payload).eq('user_id', user.id)
+    } else {
+      await supabase.from('mei_dados').insert({ user_id: user.id, das_valor: novoValor, categoria_mei: categoriaMei, limite_anual: LIMITE_ANUAL, regime_tributario: 'mei' })
+    }
+    setEditandoDas(false)
+    carregar()
+  }
+
   const anoAtual = new Date().getFullYear()
   const faturamentoAnual = receitas
     .filter(r => new Date(r.data).getFullYear() === anoAtual)
@@ -202,7 +226,6 @@ export default function MEI() {
   const mediaMensal = ultimos3Meses.length > 0 ? ultimos3Meses.reduce((a, r) => a + r.valor, 0) / 3 : 0
   const mesesParaEstourar = mediaMensal > 0 ? Math.ceil(restanteLimite / mediaMensal) : null
   const percentualIsento = categoriaMei === 'Comércio' ? 0.08 : categoriaMei === 'Indústria' ? 0.08 : categoriaMei === 'Transporte' ? 0.16 : 0.32
-  const rendimentoIsento = faturamentoAnual * percentualIsento
 
   function calcularPreco() {
     if (!precoCusto) return
@@ -287,11 +310,13 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const subAtual = SUBMODULOS.find(s => s.id === submodulo)
 
+  const corStatus = (s: string) => s === 'Entregue' ? '#34d399' : s === 'Atrasado' ? '#f87171' : s === 'Recorrente' ? COR : s === 'Não obrigatório' ? '#3a5a8a' : '#fbbf24'
+
   return (
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={() => setModalConfig(true)} labelBotao={txt.configurar}>
       <div ref={conteudoRef} className="space-y-4">
 
-        {/* Navegação hamburger interna */}
+        {/* Navegação */}
         <CanvasBox>
           <div className="flex items-center gap-3 flex-wrap">
             <motion.button whileTap={{ scale: 0.95 }} onClick={() => setMenuAberto(!menuAberto)}
@@ -379,7 +404,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                   className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm"
                   style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)', color: '#f87171' }}>
                   <AlertTriangle size={16} />
-                  No ritmo atual, você atinge o limite em aproximadamente {mesesParaEstourar} meses. Considere abrir uma ME.
+                  No ritmo atual, você atinge o limite em aproximadamente {mesesParaEstourar} meses.
                 </motion.div>
               )}
             </CanvasBox>
@@ -416,7 +441,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </CanvasBox>
         )}
 
-        {/* DAS & OBRIGAÇÕES */}
+        {/* DAS & OBRIGAÇÕES — com lápis de edição */}
         {submodulo === 'das' && (
           <div className="space-y-4">
             <CanvasBox>
@@ -424,21 +449,108 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                 className="text-xs font-black tracking-[0.3em] uppercase mb-4" style={{ color: COR, textShadow: `0 0 20px ${COR}` }}>AXIOMA AI.TECH — MEI</motion.p>
               <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0' }}>Calendário de Obrigações Fiscais</p>
               <div className="space-y-3">
-                {[
-                  { tipo: 'DAS Mensal', prazo: 'Todo dia 20 de cada mês', valor: fmt(parseFloat(dasValor || '75.90')), cor: COR, status: 'Recorrente' },
-                  { tipo: 'DASN-SIMEI', prazo: 'Até 31 de maio de cada ano', valor: 'Declaração Anual', cor: '#fbbf24', status: new Date().getMonth() >= 5 ? 'Entregue' : 'Pendente' },
-                  { tipo: 'IRPF MEI', prazo: 'Até 29 de maio de cada ano', valor: `Se renda > R$ 33.888/ano`, cor: '#a78bfa', status: faturamentoAnual > 33888 ? 'Verificar' : 'Não obrigatório' },
-                ].map((item, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-                    className="flex items-center gap-4 p-4 rounded-xl" style={{ background: `${item.cor}08`, border: `1px solid ${item.cor}20` }}>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>{item.tipo}</p>
-                      <p className="text-xs" style={{ color: '#3a6090' }}>{item.prazo}</p>
-                      <p className="text-xs font-semibold mt-0.5" style={{ color: item.cor }}>{item.valor}</p>
-                    </div>
-                    <span className="text-xs px-2 py-1 rounded-full flex-shrink-0" style={{ background: `${item.cor}15`, color: item.cor, border: `1px solid ${item.cor}30` }}>{item.status}</span>
-                  </motion.div>
-                ))}
+
+                {/* DAS Mensal — editável */}
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                  className="flex items-center gap-4 p-4 rounded-xl" style={{ background: `${COR}08`, border: `1px solid ${COR}20` }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>DAS Mensal</p>
+                    <p className="text-xs" style={{ color: '#3a6090' }}>Todo dia 20 de cada mês</p>
+                    {editandoDas ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input type="number" value={dasValorTemp} onChange={e => setDasValorTemp(e.target.value)}
+                          className="w-28 px-2 py-1 rounded-lg text-xs focus:outline-none"
+                          style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${COR}40`, color: '#c8d8f0' }}
+                          autoFocus />
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={salvarDasInline}
+                          className="p-1 rounded-lg" style={{ background: 'rgba(52,211,153,0.2)', color: '#34d399' }}>
+                          <Check size={14} />
+                        </motion.button>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditandoDas(false)}
+                          className="p-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: '#f87171' }}>
+                          <X size={14} />
+                        </motion.button>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-semibold mt-0.5" style={{ color: COR }}>{fmt(parseFloat(dasValor || '75.90'))}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${COR}15`, color: COR, border: `1px solid ${COR}30` }}>Recorrente</span>
+                    {!editandoDas && (
+                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => { setDasValorTemp(dasValor); setEditandoDas(true) }}
+                        style={{ color: '#6ab0ff' }}>
+                        <Pencil size={15} />
+                      </motion.button>
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* DASN-SIMEI — status editável */}
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+                  className="flex items-center gap-4 p-4 rounded-xl" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>DASN-SIMEI</p>
+                    <p className="text-xs" style={{ color: '#3a6090' }}>Até 31 de maio de cada ano</p>
+                    <p className="text-xs font-semibold mt-0.5" style={{ color: '#fbbf24' }}>Declaração Anual</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {editandoStatusDasn ? (
+                      <div className="flex gap-1">
+                        {(['Pendente', 'Entregue', 'Atrasado'] as const).map(s => (
+                          <motion.button key={s} whileTap={{ scale: 0.9 }}
+                            onClick={() => { setStatusDasn(s); setEditandoStatusDasn(false) }}
+                            className="text-xs px-2 py-1 rounded-full"
+                            style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
+                            {s}
+                          </motion.button>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusDasn)}15`, color: corStatus(statusDasn), border: `1px solid ${corStatus(statusDasn)}30` }}>{statusDasn}</span>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoStatusDasn(true)} style={{ color: '#6ab0ff' }}>
+                          <Pencil size={15} />
+                        </motion.button>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+
+                {/* IRPF MEI — status editável */}
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
+                  className="flex items-center gap-4 p-4 rounded-xl" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>IRPF MEI</p>
+                    <p className="text-xs" style={{ color: '#3a6090' }}>Até 29 de maio de cada ano</p>
+                    <p className="text-xs font-semibold mt-0.5" style={{ color: '#a78bfa' }}>
+                      {faturamentoAnual > 33888 ? 'Atenção: renda acima do limite de isenção' : 'Se renda > R$ 33.888/ano'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {editandoStatusIrpf ? (
+                      <div className="flex gap-1">
+                        {(['Não obrigatório', 'Pendente', 'Entregue'] as const).map(s => (
+                          <motion.button key={s} whileTap={{ scale: 0.9 }}
+                            onClick={() => { setStatusIrpf(s); setEditandoStatusIrpf(false) }}
+                            className="text-xs px-2 py-1 rounded-full"
+                            style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
+                            {s}
+                          </motion.button>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusIrpf)}15`, color: corStatus(statusIrpf), border: `1px solid ${corStatus(statusIrpf)}30` }}>{statusIrpf}</span>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoStatusIrpf(true)} style={{ color: '#6ab0ff' }}>
+                          <Pencil size={15} />
+                        </motion.button>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+
               </div>
             </CanvasBox>
             <CanvasBox>
@@ -465,7 +577,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </div>
         )}
 
-        {/* REFORMA TRIBUTÁRIA */}
+        {/* REFORMA */}
         {submodulo === 'reforma' && (
           <div className="space-y-4">
             <CanvasBox>
@@ -552,7 +664,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </CanvasBox>
         )}
 
-        {/* IA MEI ADVISOR */}
+        {/* IA */}
         {submodulo === 'ia' && (
           <CanvasBox>
             <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
