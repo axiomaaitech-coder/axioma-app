@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code')
   const token_hash = requestUrl.searchParams.get('token_hash')
   const type = requestUrl.searchParams.get('type')
+  const next = requestUrl.searchParams.get('next') || '/dashboard'
 
   const cookieStore = await cookies()
 
@@ -30,19 +31,24 @@ export async function GET(request: NextRequest) {
     }
   )
 
-  // Fluxo 1 — token_hash (confirmação de email via template customizado)
+  // Fluxo 1 — token_hash (recovery de senha via template customizado)
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type: type as any })
     if (!error) {
-      return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
+      // Se for recovery, manda para atualizar-senha
+      // Se for outro tipo (signup, etc), manda para o next ou dashboard
+      const destino = type === 'recovery' ? '/atualizar-senha' : next
+      return NextResponse.redirect(new URL(destino, requestUrl.origin))
     }
+    // Erro no verifyOtp
+    return NextResponse.redirect(new URL('/?erro=callback', requestUrl.origin))
   }
 
   // Fluxo 2 — code (OAuth ou magic link padrão)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(new URL('/dashboard', requestUrl.origin))
+      return NextResponse.redirect(new URL(next, requestUrl.origin))
     }
   }
 
