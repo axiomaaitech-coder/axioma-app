@@ -136,8 +136,6 @@ export default function MEI() {
   const [precoHoras, setPrecoHoras] = useState('')
   const [precoMargem, setPrecoMargem] = useState('30')
   const [precoResultado, setPrecoResultado] = useState<any>(null)
-
-  // Estados de edição inline DAS
   const [editandoDas, setEditandoDas] = useState(false)
   const [dasValorTemp, setDasValorTemp] = useState('')
   const [statusDasn, setStatusDasn] = useState<'Pendente' | 'Entregue' | 'Atrasado'>('Pendente')
@@ -160,7 +158,7 @@ export default function MEI() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     const [{ data: mei }, { data: rec }] = await Promise.all([
-      supabase.from('mei_dados').select('*').eq('user_id', user.id).single(),
+      supabase.from('mei_dados').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('receitas').select('*').eq('user_id', user.id).order('data', { ascending: false }),
     ])
     setMeiDados(mei || null)
@@ -177,7 +175,7 @@ export default function MEI() {
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
-    const payload = {
+    const { error } = await supabase.from('mei_dados').upsert({
       user_id: user.id,
       categoria_mei: categoriaMei,
       das_valor: parseFloat(dasValor),
@@ -185,12 +183,8 @@ export default function MEI() {
       limite_anual: LIMITE_ANUAL,
       regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
-    }
-    if (meiDados) {
-      await supabase.from('mei_dados').update(payload).eq('user_id', user.id)
-    } else {
-      await supabase.from('mei_dados').insert(payload)
-    }
+    }, { onConflict: 'user_id' })
+    if (error) console.error('Erro ao salvar MEI:', error)
     setModalConfig(false)
     setSalvando(false)
     carregar()
@@ -202,27 +196,24 @@ export default function MEI() {
     const novoValor = parseFloat(dasValorTemp)
     if (isNaN(novoValor)) return
     setDasValor(String(novoValor))
-    const payload = { das_valor: novoValor, updated_at: new Date().toISOString() }
-    if (meiDados) {
-      await supabase.from('mei_dados').update(payload).eq('user_id', user.id)
-    } else {
-      await supabase.from('mei_dados').insert({ user_id: user.id, das_valor: novoValor, categoria_mei: categoriaMei, limite_anual: LIMITE_ANUAL, regime_tributario: 'mei' })
-    }
+    await supabase.from('mei_dados').upsert({
+      user_id: user.id,
+      das_valor: novoValor,
+      categoria_mei: categoriaMei,
+      limite_anual: LIMITE_ANUAL,
+      regime_tributario: 'mei',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
     setEditandoDas(false)
     carregar()
   }
 
   const anoAtual = new Date().getFullYear()
-  const faturamentoAnual = receitas
-    .filter(r => new Date(r.data).getFullYear() === anoAtual)
-    .reduce((acc, r) => acc + (r.valor || 0), 0)
+  const faturamentoAnual = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual).reduce((acc, r) => acc + (r.valor || 0), 0)
   const percentualLimite = Math.min(100, (faturamentoAnual / LIMITE_ANUAL) * 100)
   const restanteLimite = Math.max(0, LIMITE_ANUAL - faturamentoAnual)
   const mesAtual = new Date().getMonth()
-  const ultimos3Meses = receitas.filter(r => {
-    const d = new Date(r.data)
-    return d.getFullYear() === anoAtual && d.getMonth() >= mesAtual - 3
-  })
+  const ultimos3Meses = receitas.filter(r => { const d = new Date(r.data); return d.getFullYear() === anoAtual && d.getMonth() >= mesAtual - 3 })
   const mediaMensal = ultimos3Meses.length > 0 ? ultimos3Meses.reduce((a, r) => a + r.valor, 0) / 3 : 0
   const mesesParaEstourar = mediaMensal > 0 ? Math.ceil(restanteLimite / mediaMensal) : null
   const percentualIsento = categoriaMei === 'Comércio' ? 0.08 : categoriaMei === 'Indústria' ? 0.08 : categoriaMei === 'Transporte' ? 0.16 : 0.32
@@ -235,12 +226,7 @@ export default function MEI() {
     const dasPerc = meiDados?.das_valor ? (meiDados.das_valor * 12) / LIMITE_ANUAL : 0.011
     const custoTotal = custo / horas
     const precoMinimo = custoTotal / (1 - margem - dasPerc - percentualIsento * 0.275)
-    setPrecoResultado({
-      custoHora: custoTotal,
-      precoMinimo,
-      margemReais: precoMinimo * margem,
-      impostos: precoMinimo * (dasPerc + percentualIsento * 0.275),
-    })
+    setPrecoResultado({ custoHora: custoTotal, precoMinimo, margemReais: precoMinimo * margem, impostos: precoMinimo * (dasPerc + percentualIsento * 0.275) })
   }
 
   async function enviarMensagemIA() {
@@ -249,28 +235,20 @@ export default function MEI() {
     setChatMensagens(prev => [...prev, { role: 'user', content: msg }])
     setChatInput('')
     setChatLoading(true)
-    const contexto = `Você é o MEI Advisor da Axioma AI.Tech, especialista em gestão financeira para MEI brasileiro.
-Dados reais: Categoria: ${categoriaMei}, Faturamento ${anoAtual}: R$ ${faturamentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, Limite usado: ${percentualLimite.toFixed(1)}%, Restante: R$ ${restanteLimite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, DAS: R$ ${dasValor}.
-Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'espanhol'}, de forma clara e prática. Máximo 3 parágrafos.`
+    const contexto = `Você é o MEI Advisor da Axioma AI.Tech. Dados: Categoria: ${categoriaMei}, Faturamento ${anoAtual}: R$ ${faturamentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, Limite usado: ${percentualLimite.toFixed(1)}%, Restante: R$ ${restanteLimite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, DAS: R$ ${dasValor}. Responda em português, claro e prático, máximo 3 parágrafos.`
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
+          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
           system: contexto,
-          messages: [
-            ...chatMensagens.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-            { role: 'user', content: msg }
-          ],
+          messages: [...chatMensagens.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })), { role: 'user', content: msg }],
         })
       })
       const data = await response.json()
-      setChatMensagens(prev => [...prev, { role: 'assistant', content: data.content?.[0]?.text || 'Erro ao obter resposta.' }])
-    } catch {
-      setChatMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
-    }
+      setChatMensagens(prev => [...prev, { role: 'assistant', content: data.content?.[0]?.text || 'Erro.' }])
+    } catch { setChatMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão.' }]) }
     setChatLoading(false)
   }
 
@@ -309,32 +287,27 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const subAtual = SUBMODULOS.find(s => s.id === submodulo)
-
   const corStatus = (s: string) => s === 'Entregue' ? '#34d399' : s === 'Atrasado' ? '#f87171' : s === 'Recorrente' ? COR : s === 'Não obrigatório' ? '#3a5a8a' : '#fbbf24'
 
   return (
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={() => setModalConfig(true)} labelBotao={txt.configurar}>
       <div ref={conteudoRef} className="space-y-4">
 
-        {/* Navegação */}
         <CanvasBox>
           <div className="flex items-center gap-3 flex-wrap">
             <motion.button whileTap={{ scale: 0.95 }} onClick={() => setMenuAberto(!menuAberto)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm md:hidden"
               style={{ background: `${COR}20`, color: COR, border: `1px solid ${COR}40` }}>
-              <Menu size={16} />
-              {subAtual?.label[idioma as 'pt' | 'en' | 'es']}
+              <Menu size={16} />{subAtual?.label[idioma as 'pt' | 'en' | 'es']}
             </motion.button>
             <div className="hidden md:flex gap-2 flex-wrap">
               {SUBMODULOS.map(s => {
-                const Icon = s.icon
-                const ativo = submodulo === s.id
+                const Icon = s.icon; const ativo = submodulo === s.id
                 return (
                   <motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => setSubmodulo(s.id)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
                     style={{ background: ativo ? `${COR}25` : 'rgba(255,255,255,0.03)', color: ativo ? COR : '#3a5a8a', border: `1px solid ${ativo ? COR + '50' : 'rgba(255,255,255,0.06)'}`, boxShadow: ativo ? `0 0 12px ${COR}30` : 'none' }}>
-                    <Icon size={14} />
-                    {s.label[idioma as 'pt' | 'en' | 'es']}
+                    <Icon size={14} />{s.label[idioma as 'pt' | 'en' | 'es']}
                   </motion.button>
                 )
               })}
@@ -343,8 +316,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
               <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity }}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold ml-auto"
                 style={{ background: percentualLimite >= 90 ? 'rgba(248,113,113,0.15)' : 'rgba(251,191,36,0.15)', color: percentualLimite >= 90 ? '#f87171' : '#fbbf24', border: `1px solid ${percentualLimite >= 90 ? 'rgba(248,113,113,0.3)' : 'rgba(251,191,36,0.3)'}` }}>
-                <AlertTriangle size={14} />
-                {percentualLimite.toFixed(0)}% do limite
+                <AlertTriangle size={14} />{percentualLimite.toFixed(0)}% do limite
               </motion.div>
             )}
           </div>
@@ -352,14 +324,12 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
             {menuAberto && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3 grid grid-cols-2 gap-2 md:hidden">
                 {SUBMODULOS.map(s => {
-                  const Icon = s.icon
-                  const ativo = submodulo === s.id
+                  const Icon = s.icon; const ativo = submodulo === s.id
                   return (
                     <motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => { setSubmodulo(s.id); setMenuAberto(false) }}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold"
                       style={{ background: ativo ? `${COR}25` : 'rgba(255,255,255,0.03)', color: ativo ? COR : '#3a5a8a', border: `1px solid ${ativo ? COR + '50' : 'rgba(255,255,255,0.06)'}` }}>
-                      <Icon size={14} />
-                      {s.label[idioma as 'pt' | 'en' | 'es']}
+                      <Icon size={14} />{s.label[idioma as 'pt' | 'en' | 'es']}
                     </motion.button>
                   )
                 })}
@@ -368,7 +338,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </AnimatePresence>
         </CanvasBox>
 
-        {/* PAINEL */}
         {submodulo === 'painel' && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -411,7 +380,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </div>
         )}
 
-        {/* FATURAMENTO */}
         {submodulo === 'faturamento' && (
           <CanvasBox>
             <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
@@ -441,7 +409,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </CanvasBox>
         )}
 
-        {/* DAS & OBRIGAÇÕES — com lápis de edição */}
         {submodulo === 'das' && (
           <div className="space-y-4">
             <CanvasBox>
@@ -449,8 +416,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                 className="text-xs font-black tracking-[0.3em] uppercase mb-4" style={{ color: COR, textShadow: `0 0 20px ${COR}` }}>AXIOMA AI.TECH — MEI</motion.p>
               <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0' }}>Calendário de Obrigações Fiscais</p>
               <div className="space-y-3">
-
-                {/* DAS Mensal — editável */}
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                   className="flex items-center gap-4 p-4 rounded-xl" style={{ background: `${COR}08`, border: `1px solid ${COR}20` }}>
                   <div className="flex-1 min-w-0">
@@ -460,16 +425,9 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                       <div className="flex items-center gap-2 mt-1">
                         <input type="number" value={dasValorTemp} onChange={e => setDasValorTemp(e.target.value)}
                           className="w-28 px-2 py-1 rounded-lg text-xs focus:outline-none"
-                          style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${COR}40`, color: '#c8d8f0' }}
-                          autoFocus />
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={salvarDasInline}
-                          className="p-1 rounded-lg" style={{ background: 'rgba(52,211,153,0.2)', color: '#34d399' }}>
-                          <Check size={14} />
-                        </motion.button>
-                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditandoDas(false)}
-                          className="p-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: '#f87171' }}>
-                          <X size={14} />
-                        </motion.button>
+                          style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${COR}40`, color: '#c8d8f0' }} autoFocus />
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={salvarDasInline} className="p-1 rounded-lg" style={{ background: 'rgba(52,211,153,0.2)', color: '#34d399' }}><Check size={14} /></motion.button>
+                        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setEditandoDas(false)} className="p-1 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: '#f87171' }}><X size={14} /></motion.button>
                       </div>
                     ) : (
                       <p className="text-xs font-semibold mt-0.5" style={{ color: COR }}>{fmt(parseFloat(dasValor || '75.90'))}</p>
@@ -477,17 +435,10 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${COR}15`, color: COR, border: `1px solid ${COR}30` }}>Recorrente</span>
-                    {!editandoDas && (
-                      <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
-                        onClick={() => { setDasValorTemp(dasValor); setEditandoDas(true) }}
-                        style={{ color: '#6ab0ff' }}>
-                        <Pencil size={15} />
-                      </motion.button>
-                    )}
+                    {!editandoDas && <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => { setDasValorTemp(dasValor); setEditandoDas(true) }} style={{ color: '#6ab0ff' }}><Pencil size={15} /></motion.button>}
                   </div>
                 </motion.div>
 
-                {/* DASN-SIMEI — status editável */}
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
                   className="flex items-center gap-4 p-4 rounded-xl" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
                   <div className="flex-1 min-w-0">
@@ -497,60 +448,44 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {editandoStatusDasn ? (
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         {(['Pendente', 'Entregue', 'Atrasado'] as const).map(s => (
-                          <motion.button key={s} whileTap={{ scale: 0.9 }}
-                            onClick={() => { setStatusDasn(s); setEditandoStatusDasn(false) }}
-                            className="text-xs px-2 py-1 rounded-full"
-                            style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
-                            {s}
-                          </motion.button>
+                          <motion.button key={s} whileTap={{ scale: 0.9 }} onClick={() => { setStatusDasn(s); setEditandoStatusDasn(false) }}
+                            className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>{s}</motion.button>
                         ))}
                       </div>
                     ) : (
                       <>
                         <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusDasn)}15`, color: corStatus(statusDasn), border: `1px solid ${corStatus(statusDasn)}30` }}>{statusDasn}</span>
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoStatusDasn(true)} style={{ color: '#6ab0ff' }}>
-                          <Pencil size={15} />
-                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoStatusDasn(true)} style={{ color: '#6ab0ff' }}><Pencil size={15} /></motion.button>
                       </>
                     )}
                   </div>
                 </motion.div>
 
-                {/* IRPF MEI — status editável */}
                 <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
                   className="flex items-center gap-4 p-4 rounded-xl" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)' }}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>IRPF MEI</p>
                     <p className="text-xs" style={{ color: '#3a6090' }}>Até 29 de maio de cada ano</p>
-                    <p className="text-xs font-semibold mt-0.5" style={{ color: '#a78bfa' }}>
-                      {faturamentoAnual > 33888 ? 'Atenção: renda acima do limite de isenção' : 'Se renda > R$ 33.888/ano'}
-                    </p>
+                    <p className="text-xs font-semibold mt-0.5" style={{ color: '#a78bfa' }}>{faturamentoAnual > 33888 ? 'Atenção: renda acima do limite de isenção' : 'Se renda > R$ 33.888/ano'}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {editandoStatusIrpf ? (
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         {(['Não obrigatório', 'Pendente', 'Entregue'] as const).map(s => (
-                          <motion.button key={s} whileTap={{ scale: 0.9 }}
-                            onClick={() => { setStatusIrpf(s); setEditandoStatusIrpf(false) }}
-                            className="text-xs px-2 py-1 rounded-full"
-                            style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>
-                            {s}
-                          </motion.button>
+                          <motion.button key={s} whileTap={{ scale: 0.9 }} onClick={() => { setStatusIrpf(s); setEditandoStatusIrpf(false) }}
+                            className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(s)}20`, color: corStatus(s), border: `1px solid ${corStatus(s)}40` }}>{s}</motion.button>
                         ))}
                       </div>
                     ) : (
                       <>
                         <span className="text-xs px-2 py-1 rounded-full" style={{ background: `${corStatus(statusIrpf)}15`, color: corStatus(statusIrpf), border: `1px solid ${corStatus(statusIrpf)}30` }}>{statusIrpf}</span>
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoStatusIrpf(true)} style={{ color: '#6ab0ff' }}>
-                          <Pencil size={15} />
-                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoStatusIrpf(true)} style={{ color: '#6ab0ff' }}><Pencil size={15} /></motion.button>
                       </>
                     )}
                   </div>
                 </motion.div>
-
               </div>
             </CanvasBox>
             <CanvasBox>
@@ -569,15 +504,13 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold"
                   style={{ background: `linear-gradient(135deg, #c2410c, ${COR})`, color: '#fff', boxShadow: `0 4px 20px ${COR}40` }}>
-                  <FileText size={16} />
-                  Abrir Portal DASN-SIMEI
+                  <FileText size={16} />Abrir Portal DASN-SIMEI
                 </motion.a>
               </div>
             </CanvasBox>
           </div>
         )}
 
-        {/* REFORMA */}
         {submodulo === 'reforma' && (
           <div className="space-y-4">
             <CanvasBox>
@@ -621,7 +554,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </div>
         )}
 
-        {/* PRECIFICAÇÃO */}
         {submodulo === 'precificacao' && (
           <CanvasBox>
             <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
@@ -664,7 +596,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
           </CanvasBox>
         )}
 
-        {/* IA */}
         {submodulo === 'ia' && (
           <CanvasBox>
             <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
@@ -696,9 +627,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
                 <div className="flex justify-start">
                   <div className="px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="flex gap-1">
-                      {[0, 1, 2].map(i => (
-                        <motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} className="w-2 h-2 rounded-full" style={{ background: COR }} />
-                      ))}
+                      {[0, 1, 2].map(i => (<motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} className="w-2 h-2 rounded-full" style={{ background: COR }} />))}
                     </div>
                   </div>
                 </div>
@@ -718,9 +647,7 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
             <div className="flex gap-2 flex-wrap mt-3">
               {['Vou estourar o limite?', 'Preciso declarar IRPF?', 'MEI ou ME em 2027?'].map((q, i) => (
                 <motion.button key={i} whileTap={{ scale: 0.95 }} onClick={() => setChatInput(q)}
-                  className="text-xs px-3 py-1.5 rounded-full" style={{ background: `${COR}10`, color: COR, border: `1px solid ${COR}25` }}>
-                  {q}
-                </motion.button>
+                  className="text-xs px-3 py-1.5 rounded-full" style={{ background: `${COR}10`, color: COR, border: `1px solid ${COR}25` }}>{q}</motion.button>
               ))}
             </div>
           </CanvasBox>
@@ -728,7 +655,6 @@ Responda em ${idioma === 'pt' ? 'português' : idioma === 'en' ? 'inglês' : 'es
 
       </div>
 
-      {/* Modal Configuração */}
       <AnimatePresence>
         {modalConfig && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
