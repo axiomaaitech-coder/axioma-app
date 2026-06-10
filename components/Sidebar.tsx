@@ -18,7 +18,13 @@ const grupos = [
     corBg: "rgba(249,115,22,0.08)",
     destaque: true,
     itens: [
-      { label: "Gestão MEI", path: "/mei", emoji: "🏪" },
+      { label: "Painel MEI", path: "/mei", emoji: "🏪" },
+      { label: "Faturamento", path: "/mei/faturamento", emoji: "📊" },
+      { label: "DAS & Obrigações", path: "/mei/das", emoji: "🔔" },
+      { label: "Reforma Tributária", path: "/mei/reforma", emoji: "⚠️" },
+      { label: "Precificação MEI", path: "/mei/precificacao", emoji: "🧮" },
+      { label: "IA MEI Advisor", path: "/mei/ia-advisor", emoji: "🤖" },
+      { label: "Imposto de Renda", path: "/mei/imposto-renda", emoji: "🧾" },
     ]
   },
   {
@@ -99,8 +105,9 @@ export default function Sidebar() {
     );
   };
 
+  // ✅ Detecta subrotas do MEI corretamente
   const grupoAtivo = (itens: { path: string }[]) =>
-    itens.some(i => pathname === i.path);
+    itens.some(i => pathname === i.path || pathname.startsWith(i.path + "/"));
 
   const navegar = (path: string) => {
     router.push(path);
@@ -115,6 +122,7 @@ export default function Sidebar() {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
+      {/* Logo */}
       <div
         className="flex flex-col items-center py-6 px-4 border-b cursor-pointer transition-all hover:opacity-80"
         style={{ borderColor: "rgba(59,111,212,0.15)" }}
@@ -133,10 +141,12 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Seletor idioma */}
       <div className="px-4 py-3 border-b" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
         <SeletorIdioma />
       </div>
 
+      {/* Dashboard */}
       <div className="px-4 pt-4">
         <div
           onClick={() => navegar("/dashboard")}
@@ -153,6 +163,7 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* Grupos */}
       <nav className="flex-1 px-4 pt-3 pb-4 space-y-1.5 overflow-auto">
         {grupos.map((grupo) => {
           const aberto = abertos.includes(grupo.label);
@@ -190,7 +201,8 @@ export default function Sidebar() {
               {aberto && (
                 <div className="ml-4 mt-1 space-y-0.5 mb-1 border-l-2 pl-3" style={{ borderColor: `${grupo.cor}40` }}>
                   {grupo.itens.map((item) => {
-                    const itemAtivo = pathname === item.path;
+                    // ✅ Detecta subrotas corretamente
+                    const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
                     return (
                       <div
                         key={item.path}
@@ -215,6 +227,7 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Rodapé */}
       <div className="p-4 border-t space-y-3" style={{ borderColor: "rgba(59,111,212,0.15)" }}>
         <button
           onClick={handleLogout}
@@ -250,6 +263,7 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* DESKTOP — sidebar lateral */}
       <div className="hidden md:flex w-64 min-h-screen flex-col flex-shrink-0" style={{
         background: "linear-gradient(180deg, #060f1e 0%, #020810 100%)",
         borderRight: "1px solid rgba(59,111,212,0.2)",
@@ -258,6 +272,7 @@ export default function Sidebar() {
         <SidebarContent />
       </div>
 
+      {/* MOBILE — barra superior */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3" style={{
         background: "rgba(6,15,30,0.97)",
         borderBottom: "1px solid rgba(59,111,212,0.2)",
@@ -284,6 +299,7 @@ export default function Sidebar() {
         </button>
       </div>
 
+      {/* MOBILE — drawer */}
       {menuAberto && (
         <div className="md:hidden fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.6)" }} onClick={() => setMenuAberto(false)}>
           <div
