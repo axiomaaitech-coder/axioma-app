@@ -123,16 +123,16 @@ export default function DASObrigacoes() {
     dasRecorrente: { pt: 'Recorrente', en: 'Recurring', es: 'Recurrente' },
     dasTodo: { pt: 'Todo dia 20 de cada mês', en: 'Every 20th of each month', es: 'Cada día 20 de cada mes' },
     dasnPrazo: { pt: 'Até 31 de maio de cada ano', en: 'By May 31st each year', es: 'Hasta el 31 de mayo de cada año' },
-    dasnDesc: { pt: 'Declaração Anual', en: 'Annual Declaration', es: 'Declaración Anual' },
-    irpfPrazo: { pt: 'Até 29 de maio de cada ano', en: 'By May 29th each year', es: 'Hasta el 29 de mayo de cada año' },
+    dasnDesc: { pt: 'Declaração Anual de Faturamento', en: 'Annual Revenue Declaration', es: 'Declaración Anual de Facturación' },
+    irpfPrazo: { pt: 'Até 30 de abril de cada ano', en: 'By April 30th each year', es: 'Hasta el 30 de abril de cada año' },
     calculadora: { pt: 'Calculadora DASN-SIMEI', en: 'DASN-SIMEI Calculator', es: 'Calculadora DASN-SIMEI' },
     receitaBruta: { pt: 'Receita Bruta', en: 'Gross Revenue', es: 'Ingresos Brutos' },
     categoria: { pt: 'Categoria', en: 'Category', es: 'Categoría' },
     abrirPortal: { pt: 'Abrir Portal DASN-SIMEI', en: 'Open DASN-SIMEI Portal', es: 'Abrir Portal DASN-SIMEI' },
-    salvar: { pt: 'Salvar', en: 'Save', es: 'Guardar' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
+  const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
 
   useEffect(() => { carregar() }, [])
 
@@ -207,12 +207,7 @@ export default function DASObrigacoes() {
   }
 
   return (
-    <ModuloLayout
-      titulo={t('titulo')}
-      subtitulo={t('subtitulo')}
-      onExportarPDF={exportarPDF}
-      exportando={exportando}
-    >
+    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}>
       <div ref={conteudoRef} className="space-y-4">
 
         {/* Cards resumo */}
@@ -330,7 +325,13 @@ export default function DASObrigacoes() {
                 <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>IRPF MEI</p>
                 <p className="text-xs" style={{ color: '#3a6090' }}>{t('irpfPrazo')}</p>
                 <p className="text-xs font-semibold mt-1" style={{ color: '#a78bfa' }}>
-                  {faturamentoAnual > 33888 ? '⚠️ Atenção: renda acima do limite de isenção' : 'Se renda > R$ 33.888/ano'}
+                  {faturamentoAnual > 33888
+                    ? lang === 'pt' ? '⚠️ Sua renda está acima do limite de isenção — acesse o módulo IR MEI'
+                    : lang === 'en' ? '⚠️ Your income exceeds the exemption limit — access the MEI IR module'
+                    : '⚠️ Sus ingresos superan el límite de exención — acceda al módulo IR MEI'
+                    : lang === 'pt' ? '✅ Axioma calculou: você está dentro do limite de isenção'
+                    : lang === 'en' ? '✅ Axioma calculated: you are within the exemption limit'
+                    : '✅ Axioma calculó: está dentro del límite de exención'}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
@@ -381,6 +382,7 @@ export default function DASObrigacoes() {
               <span className="text-sm" style={{ color: '#c8d8f0' }}>{t('categoria')}</span>
               <span className="text-sm font-bold" style={{ color: '#a78bfa' }}>{meiDados?.categoria_mei || 'Serviços'}</span>
             </div>
+            {/* ✅ Link correto do Portal DASN-SIMEI */}
             <motion.a whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               href="https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/declaracao-anual-de-faturamento-dasn-simei"
               target="_blank" rel="noopener noreferrer"
