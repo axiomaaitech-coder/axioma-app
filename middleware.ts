@@ -1,7 +1,57 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// ✅ Rate limiting simples em memória
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+
+function checkRateLimit(ip: string, maxRequests = 100, windowMs = 60000): boolean {
+  const now = Date.now()
+  const record = rateLimitMap.get(ip)
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs })
+    return true
+  }
+  if (record.count >= maxRequests) return false
+  record.count++
+  return true
+}
+
+// ✅ Headers de segurança
+function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=31536000; includeSubDomains; preload'
+  )
+  response.headers.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.anthropic.com wss://*.supabase.co; frame-ancestors 'none';"
+  )
+  return response
+}
+
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+
+  // ✅ IP do usuário para rate limiting
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+    request.headers.get('x-real-ip') || 'anonymous'
+
+  // ✅ Rate limit agressivo para rotas de auth (anti força bruta)
+  if (pathname.startsWith('/api/') || pathname === '/login' || pathname === '/cadastro') {
+    const limite = pathname.startsWith('/api/ia-chat') ? 30 : 60
+    if (!checkRateLimit(`${ip}:${pathname}`, limite, 60000)) {
+      return new NextResponse('Too Many Requests', {
+        status: 429,
+        headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' }
+      })
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -30,49 +80,54 @@ export async function middleware(request: NextRequest) {
     '/recuperar-senha',
     '/atualizar-senha',
     '/auth/callback',
+    '/privacidade',
+    '/termos',
   ]
 
-  const isRotaPublica = rotasPublicas.some(rota => request.nextUrl.pathname === rota)
-  const isCallback = request.nextUrl.pathname.startsWith('/auth/')
+  const isRotaPublica = rotasPublicas.some(rota => pathname === rota)
+  const isCallback = pathname.startsWith('/auth/')
 
   const isRotaProtegida =
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/receitas') ||
-    request.nextUrl.pathname.startsWith('/custos-fixos') ||
-    request.nextUrl.pathname.startsWith('/custos-variaveis') ||
-    request.nextUrl.pathname.startsWith('/fornecedores') ||
-    request.nextUrl.pathname.startsWith('/endividamento') ||
-    request.nextUrl.pathname.startsWith('/fluxo-caixa') ||
-    request.nextUrl.pathname.startsWith('/dre') ||
-    request.nextUrl.pathname.startsWith('/clientes') ||
-    request.nextUrl.pathname.startsWith('/centros-custo') ||
-    request.nextUrl.pathname.startsWith('/importar-documentos') ||
-    request.nextUrl.pathname.startsWith('/ia-financeira') ||
-    request.nextUrl.pathname.startsWith('/ia-tributaria') ||
-    request.nextUrl.pathname.startsWith('/relatorios') ||
-    request.nextUrl.pathname.startsWith('/empresa') ||
-    request.nextUrl.pathname.startsWith('/planos') ||
-    request.nextUrl.pathname.startsWith('/metas') ||
-    request.nextUrl.pathname.startsWith('/investimentos') ||
-    request.nextUrl.pathname.startsWith('/simulacoes') ||
-    request.nextUrl.pathname.startsWith('/precificacao') ||
-    request.nextUrl.pathname.startsWith('/contas-receber') ||
-    request.nextUrl.pathname.startsWith('/inadimplencia')
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/receitas') ||
+    pathname.startsWith('/custos-fixos') ||
+    pathname.startsWith('/custos-variaveis') ||
+    pathname.startsWith('/fornecedores') ||
+    pathname.startsWith('/endividamento') ||
+    pathname.startsWith('/fluxo-caixa') ||
+    pathname.startsWith('/dre') ||
+    pathname.startsWith('/clientes') ||
+    pathname.startsWith('/centros-custo') ||
+    pathname.startsWith('/importar-documentos') ||
+    pathname.startsWith('/ia-financeira') ||
+    pathname.startsWith('/ia-tributaria') ||
+    pathname.startsWith('/relatorios') ||
+    pathname.startsWith('/empresa') ||
+    pathname.startsWith('/planos') ||
+    pathname.startsWith('/metas') ||
+    pathname.startsWith('/investimentos') ||
+    pathname.startsWith('/simulacoes') ||
+    pathname.startsWith('/precificacao') ||
+    pathname.startsWith('/contas-receber') ||
+    pathname.startsWith('/inadimplencia') ||
+    pathname.startsWith('/mei') // ✅ MEI adicionado
 
-  // Nunca bloquear rotas de auth — deixa o callback processar
+  // Nunca bloquear rotas de auth
   if (isCallback) {
-    return supabaseResponse
+    return addSecurityHeaders(supabaseResponse)
   }
 
   if (!user && isRotaProtegida) {
-    return NextResponse.redirect(new URL('/', request.url))
+    const response = NextResponse.redirect(new URL('/', request.url))
+    return addSecurityHeaders(response)
   }
 
   if (user && isRotaPublica) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    const response = NextResponse.redirect(new URL('/dashboard', request.url))
+    return addSecurityHeaders(response)
   }
 
-  return supabaseResponse
+  return addSecurityHeaders(supabaseResponse)
 }
 
 export const config = {
