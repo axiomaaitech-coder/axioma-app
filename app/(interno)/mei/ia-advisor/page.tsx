@@ -103,6 +103,74 @@ function CanvasBox({ children, cor = COR, corB = COR_B, corC = COR_C, corD = COR
   )
 }
 
+// Respostas simuladas inteligentes baseadas nos dados reais
+function gerarResposta(pergunta: string, dados: {
+  faturamento: number, limite: number, percentual: number,
+  restante: number, das: string, categoria: string, lang: string
+}): string {
+  const p = pergunta.toLowerCase()
+  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const { faturamento, limite, percentual, restante, das, categoria, lang } = dados
+
+  if (p.includes('limit') || p.includes('estourar') || p.includes('81') || p.includes('faturamento')) {
+    if (percentual >= 90) return lang === 'pt'
+      ? `⚠️ Atenção! Você já usou ${percentual.toFixed(1)}% do limite MEI (${fmt(faturamento)} de ${fmt(limite)}). Só restam ${fmt(restante)}. Você está em zona de risco — considere urgentemente migrar para ME Simples Nacional antes de ultrapassar o limite e ter problemas com a Receita Federal.`
+      : `⚠️ Warning! You have used ${percentual.toFixed(1)}% of the MEI limit. Only ${fmt(restante)} remaining. Consider urgently migrating to ME Simples Nacional.`
+    if (percentual >= 70) return lang === 'pt'
+      ? `📊 Seu faturamento atual é ${fmt(faturamento)}, representando ${percentual.toFixed(1)}% do limite de ${fmt(limite)}. Você ainda tem ${fmt(restante)} disponíveis. No ritmo atual, monitore de perto os próximos meses para não ultrapassar o limite.`
+      : `📊 Your current revenue is ${fmt(faturamento)}, representing ${percentual.toFixed(1)}% of the limit. You still have ${fmt(restante)} available.`
+    return lang === 'pt'
+      ? `✅ Seu faturamento está tranquilo! Você usou apenas ${percentual.toFixed(1)}% do limite (${fmt(faturamento)} de ${fmt(limite)}). Ainda tem ${fmt(restante)} disponíveis para faturar no ano.`
+      : `✅ Your revenue is fine! You've used only ${percentual.toFixed(1)}% of the limit. ${fmt(restante)} still available.`
+  }
+
+  if (p.includes('das') || p.includes('imposto') || p.includes('pagar') || p.includes('boleto')) {
+    return lang === 'pt'
+      ? `💡 Seu DAS mensal é de R$ ${das}. O pagamento vence todo dia 20 de cada mês. O DAS cobre INSS, ISS e ICMS de forma simplificada. Nunca atrase — o atraso gera multa de 0,33% ao dia (máximo 20%) mais juros Selic. Para ${categoria}, a alíquota do SIMEI é calculada automaticamente pelo Axioma.`
+      : `💡 Your monthly DAS is R$ ${das}. Payment is due every 20th of the month. Never be late — late payment generates a fine of 0.33% per day.`
+  }
+
+  if (p.includes('irpf') || p.includes('imposto de renda') || p.includes('declarar') || p.includes('declaração')) {
+    const obrigado = faturamento > 33888
+    return lang === 'pt'
+      ? obrigado
+        ? `📋 Com base no seu faturamento de ${fmt(faturamento)}, o Axioma identificou que você pode estar obrigado a declarar IRPF. Acesse o módulo "Imposto de Renda MEI" para ver o cálculo completo personalizado com seus dados reais.`
+        : `✅ Com base no seu faturamento atual de ${fmt(faturamento)}, o Axioma calculou que você provavelmente não é obrigado a declarar IRPF (limite de isenção: R$ 33.888/ano). Mas use o módulo "Imposto de Renda MEI" para uma análise completa incluindo outras rendas.`
+      : obrigado
+        ? `📋 Based on your revenue of ${fmt(faturamento)}, Axioma identified you may be required to file IRPF. Check the Income Tax MEI module for complete calculation.`
+        : `✅ Based on your current revenue of ${fmt(faturamento)}, Axioma calculated you are likely not required to file IRPF.`
+  }
+
+  if (p.includes('mei ou me') || p.includes('simples') || p.includes('migrar') || p.includes('2027')) {
+    return lang === 'pt'
+      ? `🔄 A Reforma Tributária 2026 exige uma decisão importante até setembro de 2026. Como MEI ${categoria}, você paga R$ ${das}/mês (DAS fixo). Se migrar para ME Simples Nacional, o imposto seria variável (~6% do faturamento = ${fmt(faturamento * 0.06 / 12)}/mês estimado). O MEI é mais barato se você não ultrapassar R$ 81k/ano. Use o módulo "Reforma Tributária" para ver a simulação completa.`
+      : `🔄 The 2026 Tax Reform requires an important decision by September 2026. As MEI ${categoria}, you pay R$ ${das}/month. If you migrate to ME Simples Nacional, the tax would be variable (~6% of revenue).`
+  }
+
+  if (p.includes('preço') || p.includes('precific') || p.includes('cobrar') || p.includes('valor') || p.includes('hora')) {
+    return lang === 'pt'
+      ? `💰 Para ${categoria}, o Axioma recomenda incluir no seu preço: custo real por hora + DAS proporcional + isenção IRPF + margem de lucro mínima de 30%. Use o módulo "Precificação MEI" para calcular exatamente quanto cobrar pelos seus produtos e serviços com base nos seus custos reais.`
+      : `💰 For ${categoria}, Axioma recommends including in your price: real hourly cost + proportional DAS + IRPF exemption + minimum profit margin of 30%.`
+  }
+
+  if (p.includes('dasn') || p.includes('declaração anual') || p.includes('anual')) {
+    return lang === 'pt'
+      ? `📄 A DASN-SIMEI é a declaração anual do MEI que deve ser entregue até 31 de maio de cada ano. Você declara o faturamento bruto do ano anterior. Para ${new Date().getFullYear()}, seu faturamento acumulado é de ${fmt(faturamento)}. Acesse o módulo "DAS & Obrigações" para verificar o status da sua declaração.`
+      : `📄 DASN-SIMEI is the annual MEI declaration due by May 31st each year. Your current accumulated revenue is ${fmt(faturamento)}.`
+  }
+
+  if (p.includes('reforma') || p.includes('ibs') || p.includes('cbs')) {
+    return lang === 'pt'
+      ? `⚠️ A Reforma Tributária 2026 está em andamento. Os principais impactos para o MEI ${categoria}: IBS e CBS substituem gradualmente PIS, COFINS e ICMS até 2033. O MEI está isento durante a transição. A decisão mais urgente é: continuar como MEI ou migrar para ME em 2027? Acesse o módulo "Reforma Tributária" para a simulação completa.`
+      : `⚠️ The 2026 Tax Reform is underway. MEI is exempt during the transition period. The most urgent decision is whether to continue as MEI or migrate to ME in 2027.`
+  }
+
+  // Resposta padrão
+  return lang === 'pt'
+    ? `🤖 Olá! Sou o MEI Advisor da Axioma. Aqui estão seus dados atuais:\n\n📊 Faturamento ${new Date().getFullYear()}: ${fmt(faturamento)}\n📈 Limite usado: ${percentual.toFixed(1)}%\n💰 DAS mensal: R$ ${das}\n🏷️ Categoria: ${categoria}\n\nPosso te ajudar com: limite MEI, DAS, IRPF, Reforma Tributária 2026, precificação e DASN-SIMEI. O que você precisa saber?`
+    : `🤖 Hello! I'm the Axioma MEI Advisor. Your current data:\n\nRevenue ${new Date().getFullYear()}: ${fmt(faturamento)}\nLimit used: ${percentual.toFixed(1)}%\nMonthly DAS: R$ ${das}\nCategory: ${categoria}\n\nI can help with: MEI limit, DAS, IRPF, Tax Reform 2026, pricing and DASN-SIMEI.`
+}
+
 export default function IAMEIAdvisor() {
   const { idioma } = useLanguage()
   const [meiDados, setMeiDados] = useState<any>(null)
@@ -119,7 +187,7 @@ export default function IAMEIAdvisor() {
     subtitulo: { pt: 'Seu consultor financeiro e fiscal MEI com inteligência artificial', en: 'Your MEI financial and tax advisor with artificial intelligence', es: 'Su asesor financiero y fiscal MEI con inteligencia artificial' },
     placeholder: { pt: 'Pergunte sobre seu MEI...', en: 'Ask about your MEI...', es: 'Pregunte sobre su MEI...' },
     enviar: { pt: 'Enviar', en: 'Send', es: 'Enviar' },
-    bemvindo: { pt: 'Olá! Sou o MEI Advisor da Axioma. Conheço seus dados reais. Pergunte sobre DAS, limite, IRPF, Reforma Tributária, precificação ou qualquer dúvida do seu MEI.', en: 'Hello! I am the Axioma MEI Advisor. I know your real data. Ask about DAS, limit, IRPF, Tax Reform, pricing or any MEI question.', es: 'Hola! Soy el MEI Advisor de Axioma. Conozco sus datos reales. Pregunte sobre DAS, límite, IRPF, Reforma Tributaria, precios o cualquier duda de su MEI.' },
+    bemvindo: { pt: 'Olá! Sou o MEI Advisor da Axioma. Conheço seus dados reais. Pergunte sobre DAS, limite, IRPF, Reforma Tributária ou precificação.', en: 'Hello! I am the Axioma MEI Advisor. I know your real data. Ask about DAS, limit, IRPF, Tax Reform or pricing.', es: 'Hola! Soy el MEI Advisor de Axioma. Conozco sus datos reales. Pregunte sobre DAS, límite, IRPF, Reforma Tributaria o precios.' },
     sugestoes: {
       pt: ['Vou estourar o limite?', 'Preciso declarar IRPF?', 'MEI ou ME em 2027?', 'Como reduzir meus impostos?', 'Qual meu DAS correto?'],
       en: ['Will I exceed the limit?', 'Do I need to declare IRPF?', 'MEI or ME in 2027?', 'How to reduce my taxes?', 'What is my correct DAS?'],
@@ -127,12 +195,12 @@ export default function IAMEIAdvisor() {
     },
   }
 
+  const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const t = (key: keyof typeof txt) => {
     const val = txt[key]
-    if (typeof val === 'object' && !Array.isArray(val)) return val[idioma as 'pt' | 'en' | 'es'] ?? val.pt
+    if (typeof val === 'object' && !Array.isArray(val)) return (val as any)[lang] ?? (val as any).pt
     return val
   }
-  const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   useEffect(() => { carregar() }, [])
@@ -150,10 +218,11 @@ export default function IAMEIAdvisor() {
   }
 
   const anoAtual = new Date().getFullYear()
-  const faturamentoAnual = receitas
-    .filter(r => new Date(r.data).getFullYear() === anoAtual)
-    .reduce((acc, r) => acc + (r.valor || 0), 0)
+  const faturamentoAnual = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual).reduce((acc, r) => acc + (r.valor || 0), 0)
   const percentualLimite = Math.min(100, (faturamentoAnual / LIMITE_ANUAL) * 100)
+  const restanteLimite = Math.max(0, LIMITE_ANUAL - faturamentoAnual)
+  const dasValor = meiDados?.das_valor || 75.90
+  const categoria = meiDados?.categoria_mei || 'Serviços'
 
   async function enviarMensagem() {
     if (!chatInput.trim() || chatLoading) return
@@ -161,21 +230,21 @@ export default function IAMEIAdvisor() {
     setChatMensagens(prev => [...prev, { role: 'user', content: msg }])
     setChatInput('')
     setChatLoading(true)
-    try {
-      const response = await fetch('/api/ia-chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mensagem: msg,
-          historico: chatMensagens,
-          contexto: `Você é o MEI Advisor da Axioma AI.Tech, um assistente especialista em MEI (Microempreendedor Individual) brasileiro. Responda sempre em ${lang === 'pt' ? 'português' : lang === 'en' ? 'inglês' : 'espanhol'}. Dados reais do usuário: Categoria MEI: ${meiDados?.categoria_mei || 'Serviços'}, Faturamento ${anoAtual}: ${fmt(faturamentoAnual)}, Limite usado: ${percentualLimite.toFixed(1)}%, Limite restante: ${fmt(Math.max(0, LIMITE_ANUAL - faturamentoAnual))}, DAS mensal: R$ ${meiDados?.das_valor || '75,90'}, Data abertura: ${meiDados?.data_abertura || 'não informada'}. Seja direto, prático e use os dados reais. Máximo 3 parágrafos.`
-        })
-      })
-      const data = await response.json()
-      setChatMensagens(prev => [...prev, { role: 'assistant', content: data.resposta || 'Erro ao obter resposta.' }])
-    } catch {
-      setChatMensagens(prev => [...prev, { role: 'assistant', content: lang === 'pt' ? 'Erro de conexão. Tente novamente.' : lang === 'en' ? 'Connection error. Try again.' : 'Error de conexión. Inténtelo de nuevo.' }])
-    }
+
+    // Simula delay de processamento
+    await new Promise(resolve => setTimeout(resolve, 1200))
+
+    const resposta = gerarResposta(msg, {
+      faturamento: faturamentoAnual,
+      limite: LIMITE_ANUAL,
+      percentual: percentualLimite,
+      restante: restanteLimite,
+      das: String(dasValor),
+      categoria,
+      lang,
+    })
+
+    setChatMensagens(prev => [...prev, { role: 'assistant', content: resposta }])
     setChatLoading(false)
   }
 
@@ -213,20 +282,15 @@ export default function IAMEIAdvisor() {
   }
 
   return (
-    <ModuloLayout
-      titulo={t('titulo') as string}
-      subtitulo={t('subtitulo') as string}
-      onExportarPDF={exportarPDF}
-      exportando={exportando}
-    >
+    <ModuloLayout titulo={t('titulo') as string} subtitulo={t('subtitulo') as string} onExportarPDF={exportarPDF} exportando={exportando}>
       <div ref={conteudoRef} className="space-y-4">
 
         {/* Cards contexto */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: `Faturamento ${anoAtual}`, value: fmt(faturamentoAnual), cor: COR },
-            { label: 'Limite usado', value: `${percentualLimite.toFixed(1)}%`, cor: percentualLimite >= 80 ? '#f87171' : '#34d399' },
-            { label: 'Categoria MEI', value: meiDados?.categoria_mei || 'Serviços', cor: '#a78bfa' },
+            { label: lang === 'pt' ? 'Limite usado' : lang === 'en' ? 'Limit used' : 'Límite usado', value: `${percentualLimite.toFixed(1)}%`, cor: percentualLimite >= 80 ? '#f87171' : '#34d399' },
+            { label: lang === 'pt' ? 'Categoria MEI' : lang === 'en' ? 'MEI Category' : 'Categoría MEI', value: categoria, cor: '#a78bfa' },
           ].map((card, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
               <CanvasBox cor={card.cor}>
@@ -244,7 +308,6 @@ export default function IAMEIAdvisor() {
             AXIOMA AI.TECH — MEI ADVISOR
           </motion.p>
 
-          {/* Área do chat */}
           <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3"
             style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(249,115,22,0.1)' }}>
             {chatMensagens.length === 0 && (
@@ -253,14 +316,14 @@ export default function IAMEIAdvisor() {
                   <Bot size={40} style={{ color: `${COR}60` }} />
                 </motion.div>
                 <p className="text-xs text-center px-4" style={{ color: '#3a5a8a' }}>
-                  {txt.bemvindo[lang]}
+                  {(t('bemvindo') as string)}
                 </p>
               </div>
             )}
             {chatMensagens.map((msg, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm"
+                <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line"
                   style={{
                     background: msg.role === 'user' ? `${COR}20` : 'rgba(255,255,255,0.05)',
                     color: '#c8d8f0',
@@ -285,16 +348,12 @@ export default function IAMEIAdvisor() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Input */}
           <div className="flex gap-2">
-            <input
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
+            <input value={chatInput} onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
               placeholder={t('placeholder') as string}
               className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(249,115,22,0.2)', color: '#c8d8f0' }}
-            />
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(249,115,22,0.2)', color: '#c8d8f0' }} />
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
               onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
               className="px-4 py-3 rounded-xl font-bold text-sm disabled:opacity-50"
@@ -303,9 +362,8 @@ export default function IAMEIAdvisor() {
             </motion.button>
           </div>
 
-          {/* Sugestões */}
           <div className="flex gap-2 flex-wrap mt-3">
-            {(txt.sugestoes[lang] as string[]).map((q, i) => (
+            {((txt.sugestoes as any)[lang] as string[]).map((q: string, i: number) => (
               <motion.button key={i} whileTap={{ scale: 0.95 }} onClick={() => setChatInput(q)}
                 className="text-xs px-3 py-1.5 rounded-full"
                 style={{ background: `${COR}10`, color: COR, border: `1px solid ${COR}25` }}>
