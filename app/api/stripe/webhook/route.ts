@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+
+      // ✅ 1. Checkout concluído — ativa o plano pela primeira vez
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.metadata?.userId
@@ -46,26 +48,62 @@ export async function POST(request: NextRequest) {
         }
         break
       }
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription
-        const { data: perfil } = await supabase
-          .from('perfis').select('user_id')
-          .eq('stripe_customer_id', subscription.customer as string)
-          .single()
-        if (perfil) {
-          await supabase.from('perfis').update({
-            plano: 'starter', plano_ativo: false,
-            updated_at: new Date().toISOString(),
-          }).eq('user_id', perfil.user_id)
+
+      // ✅ 2. Fatura paga — CRÍTICO: renova acesso mensalmente
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice
+        const customerId = invoice.customer as string
+        const subscriptionId = invoice.subscription as string
+        if (customerId && subscriptionId) {
+          await supabase.from('perfis')
+            .update({
+              plano_ativo: true,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_customer_id', customerId)
         }
         break
       }
+
+      // ✅ 3. Pagamento falhou — marca plano como inativo
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log('Pagamento falhou:', invoice.customer)
+        const customerId = invoice.customer as string
+        if (customerId) {
+          await supabase.from('perfis')
+            .update({
+              plano_ativo: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_customer_id', customerId)
+        }
+        break
+      }
+
+      // ✅ 4. Ação obrigatória — notifica falha de autenticação
+      case 'invoice.payment_action_required': {
+        const invoice = event.data.object as Stripe.Invoice
+        console.log('Autenticação necessária para cliente:', invoice.customer)
+        break
+      }
+
+      // ✅ 5. Assinatura cancelada — remove acesso
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
+        if (customerId) {
+          await supabase.from('perfis')
+            .update({
+              plano: 'starter',
+              plano_ativo: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_customer_id', customerId)
+        }
         break
       }
     }
+
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Erro no webhook:', error)
