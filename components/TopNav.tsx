@@ -19,7 +19,13 @@ const grupos = [
     corBg: "rgba(249,115,22,0.12)",
     destaque: true,
     itens: [
-      { label: { pt: "Gestão MEI", en: "MEI Management", es: "Gestión MEI" }, path: "/mei", emoji: "🏪" },
+      { label: { pt: "Painel MEI", en: "MEI Dashboard", es: "Panel MEI" }, path: "/mei", emoji: "🏪" },
+      { label: { pt: "Faturamento", en: "Revenue", es: "Facturación" }, path: "/mei/faturamento", emoji: "📊" },
+      { label: { pt: "DAS & Obrigações", en: "DAS & Obligations", es: "DAS & Obligaciones" }, path: "/mei/das", emoji: "🔔" },
+      { label: { pt: "Reforma Tributária", en: "Tax Reform", es: "Reforma Tributaria" }, path: "/mei/reforma", emoji: "⚠️" },
+      { label: { pt: "Precificação MEI", en: "MEI Pricing", es: "Precios MEI" }, path: "/mei/precificacao", emoji: "🧮" },
+      { label: { pt: "IA MEI Advisor", en: "AI MEI Advisor", es: "IA Advisor MEI" }, path: "/mei/ia-advisor", emoji: "🤖" },
+      { label: { pt: "Imposto de Renda", en: "Income Tax", es: "Impuesto a la Renta" }, path: "/mei/imposto-renda", emoji: "🧾" },
     ]
   },
   {
@@ -123,7 +129,7 @@ export default function TopNav() {
   };
 
   const grupoAtivo = (itens: { path: string }[]) =>
-    itens.some(i => pathname === i.path);
+    itens.some(i => pathname === i.path || pathname.startsWith(i.path + "/"));
 
   return (
     <>
@@ -215,7 +221,7 @@ export default function TopNav() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="absolute top-full left-0 mt-2 min-w-[200px] rounded-2xl overflow-hidden z-50"
+                    className="absolute top-full left-0 mt-2 min-w-[220px] rounded-2xl overflow-hidden z-50"
                     style={{
                       background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
                       border: `1px solid ${grupo.cor}35`,
@@ -224,7 +230,7 @@ export default function TopNav() {
                   >
                     <div className="p-2 space-y-0.5">
                       {grupo.itens.map((item, i) => {
-                        const itemAtivo = pathname === item.path;
+                        const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
                         return (
                           <motion.button
                             key={item.path}
@@ -244,7 +250,7 @@ export default function TopNav() {
                             <span className="text-base">{item.emoji}</span>
                             <span className="text-sm font-medium">{item.label[lang]}</span>
                             {itemAtivo && (
-                              <motion.div layoutId="activeItem" className="ml-auto w-2 h-2 rounded-full" style={{ background: grupo.cor }} />
+                              <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: grupo.cor }} />
                             )}
                           </motion.button>
                         );
@@ -335,7 +341,7 @@ export default function TopNav() {
                   const ehMei = (grupo as any).destaque === true;
                   return (
                     <div key={grupo.label.pt}>
-                      <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }}
+                      <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                         onClick={() => setGrupoMobile(aberto ? null : grupo.label.pt)}
                         className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
                         style={{
@@ -355,10 +361,10 @@ export default function TopNav() {
                           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: "easeOut" }} className="overflow-hidden">
                             <div className="ml-3 mt-1 space-y-1 border-l-2 pl-3 pb-1" style={{ borderColor: `${grupo.cor}40` }}>
                               {grupo.itens.map((item, i) => {
-                                const itemAtivo = pathname === item.path;
+                                const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
                                 return (
                                   <motion.button key={item.path} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                                    whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(item.path)}
+                                    whileTap={{ scale: 0.98 }} onClick={() => navegar(item.path)}
                                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left"
                                     style={{ background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}20, ${grupo.cor}08)` : "transparent", color: itemAtivo ? grupo.cor : "#6a8aaa", border: itemAtivo ? `1px solid ${grupo.cor}30` : "1px solid transparent" }}>
                                     <span>{item.emoji}</span>
