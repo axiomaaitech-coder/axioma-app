@@ -4,7 +4,7 @@ import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
-import { FileText, AlertTriangle, CheckCircle, Download } from 'lucide-react'
+import { FileText, AlertTriangle, CheckCircle } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
@@ -102,7 +102,6 @@ function CanvasBox({ children, cor = COR, corB = COR_B, corC = COR_C, corD = COR
   )
 }
 
-// Tabela progressiva IRPF 2025
 const FAIXAS_IRPF = [
   { limite: 2259.20, aliquota: 0, deducao: 0 },
   { limite: 2826.65, aliquota: 0.075, deducao: 169.44 },
@@ -220,12 +219,7 @@ export default function ImpostoRendaMEI() {
   }
 
   return (
-    <ModuloLayout
-      titulo={t('titulo')}
-      subtitulo={t('subtitulo')}
-      onExportarPDF={exportarPDF}
-      exportando={exportando}
-    >
+    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}>
       <div ref={conteudoRef} className="space-y-4">
 
         {/* Badge exclusivo */}
@@ -238,7 +232,9 @@ export default function ImpostoRendaMEI() {
               {lang === 'pt' ? 'Funcionalidade exclusiva Axioma AI.Tech' : lang === 'en' ? 'Exclusive Axioma AI.Tech feature' : 'Función exclusiva Axioma AI.Tech'}
             </p>
             <p className="text-xs" style={{ color: '#7a9aba' }}>
-              {lang === 'pt' ? 'Nenhum concorrente oferece cálculo de IRPF MEI com dados reais integrados.' : lang === 'en' ? 'No competitor offers MEI IRPF calculation with integrated real data.' : 'Ningún competidor ofrece cálculo de IRPF MEI con datos reales integrados.'}
+              {lang === 'pt' ? 'Nenhum concorrente oferece cálculo de IRPF MEI com dados reais integrados.'
+                : lang === 'en' ? 'No competitor offers MEI IRPF calculation with integrated real data.'
+                : 'Ningún competidor ofrece cálculo de IRPF MEI con datos reales integrados.'}
             </p>
           </div>
         </motion.div>
@@ -259,8 +255,12 @@ export default function ImpostoRendaMEI() {
             </p>
             <p className="text-xs mt-0.5" style={{ color: '#7a9aba' }}>
               {obrigado
-                ? (lang === 'pt' ? `Sua renda tributável estimada (${fmt(rendaTotalAnual)}/ano) supera o limite de isenção de R$ 33.888/ano.` : lang === 'en' ? `Your estimated taxable income (${fmt(rendaTotalAnual)}/year) exceeds the exemption limit of R$ 33,888/year.` : `Su renta tributable estimada (${fmt(rendaTotalAnual)}/año) supera el límite de exención de R$ 33.888/año.`)
-                : (lang === 'pt' ? 'Sua renda tributável está abaixo do limite de isenção. Verifique com um contador.' : lang === 'en' ? 'Your taxable income is below the exemption limit. Check with an accountant.' : 'Su renta tributable está por debajo del límite de exención. Consulte con un contador.')}
+                ? (lang === 'pt' ? `Axioma identificou: sua renda tributável (${fmt(rendaTotalAnual)}/ano) supera o limite de isenção de R$ 33.888/ano.`
+                  : lang === 'en' ? `Axioma identified: your taxable income (${fmt(rendaTotalAnual)}/year) exceeds the exemption limit of R$ 33,888/year.`
+                  : `Axioma identificó: su renta tributable (${fmt(rendaTotalAnual)}/año) supera el límite de exención de R$ 33.888/año.`)
+                : (lang === 'pt' ? '✅ Axioma analisou seus dados: você está dentro do limite de isenção.'
+                  : lang === 'en' ? '✅ Axioma analyzed your data: you are within the exemption limit.'
+                  : '✅ Axioma analizó sus datos: está dentro del límite de exención.')}
             </p>
           </div>
         </motion.div>
@@ -282,36 +282,29 @@ export default function ImpostoRendaMEI() {
           ))}
         </div>
 
-        {/* Calculadora com outra renda */}
+        {/* Calculadora */}
         <CanvasBox>
           <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
             className="text-xs font-black tracking-[0.3em] uppercase mb-4" style={{ color: COR, textShadow: `0 0 20px ${COR}` }}>
             AXIOMA AI.TECH — IRPF MEI
           </motion.p>
           <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0' }}>{t('resumo')}</p>
-
           <div className="mb-4">
             <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a8fd4' }}>
               {t('outraRenda')}
             </label>
-            <input
-              type="number"
-              value={outraRenda}
-              onChange={e => setOutraRenda(e.target.value)}
-              placeholder="0,00"
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(249,115,22,0.2)', color: '#c8d8f0' }}
-            />
+            <input type="number" value={outraRenda} onChange={e => setOutraRenda(e.target.value)}
+              placeholder="0,00" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(249,115,22,0.2)', color: '#c8d8f0' }} />
           </div>
-
           <div className="space-y-2">
             {[
               { label: lang === 'pt' ? `Receita Bruta MEI ${anoAtual}` : lang === 'en' ? `MEI Gross Revenue ${anoAtual}` : `Ingresos Brutos MEI ${anoAtual}`, value: fmt(faturamentoAnual), cor: COR },
-              { label: lang === 'pt' ? `Isenção MEI (${(percentualIsento * 100).toFixed(0)}% — ${meiDados?.categoria_mei || 'Serviços'})` : lang === 'en' ? `MEI Exemption (${(percentualIsento * 100).toFixed(0)}% — ${meiDados?.categoria_mei || 'Services'})` : `Exención MEI (${(percentualIsento * 100).toFixed(0)}% — ${meiDados?.categoria_mei || 'Servicios'})`, value: `- ${fmt(isencaoMEI)}`, cor: '#34d399' },
+              { label: lang === 'pt' ? `Isenção MEI (${(percentualIsento * 100).toFixed(0)}% — ${meiDados?.categoria_mei || 'Serviços'})` : lang === 'en' ? `MEI Exemption (${(percentualIsento * 100).toFixed(0)}%)` : `Exención MEI (${(percentualIsento * 100).toFixed(0)}%)`, value: `- ${fmt(isencaoMEI)}`, cor: '#34d399' },
               { label: lang === 'pt' ? 'Renda tributável MEI' : lang === 'en' ? 'MEI taxable income' : 'Renta tributable MEI', value: fmt(rendaTributavelMEI), cor: '#fbbf24' },
               { label: lang === 'pt' ? 'Outra renda (anual)' : lang === 'en' ? 'Other income (annual)' : 'Otros ingresos (anual)', value: fmt(outraRendaAnual), cor: '#a78bfa' },
               { label: lang === 'pt' ? 'Renda total tributável/ano' : lang === 'en' ? 'Total taxable income/year' : 'Renta total tributable/año', value: fmt(rendaTotalAnual), cor: '#6ab0ff' },
-              { label: lang === 'pt' ? `Alíquota efetiva IRPF` : lang === 'en' ? `Effective IRPF rate` : `Alícuota efectiva IRPF`, value: `${aliquotaEfetiva.toFixed(1)}%`, cor: obrigado ? '#f87171' : '#34d399' },
+              { label: lang === 'pt' ? 'Alíquota efetiva IRPF' : lang === 'en' ? 'Effective IRPF rate' : 'Alícuota efectiva IRPF', value: `${aliquotaEfetiva.toFixed(1)}%`, cor: obrigado ? '#f87171' : '#34d399' },
               { label: lang === 'pt' ? '💰 IRPF total estimado/ano' : lang === 'en' ? '💰 Estimated total IRPF/year' : '💰 IRPF total estimado/año', value: fmt(impostoAnual), cor: obrigado ? '#f87171' : '#34d399' },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
@@ -327,7 +320,7 @@ export default function ImpostoRendaMEI() {
         {/* Tabela progressiva */}
         <CanvasBox>
           <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0' }}>{t('tabela')}</p>
-          <div className="space-y-2 overflow-x-auto">
+          <div className="overflow-x-auto">
             <div className="min-w-[400px]">
               <div className="grid grid-cols-3 gap-2 mb-2">
                 {[
@@ -360,9 +353,7 @@ export default function ImpostoRendaMEI() {
                       border: `1px solid ${ehFaixaAtual ? row.cor + '40' : row.cor + '15'}`,
                       boxShadow: ehFaixaAtual ? `0 0 12px ${row.cor}20` : 'none',
                     }}>
-                    <p className="text-xs" style={{ color: ehFaixaAtual ? '#c8d8f0' : '#5a7a9a' }}>
-                      {ehFaixaAtual ? '👉 ' : ''}{row.faixa}
-                    </p>
+                    <p className="text-xs" style={{ color: ehFaixaAtual ? '#c8d8f0' : '#5a7a9a' }}>{ehFaixaAtual ? '👉 ' : ''}{row.faixa}</p>
                     <p className="text-xs font-bold text-center" style={{ color: row.cor }}>{row.aliquota}</p>
                     <p className="text-xs text-right" style={{ color: ehFaixaAtual ? '#c8d8f0' : '#5a7a9a' }}>{row.deducao}</p>
                   </motion.div>
@@ -370,8 +361,11 @@ export default function ImpostoRendaMEI() {
               })}
             </div>
           </div>
+          {/* ✅ Sem referência a contador */}
           <p className="text-xs mt-3" style={{ color: '#3a5a8a' }}>
-            {lang === 'pt' ? '* Tabela IRPF 2025. Consulte sempre um contador para sua situação específica.' : lang === 'en' ? '* IRPF 2025 table. Always consult an accountant for your specific situation.' : '* Tabla IRPF 2025. Consulte siempre un contador para su situación específica.'}
+            {lang === 'pt' ? '* Tabela IRPF 2025. Axioma calculou automaticamente com base nos seus dados reais.'
+              : lang === 'en' ? '* IRPF 2025 table. Axioma calculated automatically based on your real data.'
+              : '* Tabla IRPF 2025. Axioma calculó automáticamente con base en sus datos reales.'}
           </p>
         </CanvasBox>
 
@@ -393,7 +387,6 @@ export default function ImpostoRendaMEI() {
               </motion.div>
             ))}
           </div>
-
           <motion.a whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             href="https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda"
             target="_blank" rel="noopener noreferrer"
