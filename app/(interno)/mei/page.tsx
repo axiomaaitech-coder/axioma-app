@@ -197,15 +197,17 @@ export default function MEI() {
     if (isNaN(novoValor)) return
     setDasValor(String(novoValor))
     await supabase.from('mei_dados').upsert({
-      user_id: user.id,
-      das_valor: novoValor,
-      categoria_mei: categoriaMei,
-      limite_anual: LIMITE_ANUAL,
-      regime_tributario: 'mei',
-      updated_at: new Date().toISOString(),
+      user_id: user.id, das_valor: novoValor, categoria_mei: categoriaMei,
+      limite_anual: LIMITE_ANUAL, regime_tributario: 'mei', updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' })
     setEditandoDas(false)
     carregar()
+  }
+
+  // ✅ CORREÇÃO: função para trocar submódulo e fechar menu em um único clique
+  function trocarSubmodulo(id: string) {
+    setSubmodulo(id)
+    setMenuAberto(false)
   }
 
   const anoAtual = new Date().getFullYear()
@@ -235,20 +237,21 @@ export default function MEI() {
     setChatMensagens(prev => [...prev, { role: 'user', content: msg }])
     setChatInput('')
     setChatLoading(true)
-    const contexto = `Você é o MEI Advisor da Axioma AI.Tech. Dados: Categoria: ${categoriaMei}, Faturamento ${anoAtual}: R$ ${faturamentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, Limite usado: ${percentualLimite.toFixed(1)}%, Restante: R$ ${restanteLimite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, DAS: R$ ${dasValor}. Responda em português, claro e prático, máximo 3 parágrafos.`
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/ia-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514', max_tokens: 1000,
-          system: contexto,
-          messages: [...chatMensagens.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })), { role: 'user', content: msg }],
+          mensagem: msg,
+          historico: chatMensagens,
+          contexto: `Você é o MEI Advisor da Axioma AI.Tech. Dados: Categoria: ${categoriaMei}, Faturamento ${anoAtual}: R$ ${faturamentoAnual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, Limite usado: ${percentualLimite.toFixed(1)}%, Restante: R$ ${restanteLimite.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}, DAS: R$ ${dasValor}. Responda em português, claro e prático, máximo 3 parágrafos.`
         })
       })
       const data = await response.json()
-      setChatMensagens(prev => [...prev, { role: 'assistant', content: data.content?.[0]?.text || 'Erro.' }])
-    } catch { setChatMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão.' }]) }
+      setChatMensagens(prev => [...prev, { role: 'assistant', content: data.resposta || 'Erro ao obter resposta.' }])
+    } catch {
+      setChatMensagens(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
+    }
     setChatLoading(false)
   }
 
@@ -295,16 +298,21 @@ export default function MEI() {
 
         <CanvasBox>
           <div className="flex items-center gap-3 flex-wrap">
-            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setMenuAberto(!menuAberto)}
+            {/* ✅ CORREÇÃO: botão hamburger com toggle correto e ícone dinâmico */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setMenuAberto(prev => !prev)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm md:hidden"
-              style={{ background: `${COR}20`, color: COR, border: `1px solid ${COR}40` }}>
-              <Menu size={16} />{subAtual?.label[idioma as 'pt' | 'en' | 'es']}
+              style={{ background: `${COR}20`, color: COR, border: `1px solid ${COR}40` }}
+            >
+              {menuAberto ? <X size={16} /> : <Menu size={16} />}
+              {subAtual?.label[idioma as 'pt' | 'en' | 'es']}
             </motion.button>
             <div className="hidden md:flex gap-2 flex-wrap">
               {SUBMODULOS.map(s => {
                 const Icon = s.icon; const ativo = submodulo === s.id
                 return (
-                  <motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => setSubmodulo(s.id)}
+                  <motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => trocarSubmodulo(s.id)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
                     style={{ background: ativo ? `${COR}25` : 'rgba(255,255,255,0.03)', color: ativo ? COR : '#3a5a8a', border: `1px solid ${ativo ? COR + '50' : 'rgba(255,255,255,0.06)'}`, boxShadow: ativo ? `0 0 12px ${COR}30` : 'none' }}>
                     <Icon size={14} />{s.label[idioma as 'pt' | 'en' | 'es']}
@@ -320,13 +328,14 @@ export default function MEI() {
               </motion.div>
             )}
           </div>
+          {/* ✅ CORREÇÃO: menu mobile usa trocarSubmodulo garantindo fechamento imediato */}
           <AnimatePresence>
             {menuAberto && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3 grid grid-cols-2 gap-2 md:hidden">
                 {SUBMODULOS.map(s => {
                   const Icon = s.icon; const ativo = submodulo === s.id
                   return (
-                    <motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => { setSubmodulo(s.id); setMenuAberto(false) }}
+                    <motion.button key={s.id} whileTap={{ scale: 0.95 }} onClick={() => trocarSubmodulo(s.id)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold"
                       style={{ background: ativo ? `${COR}25` : 'rgba(255,255,255,0.03)', color: ativo ? COR : '#3a5a8a', border: `1px solid ${ativo ? COR + '50' : 'rgba(255,255,255,0.06)'}` }}>
                       <Icon size={14} />{s.label[idioma as 'pt' | 'en' | 'es']}
@@ -609,7 +618,7 @@ export default function MEI() {
                 <span key={i} className="text-xs px-2 py-1 rounded-full font-semibold" style={{ background: `${tag.cor}15`, color: tag.cor, border: `1px solid ${tag.cor}30` }}>{tag.label}</span>
               ))}
             </div>
-            <div className="h-64 overflow-y-auto rounded-xl p-3 mb-3 space-y-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(249,115,22,0.1)' }}>
+            <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(249,115,22,0.1)' }}>
               {chatMensagens.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full gap-2">
                   <Bot size={32} style={{ color: '#1a3a5a' }} />
