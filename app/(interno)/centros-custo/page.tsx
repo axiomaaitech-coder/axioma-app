@@ -114,11 +114,11 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
     <AnimatePresence>
       {aberto && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-16"
           style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
           <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="w-full max-w-md max-h-screen overflow-y-auto">
+            className="w-full max-w-md max-h-[85vh] overflow-y-auto">
             <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
               <div className="flex justify-between items-center mb-5">
                 <div>
@@ -213,13 +213,12 @@ export default function CentrosCustoPage() {
     };
     if (centroLanc) payload.centro_custo_id = centroLanc;
     const { error } = await supabase.from("lancamentos_centro").insert(payload);
-    if (!error) {
-      setModalLancamento(false);
-      setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
-      setDataLanc(new Date().toISOString().split("T")[0]);
-      setCentroLanc(""); setCategoriaLanc("");
-      carregarDados();
-    }
+    if (error) { console.error("Erro ao salvar lançamento:", error); setSalvandoLanc(false); return; }
+    setModalLancamento(false);
+    setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
+    setDataLanc(new Date().toISOString().split("T")[0]);
+    setCentroLanc(""); setCategoriaLanc("");
+    carregarDados();
     setSalvandoLanc(false);
   }
 
