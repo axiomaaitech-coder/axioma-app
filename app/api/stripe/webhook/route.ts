@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session
         const userId = session.metadata?.userId
         const plano = session.metadata?.plano
-
         if (userId && plano) {
           await supabase.from('perfis').upsert({
             user_id: userId,
@@ -47,34 +46,26 @@ export async function POST(request: NextRequest) {
         }
         break
       }
-
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
-        const customerId = subscription.customer as string
-
         const { data: perfil } = await supabase
-          .from('perfis')
-          .select('user_id')
-          .eq('stripe_customer_id', customerId)
+          .from('perfis').select('user_id')
+          .eq('stripe_customer_id', subscription.customer as string)
           .single()
-
         if (perfil) {
           await supabase.from('perfis').update({
-            plano: 'starter',
-            plano_ativo: false,
+            plano: 'starter', plano_ativo: false,
             updated_at: new Date().toISOString(),
           }).eq('user_id', perfil.user_id)
         }
         break
       }
-
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice
-        console.log('Pagamento falhou para cliente:', invoice.customer)
+        console.log('Pagamento falhou:', invoice.customer)
         break
       }
     }
-
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Erro no webhook:', error)
