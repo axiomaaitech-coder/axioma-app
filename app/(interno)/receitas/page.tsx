@@ -1,11 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, X, Pencil } from "lucide-react";
-import { useLanguage } from "../../../lib/LanguageContext";
+import Image from "next/image";
+import { useRouter, usePathname } from "next/navigation";
+import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
+import { useState, useRef, useEffect } from "react";
+import { Menu, X, LogOut, ChevronDown } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
-import ModuloLayout from "../../../components/ModuloLayout";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { motion, AnimatePresence } from "framer-motion";
 
 const supabase = createBrowserClient(
@@ -13,339 +12,387 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const categorias = ["Vendas de produtos", "Prestação de serviços", "Recorrentes", "Eventuais", "Outras"];
+const grupos = [
+  {
+    label: { pt: "🟠 MEI", en: "🟠 MEI", es: "🟠 MEI" },
+    cor: "#f97316",
+    corBg: "rgba(249,115,22,0.12)",
+    destaque: true,
+    itens: [
+      { label: { pt: "Painel MEI", en: "MEI Dashboard", es: "Panel MEI" }, path: "/mei", emoji: "🏪" },
+      { label: { pt: "Faturamento", en: "Revenue", es: "Facturación" }, path: "/mei/faturamento", emoji: "📊" },
+      { label: { pt: "DAS & Obrigações", en: "DAS & Obligations", es: "DAS & Obligaciones" }, path: "/mei/das", emoji: "🔔" },
+      { label: { pt: "Reforma Tributária", en: "Tax Reform", es: "Reforma Tributaria" }, path: "/mei/reforma", emoji: "⚠️" },
+      { label: { pt: "Precificação MEI", en: "MEI Pricing", es: "Precios MEI" }, path: "/mei/precificacao", emoji: "🧮" },
+      { label: { pt: "IA MEI Advisor", en: "AI MEI Advisor", es: "IA Advisor MEI" }, path: "/mei/ia-advisor", emoji: "🤖" },
+    ]
+  },
+  {
+    label: { pt: "💰 Financeiro", en: "💰 Financial", es: "💰 Financiero" },
+    cor: "#3b6fd4",
+    corBg: "rgba(59,111,212,0.12)",
+    itens: [
+      { label: { pt: "Receitas", en: "Revenue", es: "Ingresos" }, path: "/receitas", emoji: "💵" },
+      { label: { pt: "Custos Fixos", en: "Fixed Costs", es: "Costos Fijos" }, path: "/custos-fixos", emoji: "📌" },
+      { label: { pt: "Custos Variáveis", en: "Variable Costs", es: "Costos Variables" }, path: "/custos-variaveis", emoji: "📊" },
+      { label: { pt: "Fluxo de Caixa", en: "Cash Flow", es: "Flujo de Caja" }, path: "/fluxo-caixa", emoji: "💧" },
+      { label: { pt: "DRE", en: "Income Statement", es: "Estado de Resultados" }, path: "/dre", emoji: "📈" },
+      { label: { pt: "Endividamento", en: "Debt", es: "Endeudamiento" }, path: "/endividamento", emoji: "⚖️" },
+    ]
+  },
+  {
+    label: { pt: "📈 Crescimento", en: "📈 Growth", es: "📈 Crecimiento" },
+    cor: "#34d399",
+    corBg: "rgba(52,211,153,0.12)",
+    itens: [
+      { label: { pt: "Metas", en: "Goals", es: "Metas" }, path: "/metas", emoji: "🎯" },
+      { label: { pt: "Investimentos", en: "Investments", es: "Inversiones" }, path: "/investimentos", emoji: "💎" },
+      { label: { pt: "Simulações", en: "Simulations", es: "Simulaciones" }, path: "/simulacoes", emoji: "🔮" },
+      { label: { pt: "Precificação", en: "Pricing", es: "Precios" }, path: "/precificacao", emoji: "🏷️" },
+    ]
+  },
+  {
+    label: { pt: "👥 Comercial", en: "👥 Commercial", es: "👥 Comercial" },
+    cor: "#f59e0b",
+    corBg: "rgba(245,158,11,0.12)",
+    itens: [
+      { label: { pt: "Clientes", en: "Clients", es: "Clientes" }, path: "/clientes", emoji: "🤝" },
+      { label: { pt: "Fornecedores", en: "Suppliers", es: "Proveedores" }, path: "/fornecedores", emoji: "🏭" },
+      { label: { pt: "Contas a Receber", en: "Receivables", es: "Cuentas por Cobrar" }, path: "/contas-receber", emoji: "📥" },
+      { label: { pt: "Inadimplência", en: "Default", es: "Morosidad" }, path: "/inadimplencia", emoji: "⚠️" },
+    ]
+  },
+  {
+    label: { pt: "🏢 Gestão", en: "🏢 Management", es: "🏢 Gestión" },
+    cor: "#a78bfa",
+    corBg: "rgba(167,139,250,0.12)",
+    itens: [
+      { label: { pt: "Centros de Custo", en: "Cost Centers", es: "Centros de Costo" }, path: "/centros-custo", emoji: "🗂️" },
+      { label: { pt: "Importar Documentos", en: "Import Documents", es: "Importar Documentos" }, path: "/importar-documentos", emoji: "📂" },
+      { label: { pt: "Relatórios", en: "Reports", es: "Informes" }, path: "/relatorios", emoji: "📋" },
+    ]
+  },
+  {
+    label: { pt: "🤖 IA Premium", en: "🤖 AI Premium", es: "🤖 IA Premium" },
+    cor: "#f472b6",
+    corBg: "rgba(244,114,182,0.12)",
+    itens: [
+      { label: { pt: "IA Financeira", en: "Financial AI", es: "IA Financiera" }, path: "/ia-financeira", emoji: "🧠" },
+      { label: { pt: "IA Tributária", en: "Tax AI", es: "IA Tributaria" }, path: "/ia-tributaria", emoji: "🏛️" },
+    ]
+  },
+  {
+    label: { pt: "⚙️ Config", en: "⚙️ Settings", es: "⚙️ Config" },
+    cor: "#6ab0ff",
+    corBg: "rgba(106,176,255,0.12)",
+    itens: [
+      { label: { pt: "Empresa", en: "Company", es: "Empresa" }, path: "/empresa", emoji: "🏛️" },
+      { label: { pt: "Planos", en: "Plans", es: "Planes" }, path: "/planos", emoji: "🚀" },
+    ]
+  },
+];
 
-type Receita = {
-  id: string; descricao: string; valor: number;
-  data: string; categoria: string; status: string;
-};
+type Idioma = "pt" | "en" | "es";
 
-function CanvasNeural() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function TopNav() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { locale } = useLanguage() as { locale: Idioma; t: (k: string) => string };
+  const lang: Idioma = (["pt", "en", "es"].includes(locale) ? locale : "pt") as Idioma;
+  const [dropdown, setDropdown] = useState<string | null>(null);
+  const [menuMobile, setMenuMobile] = useState(false);
+  const [grupoMobile, setGrupoMobile] = useState<string | null>(null);
+  const navRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-      size: Math.random() * 2 + 0.5,
-      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
-    }));
-    const chars = "AXIOMA RECEITAS AI TECH R$ 0 1 2 3 4 5 6 7 8 9 % VENDAS".split(" ").map((c) => ({
-      char: c, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
-      color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa"][Math.floor(Math.random() * 4)],
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`;
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 110) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 110) * 0.12;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
-          }
-        });
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />;
-}
-
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
-}) {
-  return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.97)", border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
-    }}>
-      <CanvasNeural />
-      {[
-        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }} />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
-    </div>
-  );
-}
-
-export default function Receitas() {
-  const { t, idioma } = useLanguage();
-  const [receitas, setReceitas] = useState<Receita[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [busca, setBusca] = useState("");
-  const [filtroCategoria, setFiltroCategoria] = useState("todas");
-  const [modalAberto, setModalAberto] = useState(false);
-  const [editando, setEditando] = useState<Receita | null>(null);
-  const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" });
-  const [salvando, setSalvando] = useState(false);
-  const [exportando, setExportando] = useState(false);
-  const conteudoRef = useRef<HTMLDivElement>(null);
-
-  const carregarReceitas = async () => {
-    setCarregando(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setCarregando(false); return; }
-    const { data } = await supabase.from("receitas").select("*").eq("user_id", user.id).order("data", { ascending: false });
-    setReceitas(data || []);
-    setCarregando(false);
-  };
-
-  useEffect(() => { carregarReceitas(); }, []);
-
-  const fecharModal = () => {
-    setModalAberto(false); setEditando(null);
-    setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" });
-  };
-
-  const abrirEdicao = (r: Receita) => {
-    setEditando(r);
-    setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status });
-    setModalAberto(true);
-  };
-
-  const salvar = async () => {
-    if (!novo.descricao || !novo.valor) return;
-    setSalvando(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
-    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status };
-    const { error } = editando
-      ? await supabase.from("receitas").update(payload).eq("id", editando.id)
-      : await supabase.from("receitas").insert({ ...payload, user_id: user.id });
-    if (!error) { fecharModal(); await carregarReceitas(); }
-    setSalvando(false);
-  };
-
-  const excluir = async (id: string) => {
-    await supabase.from("receitas").delete().eq("id", id);
-    setReceitas(receitas.filter(r => r.id !== id));
-  };
-
-  const exportarPDF = async () => {
-    if (!conteudoRef.current) return;
-    setExportando(true);
-    try {
-      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, "F");
-      pdf.setTextColor(106, 176, 255); pdf.setFontSize(14); pdf.setFont("helvetica", "bold");
-      pdf.text("AXIOMA AI.TECH", 14, 13);
-      pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`${t.receitas.titulo} — ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-      let position = 22; let remaining = pdfHeight;
-      while (remaining > 0) {
-        const sliceHeight = Math.min(pageHeight - position, remaining);
-        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
-        const sourceH = sliceHeight * (canvas.height / pdfHeight);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width; sliceCanvas.height = sourceH;
-        const ctx = sliceCanvas.getContext("2d")!;
-        ctx.fillStyle = "#020810"; ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
-        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
-        remaining -= sliceHeight; position = 0;
-        if (remaining > 0) { pdf.addPage(); position = 0; }
+    const handler = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setDropdown(null);
       }
-      pdf.save(`axioma-receitas-${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) { console.error(err); }
-    setExportando(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const navegar = (path: string) => {
+    router.push(path);
+    setDropdown(null);
+    setMenuMobile(false);
+    setGrupoMobile(null);
   };
 
-  const receitasFiltradas = receitas.filter(r =>
-    r.descricao.toLowerCase().includes(busca.toLowerCase()) &&
-    (filtroCategoria === "todas" || r.categoria === filtroCategoria)
-  );
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
+    router.refresh();
+  };
 
-  const totalReceitas = receitas.reduce((acc, r) => acc + r.valor, 0);
-  const totalRecebido = receitas.filter(r => r.status === "recebido").reduce((acc, r) => acc + r.valor, 0);
-  const totalPendente = receitas.filter(r => r.status === "pendente").reduce((acc, r) => acc + r.valor, 0);
+  const grupoAtivo = (itens: { path: string }[]) =>
+    itens.some(i => pathname === i.path || pathname.startsWith(i.path + "/"));
 
   return (
-    <ModuloLayout titulo={t.receitas.titulo} subtitulo={t.receitas.subtitulo} onExportarPDF={exportarPDF}
-      exportando={exportando}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" }); setModalAberto(true); }}
-      labelBotao={t.receitas.novaReceita}>
-      <div ref={conteudoRef} className="space-y-4">
-
-        {/* Cards */}
-        <div className="grid grid-cols-3 gap-3 md:gap-4">
-          {[
-            { label: t.receitas.totalReceitas, value: `R$ ${totalReceitas.toLocaleString("pt-BR")}`, cor: "#6ab0ff" },
-            { label: t.receitas.recebido, value: `R$ ${totalRecebido.toLocaleString("pt-BR")}`, cor: "#34d399" },
-            { label: t.receitas.pendente, value: `R$ ${totalPendente.toLocaleString("pt-BR")}`, cor: "#fbbf24" },
-          ].map((card, i) => (
-            <motion.div key={card.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <CanvasBox cor={card.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#3a5a8a" }}>{card.label}</p>
-                <p className="text-base md:text-2xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.value}</p>
-              </CanvasBox>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Busca */}
-        <div className="flex flex-col md:flex-row gap-3">
-          <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
-            <div className="flex items-center gap-2 py-1">
-              <Search size={16} style={{ color: "#3a5a8a" }} />
-              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.receitas.buscar}
-                className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "#c8d8f0", minWidth: "200px" }} />
-            </div>
-          </CanvasBox>
-          <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-            className="px-4 py-3 rounded-2xl focus:outline-none text-sm"
-            style={{ background: "rgba(4,10,22,0.97)", border: "1px solid rgba(59,111,212,0.3)", color: "#c8d8f0" }}>
-            <option value="todas">{t.geral.todas}</option>
-            {categorias.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* Tabela */}
-        <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
-          <div className="overflow-x-auto">
-            {carregando ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : (
-              <table className="w-full min-w-[600px]">
-                <thead>
-                  <tr style={{ borderBottom: "1px solid rgba(59,111,212,0.15)" }}>
-                    {[t.geral.descricao, t.geral.categoria, t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
-                      <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "#3a5a8a" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {receitasFiltradas.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-12 text-sm" style={{ color: "#3a5a8a" }}>{t.receitas.semReceitas}</td></tr>
-                  ) : receitasFiltradas.map((r, i) => (
-                    <motion.tr key={r.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                      whileHover={{ backgroundColor: "rgba(106,176,255,0.03)" }}
-                      style={{ borderBottom: i < receitasFiltradas.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
-                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "#c8d8f0" }}>{r.descricao}</td>
-                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(59,111,212,0.1)", color: "#6ab0ff" }}>{r.categoria}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "#3a5a8a" }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? "#34d399" : "#fbbf24" }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: "#34d399", textShadow: "0 0 10px rgba(52,211,153,0.4)" }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3">
-                        <div className="flex items-center gap-3">
-                          <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(r)} style={{ color: "#6ab0ff" }}><Pencil size={16} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(r.id)} style={{ color: "#f87171" }}><Trash2 size={16} /></motion.button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+    <>
+      {/* DESKTOP */}
+      <motion.nav
+        ref={navRef}
+        initial={{ y: -80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 h-16"
+        style={{
+          background: "linear-gradient(90deg, #060f1e 0%, #0a1628 60%, #060f1e 100%)",
+          borderBottom: "1px solid rgba(59,111,212,0.25)",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(106,176,255,0.08)",
+        }}
+      >
+        {/* Logo */}
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navegar("/dashboard")}
+          className="flex items-center gap-3 cursor-pointer mr-4 pr-4"
+          style={{ borderRight: "1px solid rgba(59,111,212,0.2)" }}
+        >
+          <div style={{ filter: "drop-shadow(0 0 12px rgba(106,176,255,0.7))" }}>
+            <Image src="/logo-aitech.png" alt="Axioma" width={34} height={34} className="object-contain" />
           </div>
-        </CanvasBox>
-      </div>
+          <div>
+            <p className="font-black tracking-[0.25em] text-sm leading-none" style={{
+              background: "linear-gradient(135deg, #c8d8f0 0%, #6ab0ff 40%, #ffffff 60%, #3b6fd4 100%)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+            }}>AXIOMA</p>
+            <p className="text-xs tracking-[0.3em] font-semibold" style={{ color: "#3a5a8a", fontSize: 9 }}>AI.TECH</p>
+          </div>
+        </motion.div>
 
-      {/* Modal Premium */}
+        {/* Dashboard */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navegar("/dashboard")}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "transparent",
+            color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a",
+            border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid transparent",
+          }}
+        >
+          <span>🏠</span>
+          <span>{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
+        </motion.button>
+
+        {/* Grupos */}
+        {grupos.map((grupo) => {
+          const ativo = grupoAtivo(grupo.itens);
+          const aberto = dropdown === grupo.label.pt;
+          const ehMei = (grupo as any).destaque === true;
+          return (
+            <div key={grupo.label.pt} className="relative">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setDropdown(aberto ? null : grupo.label.pt)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "transparent",
+                  color: ativo || aberto ? grupo.cor : ehMei ? "#f97316" : "#5a7a9a",
+                  border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(249,115,22,0.3)" : "1px solid transparent",
+                  boxShadow: ehMei ? "0 0 12px rgba(249,115,22,0.15)" : "none",
+                }}
+              >
+                <span className="text-xs">{grupo.label[lang]}</span>
+                {ehMei && (
+                  <span className="text-xs px-1 py-0.5 rounded-full font-black animate-pulse"
+                    style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 8, border: "1px solid rgba(249,115,22,0.4)" }}>
+                    NOVO
+                  </span>
+                )}
+                <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                  <ChevronDown size={13} />
+                </motion.div>
+              </motion.button>
+
+              <AnimatePresence>
+                {aberto && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="absolute top-full left-0 mt-2 min-w-[200px] rounded-2xl overflow-hidden z-50"
+                    style={{
+                      background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
+                      border: `1px solid ${grupo.cor}35`,
+                      boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${grupo.cor}15`,
+                    }}
+                  >
+                    <div className="p-2 space-y-0.5">
+                      {grupo.itens.map((item, i) => {
+                        const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
+                        return (
+                          <motion.button
+                            key={item.path}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.04 }}
+                            whileHover={{ x: 4, scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => navegar(item.path)}
+                            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all"
+                            style={{
+                              background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}25, ${grupo.cor}10)` : "transparent",
+                              color: itemAtivo ? grupo.cor : "#7a9aba",
+                              border: itemAtivo ? `1px solid ${grupo.cor}35` : "1px solid transparent",
+                            }}
+                          >
+                            <span className="text-base">{item.emoji}</span>
+                            <span className="text-sm font-medium">{item.label[lang]}</span>
+                            {itemAtivo && (
+                              <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: grupo.cor }} />
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+
+        {/* Lado direito */}
+        <div className="ml-auto flex items-center gap-3">
+          <SeletorIdioma />
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all"
+            style={{
+              background: "rgba(248,113,113,0.08)",
+              border: "1px solid rgba(248,113,113,0.25)",
+              color: "#f87171",
+            }}
+          >
+            <LogOut size={14} />
+            <span>{lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}</span>
+          </motion.button>
+        </div>
+      </motion.nav>
+
+      {/* MOBILE */}
+      <motion.div
+        initial={{ y: -60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-14"
+        style={{
+          background: "rgba(6,15,30,0.97)",
+          borderBottom: "1px solid rgba(59,111,212,0.2)",
+          backdropFilter: "blur(16px)",
+        }}
+      >
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-2.5 cursor-pointer" onClick={() => navegar("/dashboard")}>
+          <div style={{ filter: "drop-shadow(0 0 10px rgba(106,176,255,0.6))" }}>
+            <Image src="/logo-aitech.png" alt="Axioma" width={30} height={30} className="object-contain" />
+          </div>
+          <div>
+            <p className="font-black tracking-[0.25em] text-xs leading-none" style={{ background: "linear-gradient(135deg, #c8d8f0, #6ab0ff, #fff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>AXIOMA</p>
+            <p style={{ color: "#3a5a8a", fontSize: 8, letterSpacing: "0.3em" }}>AI.TECH</p>
+          </div>
+        </motion.div>
+        <div className="flex items-center gap-2">
+          <SeletorIdioma />
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
+            <AnimatePresence mode="wait">
+              {menuMobile
+                ? <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><X size={18} style={{ color: "#6ab0ff" }} /></motion.div>
+                : <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}><Menu size={18} style={{ color: "#6ab0ff" }} /></motion.div>
+              }
+            </AnimatePresence>
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* MOBILE Drawer */}
       <AnimatePresence>
-        {modalAberto && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
-              className="w-full max-w-md max-h-screen overflow-y-auto">
-              <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                      className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                      style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>AXIOMA AI.TECH</motion.p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? "Editar Receita" : t.receitas.novaReceita}</h3>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { label: t.receitas.descricao, key: "descricao", type: "text" },
-                    { label: t.receitas.valor, key: "valor", type: "number" },
-                    { label: t.receitas.data, key: "data", type: "date" },
-                  ].map(({ label, key, type }) => (
-                    <div key={key}>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{label}</label>
-                      <input type={type} value={novo[key as keyof typeof novo]} onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+        {menuMobile && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+              className="md:hidden fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+              onClick={() => setMenuMobile(false)} />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.3, ease: "easeOut" }}
+              className="md:hidden fixed top-14 right-0 bottom-0 w-80 z-50 overflow-auto"
+              style={{ background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)", borderLeft: "1px solid rgba(59,111,212,0.2)", boxShadow: "-20px 0 60px rgba(0,0,0,0.6)" }}>
+              <div className="p-4 space-y-2">
+                <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
+                  style={{ background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
+                  <span>🏠</span>
+                  <span className="font-semibold text-sm">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
+                </motion.button>
+
+                {grupos.map((grupo) => {
+                  const ativo = grupoAtivo(grupo.itens);
+                  const aberto = grupoMobile === grupo.label.pt;
+                  const ehMei = (grupo as any).destaque === true;
+                  return (
+                    <div key={grupo.label.pt}>
+                      <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }}
+                        onClick={() => setGrupoMobile(aberto ? null : grupo.label.pt)}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
+                        style={{
+                          background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "rgba(59,111,212,0.04)",
+                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(249,115,22,0.25)" : "1px solid rgba(59,111,212,0.08)",
+                          color: ativo || aberto ? grupo.cor : ehMei ? "#f97316" : "#5a7a9a",
+                        }}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm">{grupo.label[lang]}</span>
+                          {ehMei && <span className="text-xs px-1 py-0.5 rounded-full font-black animate-pulse" style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 8 }}>NOVO</span>}
+                        </div>
+                        <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown size={14} /></motion.div>
+                      </motion.button>
+
+                      <AnimatePresence>
+                        {aberto && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: "easeOut" }} className="overflow-hidden">
+                            <div className="ml-3 mt-1 space-y-1 border-l-2 pl-3 pb-1" style={{ borderColor: `${grupo.cor}40` }}>
+                              {grupo.itens.map((item, i) => {
+                                const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
+                                return (
+                                  <motion.button key={item.path} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                                    whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(item.path)}
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left"
+                                    style={{ background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}20, ${grupo.cor}08)` : "transparent", color: itemAtivo ? grupo.cor : "#6a8aaa", border: itemAtivo ? `1px solid ${grupo.cor}30` : "1px solid transparent" }}>
+                                    <span>{item.emoji}</span>
+                                    <span className="text-sm font-medium">{item.label[lang]}</span>
+                                    {itemAtivo && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: grupo.cor }} />}
+                                  </motion.button>
+                                );
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  ))}
-                  <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.receitas.categoria}</label>
-                    <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
-                      {categorias.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.receitas.status}</label>
-                    <div className="flex gap-2">
-                      {["recebido", "pendente"].map((s) => (
-                        <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })}
-                          className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(59,111,212,0.05)", color: novo.status === s ? (s === "recebido" ? "#34d399" : "#fbbf24") : "#3a5a8a", border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(59,111,212,0.1)"}` }}>
-                          {s === "recebido" ? t.receitas.recebido : t.receitas.pendente}
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(106,176,255,0.4)" }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} disabled={salvando}
-                    className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                    {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.receitas.salvarReceita}
-                  </motion.button>
-                </div>
-              </CanvasBox>
+                  );
+                })}
+
+                <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl mt-4"
+                  style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", color: "#f87171" }}>
+                  <LogOut size={15} />
+                  <span className="font-bold text-sm">{lang === "pt" ? "Sair da conta" : lang === "en" ? "Logout" : "Cerrar sesión"}</span>
+                </motion.button>
+              </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
-    </ModuloLayout>
+
+      <div className="h-16 md:h-16" />
+    </>
   );
 }
