@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { FileText, AlertTriangle, CheckCircle } from 'lucide-react'
 import jsPDF from 'jspdf'
@@ -123,6 +123,7 @@ export default function ImpostoRendaMEI() {
   const [receitas, setReceitas] = useState<any[]>([])
   const [outraRenda, setOutraRenda] = useState('')
   const [exportando, setExportando] = useState(false)
+  const [checklistMarcado, setChecklistMarcado] = useState<boolean[]>([false, false, false, false, false, false])
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const txt = {
@@ -138,6 +139,7 @@ export default function ImpostoRendaMEI() {
     abrirReceita: { pt: 'Acessar Receita Federal', en: 'Access Federal Revenue', es: 'Acceder a Receita Federal' },
     obrigatorio: { pt: 'Declaração OBRIGATÓRIA', en: 'MANDATORY Declaration', es: 'Declaración OBLIGATORIA' },
     naoObrigatorio: { pt: 'Declaração não obrigatória', en: 'Declaration not required', es: 'Declaración no obligatoria' },
+    progresso: { pt: 'itens concluídos', en: 'items completed', es: 'elementos completados' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -155,6 +157,12 @@ export default function ImpostoRendaMEI() {
     ])
     setMeiDados(mei)
     setReceitas(rec || [])
+
+    // ✅ Carregar checklist salvo do localStorage
+    const salvo = localStorage.getItem(`axioma-irpf-checklist-${user.id}`)
+    if (salvo) {
+      try { setChecklistMarcado(JSON.parse(salvo)) } catch {}
+    }
   }
 
   const anoAtual = new Date().getFullYear()
@@ -172,18 +180,34 @@ export default function ImpostoRendaMEI() {
   const rendaTotalAnual = rendaTributavelMEI + outraRendaAnual
   const rendaMensalMedia = rendaTotalAnual / 12
 
-  const { imposto, aliquota, aliquotaEfetiva } = calcularIRPF(rendaMensalMedia)
+  const { imposto, aliquotaEfetiva } = calcularIRPF(rendaMensalMedia)
   const impostoAnual = imposto * 12
   const obrigado = rendaTotalAnual > 33888 || faturamentoAnual > 0
 
-  const checklist = [
-    { pt: 'CNPJ MEI ativo e em dia com DAS', en: 'Active MEI CNPJ with DAS up to date', es: 'CNPJ MEI activo y al día con DAS', ok: !!meiDados },
-    { pt: 'DASN-SIMEI declarada (receita bruta anual)', en: 'DASN-SIMEI declared (annual gross revenue)', es: 'DASN-SIMEI declarada (ingresos brutos anuales)', ok: faturamentoAnual > 0 },
-    { pt: 'Comprovante de rendimentos MEI separado', en: 'MEI income proof separated', es: 'Comprobante de ingresos MEI separado', ok: false },
-    { pt: 'Recibos e notas fiscais do ano organizados', en: 'Receipts and invoices for the year organized', es: 'Recibos y facturas del año organizados', ok: receitas.length > 0 },
-    { pt: 'Informes de outras fontes de renda (se houver)', en: 'Reports from other income sources (if any)', es: 'Informes de otras fuentes de ingresos (si hay)', ok: false },
-    { pt: 'Programa IRPF Receita Federal instalado', en: 'Receita Federal IRPF Program installed', es: 'Programa IRPF Receita Federal instalado', ok: false },
+  // ✅ Checklist com itens automáticos e manuais
+  const checklistItens = [
+    { pt: 'CNPJ MEI ativo e em dia com DAS', en: 'Active MEI CNPJ with DAS up to date', es: 'CNPJ MEI activo y al día con DAS', auto: !!meiDados },
+    { pt: 'DASN-SIMEI declarada (receita bruta anual)', en: 'DASN-SIMEI declared (annual gross revenue)', es: 'DASN-SIMEI declarada (ingresos brutos anuales)', auto: faturamentoAnual > 0 },
+    { pt: 'Comprovante de rendimentos MEI separado', en: 'MEI income proof separated', es: 'Comprobante de ingresos MEI separado', auto: false },
+    { pt: 'Recibos e notas fiscais do ano organizados', en: 'Receipts and invoices for the year organized', es: 'Recibos y facturas del año organizados', auto: receitas.length > 0 },
+    { pt: 'Informes de outras fontes de renda (se houver)', en: 'Reports from other income sources (if any)', es: 'Informes de otras fuentes de ingresos (si hay)', auto: false },
+    { pt: 'Programa IRPF Receita Federal instalado', en: 'Receita Federal IRPF Program installed', es: 'Programa IRPF Receita Federal instalado', auto: false },
   ]
+
+  function toggleChecklist(index: number) {
+    // Itens automáticos não podem ser desmarcados manualmente
+    if (checklistItens[index].auto) return
+    const novo = [...checklistMarcado]
+    novo[index] = !novo[index]
+    setChecklistMarcado(novo)
+    // Salva no localStorage
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) localStorage.setItem(`axioma-irpf-checklist-${user.id}`, JSON.stringify(novo))
+    })
+  }
+
+  const itensConcluidos = checklistItens.filter((item, i) => item.auto || checklistMarcado[i]).length
+  const totalItens = checklistItens.length
 
   const exportarPDF = async () => {
     if (!conteudoRef.current) return
@@ -361,7 +385,6 @@ export default function ImpostoRendaMEI() {
               })}
             </div>
           </div>
-          {/* ✅ Sem referência a contador */}
           <p className="text-xs mt-3" style={{ color: '#3a5a8a' }}>
             {lang === 'pt' ? '* Tabela IRPF 2025. Axioma calculou automaticamente com base nos seus dados reais.'
               : lang === 'en' ? '* IRPF 2025 table. Axioma calculated automatically based on your real data.'
@@ -369,24 +392,85 @@ export default function ImpostoRendaMEI() {
           </p>
         </CanvasBox>
 
-        {/* Checklist */}
+        {/* ✅ Checklist CLICÁVEL */}
         <CanvasBox>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0' }}>{t('checklist')}</p>
-          <div className="space-y-2">
-            {checklist.map((item, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
-                className="flex items-center gap-3 p-3 rounded-xl"
-                style={{
-                  background: item.ok ? 'rgba(52,211,153,0.06)' : 'rgba(59,111,212,0.06)',
-                  border: `1px solid ${item.ok ? 'rgba(52,211,153,0.2)' : 'rgba(59,111,212,0.15)'}`,
-                }}>
-                {item.ok
-                  ? <CheckCircle size={16} style={{ color: '#34d399', flexShrink: 0 }} />
-                  : <div className="w-4 h-4 rounded-full border-2 flex-shrink-0" style={{ borderColor: '#3a5a8a' }} />}
-                <p className="text-xs" style={{ color: item.ok ? '#c8d8f0' : '#5a7a9a' }}>{item[lang]}</p>
-              </motion.div>
-            ))}
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <p className="text-sm font-semibold" style={{ color: '#c8d8f0' }}>{t('checklist')}</p>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-24 rounded-full overflow-hidden" style={{ background: 'rgba(59,111,212,0.15)' }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(itensConcluidos / totalItens) * 100}%` }}
+                  transition={{ duration: 0.5 }}
+                  className="h-2 rounded-full"
+                  style={{ background: `linear-gradient(90deg, #34d399, #6ab0ff)` }}
+                />
+              </div>
+              <span className="text-xs font-bold" style={{ color: '#34d399' }}>
+                {itensConcluidos}/{totalItens} {t('progresso')}
+              </span>
+            </div>
           </div>
+          <div className="space-y-2">
+            {checklistItens.map((item, i) => {
+              const marcado = item.auto || checklistMarcado[i]
+              const clicavel = !item.auto
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  whileHover={clicavel ? { scale: 1.01, x: 2 } : {}}
+                  whileTap={clicavel ? { scale: 0.98 } : {}}
+                  onClick={() => toggleChecklist(i)}
+                  className="flex items-center gap-3 p-3 rounded-xl transition-all"
+                  style={{
+                    background: marcado ? 'rgba(52,211,153,0.08)' : 'rgba(59,111,212,0.05)',
+                    border: `1px solid ${marcado ? 'rgba(52,211,153,0.25)' : 'rgba(59,111,212,0.12)'}`,
+                    cursor: clicavel ? 'pointer' : 'default',
+                    boxShadow: marcado ? '0 0 10px rgba(52,211,153,0.08)' : 'none',
+                  }}>
+                  <motion.div
+                    animate={{ scale: marcado ? [1, 1.2, 1] : 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex-shrink-0">
+                    {marcado ? (
+                      <CheckCircle size={18} style={{ color: '#34d399' }} />
+                    ) : (
+                      <div className="w-[18px] h-[18px] rounded-full border-2 transition-all"
+                        style={{ borderColor: clicavel ? '#3a6090' : '#2a4060' }} />
+                    )}
+                  </motion.div>
+                  <p className="text-xs flex-1" style={{ color: marcado ? '#c8d8f0' : '#5a7a9a' }}>
+                    {item[lang]}
+                  </p>
+                  {item.auto && (
+                    <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', fontSize: 10 }}>
+                      {lang === 'pt' ? 'auto' : 'auto'}
+                    </span>
+                  )}
+                  {clicavel && !marcado && (
+                    <span className="text-xs flex-shrink-0" style={{ color: '#3a5a8a', fontSize: 10 }}>
+                      {lang === 'pt' ? 'clique para marcar' : lang === 'en' ? 'click to check' : 'clic para marcar'}
+                    </span>
+                  )}
+                </motion.div>
+              )
+            })}
+          </div>
+
+          {itensConcluidos === totalItens && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="mt-4 p-3 rounded-xl text-center"
+              style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+              <p className="text-sm font-bold" style={{ color: '#34d399' }}>
+                🎉 {lang === 'pt' ? 'Checklist completo! Você está pronto para declarar.' : lang === 'en' ? 'Checklist complete! You are ready to file.' : '¡Checklist completo! Está listo para declarar.'}
+              </p>
+            </motion.div>
+          )}
+
           <motion.a whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
             href="https://www.gov.br/receitafederal/pt-br/assuntos/meu-imposto-de-renda"
             target="_blank" rel="noopener noreferrer"
