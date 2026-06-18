@@ -1,9 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// ✅ Contas com acesso gratuito permanente (admins/testers)
+// ✅ Apenas conta admin para testes
 const CONTAS_LIBERADAS = [
-  'tavareselias121@gmail.com',
   'aitrainersuporte@gmail.com',
 ]
 
@@ -40,11 +39,9 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // ✅ IP do usuário para rate limiting
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
     request.headers.get('x-real-ip') || 'anonymous'
 
-  // ✅ Rate limit para rotas sensíveis
   if (pathname.startsWith('/api/') || pathname === '/login' || pathname === '/cadastro') {
     const limite = pathname.startsWith('/api/ia-chat') ? 30 : 60
     if (!checkRateLimit(`${ip}:${pathname}`, limite, 60000)) {
@@ -115,40 +112,37 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/inadimplencia') ||
     pathname.startsWith('/mei')
 
-  // Nunca bloquear rotas de auth
   if (isCallback) {
     return addSecurityHeaders(supabaseResponse)
   }
 
-  // Usuário não logado tentando acessar rota protegida ou planos
   if (!user && (isRotaProtegida || isRotaPlanos)) {
     const response = NextResponse.redirect(new URL('/', request.url))
     return addSecurityHeaders(response)
   }
 
-  // Usuário logado em rota pública — redireciona para dashboard
+  // ✅ Usuário logado em rota pública — mas deixa passar recuperar/atualizar senha
   if (user && isRotaPublica) {
+    if (pathname === '/recuperar-senha' || pathname === '/atualizar-senha') {
+      return addSecurityHeaders(supabaseResponse)
+    }
     const response = NextResponse.redirect(new URL('/dashboard', request.url))
     return addSecurityHeaders(response)
   }
 
-  // ✅ Verificação de plano ativo para rotas protegidas
   if (user && isRotaProtegida) {
     const email = user.email || ''
 
-    // Contas liberadas — acesso total sem verificar plano
     if (CONTAS_LIBERADAS.includes(email)) {
       return addSecurityHeaders(supabaseResponse)
     }
 
-    // Verifica se tem plano ativo no Supabase
     const { data: perfil } = await supabase
       .from('perfis')
       .select('plano_ativo')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    // Sem plano ativo — redireciona para /planos
     if (!perfil || !perfil.plano_ativo) {
       const response = NextResponse.redirect(new URL('/planos', request.url))
       return addSecurityHeaders(response)
