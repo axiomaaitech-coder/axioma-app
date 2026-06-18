@@ -20,7 +20,7 @@ export default function RecuperarSenha() {
     setErro('')
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `https://axioma-app.vercel.app/atualizar-senha`,
+      redirectTo: `https://axiomaai.com.br/atualizar-senha`,
     })
 
     if (error) {
@@ -42,8 +42,19 @@ export default function RecuperarSenha() {
           <h2 className="text-2xl font-bold mb-2" style={{color: '#c8d8f0'}}>
             {idioma === 'pt' ? 'Email enviado!' : idioma === 'en' ? 'Email sent!' : '¡Email enviado!'}
           </h2>
-          <p className="text-sm mb-8" style={{color: '#3a6090'}}>
-            {idioma === 'pt' ? 'Verifique sua caixa de entrada e clique no link para redefinir sua senha.' : idioma === 'en' ? 'Check your inbox and click the link to reset your password.' : 'Revisa tu bandeja de entrada y haz clic en el enlace para restablecer tu contraseña.'}
+          <p className="text-sm mb-2" style={{color: '#3a6090'}}>
+            {idioma === 'pt'
+              ? 'Verifique sua caixa de entrada e clique no link para redefinir sua senha.'
+              : idioma === 'en'
+              ? 'Check your inbox and click the link to reset your password.'
+              : 'Revisa tu bandeja de entrada y haz clic en el enlace para restablecer tu contraseña.'}
+          </p>
+          <p className="text-xs mb-8" style={{color: '#3a5a8a'}}>
+            {idioma === 'pt'
+              ? 'Não encontrou? Verifique a pasta de spam.'
+              : idioma === 'en'
+              ? "Can't find it? Check your spam folder."
+              : '¿No lo encuentras? Revisa tu carpeta de spam.'}
           </p>
           <a href="/"
             className="w-full py-3 rounded-xl font-bold text-sm tracking-widest uppercase text-center block"
@@ -85,8 +96,16 @@ export default function RecuperarSenha() {
           </div>
         </div>
 
+        <h1 className="text-xl font-black mb-2 text-center" style={{color: '#c8d8f0'}}>
+          {idioma === 'pt' ? 'Esqueceu sua senha?' : idioma === 'en' ? 'Forgot your password?' : '¿Olvidaste tu contraseña?'}
+        </h1>
+
         <p className="text-sm mb-8 text-center" style={{color: '#3a6090'}}>
-          {idioma === 'pt' ? 'Recuperar senha' : idioma === 'en' ? 'Reset password' : 'Recuperar contraseña'}
+          {idioma === 'pt'
+            ? 'Digite seu e-mail e enviaremos um link para criar uma nova senha imediatamente.'
+            : idioma === 'en'
+            ? 'Enter your email and we will send you a link to create a new password immediately.'
+            : 'Ingresa tu email y te enviaremos un enlace para crear una nueva contraseña de inmediato.'}
         </p>
 
         <div className="w-full space-y-4">
@@ -110,7 +129,9 @@ export default function RecuperarSenha() {
           <button onClick={handleRecuperar} disabled={carregando}
             className="w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all hover:scale-105"
             style={{background: 'linear-gradient(135deg, #1a3a8f 0%, #2a5fd4 100%)', color: '#fff', opacity: carregando ? 0.7 : 1, boxShadow: '0 4px 30px rgba(42,95,212,0.4)'}}>
-            {carregando ? (idioma === 'pt' ? 'Enviando...' : 'Sending...') : (idioma === 'pt' ? 'Enviar Link' : idioma === 'en' ? 'Send Link' : 'Enviar Enlace')}
+            {carregando
+              ? (idioma === 'pt' ? 'Enviando...' : idioma === 'en' ? 'Sending...' : 'Enviando...')
+              : (idioma === 'pt' ? '🔐 Enviar Link de Redefinição' : idioma === 'en' ? '🔐 Send Reset Link' : '🔐 Enviar Enlace')}
           </button>
 
           <p className="text-center text-xs mt-2">
