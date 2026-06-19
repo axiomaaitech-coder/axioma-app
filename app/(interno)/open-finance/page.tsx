@@ -45,20 +45,20 @@ const textos = {
 }
 
 const BANCOS_SUPORTADOS = [
-  { nome: 'Nubank', cor: '#820AD1', emoji: '💜' },
-  { nome: 'Itaú', cor: '#FF6B00', emoji: '🟠' },
-  { nome: 'Bradesco', cor: '#CC0000', emoji: '🔴' },
-  { nome: 'Santander', cor: '#EC0000', emoji: '🔴' },
-  { nome: 'Banco do Brasil', cor: '#FFCC00', emoji: '🟡' },
-  { nome: 'Caixa', cor: '#0070AF', emoji: '🔵' },
-  { nome: 'Inter', cor: '#FF7A00', emoji: '🟠' },
-  { nome: 'C6 Bank', cor: '#242424', emoji: '⚫' },
-  { nome: 'Sicoob', cor: '#009A44', emoji: '🟢' },
-  { nome: 'Sicredi', cor: '#009A44', emoji: '🟢' },
-  { nome: 'XP', cor: '#000000', emoji: '⚫' },
-  { nome: 'BTG', cor: '#1B3A6B', emoji: '🔵' },
-  { nome: 'Banrisul', cor: '#003DA5', emoji: '🔵' },
-  { nome: 'Safra', cor: '#1A1A1A', emoji: '⚫' },
+  { nome: 'Nubank', cor: '#a855f7', emoji: '💜' },
+  { nome: 'Itaú', cor: '#FF8C00', emoji: '🟠' },
+  { nome: 'Bradesco', cor: '#f87171', emoji: '🔴' },
+  { nome: 'Santander', cor: '#f87171', emoji: '🔴' },
+  { nome: 'Banco do Brasil', cor: '#fbbf24', emoji: '🟡' },
+  { nome: 'Caixa', cor: '#38bdf8', emoji: '🔵' },
+  { nome: 'Inter', cor: '#FF8C00', emoji: '🟠' },
+  { nome: 'C6 Bank', cor: '#94a3b8', emoji: '⚪' },
+  { nome: 'Sicoob', cor: '#34d399', emoji: '🟢' },
+  { nome: 'Sicredi', cor: '#34d399', emoji: '🟢' },
+  { nome: 'XP', cor: '#cbd5e1', emoji: '⚪' },
+  { nome: 'BTG', cor: '#60a5fa', emoji: '🔵' },
+  { nome: 'Banrisul', cor: '#60a5fa', emoji: '🔵' },
+  { nome: 'Safra', cor: '#cbd5e1', emoji: '⚪' },
 ]
 
 // ============================================================
