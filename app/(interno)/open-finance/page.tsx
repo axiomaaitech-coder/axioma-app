@@ -101,8 +101,12 @@ const BANCOS_SUPORTADOS = [
   { nome: 'Caixa', cor: '#0070AF', emoji: '🔵' },
   { nome: 'Inter', cor: '#FF7A00', emoji: '🟠' },
   { nome: 'C6 Bank', cor: '#242424', emoji: '⚫' },
+  { nome: 'Sicoob', cor: '#009A44', emoji: '🟢' },
+  { nome: 'Sicredi', cor: '#009A44', emoji: '🟢' },
   { nome: 'XP', cor: '#000000', emoji: '⚫' },
   { nome: 'BTG', cor: '#1B3A6B', emoji: '🔵' },
+  { nome: 'Banrisul', cor: '#003DA5', emoji: '🔵' },
+  { nome: 'Safra', cor: '#1A1A1A', emoji: '⚫' },
 ]
 
 export default function OpenFinancePage() {
