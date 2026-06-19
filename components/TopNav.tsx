@@ -71,6 +71,7 @@ const grupos = [
       { label: { pt: "Centros de Custo", en: "Cost Centers", es: "Centros de Costo" }, path: "/centros-custo", emoji: "🗂️" },
       { label: { pt: "Importar Documentos", en: "Import Documents", es: "Importar Documentos" }, path: "/importar-documentos", emoji: "📂" },
       { label: { pt: "Relatórios", en: "Reports", es: "Informes" }, path: "/relatorios", emoji: "📋" },
+      { label: { pt: "Open Finance", en: "Open Finance", es: "Open Finance" }, path: "/open-finance", emoji: "🏦" },
     ]
   },
   {
@@ -249,6 +250,12 @@ export default function TopNav() {
                           >
                             <span className="text-base">{item.emoji}</span>
                             <span className="text-sm font-medium">{item.label[lang]}</span>
+                            {item.path === "/open-finance" && !itemAtivo && (
+                              <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
+                                style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 8, border: "1px solid rgba(106,176,255,0.3)" }}>
+                                NOVO
+                              </span>
+                            )}
                             {itemAtivo && (
                               <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: grupo.cor }} />
                             )}
@@ -369,6 +376,12 @@ export default function TopNav() {
                                     style={{ background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}20, ${grupo.cor}08)` : "transparent", color: itemAtivo ? grupo.cor : "#6a8aaa", border: itemAtivo ? `1px solid ${grupo.cor}30` : "1px solid transparent" }}>
                                     <span>{item.emoji}</span>
                                     <span className="text-sm font-medium">{item.label[lang]}</span>
+                                    {item.path === "/open-finance" && !itemAtivo && (
+                                      <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
+                                        style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 8, border: "1px solid rgba(106,176,255,0.3)" }}>
+                                        NOVO
+                                      </span>
+                                    )}
                                     {itemAtivo && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: grupo.cor }} />}
                                   </motion.button>
                                 );
