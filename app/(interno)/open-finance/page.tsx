@@ -206,7 +206,7 @@ export default function OpenFinancePage() {
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   return (
-    <ModuloLayout titulo={t.titulo} subtitulo={t.sub} icone="🏦">
+    <ModuloLayout titulo={t.titulo} subtitulo={t.sub}>
       <div className="space-y-6">
 
         {/* Mensagem */}
