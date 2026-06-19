@@ -70,6 +70,7 @@ const grupos = [
       { label: "Centros de Custo", path: "/centros-custo", emoji: "🗂️" },
       { label: "Importar Documentos", path: "/importar-documentos", emoji: "📂" },
       { label: "Relatórios", path: "/relatorios", emoji: "📋" },
+      { label: "Open Finance", path: "/open-finance", emoji: "🏦" },
     ]
   },
   {
@@ -105,7 +106,6 @@ export default function Sidebar() {
     );
   };
 
-  // ✅ Detecta subrotas do MEI corretamente
   const grupoAtivo = (itens: { path: string }[]) =>
     itens.some(i => pathname === i.path || pathname.startsWith(i.path + "/"));
 
@@ -201,7 +201,6 @@ export default function Sidebar() {
               {aberto && (
                 <div className="ml-4 mt-1 space-y-0.5 mb-1 border-l-2 pl-3" style={{ borderColor: `${grupo.cor}40` }}>
                   {grupo.itens.map((item) => {
-                    // ✅ Detecta subrotas corretamente
                     const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
                     return (
                       <div
@@ -217,6 +216,12 @@ export default function Sidebar() {
                         <span className="text-sm">{item.emoji}</span>
                         <span className="text-xs font-medium">{item.label}</span>
                         {itemAtivo && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: grupo.cor }} />}
+                        {item.path === "/open-finance" && !itemAtivo && (
+                          <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"
+                            style={{ background: "rgba(106,176,255,0.2)", color: "#6ab0ff", fontSize: 8, border: "1px solid rgba(106,176,255,0.3)" }}>
+                            NOVO
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -263,7 +268,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* DESKTOP — sidebar lateral */}
+      {/* DESKTOP */}
       <div className="hidden md:flex w-64 min-h-screen flex-col flex-shrink-0" style={{
         background: "linear-gradient(180deg, #060f1e 0%, #020810 100%)",
         borderRight: "1px solid rgba(59,111,212,0.2)",
