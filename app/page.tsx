@@ -527,20 +527,23 @@ function ClowdbotCanvas() {
 // VIDEO FRAME — painel de vídeo premium reutilizável
 //   Moldura de vidro, vinheta para contraste, brilho ambiente.
 // ============================================================
-function VideoFrame({ src, cor = '#6ab0ff', height = 460, children }: { src: string; cor?: string; height?: number; children?: React.ReactNode }) {
+function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: string; cor?: string; className?: string; children?: React.ReactNode }) {
+  const { ref, inView } = useInView<HTMLDivElement>(0.1)
   return (
-    <div className="ax-video-frame relative w-full rounded-[20px] overflow-hidden"
+    <div ref={ref} className={`ax-video-frame relative w-full rounded-[20px] overflow-hidden ${className}`}
       style={{
-        height,
+        aspectRatio: '16 / 9',
         border: `1px solid ${cor}33`,
-        background: '#04101f',
+        background: '#000',
         boxShadow: `0 30px 80px -30px ${cor}66, 0 0 0 1px rgba(255,255,255,0.03) inset`,
       }}>
-      <video autoPlay loop muted playsInline preload="metadata"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ filter: 'brightness(1.04) contrast(1.05) saturate(1.12)' }}>
-        <source src={src} type="video/mp4" />
-      </video>
+      {inView && (
+        <video autoPlay loop muted playsInline preload="auto"
+          className="absolute inset-0 w-full h-full object-cover ax-fade-video"
+          style={{ filter: 'brightness(1.04) contrast(1.05) saturate(1.12)' }}>
+          <source src={src} type="video/mp4" />
+        </video>
+      )}
       {/* Vinheta para profundidade e contraste */}
       <div className="absolute inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at center, transparent 45%, rgba(2,8,16,0.55) 100%)' }} />
@@ -603,7 +606,8 @@ function HeroVideos({ legendas }: { legendas: string[] }) {
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden">
       {Array.from({ length: TOTAL }).map((_, i) => (
-        <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline preload="auto"
+        <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline
+          preload={i === current || i === (current + 1) % TOTAL ? 'auto' : 'none'}
           onEnded={() => handleVideoEnd(i)}
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
           style={{ opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
@@ -613,19 +617,9 @@ function HeroVideos({ legendas }: { legendas: string[] }) {
 
       {/* Vinheta cinematográfica para contraste do texto */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 25%, rgba(2,8,16,0.55) 70%, rgba(2,8,16,0.92) 100%)' }} />
-      <div className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(2,8,16,0.95), transparent)' }} />
-
-      {/* Legenda sincronizada */}
-      {legendas[current] && (
-        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 max-w-3xl w-full px-6 pointer-events-none">
-          <p key={current} className="text-center text-base md:text-2xl font-light tracking-wide"
-            style={{ color: '#ffffff', textShadow: '0 2px 24px rgba(2,8,16,0.95), 0 0 40px rgba(106,176,255,0.45)', animation: 'fade-in-up 0.9s ease-out' }}>
-            "{legendas[current]}"
-          </p>
-        </div>
-      )}
+        style={{ background: 'radial-gradient(ellipse at center, transparent 25%, rgba(2,8,16,0.45) 75%, rgba(2,8,16,0.85) 100%)' }} />
+      <div className="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
+        style={{ background: 'linear-gradient(to top, rgba(2,8,16,0.92), transparent)' }} />
 
       {/* Indicador de progresso (5) */}
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
@@ -687,7 +681,7 @@ export default function LandingPage() {
 
   // Texto secundário e terciário com contraste elegante e legível
   const cBody = '#b8cdf0'
-  const cMuted = '#7d9bc9'
+  const cMuted = '#8fb0dd'
 
   return (
     <div className="ax-root" style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -724,24 +718,16 @@ export default function LandingPage() {
       <section className="relative h-screen min-h-[700px] flex flex-col items-center justify-end overflow-hidden">
         <HeroVideos legendas={[t.hero.legenda1, t.hero.legenda2, t.hero.legenda3]} />
 
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pb-36">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
-            style={{ background: 'rgba(2,8,16,0.7)', border: '1px solid rgba(106,176,255,0.3)', backdropFilter: 'blur(10px)' }}>
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#34d399' }} />
-            <span className="text-xs font-black tracking-widest" style={{ color: '#6ab0ff' }}>🧠 INTELIGÊNCIA FINANCEIRA COM IA</span>
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pb-24 md:pb-20">
+          <div className="max-w-md text-left">
+            <p className="ax-display ax-neon text-xl md:text-3xl font-black mb-5 leading-[1.18]">
+              O Futuro Financeiro do Brasil Pensa Sozinho.
+            </p>
+            <div className="flex">
+              {btn(t.comecarGratis, () => router.push('/cadastro'))}
+            </div>
+            <p className="text-[10px] md:text-xs mt-3" style={{ color: '#aaccf5', textShadow: '0 2px 8px rgba(2,8,16,0.9)' }}>{t.semCartao}</p>
           </div>
-          <h1 className="ax-display text-4xl md:text-7xl font-black mb-4 leading-[1.05]"
-            style={{ color: '#ffffff', textShadow: '0 2px 30px rgba(2,8,16,0.9), 0 0 60px rgba(106,176,255,0.4)' }}>
-            {t.hero.titulo}
-          </h1>
-          <p className="text-sm md:text-lg mb-7 max-w-2xl mx-auto" style={{ color: '#dce8fb', textShadow: '0 2px 14px rgba(2,8,16,0.95)' }}>
-            {t.hero.sub}
-          </p>
-          <div className="flex gap-3 justify-center flex-wrap">
-            {btn(t.comecarGratis, () => router.push('/cadastro'))}
-            {btn(t.nav.planos, () => router.push('/planos'), false)}
-          </div>
-          <p className="text-xs mt-3" style={{ color: '#aaccf5', textShadow: '0 2px 8px rgba(2,8,16,0.9)' }}>{t.semCartao}</p>
         </div>
 
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 animate-bounce">
@@ -771,7 +757,7 @@ export default function LandingPage() {
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
             <Reveal delay={0.12}>
-              <VideoFrame src="/videos/einstein.mp4" cor="#6ab0ff" height={500} />
+              <VideoFrame src="/videos/einstein.mp4" cor="#6ab0ff" />
             </Reveal>
           </div>
         </div>
@@ -782,7 +768,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <Reveal className="order-2 md:order-1">
-              <VideoFrame src="/videos/nucleo.mp4" cor="#a78bfa" height={500} />
+              <VideoFrame src="/videos/nucleo.mp4" cor="#a78bfa" />
             </Reveal>
             <Reveal delay={0.12} className="order-1 md:order-2">
               <Badge cor="#a78bfa">{t.platao.badge}</Badge>
@@ -806,7 +792,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <Reveal className="order-2 md:order-1">
-              <VideoFrame src="/videos/globo.mp4" cor="#34d399" height={450}>
+              <VideoFrame src="/videos/globo.mp4" cor="#34d399">
                 {/* Bandeiras orbitando sobre o globo */}
                 {t.global.paises.map((p, i) => {
                   const angle = (i / t.global.paises.length) * 360
@@ -815,9 +801,9 @@ export default function LandingPage() {
                     <div key={i}
                       onMouseEnter={() => setHoveredPais(i)}
                       onMouseLeave={() => setHoveredPais(null)}
-                      className="absolute left-1/2 top-1/2 cursor-pointer transition-all duration-500 z-10"
+                      className="absolute left-1/2 top-1/2 cursor-pointer transition-all duration-500 z-10 hidden md:block"
                       style={{
-                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-155px) rotate(-${angle}deg) scale(${isHovered ? 1.4 : 1})`,
+                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-120px) rotate(-${angle}deg) scale(${isHovered ? 1.4 : 1})`,
                         animation: 'orbit-rotate 34s linear infinite',
                       }}>
                       <div className="relative flex flex-col items-center">
@@ -888,7 +874,22 @@ export default function LandingPage() {
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
             <Reveal delay={0.12}>
-              <VideoFrame src="/videos/calculadora.mp4" cor="#a78bfa" height={440} />
+              <VideoFrame src="/videos/calculadora.mp4" cor="#a78bfa">
+                <div className="absolute top-4 left-4 z-10 pointer-events-none">
+                  <span className="ax-display text-xs font-black tracking-[0.25em]" style={{ color: '#fff', textShadow: '0 0 14px rgba(167,139,250,0.95)' }}>AXIOMA</span>
+                </div>
+                {['DRE', 'FLUXO', 'RECEITAS', 'CUSTOS'].map((w, i) => {
+                  const angle = (i / 4) * 360 + 45
+                  const x = Math.cos((angle * Math.PI) / 180) * 240
+                  const y = Math.sin((angle * Math.PI) / 180) * 125
+                  return (
+                    <div key={i} className="absolute font-mono font-bold text-[10px] z-10 pointer-events-none hidden md:block"
+                      style={{ left: '50%', top: '50%', transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`, color: '#c4b5fd', textShadow: '0 0 10px #a78bfa, 0 1px 6px rgba(0,0,0,0.95)', animation: `word-float ${4 + (i % 3)}s ease-in-out infinite alternate`, animationDelay: `${i * 0.25}s` }}>
+                      {w}
+                    </div>
+                  )
+                })}
+              </VideoFrame>
             </Reveal>
           </div>
         </div>
@@ -900,7 +901,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <Reveal className="order-2 md:order-1">
-              <VideoFrame src="/videos/cerebro.mp4" cor="#6ab0ff" height={450}>
+              <VideoFrame src="/videos/cerebro.mp4" cor="#6ab0ff">
                 {/* Palavras flutuando ao redor do cérebro (efeito leve) */}
                 {t.mente.palavras.slice(0, 8).map((p, i) => {
                   const angle = (i / 8) * 360
@@ -908,7 +909,7 @@ export default function LandingPage() {
                   const y = Math.sin((angle * Math.PI) / 180) * 120
                   const cor = ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4]
                   return (
-                    <div key={i} className="absolute font-mono font-bold text-[11px] z-10 pointer-events-none"
+                    <div key={i} className="absolute font-mono font-bold text-[11px] z-10 pointer-events-none hidden md:block"
                       style={{
                         left: '50%', top: '50%',
                         transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
@@ -956,8 +957,20 @@ export default function LandingPage() {
             <p className="text-sm md:text-lg max-w-2xl mx-auto" style={{ color: cBody }}>{t.seguranca.sub}</p>
           </Reveal>
           <Reveal delay={0.1}>
-            <div className="mx-auto mb-12" style={{ maxWidth: 880 }}>
-              <VideoFrame src="/videos/seguranca.mp4" cor="#34d399" height={420} />
+            <div className="mx-auto mb-12" style={{ maxWidth: 920 }}>
+              <VideoFrame src="/videos/seguranca.mp4" cor="#34d399">
+                {['🔒 CRIPTOGRAFIA', '🛡️ FIREWALL', '🔑 RLS', '✓ SSL/TLS', '👁️ 24/7', '🔐 BLINDADO'].map((w, i) => {
+                  const angle = (i / 6) * 360
+                  const x = Math.cos((angle * Math.PI) / 180) * 255
+                  const y = Math.sin((angle * Math.PI) / 180) * 140
+                  return (
+                    <div key={i} className="absolute font-mono font-bold text-[10px] md:text-xs z-10 pointer-events-none hidden md:block"
+                      style={{ left: '50%', top: '50%', transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`, color: '#7CFFC4', textShadow: '0 0 10px #34d399, 0 1px 6px rgba(0,0,0,0.95)', animation: `word-float ${4 + (i % 3)}s ease-in-out infinite alternate`, animationDelay: `${i * 0.2}s` }}>
+                      {w}
+                    </div>
+                  )
+                })}
+              </VideoFrame>
             </div>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -998,7 +1011,7 @@ export default function LandingPage() {
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
             <Reveal delay={0.12}>
-              <VideoFrame src="/videos/robos.mp4" cor="#fbbf24" height={440} />
+              <VideoFrame src="/videos/robos.mp4" cor="#fbbf24" />
             </Reveal>
           </div>
         </div>
@@ -1014,7 +1027,7 @@ export default function LandingPage() {
           </Reveal>
           <Reveal delay={0.08}>
             <div className="mx-auto mb-12" style={{ maxWidth: 980 }}>
-              <VideoFrame src="/videos/dna.mp4" cor="#6ab0ff" height={420} />
+              <VideoFrame src="/videos/dna.mp4" cor="#6ab0ff" />
             </div>
           </Reveal>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -1040,14 +1053,13 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <Reveal className="order-2 md:order-1">
-              <div className="relative" style={{ height: 400 }}>
-                <ClowdbotCanvas />
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full"
-                  style={{ background: 'rgba(4,10,22,0.9)', border: '1px solid rgba(52,211,153,0.4)' }}>
+              <VideoFrame src="/videos/gerente.mp4" cor="#6ab0ff">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full z-10"
+                  style={{ background: 'rgba(4,10,22,0.92)', border: '1px solid rgba(52,211,153,0.4)' }}>
                   <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
                   <span className="text-xs font-bold" style={{ color: '#34d399' }}>{t.clowdbot.status}</span>
                 </div>
-              </div>
+              </VideoFrame>
             </Reveal>
             <Reveal delay={0.12} className="order-1 md:order-2">
               <Badge cor="#6ab0ff">{t.clowdbot.badge}</Badge>
@@ -1186,7 +1198,7 @@ export default function LandingPage() {
 
         .ax-root { font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
         .ax-display { font-family: 'Sora', 'Inter', sans-serif; letter-spacing: -0.01em; }
-        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: 'Sora', 'Inter', sans-serif; }
+        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: 'Sora', 'Inter', sans-serif; line-height: 1.18; padding-bottom: 0.12em; }
         .ax-eyebrow { font-family: 'Sora', sans-serif; }
 
         /* Efeito 3D leve nos cards (perspectiva no hover) */
@@ -1197,10 +1209,27 @@ export default function LandingPage() {
         .ax-video-frame { transition: transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease; }
         .ax-video-frame:hover { transform: translateY(-6px) scale(1.01); }
 
+        /* Copy neon ciano com brilho percorrendo (motion designer) */
+        .ax-neon {
+          color: #00E5FF;
+          background: linear-gradient(100deg, #00E5FF 20%, #ffffff 50%, #00E5FF 80%);
+          background-size: 200% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+          filter: drop-shadow(0 0 18px rgba(0,229,255,0.55)) drop-shadow(0 2px 10px rgba(2,8,16,0.9));
+          animation: neon-sheen 5s linear infinite;
+        }
+        @keyframes neon-sheen { from { background-position: 200% center; } to { background-position: -200% center; } }
+
+        /* Fade-in elegante quando o vídeo carrega (lazy-load) */
+        .ax-fade-video { animation: ax-video-in 1.1s ease-out both; }
+        @keyframes ax-video-in { from { opacity: 0; } to { opacity: 1; } }
+
         @keyframes particle-float { from { transform: translateY(0) translateX(0); opacity: 0.3; } to { transform: translateY(-30px) translateX(15px); opacity: 0.8; } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse-aura { from { opacity: 0.5; transform: scale(1); } to { opacity: 0.9; transform: scale(1.08); } }
-        @keyframes orbit-rotate { from { transform: translate(-50%, -50%) rotate(0deg) translateY(-155px) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg) translateY(-155px) rotate(-360deg); } }
+        @keyframes orbit-rotate { from { transform: translate(-50%, -50%) rotate(0deg) translateY(-120px) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg) translateY(-120px) rotate(-360deg); } }
         @keyframes word-float { from { transform: translate(calc(-50% + 0px), calc(-50% + 0px)) scale(1); } to { transform: translate(calc(-50% + 10px), calc(-50% - 10px)) scale(1.08); } }
         @keyframes rocket-pulse { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.05) translateY(-5px); } }
 
