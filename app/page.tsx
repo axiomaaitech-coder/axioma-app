@@ -51,7 +51,7 @@ const idiomas = {
     visao: {
       badge: '👁️ VISÃO CIRÚRGICA',
       titulo: 'Precisão absoluta. Zero erros.',
-      sub: 'Nossa IA enxerga o que nenhum contador humano consegue. Lê seus dados como um cirurgião lê um raio-X — com precisão de milésimos.',
+      sub: 'Do caos das planilhas à clareza dos dashboards. Nossa IA lê seus dados como um cirurgião lê um raio-X — com precisão de milésimos.',
       items: ['✦ Leitura em tempo real de todos os seus dados', '✦ Detecção automática de anomalias financeiras', '✦ Alertas antes que o problema aconteça', '✦ 100% dos números verificados pela IA'],
     },
     mente: {
@@ -179,7 +179,7 @@ const idiomas = {
     visao: {
       badge: '👁️ SURGICAL VISION',
       titulo: 'Absolute precision. Zero errors.',
-      sub: 'Our AI sees what no human accountant can. It reads your data like a surgeon reads an X-ray — with millisecond precision.',
+      sub: 'From spreadsheet chaos to dashboard clarity. Our AI reads your data like a surgeon reads an X-ray — with millisecond precision.',
       items: ['✦ Real-time reading of all your data', '✦ Automatic detection of financial anomalies', '✦ Alerts before the problem occurs', '✦ 100% of numbers verified by AI'],
     },
     mente: {
@@ -307,7 +307,7 @@ const idiomas = {
     visao: {
       badge: '👁️ VISIÓN QUIRÚRGICA',
       titulo: 'Precisión absoluta. Cero errores.',
-      sub: 'Nuestra IA ve lo que ningún contador humano puede. Lee tus datos como un cirujano lee una radiografía — con precisión de milésimas.',
+      sub: 'Del caos de las planillas a la claridad de los dashboards. Nuestra IA lee tus datos como un cirujano lee una radiografía — con precisión de milésimas.',
       items: ['✦ Lectura en tiempo real de todos tus datos', '✦ Detección automática de anomalías financieras', '✦ Alertas antes de que ocurra el problema', '✦ 100% de los números verificados por IA'],
     },
     mente: {
@@ -393,7 +393,41 @@ const idiomas = {
 }
 
 // ============================================================
-// MATRIX BACKGROUND — fundo de caracteres caindo
+// HOOK — Reveal ao rolar (IntersectionObserver, leve)
+// ============================================================
+function useInView<T extends HTMLElement>(threshold = 0.15) {
+  const ref = useRef<T>(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect() } },
+      { threshold }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return { ref, inView }
+}
+
+function Reveal({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const { ref, inView } = useInView<HTMLDivElement>()
+  return (
+    <div ref={ref} className={className}
+      style={{
+        opacity: inView ? 1 : 0,
+        transform: inView ? 'translateY(0)' : 'translateY(34px)',
+        transition: `opacity 0.9s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform 0.9s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
+        willChange: 'opacity, transform',
+      }}>
+      {children}
+    </div>
+  )
+}
+
+// ============================================================
+// MATRIX BACKGROUND — fundo de caracteres caindo (sutil)
 // ============================================================
 function MatrixBg() {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -408,12 +442,12 @@ function MatrixBg() {
     const drops: number[] = Array(columns).fill(1)
     const colors = ['#3b6fd4', '#6ab0ff', '#34d399', '#a78bfa', '#ffffff', '#f59e0b']
     const draw = () => {
-      ctx.fillStyle = 'rgba(2,8,16,0.04)'
+      ctx.fillStyle = 'rgba(2,8,16,0.05)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       drops.forEach((y, i) => {
         ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]
         ctx.font = `${fontSize}px monospace`
-        ctx.globalAlpha = Math.random() * 0.4 + 0.05
+        ctx.globalAlpha = Math.random() * 0.35 + 0.04
         ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * fontSize, y * fontSize)
         ctx.globalAlpha = 1
         if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0
@@ -426,145 +460,11 @@ function MatrixBg() {
     window.addEventListener('resize', resize)
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
   }, [])
-  return <canvas ref={ref} className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: 0.18 }} />
+  return <canvas ref={ref} className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: 0.12 }} />
 }
 
 // ============================================================
-// TETRAEDRO DE PLATÃO 3D — SVG animado
-// ============================================================
-function TetraedroPlatao() {
-  const [rot, setRot] = useState(0)
-  useEffect(() => {
-    let raf: number
-    const tick = () => { setRot(r => r + 0.4); raf = requestAnimationFrame(tick) }
-    tick()
-    return () => cancelAnimationFrame(raf)
-  }, [])
-  return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      <svg viewBox="-200 -200 400 400" className="w-full h-full max-w-md">
-        <defs>
-          <radialGradient id="tetraGrad" cx="50%" cy="50%">
-            <stop offset="0%" stopColor="#6ab0ff" stopOpacity="0.4" />
-            <stop offset="50%" stopColor="#3b6fd4" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#020810" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#6ab0ff" />
-            <stop offset="50%" stopColor="#ffffff" />
-            <stop offset="100%" stopColor="#3b6fd4" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <circle cx="0" cy="0" r="160" fill="url(#tetraGrad)" opacity="0.6" />
-        {[0, 60, 120, 180, 240, 300].map(a => (
-          <g key={a} transform={`rotate(${a + rot * 0.3})`} opacity="0.4">
-            <text x="0" y="-130" textAnchor="middle" fill="#6ab0ff" fontSize="11" fontFamily="monospace" filter="url(#glow)">
-              {['E=mc²', '∫dx', 'Σ', 'π', 'Δ', '√'][a / 60]}
-            </text>
-          </g>
-        ))}
-        <g transform={`rotate(${rot})`} filter="url(#glow)">
-          {/* Tetraedro - 4 triângulos */}
-          <polygon points="0,-100 -87,50 87,50" fill="rgba(106,176,255,0.15)" stroke="url(#edgeGrad)" strokeWidth="2" />
-          <polygon points="0,-100 -87,50 0,30" fill="rgba(59,111,212,0.2)" stroke="#6ab0ff" strokeWidth="1.5" />
-          <polygon points="0,-100 87,50 0,30" fill="rgba(167,139,250,0.15)" stroke="#a78bfa" strokeWidth="1.5" />
-          <polygon points="-87,50 87,50 0,30" fill="rgba(52,211,153,0.1)" stroke="#34d399" strokeWidth="1.5" />
-          {/* Pontos brilhantes nos vértices */}
-          {[[0, -100], [-87, 50], [87, 50], [0, 30]].map(([x, y], i) => (
-            <circle key={i} cx={x} cy={y} r="4" fill="#fff">
-              <animate attributeName="r" values="3;6;3" dur={`${2 + i * 0.3}s`} repeatCount="indefinite" />
-            </circle>
-          ))}
-        </g>
-        <text x="0" y="180" textAnchor="middle" fill="#6ab0ff" fontSize="14" fontWeight="bold" fontFamily="Arial" filter="url(#glow)" opacity="0.9">
-          AXIOMA
-        </text>
-      </svg>
-    </div>
-  )
-}
-
-// ============================================================
-// EINSTEIN — Avatar estilizado com fórmulas
-// ============================================================
-function EinsteinAvatar({ formulas }: { formulas: string[] }) {
-  const [t, setT] = useState(0)
-  useEffect(() => {
-    let raf: number
-    const tick = () => { setT(v => v + 1); raf = requestAnimationFrame(tick) }
-    tick()
-    return () => cancelAnimationFrame(raf)
-  }, [])
-  return (
-    <div className="relative w-full h-full flex items-center justify-center">
-      {/* Aura externa */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="rounded-full"
-          style={{
-            width: 280, height: 280,
-            background: 'radial-gradient(circle, rgba(106,176,255,0.25) 0%, rgba(167,139,250,0.15) 40%, transparent 70%)',
-            filter: 'blur(20px)',
-            animation: 'pulse-aura 4s ease-in-out infinite alternate',
-          }} />
-      </div>
-      {/* Fórmulas orbitando */}
-      {formulas.map((f, i) => {
-        const angle = (i / formulas.length) * Math.PI * 2 + t * 0.005
-        const r = 170
-        const x = Math.cos(angle) * r
-        const y = Math.sin(angle) * r * 0.7
-        const cores = ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6', '#ffffff']
-        return (
-          <div key={i} className="absolute font-mono font-bold"
-            style={{
-              left: '50%', top: '50%',
-              transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-              color: cores[i % cores.length],
-              fontSize: 14,
-              textShadow: `0 0 12px ${cores[i % cores.length]}`,
-              opacity: 0.85,
-              whiteSpace: 'nowrap',
-            }}>
-            {f}
-          </div>
-        )
-      })}
-      {/* Círculo orbital decorativo */}
-      <svg className="absolute inset-0 w-full h-full" viewBox="-200 -200 400 400">
-        <ellipse cx="0" cy="0" rx="170" ry="119" fill="none" stroke="rgba(106,176,255,0.2)" strokeWidth="1" strokeDasharray="4 8" />
-        <ellipse cx="0" cy="0" rx="140" ry="98" fill="none" stroke="rgba(167,139,250,0.15)" strokeWidth="1" strokeDasharray="2 6" transform={`rotate(${t * 0.3})`} />
-      </svg>
-      {/* Avatar central — silhueta de Einstein estilizada */}
-      <div className="relative z-10 flex flex-col items-center justify-center">
-        <div className="text-9xl mb-2" style={{ filter: 'drop-shadow(0 0 30px rgba(106,176,255,0.8))' }}>
-          🧑‍🔬
-        </div>
-        <div className="text-xs font-bold tracking-widest" style={{ color: '#6ab0ff', textShadow: '0 0 10px #6ab0ff' }}>
-          E = mc²
-        </div>
-      </div>
-      {/* Raios de luz convergindo */}
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((a, i) => (
-        <div key={i} className="absolute"
-          style={{
-            width: 2, height: 100,
-            left: '50%', top: '50%',
-            transformOrigin: 'top center',
-            transform: `translate(-50%, 0) rotate(${a + t * 0.2}deg)`,
-            background: `linear-gradient(to bottom, transparent, rgba(106,176,255,${0.3 + Math.sin(t * 0.05 + i) * 0.2}), transparent)`,
-            filter: 'blur(1px)',
-          }} />
-      ))}
-    </div>
-  )
-}
-
-// ============================================================
-// CLOWDBOT — Holograma pulsante (mantido do original)
+// CLOWDBOT — Holograma pulsante
 // ============================================================
 function ClowdbotCanvas() {
   const ref = useRef<HTMLCanvasElement>(null)
@@ -624,11 +524,43 @@ function ClowdbotCanvas() {
 }
 
 // ============================================================
+// VIDEO FRAME — painel de vídeo premium reutilizável
+//   Moldura de vidro, vinheta para contraste, brilho ambiente.
+// ============================================================
+function VideoFrame({ src, cor = '#6ab0ff', height = 460, children }: { src: string; cor?: string; height?: number; children?: React.ReactNode }) {
+  return (
+    <div className="ax-video-frame relative w-full rounded-[20px] overflow-hidden"
+      style={{
+        height,
+        border: `1px solid ${cor}33`,
+        background: '#04101f',
+        boxShadow: `0 30px 80px -30px ${cor}66, 0 0 0 1px rgba(255,255,255,0.03) inset`,
+      }}>
+      <video autoPlay loop muted playsInline preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ filter: 'brightness(1.04) contrast(1.05) saturate(1.12)' }}>
+        <source src={src} type="video/mp4" />
+      </video>
+      {/* Vinheta para profundidade e contraste */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at center, transparent 45%, rgba(2,8,16,0.55) 100%)' }} />
+      {/* Brilho ambiente na cor do bloco */}
+      <div className="absolute inset-0 pointer-events-none mix-blend-soft-light"
+        style={{ background: `linear-gradient(135deg, ${cor}22 0%, transparent 55%)` }} />
+      {/* Sheen no topo */}
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, ${cor}, transparent)`, boxShadow: `0 0 16px ${cor}` }} />
+      {children}
+    </div>
+  )
+}
+
+// ============================================================
 // CANVAS BOX — bordas neon (mantido)
 // ============================================================
 function NeonBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa', corD = '#f472b6', className = '' }: { children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string; className?: string }) {
   return (
-    <div className={`relative rounded-2xl overflow-hidden ${className}`}
+    <div className={`ax-tilt relative rounded-2xl overflow-hidden ${className}`}
       style={{ background: 'rgba(4,10,22,0.97)', border: `1px solid ${cor}25`, boxShadow: `0 0 40px ${cor}06` }}>
       {[
         { pos: 'top-0 left-0', w: 'w-16 h-[2px]', bg: `linear-gradient(90deg,${cor},transparent)`, g: cor },
@@ -649,175 +581,77 @@ function NeonBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa'
 }
 
 // ============================================================
-// HERO VIDEO SEQUENCE — 3 vídeos em sequência + módulos
+// HERO VIDEO SEQUENCE — 5 vídeos em sequência (sem áudio)
 // ============================================================
-function HeroVideos({ modulos, legendas }: { modulos: string[]; legendas: string[] }) {
+function HeroVideos({ legendas }: { legendas: string[] }) {
+  const TOTAL = 5
   const [current, setCurrent] = useState(0)
-  const [audioOn, setAudioOn] = useState(false)
-  const [showLogo, setShowLogo] = useState(false)
-  const videoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)]
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
 
   useEffect(() => {
-    // Toca o vídeo atual
-    videoRefs.forEach((ref, i) => {
-      if (ref.current) {
-        if (i === current) ref.current.play().catch(() => {})
-        else { ref.current.pause(); ref.current.currentTime = 0 }
-      }
+    videoRefs.current.forEach((ref, i) => {
+      if (!ref) return
+      if (i === current) ref.play().catch(() => {})
+      else { ref.pause(); ref.currentTime = 0 }
     })
-    // Logo aparece no último vídeo
-    setShowLogo(current === 2)
   }, [current])
 
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.muted = !audioOn
-      if (audioOn) audioRef.current.play().catch(() => {})
-    }
-  }, [audioOn])
-
   const handleVideoEnd = (idx: number) => {
-    if (idx < 2) setCurrent(idx + 1)
-    else { setCurrent(0); /* loop */ }
+    setCurrent(idx < TOTAL - 1 ? idx + 1 : 0)
   }
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden">
-      {/* 3 vídeos sobrepostos */}
-      {[0, 1, 2].map(i => (
-        <video key={i} ref={videoRefs[i]} muted playsInline preload="auto"
+      {Array.from({ length: TOTAL }).map((_, i) => (
+        <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline preload="auto"
           onEnded={() => handleVideoEnd(i)}
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-          style={{ opacity: current === i ? 1 : 0, filter: 'brightness(1.1) contrast(1.05) saturate(1.15)' }}>
+          style={{ opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
           <source src={`/videos/hero-${i + 1}.mp4`} type="video/mp4" />
         </video>
       ))}
 
-      {/* Áudio narração */}
-      <audio ref={audioRef} loop>
-        <source src="/audio/narracao.mp3" type="audio/mpeg" />
-      </audio>
-
-      {/* OVERLAY 1 — Vinheta cinematográfica */}
+      {/* Vinheta cinematográfica para contraste do texto */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(2,8,16,0.6) 80%, rgba(2,8,16,0.95) 100%)' }} />
+        style={{ background: 'radial-gradient(ellipse at center, transparent 25%, rgba(2,8,16,0.55) 70%, rgba(2,8,16,0.92) 100%)' }} />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 pointer-events-none"
+        style={{ background: 'linear-gradient(to top, rgba(2,8,16,0.95), transparent)' }} />
 
-      {/* OVERLAY 2 — Camada azul de cor */}
-      <div className="absolute inset-0 pointer-events-none mix-blend-overlay"
-        style={{ background: 'linear-gradient(135deg, rgba(59,111,212,0.15) 0%, transparent 50%, rgba(167,139,250,0.1) 100%)' }} />
-
-      {/* OVERLAY 3 — Partículas flutuando */}
-      <div className="absolute inset-0 pointer-events-none">
-        {Array.from({ length: 30 }).map((_, i) => (
-          <div key={i} className="absolute rounded-full"
-            style={{
-              left: `${(i * 7.3) % 100}%`,
-              top: `${(i * 11.7) % 100}%`,
-              width: 2 + (i % 3),
-              height: 2 + (i % 3),
-              background: ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4],
-              boxShadow: `0 0 ${8 + i % 4}px ${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4]}`,
-              animation: `particle-float ${4 + i % 4}s ease-in-out infinite alternate`,
-              animationDelay: `${i * 0.2}s`,
-              opacity: 0.6,
-            }} />
-        ))}
-      </div>
-
-      {/* OVERLAY 4 — Módulos surgindo nas telas (durante vídeo 2) */}
-      <div className="absolute inset-0 pointer-events-none transition-opacity duration-700"
-        style={{ opacity: current === 1 ? 1 : 0 }}>
-        {modulos.map((mod, i) => (
-          <div key={i} className="absolute px-3 py-1.5 rounded-lg font-mono font-bold text-xs"
-            style={{
-              left: `${10 + (i % 4) * 22}%`,
-              top: `${15 + Math.floor(i / 4) * 35}%`,
-              background: 'rgba(4,10,22,0.85)',
-              border: `1px solid ${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4]}`,
-              color: ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4],
-              boxShadow: `0 0 20px ${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4]}80`,
-              animation: `module-appear 0.6s ease-out ${i * 0.1}s both`,
-            }}>
-            {mod}
-          </div>
-        ))}
-      </div>
-
-      {/* OVERLAY 5 — Logo Axioma se montando (durante vídeo 3) */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-1000"
-        style={{ opacity: showLogo ? 1 : 0 }}>
-        <div className="relative">
-          <div className="absolute inset-0 rounded-full"
-            style={{
-              width: 400, height: 400,
-              transform: 'translate(-50%, -50%)',
-              left: '50%', top: '50%',
-              background: 'radial-gradient(circle, rgba(106,176,255,0.4) 0%, transparent 70%)',
-              filter: 'blur(40px)',
-              animation: 'logo-pulse 3s ease-in-out infinite',
-            }} />
-          <img src="/logo-aitech.png" alt="Axioma"
-            style={{
-              width: 220, height: 220, objectFit: 'contain',
-              filter: 'drop-shadow(0 0 40px rgba(106,176,255,1)) drop-shadow(0 0 80px rgba(106,176,255,0.6))',
-              animation: 'logo-assemble 2s ease-out, logo-rotate 20s linear infinite 2s',
-            }} />
-          <div className="absolute left-1/2 -translate-x-1/2 mt-4 text-center" style={{ top: 240 }}>
-            <p className="font-black tracking-[0.4em] text-2xl"
-              style={{
-                background: 'linear-gradient(135deg, #ffffff, #6ab0ff, #a78bfa)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                textShadow: '0 0 30px rgba(106,176,255,0.8)',
-                animation: 'fade-in-up 1.5s ease-out 1s both',
-              }}>AXIOMA</p>
-            <p className="text-xs tracking-[0.5em] mt-1" style={{ color: '#6ab0ff', animation: 'fade-in-up 1.5s ease-out 1.5s both' }}>AI.TECH</p>
-          </div>
+      {/* Legenda sincronizada */}
+      {legendas[current] && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 max-w-3xl w-full px-6 pointer-events-none">
+          <p key={current} className="text-center text-base md:text-2xl font-light tracking-wide"
+            style={{ color: '#ffffff', textShadow: '0 2px 24px rgba(2,8,16,0.95), 0 0 40px rgba(106,176,255,0.45)', animation: 'fade-in-up 0.9s ease-out' }}>
+            "{legendas[current]}"
+          </p>
         </div>
-      </div>
+      )}
 
-      {/* OVERLAY 6 — Legenda sincronizada com narração */}
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 max-w-3xl w-full px-6 pointer-events-none">
-        <p className="text-center text-sm md:text-lg font-light tracking-wide"
-          style={{
-            color: '#c8d8f0',
-            textShadow: '0 2px 20px rgba(2,8,16,0.95), 0 0 30px rgba(106,176,255,0.4)',
-            animation: 'fade-in-up 0.8s ease-out',
-          }}
-          key={current}>
-          "{legendas[current]}"
-        </p>
-      </div>
-
-      {/* Botão mute/unmute */}
-      <button onClick={() => setAudioOn(!audioOn)}
-        className="absolute top-24 right-6 z-20 w-12 h-12 rounded-full flex items-center justify-center hover:scale-110 transition-all"
-        style={{
-          background: 'rgba(4,10,22,0.85)',
-          border: '1px solid rgba(106,176,255,0.4)',
-          boxShadow: '0 0 20px rgba(106,176,255,0.4)',
-          backdropFilter: 'blur(10px)',
-        }}>
-        <span className="text-xl">{audioOn ? '🔊' : '🔇'}</span>
-      </button>
-
-      {/* Indicador de progresso dos vídeos */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-        {[0, 1, 2].map(i => (
+      {/* Indicador de progresso (5) */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+        {Array.from({ length: TOTAL }).map((_, i) => (
           <div key={i} className="h-1 rounded-full transition-all duration-500"
-            style={{
-              width: current === i ? 40 : 20,
-              background: current === i ? '#6ab0ff' : 'rgba(106,176,255,0.3)',
-              boxShadow: current === i ? '0 0 10px #6ab0ff' : 'none',
-            }} />
+            style={{ width: current === i ? 44 : 18, background: current === i ? '#6ab0ff' : 'rgba(106,176,255,0.3)', boxShadow: current === i ? '0 0 12px #6ab0ff' : 'none' }} />
         ))}
       </div>
 
-      {/* Linhas de luz cinematográficas nas bordas */}
-      <div className="absolute top-0 left-0 right-0 h-1 pointer-events-none"
+      {/* Linhas de luz nas bordas */}
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
         style={{ background: 'linear-gradient(90deg, transparent, #6ab0ff, transparent)', boxShadow: '0 0 20px #6ab0ff' }} />
-      <div className="absolute bottom-0 left-0 right-0 h-1 pointer-events-none"
+      <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
         style={{ background: 'linear-gradient(90deg, transparent, #a78bfa, transparent)', boxShadow: '0 0 20px #a78bfa' }} />
+    </div>
+  )
+}
+
+// ============================================================
+// BADGE — eyebrow premium reutilizável
+// ============================================================
+function Badge({ children, cor }: { children: React.ReactNode; cor: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+      style={{ background: `${cor}12`, border: `1px solid ${cor}55`, boxShadow: `0 0 30px ${cor}1f` }}>
+      <span className="ax-eyebrow text-xs font-black tracking-[0.25em]" style={{ color: cor }}>{children}</span>
     </div>
   )
 }
@@ -842,7 +676,7 @@ export default function LandingPage() {
       className={`${full ? 'w-full' : ''} relative px-6 py-3 rounded-xl font-black text-xs tracking-widest uppercase transition-all hover:scale-105 active:scale-95 overflow-hidden group`}
       style={primary
         ? { background: 'linear-gradient(135deg,#1a3a8f,#2a5fd4,#6366f1)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.5), inset 0 1px 0 rgba(255,255,255,0.15)' }
-        : { background: 'transparent', color: '#6ab0ff', border: '1px solid rgba(106,176,255,0.3)' }}>
+        : { background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.35)' }}>
       <span className="relative z-10">{label}</span>
       {primary && (
         <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
@@ -851,66 +685,63 @@ export default function LandingPage() {
     </button>
   )
 
+  // Texto secundário e terciário com contraste elegante e legível
+  const cBody = '#b8cdf0'
+  const cMuted = '#7d9bc9'
+
   return (
-    <div style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div className="ax-root" style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
       <MatrixBg />
 
       {/* ============ NAVBAR ============ */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-4 md:px-10 py-3"
-        style={{ background: 'rgba(2,8,16,0.85)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(106,176,255,0.1)' }}>
+        style={{ background: 'rgba(2,8,16,0.82)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(106,176,255,0.1)' }}>
         <div className="flex items-center gap-3">
           <img src="/logo-aitech.png" alt="Axioma" style={{ width: 36, height: 36, filter: 'drop-shadow(0 0 15px rgba(106,176,255,0.8))' }} />
           <div>
-            <p className="font-black tracking-[0.3em] text-sm" style={{ background: 'linear-gradient(135deg,#c8d8f0,#6ab0ff,#fff,#3b6fd4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AXIOMA</p>
-            <p className="text-xs tracking-[0.3em]" style={{ color: '#3a5a8a' }}>AI.TECH</p>
+            <p className="ax-display font-black tracking-[0.3em] text-sm" style={{ background: 'linear-gradient(135deg,#e8f1ff,#6ab0ff,#fff,#3b6fd4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AXIOMA</p>
+            <p className="text-[10px] tracking-[0.3em]" style={{ color: '#5a7aaa' }}>AI.TECH</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {(['pt', 'en', 'es'] as const).map(l => (
             <button key={l} onClick={() => setLang(l)}
               className="text-xs px-2 py-1 rounded-full font-bold transition-all"
-              style={{ background: lang === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: lang === l ? '#6ab0ff' : '#3a5a8a', border: '1px solid rgba(59,111,212,0.2)' }}>
+              style={{ background: lang === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: lang === l ? '#6ab0ff' : '#5a7aaa', border: '1px solid rgba(59,111,212,0.2)' }}>
               {l === 'pt' ? '🇧🇷' : l === 'en' ? '🇺🇸' : '🇪🇸'}
             </button>
           ))}
           <button onClick={() => router.push('/login')}
             className="hidden md:block px-4 py-2 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105"
-            style={{ background: 'transparent', color: '#6ab0ff', border: '1px solid rgba(106,176,255,0.3)' }}>{t.login}</button>
+            style={{ background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.3)' }}>{t.login}</button>
           <button onClick={() => router.push('/cadastro')}
             className="px-4 py-2 rounded-xl font-bold text-xs tracking-widest uppercase hover:scale-105"
             style={{ background: 'linear-gradient(135deg,#1a3a8f,#2a5fd4)', color: '#fff' }}>{t.comecar}</button>
         </div>
       </nav>
 
-      {/* ============ SEÇÃO 1 — HERO COM VÍDEOS ÉPICOS ============ */}
+      {/* ============ SEÇÃO 1 — HERO (5 vídeos) ============ */}
       <section className="relative h-screen min-h-[700px] flex flex-col items-center justify-end overflow-hidden">
-        <HeroVideos
-          modulos={t.hero.modulos}
-          legendas={[t.hero.legenda1, t.hero.legenda2, t.hero.legenda3]} />
+        <HeroVideos legendas={[t.hero.legenda1, t.hero.legenda2, t.hero.legenda3]} />
 
-        {/* Conteúdo flutuante na parte inferior */}
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pb-32">
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto pb-36">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
             style={{ background: 'rgba(2,8,16,0.7)', border: '1px solid rgba(106,176,255,0.3)', backdropFilter: 'blur(10px)' }}>
             <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#34d399' }} />
             <span className="text-xs font-black tracking-widest" style={{ color: '#6ab0ff' }}>🧠 INTELIGÊNCIA FINANCEIRA COM IA</span>
           </div>
-          <h1 className="text-3xl md:text-6xl font-black mb-3 leading-tight"
-            style={{
-              background: 'linear-gradient(135deg,#ffffff 0%,#c8d8f0 30%,#6ab0ff 60%,#a78bfa 100%)',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              textShadow: '0 0 40px rgba(106,176,255,0.5)',
-            }}>
+          <h1 className="ax-display text-4xl md:text-7xl font-black mb-4 leading-[1.05]"
+            style={{ color: '#ffffff', textShadow: '0 2px 30px rgba(2,8,16,0.9), 0 0 60px rgba(106,176,255,0.4)' }}>
             {t.hero.titulo}
           </h1>
-          <p className="text-sm md:text-base mb-6 max-w-2xl mx-auto" style={{ color: '#c8d8f0', textShadow: '0 2px 10px rgba(2,8,16,0.9)' }}>
+          <p className="text-sm md:text-lg mb-7 max-w-2xl mx-auto" style={{ color: '#dce8fb', textShadow: '0 2px 14px rgba(2,8,16,0.95)' }}>
             {t.hero.sub}
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
             {btn(t.comecarGratis, () => router.push('/cadastro'))}
             {btn(t.nav.planos, () => router.push('/planos'), false)}
           </div>
-          <p className="text-xs mt-3" style={{ color: '#8aaad4', textShadow: '0 2px 6px rgba(2,8,16,0.8)' }}>{t.semCartao}</p>
+          <p className="text-xs mt-3" style={{ color: '#aaccf5', textShadow: '0 2px 8px rgba(2,8,16,0.9)' }}>{t.semCartao}</p>
         </div>
 
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 animate-bounce">
@@ -918,91 +749,65 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 2 — EINSTEIN ÉPICO ============ */}
+      {/* ============ SEÇÃO 2 — EINSTEIN (vídeo einstein.mp4) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
         style={{ background: 'radial-gradient(ellipse at center, rgba(10,22,40,0.95), rgba(2,8,16,1))' }}>
-        {/* Raios de fundo */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0" style={{
-            background: 'radial-gradient(circle at 30% 50%, rgba(106,176,255,0.08) 0%, transparent 50%), radial-gradient(circle at 70% 50%, rgba(167,139,250,0.08) 0%, transparent 50%)'
-          }} />
-        </div>
-
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-                style={{ background: 'rgba(106,176,255,0.1)', border: '1px solid rgba(106,176,255,0.4)', boxShadow: '0 0 30px rgba(106,176,255,0.2)' }}>
-                <span className="text-xs font-black tracking-widest" style={{ color: '#6ab0ff' }}>{t.einstein.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-2 leading-tight"
+            <Reveal>
+              <Badge cor="#6ab0ff">{t.einstein.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-2 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.einstein.titulo}
               </h2>
-              <h3 className="text-xl md:text-3xl font-bold mb-6 leading-tight"
+              <h3 className="ax-display text-xl md:text-3xl font-bold mb-6 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#a78bfa,#fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.einstein.subTitulo}
               </h3>
-              <div className="px-5 py-4 rounded-xl mb-6"
-                style={{ background: 'rgba(106,176,255,0.06)', borderLeft: '3px solid #6ab0ff' }}>
-                <p className="text-sm italic" style={{ color: '#c8d8f0', lineHeight: 1.7 }}>{t.einstein.copy}</p>
+              <div className="px-5 py-4 rounded-xl mb-6" style={{ background: 'rgba(106,176,255,0.06)', borderLeft: '3px solid #6ab0ff' }}>
+                <p className="text-sm italic" style={{ color: '#d4e2f7', lineHeight: 1.7 }}>{t.einstein.copy}</p>
               </div>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#8aaad4', lineHeight: 1.9 }}>{t.einstein.texto}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.9 }}>{t.einstein.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
-            <div className="relative" style={{ height: 500 }}>
-              <EinsteinAvatar formulas={t.einstein.formulas} />
-            </div>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <VideoFrame src="/videos/einstein.mp4" cor="#6ab0ff" height={500} />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 3 — PLATÃO + TETRAEDRO ============ */}
+      {/* ============ SEÇÃO 3 — PLATÃO / NÚCLEO (vídeo nucleo.mp4) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="relative order-2 md:order-1" style={{ height: 500 }}>
-              <TetraedroPlatao />
-            </div>
-            <div className="order-1 md:order-2">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-                style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.4)', boxShadow: '0 0 30px rgba(167,139,250,0.2)' }}>
-                <span className="text-xs font-black tracking-widest" style={{ color: '#a78bfa' }}>{t.platao.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-6 leading-tight"
+            <Reveal className="order-2 md:order-1">
+              <VideoFrame src="/videos/nucleo.mp4" cor="#a78bfa" height={500} />
+            </Reveal>
+            <Reveal delay={0.12} className="order-1 md:order-2">
+              <Badge cor="#a78bfa">{t.platao.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-6 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#a78bfa,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.platao.titulo}
               </h2>
-              <div className="px-5 py-4 rounded-xl mb-6"
-                style={{ background: 'rgba(167,139,250,0.06)', borderLeft: '3px solid #a78bfa' }}>
-                <p className="text-sm italic" style={{ color: '#c8d8f0', lineHeight: 1.7 }}>{t.platao.copy}</p>
+              <div className="px-5 py-4 rounded-xl mb-6" style={{ background: 'rgba(167,139,250,0.06)', borderLeft: '3px solid #a78bfa' }}>
+                <p className="text-sm italic" style={{ color: '#d4e2f7', lineHeight: 1.7 }}>{t.platao.copy}</p>
               </div>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#8aaad4', lineHeight: 1.9 }}>{t.platao.texto}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.9 }}>{t.platao.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 4 — DOMÍNIO GLOBAL COM VÍDEO ============ */}
+      {/* ============ SEÇÃO 4 — DOMÍNIO GLOBAL (vídeo globo.mp4 + bandeiras) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.8),rgba(2,8,16,1))' }}>
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="relative order-2 md:order-1" style={{ height: 450 }}>
-              {/* Vídeo do globo com overlay */}
-              <div className="absolute inset-0 rounded-2xl overflow-hidden"
-                style={{ boxShadow: '0 0 60px rgba(52,211,153,0.3), inset 0 0 0 1px rgba(52,211,153,0.2)' }}>
-                <video autoPlay loop muted playsInline
-                  className="w-full h-full object-cover"
-                  style={{ filter: 'brightness(1.1) saturate(1.2)' }}>
-                  <source src="/videos/globo.mp4" type="video/mp4" />
-                </video>
-                {/* Overlay azul */}
-                <div className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'radial-gradient(circle, transparent 40%, rgba(2,8,16,0.6) 100%)' }} />
-
-                {/* Bandeiras orbitando */}
+            <Reveal className="order-2 md:order-1">
+              <VideoFrame src="/videos/globo.mp4" cor="#34d399" height={450}>
+                {/* Bandeiras orbitando sobre o globo */}
                 {t.global.paises.map((p, i) => {
                   const angle = (i / t.global.paises.length) * 360
                   const isHovered = hoveredPais === i
@@ -1010,56 +815,32 @@ export default function LandingPage() {
                     <div key={i}
                       onMouseEnter={() => setHoveredPais(i)}
                       onMouseLeave={() => setHoveredPais(null)}
-                      className="absolute left-1/2 top-1/2 cursor-pointer transition-all duration-500"
+                      className="absolute left-1/2 top-1/2 cursor-pointer transition-all duration-500 z-10"
                       style={{
-                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-160px) rotate(-${angle}deg) scale(${isHovered ? 1.4 : 1})`,
-                        animation: 'orbit-rotate 30s linear infinite',
+                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-155px) rotate(-${angle}deg) scale(${isHovered ? 1.4 : 1})`,
+                        animation: 'orbit-rotate 34s linear infinite',
                       }}>
                       <div className="relative flex flex-col items-center">
-                        <div className="text-3xl"
-                          style={{
-                            filter: `drop-shadow(0 0 ${isHovered ? 20 : 10}px ${p.cor})`,
-                            transition: 'all 0.3s',
-                          }}>
-                          {p.f}
-                        </div>
+                        <div className="text-3xl" style={{ filter: `drop-shadow(0 0 ${isHovered ? 20 : 10}px ${p.cor})`, transition: 'all 0.3s' }}>{p.f}</div>
                         {isHovered && (
                           <div className="absolute -bottom-8 px-2 py-1 rounded-md whitespace-nowrap"
-                            style={{
-                              background: 'rgba(4,10,22,0.95)',
-                              border: `1px solid ${p.cor}`,
-                              boxShadow: `0 0 15px ${p.cor}`,
-                              animation: 'fade-in-up 0.3s ease-out',
-                            }}>
+                            style={{ background: 'rgba(4,10,22,0.95)', border: `1px solid ${p.cor}`, boxShadow: `0 0 15px ${p.cor}`, animation: 'fade-in-up 0.3s ease-out' }}>
                             <span className="text-xs font-bold" style={{ color: p.cor }}>{p.n}</span>
                           </div>
                         )}
-                        {/* Linha de conexão para o centro */}
-                        <div className="absolute top-1/2 left-1/2 origin-left pointer-events-none"
-                          style={{
-                            width: 160,
-                            height: 1,
-                            background: `linear-gradient(90deg, transparent, ${p.cor}40, ${p.cor}60)`,
-                            transform: `translateX(0) rotate(${180 - angle}deg)`,
-                            transformOrigin: '0 50%',
-                            opacity: isHovered ? 1 : 0.3,
-                          }} />
                       </div>
                     </div>
                   )
                 })}
-              </div>
-            </div>
-            <div className="order-1 md:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
-                <span className="text-xs font-black tracking-widest" style={{ color: '#34d399' }}>{t.global.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-4 leading-tight"
+              </VideoFrame>
+            </Reveal>
+            <Reveal delay={0.12} className="order-1 md:order-2">
+              <Badge cor="#34d399">{t.global.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#34d399,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.global.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#5a8ab4', lineHeight: 1.8 }}>{t.global.sub}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.global.sub}</p>
               <div className="grid grid-cols-2 gap-2 mb-6">
                 {t.global.paises.map((p, i) => (
                   <div key={i}
@@ -1077,124 +858,78 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="px-4 py-3 rounded-xl mb-6" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.2)' }}>
-                <p className="text-xs italic" style={{ color: '#6ab0ff' }}>💡 {t.global.copy}</p>
+                <p className="text-xs italic" style={{ color: '#9fc4ff' }}>💡 {t.global.copy}</p>
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 5 — VISÃO CIRÚRGICA ============ */}
+      {/* ============ SEÇÃO 5 — VISÃO CIRÚRGICA (vídeo calculadora.mp4) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.3)' }}>
-                <span className="text-xs font-black tracking-widest" style={{ color: '#a78bfa' }}>{t.visao.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-4 leading-tight"
+            <Reveal>
+              <Badge cor="#a78bfa">{t.visao.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#a78bfa,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.visao.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#5a8ab4', lineHeight: 1.8 }}>{t.visao.sub}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.visao.sub}</p>
               <div className="space-y-3 mb-6">
                 {t.visao.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:scale-[1.02] transition-transform"
                     style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)' }}>
-                    <span className="text-xs font-semibold" style={{ color: '#a78bfa' }}>{item}</span>
+                    <span className="text-xs font-semibold" style={{ color: '#c4b5fd' }}>{item}</span>
                   </div>
                 ))}
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
-            {/* Olho minimalista CSS */}
-            <div className="relative flex items-center justify-center" style={{ height: 400 }}>
-              <div className="relative w-80 h-80 rounded-full flex items-center justify-center"
-                style={{
-                  background: 'radial-gradient(circle, rgba(167,139,250,0.2), transparent 70%)',
-                  animation: 'eye-glow 3s ease-in-out infinite alternate',
-                }}>
-                {[200, 240, 280].map((s, i) => (
-                  <div key={i} className="absolute rounded-full border"
-                    style={{
-                      width: s, height: s * 0.6,
-                      borderColor: ['#a78bfa', '#6ab0ff', '#34d399'][i],
-                      borderWidth: 1,
-                      boxShadow: `0 0 20px ${['#a78bfa', '#6ab0ff', '#34d399'][i]}40`,
-                      animation: `eye-ring ${2 + i * 0.5}s ease-in-out infinite`,
-                    }} />
-                ))}
-                <div className="absolute w-24 h-24 rounded-full"
-                  style={{
-                    background: 'radial-gradient(circle, #6ab0ff 0%, #020810 70%)',
-                    boxShadow: '0 0 40px #6ab0ff, inset 0 0 20px rgba(106,176,255,0.8)',
-                  }} />
-                <div className="absolute w-8 h-8 rounded-full bg-white"
-                  style={{ boxShadow: '0 0 20px rgba(255,255,255,0.8)', animation: 'pupil-blink 4s ease-in-out infinite' }} />
-              </div>
-            </div>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <VideoFrame src="/videos/calculadora.mp4" cor="#a78bfa" height={440} />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 6 — MENTE ONISCIENTE ============ */}
+      {/* ============ SEÇÃO 6 — MENTE ONISCIENTE (vídeo cerebro.mp4 + palavras) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.9),rgba(2,8,16,1))' }}>
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Palavras flutuando */}
-            <div className="relative order-2 md:order-1" style={{ height: 450 }}>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-8xl" style={{ filter: 'drop-shadow(0 0 40px rgba(106,176,255,0.8))', animation: 'brain-pulse 3s ease-in-out infinite' }}>🧠</div>
-              </div>
-              {t.mente.palavras.map((p, i) => {
-                const angle = (i / t.mente.palavras.length) * 360
-                const r = 160
-                const x = Math.cos((angle * Math.PI) / 180) * r
-                const y = Math.sin((angle * Math.PI) / 180) * r * 0.7
-                const cor = ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5]
-                return (
-                  <div key={i} className="absolute font-mono font-bold text-xs"
-                    style={{
-                      left: '50%', top: '50%',
-                      transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                      color: cor,
-                      textShadow: `0 0 15px ${cor}`,
-                      animation: `word-float ${3 + (i % 3)}s ease-in-out infinite alternate`,
-                      animationDelay: `${i * 0.15}s`,
-                    }}>
-                    {p}
-                  </div>
-                )
-              })}
-              {/* Linhas conectando */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="-200 -200 400 400">
-                {t.mente.palavras.map((_, i) => {
-                  const angle = (i / t.mente.palavras.length) * 360
-                  const r = 160
-                  const x = Math.cos((angle * Math.PI) / 180) * r
-                  const y = Math.sin((angle * Math.PI) / 180) * r * 0.7
+            <Reveal className="order-2 md:order-1">
+              <VideoFrame src="/videos/cerebro.mp4" cor="#6ab0ff" height={450}>
+                {/* Palavras flutuando ao redor do cérebro (efeito leve) */}
+                {t.mente.palavras.slice(0, 8).map((p, i) => {
+                  const angle = (i / 8) * 360
+                  const x = Math.cos((angle * Math.PI) / 180) * 175
+                  const y = Math.sin((angle * Math.PI) / 180) * 120
+                  const cor = ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4]
                   return (
-                    <line key={i} x1="0" y1="0" x2={x} y2={y}
-                      stroke={['#6ab0ff', '#34d399', '#a78bfa'][i % 3]}
-                      strokeWidth="0.5" opacity="0.3" strokeDasharray="2 4" />
+                    <div key={i} className="absolute font-mono font-bold text-[11px] z-10 pointer-events-none"
+                      style={{
+                        left: '50%', top: '50%',
+                        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                        color: cor,
+                        textShadow: `0 0 12px ${cor}, 0 1px 6px rgba(2,8,16,0.9)`,
+                        animation: `word-float ${4 + (i % 3)}s ease-in-out infinite alternate`,
+                        animationDelay: `${i * 0.18}s`,
+                      }}>
+                      {p}
+                    </div>
                   )
                 })}
-              </svg>
-            </div>
-            <div className="order-1 md:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: 'rgba(106,176,255,0.1)', border: '1px solid rgba(106,176,255,0.3)' }}>
-                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#6ab0ff' }} />
-                <span className="text-xs font-black tracking-widest" style={{ color: '#6ab0ff' }}>{t.mente.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-4 leading-tight"
+              </VideoFrame>
+            </Reveal>
+            <Reveal delay={0.12} className="order-1 md:order-2">
+              <Badge cor="#6ab0ff">{t.mente.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.mente.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#5a8ab4', lineHeight: 1.8 }}>{t.mente.sub}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.mente.sub}</p>
               <div className="flex flex-wrap gap-2 mb-6">
                 {t.mente.palavras.map((p, i) => (
                   <span key={i} className="px-2 py-1 rounded-lg text-xs font-bold hover:scale-110 transition-transform cursor-default"
@@ -1204,124 +939,97 @@ export default function LandingPage() {
                 ))}
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 7 — SEGURANÇA ============ */}
+      {/* ============ SEÇÃO 7 — SEGURANÇA (vídeo seguranca.mp4) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
-              style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
-              <span className="text-xs font-black tracking-widest" style={{ color: '#34d399' }}>{t.seguranca.badge}</span>
-            </div>
-            <h2 className="text-3xl md:text-5xl font-black mb-4"
+          <Reveal className="text-center mb-12">
+            <Badge cor="#34d399">{t.seguranca.badge}</Badge>
+            <h2 className="ax-display text-3xl md:text-5xl font-black mb-4"
               style={{ background: 'linear-gradient(135deg,#fff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {t.seguranca.titulo}
             </h2>
-            <p className="text-sm md:text-lg max-w-2xl mx-auto" style={{ color: '#5a8ab4' }}>{t.seguranca.sub}</p>
-          </div>
-          <div className="relative mx-auto mb-12" style={{ height: 200, maxWidth: 400 }}>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative">
-                <div className="text-8xl" style={{ filter: 'drop-shadow(0 0 30px rgba(106,176,255,0.6))' }}>🖥️</div>
-                {[80, 100, 120].map((size, i) => (
-                  <div key={i} className="absolute top-1/2 left-1/2 rounded-full border"
-                    style={{
-                      width: size, height: size,
-                      transform: 'translate(-50%, -50%)',
-                      borderColor: `rgba(52,211,153,${0.4 - i * 0.1})`,
-                      animation: `pulse-ring ${1 + i * 0.3}s ease-in-out infinite alternate`,
-                      boxShadow: `0 0 ${10 + i * 5}px rgba(52,211,153,0.3)`,
-                    }} />
-                ))}
-                <div className="absolute -top-4 -right-4 text-3xl animate-bounce">🔒</div>
-              </div>
+            <p className="text-sm md:text-lg max-w-2xl mx-auto" style={{ color: cBody }}>{t.seguranca.sub}</p>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <div className="mx-auto mb-12" style={{ maxWidth: 880 }}>
+              <VideoFrame src="/videos/seguranca.mp4" cor="#34d399" height={420} />
             </div>
-          </div>
+          </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {t.seguranca.items.map((item, i) => (
-              <NeonBox key={i} cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
-                <div className="p-5 text-center hover:scale-105 transition-transform">
-                  <div className="text-3xl mb-3">{item.icon}</div>
-                  <h3 className="font-black text-sm mb-2" style={{ color: '#34d399' }}>{item.titulo}</h3>
-                  <p className="text-xs" style={{ color: '#3a6090', lineHeight: 1.7 }}>{item.desc}</p>
-                </div>
-              </NeonBox>
+              <Reveal key={i} delay={0.06 * i}>
+                <NeonBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
+                  <div className="p-5 text-center">
+                    <div className="text-3xl mb-3">{item.icon}</div>
+                    <h3 className="font-black text-sm mb-2" style={{ color: '#34d399' }}>{item.titulo}</h3>
+                    <p className="text-xs" style={{ color: cMuted, lineHeight: 1.7 }}>{item.desc}</p>
+                  </div>
+                </NeonBox>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 8 — EXÉRCITO DE IA ============ */}
+      {/* ============ SEÇÃO 8 — EXÉRCITO DE IA (vídeo robos.mp4) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)' }}>
-                <span className="text-xs font-black tracking-widest" style={{ color: '#fbbf24' }}>{t.robots.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-4 leading-tight"
+            <Reveal>
+              <Badge cor="#fbbf24">{t.robots.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#fbbf24,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.robots.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#5a8ab4', lineHeight: 1.8 }}>{t.robots.sub}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.robots.sub}</p>
               <div className="space-y-3 mb-6">
                 {t.robots.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:scale-[1.02] transition-transform"
                     style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}>
-                    <span className="text-xs font-semibold" style={{ color: '#fbbf24' }}>{item}</span>
+                    <span className="text-xs font-semibold" style={{ color: '#fcd34d' }}>{item}</span>
                   </div>
                 ))}
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
-            <div className="relative flex items-center justify-center" style={{ height: 350 }}>
-              <div className="flex gap-2 items-end">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="flex flex-col items-center gap-1"
-                    style={{ animation: `float-robot ${1.5 + i * 0.3}s ease-in-out infinite alternate`, animationDelay: `${i * 0.2}s` }}>
-                    <div className="text-5xl md:text-6xl"
-                      style={{ filter: `drop-shadow(0 0 ${15 + i * 5}px rgba(106,176,255,${0.6 + i * 0.1}))` }}>🤖</div>
-                    <div className="text-xs font-mono" style={{ color: '#6ab0ff', opacity: 0.7 }}>IA.{i + 1}</div>
-                    <div className="w-10 h-7 rounded flex items-center justify-center"
-                      style={{ background: 'rgba(10,22,40,0.9)', border: '1px solid rgba(106,176,255,0.3)' }}>
-                      <div className="w-6 h-4 rounded" style={{ background: 'rgba(52,211,153,0.3)' }}>
-                        <div className="w-full h-0.5 rounded mt-0.5" style={{ background: '#34d399', animation: 'scan-line 1s linear infinite' }} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <VideoFrame src="/videos/robos.mp4" cor="#fbbf24" height={440} />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 9 — MÓDULOS ============ */}
+      {/* ============ SEÇÃO 9 — MÓDULOS (banner dna.mp4 + grid 3D) ============ */}
       <section className="relative py-20 md:py-32"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.9),rgba(2,8,16,1))' }}>
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-black mb-3" style={{ color: '#c8d8f0' }}>{t.modulos.titulo}</h2>
-            <p className="text-sm md:text-lg" style={{ color: '#3a6090' }}>{t.modulos.sub}</p>
-          </div>
+          <Reveal className="text-center mb-10">
+            <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#eaf2ff' }}>{t.modulos.titulo}</h2>
+            <p className="text-sm md:text-lg" style={{ color: cMuted }}>{t.modulos.sub}</p>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <div className="mx-auto mb-12" style={{ maxWidth: 980 }}>
+              <VideoFrame src="/videos/dna.mp4" cor="#6ab0ff" height={420} />
+            </div>
+          </Reveal>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {t.modulos.lista.map((m, i) => (
               <NeonBox key={i} cor={['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6', '#f97316'][i % 6]}
                 corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
-                <div className="p-3 text-center hover:scale-110 transition-all cursor-pointer">
+                <div className="p-3 text-center cursor-pointer">
                   <div className="text-2xl mb-1">{m.icon}</div>
-                  <p className="font-bold text-xs mb-0.5" style={{ color: '#c8d8f0' }}>{m.nome}</p>
-                  <p className="text-xs" style={{ color: '#3a6090', fontSize: 10 }}>{m.desc}</p>
+                  <p className="font-bold text-xs mb-0.5" style={{ color: '#eaf2ff' }}>{m.nome}</p>
+                  <p className="text-[10px]" style={{ color: cMuted }}>{m.desc}</p>
                 </div>
               </NeonBox>
             ))}
           </div>
-          <div className="text-center mt-8">
+          <div className="text-center mt-10">
             {btn(t.comecarGratis, () => router.push('/cadastro'))}
           </div>
         </div>
@@ -1331,40 +1039,39 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div className="relative order-2 md:order-1" style={{ height: 400 }}>
-              <ClowdbotCanvas />
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full"
-                style={{ background: 'rgba(4,10,22,0.9)', border: '1px solid rgba(52,211,153,0.4)' }}>
-                <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
-                <span className="text-xs font-bold" style={{ color: '#34d399' }}>{t.clowdbot.status}</span>
+            <Reveal className="order-2 md:order-1">
+              <div className="relative" style={{ height: 400 }}>
+                <ClowdbotCanvas />
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full"
+                  style={{ background: 'rgba(4,10,22,0.9)', border: '1px solid rgba(52,211,153,0.4)' }}>
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#34d399', boxShadow: '0 0 8px #34d399' }} />
+                  <span className="text-xs font-bold" style={{ color: '#34d399' }}>{t.clowdbot.status}</span>
+                </div>
               </div>
-            </div>
-            <div className="order-1 md:order-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: 'rgba(106,176,255,0.1)', border: '1px solid rgba(106,176,255,0.3)' }}>
-                <span className="text-xs font-black tracking-widest" style={{ color: '#6ab0ff' }}>{t.clowdbot.badge}</span>
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black mb-4 leading-tight"
+            </Reveal>
+            <Reveal delay={0.12} className="order-1 md:order-2">
+              <Badge cor="#6ab0ff">{t.clowdbot.badge}</Badge>
+              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.clowdbot.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: '#5a8ab4', lineHeight: 1.8 }}>{t.clowdbot.sub}</p>
+              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.clowdbot.sub}</p>
               <div className="px-4 py-4 rounded-xl mb-6"
                 style={{ background: 'rgba(4,10,22,0.9)', border: '1px solid rgba(106,176,255,0.2)', fontFamily: 'monospace' }}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#f87171' }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fbbf24' }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#34d399' }} />
-                  <span className="text-xs ml-2" style={{ color: '#3a5a8a' }}>ClowdBot Terminal</span>
+                  <span className="text-xs ml-2" style={{ color: '#5a7aaa' }}>ClowdBot Terminal</span>
                 </div>
-                <p className="text-xs" style={{ color: '#3a5a8a' }}>{'>'} AXIOMA AI.TECH v2.0</p>
+                <p className="text-xs" style={{ color: '#5a7aaa' }}>{'>'} AXIOMA AI.TECH v2.0</p>
                 <p className="text-xs mt-1" style={{ color: '#34d399' }}>
                   {'>'} {t.clowdbot.pensando[pensandoIdx]}
                   <span className="animate-pulse">█</span>
                 </p>
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -1373,60 +1080,62 @@ export default function LandingPage() {
       <section className="relative py-20 md:py-32"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.95),rgba(2,8,16,1))' }}>
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-black mb-3"
+          <Reveal className="text-center mb-12">
+            <h2 className="ax-display text-3xl md:text-5xl font-black mb-3"
               style={{ background: 'linear-gradient(135deg,#fff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {t.planos.titulo}
             </h2>
-            <p className="text-sm" style={{ color: '#3a6090' }}>{t.planos.sub}</p>
-          </div>
+            <p className="text-sm" style={{ color: cMuted }}>{t.planos.sub}</p>
+          </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {t.planos.lista.map((p: any, i) => (
-              <NeonBox key={i} cor={p.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6"
-                className={p.destaque ? 'md:scale-105' : ''}>
-                <div className="p-5 flex flex-col relative h-full">
-                  {p.destaque && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-black whitespace-nowrap"
-                      style={{ background: 'linear-gradient(135deg,#ca8a04,#ea580c)', color: '#fff', boxShadow: '0 4px 20px rgba(245,158,11,0.4)' }}>
-                      {t.planos.popular}
+              <Reveal key={i} delay={0.07 * i}>
+                <NeonBox cor={p.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6"
+                  className={p.destaque ? 'md:scale-105' : ''}>
+                  <div className="p-5 flex flex-col relative h-full">
+                    {p.destaque && (
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-black whitespace-nowrap"
+                        style={{ background: 'linear-gradient(135deg,#ca8a04,#ea580c)', color: '#fff', boxShadow: '0 4px 20px rgba(245,158,11,0.4)' }}>
+                        {t.planos.popular}
+                      </div>
+                    )}
+                    <h3 className="ax-display text-2xl font-black mb-1 text-center" style={{ color: p.cor }}>{p.nome}</h3>
+                    <p className="text-xs text-center mb-3" style={{ color: cMuted }}>{p.desc}</p>
+                    <div className="flex items-end justify-center gap-1 mb-1">
+                      <span className="ax-display text-4xl font-black" style={{ color: '#eaf2ff' }}>R$ {p.preco}</span>
+                      <span className="text-sm mb-1" style={{ color: cMuted }}>{t.planos.mes}</span>
                     </div>
-                  )}
-                  <h3 className="text-2xl font-black mb-1 text-center" style={{ color: p.cor }}>{p.nome}</h3>
-                  <p className="text-xs text-center mb-3" style={{ color: '#3a6090' }}>{p.desc}</p>
-                  <div className="flex items-end justify-center gap-1 mb-1">
-                    <span className="text-4xl font-black" style={{ color: '#c8d8f0' }}>R$ {p.preco}</span>
-                    <span className="text-sm mb-1" style={{ color: '#3a6090' }}>{t.planos.mes}</span>
-                  </div>
-                  <p className="text-xs text-center mb-3" style={{ color: '#3a5a8a' }}>{p.usuarios}</p>
-                  <div className="flex justify-center mb-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                      style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-                      ✨ {t.planos.trial}
-                    </span>
-                  </div>
-                  {p.ia && (
+                    <p className="text-xs text-center mb-3" style={{ color: '#5a7aaa' }}>{p.usuarios}</p>
                     <div className="flex justify-center mb-3">
                       <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                        style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>⭐ IA Premium</span>
+                        style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+                        ✨ {t.planos.trial}
+                      </span>
                     </div>
-                  )}
-                  <div className="space-y-2 mb-5 flex-1">
-                    {p.features.map((f: string, j: number) => (
-                      <div key={j} className="flex items-start gap-2 text-xs" style={{ color: '#8aaad4' }}>
-                        <span style={{ color: p.cor }}>✓</span> <span>{f}</span>
+                    {p.ia && (
+                      <div className="flex justify-center mb-3">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                          style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>⭐ IA Premium</span>
                       </div>
-                    ))}
+                    )}
+                    <div className="space-y-2 mb-5 flex-1">
+                      {p.features.map((f: string, j: number) => (
+                        <div key={j} className="flex items-start gap-2 text-xs" style={{ color: cBody }}>
+                          <span style={{ color: p.cor }}>✓</span> <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {btn(t.comecar, () => router.push('/cadastro'), true, true)}
                   </div>
-                  {btn(t.comecar, () => router.push('/cadastro'), true, true)}
-                </div>
-              </NeonBox>
+                </NeonBox>
+              </Reveal>
             ))}
           </div>
-          <p className="text-center text-xs mt-8" style={{ color: '#1a3a5a' }}>{t.semCartao}</p>
+          <p className="text-center text-xs mt-8" style={{ color: '#3a5a8a' }}>{t.semCartao}</p>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 12 — CTA FINAL ÉPICO ============ */}
+      {/* ============ SEÇÃO 12 — CTA FINAL ============ */}
       <section className="relative py-24 md:py-40 overflow-hidden text-center">
         <div className="absolute inset-0">
           <div className="absolute inset-0" style={{
@@ -1436,13 +1145,13 @@ export default function LandingPage() {
         </div>
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom,rgba(2,8,16,0.7),rgba(2,8,16,0.5),rgba(2,8,16,0.95))' }} />
 
-        <div className="relative z-10 max-w-4xl mx-auto px-4">
+        <Reveal className="relative z-10 max-w-4xl mx-auto px-4">
           <div className="text-7xl mb-6" style={{ filter: 'drop-shadow(0 0 30px rgba(106,176,255,0.8))', animation: 'rocket-pulse 3s ease-in-out infinite alternate' }}>🚀</div>
-          <h2 className="text-3xl md:text-6xl font-black mb-4"
+          <h2 className="ax-display text-3xl md:text-6xl font-black mb-4"
             style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 0 40px rgba(106,176,255,0.4)' }}>
             {t.cta.titulo}
           </h2>
-          <p className="text-sm md:text-xl mb-8 max-w-2xl mx-auto" style={{ color: '#8aaad4', lineHeight: 1.8 }}>{t.cta.sub}</p>
+          <p className="text-sm md:text-xl mb-8 max-w-2xl mx-auto" style={{ color: cBody, lineHeight: 1.8 }}>{t.cta.sub}</p>
           <button onClick={() => router.push('/cadastro')}
             className="relative px-10 md:px-20 py-5 md:py-7 rounded-2xl font-black text-sm md:text-xl tracking-widest uppercase hover:scale-105 transition-all overflow-hidden group"
             style={{ background: 'linear-gradient(135deg,#1a3a8f,#2a5fd4,#a78bfa)', color: '#fff', boxShadow: '0 8px 60px rgba(42,95,212,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
@@ -1450,15 +1159,15 @@ export default function LandingPage() {
             <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
               style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
           </button>
-          <p className="text-sm mt-4" style={{ color: '#3a5a8a' }}>{t.cta.sub2}</p>
-          <p className="text-xs mt-2" style={{ color: '#1a3a5a' }}>{t.semCartao}</p>
-        </div>
+          <p className="text-sm mt-4" style={{ color: cMuted }}>{t.cta.sub2}</p>
+          <p className="text-xs mt-2" style={{ color: '#3a5a8a' }}>{t.semCartao}</p>
+        </Reveal>
       </section>
 
       {/* ============ FOOTER ============ */}
       <footer className="text-center py-8 px-4"
         style={{ borderTop: '1px solid rgba(59,111,212,0.1)', background: '#020810' }}>
-        <div className="flex justify-center gap-4 mb-4 text-xs" style={{ color: '#3a5a8a' }}>
+        <div className="flex justify-center gap-4 mb-4 text-xs" style={{ color: '#5a7aaa' }}>
           <button onClick={() => router.push('/privacidade')} className="hover:text-blue-400 transition-colors">
             {lang === 'pt' ? 'Privacidade' : lang === 'en' ? 'Privacy' : 'Privacidad'}
           </button>
@@ -1469,27 +1178,35 @@ export default function LandingPage() {
           <span>·</span>
           <button onClick={() => router.push('/login')} className="hover:text-blue-400 transition-colors">{t.login}</button>
         </div>
-        <p className="text-xs" style={{ color: '#1a3a5a' }}>{t.footer}</p>
+        <p className="text-xs" style={{ color: '#3a5a8a' }}>{t.footer}</p>
       </footer>
 
       <style jsx global>{`
-        @keyframes float-robot { from { transform: translateY(0px); } to { transform: translateY(-12px); } }
-        @keyframes pulse-ring { from { opacity: 0.3; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 0.7; transform: translate(-50%, -50%) scale(1.05); } }
-        @keyframes scan-line { from { transform: translateY(0); } to { transform: translateY(16px); } }
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+        .ax-root { font-family: 'Inter', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+        .ax-display { font-family: 'Sora', 'Inter', sans-serif; letter-spacing: -0.01em; }
+        .ax-root h1, .ax-root h2, .ax-root h3 { font-family: 'Sora', 'Inter', sans-serif; }
+        .ax-eyebrow { font-family: 'Sora', sans-serif; }
+
+        /* Efeito 3D leve nos cards (perspectiva no hover) */
+        .ax-tilt { transition: transform 0.45s cubic-bezier(0.22,1,0.36,1), box-shadow 0.45s ease; transform-style: preserve-3d; }
+        .ax-tilt:hover { transform: perspective(900px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.02); }
+
+        /* Brilho ambiente nos frames de vídeo no hover */
+        .ax-video-frame { transition: transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease; }
+        .ax-video-frame:hover { transform: translateY(-6px) scale(1.01); }
+
         @keyframes particle-float { from { transform: translateY(0) translateX(0); opacity: 0.3; } to { transform: translateY(-30px) translateX(15px); opacity: 0.8; } }
-        @keyframes module-appear { from { opacity: 0; transform: scale(0.5) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes logo-assemble { from { opacity: 0; transform: scale(0.3) rotate(-180deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
-        @keyframes logo-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes logo-pulse { 0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); } 50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); } }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse-aura { from { opacity: 0.5; transform: scale(1); } to { opacity: 0.9; transform: scale(1.08); } }
-        @keyframes orbit-rotate { from { transform: translate(-50%, -50%) rotate(0deg) translateY(-160px) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg) translateY(-160px) rotate(-360deg); } }
-        @keyframes eye-glow { from { opacity: 0.6; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
-        @keyframes eye-ring { 0%, 100% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.05); opacity: 1; } }
-        @keyframes pupil-blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
-        @keyframes brain-pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 40px rgba(106,176,255,0.8)); } 50% { transform: scale(1.1); filter: drop-shadow(0 0 60px rgba(106,176,255,1)); } }
-        @keyframes word-float { from { transform: translate(calc(-50% + 0px), calc(-50% + 0px)) scale(1); } to { transform: translate(calc(-50% + 10px), calc(-50% - 10px)) scale(1.1); } }
+        @keyframes orbit-rotate { from { transform: translate(-50%, -50%) rotate(0deg) translateY(-155px) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg) translateY(-155px) rotate(-360deg); } }
+        @keyframes word-float { from { transform: translate(calc(-50% + 0px), calc(-50% + 0px)) scale(1); } to { transform: translate(calc(-50% + 10px), calc(-50% - 10px)) scale(1.08); } }
         @keyframes rocket-pulse { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.05) translateY(-5px); } }
+
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+        }
       `}</style>
     </div>
   )
