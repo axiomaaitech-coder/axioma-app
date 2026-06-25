@@ -440,7 +440,7 @@ function BgWords() {
             top: `${(i * 41) % 82}%`,
             fontSize: i % 3 === 0 ? 72 : 44,
             color: '#9fd0ff',
-            opacity: 0.04,
+            opacity: 0.06,
             letterSpacing: '0.05em',
             transform: `rotate(${(i % 2 ? -1 : 1) * 5}deg)`,
             animation: `bgword-drift ${20 + (i % 5) * 4}s ease-in-out infinite alternate`,
@@ -492,18 +492,37 @@ function MatrixBg() {
 // VIDEO FRAME — painel de vídeo premium (16:9, lazy-load)
 // ============================================================
 function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: string; cor?: string; className?: string; children?: React.ReactNode }) {
-  const { ref, inView } = useInView<HTMLDivElement>(0.1)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setMounted(true)
+        videoRef.current?.play().catch(() => {})
+      } else {
+        videoRef.current?.pause()
+      }
+    }, { threshold: 0.15 })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
   return (
-    <div ref={ref} className={`ax-video-frame relative w-full rounded-[20px] overflow-hidden ${className}`}
+    <div ref={containerRef} className={`ax-video-frame relative w-full rounded-[20px] overflow-hidden ${className}`}
       style={{
         aspectRatio: '16 / 9',
         border: `1px solid ${cor}40`,
-        background: '#000',
+        background: 'radial-gradient(ellipse at center, #06121f, #020810)',
         boxShadow: `0 30px 80px -30px ${cor}66, 0 0 0 1px rgba(255,255,255,0.04) inset`,
       }}>
-      {inView && (
-        <video autoPlay loop muted playsInline preload="auto"
-          className="absolute inset-0 w-full h-full object-cover ax-fade-video"
+      {mounted && (
+        <video ref={videoRef} autoPlay loop muted playsInline preload="auto"
+          controlsList="nodownload nofullscreen noremoteplayback"
+          disablePictureInPicture
+          disableRemotePlayback
+          className="absolute inset-0 w-full h-full object-contain ax-fade-video"
           style={{ filter: 'brightness(1.05) contrast(1.06) saturate(1.14)' }}>
           <source src={src} type="video/mp4" />
         </video>
@@ -577,6 +596,9 @@ function HeroVideos() {
       {Array.from({ length: TOTAL }).map((_, i) => (
         <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline
           preload={i === current || i === (current + 1) % TOTAL ? 'auto' : 'none'}
+          controlsList="nodownload nofullscreen noremoteplayback"
+          disablePictureInPicture
+          disableRemotePlayback
           onEnded={() => handleVideoEnd(i)}
           className="absolute inset-0 w-full h-full object-contain transition-opacity duration-1000"
           style={{ opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
