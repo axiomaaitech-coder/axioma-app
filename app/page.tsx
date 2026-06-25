@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 // ============================================================
 const idiomas = {
   pt: {
-    login: 'Login', comecar: '🚀 Começar Agora', comecarGratis: '🚀 Começar Trial 14 Dias',
+    login: 'Login', comecar: 'Começar Agora', comecarGratis: 'Começar Trial 14 Dias',
     semCartao: '14 dias grátis. Cancele quando quiser.',
     nav: { modulos: 'Módulos', planos: 'Planos', sobre: 'Sobre' },
     hero: {
@@ -129,13 +129,13 @@ const idiomas = {
     cta: {
       titulo: 'Sua concorrência já usa IA. E você?',
       sub: 'Cada dia sem controle financeiro é dinheiro saindo do seu bolso. As empresas que sobrevivem são as que têm dados reais na mão.',
-      btn: '🚀 Começar 14 Dias Grátis',
+      btn: 'Começar 14 Dias Grátis',
       sub2: 'Junte-se a empresas que já descobriram o poder da Axioma',
     },
     footer: '© 2026 Axioma AI.Tech — Inteligência Financeira para PMEs',
   },
   en: {
-    login: 'Login', comecar: '🚀 Start Now', comecarGratis: '🚀 Start 14-Day Trial',
+    login: 'Login', comecar: 'Start Now', comecarGratis: 'Start 14-Day Trial',
     semCartao: '14 days free. Cancel anytime.',
     nav: { modulos: 'Modules', planos: 'Plans', sobre: 'About' },
     hero: {
@@ -257,13 +257,13 @@ const idiomas = {
     cta: {
       titulo: 'Your competition already uses AI. Do you?',
       sub: 'Every day without financial control is money leaving your pocket. Companies that survive have real data at hand.',
-      btn: '🚀 Start 14 Days Free',
+      btn: 'Start 14 Days Free',
       sub2: 'Join companies that have discovered the power of Axioma',
     },
     footer: '© 2026 Axioma AI.Tech — Financial Intelligence for SMEs',
   },
   es: {
-    login: 'Iniciar Sesión', comecar: '🚀 Empezar Ahora', comecarGratis: '🚀 Empezar Prueba 14 Días',
+    login: 'Iniciar Sesión', comecar: 'Empezar Ahora', comecarGratis: 'Empezar Prueba 14 Días',
     semCartao: '14 días gratis. Cancela cuando quieras.',
     nav: { modulos: 'Módulos', planos: 'Planes', sobre: 'Sobre' },
     hero: {
@@ -385,7 +385,7 @@ const idiomas = {
     cta: {
       titulo: '¿Tu competencia ya usa IA. Y tú?',
       sub: 'Cada día sin control financiero es dinero saliendo de tu bolsillo. Las empresas que sobreviven tienen datos reales en la mano.',
-      btn: '🚀 Empezar 14 Días Gratis',
+      btn: 'Empezar 14 Días Gratis',
       sub2: 'Únete a empresas que descubrieron el poder de Axioma',
     },
     footer: '© 2026 Axioma AI.Tech — Inteligencia Financiera para PYMEs',
@@ -427,6 +427,31 @@ function Reveal({ children, delay = 0, className = '' }: { children: React.React
 }
 
 // ============================================================
+// BG WORDS — efeito suave de fundo (Axioma + módulos bem leves)
+// ============================================================
+const BG_PALAVRAS = ['AXIOMA', 'RECEITAS', 'DRE', 'FLUXO DE CAIXA', 'IA TRIBUTÁRIA', 'MEI', 'LUCRO', 'CUSTOS', 'METAS', 'OPEN FINANCE', 'INVESTIMENTOS', 'AXIOMA']
+function BgWords() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0" aria-hidden="true">
+      {BG_PALAVRAS.map((w, i) => (
+        <span key={i} className="ax-display absolute font-black whitespace-nowrap"
+          style={{
+            left: `${(i * 26) % 88}%`,
+            top: `${(i * 41) % 82}%`,
+            fontSize: i % 3 === 0 ? 72 : 44,
+            color: '#9fd0ff',
+            opacity: 0.04,
+            letterSpacing: '0.05em',
+            transform: `rotate(${(i % 2 ? -1 : 1) * 5}deg)`,
+            animation: `bgword-drift ${20 + (i % 5) * 4}s ease-in-out infinite alternate`,
+            animationDelay: `${i * 0.8}s`,
+          }}>{w}</span>
+      ))}
+    </div>
+  )
+}
+
+// ============================================================
 // MATRIX BACKGROUND — fundo de caracteres caindo (sutil)
 // ============================================================
 function MatrixBg() {
@@ -460,72 +485,11 @@ function MatrixBg() {
     window.addEventListener('resize', resize)
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
   }, [])
-  return <canvas ref={ref} className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: 0.12 }} />
+  return <canvas ref={ref} className="fixed inset-0 z-0 pointer-events-none" style={{ opacity: 0.1 }} />
 }
 
 // ============================================================
-// CLOWDBOT — Holograma pulsante
-// ============================================================
-function ClowdbotCanvas() {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = ref.current; if (!canvas) return
-    const ctx = canvas.getContext('2d'); if (!ctx) return
-    let animId: number
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
-    resize(); window.addEventListener('resize', resize)
-    let frame = 0
-    const draw = () => {
-      frame++
-      const w = canvas.width, h = canvas.height
-      const cx = w / 2, cy = h / 2
-      const R = Math.min(w, h) * 0.35
-      ctx.clearRect(0, 0, w, h)
-      for (let ring = 0; ring < 5; ring++) {
-        const r = R * (0.6 + ring * 0.1)
-        const pulse = Math.sin(frame * 0.04 + ring * 0.8) * 5
-        ctx.beginPath(); ctx.arc(cx, cy, r + pulse, 0, Math.PI * 2)
-        ctx.strokeStyle = `rgba(106,176,255,${0.15 - ring * 0.02})`
-        ctx.lineWidth = 1; ctx.stroke()
-      }
-      ctx.beginPath()
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + frame * 0.01
-        ctx.lineTo(cx + Math.cos(a) * R * 0.55, cy + Math.sin(a) * R * 0.55)
-      }
-      ctx.closePath()
-      ctx.strokeStyle = 'rgba(106,176,255,0.4)'; ctx.lineWidth = 2
-      ctx.shadowColor = '#6ab0ff'; ctx.shadowBlur = 15; ctx.stroke(); ctx.shadowBlur = 0
-      const eyePulse = Math.sin(frame * 0.06) * 3
-      ctx.beginPath(); ctx.ellipse(cx, cy, R * 0.35 + eyePulse, R * 0.2 + eyePulse * 0.5, 0, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(52,211,153,0.8)'; ctx.lineWidth = 2
-      ctx.shadowColor = '#34d399'; ctx.shadowBlur = 20; ctx.stroke(); ctx.shadowBlur = 0
-      const blinkPhase = frame % 120
-      const blinkScale = blinkPhase < 5 ? blinkPhase / 5 : blinkPhase < 10 ? (10 - blinkPhase) / 5 : 1
-      ctx.beginPath(); ctx.arc(cx, cy, R * 0.12 * blinkScale, 0, Math.PI * 2)
-      const pupilGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.12)
-      pupilGrad.addColorStop(0, 'rgba(106,176,255,0.9)')
-      pupilGrad.addColorStop(0.5, 'rgba(52,211,153,0.7)')
-      pupilGrad.addColorStop(1, 'rgba(0,0,0,0.8)')
-      ctx.fillStyle = pupilGrad; ctx.shadowColor = '#6ab0ff'; ctx.shadowBlur = 15; ctx.fill(); ctx.shadowBlur = 0
-      for (let p = 0; p < 8; p++) {
-        const pAngle = (p / 8) * Math.PI * 2 + frame * 0.02
-        const pDist = R * (0.9 + Math.sin(frame * 0.05 + p) * 0.1)
-        ctx.beginPath(); ctx.arc(cx + Math.cos(pAngle) * pDist, cy + Math.sin(pAngle) * pDist, 2, 0, Math.PI * 2)
-        ctx.fillStyle = ['#6ab0ff', '#34d399', '#a78bfa'][p % 3]
-        ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6; ctx.fill(); ctx.shadowBlur = 0
-      }
-      animId = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
-  }, [])
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full" />
-}
-
-// ============================================================
-// VIDEO FRAME — painel de vídeo premium reutilizável
-//   Moldura de vidro, vinheta para contraste, brilho ambiente.
+// VIDEO FRAME — painel de vídeo premium (16:9, lazy-load)
 // ============================================================
 function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: string; cor?: string; className?: string; children?: React.ReactNode }) {
   const { ref, inView } = useInView<HTMLDivElement>(0.1)
@@ -533,24 +497,19 @@ function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: s
     <div ref={ref} className={`ax-video-frame relative w-full rounded-[20px] overflow-hidden ${className}`}
       style={{
         aspectRatio: '16 / 9',
-        border: `1px solid ${cor}33`,
+        border: `1px solid ${cor}40`,
         background: '#000',
-        boxShadow: `0 30px 80px -30px ${cor}66, 0 0 0 1px rgba(255,255,255,0.03) inset`,
+        boxShadow: `0 30px 80px -30px ${cor}66, 0 0 0 1px rgba(255,255,255,0.04) inset`,
       }}>
       {inView && (
         <video autoPlay loop muted playsInline preload="auto"
           className="absolute inset-0 w-full h-full object-cover ax-fade-video"
-          style={{ filter: 'brightness(1.04) contrast(1.05) saturate(1.12)' }}>
+          style={{ filter: 'brightness(1.05) contrast(1.06) saturate(1.14)' }}>
           <source src={src} type="video/mp4" />
         </video>
       )}
-      {/* Vinheta para profundidade e contraste */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 45%, rgba(2,8,16,0.55) 100%)' }} />
-      {/* Brilho ambiente na cor do bloco */}
-      <div className="absolute inset-0 pointer-events-none mix-blend-soft-light"
-        style={{ background: `linear-gradient(135deg, ${cor}22 0%, transparent 55%)` }} />
-      {/* Sheen no topo */}
+        style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(2,8,16,0.4) 100%)' }} />
       <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
         style={{ background: `linear-gradient(90deg, transparent, ${cor}, transparent)`, boxShadow: `0 0 16px ${cor}` }} />
       {children}
@@ -559,12 +518,24 @@ function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: s
 }
 
 // ============================================================
-// CANVAS BOX — bordas neon (mantido)
+// BADGE — eyebrow premium reutilizável
+// ============================================================
+function Badge({ children, cor }: { children: React.ReactNode; cor: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+      style={{ background: `${cor}14`, border: `1px solid ${cor}66`, boxShadow: `0 0 30px ${cor}22` }}>
+      <span className="ax-eyebrow text-xs font-black tracking-[0.25em]" style={{ color: cor }}>{children}</span>
+    </div>
+  )
+}
+
+// ============================================================
+// CANVAS BOX — bordas neon
 // ============================================================
 function NeonBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa', corD = '#f472b6', className = '' }: { children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string; className?: string }) {
   return (
     <div className={`ax-tilt relative rounded-2xl overflow-hidden ${className}`}
-      style={{ background: 'rgba(4,10,22,0.97)', border: `1px solid ${cor}25`, boxShadow: `0 0 40px ${cor}06` }}>
+      style={{ background: 'rgba(4,10,22,0.97)', border: `1px solid ${cor}30`, boxShadow: `0 0 40px ${cor}08` }}>
       {[
         { pos: 'top-0 left-0', w: 'w-16 h-[2px]', bg: `linear-gradient(90deg,${cor},transparent)`, g: cor },
         { pos: 'top-0 left-0', w: 'w-[2px] h-16', bg: `linear-gradient(180deg,${cor},transparent)`, g: cor },
@@ -584,9 +555,9 @@ function NeonBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa'
 }
 
 // ============================================================
-// HERO VIDEO SEQUENCE — 5 vídeos em sequência (sem áudio)
+// HERO VIDEO SEQUENCE — 5 vídeos (sem áudio, vídeo inteiro)
 // ============================================================
-function HeroVideos({ legendas }: { legendas: string[] }) {
+function HeroVideos() {
   const TOTAL = 5
   const [current, setCurrent] = useState(0)
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
@@ -599,53 +570,33 @@ function HeroVideos({ legendas }: { legendas: string[] }) {
     })
   }, [current])
 
-  const handleVideoEnd = (idx: number) => {
-    setCurrent(idx < TOTAL - 1 ? idx + 1 : 0)
-  }
+  const handleVideoEnd = (idx: number) => setCurrent(idx < TOTAL - 1 ? idx + 1 : 0)
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden">
+    <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ background: '#020810' }}>
       {Array.from({ length: TOTAL }).map((_, i) => (
         <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline
           preload={i === current || i === (current + 1) % TOTAL ? 'auto' : 'none'}
           onEnded={() => handleVideoEnd(i)}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
+          className="absolute inset-0 w-full h-full object-contain transition-opacity duration-1000"
           style={{ opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
           <source src={`/videos/hero-${i + 1}.mp4`} type="video/mp4" />
         </video>
       ))}
 
-      {/* Vinheta cinematográfica para contraste do texto */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 25%, rgba(2,8,16,0.45) 75%, rgba(2,8,16,0.85) 100%)' }} />
-      <div className="absolute inset-x-0 bottom-0 h-2/5 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(2,8,16,0.92), transparent)' }} />
+        style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,8,16,0.35) 85%, rgba(2,8,16,0.7) 100%)' }} />
+      <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
+        style={{ background: 'linear-gradient(to top, rgba(2,8,16,0.85), transparent)' }} />
 
-      {/* Indicador de progresso (5) */}
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
         {Array.from({ length: TOTAL }).map((_, i) => (
           <div key={i} className="h-1 rounded-full transition-all duration-500"
-            style={{ width: current === i ? 44 : 18, background: current === i ? '#6ab0ff' : 'rgba(106,176,255,0.3)', boxShadow: current === i ? '0 0 12px #6ab0ff' : 'none' }} />
+            style={{ width: current === i ? 44 : 18, background: current === i ? '#00E5FF' : 'rgba(0,229,255,0.3)', boxShadow: current === i ? '0 0 12px #00E5FF' : 'none' }} />
         ))}
       </div>
-
-      {/* Linhas de luz nas bordas */}
       <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-        style={{ background: 'linear-gradient(90deg, transparent, #6ab0ff, transparent)', boxShadow: '0 0 20px #6ab0ff' }} />
-      <div className="absolute bottom-0 left-0 right-0 h-px pointer-events-none"
-        style={{ background: 'linear-gradient(90deg, transparent, #a78bfa, transparent)', boxShadow: '0 0 20px #a78bfa' }} />
-    </div>
-  )
-}
-
-// ============================================================
-// BADGE — eyebrow premium reutilizável
-// ============================================================
-function Badge({ children, cor }: { children: React.ReactNode; cor: string }) {
-  return (
-    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
-      style={{ background: `${cor}12`, border: `1px solid ${cor}55`, boxShadow: `0 0 30px ${cor}1f` }}>
-      <span className="ax-eyebrow text-xs font-black tracking-[0.25em]" style={{ color: cor }}>{children}</span>
+        style={{ background: 'linear-gradient(90deg, transparent, #00E5FF, transparent)', boxShadow: '0 0 20px #00E5FF' }} />
     </div>
   )
 }
@@ -669,8 +620,8 @@ export default function LandingPage() {
     <button onClick={onClick}
       className={`${full ? 'w-full' : ''} relative px-6 py-3 rounded-xl font-black text-xs tracking-widest uppercase transition-all hover:scale-105 active:scale-95 overflow-hidden group`}
       style={primary
-        ? { background: 'linear-gradient(135deg,#1a3a8f,#2a5fd4,#6366f1)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.5), inset 0 1px 0 rgba(255,255,255,0.15)' }
-        : { background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.35)' }}>
+        ? { background: 'linear-gradient(135deg,#1a3a8f,#2a5fd4,#6366f1)', color: '#fff', boxShadow: '0 4px 30px rgba(42,95,212,0.55), inset 0 1px 0 rgba(255,255,255,0.15)' }
+        : { background: 'transparent', color: '#9fc4ff', border: '1px solid rgba(106,176,255,0.4)' }}>
       <span className="relative z-10">{label}</span>
       {primary && (
         <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
@@ -679,9 +630,10 @@ export default function LandingPage() {
     </button>
   )
 
-  // Texto secundário e terciário com contraste elegante e legível
-  const cBody = '#b8cdf0'
-  const cMuted = '#8fb0dd'
+  // Paleta de texto — mais forte e legível
+  const cBody = '#cfe0fa'
+  const cMuted = '#9ab6e2'
+  const cGold = '#F5D27A'
 
   return (
     <div className="ax-root" style={{ background: '#020810', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -694,14 +646,14 @@ export default function LandingPage() {
           <img src="/logo-aitech.png" alt="Axioma" style={{ width: 36, height: 36, filter: 'drop-shadow(0 0 15px rgba(106,176,255,0.8))' }} />
           <div>
             <p className="ax-display font-black tracking-[0.3em] text-sm" style={{ background: 'linear-gradient(135deg,#e8f1ff,#6ab0ff,#fff,#3b6fd4)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>AXIOMA</p>
-            <p className="text-[10px] tracking-[0.3em]" style={{ color: '#5a7aaa' }}>AI.TECH</p>
+            <p className="text-[10px] tracking-[0.3em]" style={{ color: '#6a8bbd' }}>AI.TECH</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {(['pt', 'en', 'es'] as const).map(l => (
             <button key={l} onClick={() => setLang(l)}
               className="text-xs px-2 py-1 rounded-full font-bold transition-all"
-              style={{ background: lang === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: lang === l ? '#6ab0ff' : '#5a7aaa', border: '1px solid rgba(59,111,212,0.2)' }}>
+              style={{ background: lang === l ? 'rgba(59,111,212,0.3)' : 'transparent', color: lang === l ? '#6ab0ff' : '#6a8bbd', border: '1px solid rgba(59,111,212,0.2)' }}>
               {l === 'pt' ? '🇧🇷' : l === 'en' ? '🇺🇸' : '🇪🇸'}
             </button>
           ))}
@@ -714,10 +666,9 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ============ SEÇÃO 1 — HERO (5 vídeos) ============ */}
-      <section className="relative h-screen min-h-[700px] flex flex-col items-center justify-end overflow-hidden">
-        <HeroVideos legendas={[t.hero.legenda1, t.hero.legenda2, t.hero.legenda3]} />
-
+      {/* ============ SEÇÃO 1 — HERO (5 vídeos, inteiros) ============ */}
+      <section className="relative h-screen min-h-[680px] flex flex-col items-center justify-end overflow-hidden">
+        <HeroVideos />
         <div className="relative z-10 w-full max-w-6xl mx-auto px-6 pb-24 md:pb-20">
           <div className="max-w-md text-left">
             <p className="ax-display ax-neon text-xl md:text-3xl font-black mb-5 leading-[1.18]">
@@ -726,34 +677,34 @@ export default function LandingPage() {
             <div className="flex">
               {btn(t.comecarGratis, () => router.push('/cadastro'))}
             </div>
-            <p className="text-[10px] md:text-xs mt-3" style={{ color: '#aaccf5', textShadow: '0 2px 8px rgba(2,8,16,0.9)' }}>{t.semCartao}</p>
+            <p className="text-[10px] md:text-xs mt-3 font-medium" style={{ color: '#bcd6f8', textShadow: '0 2px 8px rgba(2,8,16,0.9)' }}>{t.semCartao}</p>
           </div>
         </div>
-
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 animate-bounce">
-          <div className="w-1 h-8" style={{ background: 'linear-gradient(to bottom, transparent, #6ab0ff)' }} />
+          <div className="w-1 h-8" style={{ background: 'linear-gradient(to bottom, transparent, #00E5FF)' }} />
         </div>
       </section>
 
-      {/* ============ SEÇÃO 2 — EINSTEIN (vídeo einstein.mp4) ============ */}
+      {/* ============ SEÇÃO 2 — EINSTEIN (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
         style={{ background: 'radial-gradient(ellipse at center, rgba(10,22,40,0.95), rgba(2,8,16,1))' }}>
+        <BgWords />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
             <Reveal>
               <Badge cor="#6ab0ff">{t.einstein.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-2 leading-tight"
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-2 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.einstein.titulo}
               </h2>
-              <h3 className="ax-display text-xl md:text-3xl font-bold mb-6 leading-tight"
-                style={{ background: 'linear-gradient(135deg,#a78bfa,#fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <h3 className="ax-display text-lg md:text-2xl font-bold mb-5 leading-tight"
+                style={{ background: `linear-gradient(135deg,${cGold},#fbbf24)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.einstein.subTitulo}
               </h3>
-              <div className="px-5 py-4 rounded-xl mb-6" style={{ background: 'rgba(106,176,255,0.06)', borderLeft: '3px solid #6ab0ff' }}>
-                <p className="text-sm italic" style={{ color: '#d4e2f7', lineHeight: 1.7 }}>{t.einstein.copy}</p>
+              <div className="px-4 py-3 rounded-xl mb-5" style={{ background: 'rgba(106,176,255,0.07)', borderLeft: '3px solid #6ab0ff' }}>
+                <p className="text-xs md:text-sm italic font-medium" style={{ color: '#dceafc', lineHeight: 1.6 }}>{t.einstein.copy}</p>
               </div>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.9 }}>{t.einstein.texto}</p>
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.8 }}>{t.einstein.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
             <Reveal delay={0.12}>
@@ -763,76 +714,52 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 3 — PLATÃO / NÚCLEO (vídeo nucleo.mp4) ============ */}
+      {/* ============ SEÇÃO 3 — PLATÃO / NÚCLEO (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <Reveal className="order-2 md:order-1">
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
+            <Reveal>
               <VideoFrame src="/videos/nucleo.mp4" cor="#a78bfa" />
             </Reveal>
-            <Reveal delay={0.12} className="order-1 md:order-2">
+            <Reveal delay={0.12}>
               <Badge cor="#a78bfa">{t.platao.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-6 leading-tight"
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-5 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#a78bfa,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.platao.titulo}
               </h2>
-              <div className="px-5 py-4 rounded-xl mb-6" style={{ background: 'rgba(167,139,250,0.06)', borderLeft: '3px solid #a78bfa' }}>
-                <p className="text-sm italic" style={{ color: '#d4e2f7', lineHeight: 1.7 }}>{t.platao.copy}</p>
+              <div className="px-4 py-3 rounded-xl mb-5" style={{ background: 'rgba(167,139,250,0.07)', borderLeft: '3px solid #a78bfa' }}>
+                <p className="text-xs md:text-sm italic font-medium" style={{ color: '#e6dcfc', lineHeight: 1.6 }}>{t.platao.copy}</p>
               </div>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.9 }}>{t.platao.texto}</p>
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.8 }}>{t.platao.texto}</p>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 4 — DOMÍNIO GLOBAL (vídeo globo.mp4 + bandeiras) ============ */}
+      {/* ============ SEÇÃO 4 — DOMÍNIO GLOBAL (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.8),rgba(2,8,16,1))' }}>
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <Reveal className="order-2 md:order-1">
-              <VideoFrame src="/videos/globo.mp4" cor="#34d399">
-                {/* Bandeiras orbitando sobre o globo */}
-                {t.global.paises.map((p, i) => {
-                  const angle = (i / t.global.paises.length) * 360
-                  const isHovered = hoveredPais === i
-                  return (
-                    <div key={i}
-                      onMouseEnter={() => setHoveredPais(i)}
-                      onMouseLeave={() => setHoveredPais(null)}
-                      className="absolute left-1/2 top-1/2 cursor-pointer transition-all duration-500 z-10 hidden md:block"
-                      style={{
-                        transform: `translate(-50%, -50%) rotate(${angle}deg) translateY(-120px) rotate(-${angle}deg) scale(${isHovered ? 1.4 : 1})`,
-                        animation: 'orbit-rotate 34s linear infinite',
-                      }}>
-                      <div className="relative flex flex-col items-center">
-                        <div className="text-3xl" style={{ filter: `drop-shadow(0 0 ${isHovered ? 20 : 10}px ${p.cor})`, transition: 'all 0.3s' }}>{p.f}</div>
-                        {isHovered && (
-                          <div className="absolute -bottom-8 px-2 py-1 rounded-md whitespace-nowrap"
-                            style={{ background: 'rgba(4,10,22,0.95)', border: `1px solid ${p.cor}`, boxShadow: `0 0 15px ${p.cor}`, animation: 'fade-in-up 0.3s ease-out' }}>
-                            <span className="text-xs font-bold" style={{ color: p.cor }}>{p.n}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </VideoFrame>
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
+            <Reveal>
+              <VideoFrame src="/videos/globo.mp4" cor="#34d399" />
             </Reveal>
-            <Reveal delay={0.12} className="order-1 md:order-2">
+            <Reveal delay={0.12}>
               <Badge cor="#34d399">{t.global.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#34d399,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.global.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.global.sub}</p>
-              <div className="grid grid-cols-2 gap-2 mb-6">
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.global.sub}</p>
+              <div className="grid grid-cols-2 gap-2 mb-5">
                 {t.global.paises.map((p, i) => (
                   <div key={i}
                     onMouseEnter={() => setHoveredPais(i)}
                     onMouseLeave={() => setHoveredPais(null)}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer hover:scale-105"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer hover:scale-105"
                     style={{
                       background: hoveredPais === i ? `${p.cor}20` : 'rgba(52,211,153,0.06)',
                       border: `1px solid ${hoveredPais === i ? p.cor : `${p.cor}30`}`,
@@ -843,8 +770,8 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <div className="px-4 py-3 rounded-xl mb-6" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.2)' }}>
-                <p className="text-xs italic" style={{ color: '#9fc4ff' }}>💡 {t.global.copy}</p>
+              <div className="px-4 py-3 rounded-xl mb-5" style={{ background: 'rgba(106,176,255,0.07)', border: '1px solid rgba(106,176,255,0.2)' }}>
+                <p className="text-xs italic font-medium" style={{ color: '#9fc4ff' }}>{t.global.copy}</p>
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
@@ -852,89 +779,55 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 5 — VISÃO CIRÚRGICA (vídeo calculadora.mp4) ============ */}
+      {/* ============ SEÇÃO 5 — VISÃO CIRÚRGICA (texto 30 / vídeo 70) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
             <Reveal>
               <Badge cor="#a78bfa">{t.visao.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#a78bfa,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.visao.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.visao.sub}</p>
-              <div className="space-y-3 mb-6">
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.visao.sub}</p>
+              <div className="space-y-2.5 mb-5">
                 {t.visao.items.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:scale-[1.02] transition-transform"
-                    style={{ background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.15)' }}>
-                    <span className="text-xs font-semibold" style={{ color: '#c4b5fd' }}>{item}</span>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.18)' }}>
+                    <span className="text-xs font-semibold" style={{ color: '#cbb8fd' }}>{item}</span>
                   </div>
                 ))}
               </div>
               {btn(t.comecar, () => router.push('/cadastro'))}
             </Reveal>
             <Reveal delay={0.12}>
-              <VideoFrame src="/videos/calculadora.mp4" cor="#a78bfa">
-                <div className="absolute top-4 left-4 z-10 pointer-events-none">
-                  <span className="ax-display text-xs font-black tracking-[0.25em]" style={{ color: '#fff', textShadow: '0 0 14px rgba(167,139,250,0.95)' }}>AXIOMA</span>
-                </div>
-                {['DRE', 'FLUXO', 'RECEITAS', 'CUSTOS'].map((w, i) => {
-                  const angle = (i / 4) * 360 + 45
-                  const x = Math.cos((angle * Math.PI) / 180) * 240
-                  const y = Math.sin((angle * Math.PI) / 180) * 125
-                  return (
-                    <div key={i} className="absolute font-mono font-bold text-[10px] z-10 pointer-events-none hidden md:block"
-                      style={{ left: '50%', top: '50%', transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`, color: '#c4b5fd', textShadow: '0 0 10px #a78bfa, 0 1px 6px rgba(0,0,0,0.95)', animation: `word-float ${4 + (i % 3)}s ease-in-out infinite alternate`, animationDelay: `${i * 0.25}s` }}>
-                      {w}
-                    </div>
-                  )
-                })}
-              </VideoFrame>
+              <VideoFrame src="/videos/calculadora.mp4" cor="#a78bfa" />
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 6 — MENTE ONISCIENTE (vídeo cerebro.mp4 + palavras) ============ */}
+      {/* ============ SEÇÃO 6 — MENTE ONISCIENTE (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.9),rgba(2,8,16,1))' }}>
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <Reveal className="order-2 md:order-1">
-              <VideoFrame src="/videos/cerebro.mp4" cor="#6ab0ff">
-                {/* Palavras flutuando ao redor do cérebro (efeito leve) */}
-                {t.mente.palavras.slice(0, 8).map((p, i) => {
-                  const angle = (i / 8) * 360
-                  const x = Math.cos((angle * Math.PI) / 180) * 175
-                  const y = Math.sin((angle * Math.PI) / 180) * 120
-                  const cor = ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24'][i % 4]
-                  return (
-                    <div key={i} className="absolute font-mono font-bold text-[11px] z-10 pointer-events-none hidden md:block"
-                      style={{
-                        left: '50%', top: '50%',
-                        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                        color: cor,
-                        textShadow: `0 0 12px ${cor}, 0 1px 6px rgba(2,8,16,0.9)`,
-                        animation: `word-float ${4 + (i % 3)}s ease-in-out infinite alternate`,
-                        animationDelay: `${i * 0.18}s`,
-                      }}>
-                      {p}
-                    </div>
-                  )
-                })}
-              </VideoFrame>
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
+            <Reveal>
+              <VideoFrame src="/videos/cerebro.mp4" cor="#6ab0ff" />
             </Reveal>
-            <Reveal delay={0.12} className="order-1 md:order-2">
+            <Reveal delay={0.12}>
               <Badge cor="#6ab0ff">{t.mente.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.mente.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.mente.sub}</p>
-              <div className="flex flex-wrap gap-2 mb-6">
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.mente.sub}</p>
+              <div className="flex flex-wrap gap-1.5 mb-5">
                 {t.mente.palavras.map((p, i) => (
-                  <span key={i} className="px-2 py-1 rounded-lg text-xs font-bold hover:scale-110 transition-transform cursor-default"
-                    style={{ background: `${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5]}15`, color: ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5], border: `1px solid ${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5]}30` }}>
+                  <span key={i} className="px-2 py-1 rounded-lg text-[11px] font-bold"
+                    style={{ background: `${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5]}18`, color: ['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5], border: `1px solid ${['#6ab0ff', '#34d399', '#a78bfa', '#fbbf24', '#f472b6'][i % 5]}40` }}>
                     {p}
                   </span>
                 ))}
@@ -945,32 +838,21 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 7 — SEGURANÇA (vídeo seguranca.mp4) ============ */}
+      {/* ============ SEÇÃO 7 — SEGURANÇA (BANNER largura total) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4">
-          <Reveal className="text-center mb-12">
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <Reveal className="text-center mb-10">
             <Badge cor="#34d399">{t.seguranca.badge}</Badge>
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-4"
               style={{ background: 'linear-gradient(135deg,#fff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {t.seguranca.titulo}
             </h2>
-            <p className="text-sm md:text-lg max-w-2xl mx-auto" style={{ color: cBody }}>{t.seguranca.sub}</p>
+            <p className="text-sm md:text-lg max-w-2xl mx-auto font-medium" style={{ color: cBody }}>{t.seguranca.sub}</p>
           </Reveal>
           <Reveal delay={0.1}>
-            <div className="mx-auto mb-12" style={{ maxWidth: 920 }}>
-              <VideoFrame src="/videos/seguranca.mp4" cor="#34d399">
-                {['🔒 CRIPTOGRAFIA', '🛡️ FIREWALL', '🔑 RLS', '✓ SSL/TLS', '👁️ 24/7', '🔐 BLINDADO'].map((w, i) => {
-                  const angle = (i / 6) * 360
-                  const x = Math.cos((angle * Math.PI) / 180) * 255
-                  const y = Math.sin((angle * Math.PI) / 180) * 140
-                  return (
-                    <div key={i} className="absolute font-mono font-bold text-[10px] md:text-xs z-10 pointer-events-none hidden md:block"
-                      style={{ left: '50%', top: '50%', transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`, color: '#7CFFC4', textShadow: '0 0 10px #34d399, 0 1px 6px rgba(0,0,0,0.95)', animation: `word-float ${4 + (i % 3)}s ease-in-out infinite alternate`, animationDelay: `${i * 0.2}s` }}>
-                      {w}
-                    </div>
-                  )
-                })}
-              </VideoFrame>
+            <div className="mb-12">
+              <VideoFrame src="/videos/seguranca.mp4" cor="#34d399" />
             </div>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -979,8 +861,8 @@ export default function LandingPage() {
                 <NeonBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
                   <div className="p-5 text-center">
                     <div className="text-3xl mb-3">{item.icon}</div>
-                    <h3 className="font-black text-sm mb-2" style={{ color: '#34d399' }}>{item.titulo}</h3>
-                    <p className="text-xs" style={{ color: cMuted, lineHeight: 1.7 }}>{item.desc}</p>
+                    <h3 className="font-black text-sm mb-2" style={{ color: '#5ff0b5' }}>{item.titulo}</h3>
+                    <p className="text-xs font-medium" style={{ color: cMuted, lineHeight: 1.6 }}>{item.desc}</p>
                   </div>
                 </NeonBox>
               </Reveal>
@@ -989,22 +871,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 8 — EXÉRCITO DE IA (vídeo robos.mp4) ============ */}
+      {/* ============ SEÇÃO 8 — EXÉRCITO DE IA (texto 30 / vídeo 70) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-10 items-center">
             <Reveal>
               <Badge cor="#fbbf24">{t.robots.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
-                style={{ background: 'linear-gradient(135deg,#fff,#fbbf24,#f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
+                style={{ background: `linear-gradient(135deg,#fff,${cGold},#f97316)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.robots.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.robots.sub}</p>
-              <div className="space-y-3 mb-6">
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.robots.sub}</p>
+              <div className="space-y-2.5 mb-5">
                 {t.robots.items.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:scale-[1.02] transition-transform"
-                    style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}>
-                    <span className="text-xs font-semibold" style={{ color: '#fcd34d' }}>{item}</span>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.18)' }}>
+                    <span className="text-xs font-semibold" style={{ color: '#fcd97a' }}>{item}</span>
                   </div>
                 ))}
               </div>
@@ -1017,16 +900,17 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 9 — MÓDULOS (banner dna.mp4 + grid 3D) ============ */}
+      {/* ============ SEÇÃO 9 — MÓDULOS (banner dna + grid) ============ */}
       <section className="relative py-20 md:py-32"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.9),rgba(2,8,16,1))' }}>
-        <div className="max-w-6xl mx-auto px-4">
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
           <Reveal className="text-center mb-10">
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-3" style={{ color: '#eaf2ff' }}>{t.modulos.titulo}</h2>
-            <p className="text-sm md:text-lg" style={{ color: cMuted }}>{t.modulos.sub}</p>
+            <p className="text-sm md:text-lg font-medium" style={{ color: cMuted }}>{t.modulos.sub}</p>
           </Reveal>
           <Reveal delay={0.08}>
-            <div className="mx-auto mb-12" style={{ maxWidth: 980 }}>
+            <div className="mb-12">
               <VideoFrame src="/videos/dna.mp4" cor="#6ab0ff" />
             </div>
           </Reveal>
@@ -1037,7 +921,7 @@ export default function LandingPage() {
                 <div className="p-3 text-center cursor-pointer">
                   <div className="text-2xl mb-1">{m.icon}</div>
                   <p className="font-bold text-xs mb-0.5" style={{ color: '#eaf2ff' }}>{m.nome}</p>
-                  <p className="text-[10px]" style={{ color: cMuted }}>{m.desc}</p>
+                  <p className="text-[10px] font-medium" style={{ color: cMuted }}>{m.desc}</p>
                 </div>
               </NeonBox>
             ))}
@@ -1048,11 +932,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 10 — CLOWDBOT ============ */}
+      {/* ============ SEÇÃO 10 — CLOWDBOT (vídeo 70 / texto 30) ============ */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <Reveal className="order-2 md:order-1">
+        <BgWords />
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-[7fr_3fr] gap-10 items-center">
+            <Reveal>
               <VideoFrame src="/videos/gerente.mp4" cor="#6ab0ff">
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full z-10"
                   style={{ background: 'rgba(4,10,22,0.92)', border: '1px solid rgba(52,211,153,0.4)' }}>
@@ -1061,23 +946,23 @@ export default function LandingPage() {
                 </div>
               </VideoFrame>
             </Reveal>
-            <Reveal delay={0.12} className="order-1 md:order-2">
+            <Reveal delay={0.12}>
               <Badge cor="#6ab0ff">{t.clowdbot.badge}</Badge>
-              <h2 className="ax-display text-3xl md:text-5xl font-black mb-4 leading-tight"
+              <h2 className="ax-display text-2xl md:text-4xl font-black mb-4 leading-tight"
                 style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 {t.clowdbot.titulo}
               </h2>
-              <p className="text-sm md:text-base mb-6" style={{ color: cBody, lineHeight: 1.8 }}>{t.clowdbot.sub}</p>
-              <div className="px-4 py-4 rounded-xl mb-6"
+              <p className="text-xs md:text-sm mb-5 font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.clowdbot.sub}</p>
+              <div className="px-3 py-3 rounded-xl mb-5"
                 style={{ background: 'rgba(4,10,22,0.9)', border: '1px solid rgba(106,176,255,0.2)', fontFamily: 'monospace' }}>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#f87171' }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#fbbf24' }} />
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#34d399' }} />
-                  <span className="text-xs ml-2" style={{ color: '#5a7aaa' }}>ClowdBot Terminal</span>
+                  <span className="text-[10px] ml-2" style={{ color: '#6a8bbd' }}>ClowdBot Terminal</span>
                 </div>
-                <p className="text-xs" style={{ color: '#5a7aaa' }}>{'>'} AXIOMA AI.TECH v2.0</p>
-                <p className="text-xs mt-1" style={{ color: '#34d399' }}>
+                <p className="text-[11px]" style={{ color: '#6a8bbd' }}>{'>'} AXIOMA AI.TECH v2.0</p>
+                <p className="text-[11px] mt-1" style={{ color: '#34d399' }}>
                   {'>'} {t.clowdbot.pensando[pensandoIdx]}
                   <span className="animate-pulse">█</span>
                 </p>
@@ -1088,36 +973,64 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ============ SEÇÃO 11 — PLANOS 4 NÍVEIS ============ */}
+      {/* ============ SEÇÃO 11 — DESTAQUE ROBÔ IA (banner antes dos planos) ============ */}
+      <section className="relative py-16 md:py-24 overflow-hidden"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(10,22,40,0.9), rgba(2,8,16,1))' }}>
+        <BgWords />
+        <div className="max-w-5xl mx-auto px-4 relative z-10 text-center">
+          <Reveal>
+            <Badge cor="#00E5FF">PAINEL INTELIGENTE</Badge>
+            <h2 className="ax-display text-2xl md:text-4xl font-black mb-6"
+              style={{ background: 'linear-gradient(135deg,#fff,#00E5FF,#6ab0ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Sua empresa inteira, em um só painel.
+            </h2>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <div className="relative rounded-[20px] overflow-hidden mx-auto"
+              style={{ border: '1px solid rgba(0,229,255,0.35)', boxShadow: '0 40px 100px -30px rgba(0,229,255,0.4)' }}>
+              <img src="/robo-ia.png" alt="Painel IA Axioma" className="w-full h-auto block" />
+              <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+                style={{ background: 'linear-gradient(90deg, transparent, #00E5FF, transparent)', boxShadow: '0 0 18px #00E5FF' }} />
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ============ SEÇÃO 12 — PLANOS 4 NÍVEIS ============ */}
       <section className="relative py-20 md:py-32"
         style={{ background: 'linear-gradient(135deg,rgba(10,22,40,0.95),rgba(2,8,16,1))' }}>
-        <div className="max-w-7xl mx-auto px-4">
-          <Reveal className="text-center mb-12">
+        <BgWords />
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <Reveal className="text-center mb-14">
             <h2 className="ax-display text-3xl md:text-5xl font-black mb-3"
               style={{ background: 'linear-gradient(135deg,#fff,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {t.planos.titulo}
             </h2>
-            <p className="text-sm" style={{ color: cMuted }}>{t.planos.sub}</p>
+            <p className="text-sm font-medium" style={{ color: cMuted }}>{t.planos.sub}</p>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch pt-4">
             {t.planos.lista.map((p: any, i) => (
-              <Reveal key={i} delay={0.07 * i}>
-                <NeonBox cor={p.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6"
-                  className={p.destaque ? 'md:scale-105' : ''}>
-                  <div className="p-5 flex flex-col relative h-full">
-                    {p.destaque && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-black whitespace-nowrap"
-                        style={{ background: 'linear-gradient(135deg,#ca8a04,#ea580c)', color: '#fff', boxShadow: '0 4px 20px rgba(245,158,11,0.4)' }}>
-                        {t.planos.popular}
-                      </div>
-                    )}
+              <Reveal key={i} delay={0.07 * i} className="h-full">
+                <div className="relative h-full rounded-2xl"
+                  style={{
+                    background: 'rgba(4,10,22,0.97)',
+                    border: `1px solid ${p.destaque ? p.cor : `${p.cor}30`}`,
+                    boxShadow: p.destaque ? `0 0 50px ${p.cor}40` : `0 0 30px ${p.cor}10`,
+                  }}>
+                  {p.destaque && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[10px] font-black whitespace-nowrap z-10"
+                      style={{ background: `linear-gradient(135deg,${cGold},#ea580c)`, color: '#1a1206', boxShadow: '0 4px 20px rgba(245,158,11,0.5)' }}>
+                      {t.planos.popular}
+                    </div>
+                  )}
+                  <div className="p-5 pt-7 flex flex-col h-full">
                     <h3 className="ax-display text-2xl font-black mb-1 text-center" style={{ color: p.cor }}>{p.nome}</h3>
-                    <p className="text-xs text-center mb-3" style={{ color: cMuted }}>{p.desc}</p>
+                    <p className="text-xs text-center mb-3 font-medium" style={{ color: cMuted }}>{p.desc}</p>
                     <div className="flex items-end justify-center gap-1 mb-1">
-                      <span className="ax-display text-4xl font-black" style={{ color: '#eaf2ff' }}>R$ {p.preco}</span>
+                      <span className="ax-display text-4xl font-black" style={{ color: '#ffffff' }}>R$ {p.preco}</span>
                       <span className="text-sm mb-1" style={{ color: cMuted }}>{t.planos.mes}</span>
                     </div>
-                    <p className="text-xs text-center mb-3" style={{ color: '#5a7aaa' }}>{p.usuarios}</p>
+                    <p className="text-xs text-center mb-3 font-medium" style={{ color: '#7d9bc9' }}>{p.usuarios}</p>
                     <div className="flex justify-center mb-3">
                       <span className="text-xs px-2 py-0.5 rounded-full font-bold"
                         style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
@@ -1127,43 +1040,40 @@ export default function LandingPage() {
                     {p.ia && (
                       <div className="flex justify-center mb-3">
                         <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                          style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>⭐ IA Premium</span>
+                          style={{ background: 'rgba(251,191,36,0.12)', color: cGold, border: '1px solid rgba(251,191,36,0.3)' }}>⭐ IA Premium</span>
                       </div>
                     )}
                     <div className="space-y-2 mb-5 flex-1">
                       {p.features.map((f: string, j: number) => (
-                        <div key={j} className="flex items-start gap-2 text-xs" style={{ color: cBody }}>
+                        <div key={j} className="flex items-start gap-2 text-xs font-medium" style={{ color: cBody }}>
                           <span style={{ color: p.cor }}>✓</span> <span>{f}</span>
                         </div>
                       ))}
                     </div>
                     {btn(t.comecar, () => router.push('/cadastro'), true, true)}
                   </div>
-                </NeonBox>
+                </div>
               </Reveal>
             ))}
           </div>
-          <p className="text-center text-xs mt-8" style={{ color: '#3a5a8a' }}>{t.semCartao}</p>
+          <p className="text-center text-xs mt-8 font-medium" style={{ color: '#5a7aaa' }}>{t.semCartao}</p>
         </div>
       </section>
 
-      {/* ============ SEÇÃO 12 — CTA FINAL ============ */}
+      {/* ============ SEÇÃO 13 — CTA FINAL (logo no lugar do foguete) ============ */}
       <section className="relative py-24 md:py-40 overflow-hidden text-center">
         <div className="absolute inset-0">
-          <div className="absolute inset-0" style={{
-            background: 'radial-gradient(ellipse at center, rgba(59,111,212,0.2) 0%, transparent 60%)',
-            animation: 'pulse-aura 4s ease-in-out infinite alternate',
-          }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(59,111,212,0.2) 0%, transparent 60%)', animation: 'pulse-aura 4s ease-in-out infinite alternate' }} />
         </div>
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom,rgba(2,8,16,0.7),rgba(2,8,16,0.5),rgba(2,8,16,0.95))' }} />
-
         <Reveal className="relative z-10 max-w-4xl mx-auto px-4">
-          <div className="text-7xl mb-6" style={{ filter: 'drop-shadow(0 0 30px rgba(106,176,255,0.8))', animation: 'rocket-pulse 3s ease-in-out infinite alternate' }}>🚀</div>
+          <img src="/logo-aitech.png" alt="Axioma" className="mx-auto mb-6"
+            style={{ width: 96, height: 96, objectFit: 'contain', filter: 'drop-shadow(0 0 30px rgba(106,176,255,0.9))', animation: 'logo-float 4s ease-in-out infinite alternate' }} />
           <h2 className="ax-display text-3xl md:text-6xl font-black mb-4"
             style={{ background: 'linear-gradient(135deg,#fff,#6ab0ff,#a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: '0 0 40px rgba(106,176,255,0.4)' }}>
             {t.cta.titulo}
           </h2>
-          <p className="text-sm md:text-xl mb-8 max-w-2xl mx-auto" style={{ color: cBody, lineHeight: 1.8 }}>{t.cta.sub}</p>
+          <p className="text-sm md:text-xl mb-8 max-w-2xl mx-auto font-medium" style={{ color: cBody, lineHeight: 1.7 }}>{t.cta.sub}</p>
           <button onClick={() => router.push('/cadastro')}
             className="relative px-10 md:px-20 py-5 md:py-7 rounded-2xl font-black text-sm md:text-xl tracking-widest uppercase hover:scale-105 transition-all overflow-hidden group"
             style={{ background: 'linear-gradient(135deg,#1a3a8f,#2a5fd4,#a78bfa)', color: '#fff', boxShadow: '0 8px 60px rgba(42,95,212,0.6), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
@@ -1171,15 +1081,14 @@ export default function LandingPage() {
             <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700"
               style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)' }} />
           </button>
-          <p className="text-sm mt-4" style={{ color: cMuted }}>{t.cta.sub2}</p>
-          <p className="text-xs mt-2" style={{ color: '#3a5a8a' }}>{t.semCartao}</p>
+          <p className="text-sm mt-4 font-medium" style={{ color: cMuted }}>{t.cta.sub2}</p>
+          <p className="text-xs mt-2" style={{ color: '#5a7aaa' }}>{t.semCartao}</p>
         </Reveal>
       </section>
 
       {/* ============ FOOTER ============ */}
-      <footer className="text-center py-8 px-4"
-        style={{ borderTop: '1px solid rgba(59,111,212,0.1)', background: '#020810' }}>
-        <div className="flex justify-center gap-4 mb-4 text-xs" style={{ color: '#5a7aaa' }}>
+      <footer className="text-center py-8 px-4" style={{ borderTop: '1px solid rgba(59,111,212,0.1)', background: '#020810' }}>
+        <div className="flex justify-center gap-4 mb-4 text-xs" style={{ color: '#6a8bbd' }}>
           <button onClick={() => router.push('/privacidade')} className="hover:text-blue-400 transition-colors">
             {lang === 'pt' ? 'Privacidade' : lang === 'en' ? 'Privacy' : 'Privacidad'}
           </button>
@@ -1190,7 +1099,7 @@ export default function LandingPage() {
           <span>·</span>
           <button onClick={() => router.push('/login')} className="hover:text-blue-400 transition-colors">{t.login}</button>
         </div>
-        <p className="text-xs" style={{ color: '#3a5a8a' }}>{t.footer}</p>
+        <p className="text-xs" style={{ color: '#5a7aaa' }}>{t.footer}</p>
       </footer>
 
       <style jsx global>{`
@@ -1201,15 +1110,12 @@ export default function LandingPage() {
         .ax-root h1, .ax-root h2, .ax-root h3 { font-family: 'Sora', 'Inter', sans-serif; line-height: 1.18; padding-bottom: 0.12em; }
         .ax-eyebrow { font-family: 'Sora', sans-serif; }
 
-        /* Efeito 3D leve nos cards (perspectiva no hover) */
         .ax-tilt { transition: transform 0.45s cubic-bezier(0.22,1,0.36,1), box-shadow 0.45s ease; transform-style: preserve-3d; }
         .ax-tilt:hover { transform: perspective(900px) translateY(-8px) rotateX(4deg) rotateY(-4deg) scale(1.02); }
 
-        /* Brilho ambiente nos frames de vídeo no hover */
         .ax-video-frame { transition: transform 0.5s cubic-bezier(0.22,1,0.36,1), box-shadow 0.5s ease; }
         .ax-video-frame:hover { transform: translateY(-6px) scale(1.01); }
 
-        /* Copy neon ciano com brilho percorrendo (motion designer) */
         .ax-neon {
           color: #00E5FF;
           background: linear-gradient(100deg, #00E5FF 20%, #ffffff 50%, #00E5FF 80%);
@@ -1222,16 +1128,13 @@ export default function LandingPage() {
         }
         @keyframes neon-sheen { from { background-position: 200% center; } to { background-position: -200% center; } }
 
-        /* Fade-in elegante quando o vídeo carrega (lazy-load) */
         .ax-fade-video { animation: ax-video-in 1.1s ease-out both; }
         @keyframes ax-video-in { from { opacity: 0; } to { opacity: 1; } }
 
-        @keyframes particle-float { from { transform: translateY(0) translateX(0); opacity: 0.3; } to { transform: translateY(-30px) translateX(15px); opacity: 0.8; } }
-        @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes bgword-drift { from { transform: translateY(0) rotate(-5deg); } to { transform: translateY(-18px) rotate(-5deg); } }
         @keyframes pulse-aura { from { opacity: 0.5; transform: scale(1); } to { opacity: 0.9; transform: scale(1.08); } }
-        @keyframes orbit-rotate { from { transform: translate(-50%, -50%) rotate(0deg) translateY(-120px) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg) translateY(-120px) rotate(-360deg); } }
-        @keyframes word-float { from { transform: translate(calc(-50% + 0px), calc(-50% + 0px)) scale(1); } to { transform: translate(calc(-50% + 10px), calc(-50% - 10px)) scale(1.08); } }
-        @keyframes rocket-pulse { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.05) translateY(-5px); } }
+        @keyframes logo-float { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+        @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         @media (prefers-reduced-motion: reduce) {
           * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
