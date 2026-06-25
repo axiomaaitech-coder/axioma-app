@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
-import { Check, X, Zap, Crown, Building2, Loader2 } from 'lucide-react'
+import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const supabase = createBrowserClient(
@@ -19,14 +19,14 @@ function CanvasEpico() {
     let animId: number
     const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
     resize(); window.addEventListener('resize', resize)
-    const particles = Array.from({ length: 80 }, () => ({
+    const particles = Array.from({ length: 70 }, () => ({
       x: Math.random() * canvas.width, y: Math.random() * canvas.height,
       vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
       size: Math.random() * 2.5 + 0.5,
       color: ['#6ab0ff', '#34d399', '#a78bfa', '#f59e0b', '#f472b6', '#fbbf24'][Math.floor(Math.random() * 6)],
       opacity: Math.random() * 0.7 + 0.2,
     }))
-    const chars = 'AXIOMA AI TECH R$ 29 97 197 % STARTER PRO BUSINESS 0 1 2 3 4 5 6 7 8 9'.split(' ').map(char => ({
+    const chars = 'AXIOMA AI TECH R$ 47 97 197 297 % STARTER PRO BUSINESS ENTERPRISE 0 1 2 3 4 5 6 7 8 9'.split(' ').map(char => ({
       char, x: Math.random() * 100, y: Math.random() * 100,
       size: Math.random() * 32 + 16, opacity: Math.random() * 0.05 + 0.015,
       speed: Math.random() * 0.2 + 0.06,
@@ -67,123 +67,97 @@ function CanvasEpico() {
 export default function Planos() {
   const router = useRouter()
   const { idioma } = useLanguage()
-  const [anual, setAnual] = useState(false)
   const [hover, setHover] = useState<string | null>(null)
   const [loadingPlano, setLoadingPlano] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
   const txt = {
     pt: {
-      titulo: 'Escolha seu Plano', sub: 'Comece agora e escale conforme seu negócio cresce',
-      mensal: 'Mensal', anual: 'Anual', gratis: '🎉 2 meses grátis',
-      usuarios: 'usuário(s)', ate: 'até', assinar: 'Assinar agora',
-      popular: '⭐ Mais Popular', recomendado: '👑 Mais Completo',
+      titulo: 'Escolha seu Plano', sub: 'Comece agora com 14 dias grátis em qualquer plano',
+      usuarios: 'usuário(s)', ate: 'até', assinar: 'Começar agora',
+      popular: '⭐ Mais Popular', mes: '/mês', trial: '14 dias grátis',
       cancelar: 'Cancele quando quiser. Sem fidelidade.',
-      economia: 'Economia de', processando: 'Processando...',
+      processando: 'Processando...',
       erroLogin: 'Faça login para assinar um plano.',
       erroGeral: 'Erro ao processar pagamento. Tente novamente.',
     },
     en: {
-      titulo: 'Choose Your Plan', sub: 'Start now and scale as your business grows',
-      mensal: 'Monthly', anual: 'Annual', gratis: '🎉 2 months free',
-      usuarios: 'user(s)', ate: 'up to', assinar: 'Subscribe now',
-      popular: '⭐ Most Popular', recomendado: '👑 Most Complete',
+      titulo: 'Choose Your Plan', sub: 'Start now with a 14-day free trial on any plan',
+      usuarios: 'user(s)', ate: 'up to', assinar: 'Start now',
+      popular: '⭐ Most Popular', mes: '/mo', trial: '14-day free trial',
       cancelar: 'Cancel anytime. No commitment.',
-      economia: 'Save', processando: 'Processing...',
+      processando: 'Processing...',
       erroLogin: 'Please login to subscribe.',
       erroGeral: 'Payment error. Please try again.',
     },
     es: {
-      titulo: 'Elige tu Plan', sub: 'Empieza ahora y escala según crece tu negocio',
-      mensal: 'Mensual', anual: 'Anual', gratis: '🎉 2 meses gratis',
-      usuarios: 'usuario(s)', ate: 'hasta', assinar: 'Suscribirse',
-      popular: '⭐ Más Popular', recomendado: '👑 Más Completo',
+      titulo: 'Elige tu Plan', sub: 'Empieza ahora con 14 días gratis en cualquier plan',
+      usuarios: 'usuario(s)', ate: 'hasta', assinar: 'Empezar ahora',
+      popular: '⭐ Más Popular', mes: '/mes', trial: '14 días gratis',
       cancelar: 'Cancela cuando quieras. Sin fidelidad.',
-      economia: 'Ahorro de', processando: 'Procesando...',
+      processando: 'Procesando...',
       erroLogin: 'Inicia sesión para suscribirte.',
       erroGeral: 'Error de pago. Inténtalo de nuevo.',
     },
   }[idioma]
 
-  const rec = {
+  const feats = {
     pt: {
-      receitas: 'Receitas', custoFixo: 'Custos Fixos', custoVar: 'Custos Variáveis',
-      fornecedores: 'Fornecedores', endividamento: 'Endividamento', fluxo: 'Fluxo de Caixa',
-      dre: 'DRE', clientes: 'Clientes', centros: 'Centros de Custo',
-      importar: 'Importar Documentos', empresa: 'Empresa', relatorios: 'Relatórios',
-      iaFin: 'IA Financeira', iaTrib: 'IA Tributária', mei: 'Módulo MEI Completo',
+      starter: ['23 módulos completos', 'Módulo MEI exclusivo', 'Dashboard com KPIs', 'Exportar PDF', 'Suporte por email'],
+      pro: ['Tudo do Starter', 'IA Financeira Premium', 'Multi-idioma PT/EN/ES', 'Relatórios avançados', 'Open Finance'],
+      business: ['Tudo do Pro', 'IA Tributária Premium', 'IA MEI Advisor', 'Centros de Custo', 'Suporte prioritário'],
+      enterprise: ['Tudo do Business', 'ClowdBot autônomo', 'Multi-empresas', 'API dedicada', 'Suporte VIP 24/7'],
     },
     en: {
-      receitas: 'Revenue', custoFixo: 'Fixed Costs', custoVar: 'Variable Costs',
-      fornecedores: 'Suppliers', endividamento: 'Debt Control', fluxo: 'Cash Flow',
-      dre: 'Income Statement', clientes: 'Clients', centros: 'Cost Centers',
-      importar: 'Import Documents', empresa: 'Company', relatorios: 'Reports',
-      iaFin: 'Financial AI', iaTrib: 'Tax AI', mei: 'Complete MEI Module',
+      starter: ['23 complete modules', 'Exclusive MEI module', 'Dashboard with KPIs', 'PDF export', 'Email support'],
+      pro: ['Everything in Starter', 'Financial AI Premium', 'Multi-language PT/EN/ES', 'Advanced reports', 'Open Finance'],
+      business: ['Everything in Pro', 'Tax AI Premium', 'MEI AI Advisor', 'Cost Centers', 'Priority support'],
+      enterprise: ['Everything in Business', 'Autonomous ClowdBot', 'Multi-company', 'Dedicated API', '24/7 VIP support'],
     },
     es: {
-      receitas: 'Ingresos', custoFixo: 'Costos Fijos', custoVar: 'Costos Variables',
-      fornecedores: 'Proveedores', endividamento: 'Endeudamiento', fluxo: 'Flujo de Caja',
-      dre: 'Estado de Resultados', clientes: 'Clientes', centros: 'Centros de Costo',
-      importar: 'Importar Documentos', empresa: 'Empresa', relatorios: 'Informes',
-      iaFin: 'IA Financiera', iaTrib: 'IA Tributaria', mei: 'Módulo MEI Completo',
+      starter: ['23 módulos completos', 'Módulo MEI exclusivo', 'Panel con KPIs', 'Exportar PDF', 'Soporte por email'],
+      pro: ['Todo de Starter', 'IA Financiera Premium', 'Multi-idioma PT/EN/ES', 'Informes avanzados', 'Open Finance'],
+      business: ['Todo de Pro', 'IA Tributaria Premium', 'IA MEI Advisor', 'Centros de Costo', 'Soporte prioritario'],
+      enterprise: ['Todo de Business', 'ClowdBot autónomo', 'Multi-empresas', 'API dedicada', 'Soporte VIP 24/7'],
     },
   }[idioma]
 
   const planos = [
     {
       id: 'starter', nome: 'Starter', Icon: Zap,
-      mensal: 29, anual: 290, usuarios: 1,
+      mensal: 47, usuarios: 1,
       cor: '#6ab0ff', corGrad: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)',
-      destaque: false, badge: null,
-      desc: idioma === 'pt' ? 'Perfeito para MEI começar' : idioma === 'en' ? 'Perfect for MEI to start' : 'Perfecto para MEI empezar',
-      recursos: [
-        { label: rec.mei, ok: true }, { label: rec.receitas, ok: true },
-        { label: rec.custoFixo, ok: true }, { label: rec.custoVar, ok: true },
-        { label: rec.fornecedores, ok: true }, { label: rec.endividamento, ok: true },
-        { label: rec.fluxo, ok: true }, { label: rec.dre, ok: true },
-        { label: rec.clientes, ok: true }, { label: rec.centros, ok: true },
-        { label: rec.importar, ok: true }, { label: rec.empresa, ok: true },
-        { label: rec.relatorios, ok: true }, { label: rec.iaFin, ok: false },
-        { label: rec.iaTrib, ok: false },
-      ]
+      destaque: false, badge: null, ia: false,
+      desc: idioma === 'pt' ? 'Para MEI e autônomos' : idioma === 'en' ? 'For MEI and freelancers' : 'Para MEI y autónomos',
+      recursos: feats.starter,
     },
     {
-      id: 'pro', nome: 'Pró', Icon: Crown,
-      mensal: 97, anual: 970, usuarios: 4,
+      id: 'pro', nome: 'Pro', Icon: Crown,
+      mensal: 97, usuarios: 2,
       cor: '#f59e0b', corGrad: 'linear-gradient(135deg, #92400e, #f59e0b)',
-      destaque: true, badge: txt.popular,
-      desc: idioma === 'pt' ? 'Para empresas em crescimento' : idioma === 'en' ? 'For growing businesses' : 'Para empresas en crecimiento',
-      recursos: [
-        { label: rec.mei, ok: true }, { label: rec.receitas, ok: true },
-        { label: rec.custoFixo, ok: true }, { label: rec.custoVar, ok: true },
-        { label: rec.fornecedores, ok: true }, { label: rec.endividamento, ok: true },
-        { label: rec.fluxo, ok: true }, { label: rec.dre, ok: true },
-        { label: rec.clientes, ok: true }, { label: rec.centros, ok: true },
-        { label: rec.importar, ok: true }, { label: rec.empresa, ok: true },
-        { label: rec.relatorios, ok: true }, { label: rec.iaFin, ok: true },
-        { label: rec.iaTrib, ok: false },
-      ]
+      destaque: false, badge: null, ia: true,
+      desc: idioma === 'pt' ? 'Para profissionais' : idioma === 'en' ? 'For professionals' : 'Para profesionales',
+      recursos: feats.pro,
     },
     {
       id: 'business', nome: 'Business', Icon: Building2,
-      mensal: 197, anual: 1970, usuarios: 10,
+      mensal: 197, usuarios: 5,
       cor: '#34d399', corGrad: 'linear-gradient(135deg, #064e3b, #059669)',
-      destaque: false, badge: txt.recomendado,
-      desc: idioma === 'pt' ? 'Tudo incluso, sem limites' : idioma === 'en' ? 'Everything included, no limits' : 'Todo incluido, sin límites',
-      recursos: [
-        { label: rec.mei, ok: true }, { label: rec.receitas, ok: true },
-        { label: rec.custoFixo, ok: true }, { label: rec.custoVar, ok: true },
-        { label: rec.fornecedores, ok: true }, { label: rec.endividamento, ok: true },
-        { label: rec.fluxo, ok: true }, { label: rec.dre, ok: true },
-        { label: rec.clientes, ok: true }, { label: rec.centros, ok: true },
-        { label: rec.importar, ok: true }, { label: rec.empresa, ok: true },
-        { label: rec.relatorios, ok: true }, { label: rec.iaFin, ok: true },
-        { label: rec.iaTrib, ok: true },
-      ]
+      destaque: true, badge: txt.popular, ia: true,
+      desc: idioma === 'pt' ? 'Para empresas em crescimento' : idioma === 'en' ? 'For growing businesses' : 'Para empresas en crecimiento',
+      recursos: feats.business,
+    },
+    {
+      id: 'enterprise', nome: 'Enterprise', Icon: Rocket,
+      mensal: 297, usuarios: 10,
+      cor: '#a78bfa', corGrad: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
+      destaque: false, badge: null, ia: true,
+      desc: idioma === 'pt' ? 'Solução sem limites' : idioma === 'en' ? 'Solution without limits' : 'Solución sin límites',
+      recursos: feats.enterprise,
     },
   ]
 
-  // ✅ Função de checkout com Stripe
+  // ✅ Função de checkout com Stripe (trial 14 dias + cupom automático no backend)
   async function assinar(planoId: string) {
     setLoadingPlano(planoId)
     setErro(null)
@@ -246,33 +220,9 @@ export default function Planos() {
           </motion.h1>
 
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            className="text-sm md:text-base text-center mb-8 max-w-md" style={{ color: '#3a6090' }}>
+            className="text-sm md:text-base text-center mb-4 max-w-md" style={{ color: '#6a8bbd' }}>
             {txt.sub}
           </motion.p>
-
-          {/* Toggle */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            className="flex items-center gap-4 p-2 rounded-2xl"
-            style={{ background: 'rgba(10,22,40,0.8)', border: '1px solid rgba(59,111,212,0.2)' }}>
-            <span className="text-sm font-semibold px-3" style={{ color: anual ? '#3a6090' : '#c8d8f0' }}>{txt.mensal}</span>
-            <motion.div className="w-14 h-7 rounded-full cursor-pointer relative"
-              style={{ background: anual ? 'rgba(52,211,153,0.3)' : 'rgba(59,111,212,0.2)', border: `1px solid ${anual ? 'rgba(52,211,153,0.5)' : 'rgba(59,111,212,0.3)'}`, boxShadow: anual ? '0 0 15px rgba(52,211,153,0.3)' : 'none' }}
-              onClick={() => setAnual(!anual)}>
-              <motion.div animate={{ left: anual ? '26px' : '2px' }} transition={{ duration: 0.25 }}
-                className="absolute top-1 w-5 h-5 rounded-full"
-                style={{ background: anual ? '#34d399' : '#6ab0ff', boxShadow: `0 0 10px ${anual ? '#34d399' : '#6ab0ff'}` }} />
-            </motion.div>
-            <span className="text-sm font-semibold px-3" style={{ color: anual ? '#c8d8f0' : '#3a6090' }}>{txt.anual}</span>
-            <AnimatePresence>
-              {anual && (
-                <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
-                  className="text-xs px-3 py-1 rounded-full font-bold"
-                  style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-                  {txt.gratis}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </motion.div>
 
           {/* Erro */}
           <AnimatePresence>
@@ -287,43 +237,35 @@ export default function Planos() {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-7xl mx-auto items-stretch">
           {planos.map((plano, idx) => {
             const isHover = hover === plano.id
-            const preco = anual ? Math.round(plano.anual / 12) : plano.mensal
-            const economia = anual ? plano.mensal * 2 : 0
             const carregando = loadingPlano === plano.id
             return (
               <motion.div key={plano.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.15 }}
+                transition={{ delay: idx * 0.12 }}
                 onHoverStart={() => setHover(plano.id)} onHoverEnd={() => setHover(null)}
                 className="relative rounded-3xl overflow-hidden flex flex-col"
                 style={{
                   background: 'rgba(4,10,22,0.97)',
-                  border: `1px solid ${plano.cor}${plano.destaque ? '60' : '30'}`,
-                  boxShadow: isHover || plano.destaque ? `0 0 80px ${plano.cor}25, 0 0 40px ${plano.cor}10` : 'none',
-                  transform: plano.destaque ? 'scale(1.03)' : 'scale(1)',
+                  border: `1px solid ${plano.cor}${plano.destaque ? '70' : '30'}`,
+                  boxShadow: isHover || plano.destaque ? `0 0 60px ${plano.cor}22, 0 0 30px ${plano.cor}10` : 'none',
                 }}>
                 <CanvasEpico />
 
                 {[
-                  { pos: 'top-0 left-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
-                  { pos: 'top-0 left-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
-                  { pos: 'top-0 right-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
-                  { pos: 'top-0 right-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 left-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 left-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 right-0', w: 'w-24 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 right-0', w: 'w-[2.5px] h-24', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 left-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 left-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 right-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
+                  { pos: 'top-0 right-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 left-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 left-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 right-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
+                  { pos: 'bottom-0 right-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
                 ].map((b, i) => (
                   <div key={i} className={`absolute ${b.pos} ${b.w} z-10`}
                     style={{ background: b.bg, boxShadow: `0 0 16px ${plano.cor}`, borderRadius: '999px' }} />
                 ))}
-
-                <motion.div animate={{ left: ['-5%', '105%', '-5%'] }}
-                  transition={{ duration: 4 + idx, repeat: Infinity, ease: 'easeInOut', delay: idx * 0.8 }}
-                  className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-                  style={{ background: `linear-gradient(90deg, transparent, #fff, ${plano.cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${plano.cor}`, borderRadius: '999px' }} />
 
                 {plano.badge && (
                   <div className="relative z-10 flex justify-center pt-4">
@@ -335,7 +277,7 @@ export default function Planos() {
                   </div>
                 )}
 
-                <div className="relative z-10 p-6 md:p-8 flex flex-col flex-1">
+                <div className="relative z-10 p-5 md:p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 4, repeat: Infinity, delay: idx * 0.5 }}
                       className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
@@ -344,47 +286,38 @@ export default function Planos() {
                     <h2 className="text-2xl font-black" style={{ color: plano.cor, textShadow: `0 0 20px ${plano.cor}60` }}>{plano.nome}</h2>
                   </div>
 
-                  <p className="text-xs mb-6" style={{ color: '#3a6090' }}>{plano.desc}</p>
+                  <p className="text-xs mb-5" style={{ color: '#6a8bbd' }}>{plano.desc}</p>
 
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <div className="flex items-end gap-2">
-                      <motion.span key={preco} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                        className="text-5xl md:text-6xl font-black"
+                      <span className="text-4xl md:text-5xl font-black"
                         style={{ color: '#c8d8f0', textShadow: `0 0 30px ${plano.cor}40` }}>
-                        R$ {preco}
-                      </motion.span>
-                      <span className="text-sm mb-2" style={{ color: '#3a6090' }}>
-                        {idioma === 'pt' ? '/mês' : idioma === 'en' ? '/mo' : '/mes'}
+                        R$ {plano.mensal}
                       </span>
+                      <span className="text-sm mb-2" style={{ color: '#6a8bbd' }}>{txt.mes}</span>
                     </div>
-                    <AnimatePresence>
-                      {anual && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                          <p className="text-xs mt-1" style={{ color: '#34d399' }}>
-                            R$ {plano.anual}{idioma === 'pt' ? '/ano' : '/year'} • {txt.economia} R$ {economia}
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    <p className="text-xs mt-2" style={{ color: '#3a6090' }}>
+                    <p className="text-xs mt-2" style={{ color: '#6a8bbd' }}>
                       {txt.ate} {plano.usuarios} {txt.usuarios}
                     </p>
                   </div>
 
-                  <div className="flex-1 space-y-2.5 mb-8">
-                    {plano.recursos.map((r, i) => (
-                      <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.1 + i * 0.03 }}
-                        className="flex items-center gap-3">
-                        <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center"
-                          style={{ background: r.ok ? `${plano.cor}20` : 'rgba(248,113,113,0.1)' }}>
-                          {r.ok ? <Check size={12} style={{ color: plano.cor }} /> : <X size={12} style={{ color: '#f87171' }} />}
+                  {/* Selo trial */}
+                  <div className="flex justify-start mb-4">
+                    <span className="text-xs px-2.5 py-1 rounded-full font-bold"
+                      style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+                      ✨ {txt.trial}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 space-y-2.5 mb-6">
+                    {plano.recursos.map((label, i) => (
+                      <div key={i} className="flex items-start gap-2.5">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5"
+                          style={{ background: `${plano.cor}20` }}>
+                          <Check size={12} style={{ color: plano.cor }} />
                         </div>
-                        <span className="text-sm" style={{ color: r.ok ? '#c8d8f0' : '#3a6090' }}>{r.label}</span>
-                        {!r.ok && (r.label.includes('IA') || r.label.includes('AI')) && (
-                          <span className="text-xs ml-auto" style={{ color: '#f87171' }}>🔒</span>
-                        )}
-                      </motion.div>
+                        <span className="text-sm" style={{ color: '#c8d8f0' }}>{label}</span>
+                      </div>
                     ))}
                   </div>
 
@@ -394,7 +327,7 @@ export default function Planos() {
                     whileTap={{ scale: carregando ? 1 : 0.97 }}
                     onClick={() => assinar(plano.id)}
                     disabled={carregando || !!loadingPlano}
-                    className="w-full py-4 rounded-2xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 disabled:opacity-70"
+                    className="w-full py-3.5 rounded-2xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 disabled:opacity-70"
                     style={{ background: plano.corGrad, color: '#fff', boxShadow: `0 4px 30px ${plano.cor}30` }}>
                     {carregando ? (
                       <>
@@ -411,14 +344,14 @@ export default function Planos() {
 
         {/* Rodapé */}
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="text-center text-xs mt-12" style={{ color: '#3a6090' }}>
+          className="text-center text-xs mt-12" style={{ color: '#6a8bbd' }}>
           {txt.cancelar}
         </motion.p>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
           className="flex justify-center gap-6 mt-6 flex-wrap">
           {['🔒 SSL Seguro', '💳 Pagamento Seguro via Stripe', '⚡ Ativação Imediata', '🔄 Cancele Quando Quiser'].map((item, i) => (
-            <span key={i} className="text-xs" style={{ color: '#3a5a8a' }}>{item}</span>
+            <span key={i} className="text-xs" style={{ color: '#5a7aaa' }}>{item}</span>
           ))}
         </motion.div>
       </div>
