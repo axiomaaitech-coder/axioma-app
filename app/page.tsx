@@ -489,20 +489,62 @@ function MatrixBg() {
 }
 
 // ============================================================
+// FRAME RAIN — cascata de números/módulos DENTRO da moldura
+// (preenche as faixas laterais dos vídeos quadrados)
+// ============================================================
+function FrameRain({ cor = '#6ab0ff' }: { cor?: string }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = ref.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); if (!ctx) return
+    const parent = canvas.parentElement
+    let raf = 0
+    const resize = () => { if (!parent) return; canvas.width = parent.clientWidth; canvas.height = parent.clientHeight }
+    resize()
+    const tokens = ['AXIOMA', 'DRE', 'MEI', 'FLUXO', 'RECEITAS', 'CUSTOS', 'LUCRO', 'IA', 'METAS', 'IRPF', 'R$', '%', '∑', '∂']
+    const fontSize = 14
+    let cols = Math.max(1, Math.floor(canvas.width / fontSize))
+    let drops: number[] = Array(cols).fill(0).map(() => Math.random() * -40)
+    const draw = () => {
+      ctx.fillStyle = 'rgba(4,16,31,0.16)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.font = `${fontSize}px monospace`
+      for (let i = 0; i < cols; i++) {
+        const tok = Math.random() > 0.72 ? tokens[Math.floor(Math.random() * tokens.length)] : String(Math.floor(Math.random() * 10))
+        ctx.fillStyle = cor
+        ctx.globalAlpha = Math.random() * 0.5 + 0.12
+        ctx.fillText(tok, i * fontSize, drops[i] * fontSize)
+        ctx.globalAlpha = 1
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0
+        drops[i] += 0.5
+      }
+      raf = requestAnimationFrame(draw)
+    }
+    draw()
+    const ro = new ResizeObserver(() => { resize(); cols = Math.max(1, Math.floor(canvas.width / fontSize)); drops = Array(cols).fill(0).map(() => Math.random() * -40) })
+    if (parent) ro.observe(parent)
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
+  }, [cor])
+  return <canvas ref={ref} className="absolute inset-0 w-full h-full z-0 pointer-events-none" style={{ opacity: 0.55 }} />
+}
+
+// ============================================================
 // VIDEO FRAME — painel de vídeo premium (16:9, lazy-load)
 // ============================================================
 function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: string; cor?: string; className?: string; children?: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  const [mounted, setMounted] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [visible, setVisible] = useState(false)
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        setMounted(true)
+        setLoaded(true); setVisible(true)
         videoRef.current?.play().catch(() => {})
       } else {
+        setVisible(false)
         videoRef.current?.pause()
       }
     }, { threshold: 0.15 })
@@ -517,20 +559,19 @@ function VideoFrame({ src, cor = '#6ab0ff', className = '', children }: { src: s
         background: 'radial-gradient(ellipse at center, #06121f, #020810)',
         boxShadow: `0 30px 80px -30px ${cor}66, 0 0 0 1px rgba(255,255,255,0.04) inset`,
       }}>
-      {mounted && (
+      {visible && <FrameRain cor={cor} />}
+      {loaded && (
         <video ref={videoRef} autoPlay loop muted playsInline preload="auto"
           controlsList="nodownload nofullscreen noremoteplayback"
           disablePictureInPicture
           disableRemotePlayback
           className="absolute inset-0 w-full h-full object-contain ax-fade-video"
-          style={{ filter: 'brightness(1.05) contrast(1.06) saturate(1.14)' }}>
+          style={{ zIndex: 1, filter: 'brightness(1.05) contrast(1.06) saturate(1.14)' }}>
           <source src={src} type="video/mp4" />
         </video>
       )}
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 55%, rgba(2,8,16,0.4) 100%)' }} />
-      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${cor}, transparent)`, boxShadow: `0 0 16px ${cor}` }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 2, background: 'radial-gradient(ellipse at center, transparent 60%, rgba(2,8,16,0.35) 100%)' }} />
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ zIndex: 3, background: `linear-gradient(90deg, transparent, ${cor}, transparent)`, boxShadow: `0 0 16px ${cor}` }} />
       {children}
     </div>
   )
@@ -593,6 +634,7 @@ function HeroVideos() {
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ background: '#020810' }}>
+      <FrameRain cor="#00E5FF" />
       {Array.from({ length: TOTAL }).map((_, i) => (
         <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline
           preload={i === current || i === (current + 1) % TOTAL ? 'auto' : 'none'}
@@ -601,15 +643,15 @@ function HeroVideos() {
           disableRemotePlayback
           onEnded={() => handleVideoEnd(i)}
           className="absolute inset-0 w-full h-full object-contain transition-opacity duration-1000"
-          style={{ opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
+          style={{ zIndex: 1, opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
           <source src={`/videos/hero-${i + 1}.mp4`} type="video/mp4" />
         </video>
       ))}
 
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,8,16,0.35) 85%, rgba(2,8,16,0.7) 100%)' }} />
+        style={{ zIndex: 2, background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,8,16,0.35) 85%, rgba(2,8,16,0.7) 100%)' }} />
       <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
-        style={{ background: 'linear-gradient(to top, rgba(2,8,16,0.85), transparent)' }} />
+        style={{ zIndex: 2, background: 'linear-gradient(to top, rgba(2,8,16,0.85), transparent)' }} />
 
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
         {Array.from({ length: TOTAL }).map((_, i) => (
