@@ -94,6 +94,7 @@ export default function Fornecedores() {
   const [editandoForn, setEditandoForn] = useState<Fornecedor | null>(null);
   const [nf, setNf] = useState({ ...fornVazio });
   const [salvandoForn, setSalvandoForn] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   // Modal Conta
   const [modalConta, setModalConta] = useState(false);
@@ -136,6 +137,27 @@ export default function Fornecedores() {
   };
 
   const fecharModalForn = () => { setModalForn(false); setEditandoForn(null); setNf({ ...fornVazio }); };
+
+  // Busca endereço automático pelo CEP (ViaCEP — gratuito, sem chave)
+  const buscarCep = async (cepDigitado: string) => {
+    const cepLimpo = cepDigitado.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const resp = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await resp.json();
+      if (!data.erro) {
+        setNf((prev) => ({
+          ...prev,
+          endereco: data.logradouro || prev.endereco,
+          bairro: data.bairro || prev.bairro,
+          cidade: data.localidade || prev.cidade,
+          uf: data.uf || prev.uf,
+        }));
+      }
+    } catch (err) { console.error("Erro ao buscar CEP:", err); }
+    setBuscandoCep(false);
+  };
 
   const salvarForn = async () => {
     if (!nf.nome) return;
@@ -616,7 +638,19 @@ export default function Fornecedores() {
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "#a78bfa" }}>{idioma === "pt" ? "Endereço" : "Address"}</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div><label className={labelInput} style={{ color: "#5a8fd4" }}>CEP</label><input value={nf.cep} onChange={(e) => setNf({ ...nf, cep: e.target.value })} className={inputCls} style={inputStyle} /></div>
+                      <div>
+                        <label className={labelInput} style={{ color: "#5a8fd4" }}>
+                          CEP {buscandoCep && <span style={{ color: "#34d399", textTransform: "none", letterSpacing: 0 }}>· {idioma === "pt" ? "buscando..." : "searching..."}</span>}
+                        </label>
+                        <input value={nf.cep}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setNf({ ...nf, cep: v });
+                            if (v.replace(/\D/g, "").length === 8) buscarCep(v);
+                          }}
+                          placeholder="00000-000"
+                          className={inputCls} style={inputStyle} />
+                      </div>
                       <div className="col-span-2"><label className={labelInput} style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Endereço" : "Street"}</label><input value={nf.endereco} onChange={(e) => setNf({ ...nf, endereco: e.target.value })} className={inputCls} style={inputStyle} /></div>
                       <div><label className={labelInput} style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Nº" : "No."}</label><input value={nf.numero} onChange={(e) => setNf({ ...nf, numero: e.target.value })} className={inputCls} style={inputStyle} /></div>
                       <div><label className={labelInput} style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Bairro" : "District"}</label><input value={nf.bairro} onChange={(e) => setNf({ ...nf, bairro: e.target.value })} className={inputCls} style={inputStyle} /></div>
