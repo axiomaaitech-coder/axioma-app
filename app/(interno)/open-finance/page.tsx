@@ -11,6 +11,10 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// ⚠️ TESTE: deixe true para testar com o "banco sandbox" do Pluggy (sem banco real).
+// Antes de ir para produção (clientes pagantes), troque para false.
+const INCLUIR_SANDBOX = true
+
 const textos = {
   pt: {
     titulo: 'Open Finance', sub: 'Conecte sua conta bancária e importe extratos automaticamente',
@@ -20,7 +24,8 @@ const textos = {
     semConexao: 'Nenhum banco conectado ainda', semTransacoes: 'Nenhuma transação importada ainda',
     conecteSeu: 'Conecte sua conta bancária para importar transações automaticamente',
     carregando: 'Carregando...', sucesso: 'Banco conectado com sucesso!', erro: 'Erro ao conectar banco',
-    bancos: 'Bancos Suportados',
+    bancos: 'Bancos Suportados', sincronizar: 'Sincronizar', sincronizando: 'Sincronizando...',
+    importadas: 'transações importadas', tipo: 'Tipo',
   },
   en: {
     titulo: 'Open Finance', sub: 'Connect your bank account and import statements automatically',
@@ -30,7 +35,8 @@ const textos = {
     semConexao: 'No bank connected yet', semTransacoes: 'No transactions imported yet',
     conecteSeu: 'Connect your bank account to import transactions automatically',
     carregando: 'Loading...', sucesso: 'Bank connected successfully!', erro: 'Error connecting bank',
-    bancos: 'Supported Banks',
+    bancos: 'Supported Banks', sincronizar: 'Sync', sincronizando: 'Syncing...',
+    importadas: 'transactions imported', tipo: 'Type',
   },
   es: {
     titulo: 'Open Finance', sub: 'Conecta tu cuenta bancaria e importa extractos automáticamente',
@@ -40,7 +46,8 @@ const textos = {
     semConexao: 'Ningún banco conectado aún', semTransacoes: 'Ninguna transacción importada aún',
     conecteSeu: 'Conecta tu cuenta bancaria para importar transacciones automáticamente',
     carregando: 'Cargando...', sucesso: '¡Banco conectado con éxito!', erro: 'Error al conectar banco',
-    bancos: 'Bancos Soportados',
+    bancos: 'Bancos Soportados', sincronizar: 'Sincronizar', sincronizando: 'Sincronizando...',
+    importadas: 'transacciones importadas', tipo: 'Tipo',
   }
 }
 
@@ -60,6 +67,34 @@ const BANCOS_SUPORTADOS = [
   { nome: 'Banrisul', cor: '#60a5fa', emoji: '🔵' },
   { nome: 'Safra', cor: '#cbd5e1', emoji: '⚪' },
 ]
+
+// ============================================================
+// CARREGADOR ROBUSTO DO SDK PLUGGY
+// Garante que o widget esteja pronto ANTES de abrir (corrige o "não conecta")
+// ============================================================
+function carregarPluggySDK(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') return reject(new Error('Sem janela'))
+    if (typeof (window as any).PluggyConnect !== 'undefined') return resolve()
+
+    const existente = document.querySelector('script[data-pluggy="1"]') as HTMLScriptElement | null
+    if (existente) {
+      existente.addEventListener('load', () => resolve())
+      existente.addEventListener('error', () => reject(new Error('Falha ao carregar o Pluggy')))
+      // Caso já tenha carregado mas o listener não pegue:
+      if (typeof (window as any).PluggyConnect !== 'undefined') resolve()
+      return
+    }
+
+    const s = document.createElement('script')
+    s.src = 'https://cdn.pluggy.ai/pluggy-connect/latest/pluggy-connect.js'
+    s.async = true
+    s.setAttribute('data-pluggy', '1')
+    s.onload = () => resolve()
+    s.onerror = () => reject(new Error('Falha ao carregar o Pluggy'))
+    document.body.appendChild(s)
+  })
+}
 
 // ============================================================
 // CANVAS NEURAL — igual ao padrão dos outros módulos
@@ -159,17 +194,20 @@ export default function OpenFinancePage() {
   const [transacoes, setTransacoes] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [conectando, setConectando] = useState(false)
+  const [sincronizando, setSincronizando] = useState(false)
   const [mensagem, setMensagem] = useState('')
   const [tipoMsg, setTipoMsg] = useState<'sucesso' | 'erro' | ''>('')
 
   useEffect(() => {
     carregarDados()
-    const script = document.createElement('script')
-    script.src = 'https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js'
-    script.async = true
-    document.body.appendChild(script)
-    return () => { if (document.body.contains(script)) document.body.removeChild(script) }
+    // Pré-carrega o SDK do Pluggy assim que a tela abre (não trava se falhar)
+    carregarPluggySDK().catch(() => {})
   }, [])
+
+  function avisar(tipo: 'sucesso' | 'erro', msg: string, ms = 5000) {
+    setTipoMsg(tipo); setMensagem(msg)
+    setTimeout(() => setMensagem(''), ms)
+  }
 
   async function carregarDados() {
     setCarregando(true)
@@ -182,36 +220,69 @@ export default function OpenFinancePage() {
     setCarregando(false)
   }
 
+  // Puxa contas + transações do item recém-conectado (não depende do webhook)
+  async function sincronizar(itemId?: string) {
+    setSincronizando(true)
+    try {
+      const res = await fetch('/api/pluggy/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemId ? { itemId } : {}),
+      })
+      const dados = await res.json()
+      if (!res.ok || dados.error) throw new Error(dados.error || 'Erro ao sincronizar')
+      await carregarDados()
+      avisar('sucesso', `${dados.total ?? 0} ${t.importadas}`)
+    } catch (err: any) {
+      avisar('erro', err.message || t.erro)
+    } finally {
+      setSincronizando(false)
+    }
+  }
+
   async function abrirWidget() {
     setConectando(true)
     try {
+      // 1) Garante que o SDK do Pluggy está carregado
+      await carregarPluggySDK()
+
+      // 2) Pega o connect token do backend
       const res = await fetch('/api/pluggy/connect-token', { method: 'POST' })
       const { accessToken, error } = await res.json()
       if (error) throw new Error(error)
+      if (!accessToken) throw new Error('Token não recebido')
+
       const { data: { user } } = await supabase.auth.getUser()
-      // @ts-ignore
+      const PluggyConnect = (window as any).PluggyConnect
+      if (!PluggyConnect) throw new Error('Widget Pluggy não carregou')
+
+      // 3) Abre o widget
       const pluggyConnect = new PluggyConnect({
         connectToken: accessToken,
+        includeSandbox: INCLUIR_SANDBOX,
         onSuccess: async (itemData: any) => {
-          if (user) {
+          const itemId = itemData?.item?.id
+          if (user && itemId) {
             await supabase.from('open_finance').upsert({
-              user_id: user.id, item_id: itemData.item.id,
+              user_id: user.id, item_id: itemId,
               conector_nome: itemData.item.connector?.name || '',
               conector_tipo: itemData.item.connector?.type || '',
-              status: 'UPDATED',
+              status: itemData.item.status || 'UPDATED',
             }, { onConflict: 'item_id' })
           }
-          setTipoMsg('sucesso'); setMensagem(t.sucesso)
-          setTimeout(() => setMensagem(''), 4000)
-          carregarDados()
+          avisar('sucesso', t.sucesso)
+          await carregarDados()
+          // Puxa as transações desse banco logo em seguida
+          if (itemId) sincronizar(itemId)
         },
-        onError: () => { setTipoMsg('erro'); setMensagem(t.erro); setTimeout(() => setMensagem(''), 4000) },
+        onError: (err: any) => {
+          avisar('erro', (err && (err.message || err.code)) ? `${t.erro}: ${err.message || err.code}` : t.erro)
+        },
         onClose: () => setConectando(false),
       })
       pluggyConnect.init()
     } catch (err: any) {
-      setTipoMsg('erro'); setMensagem(err.message || t.erro)
-      setTimeout(() => setMensagem(''), 4000)
+      avisar('erro', err.message || t.erro)
       setConectando(false)
     }
   }
@@ -266,13 +337,24 @@ export default function OpenFinancePage() {
                 <p className="text-sm" style={{ color: '#3a6090' }}>{t.conecteSeu}</p>
               </div>
             </div>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              onClick={abrirWidget} disabled={conectando}
-              className="px-6 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
-              style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
-              {conectando ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
-              {conectando ? t.carregando : t.conectar}
-            </motion.button>
+            <div className="flex items-center gap-2">
+              {conexoes.length > 0 && (
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => sincronizar()} disabled={sincronizando}
+                  className="px-4 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
+                  style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.4)', color: '#34d399', opacity: sincronizando ? 0.7 : 1 }}>
+                  <RefreshCw size={16} className={sincronizando ? 'animate-spin' : ''} />
+                  {sincronizando ? t.sincronizando : t.sincronizar}
+                </motion.button>
+              )}
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                onClick={abrirWidget} disabled={conectando}
+                className="px-6 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
+                {conectando ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
+                {conectando ? t.carregando : t.conectar}
+              </motion.button>
+            </div>
           </div>
         </CanvasBox>
 
