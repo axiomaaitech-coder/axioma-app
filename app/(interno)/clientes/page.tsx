@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { CanvasBox } from "../../../components/CanvasBox";
+import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { Pencil, Trash2, X, Phone, Mail, MapPin, FileText, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -25,102 +25,9 @@ type Conta = {
   user_id: string; empresa_id: string; created_at: string;
 };
 
-function CanvasNeural({ id }: { id: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 30 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-      size: Math.random() * 1.5 + 0.3,
-      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.4 + 0.1,
-    }));
-    const chars = "AXIOMA CLIENTES AI TECH R$ 0 1 2 3 4 5 6 7 8 9 %".split(" ").map((c) => ({
-      char: c, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 22 + 10, opacity: Math.random() * 0.05 + 0.01,
-      speed: Math.random() * 0.2 + 0.05,
-      color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa"][Math.floor(Math.random() * 4)],
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`;
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 100) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 100) * 0.08;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.4;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
-          }
-        });
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 4;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      style={{ opacity: 0.7, display: "block" }}
-    />
-  );
-}
-
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6", canvasId = "cb" }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string; canvasId?: string;
-}) {
-  return (
-    <div className="relative rounded-2xl" style={{
-      background: "rgba(4,10,22,0.97)",
-      border: `1px solid ${cor}30`,
-      boxShadow: `0 0 40px ${cor}08`,
-      overflow: "hidden",
-      contain: "layout style paint",
-    }}>
-      <CanvasNeural id={canvasId} />
-      {[
-        { pos: "top-0 left-0", w: "w-16 h-[2px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2px] h-16", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-16 h-[2px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2px] h-16", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-16 h-[2px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-16 h-[2px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 10px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div
-        animate={{ left: ["-5%", "105%", "-5%"] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2px] w-16 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 12px ${cor}`, borderRadius: "999px" }}
-      />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
-    </div>
-  );
-}
-
 export default function ClientesPage() {
   const { t, idioma } = useLanguage();
   const cl = t.clientes;
-  const conteudoRef = useRef<HTMLDivElement>(null);
 
   const [aba, setAba] = useState<"clientes" | "contas">("clientes");
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -213,35 +120,67 @@ export default function ClientesPage() {
     setNomeCliente(""); setEmailCliente(""); setTelefoneCliente(""); setDocumentoCliente(""); setCidadeCliente("");
   }
 
+  // PDF preto e branco (relatório/auditoria) — exporta a aba ativa
   const exportarPDF = async () => {
-    if (!conteudoRef.current) return;
     setExportando(true);
     try {
-      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, "F");
-      pdf.setTextColor(106, 176, 255); pdf.setFontSize(14); pdf.setFont("helvetica", "bold");
-      pdf.text("AXIOMA AI.TECH", 14, 13);
-      pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`${cl.titulo} - ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-      let position = 22; let remaining = pdfHeight;
-      while (remaining > 0) {
-        const sliceHeight = Math.min(pageHeight - position, remaining);
-        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
-        const sourceH = sliceHeight * (canvas.height / pdfHeight);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width; sliceCanvas.height = sourceH;
-        const ctx = sliceCanvas.getContext("2d")!;
-        ctx.fillStyle = "#020810"; ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
-        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
-        remaining -= sliceHeight; position = 0;
-        if (remaining > 0) { pdf.addPage(); position = 0; }
+      const fmtN = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      if (aba === "clientes") {
+        gerarPdfTabela({
+          titulo: cl.titulo,
+          subtitulo: cl.subtitulo,
+          colunas: [
+            { header: "Nome", key: "nome", width: 3 },
+            { header: "E-mail", key: "email", width: 3 },
+            { header: "Telefone", key: "telefone", width: 2 },
+            { header: "Cidade", key: "cidade", width: 2 },
+            { header: "Status", key: "status", width: 2 },
+          ],
+          linhas: clientesFiltrados.map((c) => ({
+            nome: c.nome,
+            email: c.email || "-",
+            telefone: c.telefone || "-",
+            cidade: c.cidade || "-",
+            status: c.status === "ativo" ? cl.ativo : cl.inativo,
+          })),
+          resumo: [
+            { label: cl.totalClientes, valor: `${clientes.length}` },
+            { label: cl.totalReceber, valor: `R$ ${fmtN(totalReceber)}` },
+            { label: cl.totalRecebido, valor: `R$ ${fmtN(totalRecebido)}` },
+            { label: cl.totalVencido, valor: `R$ ${fmtN(totalVencido)}` },
+          ],
+          nomeArquivo: `axioma-clientes-${new Date().toISOString().slice(0, 10)}.pdf`,
+        });
+      } else {
+        gerarPdfTabela({
+          titulo: `${cl.titulo} - ${cl.abaContas}`,
+          subtitulo: clienteSelecionado ? clienteSelecionado.nome : cl.subtitulo,
+          colunas: [
+            { header: "Descrição", key: "descricao", width: 4 },
+            { header: "Cliente", key: "cliente", width: 3 },
+            { header: "Vencimento", key: "venc", width: 2 },
+            { header: "Status", key: "status", width: 2 },
+            { header: "Valor (R$)", key: "valor", width: 2, align: "right" },
+          ],
+          linhas: contasFiltradas.map((c) => {
+            const cliNome = clientes.find(x => x.id === c.cliente_id)?.nome || "-";
+            const st = c.status === "recebido" ? cl.recebido : (c.data_vencimento < hoje ? cl.vencido : cl.pendente);
+            return {
+              descricao: c.descricao,
+              cliente: cliNome,
+              venc: c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "-",
+              status: st,
+              valor: fmtN(c.valor),
+            };
+          }),
+          resumo: [
+            { label: cl.totalReceber, valor: `R$ ${fmtN(totalReceber)}` },
+            { label: cl.totalRecebido, valor: `R$ ${fmtN(totalRecebido)}` },
+            { label: cl.totalVencido, valor: `R$ ${fmtN(totalVencido)}` },
+          ],
+          nomeArquivo: `axioma-contas-receber-${new Date().toISOString().slice(0, 10)}.pdf`,
+        });
       }
-      pdf.save(`axioma-clientes-${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) { console.error(err); }
     setExportando(false);
   };
@@ -272,7 +211,7 @@ export default function ClientesPage() {
   }
 
   const botaoCobranca = (
-    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
       onClick={() => setModalConta(true)}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
       style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
@@ -285,7 +224,7 @@ export default function ClientesPage() {
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditandoCliente(null); setNomeCliente(""); setEmailCliente(""); setTelefoneCliente(""); setDocumentoCliente(""); setCidadeCliente(""); setModalCliente(true); }}
       labelBotao={cl.novoCliente} botaoExtra={botaoCobranca}>
-      <div ref={conteudoRef} className="space-y-4">
+      <div className="space-y-4">
 
         {/* Cards totais */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -295,10 +234,10 @@ export default function ClientesPage() {
             { label: cl.totalRecebido, valor: fmt(totalRecebido), cor: "#34d399" },
             { label: cl.totalVencido, valor: fmt(totalVencido), cor: "#f87171" },
           ].map((card, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <CanvasBox cor={card.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6" canvasId={`card-${i}`}>
-                <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
-                <p className="text-xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.valor}</p>
+            <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+              <CanvasBox cor={card.cor}>
+                <p className="text-xs mb-1" style={{ color: "#5a7a9a" }}>{card.label}</p>
+                <p className="text-xl font-black" style={{ color: card.cor }}>{card.valor}</p>
               </CanvasBox>
             </motion.div>
           ))}
@@ -310,7 +249,7 @@ export default function ClientesPage() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBuscaClientes(""); setBuscaContas(""); setClienteSelecionado(null); }}
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? "rgba(106,176,255,0.2)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}`, boxShadow: aba === a.key ? "0 0 12px rgba(106,176,255,0.2)" : "none" }}>
+              style={{ background: aba === a.key ? "rgba(106,176,255,0.2)" : "rgba(10,20,36,0.7)", color: aba === a.key ? "#6ab0ff" : "#5a7a9a", border: `1px solid ${aba === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}` }}>
               {a.label}
             </motion.button>
           ))}
@@ -319,7 +258,7 @@ export default function ClientesPage() {
         {/* ABA CLIENTES */}
         {aba === "clientes" && (
           <div className="space-y-3">
-            <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa" canvasId="busca-cl">
+            <CanvasBox cor="#3b6fd4">
               <input value={buscaClientes} onChange={(e) => setBuscaClientes(e.target.value)}
                 placeholder={cl.buscar}
                 className="w-full text-sm focus:outline-none bg-transparent py-1"
@@ -330,8 +269,8 @@ export default function ClientesPage() {
                 <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : clientesFiltrados.length === 0 ? (
-              <CanvasBox cor="#6ab0ff" canvasId="empty-cl">
-                <div className="p-8 text-center"><p style={{ color: "#3a5a8a" }}>{cl.semClientes}</p></div>
+              <CanvasBox cor="#6ab0ff">
+                <div className="p-8 text-center"><p style={{ color: "#5a7a9a" }}>{cl.semClientes}</p></div>
               </CanvasBox>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -341,14 +280,11 @@ export default function ClientesPage() {
                   const recebido = contasCliente.filter(c => c.status === "recebido").reduce((s, c) => s + c.valor, 0);
                   const vencido = contasCliente.filter(c => c.status === "pendente" && c.data_vencimento < hoje).reduce((s, c) => s + c.valor, 0);
                   return (
-                    <motion.div key={cliente.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                      <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6" canvasId={`cli-${cliente.id}`}>
-                        <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                          className="text-xs font-black tracking-[0.3em] uppercase mb-2"
-                          style={{ color: "#6ab0ff", textShadow: "0 0 15px #6ab0ff", fontSize: "8px" }}>AXIOMA AI.TECH</motion.p>
+                    <motion.div key={cliente.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                      <CanvasBox cor="#6ab0ff">
                         <div className="flex items-center gap-3 mb-3">
                           <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-black"
-                            style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff", boxShadow: "0 0 12px rgba(106,176,255,0.4)" }}>
+                            style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                             {cliente.nome.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -358,15 +294,15 @@ export default function ClientesPage() {
                             </span>
                           </div>
                           <div className="flex gap-2">
-                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCliente(cliente)} style={{ color: "#6ab0ff" }}><Pencil size={14} /></motion.button>
-                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCliente(cliente.id)} style={{ color: "#f87171" }}><Trash2 size={14} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCliente(cliente)} style={{ color: "#6ab0ff" }}><Pencil size={14} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCliente(cliente.id)} style={{ color: "#f87171" }}><Trash2 size={14} /></motion.button>
                           </div>
                         </div>
                         <div className="space-y-1 mb-3">
-                          {cliente.email && <div className="flex items-center gap-2"><Mail size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs truncate" style={{ color: "#3a5a8a" }}>{cliente.email}</p></div>}
-                          {cliente.telefone && <div className="flex items-center gap-2"><Phone size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.telefone}</p></div>}
-                          {cliente.cidade && <div className="flex items-center gap-2"><MapPin size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.cidade}</p></div>}
-                          {cliente.documento && <div className="flex items-center gap-2"><FileText size={11} style={{ color: "#3a5a8a" }} /><p className="text-xs" style={{ color: "#3a5a8a" }}>{cliente.documento}</p></div>}
+                          {cliente.email && <div className="flex items-center gap-2"><Mail size={11} style={{ color: "#5a7a9a" }} /><p className="text-xs truncate" style={{ color: "#5a7a9a" }}>{cliente.email}</p></div>}
+                          {cliente.telefone && <div className="flex items-center gap-2"><Phone size={11} style={{ color: "#5a7a9a" }} /><p className="text-xs" style={{ color: "#5a7a9a" }}>{cliente.telefone}</p></div>}
+                          {cliente.cidade && <div className="flex items-center gap-2"><MapPin size={11} style={{ color: "#5a7a9a" }} /><p className="text-xs" style={{ color: "#5a7a9a" }}>{cliente.cidade}</p></div>}
+                          {cliente.documento && <div className="flex items-center gap-2"><FileText size={11} style={{ color: "#5a7a9a" }} /><p className="text-xs" style={{ color: "#5a7a9a" }}>{cliente.documento}</p></div>}
                         </div>
                         {contasCliente.length > 0 && (
                           <div className="grid grid-cols-3 gap-2 mb-3">
@@ -377,7 +313,7 @@ export default function ClientesPage() {
                             ].map((stat, si) => (
                               <div key={si} className="rounded-xl p-2 text-center" style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}25` }}>
                                 <p className="text-xs font-black" style={{ color: stat.cor }}>{stat.val}</p>
-                                <p style={{ color: "#3a5a8a", fontSize: "9px" }}>{stat.label}</p>
+                                <p style={{ color: "#5a7a9a", fontSize: "9px" }}>{stat.label}</p>
                               </div>
                             ))}
                           </div>
@@ -402,7 +338,7 @@ export default function ClientesPage() {
           <div className="space-y-3">
             <div className="flex flex-col md:flex-row gap-3 items-start">
               <div className="flex-1">
-                <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa" canvasId="busca-co">
+                <CanvasBox cor="#3b6fd4">
                   <input value={buscaContas} onChange={(e) => { setBuscaContas(e.target.value); setClienteSelecionado(null); }}
                     placeholder={idioma === "pt" ? "Buscar por descrição ou cliente..." : "Search..."}
                     className="w-full text-sm focus:outline-none bg-transparent py-1"
@@ -410,7 +346,7 @@ export default function ClientesPage() {
                 </CanvasBox>
               </div>
               {clienteSelecionado && (
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                   className="flex items-center gap-2 px-4 py-3 rounded-2xl flex-shrink-0"
                   style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
                   <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
@@ -418,12 +354,12 @@ export default function ClientesPage() {
                     {clienteSelecionado.nome.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-bold" style={{ color: "#6ab0ff" }}>{clienteSelecionado.nome}</span>
-                  <motion.button whileHover={{ scale: 1.1 }} onClick={() => setClienteSelecionado(null)} style={{ color: "#3a5a8a" }}><X size={14} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }} onClick={() => setClienteSelecionado(null)} style={{ color: "#5a7a9a" }}><X size={14} /></motion.button>
                 </motion.div>
               )}
             </div>
             {clienteSelecionado && (
-              <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#fbbf24" canvasId="stats-cli">
+              <CanvasBox cor="#6ab0ff">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: idioma === "pt" ? "Total Contas" : "Total Bills", val: contasFiltradas.length, cor: "#6ab0ff" },
@@ -433,7 +369,7 @@ export default function ClientesPage() {
                   ].map((stat, i) => (
                     <div key={i} className="text-center p-2 rounded-xl" style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}25` }}>
                       <p className="text-sm font-black" style={{ color: stat.cor }}>{stat.val}</p>
-                      <p className="text-xs" style={{ color: "#3a5a8a" }}>{stat.label}</p>
+                      <p className="text-xs" style={{ color: "#5a7a9a" }}>{stat.label}</p>
                     </div>
                   ))}
                 </div>
@@ -444,33 +380,30 @@ export default function ClientesPage() {
                 <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : contasFiltradas.length === 0 ? (
-              <CanvasBox cor="#34d399" canvasId="empty-co">
+              <CanvasBox cor="#34d399">
                 <div className="p-8 text-center">
-                  <p style={{ color: "#3a5a8a" }}>{clienteSelecionado ? `${idioma === "pt" ? "Nenhuma conta para" : "No bills for"} ${clienteSelecionado.nome}` : cl.semContas}</p>
+                  <p style={{ color: "#5a7a9a" }}>{clienteSelecionado ? `${idioma === "pt" ? "Nenhuma conta para" : "No bills for"} ${clienteSelecionado.nome}` : cl.semContas}</p>
                 </div>
               </CanvasBox>
             ) : contasFiltradas.map((conta, i) => {
               const clienteDaConta = clientes.find(c => c.id === conta.cliente_id);
               const statusInfo = getStatusCor(conta.status, conta.data_vencimento);
               return (
-                <motion.div key={conta.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={statusInfo.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6" canvasId={`conta-${conta.id}`}>
+                <motion.div key={conta.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                  <CanvasBox cor={statusInfo.cor}>
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div className="min-w-0 flex-1">
-                        <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                          className="font-black tracking-[0.2em] uppercase mb-0.5"
-                          style={{ color: statusInfo.cor, fontSize: "8px" }}>AXIOMA AI.TECH</motion.p>
                         <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{conta.descricao}</p>
                         {clienteDaConta && !clienteSelecionado && (
                           <span className="text-xs px-2 py-0.5 rounded-full mt-1 inline-block" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>👤 {clienteDaConta.nome}</span>
                         )}
-                        <p className="text-xs mt-1" style={{ color: "#3a5a8a" }}>{cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{cl.vencimento}: {new Date(conta.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-base font-black" style={{ color: statusInfo.cor }}>{fmt(conta.valor)}</p>
                         <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: statusInfo.bg, color: statusInfo.cor }}>{statusInfo.label}</span>
                         {conta.status === "pendente" && (
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
                             onClick={() => marcarRecebido(conta.id)}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                             style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
@@ -493,18 +426,16 @@ export default function ClientesPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
             style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md max-h-screen overflow-y-auto">
-              <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6" canvasId="modal-cli">
+              <CanvasBox cor="#6ab0ff">
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                      className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                      style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>AXIOMA AI.TECH</motion.p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff" }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoCliente ? cl.editarCliente : cl.novoCliente}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCliente} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCliente} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-3">
                   {[
@@ -522,7 +453,7 @@ export default function ClientesPage() {
                     </div>
                   ))}
                   <div className="flex gap-3 pt-2">
-                    <button onClick={fecharModalCliente} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
+                    <button onClick={fecharModalCliente} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={salvarCliente} disabled={salvandoCliente}
                       className="flex-1 py-3 rounded-xl text-sm font-bold"
@@ -543,18 +474,16 @@ export default function ClientesPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center px-4"
             style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md max-h-screen overflow-y-auto">
-              <CanvasBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24" canvasId="modal-co">
+              <CanvasBox cor="#34d399">
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                      className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                      style={{ color: "#34d399", textShadow: "0 0 20px #34d399" }}>AXIOMA AI.TECH</motion.p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#34d399" }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cl.novaCobranca}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalConta(false)} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalConta(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-3">
                   {[
@@ -579,7 +508,7 @@ export default function ClientesPage() {
                     </select>
                   </div>
                   <div className="flex gap-3 pt-2">
-                    <button onClick={() => setModalConta(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
+                    <button onClick={() => setModalConta(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={salvarConta} disabled={salvandoConta}
                       className="flex-1 py-3 rounded-xl text-sm font-bold"
