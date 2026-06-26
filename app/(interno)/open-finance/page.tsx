@@ -24,8 +24,8 @@ const textos = {
     semConexao: 'Nenhum banco conectado ainda', semTransacoes: 'Nenhuma transação importada ainda',
     conecteSeu: 'Conecte sua conta bancária para importar transações automaticamente',
     carregando: 'Carregando...', sucesso: 'Banco conectado com sucesso!', erro: 'Erro ao conectar banco',
-    bancos: 'Bancos Suportados', sincronizar: 'Sincronizar', sincronizando: 'Sincronizando...',
-    importadas: 'transações importadas', tipo: 'Tipo',
+    bancos: 'Escolha seu banco', sincronizar: 'Sincronizar', sincronizando: 'Sincronizando...',
+    importadas: 'transações importadas', tipo: 'Tipo', cliqueBanco: 'Clique no seu banco para conectar',
   },
   en: {
     titulo: 'Open Finance', sub: 'Connect your bank account and import statements automatically',
@@ -35,8 +35,8 @@ const textos = {
     semConexao: 'No bank connected yet', semTransacoes: 'No transactions imported yet',
     conecteSeu: 'Connect your bank account to import transactions automatically',
     carregando: 'Loading...', sucesso: 'Bank connected successfully!', erro: 'Error connecting bank',
-    bancos: 'Supported Banks', sincronizar: 'Sync', sincronizando: 'Syncing...',
-    importadas: 'transactions imported', tipo: 'Type',
+    bancos: 'Choose your bank', sincronizar: 'Sync', sincronizando: 'Syncing...',
+    importadas: 'transactions imported', tipo: 'Type', cliqueBanco: 'Click your bank to connect',
   },
   es: {
     titulo: 'Open Finance', sub: 'Conecta tu cuenta bancaria e importa extractos automáticamente',
@@ -46,31 +46,25 @@ const textos = {
     semConexao: 'Ningún banco conectado aún', semTransacoes: 'Ninguna transacción importada aún',
     conecteSeu: 'Conecta tu cuenta bancaria para importar transacciones automáticamente',
     carregando: 'Cargando...', sucesso: '¡Banco conectado con éxito!', erro: 'Error al conectar banco',
-    bancos: 'Bancos Soportados', sincronizar: 'Sincronizar', sincronizando: 'Sincronizando...',
-    importadas: 'transacciones importadas', tipo: 'Tipo',
+    bancos: 'Elige tu banco', sincronizar: 'Sincronizar', sincronizando: 'Sincronizando...',
+    importadas: 'transacciones importadas', tipo: 'Tipo', cliqueBanco: 'Haz clic en tu banco para conectar',
   }
 }
 
-const BANCOS_SUPORTADOS = [
-  { nome: 'Nubank', cor: '#a855f7', emoji: '💜' },
-  { nome: 'Itaú', cor: '#FF8C00', emoji: '🟠' },
-  { nome: 'Bradesco', cor: '#f87171', emoji: '🔴' },
-  { nome: 'Santander', cor: '#f87171', emoji: '🔴' },
-  { nome: 'Banco do Brasil', cor: '#fbbf24', emoji: '🟡' },
-  { nome: 'Caixa', cor: '#38bdf8', emoji: '🔵' },
-  { nome: 'Inter', cor: '#FF8C00', emoji: '🟠' },
-  { nome: 'C6 Bank', cor: '#94a3b8', emoji: '⚪' },
-  { nome: 'Sicoob', cor: '#34d399', emoji: '🟢' },
-  { nome: 'Sicredi', cor: '#34d399', emoji: '🟢' },
-  { nome: 'XP', cor: '#cbd5e1', emoji: '⚪' },
-  { nome: 'BTG', cor: '#60a5fa', emoji: '🔵' },
-  { nome: 'Banrisul', cor: '#60a5fa', emoji: '🔵' },
-  { nome: 'Safra', cor: '#cbd5e1', emoji: '⚪' },
+// Lista de reserva (caso a busca ao Pluggy falhe) — só visual
+const BANCOS_FALLBACK = [
+  { id: 0, name: 'Nubank', primaryColor: '#a855f7', imageUrl: '' },
+  { id: 0, name: 'Itaú', primaryColor: '#FF8C00', imageUrl: '' },
+  { id: 0, name: 'Bradesco', primaryColor: '#f87171', imageUrl: '' },
+  { id: 0, name: 'Santander', primaryColor: '#f87171', imageUrl: '' },
+  { id: 0, name: 'Banco do Brasil', primaryColor: '#fbbf24', imageUrl: '' },
+  { id: 0, name: 'Caixa', primaryColor: '#38bdf8', imageUrl: '' },
+  { id: 0, name: 'Inter', primaryColor: '#FF8C00', imageUrl: '' },
+  { id: 0, name: 'C6 Bank', primaryColor: '#94a3b8', imageUrl: '' },
 ]
 
 // ============================================================
 // CARREGADOR ROBUSTO DO SDK PLUGGY
-// Garante que o widget esteja pronto ANTES de abrir (corrige o "não conecta")
 // ============================================================
 function carregarPluggySDK(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -81,7 +75,6 @@ function carregarPluggySDK(): Promise<void> {
     if (existente) {
       existente.addEventListener('load', () => resolve())
       existente.addEventListener('error', () => reject(new Error('Falha ao carregar o Pluggy')))
-      // Caso já tenha carregado mas o listener não pegue:
       if (typeof (window as any).PluggyConnect !== 'undefined') resolve()
       return
     }
@@ -97,7 +90,7 @@ function carregarPluggySDK(): Promise<void> {
 }
 
 // ============================================================
-// CANVAS NEURAL — igual ao padrão dos outros módulos
+// CANVAS NEURAL
 // ============================================================
 function CanvasNeural() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -153,7 +146,7 @@ function CanvasNeural() {
 }
 
 // ============================================================
-// CANVAS BOX — igual ao padrão dos outros módulos
+// CANVAS BOX
 // ============================================================
 function CanvasBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa', corD = '#f472b6' }: {
   children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string
@@ -192,15 +185,17 @@ export default function OpenFinancePage() {
 
   const [conexoes, setConexoes] = useState<any[]>([])
   const [transacoes, setTransacoes] = useState<any[]>([])
+  const [conectores, setConectores] = useState<any[]>([])
   const [carregando, setCarregando] = useState(true)
   const [conectando, setConectando] = useState(false)
+  const [conectandoId, setConectandoId] = useState<number | null>(null)
   const [sincronizando, setSincronizando] = useState(false)
   const [mensagem, setMensagem] = useState('')
   const [tipoMsg, setTipoMsg] = useState<'sucesso' | 'erro' | ''>('')
 
   useEffect(() => {
     carregarDados()
-    // Pré-carrega o SDK do Pluggy assim que a tela abre (não trava se falhar)
+    carregarConectores()
     carregarPluggySDK().catch(() => {})
   }, [])
 
@@ -220,7 +215,25 @@ export default function OpenFinancePage() {
     setCarregando(false)
   }
 
-  // Puxa contas + transações do item recém-conectado (não depende do webhook)
+  async function carregarConectores() {
+    try {
+      const res = await fetch('/api/pluggy/connectors')
+      const data = await res.json()
+      if (Array.isArray(data?.connectors) && data.connectors.length > 0) {
+        // Mantém só bancos (remove duplicados por nome), prioriza não-sandbox
+        const vistos = new Set<string>()
+        const lista = data.connectors
+          .filter((c: any) => INCLUIR_SANDBOX ? true : !c.isSandbox)
+          .filter((c: any) => {
+            const chave = (c.name || '').toLowerCase()
+            if (vistos.has(chave)) return false
+            vistos.add(chave); return true
+          })
+        setConectores(lista)
+      }
+    } catch { /* usa fallback */ }
+  }
+
   async function sincronizar(itemId?: string) {
     setSincronizando(true)
     try {
@@ -240,13 +253,13 @@ export default function OpenFinancePage() {
     }
   }
 
-  async function abrirWidget() {
+  // Abre o widget. Se passar connectorId, abre DIRETO naquele banco.
+  async function abrirWidget(connectorId?: number) {
     setConectando(true)
+    if (connectorId) setConectandoId(connectorId)
     try {
-      // 1) Garante que o SDK do Pluggy está carregado
       await carregarPluggySDK()
 
-      // 2) Pega o connect token do backend
       const res = await fetch('/api/pluggy/connect-token', { method: 'POST' })
       const { accessToken, error } = await res.json()
       if (error) throw new Error(error)
@@ -256,8 +269,7 @@ export default function OpenFinancePage() {
       const PluggyConnect = (window as any).PluggyConnect
       if (!PluggyConnect) throw new Error('Widget Pluggy não carregou')
 
-      // 3) Abre o widget
-      const pluggyConnect = new PluggyConnect({
+      const config: any = {
         connectToken: accessToken,
         includeSandbox: INCLUIR_SANDBOX,
         onSuccess: async (itemData: any) => {
@@ -272,24 +284,30 @@ export default function OpenFinancePage() {
           }
           avisar('sucesso', t.sucesso)
           await carregarDados()
-          // Puxa as transações desse banco logo em seguida
           if (itemId) sincronizar(itemId)
         },
         onError: (err: any) => {
           avisar('erro', (err && (err.message || err.code)) ? `${t.erro}: ${err.message || err.code}` : t.erro)
         },
-        onClose: () => setConectando(false),
-      })
+        onClose: () => { setConectando(false); setConectandoId(null) },
+      }
+      // Abre direto no banco escolhido
+      if (connectorId) config.connectorIds = [connectorId]
+
+      const pluggyConnect = new PluggyConnect(config)
       pluggyConnect.init()
     } catch (err: any) {
       avisar('erro', err.message || t.erro)
       setConectando(false)
+      setConectandoId(null)
     }
   }
 
   const totalEntradas = transacoes.filter(tx => tx.tipo === 'entrada').reduce((s, tx) => s + (tx.valor || 0), 0)
   const totalSaidas = transacoes.filter(tx => tx.tipo === 'saida').reduce((s, tx) => s + (tx.valor || 0), 0)
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+  const bancosParaExibir = conectores.length > 0 ? conectores : BANCOS_FALLBACK
 
   return (
     <ModuloLayout titulo={t.titulo} subtitulo={t.sub}>
@@ -323,7 +341,7 @@ export default function OpenFinancePage() {
           ))}
         </div>
 
-        {/* Botão conectar */}
+        {/* Barra de ação (sincronizar + conectar genérico) */}
         <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#f472b6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -348,27 +366,65 @@ export default function OpenFinancePage() {
                 </motion.button>
               )}
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                onClick={abrirWidget} disabled={conectando}
+                onClick={() => abrirWidget()} disabled={conectando}
                 className="px-6 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
-                {conectando ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
-                {conectando ? t.carregando : t.conectar}
+                {conectando && !conectandoId ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
+                {conectando && !conectandoId ? t.carregando : t.conectar}
               </motion.button>
             </div>
           </div>
         </CanvasBox>
 
-        {/* Bancos suportados */}
+        {/* CARTÕES DE BANCO — clicáveis, abrem direto no banco */}
         <CanvasBox cor="#a78bfa" corB="#6ab0ff" corC="#34d399" corD="#fbbf24">
-          <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: '#3a5a8a' }}>{t.bancos}</p>
-          <div className="flex flex-wrap gap-2">
-            {BANCOS_SUPORTADOS.map((banco, i) => (
-              <motion.span key={i} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.03 }}
-                className="px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{ background: `${banco.cor}20`, color: banco.cor, border: `1px solid ${banco.cor}40` }}>
-                {banco.emoji} {banco.nome}
-              </motion.span>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: '#a78bfa' }}>{t.bancos}</p>
+            <p className="text-xs" style={{ color: '#3a5a8a' }}>{t.cliqueBanco}</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {bancosParaExibir.map((banco, i) => {
+              const cor = banco.primaryColor || '#6ab0ff'
+              const clicavel = banco.id > 0
+              const carregandoEste = conectandoId === banco.id && banco.id > 0
+              return (
+                <motion.button
+                  key={`${banco.name}-${i}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.03 }}
+                  whileHover={clicavel ? { scale: 1.04, y: -2 } : {}}
+                  whileTap={clicavel ? { scale: 0.97 } : {}}
+                  onClick={() => clicavel && abrirWidget(banco.id)}
+                  disabled={conectando || !clicavel}
+                  className="relative flex items-center gap-3 p-3 rounded-2xl text-left overflow-hidden"
+                  style={{
+                    background: `linear-gradient(135deg, ${cor}18, rgba(4,10,22,0.6))`,
+                    border: `1px solid ${cor}45`,
+                    cursor: clicavel ? 'pointer' : 'default',
+                    opacity: conectando && !carregandoEste ? 0.6 : 1,
+                  }}
+                >
+                  {/* Logo do banco (vinda do Pluggy) ou inicial */}
+                  <div className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden"
+                    style={{ width: 40, height: 40, background: '#fff' }}>
+                    {banco.imageUrl
+                      ? <img src={banco.imageUrl} alt={banco.name} width={40} height={40} style={{ objectFit: 'contain', width: 40, height: 40 }} />
+                      : <span className="font-black text-lg" style={{ color: cor }}>{(banco.name || '?').charAt(0)}</span>
+                    }
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm truncate" style={{ color: '#e2ecf7' }}>{banco.name}</p>
+                    {carregandoEste
+                      ? <span className="text-xs flex items-center gap-1" style={{ color: cor }}><RefreshCw size={11} className="animate-spin" /> {t.carregando}</span>
+                      : <span className="text-xs" style={{ color: `${cor}cc` }}>{clicavel ? 'Conectar' : ''}</span>
+                    }
+                  </div>
+                  {/* faixa lateral colorida */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: cor }} />
+                </motion.button>
+              )
+            })}
           </div>
         </CanvasBox>
 
