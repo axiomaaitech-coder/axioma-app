@@ -31,7 +31,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.anthropic.com wss://*.supabase.co; frame-ancestors 'none';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live https://*.pluggy.ai https://cdn.pluggy.ai; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://*.pluggy.ai https://api.pluggy.ai https://*.sentry.io https://*.ingest.us.sentry.io; frame-src 'self' https://*.pluggy.ai https://connect.pluggy.ai; worker-src 'self' blob:; frame-ancestors 'none';"
   )
   return response
 }
@@ -110,7 +110,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/precificacao') ||
     pathname.startsWith('/contas-receber') ||
     pathname.startsWith('/inadimplencia') ||
-    pathname.startsWith('/mei')
+    pathname.startsWith('/mei') ||
+    pathname.startsWith('/open-finance')
 
   if (isCallback) {
     return addSecurityHeaders(supabaseResponse)
