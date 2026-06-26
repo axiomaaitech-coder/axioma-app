@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -131,6 +131,9 @@ export default function TopNav() {
 
   const grupoAtivo = (itens: { path: string }[]) =>
     itens.some(i => pathname === i.path || pathname.startsWith(i.path + "/"));
+
+  const conectarLabel = lang === "pt" ? "Conectar Banco" : lang === "en" ? "Connect Bank" : "Conectar Banco";
+  const ofAtivo = pathname === "/open-finance" || pathname.startsWith("/open-finance/");
 
   return (
     <>
@@ -272,6 +275,35 @@ export default function TopNav() {
 
         {/* Lado direito */}
         <div className="ml-auto flex items-center gap-3">
+          {/* ✨ BOTÃO CONECTAR BANCO — verde neon, exposto */}
+          <motion.button
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.95 }}
+            animate={{ boxShadow: [
+              "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
+              "0 0 26px rgba(52,211,153,0.85), inset 0 0 16px rgba(52,211,153,0.22)",
+              "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
+            ] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+            onClick={() => navegar("/open-finance")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide"
+            style={{
+              background: ofAtivo
+                ? "linear-gradient(135deg, rgba(16,185,129,0.4), rgba(52,211,153,0.5))"
+                : "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(52,211,153,0.3))",
+              border: "1px solid rgba(52,211,153,0.7)",
+              color: "#7CFFC4",
+              textShadow: "0 0 8px rgba(52,211,153,0.6)",
+            }}
+          >
+            <Landmark size={15} />
+            <span>{conectarLabel}</span>
+            <span className="px-1.5 py-0.5 rounded-full font-black"
+              style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>
+              NOVO
+            </span>
+          </motion.button>
+
           <SeletorIdioma />
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -312,6 +344,16 @@ export default function TopNav() {
           </div>
         </motion.div>
         <div className="flex items-center gap-2">
+          {/* Botão Conectar Banco compacto no mobile */}
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => navegar("/open-finance")}
+            className="p-2 rounded-xl"
+            style={{ background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.5)", boxShadow: "0 0 12px rgba(52,211,153,0.4)" }}
+            aria-label={conectarLabel}
+          >
+            <Landmark size={17} style={{ color: "#7CFFC4" }} />
+          </motion.button>
           <SeletorIdioma />
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <AnimatePresence mode="wait">
@@ -335,6 +377,15 @@ export default function TopNav() {
               className="md:hidden fixed top-14 right-0 bottom-0 w-80 z-50 overflow-auto"
               style={{ background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)", borderLeft: "1px solid rgba(59,111,212,0.2)", boxShadow: "-20px 0 60px rgba(0,0,0,0.6)" }}>
               <div className="p-4 space-y-2">
+                {/* Conectar Banco em destaque no topo do drawer */}
+                <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/open-finance")}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
+                  style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.3))", border: "1px solid rgba(52,211,153,0.6)", color: "#7CFFC4", boxShadow: "0 0 16px rgba(52,211,153,0.4)" }}>
+                  <Landmark size={17} />
+                  <span className="font-black text-sm uppercase tracking-wide">{conectarLabel}</span>
+                  <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>NOVO</span>
+                </motion.button>
+
                 <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
                   style={{ background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
