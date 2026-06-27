@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { Pencil, Trash2, X } from "lucide-react";
+import { CanvasBox } from "../../../components/CanvasBox";
+import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { Pencil, Trash2, X, Split } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const supabase = createBrowserClient(
@@ -15,6 +15,7 @@ const supabase = createBrowserClient(
 
 type Centro = {
   id: string; nome: string; tipo: string; descricao: string; ativo: boolean;
+  orcamento_mensal?: number; meta_receita?: number; responsavel?: string; codigo?: string;
   user_id: string; created_at: string;
 };
 type Lancamento = {
@@ -23,89 +24,11 @@ type Lancamento = {
   user_id: string; created_at: string;
 };
 
-function CanvasNeural() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-      size: Math.random() * 2 + 0.5,
-      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
-    }));
-    const floaters = "AXIOMA CENTROS CUSTO AI TECH FINANCE".split("").map((char) => ({
-      char, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
-      color: ["#6ab0ff", "#34d399", "#a78bfa"][Math.floor(Math.random() * 3)],
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      floaters.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`;
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 110) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 110) * 0.12;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
-          }
-        });
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />;
-}
+const CORES_CENTRO = ["#6ab0ff", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
+const getCor = (index: number) => CORES_CENTRO[index % CORES_CENTRO.length];
 
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
-}) {
-  return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.97)", border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
-    }}>
-      <CanvasNeural />
-      {[
-        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }} />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
-    </div>
-  );
-}
+const inputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" };
+const selectStyle = { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" };
 
 function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
   aberto: boolean; onFechar: () => void; titulo: string; cor?: string; children: React.ReactNode;
@@ -114,20 +37,18 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
     <AnimatePresence>
       {aberto && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-16"
+          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
           style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-          <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ duration: 0.25, ease: "easeOut" }}
-            className="w-full max-w-md max-h-[85vh] overflow-y-auto">
-            <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
+            className="w-full max-w-md">
+            <CanvasBox cor={cor}>
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                    className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                    style={{ color: cor, textShadow: `0 0 20px ${cor}` }}>AXIOMA AI.TECH</motion.p>
+                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: cor }}>AXIOMA AI.TECH</p>
                   <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{titulo}</h3>
                 </div>
-                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: "#3a5a8a" }}><X size={20} /></motion.button>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
               </div>
               {children}
             </CanvasBox>
@@ -138,24 +59,25 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
   );
 }
 
-const CORES_CENTRO = ["#6ab0ff", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
-const getCor = (index: number) => CORES_CENTRO[index % CORES_CENTRO.length];
-
 export default function CentrosCustoPage() {
   const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
-  const conteudoRef = useRef<HTMLDivElement>(null);
   const [aba, setAba] = useState<"visao" | "centros" | "lancamentos">("visao");
   const [centros, setCentros] = useState<Centro[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportando, setExportando] = useState(false);
+  const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
 
   const [modalCentro, setModalCentro] = useState(false);
   const [editandoCentro, setEditandoCentro] = useState<Centro | null>(null);
   const [nomeCentro, setNomeCentro] = useState("");
   const [tipoCentro, setTipoCentro] = useState("operacional");
   const [descricaoCentro, setDescricaoCentro] = useState("");
+  const [orcamentoCentro, setOrcamentoCentro] = useState("");
+  const [metaCentro, setMetaCentro] = useState("");
+  const [responsavelCentro, setResponsavelCentro] = useState("");
+  const [codigoCentro, setCodigoCentro] = useState("");
   const [salvandoCentro, setSalvandoCentro] = useState(false);
 
   const [modalLancamento, setModalLancamento] = useState(false);
@@ -168,12 +90,20 @@ export default function CentrosCustoPage() {
   const [salvandoLanc, setSalvandoLanc] = useState(false);
   const [busca, setBusca] = useState("");
 
+  // Rateio
+  const [modalRateio, setModalRateio] = useState(false);
+  const [rateioDesc, setRateioDesc] = useState("");
+  const [rateioValor, setRateioValor] = useState("");
+  const [rateioData, setRateioData] = useState(new Date().toISOString().split("T")[0]);
+  const [rateioPercentuais, setRateioPercentuais] = useState<Record<string, string>>({});
+  const [processandoRateio, setProcessandoRateio] = useState(false);
+
   useEffect(() => { carregarDados(); }, []);
 
   async function carregarDados() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     const { data: centrosData } = await supabase.from("centros_custo").select("*").eq("user_id", user.id).order("created_at", { ascending: true });
     const { data: lancamentosData } = await supabase.from("lancamentos_centro").select("*").eq("user_id", user.id).order("data", { ascending: false });
     setCentros(centrosData || []);
@@ -186,10 +116,16 @@ export default function CentrosCustoPage() {
     setSalvandoCentro(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvandoCentro(false); return; }
+    const payload: any = {
+      nome: nomeCentro, tipo: tipoCentro, descricao: descricaoCentro,
+      orcamento_mensal: parseFloat(orcamentoCentro || "0"),
+      meta_receita: parseFloat(metaCentro || "0"),
+      responsavel: responsavelCentro, codigo: codigoCentro,
+    };
     if (editandoCentro) {
-      await supabase.from("centros_custo").update({ nome: nomeCentro, tipo: tipoCentro, descricao: descricaoCentro }).eq("id", editandoCentro.id);
+      await supabase.from("centros_custo").update(payload).eq("id", editandoCentro.id);
     } else {
-      await supabase.from("centros_custo").insert({ nome: nomeCentro, tipo: tipoCentro, descricao: descricaoCentro, user_id: user.id, ativo: true });
+      await supabase.from("centros_custo").insert({ ...payload, user_id: user.id, ativo: true });
     }
     fecharModalCentro(); setSalvandoCentro(false); carregarDados();
   }
@@ -204,12 +140,8 @@ export default function CentrosCustoPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvandoLanc(false); return; }
     const payload: any = {
-      descricao: descricaoLanc,
-      valor: parseFloat(valorLanc),
-      tipo: tipoLanc,
-      data: dataLanc,
-      categoria: categoriaLanc || null,
-      user_id: user.id,
+      descricao: descricaoLanc, valor: parseFloat(valorLanc), tipo: tipoLanc,
+      data: dataLanc, categoria: categoriaLanc || null, user_id: user.id,
     };
     if (centroLanc) payload.centro_custo_id = centroLanc;
     const { error } = await supabase.from("lancamentos_centro").insert(payload);
@@ -218,61 +150,80 @@ export default function CentrosCustoPage() {
     setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
     setDataLanc(new Date().toISOString().split("T")[0]);
     setCentroLanc(""); setCategoriaLanc("");
-    carregarDados();
-    setSalvandoLanc(false);
+    carregarDados(); setSalvandoLanc(false);
   }
 
   function abrirEditarCentro(centro: Centro) {
     setEditandoCentro(centro); setNomeCentro(centro.nome);
     setTipoCentro(centro.tipo || "operacional"); setDescricaoCentro(centro.descricao || "");
+    setOrcamentoCentro(String(centro.orcamento_mensal || ""));
+    setMetaCentro(String(centro.meta_receita || ""));
+    setResponsavelCentro(centro.responsavel || ""); setCodigoCentro(centro.codigo || "");
     setModalCentro(true);
   }
 
   function fecharModalCentro() {
     setModalCentro(false); setEditandoCentro(null);
     setNomeCentro(""); setTipoCentro("operacional"); setDescricaoCentro("");
+    setOrcamentoCentro(""); setMetaCentro(""); setResponsavelCentro(""); setCodigoCentro("");
   }
 
-  const exportarPDF = async () => {
-    if (!conteudoRef.current) return;
-    setExportando(true);
-    try {
-      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, "F");
-      pdf.setTextColor(106, 176, 255); pdf.setFontSize(14); pdf.setFont("helvetica", "bold");
-      pdf.text("AXIOMA AI.TECH", 14, 13);
-      pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`${cc.titulo} - ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-      let position = 22; let remaining = pdfHeight;
-      while (remaining > 0) {
-        const sliceHeight = Math.min(pageHeight - position, remaining);
-        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
-        const sourceH = sliceHeight * (canvas.height / pdfHeight);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width; sliceCanvas.height = sourceH;
-        const ctx = sliceCanvas.getContext("2d")!;
-        ctx.fillStyle = "#020810"; ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
-        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
-        remaining -= sliceHeight; position = 0;
-        if (remaining > 0) { pdf.addPage(); position = 0; }
-      }
-      pdf.save(`axioma-centros-custo-${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) { console.error(err); }
-    setExportando(false);
-  };
+  // ---------- RATEIO ----------
+  function abrirRateio() {
+    setRateioDesc(""); setRateioValor(""); setRateioData(new Date().toISOString().split("T")[0]);
+    setRateioPercentuais({}); setModalRateio(true);
+  }
 
-  const totalCustos = lancamentos.filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
-  const totalReceitas = lancamentos.filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
-  const saldoGeral = totalReceitas - totalCustos;
-  const getCustos = (id: string) => lancamentos.filter(l => l.centro_custo_id === id && l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
-  const getReceitas = (id: string) => lancamentos.filter(l => l.centro_custo_id === id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
-  const lancFiltrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(busca.toLowerCase()));
+  const somaPercentuais = Object.values(rateioPercentuais).reduce((s, v) => s + parseFloat(v || "0"), 0);
+  const restanteRateio = 100 - somaPercentuais;
+
+  async function confirmarRateio() {
+    if (!rateioDesc.trim() || !rateioValor) return;
+    if (Math.abs(restanteRateio) > 0.01) return; // precisa somar 100%
+    setProcessandoRateio(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setProcessandoRateio(false); return; }
+    const total = parseFloat(rateioValor || "0");
+    const linhas = centros
+      .filter(c => parseFloat(rateioPercentuais[c.id] || "0") > 0)
+      .map(c => ({
+        descricao: `${rateioDesc} (Rateio ${rateioPercentuais[c.id]}%)`,
+        valor: Number((total * (parseFloat(rateioPercentuais[c.id]) / 100)).toFixed(2)),
+        tipo: "custo", data: rateioData, categoria: "Rateio",
+        centro_custo_id: c.id, user_id: user.id,
+      }));
+    if (linhas.length > 0) await supabase.from("lancamentos_centro").insert(linhas);
+    setModalRateio(false); setProcessandoRateio(false); carregarDados();
+  }
+
+  // ---------- CÁLCULOS (período selecionado) ----------
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const noPeriodo = (l: Lancamento) => (l.data || "").slice(0, 7) === periodo;
+  const lancPeriodo = lancamentos.filter(noPeriodo);
+
+  const totalCustos = lancPeriodo.filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
+  const totalReceitas = lancPeriodo.filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+  const totalOrcado = centros.reduce((s, c) => s + (c.orcamento_mensal || 0), 0);
+  const resultadoGeral = totalReceitas - totalCustos;
+
+  const getCustos = (id: string) => lancPeriodo.filter(l => l.centro_custo_id === id && l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
+  const getReceitas = (id: string) => lancPeriodo.filter(l => l.centro_custo_id === id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+
+  const lancFiltrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(busca.toLowerCase()));
+
+  const L = {
+    orcado: idioma === "pt" ? "Orçado" : idioma === "en" ? "Budget" : "Presupuesto",
+    realizado: idioma === "pt" ? "Realizado" : idioma === "en" ? "Actual" : "Realizado",
+    variancia: idioma === "pt" ? "Variância" : idioma === "en" ? "Variance" : "Variación",
+    resultado: idioma === "pt" ? "Resultado" : idioma === "en" ? "Result" : "Resultado",
+    margem: idioma === "pt" ? "Margem" : idioma === "en" ? "Margin" : "Margen",
+    participacao: idioma === "pt" ? "Participação" : idioma === "en" ? "Share" : "Participación",
+    responsavel: idioma === "pt" ? "Responsável" : idioma === "en" ? "Manager" : "Responsable",
+    periodo: idioma === "pt" ? "Período" : idioma === "en" ? "Period" : "Período",
+    rateio: idioma === "pt" ? "Ratear Custo" : idioma === "en" ? "Allocate Cost" : "Distribuir Costo",
+    dentroOrc: idioma === "pt" ? "dentro do orçamento" : idioma === "en" ? "within budget" : "dentro del presupuesto",
+    estourou: idioma === "pt" ? "acima do orçamento" : idioma === "en" ? "over budget" : "sobre presupuesto",
+  };
 
   const botaoLancamento = (
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
@@ -283,6 +234,15 @@ export default function CentrosCustoPage() {
     </motion.button>
   );
 
+  const botaoRateio = (
+    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+      onClick={abrirRateio}
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+      style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
+      <Split size={15} /> {L.rateio}
+    </motion.button>
+  );
+
   if (loading) return (
     <div className="flex-1 flex items-center justify-center" style={{ background: "#020810", minHeight: "100vh" }}>
       <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -290,25 +250,34 @@ export default function CentrosCustoPage() {
   );
 
   return (
-    <ModuloLayout titulo={`🗂️ ${cc.titulo}`} subtitulo={cc.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
-      onNovo={() => { setEditandoCentro(null); setNomeCentro(""); setTipoCentro("operacional"); setDescricaoCentro(""); setModalCentro(true); }}
-      labelBotao={cc.novoCentro} botaoExtra={botaoLancamento}>
-      <div ref={conteudoRef} className="space-y-4">
+    <ModuloLayout titulo={cc.titulo} subtitulo={cc.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      onNovo={() => { setEditandoCentro(null); fecharModalCentro(); setModalCentro(true); }}
+      labelBotao={cc.novoCentro} botaoExtra={<div className="flex gap-2 flex-wrap">{botaoLancamento}{botaoRateio}</div>}>
+      <div className="space-y-4">
 
+        {/* Seletor de período */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{L.periodo}:</span>
+          <input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)}
+            className="px-3 py-2 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+        </div>
+
+        {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: cc.totalCentros, valor: centros.length.toString(), cor: "#6ab0ff" },
-            { label: cc.totalCustos, valor: fmt(totalCustos), cor: "#f87171" },
-            { label: cc.totalReceitas, valor: fmt(totalReceitas), cor: "#34d399" },
-            { label: cc.saldoGeral, valor: fmt(saldoGeral), cor: saldoGeral >= 0 ? "#34d399" : "#f87171" },
+            { label: L.orcado, valor: fmt(totalOrcado), cor: "#a78bfa" },
+            { label: L.realizado + " (custo)", valor: fmt(totalCustos), cor: "#f87171" },
+            { label: L.resultado, valor: fmt(resultadoGeral), cor: resultadoGeral >= 0 ? "#34d399" : "#f87171" },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
-              <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{card.label}</p>
-              <p className="text-xl font-bold" style={{ color: card.cor, textShadow: `0 0 15px ${card.cor}60` }}>{card.valor}</p>
+            <CanvasBox key={i} cor={card.cor}>
+              <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{card.label}</p>
+              <p className="text-lg md:text-xl font-bold" style={{ color: card.cor }}>{card.valor}</p>
             </CanvasBox>
           ))}
         </div>
 
+        {/* Abas */}
         <div className="flex gap-2 flex-wrap">
           {[
             { key: "visao", label: cc.abaVisaoGeral },
@@ -318,47 +287,71 @@ export default function CentrosCustoPage() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setAba(a.key as typeof aba)}
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}`, boxShadow: aba === a.key ? "0 0 12px rgba(106,176,255,0.15)" : "none" }}>
+              style={{ background: aba === a.key ? "rgba(59,111,212,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#5a7a9a", border: `1px solid ${aba === a.key ? "rgba(59,111,212,0.5)" : "rgba(59,111,212,0.1)"}` }}>
               {a.label}
             </motion.button>
           ))}
         </div>
 
+        {/* ===== VISÃO GERAL (orçado vs realizado + resultado/margem) ===== */}
         {aba === "visao" && (
           <div className="space-y-4">
             {centros.length === 0 ? (
-              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p></div></CanvasBox>
+              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
               const custos = getCustos(centro.id);
               const receitas = getReceitas(centro.id);
-              const saldo = receitas - custos;
-              const maxVal = Math.max(totalCustos, totalReceitas, 1);
+              const resultado = receitas - custos;
+              const margem = receitas > 0 ? (resultado / receitas) * 100 : 0;
+              const orcado = centro.orcamento_mensal || 0;
+              const usoOrc = orcado > 0 ? (custos / orcado) * 100 : 0;
+              const variancia = orcado - custos;
+              const participacao = totalCustos > 0 ? (custos / totalCustos) * 100 : 0;
               const cor = getCor(i);
+              const corOrc = usoOrc > 100 ? "#f87171" : usoOrc > 85 ? "#fbbf24" : "#34d399";
               return (
-                <motion.div key={centro.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-                        <span className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${cor}20`, color: cor }}>{centro.tipo}</span>
+                <motion.div key={centro.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                  <CanvasBox cor={cor}>
+                    <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="w-3 h-3 rounded-full" style={{ background: cor }} />
+                        <span className="font-bold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</span>
+                        {centro.codigo && <span className="text-xs" style={{ color: "#5a7a9a" }}>{centro.codigo}</span>}
+                        <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: `${cor}20`, color: cor }}>{centro.tipo}</span>
+                        {centro.responsavel && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>👤 {centro.responsavel}</span>}
                       </div>
-                      <span className="text-sm font-bold" style={{ color: saldo >= 0 ? "#34d399" : "#f87171" }}>{fmt(saldo)}</span>
+                      <span className="text-sm font-black" style={{ color: resultado >= 0 ? "#34d399" : "#f87171" }}>{fmt(resultado)}</span>
                     </div>
-                    <div className="space-y-2">
+
+                    {/* Orçado vs Realizado */}
+                    {orcado > 0 && (
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span style={{ color: "#5a7a9a" }}>{L.orcado}: {fmt(orcado)} · {L.realizado}: {fmt(custos)}</span>
+                          <span style={{ color: corOrc, fontWeight: 700 }}>{usoOrc.toFixed(0)}%</span>
+                        </div>
+                        <div className="rounded-full h-2" style={{ background: "rgba(59,111,212,0.1)" }}>
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(usoOrc, 100)}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="h-2 rounded-full" style={{ background: corOrc }} />
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: corOrc }}>
+                          {variancia >= 0 ? `${fmt(variancia)} ${L.dentroOrc}` : `${fmt(Math.abs(variancia))} ${L.estourou}`}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Resultado / Margem / Participação */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2" style={{ borderTop: "1px solid rgba(59,111,212,0.1)" }}>
                       {[
-                        { label: cc.custo, valor: custos, cor: "#f87171" },
-                        { label: cc.receita, valor: receitas, cor: "#34d399" },
-                      ].map(item => (
-                        <div key={item.label}>
-                          <div className="flex justify-between text-xs mb-1" style={{ color: "#3a5a8a" }}>
-                            <span>{item.label}</span><span>{fmt(item.valor)}</span>
-                          </div>
-                          <div className="rounded-full h-1.5" style={{ background: "rgba(59,111,212,0.1)" }}>
-                            <motion.div initial={{ width: 0 }} animate={{ width: `${(item.valor / maxVal) * 100}%` }}
-                              transition={{ duration: 0.8, ease: "easeOut" }}
-                              className="h-1.5 rounded-full" style={{ background: item.cor, boxShadow: `0 0 6px ${item.cor}` }} />
-                          </div>
+                        { label: cc.receita, val: fmt(receitas), cor: "#34d399" },
+                        { label: cc.custo, val: fmt(custos), cor: "#f87171" },
+                        { label: L.margem, val: `${margem.toFixed(1)}%`, cor: margem >= 0 ? "#34d399" : "#f87171" },
+                        { label: L.participacao, val: `${participacao.toFixed(1)}%`, cor: "#a78bfa" },
+                      ].map((s) => (
+                        <div key={s.label}>
+                          <p className="text-xs mb-0.5" style={{ color: "#5a7a9a" }}>{s.label}</p>
+                          <p className="text-sm font-bold" style={{ color: s.cor }}>{s.val}</p>
                         </div>
                       ))}
                     </div>
@@ -369,28 +362,35 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
+        {/* ===== CENTROS ===== */}
         {aba === "centros" && (
           <div className="space-y-3">
             {centros.length === 0 ? (
-              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#3a5a8a" }}>{cc.semCentros}</p></div></CanvasBox>
+              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
               const cor = getCor(i);
               return (
-                <motion.div key={centro.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={cor} corB="#34d399" corC="#a78bfa" corD="#f472b6">
+                <motion.div key={centro.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                  <CanvasBox cor={cor}>
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 10px ${cor}` }} />
+                        <div className="w-4 h-4 rounded-full" style={{ background: cor }} />
                         <div>
-                          <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</p>
-                          <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro.tipo}{centro.descricao ? ` · ${centro.descricao}` : ""}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</p>
+                            {centro.codigo && <span className="text-xs" style={{ color: "#5a7a9a" }}>{centro.codigo}</span>}
+                          </div>
+                          <p className="text-xs mt-0.5 capitalize" style={{ color: "#5a7a9a" }}>
+                            {centro.tipo}{centro.responsavel ? ` · 👤 ${centro.responsavel}` : ""}
+                            {centro.orcamento_mensal ? ` · ${idioma === "pt" ? "Orçamento" : "Budget"}: ${fmt(centro.orcamento_mensal)}` : ""}
+                          </p>
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
                           <Pencil size={15} style={{ color: "#6ab0ff" }} />
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
                           <Trash2 size={15} style={{ color: "#f87171" }} />
                         </motion.button>
                       </div>
@@ -402,27 +402,28 @@ export default function CentrosCustoPage() {
           </div>
         )}
 
+        {/* ===== LANÇAMENTOS ===== */}
         {aba === "lancamentos" && (
           <div className="space-y-3">
-            <CanvasBox cor="#3b6fd4" corB="#6ab0ff" corC="#34d399" corD="#a78bfa">
+            <CanvasBox cor="#3b6fd4">
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar}
                 className="w-full text-sm focus:outline-none bg-transparent" style={{ color: "#c8d8f0" }} />
             </CanvasBox>
             {lancFiltrados.length === 0 ? (
-              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#3a5a8a" }}>{cc.semLancamentos}</p></div></CanvasBox>
+              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{cc.semLancamentos}</p></div></CanvasBox>
             ) : lancFiltrados.map((lanc, i) => {
               const centro = centros.find(c => c.id === lanc.centro_custo_id);
               const idxCentro = centros.findIndex(c => c.id === lanc.centro_custo_id);
               const cor = idxCentro >= 0 ? getCor(idxCentro) : "#6ab0ff";
               return (
-                <motion.div key={lanc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={lanc.tipo === "receita" ? "#34d399" : "#f87171"} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
+                <motion.div key={lanc.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                  <CanvasBox cor={lanc.tipo === "receita" ? "#34d399" : "#f87171"}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cor }} />
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
-                          <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{centro?.nome || "Sem centro"} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                          <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{centro?.nome || (idioma === "pt" ? "Sem centro" : "No center")} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}{lanc.categoria ? ` · ${lanc.categoria}` : ""}</p>
                         </div>
                       </div>
                       <span className="text-sm font-bold flex-shrink-0" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
@@ -442,9 +443,17 @@ export default function CentrosCustoPage() {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.nomeCentro}</label>
-            <input value={nomeCentro} onChange={(e) => setNomeCentro(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input value={nomeCentro} onChange={(e) => setNomeCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Código" : "Code"}</label>
+              <input value={codigoCentro} onChange={(e) => setCodigoCentro(e.target.value)} placeholder="CC-001" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{L.responsavel}</label>
+              <input value={responsavelCentro} onChange={(e) => setResponsavelCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Tipo</label>
@@ -452,20 +461,28 @@ export default function CentrosCustoPage() {
               {["operacional", "administrativo", "comercial", "financeiro"].map(tp => (
                 <motion.button key={tp} whileTap={{ scale: 0.97 }} onClick={() => setTipoCentro(tp)}
                   className="py-2 rounded-xl text-xs font-semibold capitalize"
-                  style={{ background: tipoCentro === tp ? "rgba(106,176,255,0.2)" : "rgba(59,111,212,0.05)", color: tipoCentro === tp ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${tipoCentro === tp ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.1)"}` }}>
+                  style={{ background: tipoCentro === tp ? "rgba(106,176,255,0.2)" : "rgba(59,111,212,0.05)", color: tipoCentro === tp ? "#6ab0ff" : "#5a7a9a", border: `1px solid ${tipoCentro === tp ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.1)"}` }}>
                   {tp}
                 </motion.button>
               ))}
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Orçamento Mensal (R$)" : "Monthly Budget (R$)"}</label>
+              <input type="number" value={orcamentoCentro} onChange={(e) => setOrcamentoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Meta Receita (R$)" : "Revenue Target (R$)"}</label>
+              <input type="number" value={metaCentro} onChange={(e) => setMetaCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+          </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.descricaoCentro}</label>
-            <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
+            <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCentro} disabled={salvandoCentro}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
@@ -480,22 +497,18 @@ export default function CentrosCustoPage() {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.descricao}</label>
-            <input value={descricaoLanc} onChange={(e) => setDescricaoLanc(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input value={descricaoLanc} onChange={(e) => setDescricaoLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.valor}</label>
-            <input type="number" value={valorLanc} onChange={(e) => setValorLanc(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input type="number" value={valorLanc} onChange={(e) => setValorLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.tipo}</label>
             <div className="flex gap-2">
               {["custo", "receita"].map((tipo) => (
                 <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
-                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.2)" : "rgba(52,211,153,0.2)") : "rgba(59,111,212,0.05)", color: tipoLanc === tipo ? (tipo === "custo" ? "#f87171" : "#34d399") : "#3a5a8a", border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.3)" : "rgba(52,211,153,0.3)") : "rgba(59,111,212,0.1)"}` }}>
+                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.2)" : "rgba(52,211,153,0.2)") : "rgba(59,111,212,0.05)", color: tipoLanc === tipo ? (tipo === "custo" ? "#f87171" : "#34d399") : "#5a7a9a", border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.3)" : "rgba(52,211,153,0.3)") : "rgba(59,111,212,0.1)"}` }}>
                   {tipo === "custo" ? cc.custo : cc.receita}
                 </motion.button>
               ))}
@@ -503,30 +516,22 @@ export default function CentrosCustoPage() {
           </div>
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.data}</label>
-            <input type="date" value={dataLanc} onChange={(e) => setDataLanc(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <input type="date" value={dataLanc} onChange={(e) => setDataLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.centroCusto} <span style={{ color: "#3a5a8a" }}>(opcional)</span></label>
-            <select value={centroLanc} onChange={(e) => setCentroLanc(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
-              <option value="">-- Sem centro --</option>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.centroCusto} <span style={{ color: "#5a7a9a" }}>(opcional)</span></label>
+            <select value={centroLanc} onChange={(e) => setCentroLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={selectStyle}>
+              <option value="">-- {idioma === "pt" ? "Sem centro" : "No center"} --</option>
               {centros.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Categoria <span style={{ color: "#3a5a8a" }}>(opcional)</span></label>
-            <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)}
-              placeholder="Ex: Marketing, RH, TI..."
-              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Categoria <span style={{ color: "#5a7a9a" }}>(opcional)</span></label>
+            <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)} placeholder="Ex: Marketing, RH, TI..." className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalLancamento(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#3a5a8a" }}>{t.geral.cancelar}</button>
-            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              onClick={salvarLancamento} disabled={salvandoLanc}
+            <button onClick={() => setModalLancamento(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarLancamento} disabled={salvandoLanc}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
               {salvandoLanc ? "..." : cc.salvarLancamento}
@@ -534,6 +539,108 @@ export default function CentrosCustoPage() {
           </div>
         </div>
       </ModalPremium>
+
+      {/* Modal Rateio */}
+      <ModalPremium aberto={modalRateio} onFechar={() => setModalRateio(false)} titulo={L.rateio} cor="#a78bfa">
+        <div className="space-y-4">
+          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+            {idioma === "pt" ? "Distribua um custo compartilhado (ex: aluguel, energia) entre vários centros por %." : "Distribute a shared cost across centers by %."}
+          </p>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Descrição do Custo" : "Cost Description"}</label>
+            <input value={rateioDesc} onChange={(e) => setRateioDesc(e.target.value)} placeholder={idioma === "pt" ? "Ex: Aluguel da sede" : "e.g. Office rent"} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Valor Total (R$)" : "Total (R$)"}</label>
+              <input type="number" value={rateioValor} onChange={(e) => setRateioValor(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.data}</label>
+              <input type="date" value={rateioData} onChange={(e) => setRateioData(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Distribuição (%)" : "Distribution (%)"}</label>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {centros.length === 0 ? (
+                <p className="text-xs" style={{ color: "#5a7a9a" }}>{cc.semCentros}</p>
+              ) : centros.map((c, i) => {
+                const pctStr = rateioPercentuais[c.id] || "";
+                const pct = parseFloat(pctStr || "0");
+                const valorCentro = (parseFloat(rateioValor || "0") * pct) / 100;
+                return (
+                  <div key={c.id} className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getCor(i) }} />
+                    <span className="text-xs flex-1 truncate" style={{ color: "#c8d8f0" }}>{c.nome}</span>
+                    {pct > 0 && <span className="text-xs" style={{ color: "#34d399" }}>{fmt(valorCentro)}</span>}
+                    <input type="number" value={pctStr} onChange={(e) => setRateioPercentuais({ ...rateioPercentuais, [c.id]: e.target.value })}
+                      placeholder="0" className="w-16 px-2 py-1.5 rounded-lg text-xs text-right focus:outline-none" style={inputStyle} />
+                    <span className="text-xs" style={{ color: "#5a7a9a" }}>%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex justify-between items-center px-3 py-2 rounded-xl" style={{ background: Math.abs(restanteRateio) < 0.01 ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)" }}>
+            <span className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Total distribuído" : "Distributed"}: {somaPercentuais.toFixed(1)}%</span>
+            <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.01 ? "#34d399" : "#fbbf24" }}>
+              {idioma === "pt" ? "Restante" : "Remaining"}: {restanteRateio.toFixed(1)}%
+            </span>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setModalRateio(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRateio}
+              disabled={processandoRateio || Math.abs(restanteRateio) > 0.01 || !rateioDesc.trim() || !rateioValor}
+              className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
+              style={{ background: "linear-gradient(135deg, #5b21b6, #8b5cf6)", color: "#fff" }}>
+              {processandoRateio ? "..." : (idioma === "pt" ? "Aplicar Rateio" : "Apply")}
+            </motion.button>
+          </div>
+        </div>
+      </ModalPremium>
     </ModuloLayout>
   );
+
+  // ---------- PDF ----------
+  function exportarPDF() {
+    setExportando(true);
+    try {
+      const fmtN = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      gerarPdfTabela({
+        titulo: cc.titulo,
+        subtitulo: `${cc.subtitulo} · ${L.periodo}: ${periodo}`,
+        colunas: [
+          { header: "Centro", key: "centro", width: 3 },
+          { header: "Tipo", key: "tipo", width: 2 },
+          { header: L.orcado + " (R$)", key: "orcado", width: 2, align: "right" },
+          { header: L.realizado + " (R$)", key: "real", width: 2, align: "right" },
+          { header: L.variancia + " (R$)", key: "var", width: 2, align: "right" },
+          { header: cc.receita + " (R$)", key: "rec", width: 2, align: "right" },
+          { header: L.resultado + " (R$)", key: "res", width: 2, align: "right" },
+          { header: L.margem, key: "margem", width: 2, align: "right" },
+        ],
+        linhas: centros.map((c) => {
+          const custos = getCustos(c.id);
+          const receitas = getReceitas(c.id);
+          const resultado = receitas - custos;
+          const margem = receitas > 0 ? (resultado / receitas) * 100 : 0;
+          const orcado = c.orcamento_mensal || 0;
+          return {
+            centro: c.nome, tipo: c.tipo,
+            orcado: fmtN(orcado), real: fmtN(custos), var: fmtN(orcado - custos),
+            rec: fmtN(receitas), res: fmtN(resultado), margem: `${margem.toFixed(1)}%`,
+          };
+        }),
+        resumo: [
+          { label: L.orcado + " Total", valor: `R$ ${fmtN(totalOrcado)}` },
+          { label: L.realizado + " (Custos)", valor: `R$ ${fmtN(totalCustos)}` },
+          { label: cc.receita, valor: `R$ ${fmtN(totalReceitas)}` },
+          { label: L.resultado + " Geral", valor: `R$ ${fmtN(resultadoGeral)}` },
+        ],
+        nomeArquivo: `axioma-centros-custo-${periodo}.pdf`,
+      });
+    } catch (err) { console.error(err); }
+    setExportando(false);
+  }
 }
