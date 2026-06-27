@@ -81,6 +81,7 @@ export default function CentrosCustoPage() {
   const [salvandoCentro, setSalvandoCentro] = useState(false);
 
   const [modalLancamento, setModalLancamento] = useState(false);
+  const [editandoLanc, setEditandoLanc] = useState<Lancamento | null>(null);
   const [descricaoLanc, setDescricaoLanc] = useState("");
   const [valorLanc, setValorLanc] = useState("");
   const [tipoLanc, setTipoLanc] = useState("custo");
@@ -141,16 +142,49 @@ export default function CentrosCustoPage() {
     if (!user) { setSalvandoLanc(false); return; }
     const payload: any = {
       descricao: descricaoLanc, valor: parseFloat(valorLanc), tipo: tipoLanc,
-      data: dataLanc, categoria: categoriaLanc || null, user_id: user.id,
+      data: dataLanc, categoria: categoriaLanc || null,
+      centro_custo_id: centroLanc || null,
     };
-    if (centroLanc) payload.centro_custo_id = centroLanc;
-    const { error } = await supabase.from("lancamentos_centro").insert(payload);
-    if (error) { console.error("Erro ao salvar lançamento:", error); setSalvandoLanc(false); return; }
-    setModalLancamento(false);
+    if (editandoLanc) {
+      const { error } = await supabase.from("lancamentos_centro").update(payload).eq("id", editandoLanc.id);
+      if (error) { console.error("Erro ao editar lançamento:", error.message, error); alert("Erro ao editar: " + error.message); setSalvandoLanc(false); return; }
+    } else {
+      const { error } = await supabase.from("lancamentos_centro").insert({ ...payload, user_id: user.id });
+      if (error) { console.error("Erro ao salvar lançamento:", error.message, error); alert("Erro ao salvar: " + error.message); setSalvandoLanc(false); return; }
+    }
+    fecharModalLancamento();
+    carregarDados(); setSalvandoLanc(false);
+  }
+
+  function abrirNovoLancamento() {
+    setEditandoLanc(null);
     setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
     setDataLanc(new Date().toISOString().split("T")[0]);
     setCentroLanc(""); setCategoriaLanc("");
-    carregarDados(); setSalvandoLanc(false);
+    setModalLancamento(true);
+  }
+
+  function abrirEditarLancamento(lanc: Lancamento) {
+    setEditandoLanc(lanc);
+    setDescricaoLanc(lanc.descricao || "");
+    setValorLanc(String(lanc.valor || ""));
+    setTipoLanc(lanc.tipo || "custo");
+    setDataLanc(lanc.data || new Date().toISOString().split("T")[0]);
+    setCentroLanc(lanc.centro_custo_id || "");
+    setCategoriaLanc(lanc.categoria || "");
+    setModalLancamento(true);
+  }
+
+  function fecharModalLancamento() {
+    setModalLancamento(false); setEditandoLanc(null);
+    setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo");
+    setDataLanc(new Date().toISOString().split("T")[0]);
+    setCentroLanc(""); setCategoriaLanc("");
+  }
+
+  async function excluirLancamento(id: string) {
+    await supabase.from("lancamentos_centro").delete().eq("id", id);
+    carregarDados();
   }
 
   function abrirEditarCentro(centro: Centro) {
@@ -179,7 +213,7 @@ export default function CentrosCustoPage() {
 
   async function confirmarRateio() {
     if (!rateioDesc.trim() || !rateioValor) return;
-    if (Math.abs(restanteRateio) > 0.01) return; // precisa somar 100%
+    if (Math.abs(restanteRateio) > 0.5) return; // precisa somar 100%
     setProcessandoRateio(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setProcessandoRateio(false); return; }
@@ -192,7 +226,15 @@ export default function CentrosCustoPage() {
         tipo: "custo", data: rateioData, categoria: "Rateio",
         centro_custo_id: c.id, user_id: user.id,
       }));
-    if (linhas.length > 0) await supabase.from("lancamentos_centro").insert(linhas);
+    if (linhas.length > 0) {
+      const { error } = await supabase.from("lancamentos_centro").insert(linhas);
+      if (error) {
+        console.error("Erro ao aplicar rateio:", error.message, error);
+        alert("Erro ao aplicar rateio: " + error.message);
+        setProcessandoRateio(false);
+        return;
+      }
+    }
     setModalRateio(false); setProcessandoRateio(false); carregarDados();
   }
 
@@ -227,7 +269,7 @@ export default function CentrosCustoPage() {
 
   const botaoLancamento = (
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-      onClick={() => setModalLancamento(true)}
+      onClick={abrirNovoLancamento}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
       style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
       + {cc.novoLancamento}
@@ -320,7 +362,15 @@ export default function CentrosCustoPage() {
                         <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: `${cor}20`, color: cor }}>{centro.tipo}</span>
                         {centro.responsavel && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>👤 {centro.responsavel}</span>}
                       </div>
-                      <span className="text-sm font-black" style={{ color: resultado >= 0 ? "#34d399" : "#f87171" }}>{fmt(resultado)}</span>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-sm font-black" style={{ color: resultado >= 0 ? "#34d399" : "#f87171" }}>{fmt(resultado)}</span>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
+                          <Pencil size={15} style={{ color: "#6ab0ff" }} />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
+                          <Trash2 size={15} style={{ color: "#f87171" }} />
+                        </motion.button>
+                      </div>
                     </div>
 
                     {/* Orçado vs Realizado */}
@@ -426,9 +476,17 @@ export default function CentrosCustoPage() {
                           <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{centro?.nome || (idioma === "pt" ? "Sem centro" : "No center")} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}{lanc.categoria ? ` · ${lanc.categoria}` : ""}</p>
                         </div>
                       </div>
-                      <span className="text-sm font-bold flex-shrink-0" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
-                        {lanc.tipo === "receita" ? "+" : "-"}{fmt(lanc.valor)}
-                      </span>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-sm font-bold" style={{ color: lanc.tipo === "receita" ? "#34d399" : "#f87171" }}>
+                          {lanc.tipo === "receita" ? "+" : "-"}{fmt(lanc.valor)}
+                        </span>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarLancamento(lanc)}>
+                          <Pencil size={15} style={{ color: "#6ab0ff" }} />
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirLancamento(lanc.id)}>
+                          <Trash2 size={15} style={{ color: "#f87171" }} />
+                        </motion.button>
+                      </div>
                     </div>
                   </CanvasBox>
                 </motion.div>
@@ -493,7 +551,7 @@ export default function CentrosCustoPage() {
       </ModalPremium>
 
       {/* Modal Lançamento */}
-      <ModalPremium aberto={modalLancamento} onFechar={() => { setModalLancamento(false); setDescricaoLanc(""); setValorLanc(""); setTipoLanc("custo"); setDataLanc(new Date().toISOString().split("T")[0]); setCentroLanc(""); setCategoriaLanc(""); }} titulo={cc.novoLancamento} cor="#34d399">
+      <ModalPremium aberto={modalLancamento} onFechar={fecharModalLancamento} titulo={editandoLanc ? (idioma === "pt" ? "Editar Lançamento" : "Edit Entry") : cc.novoLancamento} cor="#34d399">
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.descricao}</label>
@@ -530,7 +588,7 @@ export default function CentrosCustoPage() {
             <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)} placeholder="Ex: Marketing, RH, TI..." className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalLancamento(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <button onClick={fecharModalLancamento} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarLancamento} disabled={salvandoLanc}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
@@ -582,16 +640,16 @@ export default function CentrosCustoPage() {
               })}
             </div>
           </div>
-          <div className="flex justify-between items-center px-3 py-2 rounded-xl" style={{ background: Math.abs(restanteRateio) < 0.01 ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)" }}>
+          <div className="flex justify-between items-center px-3 py-2 rounded-xl" style={{ background: Math.abs(restanteRateio) < 0.5 ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)" }}>
             <span className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Total distribuído" : "Distributed"}: {somaPercentuais.toFixed(1)}%</span>
-            <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.01 ? "#34d399" : "#fbbf24" }}>
+            <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.5 ? "#34d399" : "#fbbf24" }}>
               {idioma === "pt" ? "Restante" : "Remaining"}: {restanteRateio.toFixed(1)}%
             </span>
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => setModalRateio(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRateio}
-              disabled={processandoRateio || Math.abs(restanteRateio) > 0.01 || !rateioDesc.trim() || !rateioValor}
+              disabled={processandoRateio || Math.abs(restanteRateio) > 0.5 || !rateioDesc.trim() || !rateioValor}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #5b21b6, #8b5cf6)", color: "#fff" }}>
               {processandoRateio ? "..." : (idioma === "pt" ? "Aplicar Rateio" : "Apply")}
