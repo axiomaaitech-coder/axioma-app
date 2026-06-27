@@ -365,6 +365,9 @@ export default function CentrosCustoPage() {
               const usoOrc = orcado > 0 ? (custos / orcado) * 100 : 0;
               const variancia = orcado - custos;
               const participacao = totalCustos > 0 ? (custos / totalCustos) * 100 : 0;
+              const meta = centro.meta_receita || 0;
+              const usoMeta = meta > 0 ? (receitas / meta) * 100 : 0;
+              const corMeta = usoMeta >= 100 ? "#34d399" : usoMeta >= 70 ? "#6ab0ff" : "#fbbf24";
               const cor = getCor(i);
               const corOrc = usoOrc > 100 ? "#f87171" : usoOrc > 85 ? "#fbbf24" : "#34d399";
               return (
@@ -403,6 +406,28 @@ export default function CentrosCustoPage() {
                         </div>
                         <p className="text-xs mt-1" style={{ color: corOrc }}>
                           {variancia >= 0 ? `${fmt(variancia)} ${L.dentroOrc}` : `${fmt(Math.abs(variancia))} ${L.estourou}`}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Meta vs Realizado de Receita */}
+                    {meta > 0 && (
+                      <div className="mb-3">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span style={{ color: "#5a7a9a" }}>
+                            {idioma === "pt" ? "Meta Receita" : "Revenue Target"}: {fmt(meta)} · {L.realizado}: {fmt(receitas)}
+                          </span>
+                          <span style={{ color: corMeta, fontWeight: 700 }}>{usoMeta.toFixed(0)}%</span>
+                        </div>
+                        <div className="rounded-full h-2" style={{ background: "rgba(59,111,212,0.1)" }}>
+                          <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(usoMeta, 100)}%` }}
+                            transition={{ duration: 0.8, ease: "easeOut" }}
+                            className="h-2 rounded-full" style={{ background: corMeta }} />
+                        </div>
+                        <p className="text-xs mt-1" style={{ color: corMeta }}>
+                          {usoMeta >= 100
+                            ? (idioma === "pt" ? "🎯 Meta atingida!" : "🎯 Target reached!")
+                            : `${fmt(meta - receitas)} ${idioma === "pt" ? "para bater a meta" : "to reach target"}`}
                         </p>
                       </div>
                     )}
