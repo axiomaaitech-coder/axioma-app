@@ -211,6 +211,22 @@ export default function CentrosCustoPage() {
   const somaPercentuais = Object.values(rateioPercentuais).reduce((s, v) => s + parseFloat(v || "0"), 0);
   const restanteRateio = 100 - somaPercentuais;
 
+  function distribuirIgualmente() {
+    if (centros.length === 0) return;
+    const base = Math.floor((100 / centros.length) * 100) / 100; // 2 casas
+    const novo: Record<string, string> = {};
+    centros.forEach((c, idx) => {
+      // o último recebe o ajuste pra fechar exatamente 100%
+      if (idx === centros.length - 1) {
+        const resto = Number((100 - base * (centros.length - 1)).toFixed(2));
+        novo[c.id] = String(resto);
+      } else {
+        novo[c.id] = String(base);
+      }
+    });
+    setRateioPercentuais(novo);
+  }
+
   async function confirmarRateio() {
     if (!rateioDesc.trim() || !rateioValor) return;
     if (Math.abs(restanteRateio) > 0.5) return; // precisa somar 100%
@@ -619,7 +635,15 @@ export default function CentrosCustoPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Distribuição (%)" : "Distribution (%)"}</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Distribuição (%)" : "Distribution (%)"}</label>
+              {centros.length > 0 && (
+                <button onClick={distribuirIgualmente} className="text-xs font-semibold px-2 py-1 rounded-lg"
+                  style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
+                  {idioma === "pt" ? "Distribuir igualmente (100%)" : "Distribute equally"}
+                </button>
+              )}
+            </div>
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {centros.length === 0 ? (
                 <p className="text-xs" style={{ color: "#5a7a9a" }}>{cc.semCentros}</p>
