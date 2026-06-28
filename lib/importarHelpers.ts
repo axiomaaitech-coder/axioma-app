@@ -497,6 +497,199 @@ export async function gravarLinhas(params: {
 }
 
 // ============================================================================
+// LISTAR LINHAS DE UMA IMPORTAÇÃO (para o histórico expandido)
+// ============================================================================
+
+export async function listarLinhasImportacao(
+  importacaoId: string,
+  userId: string
+): Promise<any[]> {
+  const { data } = await supabase
+    .from("importacao_linhas")
+    .select("*")
+    .eq("importacao_id", importacaoId)
+    .eq("user_id", userId)
+    .order("linha_numero", { ascending: true });
+  return data || [];
+}
+
+// ============================================================================
+// EDITAR UMA LINHA JÁ IMPORTADA (atualiza destino real + auditoria)
+// ============================================================================
+
+export async function editarLinhaImportada(
+  linhaAuditoriaId: string,
+  userId: string,
+  novosDados: {
+    data?: string;
+    valor?: number;
+    descricao?: string;
+    categoria?: string;
+  }
+): Promise<{ erro: string | null }> {
+  // 1) Busca auditoria
+  const { data: aud, error: errBusca } = await supabase
+    .from("importacao_linhas")
+    .select("destino_tabela, destino_id, importacao_id")
+    .eq("id", linhaAuditoriaId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (errBusca) return { erro: errBusca.message };
+  if (!aud || !aud.destino_id) return { erro: "Linha nao encontrada ou ja foi removida" };
+
+  const destino = aud.destino_tabela as DestinoTabela;
+
+  // 2) Monta payload de UPDATE específico para o destino
+  const payload: Record<string, any> = {};
+
+  if (destino === "fluxo_caixa" || destino === "receitas" || destino === "custos_variaveis") {
+    if (novosDados.data !== undefined) payload.data = novosDados.data;
+    if (novosDados.valor !== undefined) payload.valor = novosDados.valor;
+    if (novosDados.descricao !== undefined) payload.descricao = novosDados.descricao;
+    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+  } else if (destino === "custos_fixos") {
+    if (novosDados.valor !== undefined) payload.valor_mensal = novosDados.valor;
+    if (novosDados.descricao !== undefined) payload.descricao = novosDados.descricao;
+    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+    if (novosDados.data !== undefined) {
+      const dia = new Date(novosDados.data + "T00:00:00").getDate();
+      payload.dia_vencimento = Math.max(1, Math.min(31, dia));
+    }
+  } else if (destino === "contas_pagar") {
+    if (novosDados.data !== undefined) payload.data_vencimento = novosDados.data;
+    if (novosDados.valor !== undefined) payload.valor_total = novosDados.valor;
+    if (novosDados.descricao !== undefined) payload.descricao = novosDados.descricao;
+    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+  } else if (destino === "contas_receber") {
+    if (novosDados.data !== undefined) payload.data_vencimento = novosDados.data;
+    if (novosDados.valor !== undefined) payload.valor = novosDados.valor;
+    if (novosDados.descricao !== undefined) payload.descricao = novosDados.descricao;
+    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+  } else if (destino === "fornecedores") {
+    if (novosDados.valor !== undefined) payload.valor_mensal = novosDados.valor;
+    if (novosDados.descricao !== undefined) payload.nome = novosDados.descricao;
+    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+  } else if (destino === "endividamento") {
+    if (novosDados.data !== undefined) payload.data_contratacao = novosDados.data;
+    if (novosDados.valor !== undefined) payload.valor_atual = novosDados.valor;
+    if (novosDados.descricao !== undefined) payload.descricao = novosDados.descricao;
+    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return { erro: "Nenhum campo para atualizar" };
+  }
+
+  // 3) UPDATE no destino real
+  const { error: errUpdate } = await supabase
+    .from(destino)
+    .update(payload)
+    .eq("id", aud.destino_id)
+    .eq("user_id", userId);
+
+  if (errUpdate) return { erro: errUpdate.message };
+
+  // 4) UPDATE na auditoria
+  const auditUpdate: Record<string, any> = {
+    mensagem: `Editada em ${new Date().toLocaleString("pt-BR")}`,
+  };
+  if (novosDados.data !== undefined) auditUpdate.data_lancamento = novosDados.data;
+  if (novosDados.valor !== undefined) auditUpdate.valor = novosDados.valor;
+  if (novosDados.descricao !== undefined) auditUpdate.descricao = novosDados.descricao;
+  if (novosDados.categoria !== undefined) auditUpdate.categoria = novosDados.categoria;
+
+  await supabase
+    .from("importacao_linhas")
+    .update(auditUpdate)
+    .eq("id", linhaAuditoriaId)
+    .eq("user_id", userId);
+
+  // 5) Recalcula totais da importação
+  await recalcularTotaisImportacao(aud.importacao_id, userId);
+
+  return { erro: null };
+}
+
+// ============================================================================
+// DELETAR UMA LINHA JÁ IMPORTADA (remove do destino + marca auditoria)
+// ============================================================================
+
+export async function deletarLinhaImportada(
+  linhaAuditoriaId: string,
+  userId: string
+): Promise<{ erro: string | null }> {
+  // 1) Busca auditoria
+  const { data: aud, error: errBusca } = await supabase
+    .from("importacao_linhas")
+    .select("destino_tabela, destino_id, importacao_id")
+    .eq("id", linhaAuditoriaId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (errBusca) return { erro: errBusca.message };
+  if (!aud || !aud.destino_id) return { erro: "Linha nao encontrada ou ja foi removida" };
+
+  // 2) Deleta no destino real
+  const { error: errDel } = await supabase
+    .from(aud.destino_tabela)
+    .delete()
+    .eq("id", aud.destino_id)
+    .eq("user_id", userId);
+
+  if (errDel) return { erro: errDel.message };
+
+  // 3) Marca auditoria como revertida
+  await supabase
+    .from("importacao_linhas")
+    .update({
+      status: "revertida",
+      mensagem: `Removida em ${new Date().toLocaleString("pt-BR")}`,
+    })
+    .eq("id", linhaAuditoriaId)
+    .eq("user_id", userId);
+
+  // 4) Recalcula totais da importação
+  await recalcularTotaisImportacao(aud.importacao_id, userId);
+
+  return { erro: null };
+}
+
+// ============================================================================
+// RECALCULAR TOTAIS DE UMA IMPORTAÇÃO (após edição ou exclusão de linha)
+// ============================================================================
+
+async function recalcularTotaisImportacao(importacaoId: string, userId: string): Promise<void> {
+  const { data: linhasImp } = await supabase
+    .from("importacao_linhas")
+    .select("valor, status")
+    .eq("importacao_id", importacaoId)
+    .eq("user_id", userId);
+
+  const lista = linhasImp || [];
+  const importadas = lista.filter((l: any) => l.status === "importada").length;
+  const duplicadas = lista.filter((l: any) => l.status === "duplicada").length;
+  const ignoradas = lista.filter((l: any) => l.status === "ignorada").length;
+  const erro = lista.filter((l: any) => l.status === "erro").length;
+  const valorTotal = lista
+    .filter((l: any) => l.status === "importada")
+    .reduce((s: number, l: any) => s + (Number(l.valor) || 0), 0);
+
+  await supabase
+    .from("importacoes")
+    .update({
+      linhas_importadas: importadas,
+      linhas_duplicadas: duplicadas,
+      linhas_ignoradas: ignoradas,
+      linhas_erro: erro,
+      valor_total_importado: valorTotal,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", importacaoId)
+    .eq("user_id", userId);
+}
+
+// ============================================================================
 // ROLLBACK: desfaz uma importação (remove todas as linhas dos destinos)
 // ============================================================================
 

@@ -26,6 +26,9 @@ import {
   carregarTemplates,
   salvarTemplate,
   gerarUrlAssinada,
+  listarLinhasImportacao,
+  editarLinhaImportada,
+  deletarLinhaImportada,
   type StatsMes,
 } from "../../../lib/importarHelpers";
 
@@ -324,6 +327,18 @@ export default function ImportarDocumentosPage() {
   const [filtroDestino, setFiltroDestino] = useState<string>("todos");
   const [loadingHistorico, setLoadingHistorico] = useState(true);
 
+  // Linhas de cada importação (carregadas sob demanda quando expande)
+  const [linhasPorImportacao, setLinhasPorImportacao] = useState<Record<string, any[]>>({});
+  const [carregandoLinhas, setCarregandoLinhas] = useState<string | null>(null);
+
+  // Modal de edição de linha
+  const [linhaEditando, setLinhaEditando] = useState<any | null>(null);
+  const [formEdicao, setFormEdicao] = useState<{ data: string; valor: string; descricao: string; categoria: string }>({
+    data: "", valor: "", descricao: "", categoria: "",
+  });
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const [deletandoLinha, setDeletandoLinha] = useState<string | null>(null);
+
   // Stats
   const [stats, setStats] = useState<StatsMes>({
     total_importado: 0, docs_processados: 0, docs_total: 0,
@@ -603,8 +618,101 @@ export default function ImportarDocumentosPage() {
   }
 
   // =========================================================================
-  // HISTÓRICO: desfazer, baixar, compartilhar
+  // HISTÓRICO: desfazer, baixar, compartilhar, expandir, editar, deletar
   // =========================================================================
+
+  async function expandirImportacao(id: string) {
+    if (expandida === id) {
+      setExpandida(null);
+      return;
+    }
+    setExpandida(id);
+    if (!linhasPorImportacao[id] && userId) {
+      setCarregandoLinhas(id);
+      try {
+        const lns = await listarLinhasImportacao(id, userId);
+        setLinhasPorImportacao((prev) => ({ ...prev, [id]: lns }));
+      } catch (err: any) {
+        showToast(err.message || "Erro ao carregar linhas", "erro");
+      }
+      setCarregandoLinhas(null);
+    }
+  }
+
+  function abrirEdicao(linha: any) {
+    setLinhaEditando(linha);
+    setFormEdicao({
+      data: linha.data_lancamento || "",
+      valor: String(linha.valor || ""),
+      descricao: linha.descricao || "",
+      categoria: linha.categoria || "",
+    });
+  }
+
+  function fecharEdicao() {
+    setLinhaEditando(null);
+    setFormEdicao({ data: "", valor: "", descricao: "", categoria: "" });
+  }
+
+  async function salvarEdicao() {
+    if (!linhaEditando || !userId) return;
+    setSalvandoEdicao(true);
+    try {
+      const valorNum = parseFloat(formEdicao.valor.replace(",", "."));
+      if (isNaN(valorNum)) {
+        showToast("Valor inválido", "erro");
+        setSalvandoEdicao(false);
+        return;
+      }
+      const r = await editarLinhaImportada(linhaEditando.id, userId, {
+        data: formEdicao.data || undefined,
+        valor: valorNum,
+        descricao: formEdicao.descricao || undefined,
+        categoria: formEdicao.categoria || undefined,
+      });
+      if (r.erro) {
+        showToast(r.erro, "erro");
+      } else {
+        showToast("Linha atualizada", "ok");
+        // Recarrega as linhas dessa importação + histórico + stats
+        const impId = linhaEditando.importacao_id;
+        const lns = await listarLinhasImportacao(impId, userId);
+        setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
+        await Promise.all([
+          carregarStatsMes(userId).then(setStats),
+          carregarHistoricoLista(userId),
+        ]);
+        fecharEdicao();
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erro ao salvar", "erro");
+    }
+    setSalvandoEdicao(false);
+  }
+
+  async function deletarLinha(linha: any) {
+    if (!userId) return;
+    if (!window.confirm("Tem certeza? Esta linha será removida do destino.")) return;
+    setDeletandoLinha(linha.id);
+    try {
+      const r = await deletarLinhaImportada(linha.id, userId);
+      if (r.erro) {
+        showToast(r.erro, "erro");
+      } else {
+        showToast("Linha removida", "ok");
+        const impId = linha.importacao_id;
+        const lns = await listarLinhasImportacao(impId, userId);
+        setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
+        await Promise.all([
+          carregarStatsMes(userId).then(setStats),
+          carregarHistoricoLista(userId),
+        ]);
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erro ao deletar", "erro");
+    }
+    setDeletandoLinha(null);
+  }
 
   async function desfazerImportacao(id: string) {
     if (!userId) return;
@@ -955,7 +1063,7 @@ export default function ImportarDocumentosPage() {
           historico={historicoFiltrado}
           loadingHistorico={loadingHistorico}
           expandida={expandida}
-          setExpandida={setExpandida}
+          expandirImportacao={expandirImportacao}
           revertendo={revertendo}
           desfazerImportacao={desfazerImportacao}
           baixarOriginal={baixarOriginal}
@@ -964,7 +1072,106 @@ export default function ImportarDocumentosPage() {
           setFiltroStatus={setFiltroStatus}
           filtroDestino={filtroDestino}
           setFiltroDestino={setFiltroDestino}
+          linhasPorImportacao={linhasPorImportacao}
+          carregandoLinhas={carregandoLinhas}
+          abrirEdicao={abrirEdicao}
+          deletarLinha={deletarLinha}
+          deletandoLinha={deletandoLinha}
         />
+      )}
+
+      {/* MODAL DE EDIÇÃO DE LINHA */}
+      {linhaEditando && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
+          onClick={fecharEdicao}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-5"
+            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>✏️ Editar Lançamento</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: "#c8d8f0" }}>Linha #{linhaEditando.linha_numero}</p>
+              </div>
+              <button onClick={fecharEdicao} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Data</label>
+                <input
+                  type="date"
+                  value={formEdicao.data}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, data: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                  style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Valor (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formEdicao.valor}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, valor: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                  style={{ background: "rgba(2,8,16,0.7)", color: "#34d399", border: "1px solid rgba(106,176,255,0.2)" }}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Descrição</label>
+                <input
+                  type="text"
+                  value={formEdicao.descricao}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, descricao: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                  style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Categoria</label>
+                <input
+                  type="text"
+                  value={formEdicao.categoria}
+                  onChange={(e) => setFormEdicao({ ...formEdicao, categoria: e.target.value })}
+                  placeholder="Ex: Vendas, Aluguel, Salário..."
+                  className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                  style={{ background: "rgba(2,8,16,0.7)", color: "#a78bfa", border: "1px solid rgba(106,176,255,0.2)" }}
+                />
+              </div>
+
+              <div className="rounded-lg p-2 text-[11px]" style={{ background: "rgba(106,176,255,0.05)", color: "#5a7a9a" }}>
+                ℹ️ A alteração será aplicada em <strong style={{ color: "#6ab0ff" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={fecharEdicao}
+                disabled={salvandoEdicao}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarEdicao}
+                disabled={salvandoEdicao}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}
+              >
+                {salvandoEdicao ? "Salvando..." : "✓ Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </ModuloLayout>
   );
@@ -1285,9 +1492,10 @@ function PreviewBlock(props: any) {
 
 function HistoricoBlock(props: any) {
   const {
-    tt, historico, loadingHistorico, expandida, setExpandida,
+    tt, historico, loadingHistorico, expandida, expandirImportacao,
     revertendo, desfazerImportacao, baixarOriginal, compartilharImportacao,
     filtroStatus, setFiltroStatus, filtroDestino, setFiltroDestino,
+    linhasPorImportacao, carregandoLinhas, abrirEdicao, deletarLinha, deletandoLinha,
   } = props;
 
   return (
@@ -1371,21 +1579,145 @@ function HistoricoBlock(props: any) {
 
                 {/* Detalhes expandidos */}
                 {isExp && (
-                  <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
-                    <p style={{ color: "#5a7a9a" }}>
-                      Hash: <span style={{ color: "#c8d8f0", fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
-                    </p>
-                    {item.tipo_arquivo && <p style={{ color: "#5a7a9a" }}>Formato: <span style={{ color: "#c8d8f0" }}>{item.tipo_arquivo.toUpperCase()}</span></p>}
-                    {item.tamanho_bytes > 0 && <p style={{ color: "#5a7a9a" }}>Tamanho: <span style={{ color: "#c8d8f0" }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}
-                    {item.tempo_processamento_ms > 0 && <p style={{ color: "#5a7a9a" }}>Tempo: <span style={{ color: "#c8d8f0" }}>{(item.tempo_processamento_ms / 1000).toFixed(1)}s</span></p>}
-                    {item.mensagem_erro && <p style={{ color: "#f87171" }}>⚠️ {item.mensagem_erro}</p>}
-                    {item.revertido_em && <p style={{ color: "#fbbf24" }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
+                  <div className="space-y-3">
+                    {/* Metadados */}
+                    <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
+                      <p style={{ color: "#5a7a9a" }}>
+                        Hash: <span style={{ color: "#c8d8f0", fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
+                      </p>
+                      {item.tipo_arquivo && <p style={{ color: "#5a7a9a" }}>Formato: <span style={{ color: "#c8d8f0" }}>{item.tipo_arquivo.toUpperCase()}</span></p>}
+                      {item.tamanho_bytes > 0 && <p style={{ color: "#5a7a9a" }}>Tamanho: <span style={{ color: "#c8d8f0" }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}
+                      {item.tempo_processamento_ms > 0 && <p style={{ color: "#5a7a9a" }}>Tempo: <span style={{ color: "#c8d8f0" }}>{(item.tempo_processamento_ms / 1000).toFixed(1)}s</span></p>}
+                      {item.mensagem_erro && <p style={{ color: "#f87171" }}>⚠️ {item.mensagem_erro}</p>}
+                      {item.revertido_em && <p style={{ color: "#fbbf24" }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
+                    </div>
+
+                    {/* Lista de linhas importadas com lápis/lixeira */}
+                    {carregandoLinhas === item.id ? (
+                      <div className="text-center py-4">
+                        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto" />
+                        <p className="text-xs mt-2" style={{ color: "#5a7a9a" }}>Carregando linhas...</p>
+                      </div>
+                    ) : linhasPorImportacao[item.id] ? (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>
+                          📋 Lançamentos desta Importação ({linhasPorImportacao[item.id].length})
+                        </p>
+
+                        {/* Tabela DESKTOP */}
+                        <div className="hidden md:block rounded-lg overflow-hidden" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
+                          <div className="max-h-80 overflow-auto">
+                            <table className="w-full text-xs">
+                              <thead style={{ background: "rgba(10,22,40,0.95)", position: "sticky", top: 0 }}>
+                                <tr>
+                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>#</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>Data</th>
+                                  <th className="px-2 py-2 text-right" style={{ color: "#5a7a9a" }}>Valor</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>Descrição</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>Categoria</th>
+                                  <th className="px-2 py-2 text-center" style={{ color: "#5a7a9a" }}>Status</th>
+                                  <th className="px-2 py-2 text-right" style={{ color: "#5a7a9a" }}>Ações</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {linhasPorImportacao[item.id].map((ln: any) => {
+                                  const editavel = ln.status === "importada";
+                                  return (
+                                    <tr key={ln.id} className="border-t" style={{
+                                      borderColor: "rgba(106,176,255,0.08)",
+                                      opacity: editavel ? 1 : 0.55,
+                                    }}>
+                                      <td className="px-2 py-1.5" style={{ color: "#5a7a9a" }}>{ln.linha_numero}</td>
+                                      <td className="px-2 py-1.5" style={{ color: "#c8d8f0" }}>{ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</td>
+                                      <td className="px-2 py-1.5 text-right font-semibold" style={{ color: "#34d399" }}>{formatBRL(Number(ln.valor) || 0)}</td>
+                                      <td className="px-2 py-1.5" style={{ color: "#c8d8f0", maxWidth: 200 }}>
+                                        <div className="truncate">{ln.descricao || "—"}</div>
+                                      </td>
+                                      <td className="px-2 py-1.5" style={{ color: "#a78bfa" }}>{ln.categoria || "—"}</td>
+                                      <td className="px-2 py-1.5 text-center">
+                                        <span className="px-1.5 py-0.5 rounded text-[10px]" style={{
+                                          background: ln.status === "importada" ? "rgba(52,211,153,0.15)" :
+                                                       ln.status === "duplicada" ? "rgba(251,191,36,0.15)" :
+                                                       ln.status === "revertida" ? "rgba(58,90,138,0.2)" :
+                                                       ln.status === "erro" ? "rgba(248,113,113,0.15)" : "rgba(106,176,255,0.1)",
+                                          color: ln.status === "importada" ? "#34d399" :
+                                                 ln.status === "duplicada" ? "#fbbf24" :
+                                                 ln.status === "revertida" ? "#5a7a9a" :
+                                                 ln.status === "erro" ? "#f87171" : "#6ab0ff",
+                                        }}>
+                                          {ln.status}
+                                        </span>
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right">
+                                        {editavel && (
+                                          <div className="flex gap-1 justify-end">
+                                            <button onClick={() => abrirEdicao(ln)}
+                                              title="Editar"
+                                              className="px-1.5 py-1 rounded hover:opacity-80"
+                                              style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>
+                                              ✏️
+                                            </button>
+                                            <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
+                                              title="Excluir"
+                                              className="px-1.5 py-1 rounded hover:opacity-80 disabled:opacity-30"
+                                              style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                                              {deletandoLinha === ln.id ? "⏳" : "🗑️"}
+                                            </button>
+                                          </div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Cards MOBILE */}
+                        <div className="md:hidden space-y-2 max-h-80 overflow-auto">
+                          {linhasPorImportacao[item.id].map((ln: any) => {
+                            const editavel = ln.status === "importada";
+                            return (
+                              <div key={ln.id} className="rounded-lg p-2.5" style={{
+                                background: "rgba(2,8,16,0.5)",
+                                border: "1px solid rgba(106,176,255,0.1)",
+                                opacity: editavel ? 1 : 0.55,
+                              }}>
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <span className="text-[10px]" style={{ color: "#5a7a9a" }}>#{ln.linha_numero} · {ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</span>
+                                  <span className="text-sm font-bold" style={{ color: "#34d399" }}>{formatBRL(Number(ln.valor) || 0)}</span>
+                                </div>
+                                <p className="text-xs truncate mb-1" style={{ color: "#c8d8f0" }}>{ln.descricao || "—"}</p>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[10px]" style={{ color: "#a78bfa" }}>{ln.categoria || "—"}</span>
+                                  {editavel && (
+                                    <div className="flex gap-1">
+                                      <button onClick={() => abrirEdicao(ln)}
+                                        className="px-2 py-1 rounded text-xs"
+                                        style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>
+                                        ✏️ Editar
+                                      </button>
+                                      <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
+                                        className="px-2 py-1 rounded text-xs disabled:opacity-30"
+                                        style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                                        {deletandoLinha === ln.id ? "⏳" : "🗑️"}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
                 {/* Ações */}
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setExpandida(isExp ? null : item.id)}
+                  <button onClick={() => expandirImportacao(item.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                     style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
                     {isExp ? "▲" : "▼"} {tt.detalhes}
