@@ -378,17 +378,6 @@ export default function Relatorios() {
     const texto = encodeURIComponent(montarTextoCompartilhamento());
     window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${texto}`, "_blank");
   }
-  function shareEmail() {
-    const assunto = encodeURIComponent(`Axioma - Relatório CFO ${MESES[mes - 1]}/${ano}`);
-    const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
-    // Método mais confiável que window.location.href ou window.open
-    const a = document.createElement("a");
-    a.href = `mailto:?subject=${assunto}&body=${corpo}`;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
   function shareGmail() {
     const assunto = encodeURIComponent(`Axioma - Relatório CFO ${MESES[mes - 1]}/${ano}`);
     const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
@@ -848,20 +837,15 @@ export default function Relatorios() {
                 style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}>
                 <span className="text-xl">✈️</span>Telegram
               </button>
-              <button onClick={shareEmail}
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(106,176,255,0.12)", border: "1px solid rgba(106,176,255,0.35)", color: "#6ab0ff" }}>
-                <span className="text-xl">📧</span>Email Padrão
-              </button>
               <button onClick={shareGmail}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
                 style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}>
-                <span className="text-xl">📨</span>Gmail Web
+                <span className="text-xl">📨</span>Gmail
               </button>
               <button onClick={shareOutlook}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
                 style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}>
-                <span className="text-xl">📩</span>Outlook Web
+                <span className="text-xl">📩</span>Outlook
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"

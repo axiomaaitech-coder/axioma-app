@@ -792,14 +792,6 @@ export default function ImportarDocumentosPage() {
     window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${texto}`, "_blank");
   }
 
-  function shareEmail() {
-    if (!shareModal) return;
-    const assunto = encodeURIComponent(`Axioma - ${shareModal.nome_arquivo}`);
-    const corpo = encodeURIComponent(montarTextoResumo(shareModal, "longo").replace(/\*/g, ""));
-    // window.location.href é o método universal pra disparar mailto:
-    window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
-  }
-
   function shareGmail() {
     if (!shareModal) return;
     const assunto = encodeURIComponent(`Axioma - ${shareModal.nome_arquivo}`);
@@ -1399,23 +1391,17 @@ export default function ImportarDocumentosPage() {
                 <span className="text-xl">✈️</span>
                 Telegram
               </button>
-              <button onClick={shareEmail}
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
-                style={{ background: "rgba(106,176,255,0.12)", border: "1px solid rgba(106,176,255,0.35)", color: "#6ab0ff" }}>
-                <span className="text-xl">📧</span>
-                Email Padrão
-              </button>
               <button onClick={shareGmail}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
                 style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}>
                 <span className="text-xl">📨</span>
-                Gmail Web
+                Gmail
               </button>
               <button onClick={shareOutlook}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
                 style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}>
                 <span className="text-xl">📩</span>
-                Outlook Web
+                Outlook
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
@@ -1440,7 +1426,7 @@ export default function ImportarDocumentosPage() {
             </div>
 
             <div className="rounded-lg p-2 text-[11px] mb-3" style={{ background: "rgba(106,176,255,0.05)", color: "#5a7a9a" }}>
-              ℹ️ <strong style={{ color: "#6ab0ff" }}>Email Padrão</strong> usa seu cliente instalado (Outlook/Thunderbird). Se não tiver, use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook Web</strong>. O <strong style={{ color: "#fb923c" }}>Link Seguro</strong> expira em 24h.
+              ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: "#fb923c" }}>Link Seguro</strong> expira em 24h.
             </div>
 
             <button onClick={fecharShareModal}
