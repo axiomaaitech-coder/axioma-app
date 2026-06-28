@@ -381,7 +381,13 @@ export default function Relatorios() {
   function shareEmail() {
     const assunto = encodeURIComponent(`Axioma - Relatório CFO ${MESES[mes - 1]}/${ano}`);
     const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
-    window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
+    // Método mais confiável que window.location.href ou window.open
+    const a = document.createElement("a");
+    a.href = `mailto:?subject=${assunto}&body=${corpo}`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
   function shareGmail() {
     const assunto = encodeURIComponent(`Axioma - Relatório CFO ${MESES[mes - 1]}/${ano}`);
