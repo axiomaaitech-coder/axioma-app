@@ -1,5 +1,6 @@
 // 🦅 AXIOMA AI.TECH - Helpers de Importação
-// Hash SHA-256, deduplicação, upload Storage, gravação nos destinos e rollback
+// Versão profissional: builders específicos por tabela, sem retry, sem omissão silenciosa.
+// Cada destino tem um builder que monta o payload EXATO pra aquela tabela.
 
 import CryptoJS from "crypto-js";
 import { createBrowserClient } from "@supabase/ssr";
@@ -11,28 +12,212 @@ const supabase = createBrowserClient(
 );
 
 // ============================================================================
-// MAPEAMENTO DE COLUNAS POR DESTINO
-// Se algum nome de coluna divergir, ajustar AQUI (linha única).
+// BUILDERS DE PAYLOAD POR DESTINO
+// Cada função sabe EXATAMENTE quais colunas existem na tabela alvo e
+// monta o payload correto. Sem chute, sem retry, sem perda de dado.
 // ============================================================================
 
-type ColunasDestino = {
-  data: string;
-  valor: string;
-  descricao: string;
-  categoria?: string;
-  tipo?: string; // pra fluxo_caixa
-  extras?: Record<string, any>;
-};
+type Builder = (
+  linha: LinhaImportada,
+  userId: string,
+  empresaId: string | null
+) => { payload: Record<string, any> } | { erro: string };
 
-const MAPA_DESTINOS: Record<DestinoTabela, ColunasDestino> = {
-  fluxo_caixa: { data: "data", valor: "valor", descricao: "descricao", categoria: "categoria", tipo: "tipo" },
-  receitas: { data: "data", valor: "valor", descricao: "descricao", categoria: "categoria" },
-  custos_fixos: { data: "data", valor: "valor", descricao: "descricao", categoria: "categoria" },
-  custos_variaveis: { data: "data", valor: "valor", descricao: "descricao", categoria: "categoria" },
-  contas_pagar: { data: "vencimento", valor: "valor", descricao: "descricao", categoria: "categoria" },
-  contas_receber: { data: "vencimento", valor: "valor", descricao: "descricao", categoria: "categoria" },
-  fornecedores: { data: "created_at", valor: "valor", descricao: "razao_social" },
-  endividamento: { data: "data_contratacao", valor: "valor", descricao: "descricao", categoria: "tipo" },
+function validarObrigatorios(linha: LinhaImportada): string | null {
+  if (!linha.data) return "Data ausente";
+  if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
+    return "Valor ausente ou inválido";
+  return null;
+}
+
+const BUILDERS: Record<DestinoTabela, Builder> = {
+  // -------------------------------------------------------------------------
+  // FLUXO DE CAIXA
+  // Schema real: data*, valor*, descricao*, tipo* (NOT NULL), categoria,
+  //              forma_pagamento, documento, status, user_id, empresa_id
+  // -------------------------------------------------------------------------
+  fluxo_caixa: (linha, userId, empresaId) => {
+    const erro = validarObrigatorios(linha);
+    if (erro) return { erro };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        data: linha.data,
+        valor: linha.valor,
+        descricao: linha.descricao || "Lançamento importado",
+        tipo: linha.tipo === "saida" ? "saida" : "entrada",
+        categoria: linha.categoria || null,
+        documento: linha.documento || null,
+        status: "confirmado",
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // RECEITAS
+  // Schema real: data*, valor*, descricao*, categoria, status, user_id,
+  //              forma_recebimento, documento, empresa_id
+  // -------------------------------------------------------------------------
+  receitas: (linha, userId, empresaId) => {
+    const erro = validarObrigatorios(linha);
+    if (erro) return { erro };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        data: linha.data,
+        valor: linha.valor,
+        descricao: linha.descricao || "Receita importada",
+        categoria: linha.categoria || null,
+        status: "recebido",
+        documento: linha.documento || null,
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // CUSTOS VARIÁVEIS
+  // Schema real: data*, valor*, descricao*, categoria, user_id, empresa_id,
+  //              forma_pagamento, documento
+  // -------------------------------------------------------------------------
+  custos_variaveis: (linha, userId, empresaId) => {
+    const erro = validarObrigatorios(linha);
+    if (erro) return { erro };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        data: linha.data,
+        valor: linha.valor,
+        descricao: linha.descricao || "Custo importado",
+        categoria: linha.categoria || null,
+        documento: linha.documento || null,
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // CUSTOS FIXOS (cadastro de recorrentes — não é lançamento)
+  // Schema real: descricao*, valor_mensal*, dia_vencimento (int 1-31),
+  //              categoria, user_id, empresa_id
+  // -------------------------------------------------------------------------
+  custos_fixos: (linha, userId, empresaId) => {
+    if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
+      return { erro: "Valor ausente - necessario para custo fixo" };
+    const dia = linha.data ? new Date(linha.data + "T00:00:00").getDate() : 1;
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        descricao: linha.descricao || "Custo fixo importado",
+        valor_mensal: linha.valor,
+        dia_vencimento: Math.max(1, Math.min(31, dia)),
+        categoria: linha.categoria || null,
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // CONTAS A PAGAR
+  // Schema real: descricao*, valor_total*, valor_pago* (default 0),
+  //              data_vencimento, data_emissao, data_pagamento, status,
+  //              numero_nota, categoria, forma_pagamento, parcelas,
+  //              fornecedor_id, user_id, empresa_id, observacoes
+  // -------------------------------------------------------------------------
+  contas_pagar: (linha, userId, empresaId) => {
+    if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
+      return { erro: "Valor ausente" };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        descricao: linha.descricao || "Conta a pagar importada",
+        valor_total: linha.valor,
+        valor_pago: 0,
+        data_emissao: linha.data || null,
+        data_vencimento: linha.data || null,
+        status: "pendente",
+        categoria: linha.categoria || null,
+        numero_nota: linha.documento || null,
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // CONTAS A RECEBER
+  // Schema real: descricao*, valor*, data_vencimento* (NOT NULL),
+  //              data_emissao, data_recebimento, status, cliente_id,
+  //              valor_recebido, forma_recebimento, numero_documento,
+  //              categoria, parcelas, taxa_juros, taxa_multa, user_id,
+  //              empresa_id, observacoes
+  // -------------------------------------------------------------------------
+  contas_receber: (linha, userId, empresaId) => {
+    if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
+      return { erro: "Valor ausente" };
+    if (!linha.data) return { erro: "Data de vencimento obrigatoria para Contas a Receber" };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        descricao: linha.descricao || "Conta a receber importada",
+        valor: linha.valor,
+        data_vencimento: linha.data,
+        data_emissao: linha.data,
+        status: "pendente",
+        categoria: linha.categoria || null,
+        numero_documento: linha.documento || null,
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // FORNECEDORES (cadastro)
+  // Schema real: nome* (NOT NULL), contato, produto_servico, valor_mensal,
+  //              categoria, user_id, empresa_id, tipo_pessoa, documento,
+  //              razao_social, nome_fantasia, email, telefone, etc.
+  // -------------------------------------------------------------------------
+  fornecedores: (linha, userId, empresaId) => {
+    const nome = (linha.descricao || "").trim();
+    if (!nome) return { erro: "Nome do fornecedor obrigatorio (use a coluna descricao)" };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        nome: nome,
+        razao_social: nome,
+        documento: linha.cnpj || null,
+        tipo_pessoa: linha.cnpj && linha.cnpj.length > 14 ? "PJ" : "PF",
+        categoria: linha.categoria || null,
+        valor_mensal: linha.valor || 0,
+        status: "ativo",
+      },
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // ENDIVIDAMENTO
+  // Schema (criado pelo SQL de schema-fix): descricao*, valor_original*,
+  //              credor, valor_atual, taxa_juros, parcelas, data_contratacao,
+  //              status, categoria, user_id, empresa_id
+  // -------------------------------------------------------------------------
+  endividamento: (linha, userId, empresaId) => {
+    if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
+      return { erro: "Valor original obrigatorio" };
+    return {
+      payload: {
+        user_id: userId,
+        empresa_id: empresaId,
+        descricao: linha.descricao || "Endividamento importado",
+        credor: linha.descricao || null,
+        valor_original: linha.valor,
+        valor_atual: linha.valor,
+        data_contratacao: linha.data || null,
+        status: "ativo",
+        categoria: linha.categoria || null,
+      },
+    };
+  },
 };
 
 // ============================================================================
@@ -42,7 +227,6 @@ const MAPA_DESTINOS: Record<DestinoTabela, ColunasDestino> = {
 export async function hashArquivo(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  // Converte pra WordArray do crypto-js
   const wordArray = CryptoJS.lib.WordArray.create(bytes as any);
   return CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
 }
@@ -79,8 +263,8 @@ export async function marcarDuplicatasPorLinha(
   linhas: LinhaImportada[],
   destino: DestinoTabela
 ): Promise<boolean[]> {
-  // Busca hashes de linhas já importadas pro mesmo destino
   const hashesNovos = linhas.map(hashLinha);
+  if (hashesNovos.length === 0) return [];
 
   const { data: linhasExistentes } = await supabase
     .from("importacao_linhas")
@@ -160,12 +344,13 @@ export async function criarImportacao(params: {
     .select("id")
     .single();
 
-  if (error) throw new Error(`Erro ao criar importação: ${error.message}`);
+  if (error) throw new Error(`Erro ao criar importacao: ${error.message}`);
   return data.id;
 }
 
 // ============================================================================
 // GRAVAR LINHAS NOS DESTINOS REAIS + importacao_linhas (auditoria)
+// SEM RETRY, SEM REMOÇÃO SILENCIOSA. Cada erro é registrado com clareza.
 // ============================================================================
 
 export type ResultadoGravacao = {
@@ -187,7 +372,11 @@ export async function gravarLinhas(params: {
   destino: DestinoTabela;
 }): Promise<ResultadoGravacao> {
   const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destino } = params;
-  const cols = MAPA_DESTINOS[destino];
+
+  const builder = BUILDERS[destino];
+  if (!builder) {
+    throw new Error(`Destino nao suportado: ${destino}`);
+  }
 
   const resultado: ResultadoGravacao = {
     importadas: 0,
@@ -203,24 +392,26 @@ export async function gravarLinhas(params: {
   for (let i = 0; i < linhas.length; i++) {
     const linha = linhas[i];
     const numLinha = i + 1;
+    const hashLn = hashLinha(linha);
+
+    const auditoriaBase = {
+      importacao_id: importacaoId,
+      user_id: userId,
+      empresa_id: empresaId,
+      linha_numero: numLinha,
+      dados_brutos: linha.raw,
+      destino_tabela: destino,
+      data_lancamento: linha.data,
+      valor: linha.valor,
+      descricao: linha.descricao,
+      categoria: linha.categoria,
+      hash_linha: hashLn,
+    };
 
     // 1) Linha desmarcada → ignorada
     if (!selecionadas[i]) {
       resultado.ignoradas++;
-      auditoriaRows.push({
-        importacao_id: importacaoId,
-        user_id: userId,
-        empresa_id: empresaId,
-        linha_numero: numLinha,
-        dados_brutos: linha.raw,
-        destino_tabela: destino,
-        data_lancamento: linha.data,
-        valor: linha.valor,
-        descricao: linha.descricao,
-        categoria: linha.categoria,
-        hash_linha: hashLinha(linha),
-        status: "ignorada",
-      });
+      auditoriaRows.push({ ...auditoriaBase, status: "ignorada" });
       continue;
     }
 
@@ -228,114 +419,62 @@ export async function gravarLinhas(params: {
     if (duplicadas[i]) {
       resultado.duplicadas++;
       auditoriaRows.push({
-        importacao_id: importacaoId,
-        user_id: userId,
-        empresa_id: empresaId,
-        linha_numero: numLinha,
-        dados_brutos: linha.raw,
-        destino_tabela: destino,
-        data_lancamento: linha.data,
-        valor: linha.valor,
-        descricao: linha.descricao,
-        categoria: linha.categoria,
-        hash_linha: hashLinha(linha),
+        ...auditoriaBase,
         status: "duplicada",
-        mensagem: "Lançamento já existia no sistema",
+        mensagem: "Lancamento ja existia no sistema",
       });
       continue;
     }
 
-    // 3) Validação mínima
-    if (!linha.data || linha.valor === undefined || linha.valor === null) {
+    // 3) Montar payload via builder específico do destino
+    const build = builder(linha, userId, empresaId);
+    if ("erro" in build) {
       resultado.erro++;
+      resultado.mensagens_erro.push(`Linha ${numLinha}: ${build.erro}`);
       auditoriaRows.push({
-        importacao_id: importacaoId,
-        user_id: userId,
-        empresa_id: empresaId,
-        linha_numero: numLinha,
-        dados_brutos: linha.raw,
-        destino_tabela: destino,
-        data_lancamento: linha.data,
-        valor: linha.valor,
-        descricao: linha.descricao,
-        hash_linha: hashLinha(linha),
+        ...auditoriaBase,
         status: "erro",
-        mensagem: "Data ou valor ausente",
+        mensagem: build.erro,
       });
       continue;
     }
 
-    // 4) Monta payload pro destino
-    const payload: any = {
-      user_id: userId,
-      empresa_id: empresaId,
-      [cols.data]: linha.data,
-      [cols.valor]: linha.valor,
-      [cols.descricao]: linha.descricao || "Lançamento importado",
-    };
-    if (cols.categoria && linha.categoria) {
-      payload[cols.categoria] = linha.categoria;
-    }
-    if (cols.tipo && linha.tipo) {
-      payload[cols.tipo] = linha.tipo;
-    }
-
-    // 5) Insere no destino
+    // 4) Inserir no destino (uma tentativa, sem retry)
     const { data: inserido, error } = await supabase
       .from(destino)
-      .insert(payload)
+      .insert(build.payload)
       .select("id")
       .single();
 
     if (error || !inserido) {
       resultado.erro++;
-      const msg = error?.message || "Erro desconhecido";
+      const msg = error?.message || "Erro desconhecido ao inserir";
       resultado.mensagens_erro.push(`Linha ${numLinha}: ${msg}`);
       auditoriaRows.push({
-        importacao_id: importacaoId,
-        user_id: userId,
-        empresa_id: empresaId,
-        linha_numero: numLinha,
-        dados_brutos: linha.raw,
-        destino_tabela: destino,
-        data_lancamento: linha.data,
-        valor: linha.valor,
-        descricao: linha.descricao,
-        categoria: linha.categoria,
-        hash_linha: hashLinha(linha),
+        ...auditoriaBase,
         status: "erro",
         mensagem: msg,
       });
       continue;
     }
 
-    // 6) Sucesso: grava auditoria
+    // 5) Sucesso
     resultado.importadas++;
-    resultado.valor_total += linha.valor;
+    resultado.valor_total += linha.valor || 0;
     auditoriaRows.push({
-      importacao_id: importacaoId,
-      user_id: userId,
-      empresa_id: empresaId,
-      linha_numero: numLinha,
-      dados_brutos: linha.raw,
-      destino_tabela: destino,
+      ...auditoriaBase,
       destino_id: inserido.id,
-      data_lancamento: linha.data,
-      valor: linha.valor,
-      descricao: linha.descricao,
-      categoria: linha.categoria,
-      hash_linha: hashLinha(linha),
       status: "importada",
     });
   }
 
-  // Insere auditoria em lote (chunks de 500 pra não estourar limites)
+  // Insere auditoria em lote (chunks de 500)
   for (let i = 0; i < auditoriaRows.length; i += 500) {
     const chunk = auditoriaRows.slice(i, i + 500);
     await supabase.from("importacao_linhas").insert(chunk);
   }
 
-  // Atualiza cabeçalho com totais e status
+  // Atualiza cabeçalho com status final
   let statusFinal = "concluido";
   if (resultado.importadas === 0 && resultado.erro > 0) statusFinal = "erro";
   else if (resultado.erro > 0 || resultado.duplicadas > 0) statusFinal = "parcialmente";
@@ -361,11 +500,10 @@ export async function gravarLinhas(params: {
 // ROLLBACK: desfaz uma importação (remove todas as linhas dos destinos)
 // ============================================================================
 
-export async function reverterImportacao(importacaoId: string, userId: string): Promise<{
-  removidas: number;
-  erros: string[];
-}> {
-  // Busca todas as linhas importadas com sucesso
+export async function reverterImportacao(
+  importacaoId: string,
+  userId: string
+): Promise<{ removidas: number; erros: string[] }> {
   const { data: linhas } = await supabase
     .from("importacao_linhas")
     .select("id, destino_tabela, destino_id")
@@ -376,7 +514,6 @@ export async function reverterImportacao(importacaoId: string, userId: string): 
   const erros: string[] = [];
   let removidas = 0;
 
-  // Agrupa por destino_tabela pra deletar em lote
   const porTabela = new Map<string, string[]>();
   (linhas || []).forEach((l: any) => {
     if (!l.destino_id) return;
@@ -386,7 +523,6 @@ export async function reverterImportacao(importacaoId: string, userId: string): 
   });
 
   for (const [tabela, ids] of porTabela.entries()) {
-    // Deleta em chunks
     for (let i = 0; i < ids.length; i += 100) {
       const chunk = ids.slice(i, i + 100);
       const { error, count } = await supabase
@@ -403,7 +539,6 @@ export async function reverterImportacao(importacaoId: string, userId: string): 
     }
   }
 
-  // Marca linhas como revertidas
   await supabase
     .from("importacao_linhas")
     .update({ status: "revertida" })
@@ -411,7 +546,6 @@ export async function reverterImportacao(importacaoId: string, userId: string): 
     .eq("user_id", userId)
     .eq("status", "importada");
 
-  // Atualiza cabeçalho
   await supabase
     .from("importacoes")
     .update({
@@ -464,7 +598,7 @@ export async function carregarStatsMes(userId: string): Promise<StatsMes> {
     taxa_sucesso: total > 0 ? Math.round((sucesso / total) * 100) : 0,
     duplicadas_evitadas: duplicadas,
     tempo_medio_seg: total > 0 ? Math.round(tempoTotal / total / 1000) : 0,
-    horas_economizadas: Math.round((totalLinhas * 30) / 3600), // 30s por linha manual
+    horas_economizadas: Math.round((totalLinhas * 30) / 3600),
   };
 }
 
