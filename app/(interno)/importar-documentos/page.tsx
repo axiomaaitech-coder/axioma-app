@@ -29,6 +29,7 @@ import {
   listarLinhasImportacao,
   editarLinhaImportada,
   deletarLinhaImportada,
+  excluirRegistroImportacao,
   type StatsMes,
 } from "../../../lib/importarHelpers";
 
@@ -338,6 +339,11 @@ export default function ImportarDocumentosPage() {
   });
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const [deletandoLinha, setDeletandoLinha] = useState<string | null>(null);
+
+  // Modal Centro de Compartilhamento + Excluir registro
+  const [shareModal, setShareModal] = useState<any | null>(null);
+  const [gerandoPdfIndividual, setGerandoPdfIndividual] = useState(false);
+  const [excluindoRegistro, setExcluindoRegistro] = useState<string | null>(null);
 
   // Stats
   const [stats, setStats] = useState<StatsMes>({
@@ -731,9 +737,184 @@ export default function ImportarDocumentosPage() {
     setRevertendo(null);
   }
 
+  // ========== CENTRO DE COMPARTILHAMENTO ===================================
+
+  function montarTextoResumo(item: any, formato: "curto" | "longo" = "longo"): string {
+    const dest = DESTINOS.find((d) => d.key === item.destino)?.label || item.destino;
+    const stInfo = STATUS_INFO[item.status]?.label || item.status;
+
+    if (formato === "curto") {
+      return [
+        `🦅 *Axioma AI.Tech*`,
+        `📄 ${item.nome_arquivo}`,
+        `✅ ${item.linhas_importadas || 0} ${tt.importadas} • 💰 ${formatBRL(Number(item.valor_total_importado) || 0)}`,
+        `🎯 ${dest}`,
+      ].join("\n");
+    }
+
+    return [
+      `🦅 *AXIOMA AI.TECH — ${tt.compartilharTitulo}*`,
+      ``,
+      `📄 Arquivo: *${item.nome_arquivo}*`,
+      `📅 Data: ${formatDataHora(item.created_at)}`,
+      `🎯 ${tt.destino}: *${dest}*`,
+      `📊 Status: ${stInfo}`,
+      ``,
+      `*Resultado:*`,
+      `✅ ${item.linhas_importadas || 0} ${tt.importadas}`,
+      `⚠️ ${item.linhas_duplicadas || 0} ${tt.duplicadas}`,
+      `❌ ${item.linhas_erro || 0} ${tt.erros}`,
+      ``,
+      `💰 *${tt.valorTotal}:* ${formatBRL(Number(item.valor_total_importado) || 0)}`,
+      ``,
+      `_Gerado por axiomaai.com.br_`,
+    ].join("\n");
+  }
+
+  function abrirShareModal(item: any) {
+    setShareModal(item);
+  }
+
+  function fecharShareModal() {
+    setShareModal(null);
+  }
+
+  function shareWhatsApp() {
+    if (!shareModal) return;
+    const texto = encodeURIComponent(montarTextoResumo(shareModal, "longo"));
+    window.open(`https://wa.me/?text=${texto}`, "_blank");
+  }
+
+  function shareTelegram() {
+    if (!shareModal) return;
+    const texto = encodeURIComponent(montarTextoResumo(shareModal, "longo"));
+    const titulo = encodeURIComponent(`Axioma - ${shareModal.nome_arquivo}`);
+    window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${texto}`, "_blank");
+  }
+
+  function shareEmail() {
+    if (!shareModal) return;
+    const assunto = encodeURIComponent(`Axioma - ${shareModal.nome_arquivo}`);
+    const corpo = encodeURIComponent(montarTextoResumo(shareModal, "longo").replace(/\*/g, ""));
+    window.open(`mailto:?subject=${assunto}&body=${corpo}`, "_blank");
+  }
+
+  async function shareCopiarTexto() {
+    if (!shareModal) return;
+    try {
+      await navigator.clipboard.writeText(montarTextoResumo(shareModal, "longo").replace(/\*/g, ""));
+      showToast(tt.arquivoCopiado, "ok");
+    } catch {
+      showToast("Erro ao copiar", "erro");
+    }
+  }
+
+  async function shareCopiarLinkArquivo() {
+    if (!shareModal || !shareModal.storage_path) {
+      showToast("Arquivo original nao disponivel", "erro");
+      return;
+    }
+    const url = await gerarUrlAssinada(shareModal.storage_path, 86400); // 24h
+    if (!url) {
+      showToast("Erro ao gerar link seguro", "erro");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("Link seguro copiado (valido por 24h)", "ok");
+    } catch {
+      window.prompt("Link seguro (valido por 24h):", url);
+    }
+  }
+
+  async function shareBaixarPdfIndividual() {
+    if (!shareModal || !userId) return;
+    setGerandoPdfIndividual(true);
+    try {
+      // Carrega as linhas dessa importação (com cache)
+      let lns = linhasPorImportacao[shareModal.id];
+      if (!lns) {
+        lns = await listarLinhasImportacao(shareModal.id, userId);
+        setLinhasPorImportacao((prev) => ({ ...prev, [shareModal.id]: lns }));
+      }
+
+      const dest = DESTINOS.find((d) => d.key === shareModal.destino)?.label || shareModal.destino;
+      const stInfo = STATUS_INFO[shareModal.status]?.label || shareModal.status;
+
+      const colunas = [
+        { header: "#", key: "num", width: 12, align: "left" as const },
+        { header: "DATA", key: "data", width: 22, align: "left" as const },
+        { header: "DESCRIÇÃO", key: "desc", width: 70, align: "left" as const },
+        { header: "CATEGORIA", key: "cat", width: 30, align: "left" as const },
+        { header: "STATUS", key: "st", width: 22, align: "left" as const },
+        { header: "VALOR", key: "valor", width: 28, align: "right" as const },
+      ];
+
+      const linhasPdf = (lns || []).map((l: any) => ({
+        num: String(l.linha_numero || ""),
+        data: l.data_lancamento ? new Date(l.data_lancamento).toLocaleDateString("pt-BR") : "—",
+        desc: l.descricao || "—",
+        cat: l.categoria || "—",
+        st: l.status || "—",
+        valor: formatBRL(Number(l.valor) || 0),
+      }));
+
+      const resumo = [
+        { label: "Arquivo", valor: shareModal.nome_arquivo },
+        { label: "Data Importação", valor: formatDataHora(shareModal.created_at) },
+        { label: tt.destino, valor: dest },
+        { label: "Status", valor: stInfo },
+        { label: tt.importadas, valor: String(shareModal.linhas_importadas || 0) },
+        { label: tt.duplicadas, valor: String(shareModal.linhas_duplicadas || 0) },
+        { label: tt.erros, valor: String(shareModal.linhas_erro || 0) },
+        { label: tt.valorTotal, valor: formatBRL(Number(shareModal.valor_total_importado) || 0) },
+      ];
+
+      await gerarPdfTabela({
+        titulo: `Importação - ${shareModal.nome_arquivo}`,
+        subtitulo: `${formatDataHora(shareModal.created_at)} • ${dest}`,
+        colunas,
+        linhas: linhasPdf,
+        resumo,
+        nomeArquivo: `axioma-importacao-${shareModal.nome_arquivo.replace(/\.[^.]+$/, "")}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      });
+      showToast("PDF gerado", "ok");
+    } catch (err: any) {
+      showToast(err.message || "Erro ao gerar PDF", "erro");
+    }
+    setGerandoPdfIndividual(false);
+  }
+
+  // ========== EXCLUIR REGISTRO (só erro/revertido) ==========================
+
+  async function excluirRegistro(item: any) {
+    if (!userId) return;
+    if (!window.confirm(`Tem certeza que deseja excluir o registro de "${item.nome_arquivo}"?\n\nIsso remove APENAS o histórico desta importação (status: ${item.status}). Nenhum lançamento será afetado.`)) {
+      return;
+    }
+    setExcluindoRegistro(item.id);
+    try {
+      const r = await excluirRegistroImportacao(item.id, userId);
+      if (r.erro) {
+        showToast(r.erro, "erro");
+      } else {
+        showToast("Registro removido do historico", "ok");
+        await Promise.all([
+          carregarStatsMes(userId).then(setStats),
+          carregarHistoricoLista(userId),
+        ]);
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erro ao excluir", "erro");
+    }
+    setExcluindoRegistro(null);
+  }
+
+  // ========== AÇÕES LEGADAS ================================================
+
   async function baixarOriginal(item: any) {
     if (!item.storage_path) {
-      showToast("Arquivo original não disponível", "erro");
+      showToast("Arquivo original nao disponivel", "erro");
       return;
     }
     const url = await gerarUrlAssinada(item.storage_path);
@@ -741,39 +922,9 @@ export default function ImportarDocumentosPage() {
     else showToast("Erro ao gerar link", "erro");
   }
 
-  async function compartilharImportacao(item: any) {
-    const dest = DESTINOS.find((d) => d.key === item.destino)?.label || item.destino;
-    const txt = [
-      `🦅 Axioma AI.Tech - ${tt.compartilharTitulo}`,
-      ``,
-      `📄 ${item.nome_arquivo}`,
-      `📅 ${formatDataHora(item.created_at)}`,
-      `🎯 ${tt.destino}: ${dest}`,
-      `✅ ${item.linhas_importadas || 0} ${tt.importadas}`,
-      `⚠️ ${item.linhas_duplicadas || 0} ${tt.duplicadas}`,
-      `❌ ${item.linhas_erro || 0} ${tt.erros}`,
-      `💰 ${tt.valorTotal}: ${formatBRL(Number(item.valor_total_importado) || 0)}`,
-    ].join("\n");
-
-    const titulo = `Axioma - ${item.nome_arquivo}`;
-
-    // Web Share API (mobile/desktop suportado)
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await (navigator as any).share({ title: titulo, text: txt });
-        return;
-      } catch {
-        // usuário cancelou ou erro → fallback pra clipboard
-      }
-    }
-
-    // Fallback: clipboard
-    try {
-      await navigator.clipboard.writeText(txt);
-      showToast(tt.arquivoCopiado, "ok");
-    } catch {
-      showToast("Não foi possível compartilhar", "erro");
-    }
+  // Função antiga renomeada — agora abre o modal Centro de Compartilhamento
+  function compartilharImportacao(item: any) {
+    abrirShareModal(item);
   }
 
   // =========================================================================
@@ -1077,6 +1228,8 @@ export default function ImportarDocumentosPage() {
           abrirEdicao={abrirEdicao}
           deletarLinha={deletarLinha}
           deletandoLinha={deletandoLinha}
+          excluirRegistro={excluirRegistro}
+          excluindoRegistro={excluindoRegistro}
         />
       )}
 
@@ -1170,6 +1323,96 @@ export default function ImportarDocumentosPage() {
                 {salvandoEdicao ? "Salvando..." : "✓ Salvar"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CENTRO DE COMPARTILHAMENTO */}
+      {shareModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
+          onClick={fecharShareModal}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl p-5"
+            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📤 Centro de Compartilhamento</p>
+                <p className="text-sm font-bold mt-0.5 truncate" style={{ color: "#c8d8f0" }}>{shareModal.nome_arquivo}</p>
+              </div>
+              <button onClick={fecharShareModal} className="text-xl ml-2" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+
+            {/* Mini-preview do resumo */}
+            <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
+              <p style={{ color: "#5a7a9a" }}>
+                📅 {formatDataHora(shareModal.created_at)} •
+                🎯 <span style={{ color: "#6ab0ff" }}>{DESTINOS.find((d) => d.key === shareModal.destino)?.label || shareModal.destino}</span>
+              </p>
+              <p>
+                <span style={{ color: "#34d399" }}>✅ {shareModal.linhas_importadas || 0}</span> •
+                <span style={{ color: "#fbbf24" }}> ⚠️ {shareModal.linhas_duplicadas || 0}</span> •
+                <span style={{ color: "#f87171" }}> ❌ {shareModal.linhas_erro || 0}</span> •
+                <span style={{ color: "#c8d8f0" }}> 💰 {formatBRL(Number(shareModal.valor_total_importado) || 0)}</span>
+              </p>
+            </div>
+
+            {/* Grid de canais */}
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>Compartilhar via</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              <button onClick={shareWhatsApp}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
+                style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}>
+                <span className="text-xl">📱</span>
+                WhatsApp
+              </button>
+              <button onClick={shareTelegram}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
+                style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}>
+                <span className="text-xl">✈️</span>
+                Telegram
+              </button>
+              <button onClick={shareEmail}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
+                style={{ background: "rgba(106,176,255,0.12)", border: "1px solid rgba(106,176,255,0.35)", color: "#6ab0ff" }}>
+                <span className="text-xl">📧</span>
+                Email
+              </button>
+              <button onClick={shareCopiarTexto}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                <span className="text-xl">📋</span>
+                Copiar Resumo
+              </button>
+              {shareModal.storage_path && (
+                <button onClick={shareCopiarLinkArquivo}
+                  className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
+                  style={{ background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.35)", color: "#fb923c" }}>
+                  <span className="text-xl">🔗</span>
+                  Link Seguro 24h
+                </button>
+              )}
+              <button onClick={shareBaixarPdfIndividual} disabled={gerandoPdfIndividual}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
+                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
+                <span className="text-xl">{gerandoPdfIndividual ? "⏳" : "📄"}</span>
+                {gerandoPdfIndividual ? "Gerando..." : "PDF Individual"}
+              </button>
+            </div>
+
+            <div className="rounded-lg p-2 text-[11px] mb-3" style={{ background: "rgba(106,176,255,0.05)", color: "#5a7a9a" }}>
+              ℹ️ O <strong style={{ color: "#fb923c" }}>Link Seguro</strong> usa URL assinada que expira em 24h. O <strong style={{ color: "#dc2626" }}>PDF Individual</strong> contém todos os lançamentos desta importação com cabeçalho profissional Axioma.
+            </div>
+
+            <button onClick={fecharShareModal}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+              Fechar
+            </button>
           </div>
         </div>
       )}
@@ -1496,6 +1739,7 @@ function HistoricoBlock(props: any) {
     revertendo, desfazerImportacao, baixarOriginal, compartilharImportacao,
     filtroStatus, setFiltroStatus, filtroDestino, setFiltroDestino,
     linhasPorImportacao, carregandoLinhas, abrirEdicao, deletarLinha, deletandoLinha,
+    excluirRegistro, excluindoRegistro,
   } = props;
 
   return (
@@ -1544,6 +1788,7 @@ function HistoricoBlock(props: any) {
           const stInfo = STATUS_INFO[item.status] || { label: item.status, cor: "#6ab0ff" };
           const isExp = expandida === item.id;
           const podeDesfazer = item.status === "concluido" || item.status === "parcialmente";
+          const podeExcluirRegistro = item.status === "erro" || item.status === "revertido" || item.status === "falhou";
           return (
             <CanvasBox key={item.id} cor={destInfo.cor}>
               <div className="space-y-3">
@@ -1739,6 +1984,13 @@ function HistoricoBlock(props: any) {
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 ml-auto"
                       style={{ background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
                       {revertendo === item.id ? `⏳ ${tt.desfazendo}` : `↩️ ${tt.desfazer}`}
+                    </button>
+                  )}
+                  {podeExcluirRegistro && (
+                    <button onClick={() => excluirRegistro(item)} disabled={excluindoRegistro === item.id}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 ml-auto"
+                      style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.4)", color: "#f87171" }}>
+                      {excluindoRegistro === item.id ? "⏳ Excluindo..." : "🗑️ Excluir registro"}
                     </button>
                   )}
                 </div>

@@ -301,9 +301,59 @@ export async function uploadArquivo(
   return path;
 }
 
-export async function gerarUrlAssinada(path: string): Promise<string | null> {
-  const { data } = await supabase.storage.from("documentos").createSignedUrl(path, 3600);
+export async function gerarUrlAssinada(path: string, segundos: number = 3600): Promise<string | null> {
+  const { data } = await supabase.storage.from("documentos").createSignedUrl(path, segundos);
   return data?.signedUrl || null;
+}
+
+// ============================================================================
+// EXCLUIR REGISTRO DE IMPORTAÇÃO (só para importações com erro ou revertidas)
+// Remove a linha da auditoria e do histórico. Não toca em destinos —
+// nessas importações nada foi efetivamente gravado nos lançamentos finais.
+// ============================================================================
+
+export async function excluirRegistroImportacao(
+  importacaoId: string,
+  userId: string
+): Promise<{ erro: string | null }> {
+  // 1) Valida que a importação existe e pertence ao usuário
+  const { data: imp, error: errBusca } = await supabase
+    .from("importacoes")
+    .select("id, status, linhas_importadas")
+    .eq("id", importacaoId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (errBusca) return { erro: errBusca.message };
+  if (!imp) return { erro: "Importacao nao encontrada" };
+
+  // 2) Só permite exclusão de erro/revertido/cancelado (segurança)
+  const statusPermitidos = ["erro", "revertido", "falhou"];
+  if (!statusPermitidos.includes(imp.status)) {
+    return {
+      erro: `Nao e possivel excluir registro com status '${imp.status}'. Desfaça a importacao primeiro.`,
+    };
+  }
+
+  // 3) Deleta as linhas de auditoria (FK CASCADE já faria, mas explicitamos)
+  const { error: errLinhas } = await supabase
+    .from("importacao_linhas")
+    .delete()
+    .eq("importacao_id", importacaoId)
+    .eq("user_id", userId);
+
+  if (errLinhas) return { erro: `Erro ao limpar linhas: ${errLinhas.message}` };
+
+  // 4) Deleta o cabeçalho
+  const { error: errImp } = await supabase
+    .from("importacoes")
+    .delete()
+    .eq("id", importacaoId)
+    .eq("user_id", userId);
+
+  if (errImp) return { erro: `Erro ao remover registro: ${errImp.message}` };
+
+  return { erro: null };
 }
 
 // ============================================================================
