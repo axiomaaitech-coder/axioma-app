@@ -1,301 +1,858 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { Send, TrendingUp, AlertTriangle, Lightbulb, CheckCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
+import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { motion, AnimatePresence } from "framer-motion";
+import { CanvasBox } from "../../../components/CanvasBox";
+import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
+import {
+  carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias,
+  gerarProjecoes, simularWhatIf, gerarPlanoAcao, gerarResumoNarrado,
+  montarPromptCFO, respostaPorRegras, salvarMensagem, carregarHistorico, limparHistorico,
+  type SnapshotFinanceiro, type Score360, type Anomalia, type Projecao, type AcaoSugerida, type BenchmarkSetor,
+} from "../../../lib/iaFinanceiraHelpers";
 
-function CanvasNeural() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-      size: Math.random() * 2 + 0.5,
-      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
-    }));
-    const chars = "AXIOMA IA FINANCE AI 0 1 2 3 4 5 6 7 8 9 R$ % ROI DRE".split(" ").map((char) => ({
-      char, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
-      color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"][Math.floor(Math.random() * 5)],
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`;
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 110) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 110) * 0.12;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
-          }
-        });
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />;
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// ============================================================================
+// I18N PT/EN/ES
+// ============================================================================
+const T = {
+  pt: {
+    titulo: "🧠 IA Financeira",
+    subtitulo: "Seu CFO Digital — análise inteligente com dados reais",
+    carregando: "Carregando inteligência...",
+    // Abas
+    abaScore: "🏆 Score 360°",
+    abaChat: "💬 Chat CFO",
+    abaAnomalias: "🔍 Anomalias",
+    abaProjecoes: "🔮 Projeções",
+    abaWhatIf: "⚡ What-If",
+    abaPlano: "🎯 Plano de Ação",
+    abaResumo: "📊 Resumo Executivo",
+    abaBenchmark: "📈 Benchmark",
+    // Score
+    scoreEmpresarial: "Score Empresarial 360°",
+    dimensoes: "Dimensões",
+    indicadores: "Indicadores",
+    sugestao: "Sugestão IA",
+    bom: "Bom",
+    atencao: "Atenção",
+    critico: "Crítico",
+    // Chat
+    chatTitulo: "💬 Chat com seu CFO Digital",
+    chatPlaceholder: "Pergunte sobre suas finanças...",
+    chatAnalisando: "Analisando seus dados...",
+    chatLimpar: "🗑️ Limpar histórico",
+    chatLimparConfirm: "Limpar todo o histórico de conversas?",
+    chatSugestoes: ["Qual minha margem líquida?", "Como reduzir custos?", "Como está meu fluxo de caixa?", "Qual meu score empresarial?"],
+    // Anomalias
+    anomaliasTitulo: "🔍 Anomalias & Alertas",
+    anomaliasVazio: "Nenhuma anomalia detectada. Seus indicadores estão dentro do esperado.",
+    alerta: "Alerta",
+    info: "Info",
+    // Projeções
+    projecoesTitulo: "🔮 Projeção de Receita — Próximos 6 Meses",
+    otimista: "Otimista",
+    realista: "Realista",
+    pessimista: "Pessimista",
+    projecoesVazio: "Sem dados suficientes para projeções. Cadastre ao menos 2 meses de receitas.",
+    // What-If
+    whatIfTitulo: "⚡ Simulador What-If",
+    whatIfDescricao: "Simule cenários e veja o impacto no lucro e margem da sua empresa.",
+    cenarioReceita: "Receita sobe/desce %",
+    cenarioCustosFix: "Custos fixos sobem/descem %",
+    cenarioCustosVar: "Custos variáveis sobem/descem %",
+    cenarioPreco: "Preço sobe/desce %",
+    simular: "Simular",
+    lucroAntes: "Lucro Antes",
+    lucroDepois: "Lucro Depois",
+    diferenca: "Diferença",
+    margemAntes: "Margem Antes",
+    margemDepois: "Margem Depois",
+    // Plano de Ação
+    planoTitulo: "🎯 Plano de Ação IA",
+    planoDescricao: "5 ações prioritárias baseadas nos seus dados reais.",
+    planoVazio: "Cadastre dados financeiros para receber ações personalizadas.",
+    impacto: "Impacto estimado",
+    prioridade: "Prioridade",
+    // Resumo
+    resumoTitulo: "📊 Resumo Executivo Narrado",
+    resumoDescricao: "IA analisa seus dados e gera o relatório do mês.",
+    // Benchmark
+    benchmarkTitulo: "📈 Benchmark Setorial",
+    benchmarkDescricao: "Compare seus indicadores com a média do setor.",
+    seuValor: "Seu valor",
+    faixaSetor: "Faixa do setor",
+    // Share
+    compartilhar: "📤 Compartilhar",
+    centroCompart: "Centro de Compartilhamento",
+    compartilharVia: "Compartilhar via",
+    fechar: "Fechar",
+    copiar: "Copiar",
+    pdfRelatorio: "PDF Relatório",
+    gerando: "Gerando...",
+    cartaoCopiado: "Copiado!",
+    erroCopiar: "Erro ao copiar",
+  },
+  en: {
+    titulo: "🧠 Financial AI",
+    subtitulo: "Your Digital CFO — intelligent analysis with real data",
+    carregando: "Loading intelligence...",
+    abaScore: "🏆 Score 360°",
+    abaChat: "💬 CFO Chat",
+    abaAnomalias: "🔍 Anomalies",
+    abaProjecoes: "🔮 Projections",
+    abaWhatIf: "⚡ What-If",
+    abaPlano: "🎯 Action Plan",
+    abaResumo: "📊 Executive Summary",
+    abaBenchmark: "📈 Benchmark",
+    scoreEmpresarial: "Business Score 360°",
+    dimensoes: "Dimensions",
+    indicadores: "Indicators",
+    sugestao: "AI Suggestion",
+    bom: "Good",
+    atencao: "Caution",
+    critico: "Critical",
+    chatTitulo: "💬 Chat with your Digital CFO",
+    chatPlaceholder: "Ask about your finances...",
+    chatAnalisando: "Analyzing your data...",
+    chatLimpar: "🗑️ Clear history",
+    chatLimparConfirm: "Clear all conversation history?",
+    chatSugestoes: ["What's my net margin?", "How to reduce costs?", "How's my cash flow?", "What's my business score?"],
+    anomaliasTitulo: "🔍 Anomalies & Alerts",
+    anomaliasVazio: "No anomalies detected. Your indicators are within expected range.",
+    alerta: "Alert",
+    info: "Info",
+    projecoesTitulo: "🔮 Revenue Projection — Next 6 Months",
+    otimista: "Optimistic",
+    realista: "Realistic",
+    pessimista: "Pessimistic",
+    projecoesVazio: "Not enough data for projections. Register at least 2 months of revenues.",
+    whatIfTitulo: "⚡ What-If Simulator",
+    whatIfDescricao: "Simulate scenarios and see the impact on your profit and margin.",
+    cenarioReceita: "Revenue up/down %",
+    cenarioCustosFix: "Fixed costs up/down %",
+    cenarioCustosVar: "Variable costs up/down %",
+    cenarioPreco: "Price up/down %",
+    simular: "Simulate",
+    lucroAntes: "Profit Before",
+    lucroDepois: "Profit After",
+    diferenca: "Difference",
+    margemAntes: "Margin Before",
+    margemDepois: "Margin After",
+    planoTitulo: "🎯 AI Action Plan",
+    planoDescricao: "5 priority actions based on your real data.",
+    planoVazio: "Register financial data to receive personalized actions.",
+    impacto: "Estimated impact",
+    prioridade: "Priority",
+    resumoTitulo: "📊 Narrated Executive Summary",
+    resumoDescricao: "AI analyzes your data and generates the monthly report.",
+    benchmarkTitulo: "📈 Industry Benchmark",
+    benchmarkDescricao: "Compare your indicators with industry average.",
+    seuValor: "Your value",
+    faixaSetor: "Industry range",
+    compartilhar: "📤 Share",
+    centroCompart: "Sharing Center",
+    compartilharVia: "Share via",
+    fechar: "Close",
+    copiar: "Copy",
+    pdfRelatorio: "PDF Report",
+    gerando: "Generating...",
+    cartaoCopiado: "Copied!",
+    erroCopiar: "Copy error",
+  },
+  es: {
+    titulo: "🧠 IA Financiera",
+    subtitulo: "Su CFO Digital — análisis inteligente con datos reales",
+    carregando: "Cargando inteligencia...",
+    abaScore: "🏆 Score 360°",
+    abaChat: "💬 Chat CFO",
+    abaAnomalias: "🔍 Anomalías",
+    abaProjecoes: "🔮 Proyecciones",
+    abaWhatIf: "⚡ What-If",
+    abaPlano: "🎯 Plan de Acción",
+    abaResumo: "📊 Resumen Ejecutivo",
+    abaBenchmark: "📈 Benchmark",
+    scoreEmpresarial: "Score Empresarial 360°",
+    dimensoes: "Dimensiones",
+    indicadores: "Indicadores",
+    sugestao: "Sugerencia IA",
+    bom: "Bueno",
+    atencao: "Atención",
+    critico: "Crítico",
+    chatTitulo: "💬 Chat con su CFO Digital",
+    chatPlaceholder: "Pregunte sobre sus finanzas...",
+    chatAnalisando: "Analizando sus datos...",
+    chatLimpar: "🗑️ Limpiar historial",
+    chatLimparConfirm: "¿Limpiar todo el historial de conversaciones?",
+    chatSugestoes: ["¿Cuál es mi margen neto?", "¿Cómo reducir costos?", "¿Cómo está mi flujo de caja?", "¿Cuál es mi score empresarial?"],
+    anomaliasTitulo: "🔍 Anomalías & Alertas",
+    anomaliasVazio: "Sin anomalías detectadas. Sus indicadores están dentro de lo esperado.",
+    alerta: "Alerta",
+    info: "Info",
+    projecoesTitulo: "🔮 Proyección de Ingresos — Próximos 6 Meses",
+    otimista: "Optimista",
+    realista: "Realista",
+    pessimista: "Pesimista",
+    projecoesVazio: "Datos insuficientes para proyecciones. Registre al menos 2 meses de ingresos.",
+    whatIfTitulo: "⚡ Simulador What-If",
+    whatIfDescricao: "Simule escenarios y vea el impacto en su beneficio y margen.",
+    cenarioReceita: "Ingresos suben/bajan %",
+    cenarioCustosFix: "Costos fijos suben/bajan %",
+    cenarioCustosVar: "Costos variables suben/bajan %",
+    cenarioPreco: "Precio sube/baja %",
+    simular: "Simular",
+    lucroAntes: "Beneficio Antes",
+    lucroDepois: "Beneficio Después",
+    diferenca: "Diferencia",
+    margemAntes: "Margen Antes",
+    margemDepois: "Margen Después",
+    planoTitulo: "🎯 Plan de Acción IA",
+    planoDescricao: "5 acciones prioritarias basadas en sus datos reales.",
+    planoVazio: "Registre datos financieros para recibir acciones personalizadas.",
+    impacto: "Impacto estimado",
+    prioridade: "Prioridad",
+    resumoTitulo: "📊 Resumen Ejecutivo Narrado",
+    resumoDescricao: "IA analiza sus datos y genera el informe del mes.",
+    benchmarkTitulo: "📈 Benchmark Sectorial",
+    benchmarkDescricao: "Compare sus indicadores con el promedio del sector.",
+    seuValor: "Su valor",
+    faixaSetor: "Rango del sector",
+    compartilhar: "📤 Compartir",
+    centroCompart: "Centro de Compartir",
+    compartilharVia: "Compartir vía",
+    fechar: "Cerrar",
+    copiar: "Copiar",
+    pdfRelatorio: "PDF Informe",
+    gerando: "Generando...",
+    cartaoCopiado: "¡Copiado!",
+    erroCopiar: "Error al copiar",
+  },
+};
+
+const tooltipStyle = { background: "rgba(2,8,16,0.97)", border: "1px solid rgba(106,176,255,0.3)", borderRadius: "12px", color: "#c8d8f0", fontSize: "12px" };
+
+function formatBRL(n: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
 }
 
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
-}) {
-  return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.97)", border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
-    }}>
-      <CanvasNeural />
-      {[
-        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }} />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
-    </div>
-  );
-}
-
-const insights = {
-  pt: [
-    { tipo: "alerta", icon: AlertTriangle, texto: "Custos com fornecedores aumentaram 8% em relação ao mês anterior. Recomenda-se renegociar contratos.", cor: "#f87171" },
-    { tipo: "positivo", icon: CheckCircle, texto: "Faturamento cresceu 12% — melhor resultado do trimestre! Continue investindo em marketing.", cor: "#34d399" },
-    { tipo: "sugestao", icon: Lightbulb, texto: "Sua margem líquida está em 18%. Empresas do setor operam com 22-25%. Há espaço para melhorar.", cor: "#fbbf24" },
-    { tipo: "info", icon: TrendingUp, texto: "Fluxo de caixa previsto para os próximos 30 dias: positivo em R$ 12.400. Boa liquidez.", cor: "#6ab0ff" },
-  ],
-  en: [
-    { tipo: "alerta", icon: AlertTriangle, texto: "Supplier costs increased 8% compared to last month. Renegotiating contracts is recommended.", cor: "#f87171" },
-    { tipo: "positivo", icon: CheckCircle, texto: "Revenue grew 12% — best result of the quarter! Keep investing in marketing.", cor: "#34d399" },
-    { tipo: "sugestao", icon: Lightbulb, texto: "Your net margin is 18%. Companies in the sector operate at 22-25%. There is room to improve.", cor: "#fbbf24" },
-    { tipo: "info", icon: TrendingUp, texto: "Cash flow forecast for the next 30 days: positive at R$ 12,400. Good liquidity.", cor: "#6ab0ff" },
-  ],
-  es: [
-    { tipo: "alerta", icon: AlertTriangle, texto: "Los costos con proveedores aumentaron 8% respecto al mes anterior. Se recomienda renegociar contratos.", cor: "#f87171" },
-    { tipo: "positivo", icon: CheckCircle, texto: "La facturación creció 12% — mejor resultado del trimestre! Sigue invirtiendo en marketing.", cor: "#34d399" },
-    { tipo: "sugestao", icon: Lightbulb, texto: "Tu margen neto es del 18%. Las empresas del sector operan entre 22-25%. Hay margen de mejora.", cor: "#fbbf24" },
-    { tipo: "info", icon: TrendingUp, texto: "Previsión de flujo de caja para los próximos 30 días: positivo en R$ 12.400. Buena liquidez.", cor: "#6ab0ff" },
-  ],
-};
-
-const perguntasSugeridas = {
-  pt: ["Como posso reduzir meus custos fixos?", "Qual é minha margem de lucro ideal?", "Como melhorar meu fluxo de caixa?"],
-  en: ["How can I reduce my fixed costs?", "What is my ideal profit margin?", "How to improve my cash flow?"],
-  es: ["¿Cómo puedo reducir mis costos fijos?", "¿Cuál es mi margen de beneficio ideal?", "¿Cómo mejorar mi flujo de caja?"],
-};
-
-const respostas: Record<string, string> = {
-  "Como posso reduzir meus custos fixos?": "Analisando seus dados, identifiquei 3 oportunidades: 1) Renegociar o aluguel (representa 21% dos custos fixos); 2) Revisar assinaturas de software; 3) Otimizar a folha de pagamento. Potencial de redução: R$ 2.800/mês.",
-  "Qual é minha margem de lucro ideal?": "Sua margem atual é de 18%. Para o seu setor, a referência é 22-25%. Recomendo começar pela revisão dos custos com fornecedores.",
-  "Como melhorar meu fluxo de caixa?": "Sugiro: 1) Antecipar recebíveis — você tem R$ 1.500 pendentes; 2) Negociar prazos maiores com fornecedores; 3) Criar uma reserva de emergência.",
-  "How can I reduce my fixed costs?": "Analyzing your data, I identified 3 opportunities: 1) Renegotiate rent (21% of fixed costs); 2) Review software subscriptions; 3) Optimize payroll. Potential reduction: R$ 2,800/month.",
-  "What is my ideal profit margin?": "Your current margin is 18%. The industry benchmark is 22-25%. I recommend starting by reviewing supplier costs.",
-  "How to improve my cash flow?": "I suggest: 1) Advance receivables — you have R$ 1,500 pending; 2) Negotiate longer terms with suppliers; 3) Create an emergency reserve.",
-  "¿Cómo puedo reducir mis costos fijos?": "Analizando sus datos, identifiqué 3 oportunidades: 1) Renegociar el alquiler; 2) Revisar suscripciones de software; 3) Optimizar la nómina. Reducción potencial: R$ 2.800/mes.",
-  "¿Cuál es mi margen de beneficio ideal?": "Su margen actual es del 18%. El benchmark del sector es 22-25%. Recomiendo comenzar revisando los costos con proveedores.",
-  "¿Cómo mejorar mi flujo de caja?": "Sugiero: 1) Anticipar cobros pendientes; 2) Negociar plazos más largos con proveedores; 3) Crear una reserva de emergencia.",
-};
-
-const textos = {
-  pt: { subtitulo: "Análise inteligente dos seus dados financeiros", placeholder: "Pergunte sobre suas finanças...", analisando: "Analisando seus dados..." },
-  en: { subtitulo: "Intelligent analysis of your financial data", placeholder: "Ask about your finances...", analisando: "Analyzing your data..." },
-  es: { subtitulo: "Análisis inteligente de tus datos financieros", placeholder: "Pregunta sobre tus finanzas...", analisando: "Analizando tus datos..." },
-};
-
-export default function IAFinanceira() {
-  const { t, idioma } = useLanguage();
-  const tx = textos[idioma];
-  const inputRef = useRef<HTMLInputElement>(null);
-  const conteudoRef = useRef<HTMLDivElement>(null);
+export default function IAFinanceiraPage() {
+  const { idioma } = useLanguage();
+  const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const tt = T[lang];
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const msgInicial = idioma === "en"
-    ? "Hello! I'm your Financial AI. I've analyzed all your data and I'm ready to help. What would you like to know?"
-    : idioma === "es"
-    ? "¡Hola! Soy tu IA Financiera. Analicé todos tus datos y estoy listo para ayudar. ¿Qué te gustaría saber?"
-    : "Olá! Sou sua IA Financeira. Analisei todos os seus dados e estou pronto para ajudar. O que você gostaria de saber?";
-
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([{ role: "assistant", texto: msgInicial }]);
-  const [input, setInput] = useState("");
-  const [carregando, setCarregando] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
+  const [aba, setAba] = useState<"score" | "chat" | "anomalias" | "projecoes" | "whatif" | "plano" | "resumo" | "benchmark">("score");
+
+  // Dados reais
+  const [snap, setSnap] = useState<SnapshotFinanceiro | null>(null);
+  const [score360, setScore360] = useState<Score360 | null>(null);
+  const [bench, setBench] = useState<BenchmarkSetor | null>(null);
+  const [anomalias, setAnomalias] = useState<Anomalia[]>([]);
+  const [projecoes, setProjecoes] = useState<Projecao[]>([]);
+  const [acoes, setAcoes] = useState<AcaoSugerida[]>([]);
+  const [resumo, setResumo] = useState("");
+
+  // Chat
+  const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([]);
+  const [inputChat, setInputChat] = useState("");
+  const [chatCarregando, setChatCarregando] = useState(false);
+
+  // What-If
+  const [whatIfTipo, setWhatIfTipo] = useState("receita_pct");
+  const [whatIfValor, setWhatIfValor] = useState(10);
+  const [whatIfResultado, setWhatIfResultado] = useState<any>(null);
+
+  // Share
+  const [shareAberto, setShareAberto] = useState(false);
+
+  // Toast
+  const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "info" | "erro" | "ok" = "info") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  useEffect(() => { inicializar(); }, []);
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [mensagens, carregando]);
+  }, [mensagens, chatCarregando]);
 
-  const enviarMensagem = (texto: string) => {
-    if (!texto.trim() || carregando) return;
-    const msgUsuario = { role: "user", texto };
-    const novasMensagens = [...mensagens, msgUsuario];
-    setMensagens(novasMensagens);
-    setInput("");
+  async function inicializar() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setCarregando(false); return; }
+    setUserId(user.id);
+    await carregarTudo(user.id);
+  }
+
+  async function carregarTudo(uid: string) {
     setCarregando(true);
-    setTimeout(() => {
-      const resposta = respostas[texto] || (
-        idioma === "en" ? "Great question! Based on your financial data, I recommend analyzing each cost category in detail. Can I elaborate on a specific area?"
-        : idioma === "es" ? "¡Excelente pregunta! Basándome en tus datos financieros, recomiendo analizar cada categoría de costos en detalle. ¿Puedo detallar algún área específica?"
-        : "Ótima pergunta! Com base nos seus dados financeiros, recomendo analisar detalhadamente cada categoria de custo. Posso detalhar alguma área específica?"
-      );
-      setMensagens([...novasMensagens, { role: "assistant", texto: resposta }]);
-      setCarregando(false);
-    }, 1500);
-  };
+    try {
+      const snapshot = await carregarSnapshot(uid);
+      const benchmark = await carregarBenchmark(snapshot.setor);
+      const score = calcularScore360(snapshot, benchmark);
+      const anom = detectarAnomalias(snapshot, benchmark);
+      const proj = gerarProjecoes(snapshot);
+      const plano = gerarPlanoAcao(snapshot, score, anom);
+      const res = gerarResumoNarrado(snapshot, score, benchmark, lang);
 
-  const exportarPDF = async () => {
-    if (!conteudoRef.current) return;
+      setSnap(snapshot);
+      setBench(benchmark);
+      setScore360(score);
+      setAnomalias(anom);
+      setProjecoes(proj);
+      setAcoes(plano);
+      setResumo(res);
+
+      // Carregar histórico de chat
+      const hist = await carregarHistorico(uid);
+      if (hist.length > 0) {
+        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem })));
+      } else {
+        const msgInicial = lang === "en"
+          ? `Hello! I'm your Digital CFO. Your Business Score is ${score.total}/100. Ask me anything about your finances.`
+          : lang === "es"
+          ? `¡Hola! Soy su CFO Digital. Su Score Empresarial es ${score.total}/100. Pregunte lo que quiera sobre sus finanzas.`
+          : `Olá! Sou seu CFO Digital. Seu Score Empresarial é ${score.total}/100. Pergunte o que quiser sobre suas finanças.`;
+        setMensagens([{ role: "assistant", texto: msgInicial }]);
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erro", "erro");
+    }
+    setCarregando(false);
+  }
+
+  // =========================================================================
+  // CHAT
+  // =========================================================================
+  async function enviarMensagem(texto: string) {
+    if (!texto.trim() || chatCarregando || !snap || !score360 || !userId) return;
+    const novas = [...mensagens, { role: "user", texto }];
+    setMensagens(novas);
+    setInputChat("");
+    setChatCarregando(true);
+
+    await salvarMensagem(userId, "user", texto);
+
+    // Tentar Claude API primeiro, fallback pra regras
+    let resposta = "";
+    let modelo = "regras";
+
+    try {
+      const res = await fetch("/api/ia-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: montarPromptCFO(snap, score360, bench, texto, lang),
+          mensagens: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        resposta = data.resposta || "";
+        modelo = "claude";
+      }
+    } catch {}
+
+    // Fallback: resposta por regras
+    if (!resposta) {
+      resposta = respostaPorRegras(snap, score360, bench, texto, lang);
+    }
+
+    setMensagens([...novas, { role: "assistant", texto: resposta }]);
+    await salvarMensagem(userId, "assistant", resposta, { score: score360.total }, modelo);
+    setChatCarregando(false);
+  }
+
+  async function onLimparHistorico() {
+    if (!userId) return;
+    if (!window.confirm(tt.chatLimparConfirm)) return;
+    await limparHistorico(userId);
+    setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared. How can I help?" : lang === "es" ? "Historial limpio. ¿Cómo puedo ayudar?" : "Histórico limpo. Como posso ajudar?" }]);
+  }
+
+  // =========================================================================
+  // WHAT-IF
+  // =========================================================================
+  function executarWhatIf() {
+    if (!snap) return;
+    const resultado = simularWhatIf(snap, { tipo: whatIfTipo, valor: whatIfValor });
+    setWhatIfResultado(resultado);
+  }
+
+  // =========================================================================
+  // SHARE
+  // =========================================================================
+  function montarTextoShare(): string {
+    if (!snap || !score360) return "Axioma AI.Tech";
+    return [
+      `🦅 *AXIOMA AI.TECH — IA Financeira*`,
+      ``,
+      `🏆 *Score 360°:* ${score360.total}/100 (${lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel})`,
+      ``,
+      `💰 ${lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita"}: ${formatBRL(snap.receita_bruta)}`,
+      `📊 ${lang === "en" ? "Net Margin" : lang === "es" ? "Margen Neto" : "Margem Líquida"}: ${snap.margem_liquida.toFixed(1)}%`,
+      `✅ ${lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro"}: ${formatBRL(snap.lucro_liquido)}`,
+      ``,
+      score360.dimensoes.map(d => `${lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome}: ${d.score}/100`).join("\n"),
+      ``,
+      `_axiomaai.com.br_`,
+    ].join("\n");
+  }
+
+  function shareWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
+  function shareTelegram() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
+  function shareGmail() {
+    const s = encodeURIComponent("Axioma IA Financeira"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, ""));
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`, "_blank", "noopener,noreferrer");
+  }
+  function shareOutlook() {
+    const s = encodeURIComponent("Axioma IA Financeira"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, ""));
+    window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${s}&body=${b}`, "_blank", "noopener,noreferrer");
+  }
+  async function shareCopiar() {
+    try { await navigator.clipboard.writeText(montarTextoShare().replace(/\*/g, "")); showToast(tt.cartaoCopiado, "ok"); }
+    catch { showToast(tt.erroCopiar, "erro"); }
+  }
+
+  // PDF
+  async function exportarPDF() {
+    if (!snap || !score360) return;
     setExportando(true);
     try {
-      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, "F");
-      pdf.setTextColor(106, 176, 255); pdf.setFontSize(14); pdf.setFont("helvetica", "bold");
-      pdf.text("AXIOMA AI.TECH", 14, 13);
-      pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`${t.nav.iaFinanceira} - ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-      let position = 22; let remaining = pdfHeight;
-      while (remaining > 0) {
-        const sliceHeight = Math.min(pageHeight - position, remaining);
-        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
-        const sourceH = sliceHeight * (canvas.height / pdfHeight);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width; sliceCanvas.height = sourceH;
-        const ctx = sliceCanvas.getContext("2d")!;
-        ctx.fillStyle = "#020810"; ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
-        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
-        remaining -= sliceHeight; position = 0;
-        if (remaining > 0) { pdf.addPage(); position = 0; }
-      }
-      pdf.save(`axioma-ia-financeira-${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) { console.error(err); }
+      await gerarPdfTabela({
+        titulo: `${tt.titulo} — Score ${score360.total}/100`,
+        subtitulo: snap.periodo,
+        colunas: [
+          { header: lang === "en" ? "INDICATOR" : lang === "es" ? "INDICADOR" : "INDICADOR", key: "ind", width: 55, align: "left" as const },
+          { header: lang === "en" ? "VALUE" : "VALOR", key: "val", width: 35, align: "right" as const },
+          { header: "STATUS", key: "st", width: 25, align: "left" as const },
+        ],
+        linhas: [
+          { ind: lang === "en" ? "Revenue" : "Receita", val: formatBRL(snap.receita_bruta), st: "—" },
+          { ind: lang === "en" ? "Net Profit" : "Lucro Líquido", val: formatBRL(snap.lucro_liquido), st: snap.lucro_liquido >= 0 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Gross Margin" : "Margem Bruta", val: `${snap.margem_bruta.toFixed(1)}%`, st: snap.margem_bruta >= 40 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Net Margin" : "Margem Líquida", val: `${snap.margem_liquida.toFixed(1)}%`, st: snap.margem_liquida >= 10 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Delinquency" : "Inadimplência", val: `${snap.inadimplencia_pct.toFixed(1)}%`, st: snap.inadimplencia_pct <= 5 ? "OK" : "⚠️" },
+          ...score360.dimensoes.map(d => ({ ind: lang === "en" ? d.nome_en : d.nome, val: `${d.score}/100`, st: d.score >= 60 ? "OK" : "⚠️" })),
+        ],
+        resumo: [
+          { label: "Score 360°", valor: `${score360.total}/100 (${lang === "en" ? score360.nivel_en : score360.nivel})` },
+          { label: lang === "en" ? "Period" : "Período", valor: snap.periodo },
+        ],
+        nomeArquivo: `axioma-ia-financeira-${snap.periodo.replace("/", "-")}.pdf`,
+      });
+    } catch (err: any) { showToast(err.message, "erro"); }
     setExportando(false);
-  };
+  }
+
+  const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  const dimNome = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
+  const dimSugestao = (d: any) => lang === "en" ? d.sugestao_en : lang === "es" ? d.sugestao_es : d.sugestao;
+  const anomTitulo = (a: Anomalia) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
+  const anomDesc = (a: Anomalia) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
+  const acaoTitulo = (a: AcaoSugerida) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
+  const acaoDesc = (a: AcaoSugerida) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
 
   return (
-    <ModuloLayout titulo={t.nav.iaFinanceira} subtitulo={tx.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
-      <div ref={conteudoRef} className="space-y-4">
-
-        {/* Insights */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {insights[idioma].map((insight, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <CanvasBox cor={insight.cor} corB="#6ab0ff" corC="#a78bfa" corD="#34d399">
-                <div className="flex items-start gap-4">
-                  <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
-                    className="p-2 rounded-xl flex-shrink-0" style={{ background: `${insight.cor}15` }}>
-                    <insight.icon size={18} style={{ color: insight.cor }} />
-                  </motion.div>
-                  <p className="text-sm" style={{ color: "#8aaad4" }}>{insight.texto}</p>
-                </div>
-              </CanvasBox>
-            </motion.div>
-          ))}
+    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
         </div>
+      )}
 
-        {/* Chat */}
-        <CanvasBox cor="#6ab0ff" corB="#a78bfa" corC="#34d399" corD="#fbbf24">
-          <div className="mb-4">
-            <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-              className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-              style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>AXIOMA AI.TECH</motion.p>
-            <h3 className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>🤖 {t.nav.iaFinanceira}</h3>
+      {carregando && (
+        <CanvasBox cor="#a78bfa">
+          <div className="py-12 text-center">
+            <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm" style={{ color: "#a78bfa" }}>{tt.carregando}</p>
           </div>
+        </CanvasBox>
+      )}
 
-          {/* Mensagens */}
-          <div ref={chatRef} className="space-y-4 min-h-48 max-h-80 overflow-auto mb-4 pr-1">
-            <AnimatePresence>
-              {mensagens.map((m, i) => (
-                <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl text-sm"
-                    style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(59,111,212,0.1)"}`, color: "#c8d8f0" }}>
-                    {m.texto}
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            {carregando && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                <div className="px-4 py-3 rounded-2xl text-sm flex items-center gap-2"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.1)", color: "#3a5a8a" }}>
-                  <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }}>●</motion.span>
-                  <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}>●</motion.span>
-                  <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}>●</motion.span>
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Sugestões */}
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {perguntasSugeridas[idioma].map((p, i) => (
-              <motion.button key={i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => enviarMensagem(p)}
-                className="text-xs px-3 py-2 rounded-xl"
-                style={{ background: "rgba(106,176,255,0.08)", border: "1px solid rgba(106,176,255,0.2)", color: "#6ab0ff" }}>
-                {p}
-              </motion.button>
+      {!carregando && snap && score360 && (
+        <div className="space-y-4">
+          {/* HEADER: Score 360 + Resumo rápido */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <CanvasBox cor={score360.cor}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🏆 Score 360°</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black" style={{ color: score360.cor }}>{score360.total}</span>
+                <span style={{ color: "#5a7a9a" }}>/100</span>
+              </div>
+              <p className="text-xs font-bold" style={{ color: score360.cor }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
+            </CanvasBox>
+            {[
+              { label: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", valor: formatBRL(snap.receita_bruta), cor: "#34d399" },
+              { label: lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro Líquido", valor: formatBRL(snap.lucro_liquido), cor: snap.lucro_liquido >= 0 ? "#6ab0ff" : "#f87171" },
+              { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen" : "Margem", valor: `${snap.margem_liquida.toFixed(1)}%`, cor: "#a78bfa" },
+            ].map((c, i) => (
+              <CanvasBox key={i} cor={c.cor}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</p>
+                <p className="text-xl font-black mt-1" style={{ color: c.cor }}>{c.valor}</p>
+              </CanvasBox>
             ))}
           </div>
 
-          {/* Input */}
-          <div className="flex gap-3">
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && enviarMensagem(input)}
-              placeholder={tx.placeholder}
-              className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
-            />
-            <motion.button whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(106,176,255,0.4)" }} whileTap={{ scale: 0.95 }}
-              onClick={() => enviarMensagem(input)}
-              className="px-4 py-3 rounded-xl"
-              style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-              <Send size={18} />
-            </motion.button>
+          {/* Botão share + Abas */}
+          <button onClick={() => setShareAberto(true)}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            {tt.compartilhar}
+          </button>
+
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              { key: "score", label: tt.abaScore },
+              { key: "chat", label: tt.abaChat },
+              { key: "anomalias", label: `${tt.abaAnomalias} (${anomalias.length})` },
+              { key: "projecoes", label: tt.abaProjecoes },
+              { key: "whatif", label: tt.abaWhatIf },
+              { key: "plano", label: `${tt.abaPlano} (${acoes.length})` },
+              { key: "resumo", label: tt.abaResumo },
+              { key: "benchmark", label: tt.abaBenchmark },
+            ].map((a) => (
+              <button key={a.key} onClick={() => setAba(a.key as any)}
+                className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
+                style={{
+                  background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
+                  color: aba === a.key ? "#fff" : "#6ab0ff",
+                  border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+                }}>{a.label}</button>
+            ))}
           </div>
-        </CanvasBox>
-      </div>
+
+          {/* ABA SCORE 360 */}
+          {aba === "score" && (
+            <div className="space-y-4">
+              {/* Radar Chart */}
+              <CanvasBox cor={score360.cor}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.scoreEmpresarial}</p>
+                <ResponsiveContainer width="100%" height={280}>
+                  <RadarChart data={score360.dimensoes.map(d => ({ subject: dimNome(d), score: d.score, fullMark: 100 }))}>
+                    <PolarGrid stroke="rgba(106,176,255,0.15)" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#5a7a9a", fontSize: 11 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#5a7a9a", fontSize: 10 }} />
+                    <Radar name="Score" dataKey="score" stroke={score360.cor} fill={score360.cor} fillOpacity={0.3} strokeWidth={2} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </CanvasBox>
+
+              {/* Cards por dimensão */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {score360.dimensoes.map((d, i) => (
+                  <CanvasBox key={i} cor={d.cor}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold" style={{ color: d.cor }}>{dimNome(d)}</p>
+                      <span className="text-lg font-black" style={{ color: d.cor }}>{d.score}</span>
+                    </div>
+                    <div className="space-y-1 mb-3">
+                      {d.indicadores.map((ind, j) => (
+                        <div key={j} className="flex items-center justify-between text-xs">
+                          <span style={{ color: "#c8d8f0" }}>{ind.nome}</span>
+                          <span style={{ color: ind.status === "bom" ? "#34d399" : ind.status === "atencao" ? "#fbbf24" : "#f87171" }}>{ind.valor}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="rounded-lg p-2" style={{ background: `${d.cor}10`, border: `1px solid ${d.cor}20` }}>
+                      <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "#5a7a9a" }}>💡 {tt.sugestao}</p>
+                      <p className="text-[11px]" style={{ color: "#c8d8f0" }}>{dimSugestao(d)}</p>
+                    </div>
+                  </CanvasBox>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ABA CHAT */}
+          {aba === "chat" && (
+            <CanvasBox cor="#6ab0ff">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold" style={{ color: "#c8d8f0" }}>{tt.chatTitulo}</p>
+                <button onClick={onLimparHistorico} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{tt.chatLimpar}</button>
+              </div>
+              <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
+                {mensagens.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
+                      style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : "rgba(10,22,40,0.8)", border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.1)"}`, color: "#c8d8f0" }}>
+                      {m.texto}
+                    </div>
+                  </div>
+                ))}
+                {chatCarregando && (
+                  <div className="flex justify-start">
+                    <div className="px-4 py-3 rounded-2xl text-sm" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(106,176,255,0.1)", color: "#5a7a9a" }}>
+                      {tt.chatAnalisando} <span className="animate-pulse">●●●</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {tt.chatSugestoes.map((s, i) => (
+                  <button key={i} onClick={() => enviarMensagem(s)}
+                    className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: "rgba(106,176,255,0.08)", border: "1px solid rgba(106,176,255,0.2)", color: "#6ab0ff" }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input value={inputChat} onChange={(e) => setInputChat(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
+                  placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={inputStyle} />
+                <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
+                  className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                  ➤
+                </button>
+              </div>
+            </CanvasBox>
+          )}
+
+          {/* ABA ANOMALIAS */}
+          {aba === "anomalias" && (
+            <div className="space-y-3">
+              <CanvasBox cor="#fbbf24">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.anomaliasTitulo}</p>
+              </CanvasBox>
+              {anomalias.length === 0 ? (
+                <CanvasBox cor="#34d399"><p className="text-xs py-6 text-center" style={{ color: "#34d399" }}>{tt.anomaliasVazio}</p></CanvasBox>
+              ) : (
+                anomalias.map((a, i) => {
+                  const cor = a.severidade === "alerta" ? "#f87171" : a.severidade === "atencao" ? "#fbbf24" : "#34d399";
+                  const icon = a.severidade === "alerta" ? "🚨" : a.severidade === "atencao" ? "⚠️" : "ℹ️";
+                  return (
+                    <CanvasBox key={i} cor={cor}>
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl flex-shrink-0">{icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-bold" style={{ color: cor }}>{anomTitulo(a)}</p>
+                            {a.metrica && <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: `${cor}20`, color: cor }}>{a.metrica}</span>}
+                          </div>
+                          <p className="text-xs" style={{ color: "#c8d8f0" }}>{anomDesc(a)}</p>
+                        </div>
+                      </div>
+                    </CanvasBox>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* ABA PROJEÇÕES */}
+          {aba === "projecoes" && (
+            <CanvasBox cor="#a78bfa">
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.projecoesTitulo}</p>
+              {projecoes.length === 0 ? (
+                <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.projecoesVazio}</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={projecoes}>
+                    <defs>
+                      <linearGradient id="gOt" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.3}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gRe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6ab0ff" stopOpacity={0.3}/><stop offset="95%" stopColor="#6ab0ff" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gPe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.3}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
+                    <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                    <Area type="monotone" dataKey="otimista" stroke="#34d399" fill="url(#gOt)" strokeWidth={2} name={tt.otimista} />
+                    <Area type="monotone" dataKey="realista" stroke="#6ab0ff" fill="url(#gRe)" strokeWidth={2} name={tt.realista} />
+                    <Area type="monotone" dataKey="pessimista" stroke="#f87171" fill="url(#gPe)" strokeWidth={2} name={tt.pessimista} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </CanvasBox>
+          )}
+
+          {/* ABA WHAT-IF */}
+          {aba === "whatif" && (
+            <div className="space-y-4">
+              <CanvasBox cor="#fbbf24">
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.whatIfTitulo}</p>
+                <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.whatIfDescricao}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  <select value={whatIfTipo} onChange={(e) => setWhatIfTipo(e.target.value)}
+                    className="px-3 py-2 rounded-lg text-sm" style={inputStyle}>
+                    <option value="receita_pct" style={{ background: "#020810" }}>{tt.cenarioReceita}</option>
+                    <option value="custos_fixos_pct" style={{ background: "#020810" }}>{tt.cenarioCustosFix}</option>
+                    <option value="custos_var_pct" style={{ background: "#020810" }}>{tt.cenarioCustosVar}</option>
+                    <option value="preco_pct" style={{ background: "#020810" }}>{tt.cenarioPreco}</option>
+                  </select>
+                  <div className="flex items-center gap-2">
+                    <input type="range" min={-50} max={50} value={whatIfValor} onChange={(e) => setWhatIfValor(Number(e.target.value))}
+                      className="flex-1" />
+                    <span className="text-sm font-bold min-w-12 text-center" style={{ color: whatIfValor >= 0 ? "#34d399" : "#f87171" }}>
+                      {whatIfValor >= 0 ? "+" : ""}{whatIfValor}%
+                    </span>
+                  </div>
+                  <button onClick={executarWhatIf}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold"
+                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>
+                    {tt.simular}
+                  </button>
+                </div>
+                {whatIfResultado && (
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {[
+                      { label: tt.lucroAntes, valor: formatBRL(whatIfResultado.lucro_antes), cor: "#6ab0ff" },
+                      { label: tt.lucroDepois, valor: formatBRL(whatIfResultado.lucro_depois), cor: whatIfResultado.lucro_depois >= 0 ? "#34d399" : "#f87171" },
+                      { label: tt.diferenca, valor: `${whatIfResultado.diferenca >= 0 ? "+" : ""}${formatBRL(whatIfResultado.diferenca)}`, cor: whatIfResultado.diferenca >= 0 ? "#34d399" : "#f87171" },
+                      { label: tt.margemAntes, valor: `${whatIfResultado.margem_antes.toFixed(1)}%`, cor: "#a78bfa" },
+                      { label: tt.margemDepois, valor: `${whatIfResultado.margem_depois.toFixed(1)}%`, cor: whatIfResultado.margem_depois > whatIfResultado.margem_antes ? "#34d399" : "#f87171" },
+                    ].map((c, i) => (
+                      <div key={i} className="rounded-xl p-3 text-center" style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${c.cor}30` }}>
+                        <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{c.label}</p>
+                        <p className="text-base font-bold mt-1" style={{ color: c.cor }}>{c.valor}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CanvasBox>
+            </div>
+          )}
+
+          {/* ABA PLANO DE AÇÃO */}
+          {aba === "plano" && (
+            <div className="space-y-3">
+              <CanvasBox cor="#34d399">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.planoTitulo}</p>
+                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.planoDescricao}</p>
+              </CanvasBox>
+              {acoes.length === 0 ? (
+                <CanvasBox cor="#fbbf24"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.planoVazio}</p></CanvasBox>
+              ) : (
+                acoes.map((a, i) => {
+                  const corCat = a.categoria === "custo" ? "#f87171" : a.categoria === "receita" ? "#34d399" : a.categoria === "cobranca" ? "#fbbf24" : a.categoria === "fiscal" ? "#a78bfa" : "#6ab0ff";
+                  return (
+                    <CanvasBox key={i} cor={corCat}>
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
+                          style={{ background: `${corCat}20`, color: corCat }}>
+                          {a.prioridade}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{acaoTitulo(a)}</p>
+                          <p className="text-xs mt-1" style={{ color: "#a8b8d0" }}>{acaoDesc(a)}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: `${corCat}15`, color: corCat }}>{tt.impacto}: {a.impacto_estimado}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CanvasBox>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* ABA RESUMO EXECUTIVO */}
+          {aba === "resumo" && (
+            <CanvasBox cor="#6ab0ff">
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.resumoTitulo}</p>
+              <p className="text-xs mb-3" style={{ color: "#5a7a9a" }}>{tt.resumoDescricao}</p>
+              <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed"
+                style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                {resumo}
+              </div>
+            </CanvasBox>
+          )}
+
+          {/* ABA BENCHMARK */}
+          {aba === "benchmark" && bench && (
+            <div className="space-y-3">
+              <CanvasBox cor="#a78bfa">
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.benchmarkTitulo}</p>
+                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.benchmarkDescricao}</p>
+                <p className="text-xs mt-1" style={{ color: "#a78bfa" }}>
+                  {lang === "en" ? "Industry" : lang === "es" ? "Sector" : "Setor"}: <strong>{bench.setor}</strong>
+                </p>
+              </CanvasBox>
+              {[
+                { label: lang === "en" ? "Gross Margin" : lang === "es" ? "Margen Bruto" : "Margem Bruta", valor: snap.margem_bruta, min: bench.margem_bruta_min, max: bench.margem_bruta_max, unit: "%" },
+                { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen Neto" : "Margem Líquida", valor: snap.margem_liquida, min: bench.margem_liquida_min, max: bench.margem_liquida_max, unit: "%" },
+                { label: lang === "en" ? "Delinquency" : lang === "es" ? "Morosidad" : "Inadimplência", valor: snap.inadimplencia_pct, min: 0, max: bench.inadimplencia_max, unit: "%" },
+                { label: lang === "en" ? "Cost/Revenue" : lang === "es" ? "Costo/Ingreso" : "Custo/Receita", valor: snap.receita_bruta > 0 ? (snap.custos_totais / snap.receita_bruta) * 100 : 0, min: 0, max: bench.custo_sobre_receita_max, unit: "%" },
+              ].map((b, i) => {
+                const dentro = b.label.includes("Inadimplência") || b.label.includes("Delinquency") || b.label.includes("Morosidad") || b.label.includes("Custo") || b.label.includes("Cost") || b.label.includes("Costo")
+                  ? b.valor <= b.max
+                  : b.valor >= b.min;
+                return (
+                  <CanvasBox key={i} cor={dentro ? "#34d399" : "#f87171"}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <p className="text-xs font-bold" style={{ color: "#c8d8f0" }}>{b.label}</p>
+                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.faixaSetor}: {b.min.toFixed(0)}-{b.max.toFixed(0)}{b.unit}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-black" style={{ color: dentro ? "#34d399" : "#f87171" }}>{b.valor.toFixed(1)}{b.unit}</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: dentro ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: dentro ? "#34d399" : "#f87171" }}>
+                          {dentro ? "✓" : "✗"} {tt.seuValor}
+                        </span>
+                      </div>
+                    </div>
+                  </CanvasBox>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL SHARE */}
+      {shareAberto && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setShareAberto(false)}>
+          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{tt.centroCompart}</p>
+              <button onClick={() => setShareAberto(false)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+            {snap && score360 && (
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                <p style={{ color: "#c8d8f0" }}>🏆 Score: <strong style={{ color: score360.cor }}>{score360.total}/100</strong> • 💰 {formatBRL(snap.receita_bruta)} • 📊 {snap.margem_liquida.toFixed(1)}%</p>
+              </div>
+            )}
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.compartilharVia}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              <button onClick={shareWhatsApp} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}>
+                <span className="text-xl">📱</span>WhatsApp</button>
+              <button onClick={shareTelegram} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}>
+                <span className="text-xl">✈️</span>Telegram</button>
+              <button onClick={shareGmail} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}>
+                <span className="text-xl">📨</span>Gmail</button>
+              <button onClick={shareOutlook} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}>
+                <span className="text-xl">📩</span>Outlook</button>
+              <button onClick={shareCopiar} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                <span className="text-xl">📋</span>{tt.copiar}</button>
+              <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
+                <span className="text-xl">{exportando ? "⏳" : "📄"}</span>{exportando ? tt.gerando : tt.pdfRelatorio}</button>
+            </div>
+            <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.fechar}</button>
+          </div>
+        </div>
+      )}
     </ModuloLayout>
   );
 }
