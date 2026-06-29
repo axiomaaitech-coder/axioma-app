@@ -539,14 +539,38 @@ export default function IAFinanceiraPage() {
               {/* Radar Chart */}
               <CanvasBox cor={score360.cor}>
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.scoreEmpresarial}</p>
-                <ResponsiveContainer width="100%" height={280}>
-                  <RadarChart data={score360.dimensoes.map(d => ({ subject: dimNome(d), score: d.score, fullMark: 100 }))}>
-                    <PolarGrid stroke="rgba(106,176,255,0.15)" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#5a7a9a", fontSize: 11 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#5a7a9a", fontSize: 10 }} />
-                    <Radar name="Score" dataKey="score" stroke={score360.cor} fill={score360.cor} fillOpacity={0.3} strokeWidth={2} />
+                <ResponsiveContainer width="100%" height={320}>
+                  <RadarChart data={score360.dimensoes.map(d => ({ subject: dimNome(d), score: d.score, benchmark: 70, fullMark: 100 }))}>
+                    <defs>
+                      <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={score360.cor} stopOpacity={0.6} />
+                        <stop offset="100%" stopColor={score360.cor} stopOpacity={0.05} />
+                      </radialGradient>
+                    </defs>
+                    <PolarGrid stroke="rgba(106,176,255,0.12)" gridType="polygon" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#c8d8f0", fontSize: 12, fontWeight: 600 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#5a7a9a", fontSize: 10 }} axisLine={false} />
+                    <Radar name="Benchmark" dataKey="benchmark" stroke="#fbbf24" strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
+                    <Radar name="Score" dataKey="score" stroke={score360.cor} fill="url(#radarGrad)" strokeWidth={2.5}
+                      dot={(props: any) => {
+                        const dim = score360.dimensoes[props.index];
+                        if (!dim) return <circle key={props.index} cx={props.cx} cy={props.cy} r={6} fill={score360.cor} stroke="#020810" strokeWidth={2} />;
+                        return (
+                          <g key={props.index}>
+                            <circle cx={props.cx} cy={props.cy} r={10} fill={dim.cor} fillOpacity={0.2} />
+                            <circle cx={props.cx} cy={props.cy} r={6} fill={dim.cor} stroke="#020810" strokeWidth={2} />
+                            <text x={props.cx} y={props.cy - 14} textAnchor="middle" fill={dim.cor} fontSize={11} fontWeight={700}>{dim.score}</text>
+                          </g>
+                        );
+                      }}
+                    />
+                    <Tooltip contentStyle={tooltipStyle} />
                   </RadarChart>
                 </ResponsiveContainer>
+                <div className="flex items-center justify-center gap-4 mt-2 text-[10px] flex-wrap">
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: score360.cor }}></span> <span style={{ color: "#5a7a9a" }}>Score</span></span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: "#fbbf24", borderTop: "1px dashed #fbbf24" }}></span> <span style={{ color: "#5a7a9a" }}>Benchmark (70)</span></span>
+                </div>
               </CanvasBox>
 
               {/* Cards por dimensão */}
