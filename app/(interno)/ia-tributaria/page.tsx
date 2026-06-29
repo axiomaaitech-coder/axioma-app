@@ -1,389 +1,517 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
-import { Send, FileText, AlertTriangle, CheckCircle, Lightbulb, Shield } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
+import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { motion, AnimatePresence } from "framer-motion";
+import { CanvasBox } from "../../../components/CanvasBox";
+import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
+import {
+  carregarDadosFiscais, simularRegimes, calcularCargaTributaria, calcularScoreFiscal,
+  calcularEconomiaTributaria, gerarAlertasReforma, gerarDiagnosticoFiscal,
+  montarPromptTributario, respostaTributariaPorRegras, salvarMensagemTrib, carregarHistoricoTrib, limparHistoricoTrib,
+  type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma,
+} from "../../../lib/iaTributariaHelpers";
 
-function CanvasNeural() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 50 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-      size: Math.random() * 2 + 0.5,
-      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
-    }));
-    const chars = "AXIOMA IR TRIBUTO SIMPLES MEI CNPJ CPF IRPF CSLL PIS COFINS ISS ICMS 0 1 2 3 4 5 6 7 8 9 R$ %".split(" ").map((char) => ({
-      char, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
-      color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa", "#f472b6"][Math.floor(Math.random() * 5)],
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`;
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 110) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 110) * 0.12;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
-          }
-        });
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />;
-}
+const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
-}) {
-  return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.97)", border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
-    }}>
-      <CanvasNeural />
-      {[
-        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }} />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
-    </div>
-  );
-}
-
-const insights = {
-  pt: [
-    { icon: AlertTriangle, texto: "Sua empresa pode se enquadrar no Simples Nacional. Isso reduziria a carga tributária em até 30%.", cor: "#fbbf24" },
-    { icon: CheckCircle, texto: "Todos os impostos do mês estão em dia. Próximo vencimento: DAS em 20/07/2026.", cor: "#34d399" },
-    { icon: Lightbulb, texto: "Identificamos R$ 3.200 em deduções fiscais não aproveitadas no último trimestre.", cor: "#6ab0ff" },
-    { icon: Shield, texto: "Risco fiscal baixo. Sua empresa está dentro dos parâmetros exigidos pela Receita Federal.", cor: "#a78bfa" },
-  ],
-  en: [
-    { icon: AlertTriangle, texto: "Your company may qualify for the Simples Nacional regime, reducing tax burden by up to 30%.", cor: "#fbbf24" },
-    { icon: CheckCircle, texto: "All monthly taxes are up to date. Next due date: DAS on 07/20/2026.", cor: "#34d399" },
-    { icon: Lightbulb, texto: "We identified R$ 3,200 in unused tax deductions in the last quarter.", cor: "#6ab0ff" },
-    { icon: Shield, texto: "Low tax risk. Your company is within parameters required by the Federal Revenue.", cor: "#a78bfa" },
-  ],
-  es: [
-    { icon: AlertTriangle, texto: "Su empresa puede calificar para el régimen Simples Nacional, reduciendo la carga fiscal hasta 30%.", cor: "#fbbf24" },
-    { icon: CheckCircle, texto: "Todos los impuestos del mes están al día. Próximo vencimiento: DAS el 20/07/2026.", cor: "#34d399" },
-    { icon: Lightbulb, texto: "Identificamos R$ 3.200 en deducciones fiscales no aprovechadas en el último trimestre.", cor: "#6ab0ff" },
-    { icon: Shield, texto: "Riesgo fiscal bajo. Su empresa está dentro de los parámetros exigidos por la Receita Federal.", cor: "#a78bfa" },
-  ],
-};
-
-const regimes = {
-  pt: [
-    { nome: "Simples Nacional", aliquota: "4-19%", desc: "Faturamento até R$ 4,8M/ano", cor: "#34d399", recomendado: true },
-    { nome: "Lucro Presumido", aliquota: "13,33-16%", desc: "Faturamento até R$ 78M/ano", cor: "#6ab0ff", recomendado: false },
-    { nome: "Lucro Real", aliquota: "Variável", desc: "Grandes empresas ou bancos", cor: "#a78bfa", recomendado: false },
-    { nome: "MEI", aliquota: "R$ 76/mês", desc: "Faturamento até R$ 144K/ano", cor: "#fbbf24", recomendado: false },
-  ],
-  en: [
-    { nome: "Simples Nacional", aliquota: "4-19%", desc: "Revenue up to R$ 4.8M/year", cor: "#34d399", recomendado: true },
-    { nome: "Lucro Presumido", aliquota: "13.33-16%", desc: "Revenue up to R$ 78M/year", cor: "#6ab0ff", recomendado: false },
-    { nome: "Lucro Real", aliquota: "Variable", desc: "Large companies or banks", cor: "#a78bfa", recomendado: false },
-    { nome: "MEI", aliquota: "R$ 76/month", desc: "Revenue up to R$ 144K/year", cor: "#fbbf24", recomendado: false },
-  ],
-  es: [
-    { nome: "Simples Nacional", aliquota: "4-19%", desc: "Facturación hasta R$ 4,8M/año", cor: "#34d399", recomendado: true },
-    { nome: "Lucro Presumido", aliquota: "13,33-16%", desc: "Facturación hasta R$ 78M/año", cor: "#6ab0ff", recomendado: false },
-    { nome: "Lucro Real", aliquota: "Variable", desc: "Grandes empresas o bancos", cor: "#a78bfa", recomendado: false },
-    { nome: "MEI", aliquota: "R$ 76/mes", desc: "Facturación hasta R$ 144K/año", cor: "#fbbf24", recomendado: false },
-  ],
-};
-
-const perguntasSugeridas = {
-  pt: ["Qual o melhor regime tributário para mim?", "Como calcular o DAS do Simples Nacional?", "Quais despesas posso deduzir no IR?", "Como reduzir minha carga tributária?"],
-  en: ["What is the best tax regime for me?", "How to calculate Simples Nacional DAS?", "What expenses can I deduct from income tax?", "How to reduce my tax burden?"],
-  es: ["¿Cuál es el mejor régimen fiscal para mí?", "¿Cómo calcular el DAS del Simples Nacional?", "¿Qué gastos puedo deducir en el IR?", "¿Cómo reducir mi carga tributaria?"],
-};
-
-const respostas: Record<string, string> = {
-  "Qual o melhor regime tributário para mim?": "Com base no seu faturamento atual, o Simples Nacional é o regime mais vantajoso. Você pagaria uma alíquota efetiva de aproximadamente 6,5%, economizando cerca de R$ 1.800/mês em comparação ao Lucro Presumido. Recomendo fortemente a migração se ainda não estiver nesse regime.",
-  "Como calcular o DAS do Simples Nacional?": "O DAS é calculado sobre o faturamento bruto do mês anterior. Com base nos seus dados: Faturamento R$ 62.000 × alíquota 6,5% = R$ 4.030 de DAS. O vencimento é sempre no dia 20 do mês subsequente. Posso gerar o boleto automaticamente.",
-  "Quais despesas posso deduzir no IR?": "Para sua empresa, as principais deduções são: 1) Salários e encargos trabalhistas; 2) Aluguel do escritório; 3) Material de escritório; 4) Equipamentos (depreciação); 5) Despesas com marketing. Identificamos R$ 3.200 não aproveitados no último trimestre!",
-  "Como reduzir minha carga tributária?": "Estratégias recomendadas: 1) Revisar o regime tributário (potencial de -30%); 2) Aproveitar todas as deduções permitidas; 3) Planejar o timing de receitas e despesas; 4) Utilizar benefícios fiscais do setor. Implementando tudo, estimo uma economia de R$ 8.400/ano.",
-  "What is the best tax regime for me?": "Based on your current revenue, Simples Nacional is the most advantageous regime. You'd pay an effective rate of approximately 6.5%, saving about R$ 1,800/month compared to Lucro Presumido. I strongly recommend migrating if you're not already in this regime.",
-  "How to calculate Simples Nacional DAS?": "DAS is calculated on the previous month's gross revenue. Based on your data: Revenue R$ 62,000 × rate 6.5% = R$ 4,030 DAS. It's always due on the 20th of the following month.",
-  "What expenses can I deduct from income tax?": "For your company, main deductions are: 1) Salaries and labor charges; 2) Office rent; 3) Office supplies; 4) Equipment (depreciation); 5) Marketing expenses. We identified R$ 3,200 unused in the last quarter!",
-  "How to reduce my tax burden?": "Recommended strategies: 1) Review tax regime (potential -30%); 2) Use all allowed deductions; 3) Plan timing of revenue and expenses; 4) Use sector tax benefits. Implementing everything, I estimate savings of R$ 8,400/year.",
-  "¿Cuál es el mejor régimen fiscal para mí?": "Basándonos en su facturación actual, el Simples Nacional es el régimen más ventajoso. Pagaría una alícuota efectiva de aproximadamente 6,5%, ahorrando unos R$ 1.800/mes en comparación al Lucro Presumido.",
-  "¿Cómo calcular el DAS del Simples Nacional?": "El DAS se calcula sobre la facturación bruta del mes anterior. Con sus datos: Facturación R$ 62.000 × alícuota 6,5% = R$ 4.030 de DAS. El vencimiento es siempre el día 20 del mes siguiente.",
-  "¿Qué gastos puedo deducir en el IR?": "Para su empresa, las principales deducciones son: 1) Salarios y cargas laborales; 2) Alquiler de oficina; 3) Material de oficina; 4) Equipos (depreciación); 5) Gastos de marketing. ¡Identificamos R$ 3.200 no aprovechados en el último trimestre!",
-  "¿Cómo reducir mi carga tributaria?": "Estrategias recomendadas: 1) Revisar el régimen fiscal (-30% potencial); 2) Aprovechar todas las deducciones; 3) Planificar el timing de ingresos y gastos; 4) Utilizar beneficios fiscales del sector. Estimo un ahorro de R$ 8.400/año.",
-};
-
-const textos = {
+const T = {
   pt: {
-    titulo: "IA Tributária",
-    subtitulo: "Inteligência fiscal para sua empresa — impostos, regimes e otimizações",
-    placeholder: "Pergunte sobre impostos, regimes tributários...",
-    analisando: "Consultando base tributária...",
-    regimesTitle: "Regimes Tributários",
-    recomendado: "✨ Recomendado",
-    aliquota: "Alíquota",
+    titulo: "🏛️ IA Tributária", subtitulo: "Seu Consultor Fiscal Digital — simulação, economia e compliance",
+    carregando: "Carregando inteligência fiscal...",
+    abaScore: "🛡️ Score Fiscal", abaChat: "💬 Chat Fiscal", abaSimulador: "🏛️ Simulador de Regime",
+    abaCarga: "📊 Carga Tributária", abaEconomia: "💰 Economia", abaReforma: "🔔 Reforma 2026",
+    abaDiagnostico: "📋 Diagnóstico", abaCalendario: "📅 Calendário",
+    scoreFiscal: "Score Fiscal", scoreFiscalDesc: "Adequação fiscal e compliance da sua empresa.",
+    chatTitulo: "💬 Chat com seu Consultor Fiscal Digital", chatPlaceholder: "Pergunte sobre impostos, regime, DAS...",
+    chatAnalisando: "Consultando legislação...", chatLimpar: "🗑️ Limpar",
+    chatLimparConfirm: "Limpar todo o histórico?",
+    chatSugestoes: ["Qual o melhor regime pra mim?", "Quanto pago de imposto?", "O que muda com a reforma?", "Como calcular o DAS?"],
+    simuladorTitulo: "🏛️ Comparativo de Regimes Tributários", simuladorDesc: "Simulação com seus dados reais. O mais barato aparece primeiro.",
+    regimeAtual: "Atual", recomendado: "MAIS BARATO", inelegivel: "Inelegível", porMes: "/mês", porAno: "/ano",
+    aliquotaEfetiva: "Alíq. efetiva", economiaPorAno: "Economia/ano vs atual",
+    cargaTitulo: "📊 Sua Carga Tributária Real", cargaDesc: "Quanto você paga de imposto sobre o faturamento.",
+    cargaSobreReceita: "da receita em impostos", composicao: "Composição",
+    economiaTitulo: "💰 Economia Tributária Potencial", economiaDesc: "Quanto sua empresa pode economizar com otimização fiscal.",
+    economiaMensal: "Economia mensal", economiaAnual: "Economia anual", regimeIdeal: "Regime ideal",
+    acoesEconomia: "Ações para economizar",
+    reformaTitulo: "🔔 Reforma Tributária 2026-2033", reformaDesc: "Timeline e impactos da transição IBS/CBS no seu negócio.",
+    positivo: "Positivo", neutro: "Neutro", negativo: "Atenção",
+    diagnosticoTitulo: "📋 Diagnóstico Fiscal Completo", diagnosticoDesc: "IA analisa todos os seus dados e gera parecer tributário.",
+    calendarioTitulo: "📅 Calendário Fiscal", calendarioDesc: "Veja e gerencie suas obrigações no módulo Empresa → Compliance & Fiscal.",
+    irParaEmpresa: "Ir para Empresa → Compliance",
+    compartilhar: "📤 Compartilhar", centroCompart: "Centro de Compartilhamento", compartilharVia: "Compartilhar via",
+    fechar: "Fechar", copiar: "Copiar", pdfRelatorio: "PDF Relatório", gerando: "Gerando...",
+    copiado: "Copiado!", erroCopiar: "Erro ao copiar",
   },
   en: {
-    titulo: "Tax AI",
-    subtitulo: "Tax intelligence for your company — taxes, regimes and optimizations",
-    placeholder: "Ask about taxes, tax regimes...",
-    analisando: "Consulting tax database...",
-    regimesTitle: "Tax Regimes",
-    recomendado: "✨ Recommended",
-    aliquota: "Rate",
+    titulo: "🏛️ Tax AI", subtitulo: "Your Digital Tax Consultant — simulation, savings and compliance",
+    carregando: "Loading tax intelligence...",
+    abaScore: "🛡️ Tax Score", abaChat: "💬 Tax Chat", abaSimulador: "🏛️ Regime Simulator",
+    abaCarga: "📊 Tax Burden", abaEconomia: "💰 Savings", abaReforma: "🔔 Reform 2026",
+    abaDiagnostico: "📋 Diagnosis", abaCalendario: "📅 Calendar",
+    scoreFiscal: "Tax Score", scoreFiscalDesc: "Your company's fiscal adequacy and compliance.",
+    chatTitulo: "💬 Chat with your Digital Tax Consultant", chatPlaceholder: "Ask about taxes, regime, DAS...",
+    chatAnalisando: "Consulting legislation...", chatLimpar: "🗑️ Clear",
+    chatLimparConfirm: "Clear all history?",
+    chatSugestoes: ["What's the best regime for me?", "How much tax do I pay?", "What changes with the reform?", "How to calculate DAS?"],
+    simuladorTitulo: "🏛️ Tax Regime Comparison", simuladorDesc: "Simulation with your real data. Cheapest appears first.",
+    regimeAtual: "Current", recomendado: "CHEAPEST", inelegivel: "Ineligible", porMes: "/mo", porAno: "/yr",
+    aliquotaEfetiva: "Eff. rate", economiaPorAno: "Savings/year vs current",
+    cargaTitulo: "📊 Your Real Tax Burden", cargaDesc: "How much you pay in taxes on revenue.",
+    cargaSobreReceita: "of revenue in taxes", composicao: "Breakdown",
+    economiaTitulo: "💰 Potential Tax Savings", economiaDesc: "How much your company can save with tax optimization.",
+    economiaMensal: "Monthly savings", economiaAnual: "Annual savings", regimeIdeal: "Ideal regime",
+    acoesEconomia: "Savings actions",
+    reformaTitulo: "🔔 Tax Reform 2026-2033", reformaDesc: "Timeline and impacts of IBS/CBS transition on your business.",
+    positivo: "Positive", neutro: "Neutral", negativo: "Attention",
+    diagnosticoTitulo: "📋 Complete Tax Diagnosis", diagnosticoDesc: "AI analyzes all your data and generates tax opinion.",
+    calendarioTitulo: "📅 Fiscal Calendar", calendarioDesc: "View and manage obligations in Company → Compliance & Fiscal.",
+    irParaEmpresa: "Go to Company → Compliance",
+    compartilhar: "📤 Share", centroCompart: "Sharing Center", compartilharVia: "Share via",
+    fechar: "Close", copiar: "Copy", pdfRelatorio: "PDF Report", gerando: "Generating...",
+    copiado: "Copied!", erroCopiar: "Copy error",
   },
   es: {
-    titulo: "IA Tributaria",
-    subtitulo: "Inteligencia fiscal para su empresa — impuestos, regímenes y optimizaciones",
-    placeholder: "Pregunta sobre impuestos, regímenes fiscales...",
-    analisando: "Consultando base tributaria...",
-    regimesTitle: "Regímenes Fiscales",
-    recomendado: "✨ Recomendado",
-    aliquota: "Alícuota",
+    titulo: "🏛️ IA Tributaria", subtitulo: "Su Consultor Fiscal Digital — simulación, ahorro y cumplimiento",
+    carregando: "Cargando inteligencia fiscal...",
+    abaScore: "🛡️ Score Fiscal", abaChat: "💬 Chat Fiscal", abaSimulador: "🏛️ Simulador de Régimen",
+    abaCarga: "📊 Carga Tributaria", abaEconomia: "💰 Ahorro", abaReforma: "🔔 Reforma 2026",
+    abaDiagnostico: "📋 Diagnóstico", abaCalendario: "📅 Calendario",
+    scoreFiscal: "Score Fiscal", scoreFiscalDesc: "Adecuación fiscal y cumplimiento de su empresa.",
+    chatTitulo: "💬 Chat con su Consultor Fiscal Digital", chatPlaceholder: "Pregunte sobre impuestos, régimen, DAS...",
+    chatAnalisando: "Consultando legislación...", chatLimpar: "🗑️ Limpiar",
+    chatLimparConfirm: "¿Limpiar todo el historial?",
+    chatSugestoes: ["¿Cuál es el mejor régimen?", "¿Cuánto pago de impuesto?", "¿Qué cambia con la reforma?", "¿Cómo calcular el DAS?"],
+    simuladorTitulo: "🏛️ Comparativo de Regímenes", simuladorDesc: "Simulación con sus datos reales. El más barato aparece primero.",
+    regimeAtual: "Actual", recomendado: "MÁS BARATO", inelegivel: "No elegible", porMes: "/mes", porAno: "/año",
+    aliquotaEfetiva: "Alíc. efectiva", economiaPorAno: "Ahorro/año vs actual",
+    cargaTitulo: "📊 Su Carga Tributaria Real", cargaDesc: "Cuánto paga de impuestos sobre la facturación.",
+    cargaSobreReceita: "de los ingresos en impuestos", composicao: "Composición",
+    economiaTitulo: "💰 Ahorro Tributario Potencial", economiaDesc: "Cuánto puede ahorrar su empresa con optimización fiscal.",
+    economiaMensal: "Ahorro mensual", economiaAnual: "Ahorro anual", regimeIdeal: "Régimen ideal",
+    acoesEconomia: "Acciones de ahorro",
+    reformaTitulo: "🔔 Reforma Tributaria 2026-2033", reformaDesc: "Timeline e impactos de la transición IBS/CBS en su negocio.",
+    positivo: "Positivo", neutro: "Neutro", negativo: "Atención",
+    diagnosticoTitulo: "📋 Diagnóstico Fiscal Completo", diagnosticoDesc: "IA analiza todos sus datos y genera opinión tributaria.",
+    calendarioTitulo: "📅 Calendario Fiscal", calendarioDesc: "Vea y gestione obligaciones en Empresa → Cumplimiento & Fiscal.",
+    irParaEmpresa: "Ir a Empresa → Cumplimiento",
+    compartilhar: "📤 Compartir", centroCompart: "Centro de Compartir", compartilharVia: "Compartir vía",
+    fechar: "Cerrar", copiar: "Copiar", pdfRelatorio: "PDF Informe", gerando: "Generando...",
+    copiado: "¡Copiado!", erroCopiar: "Error al copiar",
   },
 };
 
-export default function IATributaria() {
+const tooltipStyle = { background: "rgba(2,8,16,0.97)", border: "1px solid rgba(106,176,255,0.3)", borderRadius: "12px", color: "#c8d8f0", fontSize: "12px" };
+function formatBRL(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR")}`; }
+
+export default function IATributariaPage() {
   const { idioma } = useLanguage();
-  const tx = textos[idioma];
-  const inputRef = useRef<HTMLInputElement>(null);
-  const conteudoRef = useRef<HTMLDivElement>(null);
+  const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const tt = T[lang];
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const msgInicial = idioma === "en"
-    ? "Hello! I'm your Tax AI. I've analyzed your tax situation and I'm ready to help you save on taxes legally. What would you like to know?"
-    : idioma === "es"
-    ? "¡Hola! Soy tu IA Tributaria. Analicé tu situación fiscal y estoy listo para ayudarte a ahorrar impuestos legalmente. ¿Qué te gustaría saber?"
-    : "Olá! Sou sua IA Tributária. Analisei sua situação fiscal e estou pronto para ajudar você a economizar impostos legalmente. O que gostaria de saber?";
-
-  const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([{ role: "assistant", texto: msgInicial }]);
-  const [input, setInput] = useState("");
-  const [carregando, setCarregando] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState<"chat" | "regimes">("chat");
+  const [aba, setAba] = useState<"score" | "chat" | "simulador" | "carga" | "economia" | "reforma" | "diagnostico" | "calendario">("score");
 
-  useEffect(() => {
-    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [mensagens, carregando]);
+  const [dados, setDados] = useState<DadosFiscais | null>(null);
+  const [scoreFiscal, setScoreFiscal] = useState<ScoreFiscal | null>(null);
+  const [simulacoes, setSimulacoes] = useState<SimulacaoRegime[]>([]);
+  const [carga, setCarga] = useState<any>(null);
+  const [economia, setEconomia] = useState<any>(null);
+  const [alertasReforma, setAlertasReforma] = useState<AlertaReforma[]>([]);
+  const [diagnostico, setDiagnostico] = useState("");
 
-  const enviarMensagem = (texto: string) => {
-    if (!texto.trim() || carregando) return;
-    const msgUsuario = { role: "user", texto };
-    const novasMensagens = [...mensagens, msgUsuario];
-    setMensagens(novasMensagens);
-    setInput("");
+  const [mensagens, setMensagens] = useState<{ role: string; texto: string }[]>([]);
+  const [inputChat, setInputChat] = useState("");
+  const [chatCarregando, setChatCarregando] = useState(false);
+  const [shareAberto, setShareAberto] = useState(false);
+
+  const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "info" | "erro" | "ok" = "info") { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); }
+
+  useEffect(() => { inicializar(); }, []);
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [mensagens, chatCarregando]);
+
+  async function inicializar() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setCarregando(false); return; }
+    setUserId(user.id);
+    await carregarTudo(user.id);
+  }
+
+  async function carregarTudo(uid: string) {
     setCarregando(true);
-    setTimeout(() => {
-      const resposta = respostas[texto] || (
-        idioma === "en" ? "Great question about taxation! Based on your financial data, I recommend consulting a tax specialist for this specific case. However, based on your current situation, there may be tax optimization opportunities. Would you like me to analyze a specific area?"
-        : idioma === "es" ? "¡Excelente pregunta sobre tributación! Basándome en sus datos financieros, recomiendo consultar a un especialista fiscal para este caso específico. Sin embargo, hay oportunidades de optimización fiscal. ¿Le gustaría que analice un área específica?"
-        : "Ótima pergunta sobre tributação! Com base nos seus dados financeiros, recomendo consultar um especialista tributário para este caso específico. No entanto, existem oportunidades de otimização fiscal. Gostaria que eu analise alguma área específica?"
-      );
-      setMensagens([...novasMensagens, { role: "assistant", texto: resposta }]);
-      setCarregando(false);
-    }, 1800);
-  };
+    try {
+      const d = await carregarDadosFiscais(uid);
+      const sf = calcularScoreFiscal(d);
+      const sims = simularRegimes(d);
+      const c = calcularCargaTributaria(d);
+      const eco = calcularEconomiaTributaria(d);
+      const alertas = gerarAlertasReforma();
+      const diag = gerarDiagnosticoFiscal(d, sf, c, eco, lang);
 
-  const exportarPDF = async () => {
-    if (!conteudoRef.current) return;
+      setDados(d); setScoreFiscal(sf); setSimulacoes(sims); setCarga(c); setEconomia(eco); setAlertasReforma(alertas); setDiagnostico(diag);
+
+      const hist = await carregarHistoricoTrib(uid);
+      if (hist.length > 0) {
+        setMensagens(hist.map(h => ({ role: h.role, texto: h.mensagem })));
+      } else {
+        const msg = lang === "en" ? `Hello! I'm your Tax Consultant. Your Tax Score is ${sf.score}/100. Ask me anything.`
+          : lang === "es" ? `¡Hola! Soy su Consultor Fiscal. Su Score Fiscal es ${sf.score}/100. Pregunte lo que quiera.`
+          : `Olá! Sou seu Consultor Fiscal Digital. Seu Score Fiscal é ${sf.score}/100. Pergunte o que quiser.`;
+        setMensagens([{ role: "assistant", texto: msg }]);
+      }
+    } catch (err: any) { showToast(err.message || "Erro", "erro"); }
+    setCarregando(false);
+  }
+
+  async function enviarMensagem(texto: string) {
+    if (!texto.trim() || chatCarregando || !dados || !scoreFiscal || !userId) return;
+    const novas = [...mensagens, { role: "user", texto }];
+    setMensagens(novas); setInputChat(""); setChatCarregando(true);
+    await salvarMensagemTrib(userId, "user", texto);
+
+    let resposta = "", modelo = "regras";
+    try {
+      const res = await fetch("/api/ia-chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: montarPromptTributario(dados, scoreFiscal, carga, texto, lang), mensagens: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })) }),
+      });
+      if (res.ok) { const data = await res.json(); resposta = data.resposta || ""; modelo = "claude"; }
+    } catch {}
+    if (!resposta) resposta = respostaTributariaPorRegras(dados, scoreFiscal, carga, texto, lang);
+
+    setMensagens([...novas, { role: "assistant", texto: resposta }]);
+    await salvarMensagemTrib(userId, "assistant", resposta, { score: scoreFiscal.score }, modelo);
+    setChatCarregando(false);
+  }
+
+  async function onLimpar() {
+    if (!userId || !window.confirm(tt.chatLimparConfirm)) return;
+    await limparHistoricoTrib(userId);
+    setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared." : lang === "es" ? "Historial limpio." : "Histórico limpo." }]);
+  }
+
+  // Share
+  function montarTextoShare(): string {
+    if (!dados || !scoreFiscal) return "Axioma AI.Tech";
+    return [`🦅 *AXIOMA AI.TECH — IA Tributária*`, ``, `🛡️ *Score Fiscal:* ${scoreFiscal.score}/100`,
+      `📊 Carga: ${carga?.carga_pct.toFixed(1)}%`, `💰 ${lang === "en" ? "Revenue" : "Receita"}: ${formatBRL(dados.receita_bruta_mensal)}${tt.porMes}`,
+      `🏛️ ${lang === "en" ? "Regime" : "Regime"}: ${dados.regime_atual || "—"}`,
+      economia?.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL(economia.economia_mensal)}` : "",
+      ``, `_axiomaai.com.br_`].filter(Boolean).join("\n");
+  }
+  function shareWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
+  function shareTelegram() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
+  function shareGmail() { const s = encodeURIComponent("Axioma IA Tributária"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, "")); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`, "_blank", "noopener,noreferrer"); }
+  function shareOutlook() { const s = encodeURIComponent("Axioma IA Tributária"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, "")); window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${s}&body=${b}`, "_blank", "noopener,noreferrer"); }
+  async function shareCopiar() { try { await navigator.clipboard.writeText(montarTextoShare().replace(/\*/g, "")); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
+
+  async function exportarPDF() {
+    if (!dados || !scoreFiscal) return;
     setExportando(true);
     try {
-      const canvas = await html2canvas(conteudoRef.current, { backgroundColor: "#020810", scale: 2, useCORS: true });
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, "F");
-      pdf.setTextColor(106, 176, 255); pdf.setFontSize(14); pdf.setFont("helvetica", "bold");
-      pdf.text("AXIOMA AI.TECH", 14, 13);
-      pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont("helvetica", "normal");
-      pdf.text(`${tx.titulo} - ${new Date().toLocaleDateString("pt-BR")}`, pdfWidth - 14, 13, { align: "right" });
-      let position = 22; let remaining = pdfHeight;
-      while (remaining > 0) {
-        const sliceHeight = Math.min(pageHeight - position, remaining);
-        const sourceY = (pdfHeight - remaining) * (canvas.height / pdfHeight);
-        const sourceH = sliceHeight * (canvas.height / pdfHeight);
-        const sliceCanvas = document.createElement("canvas");
-        sliceCanvas.width = canvas.width; sliceCanvas.height = sourceH;
-        const ctx = sliceCanvas.getContext("2d")!;
-        ctx.fillStyle = "#020810"; ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-        ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceH, 0, 0, canvas.width, sourceH);
-        pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, position, pdfWidth, sliceHeight);
-        remaining -= sliceHeight; position = 0;
-        if (remaining > 0) { pdf.addPage(); position = 0; }
-      }
-      pdf.save(`axioma-ia-tributaria-${new Date().toISOString().slice(0, 10)}.pdf`);
-    } catch (err) { console.error(err); }
+      await gerarPdfTabela({
+        titulo: `${tt.titulo} — Score ${scoreFiscal.score}/100`, subtitulo: `${dados.regime_atual || "—"}`,
+        colunas: [
+          { header: lang === "en" ? "REGIME" : "REGIME", key: "reg", width: 40, align: "left" as const },
+          { header: lang === "en" ? "TAX/MO" : "IMPOSTO/MÊS", key: "imp", width: 30, align: "right" as const },
+          { header: lang === "en" ? "EFF.RATE" : "ALÍQ.EFET.", key: "aliq", width: 25, align: "right" as const },
+          { header: lang === "en" ? "SAVINGS/YR" : "ECONOMIA/ANO", key: "eco", width: 30, align: "right" as const },
+        ],
+        linhas: simulacoes.filter(s => s.elegivel).map(s => ({ reg: s.regime_label, imp: formatBRL(s.imposto_mensal), aliq: `${s.aliquota_efetiva}%`, eco: formatBRL(s.economia_vs_atual) })),
+        resumo: [
+          { label: "Score Fiscal", valor: `${scoreFiscal.score}/100 (${lang === "en" ? scoreFiscal.nivel_en : scoreFiscal.nivel})` },
+          { label: lang === "en" ? "Tax Burden" : "Carga Tributária", valor: `${carga?.carga_pct.toFixed(1)}%` },
+        ],
+        nomeArquivo: `axioma-ia-tributaria.pdf`,
+      });
+    } catch (err: any) { showToast(err.message, "erro"); }
     setExportando(false);
-  };
+  }
+
+  const sfLabel = (it: any) => lang === "en" ? it.label_en : lang === "es" ? it.label_es : it.label;
+  const reformaTit = (a: AlertaReforma) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
+  const reformaDesc = (a: AlertaReforma) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
+  const ecoTit = (a: any) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
+
+  const CORES_PIE = ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa", "#f87171"];
 
   return (
-    <ModuloLayout titulo={`🏛️ ${tx.titulo}`} subtitulo={tx.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
-      <div ref={conteudoRef} className="space-y-4">
+    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+      {toast && (<div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>{toast.msg}</div>)}
 
-        {/* Insights tributários */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {insights[idioma].map((insight, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <CanvasBox cor={insight.cor} corB="#6ab0ff" corC="#a78bfa" corD="#34d399">
-                <div className="flex items-start gap-4">
-                  <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, delay: i * 0.5 }}
-                    className="p-2 rounded-xl flex-shrink-0" style={{ background: `${insight.cor}15` }}>
-                    <insight.icon size={18} style={{ color: insight.cor }} />
-                  </motion.div>
-                  <p className="text-sm leading-relaxed" style={{ color: "#8aaad4" }}>{insight.texto}</p>
-                </div>
+      {carregando && (<CanvasBox cor="#a78bfa"><div className="py-12 text-center"><div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" /><p className="text-sm" style={{ color: "#a78bfa" }}>{tt.carregando}</p></div></CanvasBox>)}
+
+      {!carregando && dados && scoreFiscal && (
+        <div className="space-y-4">
+          {/* HEADER */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <CanvasBox cor={scoreFiscal.cor}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🛡️ {tt.scoreFiscal}</p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-black" style={{ color: scoreFiscal.cor }}>{scoreFiscal.score}</span>
+                <span style={{ color: "#5a7a9a" }}>/100</span>
+              </div>
+              <p className="text-xs font-bold" style={{ color: scoreFiscal.cor }}>{lang === "en" ? scoreFiscal.nivel_en : lang === "es" ? scoreFiscal.nivel_es : scoreFiscal.nivel}</p>
+            </CanvasBox>
+            {[
+              { label: lang === "en" ? "Tax Burden" : "Carga", valor: `${carga?.carga_pct.toFixed(1)}%`, cor: carga?.carga_pct > 15 ? "#fbbf24" : "#34d399" },
+              { label: lang === "en" ? "Tax/Month" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: "#f87171" },
+              { label: lang === "en" ? "Savings" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: "#34d399" },
+            ].map((c, i) => (
+              <CanvasBox key={i} cor={c.cor}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</p>
+                <p className="text-xl font-black mt-1" style={{ color: c.cor }}>{c.valor}</p>
               </CanvasBox>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Abas Chat / Regimes */}
-        <div className="flex gap-2">
-          {[
-            { key: "chat", label: "🤖 " + (idioma === "pt" ? "Chat Tributário" : idioma === "en" ? "Tax Chat" : "Chat Fiscal") },
-            { key: "regimes", label: "📋 " + tx.regimesTitle },
-          ].map((a) => (
-            <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setAbaAtiva(a.key as typeof abaAtiva)}
-              className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: abaAtiva === a.key ? "rgba(106,176,255,0.2)" : "rgba(10,22,40,0.8)", color: abaAtiva === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${abaAtiva === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}`, boxShadow: abaAtiva === a.key ? "0 0 12px rgba(106,176,255,0.2)" : "none" }}>
-              {a.label}
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Chat */}
-        {abaAtiva === "chat" && (
-          <CanvasBox cor="#6ab0ff" corB="#a78bfa" corC="#34d399" corD="#fbbf24">
-            <div className="mb-4">
-              <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                className="text-xs font-black tracking-[0.3em] uppercase mb-1"
-                style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>AXIOMA AI.TECH</motion.p>
-              <h3 className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>🏛️ {tx.titulo}</h3>
-            </div>
-
-            <div ref={chatRef} className="space-y-4 min-h-48 max-h-80 overflow-auto mb-4 pr-1">
-              <AnimatePresence>
-                {mensagens.map((m, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className="max-w-xs md:max-w-md px-4 py-3 rounded-2xl text-sm leading-relaxed"
-                      style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : "rgba(255,255,255,0.04)", border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(59,111,212,0.1)"}`, color: "#c8d8f0" }}>
-                      {m.texto}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {carregando && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
-                  <div className="px-4 py-3 rounded-2xl text-sm flex items-center gap-2"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.1)", color: "#3a5a8a" }}>
-                    <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity }}>●</motion.span>
-                    <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}>●</motion.span>
-                    <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}>●</motion.span>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-
-            <div className="flex gap-2 mb-4 flex-wrap">
-              {perguntasSugeridas[idioma].map((p, i) => (
-                <motion.button key={i} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                  onClick={() => enviarMensagem(p)}
-                  className="text-xs px-3 py-2 rounded-xl"
-                  style={{ background: "rgba(106,176,255,0.08)", border: "1px solid rgba(106,176,255,0.2)", color: "#6ab0ff" }}>
-                  {p}
-                </motion.button>
-              ))}
-            </div>
-
-            <div className="flex gap-3">
-              <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && enviarMensagem(input)}
-                placeholder={tx.placeholder}
-                className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
-              <motion.button whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(106,176,255,0.4)" }} whileTap={{ scale: 0.95 }}
-                onClick={() => enviarMensagem(input)}
-                className="px-4 py-3 rounded-xl"
-                style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                <Send size={18} />
-              </motion.button>
-            </div>
-          </CanvasBox>
-        )}
-
-        {/* Regimes Tributários */}
-        {abaAtiva === "regimes" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {regimes[idioma].map((regime, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-                <CanvasBox cor={regime.cor} corB="#6ab0ff" corC="#a78bfa" corD="#f472b6">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="font-bold text-sm" style={{ color: "#c8d8f0" }}>{regime.nome}</p>
-                      <p className="text-xs mt-0.5" style={{ color: "#3a5a8a" }}>{regime.desc}</p>
-                    </div>
-                    {regime.recomendado && (
-                      <motion.span animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 2, repeat: Infinity }}
-                        className="text-xs px-2 py-1 rounded-full flex-shrink-0"
-                        style={{ background: `${regime.cor}20`, color: regime.cor, border: `1px solid ${regime.cor}40` }}>
-                        {tx.recomendado}
-                      </motion.span>
-                    )}
-                  </div>
-                  <div className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${regime.cor}20` }}>
-                    <p className="text-xs mb-1" style={{ color: "#3a5a8a" }}>{tx.aliquota}</p>
-                    <p className="text-xl font-black" style={{ color: regime.cor, textShadow: `0 0 20px ${regime.cor}60` }}>{regime.aliquota}</p>
-                  </div>
-                </CanvasBox>
-              </motion.div>
             ))}
           </div>
-        )}
-      </div>
+
+          <button onClick={() => setShareAberto(true)} className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.compartilhar}</button>
+
+          {/* ABAS */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              { key: "score", label: tt.abaScore }, { key: "chat", label: tt.abaChat },
+              { key: "simulador", label: tt.abaSimulador }, { key: "carga", label: tt.abaCarga },
+              { key: "economia", label: tt.abaEconomia }, { key: "reforma", label: tt.abaReforma },
+              { key: "diagnostico", label: tt.abaDiagnostico }, { key: "calendario", label: tt.abaCalendario },
+            ].map((a) => (
+              <button key={a.key} onClick={() => setAba(a.key as any)}
+                className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
+                style={{ background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)", color: aba === a.key ? "#fff" : "#6ab0ff", border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)" }}>{a.label}</button>
+            ))}
+          </div>
+
+          {/* SCORE FISCAL */}
+          {aba === "score" && (
+            <CanvasBox cor={scoreFiscal.cor}>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.scoreFiscal}</p>
+              <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.scoreFiscalDesc}</p>
+              <div className="space-y-1">
+                {scoreFiscal.itens.map((it, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 rounded" style={{ background: it.ok ? "rgba(52,211,153,0.05)" : "rgba(248,113,113,0.05)" }}>
+                    <span className="text-xs flex items-center gap-2">
+                      {it.ok ? <span style={{ color: "#34d399" }}>✓</span> : <span style={{ color: "#f87171" }}>✗</span>}
+                      <span style={{ color: "#c8d8f0" }}>{sfLabel(it)}</span>
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: it.ok ? "#34d399" : "#5a7a9a" }}>+{it.pontos}pts</span>
+                  </div>
+                ))}
+              </div>
+            </CanvasBox>
+          )}
+
+          {/* CHAT */}
+          {aba === "chat" && (
+            <CanvasBox cor="#6ab0ff">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold" style={{ color: "#c8d8f0" }}>{tt.chatTitulo}</p>
+                <button onClick={onLimpar} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{tt.chatLimpar}</button>
+              </div>
+              <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
+                {mensagens.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
+                      style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : "rgba(10,22,40,0.8)", border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.1)"}`, color: "#c8d8f0" }}>{m.texto}</div>
+                  </div>
+                ))}
+                {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm" style={{ background: "rgba(10,22,40,0.8)", color: "#5a7a9a" }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
+              </div>
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: "rgba(106,176,255,0.08)", border: "1px solid rgba(106,176,255,0.2)", color: "#6ab0ff" }}>{s}</button>))}
+              </div>
+              <div className="flex gap-2">
+                <input value={inputChat} onChange={(e) => setInputChat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
+                  placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" }} />
+                <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
+                  className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>➤</button>
+              </div>
+            </CanvasBox>
+          )}
+
+          {/* SIMULADOR DE REGIME */}
+          {aba === "simulador" && (
+            <div className="space-y-3">
+              <CanvasBox cor="#a78bfa">
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.simuladorTitulo}</p>
+                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.simuladorDesc}</p>
+              </CanvasBox>
+              {simulacoes.map((s, i) => {
+                const isAtual = s.regime === (dados.regime_atual || "").toLowerCase();
+                const cor = i === 0 && s.elegivel ? "#34d399" : s.elegivel ? "#6ab0ff" : "#5a7a9a";
+                return (
+                  <CanvasBox key={i} cor={cor}>
+                    <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{s.regime_label}</p>
+                        <div className="flex gap-2 mt-1">
+                          {isAtual && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>{tt.regimeAtual}</span>}
+                          {i === 0 && s.elegivel && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>{tt.recomendado}</span>}
+                          {!s.elegivel && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{tt.inelegivel}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-black" style={{ color: cor }}>{formatBRL(s.imposto_mensal)}<span className="text-xs font-normal" style={{ color: "#5a7a9a" }}>{tt.porMes}</span></p>
+                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.aliquotaEfetiva}: {s.aliquota_efetiva}%</p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] mb-1" style={{ color: "#a8b8d0" }}>{lang === "en" ? s.detalhamento_en : lang === "es" ? s.detalhamento_es : s.detalhamento}</p>
+                    {s.economia_vs_atual > 0 && !isAtual && s.elegivel && (
+                      <p className="text-xs font-bold mt-1" style={{ color: "#34d399" }}>💰 {tt.economiaPorAno}: {formatBRL(s.economia_vs_atual)}</p>
+                    )}
+                    {s.motivo_inelegivel && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>⚠️ {s.motivo_inelegivel}</p>}
+                  </CanvasBox>
+                );
+              })}
+            </div>
+          )}
+
+          {/* CARGA TRIBUTÁRIA */}
+          {aba === "carga" && carga && (
+            <div className="space-y-4">
+              <CanvasBox cor={carga.carga_pct > 15 ? "#fbbf24" : "#34d399"}>
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.cargaTitulo}</p>
+                <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.cargaDesc}</p>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-5xl font-black" style={{ color: carga.carga_pct > 15 ? "#fbbf24" : "#34d399" }}>{carga.carga_pct.toFixed(1)}%</span>
+                  <span className="text-sm" style={{ color: "#5a7a9a" }}>{tt.cargaSobreReceita}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
+                    <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.porMes}</p>
+                    <p className="text-lg font-bold" style={{ color: "#f87171" }}>{formatBRL(carga.imposto_mensal)}</p>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.2)" }}>
+                    <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.porAno}</p>
+                    <p className="text-lg font-bold" style={{ color: "#f87171" }}>{formatBRL(carga.imposto_anual)}</p>
+                  </div>
+                </div>
+              </CanvasBox>
+              {carga.composicao.length > 1 && (
+                <CanvasBox cor="#a78bfa">
+                  <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.composicao}</p>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={carga.composicao} cx="50%" cy="50%" outerRadius={80} dataKey="valor" label={(e: any) => `${e.nome}: ${e.pct.toFixed(1)}%`} labelLine={false}>
+                        {carga.composicao.map((_: any, i: number) => <Cell key={i} fill={CORES_PIE[i % CORES_PIE.length]} />)}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CanvasBox>
+              )}
+            </div>
+          )}
+
+          {/* ECONOMIA */}
+          {aba === "economia" && economia && (
+            <div className="space-y-4">
+              <CanvasBox cor="#34d399">
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.economiaTitulo}</p>
+                <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.economiaDesc}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
+                    <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.economiaMensal}</p>
+                    <p className="text-2xl font-black" style={{ color: "#34d399" }}>{formatBRL(economia.economia_mensal)}</p>
+                  </div>
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
+                    <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.economiaAnual}</p>
+                    <p className="text-2xl font-black" style={{ color: "#34d399" }}>{formatBRL(economia.economia_anual)}</p>
+                  </div>
+                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
+                    <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.regimeIdeal}</p>
+                    <p className="text-lg font-bold" style={{ color: "#6ab0ff" }}>{economia.regime_ideal}</p>
+                  </div>
+                </div>
+                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.acoesEconomia}</p>
+                <div className="space-y-2">
+                  {economia.acoes.map((a: any, i: number) => (
+                    <div key={i} className="rounded-lg p-3 flex items-center justify-between" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <p className="text-xs" style={{ color: "#c8d8f0" }}>{ecoTit(a)}</p>
+                      <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: "#34d399" }}>{a.economia}</span>
+                    </div>
+                  ))}
+                </div>
+              </CanvasBox>
+            </div>
+          )}
+
+          {/* REFORMA */}
+          {aba === "reforma" && (
+            <div className="space-y-3">
+              <CanvasBox cor="#fbbf24">
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.reformaTitulo}</p>
+                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.reformaDesc}</p>
+              </CanvasBox>
+              {alertasReforma.map((a, i) => {
+                const cor = a.impacto === "positivo" ? "#34d399" : a.impacto === "negativo" ? "#f87171" : "#fbbf24";
+                const icon = a.impacto === "positivo" ? "✅" : a.impacto === "negativo" ? "⚠️" : "ℹ️";
+                const label = a.impacto === "positivo" ? tt.positivo : a.impacto === "negativo" ? tt.negativo : tt.neutro;
+                return (
+                  <CanvasBox key={i} cor={cor}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl flex-shrink-0">{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{reformaTit(a)}</p>
+                          <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: `${cor}15`, color: cor }}>{label} • {a.data}</span>
+                        </div>
+                        <p className="text-xs" style={{ color: "#a8b8d0" }}>{reformaDesc(a)}</p>
+                      </div>
+                    </div>
+                  </CanvasBox>
+                );
+              })}
+            </div>
+          )}
+
+          {/* DIAGNÓSTICO */}
+          {aba === "diagnostico" && (
+            <CanvasBox cor="#6ab0ff">
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.diagnosticoTitulo}</p>
+              <p className="text-xs mb-3" style={{ color: "#5a7a9a" }}>{tt.diagnosticoDesc}</p>
+              <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed"
+                style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>{diagnostico}</div>
+            </CanvasBox>
+          )}
+
+          {/* CALENDÁRIO */}
+          {aba === "calendario" && (
+            <CanvasBox cor="#fbbf24">
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.calendarioTitulo}</p>
+              <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.calendarioDesc}</p>
+              <a href="/(interno)/empresa" className="inline-block px-4 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>{tt.irParaEmpresa}</a>
+            </CanvasBox>
+          )}
+        </div>
+      )}
+
+      {/* MODAL SHARE */}
+      {shareAberto && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto" style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setShareAberto(false)}>
+          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()} style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{tt.centroCompart}</p>
+              <button onClick={() => setShareAberto(false)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              <button onClick={shareWhatsApp} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}><span className="text-xl">📱</span>WhatsApp</button>
+              <button onClick={shareTelegram} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}><span className="text-xl">✈️</span>Telegram</button>
+              <button onClick={shareGmail} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}><span className="text-xl">📨</span>Gmail</button>
+              <button onClick={shareOutlook} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}><span className="text-xl">📩</span>Outlook</button>
+              <button onClick={shareCopiar} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar}</button>
+              <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold disabled:opacity-50" style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}><span className="text-xl">{exportando ? "⏳" : "📄"}</span>{exportando ? tt.gerando : tt.pdfRelatorio}</button>
+            </div>
+            <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.fechar}</button>
+          </div>
+        </div>
+      )}
     </ModuloLayout>
   );
 }
