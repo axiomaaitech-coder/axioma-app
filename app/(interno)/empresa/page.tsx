@@ -1,491 +1,1299 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
+import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
-import { motion } from "framer-motion";
+import { CanvasBox } from "../../../components/CanvasBox";
+import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import {
+  consultarCNPJ, consultarCEP, validarCNPJ, limparCNPJ, formatarCNPJ, formatarCEP, formatarTelefone,
+  carregarEmpresa, criarEmpresa, atualizarEmpresa,
+  carregarSocios, criarSocio, atualizarSocio, excluirSocio, importarSociosDoQSA,
+  carregarDocumentos, uploadDocumento, criarDocumento, gerarUrlDocumento, excluirDocumento,
+  uploadLogo,
+  carregarAuditoria,
+  carregarObrigacoes, criarObrigacao, atualizarObrigacao, excluirObrigacao, gerarObrigacoesPadrao,
+  carregarEquipe, convidarMembro, excluirMembro,
+  calcularHealthScore, calcularComplianceScore,
+  TIPOS_DOCUMENTOS, REGIMES_TRIBUTARIOS,
+  type ScoreResultado,
+} from "../../../lib/empresaHelpers";
 
-function CanvasNeural() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return;
-    const ctx = canvas.getContext("2d"); if (!ctx) return;
-    let animId: number;
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
-    resize(); window.addEventListener("resize", resize);
-    const particles = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-      size: Math.random() * 2.5 + 0.5,
-      color: ["#6ab0ff", "#34d399", "#a78bfa", "#f472b6", "#fbbf24"][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const PORTES = ["MEI", "ME", "EPP", "Demais"];
+const QUALIFICACOES_SOCIOS = ["Sócio", "Sócio Administrador", "Administrador", "Diretor", "Procurador", "Outros"];
+
+function formatBRL(n: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+}
+
+function formatData(iso: string): string {
+  if (!iso) return "—";
+  try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR"); } catch { return iso; }
+}
+
+function formatDataHora(iso: string): string {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
+}
+
+export default function EmpresaPage() {
+  const { t, idioma } = useLanguage();
+  const inputLogoRef = useRef<HTMLInputElement>(null);
+  const inputDocRef = useRef<HTMLInputElement>(null);
+
+  // Estados principais
+  const [userId, setUserId] = useState<string | null>(null);
+  const [empresa, setEmpresa] = useState<any>(null);
+  const [empresaForm, setEmpresaForm] = useState<any>({});
+  const [socios, setSocios] = useState<any[]>([]);
+  const [documentos, setDocumentos] = useState<any[]>([]);
+  const [obrigacoes, setObrigacoes] = useState<any[]>([]);
+  const [equipe, setEquipe] = useState<any[]>([]);
+  const [auditoria, setAuditoria] = useState<any[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [exportando, setExportando] = useState(false);
+
+  // Scores
+  const [healthScore, setHealthScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: "#5a7a9a", itens: [] });
+  const [complianceScore, setComplianceScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: "#5a7a9a", itens: [] });
+
+  // Aba ativa
+  const [aba, setAba] = useState<"dados" | "socios" | "compliance" | "cofre" | "auditoria">("dados");
+
+  // CNPJ auto-preenchimento
+  const [consultandoCNPJ, setConsultandoCNPJ] = useState(false);
+  const [resultadoCNPJ, setResultadoCNPJ] = useState<any>(null);
+
+  // CEP auto-preenchimento
+  const [consultandoCEP, setConsultandoCEP] = useState(false);
+
+  // Modais
+  const [modalSocio, setModalSocio] = useState<any>(null); // null | "novo" | objeto sócio
+  const [modalDocumento, setModalDocumento] = useState<any>(null);
+  const [modalObrigacao, setModalObrigacao] = useState<any>(null);
+  const [modalMembro, setModalMembro] = useState<any>(null);
+  const [modalScoreDetalhe, setModalScoreDetalhe] = useState<"health" | "compliance" | null>(null);
+
+  // Toast
+  const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "info" | "erro" | "ok" = "info") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  useEffect(() => { inicializar(); }, []);
+
+  async function inicializar() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setCarregando(false); return; }
+    setUserId(user.id);
+    await carregarTudo(user.id);
+  }
+
+  async function carregarTudo(uid: string) {
+    setCarregando(true);
+    try {
+      let emp = await carregarEmpresa(uid);
+
+      // Se não existe, cria uma empresa vazia automaticamente
+      if (!emp) {
+        const r = await criarEmpresa(uid, { nome: "Minha Empresa" });
+        if (r.id) emp = await carregarEmpresa(uid);
+      }
+
+      if (emp) {
+        setEmpresa(emp);
+        setEmpresaForm(emp);
+        const [s, d, o, e, a] = await Promise.all([
+          carregarSocios(emp.id, uid),
+          carregarDocumentos(emp.id, uid),
+          carregarObrigacoes(emp.id, uid),
+          carregarEquipe(emp.id, uid),
+          carregarAuditoria(emp.id, uid, 100),
+        ]);
+        setSocios(s); setDocumentos(d); setObrigacoes(o); setEquipe(e); setAuditoria(a);
+        setHealthScore(calcularHealthScore(emp, s, d));
+        setComplianceScore(calcularComplianceScore(emp, o, d));
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erro ao carregar", "erro");
+    }
+    setCarregando(false);
+  }
+
+  // =========================================================================
+  // CNPJ AUTO-PREENCHIMENTO
+  // =========================================================================
+  async function preencherPorCNPJ() {
+    const cnpj = limparCNPJ(empresaForm.cnpj || "");
+    if (!cnpj) { showToast("Digite o CNPJ primeiro", "erro"); return; }
+    if (!validarCNPJ(cnpj)) { showToast("CNPJ inválido", "erro"); return; }
+
+    setConsultandoCNPJ(true);
+    const r = await consultarCNPJ(cnpj);
+    setConsultandoCNPJ(false);
+
+    if ("erro" in r) { showToast(r.erro, "erro"); return; }
+    setResultadoCNPJ(r);
+  }
+
+  function aplicarDadosCNPJ() {
+    if (!resultadoCNPJ) return;
+    const d = resultadoCNPJ;
+    const regime = d.opcao_mei ? "mei" : d.opcao_simples ? "simples" : empresaForm.regime_tributario;
+    setEmpresaForm((prev: any) => ({
+      ...prev,
+      razao_social: d.razao_social || prev.razao_social,
+      nome_fantasia: d.nome_fantasia || prev.nome_fantasia,
+      cnpj: d.cnpj || prev.cnpj,
+      cnae_principal: d.cnae_principal || prev.cnae_principal,
+      cnae_descricao: d.cnae_descricao || prev.cnae_descricao,
+      cnaes_secundarios: d.cnaes_secundarios || prev.cnaes_secundarios,
+      natureza_juridica: d.natureza_juridica || prev.natureza_juridica,
+      porte: d.porte || prev.porte,
+      data_abertura: d.data_abertura || prev.data_abertura,
+      capital_social: d.capital_social ?? prev.capital_social,
+      situacao_cadastral: d.situacao_cadastral || prev.situacao_cadastral,
+      opcao_simples: d.opcao_simples ?? prev.opcao_simples,
+      opcao_mei: d.opcao_mei ?? prev.opcao_mei,
+      regime_tributario: regime,
+      cep: d.cep || prev.cep,
+      logradouro: d.logradouro || prev.logradouro,
+      numero: d.numero || prev.numero,
+      complemento: d.complemento || prev.complemento,
+      bairro: d.bairro || prev.bairro,
+      cidade: d.cidade || prev.cidade,
+      uf: d.uf || prev.uf,
+      telefone_principal: d.telefone_principal || prev.telefone_principal,
+      email_principal: d.email_principal || prev.email_principal,
+      nome: prev.nome || d.nome_fantasia || d.razao_social,
     }));
-    const chars = "AXIOMA EMPRESA CNPJ TECH AI CEO CFO 0 1 2 3 4 5 6 7 8 9 R$ %".split(" ").map((char) => ({
-      char, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 28 + 14, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
-      color: ["#6ab0ff", "#34d399", "#fbbf24", "#a78bfa"][Math.floor(Math.random() * 4)],
-    }));
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`;
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity;
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height);
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105;
-      });
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 120) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 120) * 0.12;
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
-          }
+    showToast("Dados aplicados! Clique em Salvar.", "ok");
+
+    // Pergunta se quer importar sócios
+    if (d.socios && d.socios.length > 0 && empresa) {
+      if (window.confirm(`Encontramos ${d.socios.length} sócio(s) na Receita. Importar para o sistema?`)) {
+        importarSociosDoQSA(empresa.id, userId!, d.socios).then((qtd) => {
+          showToast(`${qtd} sócio(s) importado(s)`, "ok");
+          carregarTudo(userId!);
         });
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      }
+    }
+    setResultadoCNPJ(null);
+  }
+
+  // =========================================================================
+  // CEP AUTO-PREENCHIMENTO
+  // =========================================================================
+  async function preencherPorCEP() {
+    const cep = (empresaForm.cep || "").replace(/\D/g, "");
+    if (cep.length !== 8) { showToast("CEP inválido", "erro"); return; }
+    setConsultandoCEP(true);
+    const r = await consultarCEP(cep);
+    setConsultandoCEP(false);
+    if ("erro" in r) { showToast(r.erro, "erro"); return; }
+    setEmpresaForm((prev: any) => ({
+      ...prev,
+      cep: r.cep || prev.cep,
+      logradouro: r.logradouro || prev.logradouro,
+      bairro: r.bairro || prev.bairro,
+      cidade: r.cidade || prev.cidade,
+      uf: r.uf || prev.uf,
+    }));
+    showToast("Endereço preenchido!", "ok");
+  }
+
+  // =========================================================================
+  // SALVAR EMPRESA
+  // =========================================================================
+  async function salvarEmpresa() {
+    if (!empresa || !userId) return;
+    setSalvando(true);
+    const r = await atualizarEmpresa(empresa.id, userId, empresa, empresaForm);
+    if (r.erro) showToast(r.erro, "erro");
+    else { showToast("Dados salvos!", "ok"); await carregarTudo(userId); }
+    setSalvando(false);
+  }
+
+  // =========================================================================
+  // LOGO UPLOAD
+  // =========================================================================
+  async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    const r = await uploadLogo(file, userId);
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    setEmpresaForm((prev: any) => ({ ...prev, logo_url: r.url }));
+    showToast("Logo atualizada (clique em Salvar)", "ok");
+    if (inputLogoRef.current) inputLogoRef.current.value = "";
+  }
+
+  // =========================================================================
+  // SÓCIOS CRUD
+  // =========================================================================
+  async function salvarSocio(dados: any) {
+    if (!empresa || !userId) return;
+    if (modalSocio === "novo") {
+      const r = await criarSocio(empresa.id, userId, dados);
+      if (r.erro) { showToast(r.erro, "erro"); return; }
+      showToast("Sócio adicionado", "ok");
+    } else {
+      const r = await atualizarSocio(modalSocio.id, empresa.id, userId, dados);
+      if (r.erro) { showToast(r.erro, "erro"); return; }
+      showToast("Sócio atualizado", "ok");
+    }
+    setModalSocio(null);
+    await carregarTudo(userId);
+  }
+
+  async function removerSocio(socio: any) {
+    if (!empresa || !userId) return;
+    if (!window.confirm(`Remover sócio "${socio.nome}"?`)) return;
+    const r = await excluirSocio(socio.id, empresa.id, userId, socio.nome);
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    showToast("Sócio removido", "ok");
+    await carregarTudo(userId);
+  }
+
+  // =========================================================================
+  // DOCUMENTOS CRUD
+  // =========================================================================
+  async function salvarDocumento(dados: any, arquivo: File | null) {
+    if (!empresa || !userId) return;
+    let storagePath: string | null = null;
+    if (arquivo) {
+      const up = await uploadDocumento(arquivo, empresa.id, userId, dados.tipo || "outros");
+      if (up.erro) { showToast(up.erro, "erro"); return; }
+      storagePath = up.path || null;
+    }
+    const r = await criarDocumento(empresa.id, userId, {
+      ...dados,
+      storage_path: storagePath,
+      mime_type: arquivo?.type,
+      tamanho_bytes: arquivo?.size,
+    });
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    showToast("Documento adicionado", "ok");
+    setModalDocumento(null);
+    await carregarTudo(userId);
+  }
+
+  async function removerDocumento(doc: any) {
+    if (!empresa || !userId) return;
+    if (!window.confirm(`Remover documento "${doc.nome}"?`)) return;
+    const r = await excluirDocumento(doc.id, empresa.id, userId, doc.storage_path, doc.nome);
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    showToast("Documento removido", "ok");
+    await carregarTudo(userId);
+  }
+
+  async function baixarDocumento(doc: any) {
+    if (!doc.storage_path) { showToast("Arquivo não disponível", "erro"); return; }
+    const url = await gerarUrlDocumento(doc.storage_path);
+    if (url) window.open(url, "_blank"); else showToast("Erro ao gerar link", "erro");
+  }
+
+  // =========================================================================
+  // OBRIGAÇÕES CRUD + GERAÇÃO AUTOMÁTICA
+  // =========================================================================
+  async function gerarCalendarioFiscal() {
+    if (!empresa || !userId) return;
+    if (!empresa.regime_tributario) { showToast("Defina o regime tributário primeiro", "erro"); return; }
+    const ano = new Date().getFullYear();
+    const lista = gerarObrigacoesPadrao(empresa.regime_tributario, ano);
+    if (lista.length === 0) { showToast("Nenhuma obrigação padrão para este regime", "erro"); return; }
+    if (!window.confirm(`Gerar ${lista.length} obrigações fiscais para ${ano}?`)) return;
+    let ok = 0;
+    for (const obr of lista) {
+      const r = await criarObrigacao(empresa.id, userId, obr);
+      if (!r.erro) ok++;
+    }
+    showToast(`${ok} obrigações criadas`, "ok");
+    await carregarTudo(userId);
+  }
+
+  async function salvarObrigacao(dados: any) {
+    if (!empresa || !userId) return;
+    if (modalObrigacao === "novo") {
+      const r = await criarObrigacao(empresa.id, userId, dados);
+      if (r.erro) { showToast(r.erro, "erro"); return; }
+    } else {
+      const r = await atualizarObrigacao(modalObrigacao.id, empresa.id, userId, dados);
+      if (r.erro) { showToast(r.erro, "erro"); return; }
+    }
+    setModalObrigacao(null);
+    showToast("Obrigação salva", "ok");
+    await carregarTudo(userId);
+  }
+
+  async function marcarObrigacaoPaga(obr: any) {
+    if (!empresa || !userId) return;
+    const r = await atualizarObrigacao(obr.id, empresa.id, userId, { status: "paga", valor_pago: obr.valor_estimado });
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    showToast("Marcada como paga", "ok");
+    await carregarTudo(userId);
+  }
+
+  async function removerObrigacao(obr: any) {
+    if (!empresa || !userId) return;
+    if (!window.confirm(`Remover "${obr.nome}"?`)) return;
+    const r = await excluirObrigacao(obr.id, empresa.id, userId, obr.nome);
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    await carregarTudo(userId);
+  }
+
+  // =========================================================================
+  // EQUIPE
+  // =========================================================================
+  async function salvarMembro(dados: any) {
+    if (!empresa || !userId) return;
+    const r = await convidarMembro(empresa.id, userId, dados);
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    showToast("Convite registrado", "ok");
+    setModalMembro(null);
+    await carregarTudo(userId);
+  }
+
+  async function removerMembro(m: any) {
+    if (!empresa || !userId) return;
+    if (!window.confirm(`Remover ${m.email_convidado}?`)) return;
+    const r = await excluirMembro(m.id, empresa.id, userId, m.email_convidado);
+    if (r.erro) { showToast(r.erro, "erro"); return; }
+    await carregarTudo(userId);
+  }
+
+  // =========================================================================
+  // PDF "CARTÃO DE APRESENTAÇÃO" DA EMPRESA
+  // =========================================================================
+  async function exportarPDF() {
+    if (!empresa) return;
+    setExportando(true);
+    try {
+      const linhasEmp = [
+        { campo: "Razão Social", valor: empresa.razao_social || "—" },
+        { campo: "Nome Fantasia", valor: empresa.nome_fantasia || "—" },
+        { campo: "CNPJ", valor: empresa.cnpj || "—" },
+        { campo: "Inscrição Estadual", valor: empresa.inscricao_estadual || "—" },
+        { campo: "Regime Tributário", valor: empresa.regime_tributario || "—" },
+        { campo: "CNAE Principal", valor: empresa.cnae_principal ? `${empresa.cnae_principal} - ${empresa.cnae_descricao || ""}` : "—" },
+        { campo: "Porte", valor: empresa.porte || "—" },
+        { campo: "Endereço", valor: [empresa.logradouro, empresa.numero, empresa.bairro, empresa.cidade, empresa.uf].filter(Boolean).join(", ") || "—" },
+        { campo: "CEP", valor: empresa.cep || "—" },
+        { campo: "Telefone", valor: empresa.telefone_principal || "—" },
+        { campo: "E-mail", valor: empresa.email_principal || "—" },
+        { campo: "Website", valor: empresa.website || "—" },
+        { campo: "Contador", valor: empresa.contador_nome || "—" },
+        { campo: "CRC Contador", valor: empresa.contador_crc || "—" },
+      ];
+
+      await gerarPdfTabela({
+        titulo: `Cartão de Apresentação - ${empresa.nome_fantasia || empresa.razao_social || empresa.nome}`,
+        subtitulo: new Date().toLocaleDateString("pt-BR"),
+        colunas: [
+          { header: "CAMPO", key: "campo", width: 50, align: "left" as const },
+          { header: "VALOR", key: "valor", width: 110, align: "left" as const },
+        ],
+        linhas: linhasEmp,
+        resumo: [
+          { label: "Health Score", valor: `${healthScore.score}/100 (${healthScore.nivel})` },
+          { label: "Compliance Score", valor: `${complianceScore.score}/100 (${complianceScore.nivel})` },
+          { label: "Sócios cadastrados", valor: String(socios.length) },
+          { label: "Documentos no cofre", valor: String(documentos.length) },
+        ],
+        nomeArquivo: `axioma-empresa-${(empresa.nome_fantasia || empresa.razao_social || "empresa").replace(/\W/g, "_").toLowerCase()}.pdf`,
       });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.8 }} />;
-}
+    } catch (err: any) {
+      showToast(err.message || "Erro ao gerar PDF", "erro");
+    }
+    setExportando(false);
+  }
 
-function CanvasBox({ children, cor = "#6ab0ff", corB = "#34d399", corC = "#a78bfa", corD = "#f472b6" }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string;
-}) {
+  // =========================================================================
+  // HELPERS UI
+  // =========================================================================
+  function setCampo(campo: string, valor: any) {
+    setEmpresaForm((prev: any) => ({ ...prev, [campo]: valor }));
+  }
+
+  const inputStyle = {
+    background: "rgba(2,8,16,0.7)",
+    border: "1px solid rgba(106,176,255,0.2)",
+    color: "#c8d8f0",
+  };
+
+  // =========================================================================
+  // RENDER
+  // =========================================================================
   return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: "rgba(4,10,22,0.97)", border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
-    }}>
-      <CanvasNeural />
-      {[
-        { pos: "top-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: "top-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: "top-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: "bottom-0 left-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 left-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: "bottom-0 right-0", w: "w-20 h-[2.5px]", bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: "bottom-0 right-0", w: "w-[2.5px] h-20", bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: "999px", position: "absolute" }} />
-      <div className="relative z-10 p-4 md:p-6">{children}</div>
-    </div>
-  );
-}
+    <ModuloLayout
+      titulo="🏢 Empresa"
+      subtitulo="Cadastro profissional, compliance e cofre de documentos"
+      onExportarPDF={exportarPDF}
+      exportando={exportando}
+    >
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)",
+            color: "#020810", fontWeight: 600, fontSize: 13,
+          }}>{toast.msg}</div>
+      )}
 
-// Painel direito épico
-function PainelDireito({ idioma }: { idioma: string }) {
-  const stats = [
-    { label: idioma === "pt" ? "Módulos Ativos" : idioma === "en" ? "Active Modules" : "Módulos Activos", valor: "22", cor: "#6ab0ff" },
-    { label: idioma === "pt" ? "Score Financeiro" : idioma === "en" ? "Financial Score" : "Score Financiero", valor: "87/100", cor: "#34d399" },
-    { label: idioma === "pt" ? "Economia Anual" : idioma === "en" ? "Annual Savings" : "Ahorro Anual", valor: "R$ 8.4K", cor: "#fbbf24" },
-    { label: idioma === "pt" ? "IAs Disponíveis" : idioma === "en" ? "Available AIs" : "IAs Disponibles", valor: "2", cor: "#a78bfa" },
-  ];
+      {carregando && (
+        <CanvasBox cor="#6ab0ff">
+          <div className="py-12 text-center">
+            <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm" style={{ color: "#6ab0ff" }}>Carregando empresa...</p>
+          </div>
+        </CanvasBox>
+      )}
 
-  const letrasAxioma = "AXIOMA".split("");
+      {!carregando && empresa && (
+        <div className="space-y-4">
+          {/* HEADER: 2 SCORES + INFO RÁPIDA */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Card empresa rápido */}
+            <CanvasBox cor="#6ab0ff">
+              <div className="flex items-center gap-3">
+                {empresa.logo_url ? (
+                  <img src={empresa.logo_url} alt="logo" className="w-16 h-16 rounded-xl object-contain" style={{ background: "rgba(2,8,16,0.5)" }} />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                    {(empresa.razao_social || empresa.nome || "?")[0]}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Empresa</p>
+                  <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{empresa.nome_fantasia || empresa.razao_social || empresa.nome}</p>
+                  <p className="text-xs" style={{ color: "#6ab0ff" }}>{empresa.cnpj || "Sem CNPJ"}</p>
+                </div>
+              </div>
+            </CanvasBox>
 
-  return (
-    <div className="relative rounded-2xl overflow-hidden flex flex-col gap-4 h-full" style={{ minHeight: "500px" }}>
-      <CanvasNeural />
+            {/* Health Score */}
+            <CanvasBox cor={healthScore.cor}>
+              <button onClick={() => setModalScoreDetalhe("health")} className="w-full text-left">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📊 Health Score (Completude)</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black" style={{ color: healthScore.cor }}>{healthScore.score}</span>
+                  <span style={{ color: "#5a7a9a" }}>/100</span>
+                  <span className="text-xs font-bold" style={{ color: healthScore.cor }}>{healthScore.nivel}</span>
+                </div>
+                <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>Clique pra detalhes</p>
+              </button>
+            </CanvasBox>
 
-      {/* Bordas épicas */}
-      {[
-        { pos: "top-0 left-0", w: "w-32 h-[3px]", bg: "linear-gradient(90deg, #6ab0ff, transparent)", glow: "#6ab0ff" },
-        { pos: "top-0 left-0", w: "w-[3px] h-32", bg: "linear-gradient(180deg, #6ab0ff, transparent)", glow: "#6ab0ff" },
-        { pos: "top-0 right-0", w: "w-32 h-[3px]", bg: "linear-gradient(270deg, #34d399, transparent)", glow: "#34d399" },
-        { pos: "top-0 right-0", w: "w-[3px] h-32", bg: "linear-gradient(180deg, #34d399, transparent)", glow: "#34d399" },
-        { pos: "bottom-0 left-0", w: "w-32 h-[3px]", bg: "linear-gradient(90deg, #a78bfa, transparent)", glow: "#a78bfa" },
-        { pos: "bottom-0 left-0", w: "w-[3px] h-32", bg: "linear-gradient(0deg, #a78bfa, transparent)", glow: "#a78bfa" },
-        { pos: "bottom-0 right-0", w: "w-32 h-[3px]", bg: "linear-gradient(270deg, #f472b6, transparent)", glow: "#f472b6" },
-        { pos: "bottom-0 right-0", w: "w-[3px] h-32", bg: "linear-gradient(0deg, #f472b6, transparent)", glow: "#f472b6" },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 20px ${b.glow}`, borderRadius: "999px" }} />
-      ))}
+            {/* Compliance Score */}
+            <CanvasBox cor={complianceScore.cor}>
+              <button onClick={() => setModalScoreDetalhe("compliance")} className="w-full text-left">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🛡️ Compliance Score (Fiscal)</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black" style={{ color: complianceScore.cor }}>{complianceScore.score}</span>
+                  <span style={{ color: "#5a7a9a" }}>/100</span>
+                  <span className="text-xs font-bold" style={{ color: complianceScore.cor }}>{complianceScore.nivel}</span>
+                </div>
+                <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>Clique pra detalhes</p>
+              </button>
+            </CanvasBox>
+          </div>
 
-      {/* Partículas correndo nas bordas */}
-      <motion.div animate={{ left: ["-5%", "105%", "-5%"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-0 h-[3px] w-32 z-20 pointer-events-none"
-        style={{ background: "linear-gradient(90deg, transparent, #fff, #6ab0ff, transparent)", boxShadow: "0 0 24px #fff, 0 0 48px #6ab0ff", borderRadius: "999px" }} />
-      <motion.div animate={{ right: ["-5%", "105%", "-5%"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-        className="absolute bottom-0 h-[3px] w-32 z-20 pointer-events-none"
-        style={{ background: "linear-gradient(90deg, transparent, #34d399, #fff, transparent)", boxShadow: "0 0 24px #34d399", borderRadius: "999px", position: "absolute" }} />
-      <motion.div animate={{ top: ["-5%", "105%", "-5%"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-        className="absolute left-0 w-[3px] h-20 z-20 pointer-events-none"
-        style={{ background: "linear-gradient(180deg, transparent, #a78bfa, #fff, transparent)", boxShadow: "0 0 24px #a78bfa", borderRadius: "999px" }} />
-      <motion.div animate={{ bottom: ["-5%", "105%", "-5%"] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        className="absolute right-0 w-[3px] h-20 z-20 pointer-events-none"
-        style={{ background: "linear-gradient(0deg, transparent, #f472b6, #fff, transparent)", boxShadow: "0 0 24px #f472b6", borderRadius: "999px", position: "absolute" }} />
-
-      {/* Conteúdo */}
-      <div className="relative z-10 p-6 md:p-8 flex flex-col items-center justify-center h-full gap-8">
-
-        {/* Nome AXIOMA letra por letra */}
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1 mb-2">
-            {letrasAxioma.map((letra, i) => (
-              <motion.span
-                key={i}
-                animate={{
-                  opacity: [0.5, 1, 0.5],
-                  y: [0, -4, 0],
-                  textShadow: [
-                    `0 0 10px #6ab0ff`,
-                    `0 0 30px #6ab0ff, 0 0 60px #6ab0ff`,
-                    `0 0 10px #6ab0ff`,
-                  ],
-                }}
-                transition={{ duration: 2, repeat: Infinity, delay: i * 0.15 }}
-                className="text-4xl md:text-5xl font-black"
-                style={{ color: "#6ab0ff" }}
-              >
-                {letra}
-              </motion.span>
+          {/* ABAS */}
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {[
+              { key: "dados", label: "🏢 Dados Cadastrais" },
+              { key: "socios", label: `👥 Sócios & Equipe (${socios.length + equipe.length})` },
+              { key: "compliance", label: `📋 Compliance & Fiscal (${obrigacoes.length})` },
+              { key: "cofre", label: `📄 Cofre (${documentos.length})` },
+              { key: "auditoria", label: "🔐 Auditoria" },
+            ].map((a) => (
+              <button key={a.key} onClick={() => setAba(a.key as any)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
+                style={{
+                  background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
+                  color: aba === a.key ? "#fff" : "#6ab0ff",
+                  border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+                }}>
+                {a.label}
+              </button>
             ))}
           </div>
-          <motion.p
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="text-xs font-black tracking-[0.4em] uppercase"
-            style={{ color: "#34d399", textShadow: "0 0 20px #34d399" }}
-          >
-            AI.TECH
-          </motion.p>
-        </div>
 
-        {/* Spinner épico */}
-        <div className="relative flex items-center justify-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="w-24 h-24 rounded-full border-2"
-            style={{ borderColor: "#6ab0ff", borderTopColor: "transparent", borderRightColor: "#34d399" }}
-          />
-          <motion.div
-            animate={{ rotate: -360 }}
-            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-            className="absolute w-16 h-16 rounded-full border-2"
-            style={{ borderColor: "#a78bfa", borderTopColor: "transparent", borderLeftColor: "#f472b6" }}
-          />
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute w-8 h-8 rounded-full"
-            style={{ background: "radial-gradient(circle, #6ab0ff, transparent)", boxShadow: "0 0 20px #6ab0ff" }}
-          />
-        </div>
+          {/* ============= ABA: DADOS CADASTRAIS ============= */}
+          {aba === "dados" && (
+            <div className="space-y-4">
+              {/* CNPJ + Botão Mágico */}
+              <CanvasBox cor="#a78bfa">
+                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>🪄 Auto-preenchimento por CNPJ (Receita Federal)</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input value={empresaForm.cnpj || ""} onChange={(e) => setCampo("cnpj", formatarCNPJ(e.target.value))}
+                    placeholder="00.000.000/0000-00" className="flex-1 px-3 py-2.5 rounded-lg text-sm" style={inputStyle} />
+                  <button onClick={preencherPorCNPJ} disabled={consultandoCNPJ}
+                    className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50"
+                    style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
+                    {consultandoCNPJ ? "⏳ Consultando..." : "🪄 Preencher por CNPJ"}
+                  </button>
+                </div>
+                <p className="text-[10px] mt-2" style={{ color: "#5a7a9a" }}>
+                  ℹ️ Usa a API gratuita da BrasilAPI. Preenche razão social, endereço, CNAE, regime tributário e sócios automaticamente.
+                </p>
+              </CanvasBox>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 w-full">
-          {stats.map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1 }}
-              whileHover={{ scale: 1.05 }}
-              className="rounded-xl p-3 text-center"
-              style={{ background: `${stat.cor}10`, border: `1px solid ${stat.cor}30` }}
-            >
-              <motion.p
-                animate={{ opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 2 + i * 0.5, repeat: Infinity }}
-                className="text-xl font-black mb-1"
-                style={{ color: stat.cor, textShadow: `0 0 15px ${stat.cor}60` }}
-              >
-                {stat.valor}
-              </motion.p>
-              <p className="text-xs" style={{ color: "#3a5a8a" }}>{stat.label}</p>
-            </motion.div>
-          ))}
-        </div>
+              {/* Logo + Dados básicos */}
+              <CanvasBox cor="#6ab0ff">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className="md:col-span-1">
+                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>Logo</p>
+                    {empresaForm.logo_url ? (
+                      <img src={empresaForm.logo_url} alt="logo" className="w-24 h-24 rounded-xl object-contain" style={{ background: "rgba(2,8,16,0.5)" }} />
+                    ) : (
+                      <div className="w-24 h-24 rounded-xl flex items-center justify-center text-3xl font-black" style={{ background: "rgba(2,8,16,0.5)", border: "1px dashed rgba(106,176,255,0.3)" }}>
+                        <span style={{ color: "#5a7a9a" }}>?</span>
+                      </div>
+                    )}
+                    <button onClick={() => inputLogoRef.current?.click()}
+                      className="mt-2 text-xs px-3 py-1.5 rounded-lg"
+                      style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                      📤 Upload Logo
+                    </button>
+                    <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
+                  </div>
+                  <div className="md:col-span-3 space-y-3">
+                    <div>
+                      <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Razão Social</label>
+                      <input value={empresaForm.razao_social || ""} onChange={(e) => setCampo("razao_social", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Nome Fantasia</label>
+                        <input value={empresaForm.nome_fantasia || ""} onChange={(e) => setCampo("nome_fantasia", e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Inscrição Estadual</label>
+                        <input value={empresaForm.inscricao_estadual || ""} onChange={(e) => setCampo("inscricao_estadual", e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Inscrição Municipal</label>
+                        <input value={empresaForm.inscricao_municipal || ""} onChange={(e) => setCampo("inscricao_municipal", e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Porte</label>
+                        <select value={empresaForm.porte || ""} onChange={(e) => setCampo("porte", e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
+                          <option value="" style={{ background: "#020810" }}>—</option>
+                          {PORTES.map((p) => <option key={p} value={p} style={{ background: "#020810" }}>{p}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CanvasBox>
 
-        {/* Tagline */}
-        <motion.p
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="text-xs text-center font-semibold tracking-wider"
-          style={{ color: "#3a5a8a" }}
-        >
-          {idioma === "pt" ? "Inteligência financeira para PMEs brasileiras"
-            : idioma === "en" ? "Financial intelligence for Brazilian SMEs"
-            : "Inteligencia financiera para PyMEs brasileñas"}
-        </motion.p>
+              {/* Tributário */}
+              <CanvasBox cor="#34d399">
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>🏛️ Tributário</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Regime Tributário</label>
+                    <select value={empresaForm.regime_tributario || ""} onChange={(e) => setCampo("regime_tributario", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
+                      <option value="" style={{ background: "#020810" }}>—</option>
+                      {REGIMES_TRIBUTARIOS.map((r) => <option key={r.key} value={r.key} style={{ background: "#020810" }}>{r.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>CNAE Principal</label>
+                    <input value={empresaForm.cnae_principal || ""} onChange={(e) => setCampo("cnae_principal", e.target.value)}
+                      placeholder="6201-5/01" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Descrição CNAE</label>
+                    <input value={empresaForm.cnae_descricao || ""} onChange={(e) => setCampo("cnae_descricao", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Natureza Jurídica</label>
+                    <input value={empresaForm.natureza_juridica || ""} onChange={(e) => setCampo("natureza_juridica", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Capital Social (R$)</label>
+                    <input type="number" step="0.01" value={empresaForm.capital_social || ""} onChange={(e) => setCampo("capital_social", parseFloat(e.target.value) || 0)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Data de Abertura</label>
+                    <input type="date" value={empresaForm.data_abertura || ""} onChange={(e) => setCampo("data_abertura", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Situação Cadastral</label>
+                    <select value={empresaForm.situacao_cadastral || ""} onChange={(e) => setCampo("situacao_cadastral", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
+                      <option value="" style={{ background: "#020810" }}>—</option>
+                      <option value="ativa" style={{ background: "#020810" }}>Ativa</option>
+                      <option value="suspensa" style={{ background: "#020810" }}>Suspensa</option>
+                      <option value="inapta" style={{ background: "#020810" }}>Inapta</option>
+                      <option value="baixada" style={{ background: "#020810" }}>Baixada</option>
+                    </select>
+                  </div>
+                </div>
+              </CanvasBox>
+
+              {/* Endereço + CEP */}
+              <CanvasBox cor="#fbbf24">
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>📍 Endereço</p>
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                  <div className="md:col-span-2 flex gap-2">
+                    <input value={empresaForm.cep || ""} onChange={(e) => setCampo("cep", formatarCEP(e.target.value))}
+                      placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                    <button onClick={preencherPorCEP} disabled={consultandoCEP}
+                      className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
+                      style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
+                      {consultandoCEP ? "..." : "🔍"}
+                    </button>
+                  </div>
+                  <div className="md:col-span-3">
+                    <input value={empresaForm.logradouro || ""} onChange={(e) => setCampo("logradouro", e.target.value)}
+                      placeholder="Logradouro" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-1">
+                    <input value={empresaForm.numero || ""} onChange={(e) => setCampo("numero", e.target.value)}
+                      placeholder="Nº" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <input value={empresaForm.complemento || ""} onChange={(e) => setCampo("complemento", e.target.value)}
+                      placeholder="Complemento" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <input value={empresaForm.bairro || ""} onChange={(e) => setCampo("bairro", e.target.value)}
+                      placeholder="Bairro" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <input value={empresaForm.cidade || ""} onChange={(e) => setCampo("cidade", e.target.value)}
+                      placeholder="Cidade" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-1">
+                    <input value={empresaForm.uf || ""} onChange={(e) => setCampo("uf", e.target.value.toUpperCase().slice(0, 2))}
+                      placeholder="UF" maxLength={2} className="w-full px-3 py-2 rounded-lg text-sm uppercase" style={inputStyle} />
+                  </div>
+                </div>
+              </CanvasBox>
+
+              {/* Contato */}
+              <CanvasBox cor="#6ab0ff">
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>📞 Contato</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Telefone Principal</label>
+                    <input value={empresaForm.telefone_principal || ""} onChange={(e) => setCampo("telefone_principal", formatarTelefone(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Telefone Secundário</label>
+                    <input value={empresaForm.telefone_secundario || ""} onChange={(e) => setCampo("telefone_secundario", formatarTelefone(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail Principal</label>
+                    <input type="email" value={empresaForm.email_principal || ""} onChange={(e) => setCampo("email_principal", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail Financeiro</label>
+                    <input type="email" value={empresaForm.email_financeiro || ""} onChange={(e) => setCampo("email_financeiro", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail Contábil</label>
+                    <input type="email" value={empresaForm.email_contabil || ""} onChange={(e) => setCampo("email_contabil", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Website</label>
+                    <input value={empresaForm.website || ""} onChange={(e) => setCampo("website", e.target.value)}
+                      placeholder="https://" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                </div>
+              </CanvasBox>
+
+              {/* Dados bancários */}
+              <CanvasBox cor="#a78bfa">
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>🏦 Dados Bancários Principais</p>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Banco</label>
+                    <input value={empresaForm.banco_principal || ""} onChange={(e) => setCampo("banco_principal", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Agência</label>
+                    <input value={empresaForm.agencia || ""} onChange={(e) => setCampo("agencia", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Conta</label>
+                    <input value={empresaForm.conta || ""} onChange={(e) => setCampo("conta", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Chave PIX</label>
+                    <input value={empresaForm.chave_pix || ""} onChange={(e) => setCampo("chave_pix", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                </div>
+              </CanvasBox>
+
+              {/* Contador */}
+              <CanvasBox cor="#fbbf24">
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>👤 Contador</p>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Nome</label>
+                    <input value={empresaForm.contador_nome || ""} onChange={(e) => setCampo("contador_nome", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>CRC</label>
+                    <input value={empresaForm.contador_crc || ""} onChange={(e) => setCampo("contador_crc", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Telefone</label>
+                    <input value={empresaForm.contador_telefone || ""} onChange={(e) => setCampo("contador_telefone", formatarTelefone(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail</label>
+                    <input type="email" value={empresaForm.contador_email || ""} onChange={(e) => setCampo("contador_email", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </div>
+                </div>
+              </CanvasBox>
+
+              {/* Salvar */}
+              <button onClick={salvarEmpresa} disabled={salvando}
+                className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+                {salvando ? "⏳ Salvando..." : "✅ Salvar Dados da Empresa"}
+              </button>
+            </div>
+          )}
+
+          {/* ============= ABA: SÓCIOS & EQUIPE ============= */}
+          {aba === "socios" && (
+            <div className="space-y-4">
+              {/* Sócios */}
+              <CanvasBox cor="#6ab0ff">
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>👥 Quadro Societário ({socios.length})</p>
+                  <button onClick={() => setModalSocio("novo")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                    + Novo Sócio
+                  </button>
+                </div>
+                {socios.length === 0 ? (
+                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>Nenhum sócio cadastrado. Use o botão "Preencher por CNPJ" pra importar da Receita.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {socios.map((s: any) => (
+                      <div key={s.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
+                        style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{s.nome}</p>
+                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+                            {s.qualificacao || "—"} • {s.cpf_cnpj || "—"} • {s.tipo_pessoa}
+                            {s.participacao_pct > 0 && <span style={{ color: "#34d399" }}> • {s.participacao_pct}%</span>}
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <button onClick={() => setModalSocio(s)} title="Editar"
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
+                          <button onClick={() => removerSocio(s)} title="Remover"
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CanvasBox>
+
+              {/* Equipe */}
+              <CanvasBox cor="#a78bfa">
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🧑‍💻 Equipe Interna ({equipe.length})</p>
+                  <button onClick={() => setModalMembro("novo")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
+                    + Convidar Membro
+                  </button>
+                </div>
+                {equipe.length === 0 ? (
+                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>Nenhum membro convidado.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {equipe.map((m: any) => (
+                      <div key={m.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
+                        style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(167,139,250,0.15)" }}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{m.nome || m.email_convidado}</p>
+                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+                            {m.cargo || "—"} • {m.papel} • {m.convite_aceito ? "✅ Aceito" : "⏳ Pendente"}
+                          </p>
+                        </div>
+                        <button onClick={() => removerMembro(m)}
+                          className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CanvasBox>
+            </div>
+          )}
+
+          {/* ============= ABA: COMPLIANCE & FISCAL ============= */}
+          {aba === "compliance" && (
+            <div className="space-y-4">
+              <CanvasBox cor={complianceScore.cor}>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📅 Calendário Fiscal ({obrigacoes.length})</p>
+                    <p className="text-xs" style={{ color: "#c8d8f0" }}>
+                      Regime: <strong style={{ color: complianceScore.cor }}>{empresa.regime_tributario || "não definido"}</strong>
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={gerarCalendarioFiscal}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
+                      🪄 Gerar Calendário Automático
+                    </button>
+                    <button onClick={() => setModalObrigacao("novo")}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                      + Nova Obrigação
+                    </button>
+                  </div>
+                </div>
+              </CanvasBox>
+
+              {obrigacoes.length === 0 ? (
+                <CanvasBox cor="#fbbf24">
+                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>
+                    Nenhuma obrigação cadastrada. Defina o regime tributário e clique em "Gerar Calendário Automático".
+                  </p>
+                </CanvasBox>
+              ) : (
+                <div className="space-y-2">
+                  {obrigacoes.map((o: any) => {
+                    const hoje = new Date().toISOString().slice(0, 10);
+                    const vencida = o.status === "pendente" && o.data_vencimento < hoje;
+                    const corStatus = o.status === "paga" ? "#34d399" : vencida ? "#f87171" : o.status === "dispensada" ? "#5a7a9a" : "#fbbf24";
+                    return (
+                      <div key={o.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
+                        style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${corStatus}30` }}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{o.nome}</p>
+                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+                            📅 {formatData(o.data_vencimento)} • {o.tipo}
+                            {o.valor_estimado > 0 && <span style={{ color: "#fbbf24" }}> • {formatBRL(o.valor_estimado)}</span>}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                            style={{ background: `${corStatus}20`, color: corStatus }}>
+                            {vencida ? "VENCIDA" : o.status.toUpperCase()}
+                          </span>
+                          {o.status !== "paga" && (
+                            <button onClick={() => marcarObrigacaoPaga(o)} title="Marcar paga"
+                              className="px-2 py-1 rounded text-xs" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>✓</button>
+                          )}
+                          <button onClick={() => setModalObrigacao(o)} title="Editar"
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
+                          <button onClick={() => removerObrigacao(o)} title="Remover"
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ============= ABA: COFRE DE DOCUMENTOS ============= */}
+          {aba === "cofre" && (
+            <div className="space-y-4">
+              <CanvasBox cor="#fbbf24">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🗄️ Cofre Digital ({documentos.length})</p>
+                    <p className="text-xs" style={{ color: "#c8d8f0" }}>PDF, imagens, planilhas. Até 50MB por arquivo. Criptografado.</p>
+                  </div>
+                  <button onClick={() => setModalDocumento("novo")}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>
+                    📤 Novo Documento
+                  </button>
+                </div>
+              </CanvasBox>
+
+              {documentos.length === 0 ? (
+                <CanvasBox cor="#6ab0ff">
+                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>
+                    Nenhum documento. Adicione Contrato Social, Cartão CNPJ, Alvarás, Certidões.
+                  </p>
+                </CanvasBox>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {documentos.map((d: any) => {
+                    const tipo = TIPOS_DOCUMENTOS.find((t) => t.key === d.tipo) || TIPOS_DOCUMENTOS[16];
+                    const hoje = new Date().toISOString().slice(0, 10);
+                    const vencido = d.data_validade && d.data_validade < hoje;
+                    return (
+                      <div key={d.id} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${vencido ? "#f87171" : "#fbbf24"}30` }}>
+                        <div className="flex items-start justify-between mb-2">
+                          <span className="text-2xl">{tipo.icon}</span>
+                          {vencido && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: "#f87171" }}>VENCIDO</span>}
+                        </div>
+                        <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{d.nome}</p>
+                        <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tipo.label}</p>
+                        {d.data_validade && <p className="text-[10px] mt-1" style={{ color: vencido ? "#f87171" : "#fbbf24" }}>Válido até: {formatData(d.data_validade)}</p>}
+                        <div className="flex gap-1 mt-2">
+                          {d.storage_path && (
+                            <button onClick={() => baixarDocumento(d)}
+                              className="flex-1 px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>⬇️ Baixar</button>
+                          )}
+                          <button onClick={() => removerDocumento(d)}
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ============= ABA: AUDITORIA ============= */}
+          {aba === "auditoria" && (
+            <div className="space-y-2">
+              <CanvasBox cor="#a78bfa">
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🔐 Histórico de Alterações ({auditoria.length})</p>
+                <p className="text-xs" style={{ color: "#c8d8f0" }}>Cada criação/edição/exclusão é registrada com data, hora e detalhes.</p>
+              </CanvasBox>
+              {auditoria.length === 0 ? (
+                <CanvasBox cor="#6ab0ff">
+                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>Nenhuma alteração registrada ainda.</p>
+                </CanvasBox>
+              ) : (
+                <div className="space-y-1">
+                  {auditoria.map((a: any) => {
+                    const icon = a.acao === "criar" ? "➕" : a.acao === "editar" ? "✏️" : "🗑️";
+                    const cor = a.acao === "criar" ? "#34d399" : a.acao === "editar" ? "#6ab0ff" : "#f87171";
+                    return (
+                      <div key={a.id} className="rounded-lg p-3 flex items-start gap-3"
+                        style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${cor}20` }}>
+                        <span className="text-lg flex-shrink-0">{icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm" style={{ color: "#c8d8f0" }}>
+                            {a.descricao || `${a.acao} em ${a.tabela}`}
+                          </p>
+                          {a.campo && <p className="text-[11px]" style={{ color: "#5a7a9a" }}>Campo: <strong>{a.campo}</strong></p>}
+                          <p className="text-[10px] mt-0.5" style={{ color: "#5a7a9a" }}>{formatDataHora(a.created_at)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ============= MODAL: RESULTADO CNPJ ============= */}
+      {resultadoCNPJ && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
+          onClick={() => setResultadoCNPJ(null)}>
+          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(167,139,250,0.4)" }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold" style={{ color: "#a78bfa" }}>🪄 Dados encontrados na Receita Federal</p>
+              <button onClick={() => setResultadoCNPJ(null)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+            <div className="rounded-lg p-3 space-y-1 mb-3" style={{ background: "rgba(2,8,16,0.6)" }}>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Razão Social:</span> <strong style={{ color: "#c8d8f0" }}>{resultadoCNPJ.razao_social}</strong></p>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Nome Fantasia:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.nome_fantasia || "—"}</span></p>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Situação:</span> <span style={{ color: resultadoCNPJ.situacao_cadastral === "ativa" ? "#34d399" : "#fbbf24" }}>{resultadoCNPJ.situacao_cadastral}</span></p>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Porte:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.porte}</span></p>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>CNAE:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.cnae_principal} - {resultadoCNPJ.cnae_descricao}</span></p>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Cidade/UF:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.cidade}/{resultadoCNPJ.uf}</span></p>
+              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Sócios encontrados:</span> <strong style={{ color: "#a78bfa" }}>{resultadoCNPJ.socios?.length || 0}</strong></p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setResultadoCNPJ(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
+              <button onClick={aplicarDadosCNPJ}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>✓ Aplicar Dados</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============= MODAL: DETALHE DOS SCORES ============= */}
+      {modalScoreDetalhe && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
+          onClick={() => setModalScoreDetalhe(null)}>
+          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+            style={{ background: "rgba(10,22,40,0.98)", border: `1px solid ${(modalScoreDetalhe === "health" ? healthScore : complianceScore).cor}40` }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>
+                {modalScoreDetalhe === "health" ? "📊 Health Score (Completude)" : "🛡️ Compliance Score (Fiscal)"}
+              </p>
+              <button onClick={() => setModalScoreDetalhe(null)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+            <div className="space-y-1">
+              {(modalScoreDetalhe === "health" ? healthScore : complianceScore).itens.map((it, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded"
+                  style={{ background: it.ok ? "rgba(52,211,153,0.05)" : "rgba(248,113,113,0.05)" }}>
+                  <span className="text-xs flex items-center gap-2">
+                    {it.ok ? <span style={{ color: "#34d399" }}>✓</span> : <span style={{ color: "#f87171" }}>✗</span>}
+                    <span style={{ color: "#c8d8f0" }}>{it.label}</span>
+                  </span>
+                  <span className="text-xs font-bold" style={{ color: it.ok ? "#34d399" : "#5a7a9a" }}>+{it.pontos}pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============= MODAL: SÓCIO ============= */}
+      {modalSocio && (
+        <ModalGenerico titulo={modalSocio === "novo" ? "Novo Sócio" : "Editar Sócio"} fechar={() => setModalSocio(null)}>
+          <FormSocio inicial={modalSocio === "novo" ? {} : modalSocio} onSalvar={salvarSocio} cancelar={() => setModalSocio(null)} />
+        </ModalGenerico>
+      )}
+
+      {/* ============= MODAL: DOCUMENTO ============= */}
+      {modalDocumento && (
+        <ModalGenerico titulo="Novo Documento" fechar={() => setModalDocumento(null)}>
+          <FormDocumento onSalvar={salvarDocumento} cancelar={() => setModalDocumento(null)} />
+        </ModalGenerico>
+      )}
+
+      {/* ============= MODAL: OBRIGAÇÃO ============= */}
+      {modalObrigacao && (
+        <ModalGenerico titulo={modalObrigacao === "novo" ? "Nova Obrigação Fiscal" : "Editar Obrigação"} fechar={() => setModalObrigacao(null)}>
+          <FormObrigacao inicial={modalObrigacao === "novo" ? {} : modalObrigacao} onSalvar={salvarObrigacao} cancelar={() => setModalObrigacao(null)} />
+        </ModalGenerico>
+      )}
+
+      {/* ============= MODAL: MEMBRO EQUIPE ============= */}
+      {modalMembro && (
+        <ModalGenerico titulo="Convidar Membro" fechar={() => setModalMembro(null)}>
+          <FormMembro onSalvar={salvarMembro} cancelar={() => setModalMembro(null)} />
+        </ModalGenerico>
+      )}
+    </ModuloLayout>
+  );
+}
+
+// =============================================================================
+// COMPONENTES AUXILIARES
+// =============================================================================
+
+function ModalGenerico({ titulo, fechar, children }: { titulo: string; fechar: () => void; children: any }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+      style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
+      onClick={fechar}>
+      <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+        style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{titulo}</p>
+          <button onClick={fechar} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+        </div>
+        {children}
       </div>
     </div>
   );
 }
 
-const inputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" };
-
-export default function Empresa() {
-  const { t, idioma } = useLanguage();
-  const [aba, setAba] = useState("empresa");
-  const [salvo, setSalvo] = useState(false);
-  const [notificacoes, setNotificacoes] = useState({ email: true, sms: false, alertas: true, relatorio: true });
-
-  const salvar = () => { setSalvo(true); setTimeout(() => setSalvo(false), 2000); };
-
-  const camposEmpresa = {
-    pt: [
-      { label: "Razão Social", value: "Axioma AI Tech Ltda" },
-      { label: "CNPJ", value: "12.345.678/0001-90" },
-      { label: "Regime Tributário", value: "Simples Nacional" },
-      { label: "Setor", value: "Tecnologia / SaaS" },
-      { label: "Cidade", value: "São Paulo - SP" },
-    ],
-    en: [
-      { label: "Company Name", value: "Axioma AI Tech Ltda" },
-      { label: "Tax ID", value: "12.345.678/0001-90" },
-      { label: "Tax Regime", value: "Simples Nacional" },
-      { label: "Sector", value: "Technology / SaaS" },
-      { label: "City", value: "São Paulo - SP" },
-    ],
-    es: [
-      { label: "Razón Social", value: "Axioma AI Tech Ltda" },
-      { label: "RUT / NIF", value: "12.345.678/0001-90" },
-      { label: "Régimen Tributario", value: "Simples Nacional" },
-      { label: "Sector", value: "Tecnología / SaaS" },
-      { label: "Ciudad", value: "São Paulo - SP" },
-    ],
-  };
-
-  const camposPerfil = {
-    pt: [
-      { label: "Nome completo", value: "Elias Tavares" },
-      { label: "E-mail", value: "elias@axiomaaitech.com.br" },
-      { label: "Cargo", value: "CEO / Fundador" },
-      { label: "Telefone", value: "(11) 99999-0000" },
-    ],
-    en: [
-      { label: "Full name", value: "Elias Tavares" },
-      { label: "E-mail", value: "elias@axiomaaitech.com.br" },
-      { label: "Role", value: "CEO / Founder" },
-      { label: "Phone", value: "(11) 99999-0000" },
-    ],
-    es: [
-      { label: "Nombre completo", value: "Elias Tavares" },
-      { label: "Correo electrónico", value: "elias@axiomaaitech.com.br" },
-      { label: "Cargo", value: "CEO / Fundador" },
-      { label: "Teléfono", value: "(11) 99999-0000" },
-    ],
-  };
-
-  const notificacoesLabels = {
-    pt: [
-      { key: "email", label: "Notificações por e-mail" },
-      { key: "sms", label: "Notificações por SMS" },
-      { key: "alertas", label: "Alertas financeiros da IA" },
-      { key: "relatorio", label: "Relatório semanal automático" },
-    ],
-    en: [
-      { key: "email", label: "Email notifications" },
-      { key: "sms", label: "SMS notifications" },
-      { key: "alertas", label: "AI financial alerts" },
-      { key: "relatorio", label: "Automatic weekly report" },
-    ],
-    es: [
-      { key: "email", label: "Notificaciones por correo" },
-      { key: "sms", label: "Notificaciones por SMS" },
-      { key: "alertas", label: "Alertas financieros de IA" },
-      { key: "relatorio", label: "Informe semanal automático" },
-    ],
-  };
-
-  const pl = {
-    pt: { atual: "Plano atual", upgrade: "Fazer upgrade", mes: "/mês", usuarios: "usuários", modulos: "Módulos básicos", todos: "Todos os módulos", ia: "IA Tributária inclusa", ilimitado: "Ilimitado" },
-    en: { atual: "Current plan", upgrade: "Upgrade", mes: "/month", usuarios: "users", modulos: "Basic modules", todos: "All modules", ia: "Tax AI included", ilimitado: "Unlimited" },
-    es: { atual: "Plan actual", upgrade: "Actualizar", mes: "/mes", usuarios: "usuarios", modulos: "Módulos básicos", todos: "Todos los módulos", ia: "IA Tributaria incluida", ilimitado: "Ilimitado" },
-  }[idioma];
-
-  const abas = [
-    { key: "empresa", label: t.empresa.abaEmpresa },
-    { key: "perfil", label: t.empresa.abaPerfil },
-    { key: "notificacoes", label: t.empresa.abaNotificacoes },
-    { key: "plano", label: t.empresa.abaPlano },
-  ];
-
-  const botaoAbas = (
-    <div className="flex gap-2 flex-wrap">
-      {abas.map((a) => (
-        <motion.button key={a.key} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-          onClick={() => setAba(a.key)}
-          className="px-4 py-2 rounded-xl text-sm font-semibold"
-          style={{ background: aba === a.key ? "rgba(106,176,255,0.2)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#6ab0ff" : "#3a5a8a", border: `1px solid ${aba === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}`, boxShadow: aba === a.key ? "0 0 12px rgba(106,176,255,0.2)" : "none" }}>
-          {a.label}
-        </motion.button>
-      ))}
+function FormSocio({ inicial, onSalvar, cancelar }: any) {
+  const [form, setForm] = useState<any>(inicial || {});
+  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  return (
+    <div className="space-y-3">
+      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
+        placeholder="Nome completo *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.cpf_cnpj || ""} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
+        placeholder="CPF ou CNPJ" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <div className="grid grid-cols-2 gap-2">
+        <select value={form.tipo_pessoa || "PF"} onChange={(e) => setForm({ ...form, tipo_pessoa: e.target.value })}
+          className="px-3 py-2 rounded-lg text-sm" style={inp}>
+          <option value="PF" style={{ background: "#020810" }}>Pessoa Física</option>
+          <option value="PJ" style={{ background: "#020810" }}>Pessoa Jurídica</option>
+        </select>
+        <select value={form.qualificacao || ""} onChange={(e) => setForm({ ...form, qualificacao: e.target.value })}
+          className="px-3 py-2 rounded-lg text-sm" style={inp}>
+          <option value="" style={{ background: "#020810" }}>Qualificação</option>
+          {QUALIFICACOES_SOCIOS.map((q) => <option key={q} value={q} style={{ background: "#020810" }}>{q}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <input type="number" step="0.01" value={form.participacao_pct || ""} onChange={(e) => setForm({ ...form, participacao_pct: parseFloat(e.target.value) || 0 })}
+          placeholder="% Participação" className="px-3 py-2 rounded-lg text-sm" style={inp} />
+        <input type="date" value={form.data_entrada || ""} onChange={(e) => setForm({ ...form, data_entrada: e.target.value })}
+          className="px-3 py-2 rounded-lg text-sm" style={inp} />
+      </div>
+      <input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })}
+        placeholder="E-mail" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.telefone || ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })}
+        placeholder="Telefone" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <div className="flex gap-2">
+        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
+        <button onClick={() => onSalvar(form)} disabled={!form.nome}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>✓ Salvar</button>
+      </div>
     </div>
   );
+}
 
+function FormDocumento({ onSalvar, cancelar }: any) {
+  const [form, setForm] = useState<any>({ tipo: "outros" });
+  const [file, setFile] = useState<File | null>(null);
+  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
   return (
-    <ModuloLayout titulo={t.empresa.titulo} subtitulo={t.empresa.subtitulo} botaoExtra={botaoAbas}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Coluna esquerda — formulários */}
+    <div className="space-y-3">
+      <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+        className="w-full px-3 py-2 rounded-lg text-sm" style={inp}>
+        {TIPOS_DOCUMENTOS.map((t) => <option key={t.key} value={t.key} style={{ background: "#020810" }}>{t.icon} {t.label}</option>)}
+      </select>
+      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
+        placeholder="Nome do documento *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.numero_documento || ""} onChange={(e) => setForm({ ...form, numero_documento: e.target.value })}
+        placeholder="Número/Protocolo" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          {/* Aba Empresa */}
-          {aba === "empresa" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <CanvasBox cor="#6ab0ff" corB="#34d399" corC="#a78bfa" corD="#fbbf24">
-                <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                  className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>
-                  AXIOMA AI.TECH
-                </motion.p>
-                <h3 className="text-lg font-bold mb-6" style={{ color: "#c8d8f0" }}>{t.empresa.dadosEmpresa}</h3>
-                <div className="space-y-4">
-                  {camposEmpresa[idioma].map((campo, i) => (
-                    <motion.div key={campo.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
-                      <input defaultValue={campo.value} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
-                    </motion.div>
-                  ))}
-                  <motion.button whileHover={{ scale: 1.02, boxShadow: salvo ? "0 0 20px rgba(52,211,153,0.4)" : "0 0 20px rgba(106,176,255,0.4)" }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} className="w-full py-4 rounded-xl font-bold mt-4"
-                    style={{ background: salvo ? "rgba(52,211,153,0.2)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: salvo ? "#34d399" : "#fff", border: salvo ? "1px solid rgba(52,211,153,0.3)" : "none" }}>
-                    {salvo ? "✅ " + t.geral.salvo : t.geral.salvar}
-                  </motion.button>
-                </div>
-              </CanvasBox>
-            </motion.div>
-          )}
-
-          {/* Aba Perfil */}
-          {aba === "perfil" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <CanvasBox cor="#a78bfa" corB="#6ab0ff" corC="#34d399" corD="#f472b6">
-                <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                  className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#a78bfa", textShadow: "0 0 20px #a78bfa" }}>
-                  AXIOMA AI.TECH
-                </motion.p>
-                <div className="flex items-center gap-4 mb-8">
-                  <motion.div whileHover={{ scale: 1.1 }}
-                    className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black flex-shrink-0"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff", boxShadow: "0 0 20px rgba(106,176,255,0.4)" }}>
-                    E
-                  </motion.div>
-                  <div>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>Elias Tavares</h3>
-                    <p className="text-sm" style={{ color: "#3a5a8a" }}>CEO / {idioma === "pt" ? "Fundador" : idioma === "en" ? "Founder" : "Fundador"}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  {camposPerfil[idioma].map((campo, i) => (
-                    <motion.div key={campo.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
-                      <input defaultValue={campo.value} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
-                    </motion.div>
-                  ))}
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} className="w-full py-4 rounded-xl font-bold mt-4"
-                    style={{ background: salvo ? "rgba(52,211,153,0.2)" : "linear-gradient(135deg, #4c1d95, #7c3aed)", color: salvo ? "#34d399" : "#fff", border: salvo ? "1px solid rgba(52,211,153,0.3)" : "none" }}>
-                    {salvo ? "✅ " + t.geral.salvo : t.geral.salvar}
-                  </motion.button>
-                </div>
-              </CanvasBox>
-            </motion.div>
-          )}
-
-          {/* Aba Notificações */}
-          {aba === "notificacoes" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <CanvasBox cor="#34d399" corB="#6ab0ff" corC="#a78bfa" corD="#fbbf24">
-                <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                  className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#34d399", textShadow: "0 0 20px #34d399" }}>
-                  AXIOMA AI.TECH
-                </motion.p>
-                <h3 className="text-lg font-bold mb-6" style={{ color: "#c8d8f0" }}>{t.empresa.abaNotificacoes}</h3>
-                <div className="space-y-3">
-                  {notificacoesLabels[idioma].map((n, i) => (
-                    <motion.div key={n.key} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
-                      className="flex items-center justify-between p-4 rounded-xl"
-                      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(59,111,212,0.1)" }}>
-                      <span className="text-sm" style={{ color: "#c8d8f0" }}>{n.label}</span>
-                      <motion.button whileTap={{ scale: 0.95 }}
-                        onClick={() => setNotificacoes({ ...notificacoes, [n.key]: !notificacoes[n.key as keyof typeof notificacoes] })}
-                        className="w-12 h-6 rounded-full relative flex-shrink-0"
-                        style={{ background: notificacoes[n.key as keyof typeof notificacoes] ? "rgba(52,211,153,0.4)" : "rgba(255,255,255,0.1)", boxShadow: notificacoes[n.key as keyof typeof notificacoes] ? "0 0 12px rgba(52,211,153,0.4)" : "none" }}>
-                        <motion.div animate={{ left: notificacoes[n.key as keyof typeof notificacoes] ? "26px" : "2px" }}
-                          transition={{ duration: 0.2 }}
-                          className="w-5 h-5 rounded-full absolute top-0.5"
-                          style={{ background: notificacoes[n.key as keyof typeof notificacoes] ? "#34d399" : "#3a5a8a" }} />
-                      </motion.button>
-                    </motion.div>
-                  ))}
-                </div>
-              </CanvasBox>
-            </motion.div>
-          )}
-
-          {/* Aba Plano */}
-          {aba === "plano" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-              <CanvasBox cor="#6ab0ff" corB="#a78bfa" corC="#34d399" corD="#fbbf24">
-                <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-                  className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff", textShadow: "0 0 20px #6ab0ff" }}>
-                  AXIOMA AI.TECH
-                </motion.p>
-                <div className="flex justify-between items-center flex-wrap gap-4">
-                  <div>
-                    <span className="text-xs font-bold tracking-wider uppercase" style={{ color: "#6ab0ff" }}>{t.empresa.planoAtual}</span>
-                    <h3 className="text-2xl font-black mt-1" style={{ color: "#c8d8f0" }}>Professional</h3>
-                    <p className="text-sm mt-1" style={{ color: "#3a5a8a" }}>5 {pl.usuarios} • {pl.todos} • IA</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-black" style={{ color: "#6ab0ff", textShadow: "0 0 20px rgba(106,176,255,0.6)" }}>R$ 197</p>
-                    <p className="text-sm" style={{ color: "#3a5a8a" }}>{pl.mes}</p>
-                  </div>
-                </div>
-              </CanvasBox>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  { nome: "Starter", preco: "R$ 97", desc: `1 ${pl.usuarios}`, cor: "#6ab0ff", atual: false },
-                  { nome: "Professional", preco: "R$ 197", desc: `5 ${pl.usuarios}`, cor: "#fbbf24", atual: true },
-                  { nome: "Enterprise", preco: "R$ 497", desc: `${pl.ilimitado}`, cor: "#a78bfa", atual: false },
-                ].map((plano, i) => (
-                  <motion.div key={plano.nome} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}>
-                    <CanvasBox cor={plano.cor} corB="#34d399" corC="#6ab0ff" corD="#f472b6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-sm" style={{ color: plano.cor }}>{plano.nome}</p>
-                          <p className="text-xs" style={{ color: "#3a5a8a" }}>{plano.desc}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <p className="font-black" style={{ color: "#c8d8f0" }}>{plano.preco}<span className="text-xs font-normal" style={{ color: "#3a5a8a" }}>{pl.mes}</span></p>
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold"
-                            style={{ background: plano.atual ? `${plano.cor}20` : "transparent", color: plano.atual ? plano.cor : "#3a5a8a", border: `1px solid ${plano.cor}33` }}>
-                            {plano.atual ? pl.atual : pl.upgrade}
-                          </motion.button>
-                        </div>
-                      </div>
-                    </CanvasBox>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
+          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Emissão</label>
+          <input type="date" value={form.data_emissao || ""} onChange={(e) => setForm({ ...form, data_emissao: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
-
-        {/* Coluna direita — painel épico fixo */}
-        <div className="hidden lg:block">
-          <PainelDireito idioma={idioma} />
+        <div>
+          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Validade</label>
+          <input type="date" value={form.data_validade || ""} onChange={(e) => setForm({ ...form, data_validade: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
       </div>
-    </ModuloLayout>
+      <input value={form.orgao_emissor || ""} onChange={(e) => setForm({ ...form, orgao_emissor: e.target.value })}
+        placeholder="Órgão emissor" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)}
+        className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <div className="flex gap-2">
+        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
+        <button onClick={() => onSalvar(form, file)} disabled={!form.nome}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>✓ Salvar</button>
+      </div>
+    </div>
+  );
+}
+
+function FormObrigacao({ inicial, onSalvar, cancelar }: any) {
+  const [form, setForm] = useState<any>(inicial || { status: "pendente", recorrencia: "mensal" });
+  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  return (
+    <div className="space-y-3">
+      <input value={form.tipo || ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+        placeholder="Tipo (DAS, DCTF, ECF, ICMS, etc) *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
+        placeholder="Nome *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+        placeholder="Descrição" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Vencimento *</label>
+          <input type="date" value={form.data_vencimento || ""} onChange={(e) => setForm({ ...form, data_vencimento: e.target.value })}
+            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+        </div>
+        <div>
+          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Valor estimado (R$)</label>
+          <input type="number" step="0.01" value={form.valor_estimado || ""} onChange={(e) => setForm({ ...form, valor_estimado: parseFloat(e.target.value) || 0 })}
+            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <select value={form.status || "pendente"} onChange={(e) => setForm({ ...form, status: e.target.value })}
+          className="px-3 py-2 rounded-lg text-sm" style={inp}>
+          <option value="pendente" style={{ background: "#020810" }}>Pendente</option>
+          <option value="paga" style={{ background: "#020810" }}>Paga</option>
+          <option value="atrasada" style={{ background: "#020810" }}>Atrasada</option>
+          <option value="dispensada" style={{ background: "#020810" }}>Dispensada</option>
+        </select>
+        <select value={form.recorrencia || "mensal"} onChange={(e) => setForm({ ...form, recorrencia: e.target.value })}
+          className="px-3 py-2 rounded-lg text-sm" style={inp}>
+          <option value="mensal" style={{ background: "#020810" }}>Mensal</option>
+          <option value="trimestral" style={{ background: "#020810" }}>Trimestral</option>
+          <option value="anual" style={{ background: "#020810" }}>Anual</option>
+          <option value="unica" style={{ background: "#020810" }}>Única</option>
+        </select>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
+        <button onClick={() => onSalvar(form)} disabled={!form.tipo || !form.nome || !form.data_vencimento}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>✓ Salvar</button>
+      </div>
+    </div>
+  );
+}
+
+function FormMembro({ onSalvar, cancelar }: any) {
+  const [form, setForm] = useState<any>({ papel: "leitor" });
+  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  return (
+    <div className="space-y-3">
+      <input type="email" value={form.email_convidado || ""} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
+        placeholder="E-mail do convidado *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
+        placeholder="Nome" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <input value={form.cargo || ""} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
+        placeholder="Cargo" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
+      <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
+        className="w-full px-3 py-2 rounded-lg text-sm" style={inp}>
+        <option value="admin" style={{ background: "#020810" }}>👑 Admin (acesso total)</option>
+        <option value="financeiro" style={{ background: "#020810" }}>💰 Financeiro</option>
+        <option value="contabil" style={{ background: "#020810" }}>📊 Contábil</option>
+        <option value="leitor" style={{ background: "#020810" }}>👁️ Leitor (somente visualização)</option>
+      </select>
+      <div className="flex gap-2">
+        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
+        <button onClick={() => onSalvar(form)} disabled={!form.email_convidado}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>✓ Convidar</button>
+      </div>
+    </div>
   );
 }

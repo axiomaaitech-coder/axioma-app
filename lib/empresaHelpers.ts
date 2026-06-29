@@ -1,1299 +1,807 @@
-"use client";
-import { useState, useEffect, useRef } from "react";
-import { useLanguage } from "../../../lib/LanguageContext";
+// 🦅 AXIOMA AI.TECH - Helpers do Módulo Empresa
+// Integrações: BrasilAPI (CNPJ), ViaCEP (endereço)
+// CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
+
 import { createBrowserClient } from "@supabase/ssr";
-import ModuloLayout from "../../../components/ModuloLayout";
-import { CanvasBox } from "../../../components/CanvasBox";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import {
-  consultarCNPJ, consultarCEP, validarCNPJ, limparCNPJ, formatarCNPJ, formatarCEP, formatarTelefone,
-  carregarEmpresa, criarEmpresa, atualizarEmpresa,
-  carregarSocios, criarSocio, atualizarSocio, excluirSocio, importarSociosDoQSA,
-  carregarDocumentos, uploadDocumento, criarDocumento, gerarUrlDocumento, excluirDocumento,
-  uploadLogo,
-  carregarAuditoria,
-  carregarObrigacoes, criarObrigacao, atualizarObrigacao, excluirObrigacao, gerarObrigacoesPadrao,
-  carregarEquipe, convidarMembro, excluirMembro,
-  calcularHealthScore, calcularComplianceScore,
-  TIPOS_DOCUMENTOS, REGIMES_TRIBUTARIOS,
-  type ScoreResultado,
-} from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const PORTES = ["MEI", "ME", "EPP", "Demais"];
-const QUALIFICACOES_SOCIOS = ["Sócio", "Sócio Administrador", "Administrador", "Diretor", "Procurador", "Outros"];
+// ============================================================================
+// VALIDAÇÃO E FORMATAÇÃO
+// ============================================================================
 
-function formatBRL(n: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+export function limparCNPJ(cnpj: string): string {
+  return (cnpj || "").replace(/\D/g, "");
 }
 
-function formatData(iso: string): string {
-  if (!iso) return "—";
-  try { return new Date(iso + "T00:00:00").toLocaleDateString("pt-BR"); } catch { return iso; }
+export function formatarCNPJ(cnpj: string): string {
+  const limpo = limparCNPJ(cnpj);
+  if (limpo.length !== 14) return cnpj || "";
+  return limpo.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
 }
 
-function formatDataHora(iso: string): string {
-  if (!iso) return "—";
-  try { return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }); } catch { return iso; }
+export function validarCNPJ(cnpj: string): boolean {
+  const c = limparCNPJ(cnpj);
+  if (c.length !== 14) return false;
+  if (/^(\d)\1+$/.test(c)) return false;
+
+  // 1º dígito verificador
+  let soma = 0;
+  let pesos = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  for (let i = 0; i < 12; i++) soma += parseInt(c[i]) * pesos[i];
+  let resto = soma % 11;
+  const d1 = resto < 2 ? 0 : 11 - resto;
+  if (d1 !== parseInt(c[12])) return false;
+
+  // 2º dígito verificador
+  soma = 0;
+  pesos = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  for (let i = 0; i < 13; i++) soma += parseInt(c[i]) * pesos[i];
+  resto = soma % 11;
+  const d2 = resto < 2 ? 0 : 11 - resto;
+  return d2 === parseInt(c[13]);
 }
 
-export default function EmpresaPage() {
-  const { t, idioma } = useLanguage();
-  const inputLogoRef = useRef<HTMLInputElement>(null);
-  const inputDocRef = useRef<HTMLInputElement>(null);
+export function formatarCEP(cep: string): string {
+  const limpo = (cep || "").replace(/\D/g, "");
+  if (limpo.length !== 8) return cep || "";
+  return limpo.replace(/^(\d{5})(\d{3})$/, "$1-$2");
+}
 
-  // Estados principais
-  const [userId, setUserId] = useState<string | null>(null);
-  const [empresa, setEmpresa] = useState<any>(null);
-  const [empresaForm, setEmpresaForm] = useState<any>({});
-  const [socios, setSocios] = useState<any[]>([]);
-  const [documentos, setDocumentos] = useState<any[]>([]);
-  const [obrigacoes, setObrigacoes] = useState<any[]>([]);
-  const [equipe, setEquipe] = useState<any[]>([]);
-  const [auditoria, setAuditoria] = useState<any[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [salvando, setSalvando] = useState(false);
-  const [exportando, setExportando] = useState(false);
+export function formatarTelefone(tel: string): string {
+  const limpo = (tel || "").replace(/\D/g, "");
+  if (limpo.length === 11) return limpo.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+  if (limpo.length === 10) return limpo.replace(/^(\d{2})(\d{4})(\d{4})$/, "($1) $2-$3");
+  return tel || "";
+}
 
-  // Scores
-  const [healthScore, setHealthScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: "#5a7a9a", itens: [] });
-  const [complianceScore, setComplianceScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: "#5a7a9a", itens: [] });
+// ============================================================================
+// CONSULTA BrasilAPI - CNPJ (gratuita, sem auth)
+// ============================================================================
 
-  // Aba ativa
-  const [aba, setAba] = useState<"dados" | "socios" | "compliance" | "cofre" | "auditoria">("dados");
+export type DadosCNPJ = {
+  razao_social?: string;
+  nome_fantasia?: string;
+  cnpj?: string;
+  cnae_principal?: string;
+  cnae_descricao?: string;
+  cnaes_secundarios?: any[];
+  natureza_juridica?: string;
+  porte?: string;
+  data_abertura?: string;
+  capital_social?: number;
+  situacao_cadastral?: string;
+  opcao_simples?: boolean;
+  opcao_mei?: boolean;
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  telefone_principal?: string;
+  email_principal?: string;
+  socios?: any[];
+};
 
-  // CNPJ auto-preenchimento
-  const [consultandoCNPJ, setConsultandoCNPJ] = useState(false);
-  const [resultadoCNPJ, setResultadoCNPJ] = useState<any>(null);
+export async function consultarCNPJ(cnpj: string): Promise<DadosCNPJ | { erro: string }> {
+  const c = limparCNPJ(cnpj);
+  if (!validarCNPJ(c)) return { erro: "CNPJ inválido (dígitos verificadores não conferem)" };
 
-  // CEP auto-preenchimento
-  const [consultandoCEP, setConsultandoCEP] = useState(false);
-
-  // Modais
-  const [modalSocio, setModalSocio] = useState<any>(null); // null | "novo" | objeto sócio
-  const [modalDocumento, setModalDocumento] = useState<any>(null);
-  const [modalObrigacao, setModalObrigacao] = useState<any>(null);
-  const [modalMembro, setModalMembro] = useState<any>(null);
-  const [modalScoreDetalhe, setModalScoreDetalhe] = useState<"health" | "compliance" | null>(null);
-
-  // Toast
-  const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
-  function showToast(msg: string, tipo: "info" | "erro" | "ok" = "info") {
-    setToast({ msg, tipo });
-    setTimeout(() => setToast(null), 3000);
-  }
-
-  useEffect(() => { inicializar(); }, []);
-
-  async function inicializar() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setCarregando(false); return; }
-    setUserId(user.id);
-    await carregarTudo(user.id);
-  }
-
-  async function carregarTudo(uid: string) {
-    setCarregando(true);
-    try {
-      let emp = await carregarEmpresa(uid);
-
-      // Se não existe, cria uma empresa vazia automaticamente
-      if (!emp) {
-        const r = await criarEmpresa(uid, { nome: "Minha Empresa" });
-        if (r.id) emp = await carregarEmpresa(uid);
-      }
-
-      if (emp) {
-        setEmpresa(emp);
-        setEmpresaForm(emp);
-        const [s, d, o, e, a] = await Promise.all([
-          carregarSocios(emp.id, uid),
-          carregarDocumentos(emp.id, uid),
-          carregarObrigacoes(emp.id, uid),
-          carregarEquipe(emp.id, uid),
-          carregarAuditoria(emp.id, uid, 100),
-        ]);
-        setSocios(s); setDocumentos(d); setObrigacoes(o); setEquipe(e); setAuditoria(a);
-        setHealthScore(calcularHealthScore(emp, s, d));
-        setComplianceScore(calcularComplianceScore(emp, o, d));
-      }
-    } catch (err: any) {
-      showToast(err.message || "Erro ao carregar", "erro");
+  try {
+    const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
+    if (!resp.ok) {
+      if (resp.status === 404) return { erro: "CNPJ não encontrado na Receita Federal" };
+      if (resp.status === 429) return { erro: "Limite de consultas atingido. Tente novamente em alguns minutos." };
+      return { erro: `Erro da Receita: ${resp.status}` };
     }
-    setCarregando(false);
+    const data = await resp.json();
+
+    // Determina regime tributário
+    let regime = "";
+    if (data.opcao_pelo_mei) regime = "mei";
+    else if (data.opcao_pelo_simples) regime = "simples";
+
+    return {
+      razao_social: data.razao_social,
+      nome_fantasia: data.nome_fantasia || null,
+      cnpj: formatarCNPJ(data.cnpj),
+      cnae_principal: data.cnae_fiscal ? String(data.cnae_fiscal) : null,
+      cnae_descricao: data.cnae_fiscal_descricao,
+      cnaes_secundarios: data.cnaes_secundarios || [],
+      natureza_juridica: data.natureza_juridica,
+      porte: data.porte,
+      data_abertura: data.data_inicio_atividade,
+      capital_social: data.capital_social ? Number(data.capital_social) : 0,
+      situacao_cadastral: (data.descricao_situacao_cadastral || data.situacao_cadastral || "").toLowerCase(),
+      opcao_simples: data.opcao_pelo_simples || false,
+      opcao_mei: data.opcao_pelo_mei || false,
+      cep: data.cep ? formatarCEP(String(data.cep)) : null,
+      logradouro: data.logradouro || data.descricao_tipo_de_logradouro
+        ? `${data.descricao_tipo_de_logradouro || ""} ${data.logradouro || ""}`.trim()
+        : null,
+      numero: data.numero ? String(data.numero) : null,
+      complemento: data.complemento,
+      bairro: data.bairro,
+      cidade: data.municipio,
+      uf: data.uf,
+      telefone_principal: data.ddd_telefone_1 ? formatarTelefone(String(data.ddd_telefone_1)) : null,
+      email_principal: data.email,
+      socios: data.qsa || [],
+    };
+  } catch (err: any) {
+    return { erro: `Erro de conexão: ${err.message}` };
   }
+}
 
-  // =========================================================================
-  // CNPJ AUTO-PREENCHIMENTO
-  // =========================================================================
-  async function preencherPorCNPJ() {
-    const cnpj = limparCNPJ(empresaForm.cnpj || "");
-    if (!cnpj) { showToast("Digite o CNPJ primeiro", "erro"); return; }
-    if (!validarCNPJ(cnpj)) { showToast("CNPJ inválido", "erro"); return; }
+// ============================================================================
+// CONSULTA ViaCEP
+// ============================================================================
 
-    setConsultandoCNPJ(true);
-    const r = await consultarCNPJ(cnpj);
-    setConsultandoCNPJ(false);
+export type DadosCEP = {
+  cep?: string;
+  logradouro?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+};
 
-    if ("erro" in r) { showToast(r.erro, "erro"); return; }
-    setResultadoCNPJ(r);
+export async function consultarCEP(cep: string): Promise<DadosCEP | { erro: string }> {
+  const c = (cep || "").replace(/\D/g, "");
+  if (c.length !== 8) return { erro: "CEP deve ter 8 dígitos" };
+
+  try {
+    const resp = await fetch(`https://viacep.com.br/ws/${c}/json/`);
+    if (!resp.ok) return { erro: "Erro ao consultar CEP" };
+    const data = await resp.json();
+    if (data.erro) return { erro: "CEP não encontrado" };
+
+    return {
+      cep: formatarCEP(data.cep),
+      logradouro: data.logradouro,
+      bairro: data.bairro,
+      cidade: data.localidade,
+      uf: data.uf,
+    };
+  } catch (err: any) {
+    return { erro: `Erro de conexão: ${err.message}` };
   }
+}
 
-  function aplicarDadosCNPJ() {
-    if (!resultadoCNPJ) return;
-    const d = resultadoCNPJ;
-    const regime = d.opcao_mei ? "mei" : d.opcao_simples ? "simples" : empresaForm.regime_tributario;
-    setEmpresaForm((prev: any) => ({
-      ...prev,
-      razao_social: d.razao_social || prev.razao_social,
-      nome_fantasia: d.nome_fantasia || prev.nome_fantasia,
-      cnpj: d.cnpj || prev.cnpj,
-      cnae_principal: d.cnae_principal || prev.cnae_principal,
-      cnae_descricao: d.cnae_descricao || prev.cnae_descricao,
-      cnaes_secundarios: d.cnaes_secundarios || prev.cnaes_secundarios,
-      natureza_juridica: d.natureza_juridica || prev.natureza_juridica,
-      porte: d.porte || prev.porte,
-      data_abertura: d.data_abertura || prev.data_abertura,
-      capital_social: d.capital_social ?? prev.capital_social,
-      situacao_cadastral: d.situacao_cadastral || prev.situacao_cadastral,
-      opcao_simples: d.opcao_simples ?? prev.opcao_simples,
-      opcao_mei: d.opcao_mei ?? prev.opcao_mei,
-      regime_tributario: regime,
-      cep: d.cep || prev.cep,
-      logradouro: d.logradouro || prev.logradouro,
-      numero: d.numero || prev.numero,
-      complemento: d.complemento || prev.complemento,
-      bairro: d.bairro || prev.bairro,
-      cidade: d.cidade || prev.cidade,
-      uf: d.uf || prev.uf,
-      telefone_principal: d.telefone_principal || prev.telefone_principal,
-      email_principal: d.email_principal || prev.email_principal,
-      nome: prev.nome || d.nome_fantasia || d.razao_social,
-    }));
-    showToast("Dados aplicados! Clique em Salvar.", "ok");
+// ============================================================================
+// EMPRESA - CRUD COM AUDITORIA AUTOMÁTICA
+// ============================================================================
 
-    // Pergunta se quer importar sócios
-    if (d.socios && d.socios.length > 0 && empresa) {
-      if (window.confirm(`Encontramos ${d.socios.length} sócio(s) na Receita. Importar para o sistema?`)) {
-        importarSociosDoQSA(empresa.id, userId!, d.socios).then((qtd) => {
-          showToast(`${qtd} sócio(s) importado(s)`, "ok");
-          carregarTudo(userId!);
-        });
-      }
-    }
-    setResultadoCNPJ(null);
-  }
+export async function carregarEmpresa(userId: string): Promise<any | null> {
+  const { data } = await supabase
+    .from("empresas")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("ativo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
 
-  // =========================================================================
-  // CEP AUTO-PREENCHIMENTO
-  // =========================================================================
-  async function preencherPorCEP() {
-    const cep = (empresaForm.cep || "").replace(/\D/g, "");
-    if (cep.length !== 8) { showToast("CEP inválido", "erro"); return; }
-    setConsultandoCEP(true);
-    const r = await consultarCEP(cep);
-    setConsultandoCEP(false);
-    if ("erro" in r) { showToast(r.erro, "erro"); return; }
-    setEmpresaForm((prev: any) => ({
-      ...prev,
-      cep: r.cep || prev.cep,
-      logradouro: r.logradouro || prev.logradouro,
-      bairro: r.bairro || prev.bairro,
-      cidade: r.cidade || prev.cidade,
-      uf: r.uf || prev.uf,
-    }));
-    showToast("Endereço preenchido!", "ok");
-  }
-
-  // =========================================================================
-  // SALVAR EMPRESA
-  // =========================================================================
-  async function salvarEmpresa() {
-    if (!empresa || !userId) return;
-    setSalvando(true);
-    const r = await atualizarEmpresa(empresa.id, userId, empresa, empresaForm);
-    if (r.erro) showToast(r.erro, "erro");
-    else { showToast("Dados salvos!", "ok"); await carregarTudo(userId); }
-    setSalvando(false);
-  }
-
-  // =========================================================================
-  // LOGO UPLOAD
-  // =========================================================================
-  async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-    const r = await uploadLogo(file, userId);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    setEmpresaForm((prev: any) => ({ ...prev, logo_url: r.url }));
-    showToast("Logo atualizada (clique em Salvar)", "ok");
-    if (inputLogoRef.current) inputLogoRef.current.value = "";
-  }
-
-  // =========================================================================
-  // SÓCIOS CRUD
-  // =========================================================================
-  async function salvarSocio(dados: any) {
-    if (!empresa || !userId) return;
-    if (modalSocio === "novo") {
-      const r = await criarSocio(empresa.id, userId, dados);
-      if (r.erro) { showToast(r.erro, "erro"); return; }
-      showToast("Sócio adicionado", "ok");
-    } else {
-      const r = await atualizarSocio(modalSocio.id, empresa.id, userId, dados);
-      if (r.erro) { showToast(r.erro, "erro"); return; }
-      showToast("Sócio atualizado", "ok");
-    }
-    setModalSocio(null);
-    await carregarTudo(userId);
-  }
-
-  async function removerSocio(socio: any) {
-    if (!empresa || !userId) return;
-    if (!window.confirm(`Remover sócio "${socio.nome}"?`)) return;
-    const r = await excluirSocio(socio.id, empresa.id, userId, socio.nome);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    showToast("Sócio removido", "ok");
-    await carregarTudo(userId);
-  }
-
-  // =========================================================================
-  // DOCUMENTOS CRUD
-  // =========================================================================
-  async function salvarDocumento(dados: any, arquivo: File | null) {
-    if (!empresa || !userId) return;
-    let storagePath: string | null = null;
-    if (arquivo) {
-      const up = await uploadDocumento(arquivo, empresa.id, userId, dados.tipo || "outros");
-      if (up.erro) { showToast(up.erro, "erro"); return; }
-      storagePath = up.path || null;
-    }
-    const r = await criarDocumento(empresa.id, userId, {
-      ...dados,
-      storage_path: storagePath,
-      mime_type: arquivo?.type,
-      tamanho_bytes: arquivo?.size,
-    });
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    showToast("Documento adicionado", "ok");
-    setModalDocumento(null);
-    await carregarTudo(userId);
-  }
-
-  async function removerDocumento(doc: any) {
-    if (!empresa || !userId) return;
-    if (!window.confirm(`Remover documento "${doc.nome}"?`)) return;
-    const r = await excluirDocumento(doc.id, empresa.id, userId, doc.storage_path, doc.nome);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    showToast("Documento removido", "ok");
-    await carregarTudo(userId);
-  }
-
-  async function baixarDocumento(doc: any) {
-    if (!doc.storage_path) { showToast("Arquivo não disponível", "erro"); return; }
-    const url = await gerarUrlDocumento(doc.storage_path);
-    if (url) window.open(url, "_blank"); else showToast("Erro ao gerar link", "erro");
-  }
-
-  // =========================================================================
-  // OBRIGAÇÕES CRUD + GERAÇÃO AUTOMÁTICA
-  // =========================================================================
-  async function gerarCalendarioFiscal() {
-    if (!empresa || !userId) return;
-    if (!empresa.regime_tributario) { showToast("Defina o regime tributário primeiro", "erro"); return; }
-    const ano = new Date().getFullYear();
-    const lista = gerarObrigacoesPadrao(empresa.regime_tributario, ano);
-    if (lista.length === 0) { showToast("Nenhuma obrigação padrão para este regime", "erro"); return; }
-    if (!window.confirm(`Gerar ${lista.length} obrigações fiscais para ${ano}?`)) return;
-    let ok = 0;
-    for (const obr of lista) {
-      const r = await criarObrigacao(empresa.id, userId, obr);
-      if (!r.erro) ok++;
-    }
-    showToast(`${ok} obrigações criadas`, "ok");
-    await carregarTudo(userId);
-  }
-
-  async function salvarObrigacao(dados: any) {
-    if (!empresa || !userId) return;
-    if (modalObrigacao === "novo") {
-      const r = await criarObrigacao(empresa.id, userId, dados);
-      if (r.erro) { showToast(r.erro, "erro"); return; }
-    } else {
-      const r = await atualizarObrigacao(modalObrigacao.id, empresa.id, userId, dados);
-      if (r.erro) { showToast(r.erro, "erro"); return; }
-    }
-    setModalObrigacao(null);
-    showToast("Obrigação salva", "ok");
-    await carregarTudo(userId);
-  }
-
-  async function marcarObrigacaoPaga(obr: any) {
-    if (!empresa || !userId) return;
-    const r = await atualizarObrigacao(obr.id, empresa.id, userId, { status: "paga", valor_pago: obr.valor_estimado });
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    showToast("Marcada como paga", "ok");
-    await carregarTudo(userId);
-  }
-
-  async function removerObrigacao(obr: any) {
-    if (!empresa || !userId) return;
-    if (!window.confirm(`Remover "${obr.nome}"?`)) return;
-    const r = await excluirObrigacao(obr.id, empresa.id, userId, obr.nome);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    await carregarTudo(userId);
-  }
-
-  // =========================================================================
-  // EQUIPE
-  // =========================================================================
-  async function salvarMembro(dados: any) {
-    if (!empresa || !userId) return;
-    const r = await convidarMembro(empresa.id, userId, dados);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    showToast("Convite registrado", "ok");
-    setModalMembro(null);
-    await carregarTudo(userId);
-  }
-
-  async function removerMembro(m: any) {
-    if (!empresa || !userId) return;
-    if (!window.confirm(`Remover ${m.email_convidado}?`)) return;
-    const r = await excluirMembro(m.id, empresa.id, userId, m.email_convidado);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    await carregarTudo(userId);
-  }
-
-  // =========================================================================
-  // PDF "CARTÃO DE APRESENTAÇÃO" DA EMPRESA
-  // =========================================================================
-  async function exportarPDF() {
-    if (!empresa) return;
-    setExportando(true);
-    try {
-      const linhasEmp = [
-        { campo: "Razão Social", valor: empresa.razao_social || "—" },
-        { campo: "Nome Fantasia", valor: empresa.nome_fantasia || "—" },
-        { campo: "CNPJ", valor: empresa.cnpj || "—" },
-        { campo: "Inscrição Estadual", valor: empresa.inscricao_estadual || "—" },
-        { campo: "Regime Tributário", valor: empresa.regime_tributario || "—" },
-        { campo: "CNAE Principal", valor: empresa.cnae_principal ? `${empresa.cnae_principal} - ${empresa.cnae_descricao || ""}` : "—" },
-        { campo: "Porte", valor: empresa.porte || "—" },
-        { campo: "Endereço", valor: [empresa.logradouro, empresa.numero, empresa.bairro, empresa.cidade, empresa.uf].filter(Boolean).join(", ") || "—" },
-        { campo: "CEP", valor: empresa.cep || "—" },
-        { campo: "Telefone", valor: empresa.telefone_principal || "—" },
-        { campo: "E-mail", valor: empresa.email_principal || "—" },
-        { campo: "Website", valor: empresa.website || "—" },
-        { campo: "Contador", valor: empresa.contador_nome || "—" },
-        { campo: "CRC Contador", valor: empresa.contador_crc || "—" },
-      ];
-
-      await gerarPdfTabela({
-        titulo: `Cartão de Apresentação - ${empresa.nome_fantasia || empresa.razao_social || empresa.nome}`,
-        subtitulo: new Date().toLocaleDateString("pt-BR"),
-        colunas: [
-          { header: "CAMPO", key: "campo", width: 50, align: "left" as const },
-          { header: "VALOR", key: "valor", width: 110, align: "left" as const },
-        ],
-        linhas: linhasEmp,
-        resumo: [
-          { label: "Health Score", valor: `${healthScore.score}/100 (${healthScore.nivel})` },
-          { label: "Compliance Score", valor: `${complianceScore.score}/100 (${complianceScore.nivel})` },
-          { label: "Sócios cadastrados", valor: String(socios.length) },
-          { label: "Documentos no cofre", valor: String(documentos.length) },
-        ],
-        nomeArquivo: `axioma-empresa-${(empresa.nome_fantasia || empresa.razao_social || "empresa").replace(/\W/g, "_").toLowerCase()}.pdf`,
-      });
-    } catch (err: any) {
-      showToast(err.message || "Erro ao gerar PDF", "erro");
-    }
-    setExportando(false);
-  }
-
-  // =========================================================================
-  // HELPERS UI
-  // =========================================================================
-  function setCampo(campo: string, valor: any) {
-    setEmpresaForm((prev: any) => ({ ...prev, [campo]: valor }));
-  }
-
-  const inputStyle = {
-    background: "rgba(2,8,16,0.7)",
-    border: "1px solid rgba(106,176,255,0.2)",
-    color: "#c8d8f0",
+export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
+  const payload = {
+    ...dados,
+    user_id: userId,
+    nome: dados.nome || dados.razao_social || dados.nome_fantasia || "Minha Empresa",
+    ativo: true,
   };
+  const { data, error } = await supabase
+    .from("empresas")
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) return { erro: error.message };
 
-  // =========================================================================
-  // RENDER
-  // =========================================================================
-  return (
-    <ModuloLayout
-      titulo="🏢 Empresa"
-      subtitulo="Cadastro profissional, compliance e cofre de documentos"
-      onExportarPDF={exportarPDF}
-      exportando={exportando}
-    >
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)",
-            color: "#020810", fontWeight: 600, fontSize: 13,
-          }}>{toast.msg}</div>
-      )}
+  await registrarAuditoria({
+    empresaId: data.id,
+    userId,
+    tabela: "empresas",
+    registroId: data.id,
+    acao: "criar",
+    valorDepois: payload,
+    descricao: "Empresa cadastrada no sistema",
+  });
 
-      {carregando && (
-        <CanvasBox cor="#6ab0ff">
-          <div className="py-12 text-center">
-            <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: "#6ab0ff" }}>Carregando empresa...</p>
-          </div>
-        </CanvasBox>
-      )}
-
-      {!carregando && empresa && (
-        <div className="space-y-4">
-          {/* HEADER: 2 SCORES + INFO RÁPIDA */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {/* Card empresa rápido */}
-            <CanvasBox cor="#6ab0ff">
-              <div className="flex items-center gap-3">
-                {empresa.logo_url ? (
-                  <img src={empresa.logo_url} alt="logo" className="w-16 h-16 rounded-xl object-contain" style={{ background: "rgba(2,8,16,0.5)" }} />
-                ) : (
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                    {(empresa.razao_social || empresa.nome || "?")[0]}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Empresa</p>
-                  <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{empresa.nome_fantasia || empresa.razao_social || empresa.nome}</p>
-                  <p className="text-xs" style={{ color: "#6ab0ff" }}>{empresa.cnpj || "Sem CNPJ"}</p>
-                </div>
-              </div>
-            </CanvasBox>
-
-            {/* Health Score */}
-            <CanvasBox cor={healthScore.cor}>
-              <button onClick={() => setModalScoreDetalhe("health")} className="w-full text-left">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📊 Health Score (Completude)</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black" style={{ color: healthScore.cor }}>{healthScore.score}</span>
-                  <span style={{ color: "#5a7a9a" }}>/100</span>
-                  <span className="text-xs font-bold" style={{ color: healthScore.cor }}>{healthScore.nivel}</span>
-                </div>
-                <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>Clique pra detalhes</p>
-              </button>
-            </CanvasBox>
-
-            {/* Compliance Score */}
-            <CanvasBox cor={complianceScore.cor}>
-              <button onClick={() => setModalScoreDetalhe("compliance")} className="w-full text-left">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🛡️ Compliance Score (Fiscal)</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black" style={{ color: complianceScore.cor }}>{complianceScore.score}</span>
-                  <span style={{ color: "#5a7a9a" }}>/100</span>
-                  <span className="text-xs font-bold" style={{ color: complianceScore.cor }}>{complianceScore.nivel}</span>
-                </div>
-                <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>Clique pra detalhes</p>
-              </button>
-            </CanvasBox>
-          </div>
-
-          {/* ABAS */}
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {[
-              { key: "dados", label: "🏢 Dados Cadastrais" },
-              { key: "socios", label: `👥 Sócios & Equipe (${socios.length + equipe.length})` },
-              { key: "compliance", label: `📋 Compliance & Fiscal (${obrigacoes.length})` },
-              { key: "cofre", label: `📄 Cofre (${documentos.length})` },
-              { key: "auditoria", label: "🔐 Auditoria" },
-            ].map((a) => (
-              <button key={a.key} onClick={() => setAba(a.key as any)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
-                style={{
-                  background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
-                  color: aba === a.key ? "#fff" : "#6ab0ff",
-                  border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
-                }}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ============= ABA: DADOS CADASTRAIS ============= */}
-          {aba === "dados" && (
-            <div className="space-y-4">
-              {/* CNPJ + Botão Mágico */}
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>🪄 Auto-preenchimento por CNPJ (Receita Federal)</p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input value={empresaForm.cnpj || ""} onChange={(e) => setCampo("cnpj", formatarCNPJ(e.target.value))}
-                    placeholder="00.000.000/0000-00" className="flex-1 px-3 py-2.5 rounded-lg text-sm" style={inputStyle} />
-                  <button onClick={preencherPorCNPJ} disabled={consultandoCNPJ}
-                    className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50"
-                    style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
-                    {consultandoCNPJ ? "⏳ Consultando..." : "🪄 Preencher por CNPJ"}
-                  </button>
-                </div>
-                <p className="text-[10px] mt-2" style={{ color: "#5a7a9a" }}>
-                  ℹ️ Usa a API gratuita da BrasilAPI. Preenche razão social, endereço, CNAE, regime tributário e sócios automaticamente.
-                </p>
-              </CanvasBox>
-
-              {/* Logo + Dados básicos */}
-              <CanvasBox cor="#6ab0ff">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                  <div className="md:col-span-1">
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>Logo</p>
-                    {empresaForm.logo_url ? (
-                      <img src={empresaForm.logo_url} alt="logo" className="w-24 h-24 rounded-xl object-contain" style={{ background: "rgba(2,8,16,0.5)" }} />
-                    ) : (
-                      <div className="w-24 h-24 rounded-xl flex items-center justify-center text-3xl font-black" style={{ background: "rgba(2,8,16,0.5)", border: "1px dashed rgba(106,176,255,0.3)" }}>
-                        <span style={{ color: "#5a7a9a" }}>?</span>
-                      </div>
-                    )}
-                    <button onClick={() => inputLogoRef.current?.click()}
-                      className="mt-2 text-xs px-3 py-1.5 rounded-lg"
-                      style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
-                      📤 Upload Logo
-                    </button>
-                    <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
-                  </div>
-                  <div className="md:col-span-3 space-y-3">
-                    <div>
-                      <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Razão Social</label>
-                      <input value={empresaForm.razao_social || ""} onChange={(e) => setCampo("razao_social", e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Nome Fantasia</label>
-                        <input value={empresaForm.nome_fantasia || ""} onChange={(e) => setCampo("nome_fantasia", e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Inscrição Estadual</label>
-                        <input value={empresaForm.inscricao_estadual || ""} onChange={(e) => setCampo("inscricao_estadual", e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Inscrição Municipal</label>
-                        <input value={empresaForm.inscricao_municipal || ""} onChange={(e) => setCampo("inscricao_municipal", e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                      </div>
-                      <div>
-                        <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Porte</label>
-                        <select value={empresaForm.porte || ""} onChange={(e) => setCampo("porte", e.target.value)}
-                          className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                          <option value="" style={{ background: "#020810" }}>—</option>
-                          {PORTES.map((p) => <option key={p} value={p} style={{ background: "#020810" }}>{p}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {/* Tributário */}
-              <CanvasBox cor="#34d399">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>🏛️ Tributário</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Regime Tributário</label>
-                    <select value={empresaForm.regime_tributario || ""} onChange={(e) => setCampo("regime_tributario", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                      <option value="" style={{ background: "#020810" }}>—</option>
-                      {REGIMES_TRIBUTARIOS.map((r) => <option key={r.key} value={r.key} style={{ background: "#020810" }}>{r.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>CNAE Principal</label>
-                    <input value={empresaForm.cnae_principal || ""} onChange={(e) => setCampo("cnae_principal", e.target.value)}
-                      placeholder="6201-5/01" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Descrição CNAE</label>
-                    <input value={empresaForm.cnae_descricao || ""} onChange={(e) => setCampo("cnae_descricao", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Natureza Jurídica</label>
-                    <input value={empresaForm.natureza_juridica || ""} onChange={(e) => setCampo("natureza_juridica", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Capital Social (R$)</label>
-                    <input type="number" step="0.01" value={empresaForm.capital_social || ""} onChange={(e) => setCampo("capital_social", parseFloat(e.target.value) || 0)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Data de Abertura</label>
-                    <input type="date" value={empresaForm.data_abertura || ""} onChange={(e) => setCampo("data_abertura", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Situação Cadastral</label>
-                    <select value={empresaForm.situacao_cadastral || ""} onChange={(e) => setCampo("situacao_cadastral", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                      <option value="" style={{ background: "#020810" }}>—</option>
-                      <option value="ativa" style={{ background: "#020810" }}>Ativa</option>
-                      <option value="suspensa" style={{ background: "#020810" }}>Suspensa</option>
-                      <option value="inapta" style={{ background: "#020810" }}>Inapta</option>
-                      <option value="baixada" style={{ background: "#020810" }}>Baixada</option>
-                    </select>
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {/* Endereço + CEP */}
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>📍 Endereço</p>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                  <div className="md:col-span-2 flex gap-2">
-                    <input value={empresaForm.cep || ""} onChange={(e) => setCampo("cep", formatarCEP(e.target.value))}
-                      placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                    <button onClick={preencherPorCEP} disabled={consultandoCEP}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
-                      style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
-                      {consultandoCEP ? "..." : "🔍"}
-                    </button>
-                  </div>
-                  <div className="md:col-span-3">
-                    <input value={empresaForm.logradouro || ""} onChange={(e) => setCampo("logradouro", e.target.value)}
-                      placeholder="Logradouro" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-1">
-                    <input value={empresaForm.numero || ""} onChange={(e) => setCampo("numero", e.target.value)}
-                      placeholder="Nº" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <input value={empresaForm.complemento || ""} onChange={(e) => setCampo("complemento", e.target.value)}
-                      placeholder="Complemento" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <input value={empresaForm.bairro || ""} onChange={(e) => setCampo("bairro", e.target.value)}
-                      placeholder="Bairro" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <input value={empresaForm.cidade || ""} onChange={(e) => setCampo("cidade", e.target.value)}
-                      placeholder="Cidade" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-1">
-                    <input value={empresaForm.uf || ""} onChange={(e) => setCampo("uf", e.target.value.toUpperCase().slice(0, 2))}
-                      placeholder="UF" maxLength={2} className="w-full px-3 py-2 rounded-lg text-sm uppercase" style={inputStyle} />
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {/* Contato */}
-              <CanvasBox cor="#6ab0ff">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>📞 Contato</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Telefone Principal</label>
-                    <input value={empresaForm.telefone_principal || ""} onChange={(e) => setCampo("telefone_principal", formatarTelefone(e.target.value))}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Telefone Secundário</label>
-                    <input value={empresaForm.telefone_secundario || ""} onChange={(e) => setCampo("telefone_secundario", formatarTelefone(e.target.value))}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail Principal</label>
-                    <input type="email" value={empresaForm.email_principal || ""} onChange={(e) => setCampo("email_principal", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail Financeiro</label>
-                    <input type="email" value={empresaForm.email_financeiro || ""} onChange={(e) => setCampo("email_financeiro", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail Contábil</label>
-                    <input type="email" value={empresaForm.email_contabil || ""} onChange={(e) => setCampo("email_contabil", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Website</label>
-                    <input value={empresaForm.website || ""} onChange={(e) => setCampo("website", e.target.value)}
-                      placeholder="https://" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {/* Dados bancários */}
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>🏦 Dados Bancários Principais</p>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Banco</label>
-                    <input value={empresaForm.banco_principal || ""} onChange={(e) => setCampo("banco_principal", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Agência</label>
-                    <input value={empresaForm.agencia || ""} onChange={(e) => setCampo("agencia", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Conta</label>
-                    <input value={empresaForm.conta || ""} onChange={(e) => setCampo("conta", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Chave PIX</label>
-                    <input value={empresaForm.chave_pix || ""} onChange={(e) => setCampo("chave_pix", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {/* Contador */}
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>👤 Contador</p>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <div className="md:col-span-2">
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Nome</label>
-                    <input value={empresaForm.contador_nome || ""} onChange={(e) => setCampo("contador_nome", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>CRC</label>
-                    <input value={empresaForm.contador_crc || ""} onChange={(e) => setCampo("contador_crc", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Telefone</label>
-                    <input value={empresaForm.contador_telefone || ""} onChange={(e) => setCampo("contador_telefone", formatarTelefone(e.target.value))}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                  <div className="md:col-span-4">
-                    <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>E-mail</label>
-                    <input type="email" value={empresaForm.contador_email || ""} onChange={(e) => setCampo("contador_email", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {/* Salvar */}
-              <button onClick={salvarEmpresa} disabled={salvando}
-                className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
-                {salvando ? "⏳ Salvando..." : "✅ Salvar Dados da Empresa"}
-              </button>
-            </div>
-          )}
-
-          {/* ============= ABA: SÓCIOS & EQUIPE ============= */}
-          {aba === "socios" && (
-            <div className="space-y-4">
-              {/* Sócios */}
-              <CanvasBox cor="#6ab0ff">
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>👥 Quadro Societário ({socios.length})</p>
-                  <button onClick={() => setModalSocio("novo")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                    + Novo Sócio
-                  </button>
-                </div>
-                {socios.length === 0 ? (
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>Nenhum sócio cadastrado. Use o botão "Preencher por CNPJ" pra importar da Receita.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {socios.map((s: any) => (
-                      <div key={s.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)" }}>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{s.nome}</p>
-                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
-                            {s.qualificacao || "—"} • {s.cpf_cnpj || "—"} • {s.tipo_pessoa}
-                            {s.participacao_pct > 0 && <span style={{ color: "#34d399" }}> • {s.participacao_pct}%</span>}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <button onClick={() => setModalSocio(s)} title="Editar"
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
-                          <button onClick={() => removerSocio(s)} title="Remover"
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CanvasBox>
-
-              {/* Equipe */}
-              <CanvasBox cor="#a78bfa">
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🧑‍💻 Equipe Interna ({equipe.length})</p>
-                  <button onClick={() => setModalMembro("novo")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
-                    + Convidar Membro
-                  </button>
-                </div>
-                {equipe.length === 0 ? (
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>Nenhum membro convidado.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {equipe.map((m: any) => (
-                      <div key={m.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(167,139,250,0.15)" }}>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{m.nome || m.email_convidado}</p>
-                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
-                            {m.cargo || "—"} • {m.papel} • {m.convite_aceito ? "✅ Aceito" : "⏳ Pendente"}
-                          </p>
-                        </div>
-                        <button onClick={() => removerMembro(m)}
-                          className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CanvasBox>
-            </div>
-          )}
-
-          {/* ============= ABA: COMPLIANCE & FISCAL ============= */}
-          {aba === "compliance" && (
-            <div className="space-y-4">
-              <CanvasBox cor={complianceScore.cor}>
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📅 Calendário Fiscal ({obrigacoes.length})</p>
-                    <p className="text-xs" style={{ color: "#c8d8f0" }}>
-                      Regime: <strong style={{ color: complianceScore.cor }}>{empresa.regime_tributario || "não definido"}</strong>
-                    </p>
-                  </div>
-                  <div className="flex gap-2 flex-wrap">
-                    <button onClick={gerarCalendarioFiscal}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
-                      🪄 Gerar Calendário Automático
-                    </button>
-                    <button onClick={() => setModalObrigacao("novo")}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                      + Nova Obrigação
-                    </button>
-                  </div>
-                </div>
-              </CanvasBox>
-
-              {obrigacoes.length === 0 ? (
-                <CanvasBox cor="#fbbf24">
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>
-                    Nenhuma obrigação cadastrada. Defina o regime tributário e clique em "Gerar Calendário Automático".
-                  </p>
-                </CanvasBox>
-              ) : (
-                <div className="space-y-2">
-                  {obrigacoes.map((o: any) => {
-                    const hoje = new Date().toISOString().slice(0, 10);
-                    const vencida = o.status === "pendente" && o.data_vencimento < hoje;
-                    const corStatus = o.status === "paga" ? "#34d399" : vencida ? "#f87171" : o.status === "dispensada" ? "#5a7a9a" : "#fbbf24";
-                    return (
-                      <div key={o.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${corStatus}30` }}>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{o.nome}</p>
-                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
-                            📅 {formatData(o.data_vencimento)} • {o.tipo}
-                            {o.valor_estimado > 0 && <span style={{ color: "#fbbf24" }}> • {formatBRL(o.valor_estimado)}</span>}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold"
-                            style={{ background: `${corStatus}20`, color: corStatus }}>
-                            {vencida ? "VENCIDA" : o.status.toUpperCase()}
-                          </span>
-                          {o.status !== "paga" && (
-                            <button onClick={() => marcarObrigacaoPaga(o)} title="Marcar paga"
-                              className="px-2 py-1 rounded text-xs" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>✓</button>
-                          )}
-                          <button onClick={() => setModalObrigacao(o)} title="Editar"
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
-                          <button onClick={() => removerObrigacao(o)} title="Remover"
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ============= ABA: COFRE DE DOCUMENTOS ============= */}
-          {aba === "cofre" && (
-            <div className="space-y-4">
-              <CanvasBox cor="#fbbf24">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🗄️ Cofre Digital ({documentos.length})</p>
-                    <p className="text-xs" style={{ color: "#c8d8f0" }}>PDF, imagens, planilhas. Até 50MB por arquivo. Criptografado.</p>
-                  </div>
-                  <button onClick={() => setModalDocumento("novo")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>
-                    📤 Novo Documento
-                  </button>
-                </div>
-              </CanvasBox>
-
-              {documentos.length === 0 ? (
-                <CanvasBox cor="#6ab0ff">
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>
-                    Nenhum documento. Adicione Contrato Social, Cartão CNPJ, Alvarás, Certidões.
-                  </p>
-                </CanvasBox>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {documentos.map((d: any) => {
-                    const tipo = TIPOS_DOCUMENTOS.find((t) => t.key === d.tipo) || TIPOS_DOCUMENTOS[16];
-                    const hoje = new Date().toISOString().slice(0, 10);
-                    const vencido = d.data_validade && d.data_validade < hoje;
-                    return (
-                      <div key={d.id} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${vencido ? "#f87171" : "#fbbf24"}30` }}>
-                        <div className="flex items-start justify-between mb-2">
-                          <span className="text-2xl">{tipo.icon}</span>
-                          {vencido && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: "#f87171" }}>VENCIDO</span>}
-                        </div>
-                        <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{d.nome}</p>
-                        <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tipo.label}</p>
-                        {d.data_validade && <p className="text-[10px] mt-1" style={{ color: vencido ? "#f87171" : "#fbbf24" }}>Válido até: {formatData(d.data_validade)}</p>}
-                        <div className="flex gap-1 mt-2">
-                          {d.storage_path && (
-                            <button onClick={() => baixarDocumento(d)}
-                              className="flex-1 px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>⬇️ Baixar</button>
-                          )}
-                          <button onClick={() => removerDocumento(d)}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ============= ABA: AUDITORIA ============= */}
-          {aba === "auditoria" && (
-            <div className="space-y-2">
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🔐 Histórico de Alterações ({auditoria.length})</p>
-                <p className="text-xs" style={{ color: "#c8d8f0" }}>Cada criação/edição/exclusão é registrada com data, hora e detalhes.</p>
-              </CanvasBox>
-              {auditoria.length === 0 ? (
-                <CanvasBox cor="#6ab0ff">
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>Nenhuma alteração registrada ainda.</p>
-                </CanvasBox>
-              ) : (
-                <div className="space-y-1">
-                  {auditoria.map((a: any) => {
-                    const icon = a.acao === "criar" ? "➕" : a.acao === "editar" ? "✏️" : "🗑️";
-                    const cor = a.acao === "criar" ? "#34d399" : a.acao === "editar" ? "#6ab0ff" : "#f87171";
-                    return (
-                      <div key={a.id} className="rounded-lg p-3 flex items-start gap-3"
-                        style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${cor}20` }}>
-                        <span className="text-lg flex-shrink-0">{icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm" style={{ color: "#c8d8f0" }}>
-                            {a.descricao || `${a.acao} em ${a.tabela}`}
-                          </p>
-                          {a.campo && <p className="text-[11px]" style={{ color: "#5a7a9a" }}>Campo: <strong>{a.campo}</strong></p>}
-                          <p className="text-[10px] mt-0.5" style={{ color: "#5a7a9a" }}>{formatDataHora(a.created_at)}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ============= MODAL: RESULTADO CNPJ ============= */}
-      {resultadoCNPJ && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
-          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
-          onClick={() => setResultadoCNPJ(null)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(167,139,250,0.4)" }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#a78bfa" }}>🪄 Dados encontrados na Receita Federal</p>
-              <button onClick={() => setResultadoCNPJ(null)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
-            </div>
-            <div className="rounded-lg p-3 space-y-1 mb-3" style={{ background: "rgba(2,8,16,0.6)" }}>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Razão Social:</span> <strong style={{ color: "#c8d8f0" }}>{resultadoCNPJ.razao_social}</strong></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Nome Fantasia:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.nome_fantasia || "—"}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Situação:</span> <span style={{ color: resultadoCNPJ.situacao_cadastral === "ativa" ? "#34d399" : "#fbbf24" }}>{resultadoCNPJ.situacao_cadastral}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Porte:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.porte}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>CNAE:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.cnae_principal} - {resultadoCNPJ.cnae_descricao}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Cidade/UF:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.cidade}/{resultadoCNPJ.uf}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>Sócios encontrados:</span> <strong style={{ color: "#a78bfa" }}>{resultadoCNPJ.socios?.length || 0}</strong></p>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setResultadoCNPJ(null)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
-              <button onClick={aplicarDadosCNPJ}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>✓ Aplicar Dados</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============= MODAL: DETALHE DOS SCORES ============= */}
-      {modalScoreDetalhe && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
-          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
-          onClick={() => setModalScoreDetalhe(null)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: "rgba(10,22,40,0.98)", border: `1px solid ${(modalScoreDetalhe === "health" ? healthScore : complianceScore).cor}40` }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>
-                {modalScoreDetalhe === "health" ? "📊 Health Score (Completude)" : "🛡️ Compliance Score (Fiscal)"}
-              </p>
-              <button onClick={() => setModalScoreDetalhe(null)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
-            </div>
-            <div className="space-y-1">
-              {(modalScoreDetalhe === "health" ? healthScore : complianceScore).itens.map((it, i) => (
-                <div key={i} className="flex items-center justify-between p-2 rounded"
-                  style={{ background: it.ok ? "rgba(52,211,153,0.05)" : "rgba(248,113,113,0.05)" }}>
-                  <span className="text-xs flex items-center gap-2">
-                    {it.ok ? <span style={{ color: "#34d399" }}>✓</span> : <span style={{ color: "#f87171" }}>✗</span>}
-                    <span style={{ color: "#c8d8f0" }}>{it.label}</span>
-                  </span>
-                  <span className="text-xs font-bold" style={{ color: it.ok ? "#34d399" : "#5a7a9a" }}>+{it.pontos}pts</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============= MODAL: SÓCIO ============= */}
-      {modalSocio && (
-        <ModalGenerico titulo={modalSocio === "novo" ? "Novo Sócio" : "Editar Sócio"} fechar={() => setModalSocio(null)}>
-          <FormSocio inicial={modalSocio === "novo" ? {} : modalSocio} onSalvar={salvarSocio} cancelar={() => setModalSocio(null)} />
-        </ModalGenerico>
-      )}
-
-      {/* ============= MODAL: DOCUMENTO ============= */}
-      {modalDocumento && (
-        <ModalGenerico titulo="Novo Documento" fechar={() => setModalDocumento(null)}>
-          <FormDocumento onSalvar={salvarDocumento} cancelar={() => setModalDocumento(null)} />
-        </ModalGenerico>
-      )}
-
-      {/* ============= MODAL: OBRIGAÇÃO ============= */}
-      {modalObrigacao && (
-        <ModalGenerico titulo={modalObrigacao === "novo" ? "Nova Obrigação Fiscal" : "Editar Obrigação"} fechar={() => setModalObrigacao(null)}>
-          <FormObrigacao inicial={modalObrigacao === "novo" ? {} : modalObrigacao} onSalvar={salvarObrigacao} cancelar={() => setModalObrigacao(null)} />
-        </ModalGenerico>
-      )}
-
-      {/* ============= MODAL: MEMBRO EQUIPE ============= */}
-      {modalMembro && (
-        <ModalGenerico titulo="Convidar Membro" fechar={() => setModalMembro(null)}>
-          <FormMembro onSalvar={salvarMembro} cancelar={() => setModalMembro(null)} />
-        </ModalGenerico>
-      )}
-    </ModuloLayout>
-  );
+  return { id: data.id };
 }
 
-// =============================================================================
-// COMPONENTES AUXILIARES
-// =============================================================================
+export async function atualizarEmpresa(
+  empresaId: string,
+  userId: string,
+  dadosAntes: any,
+  dadosNovos: any
+): Promise<{ erro?: string }> {
+  // Detecta campos alterados (ignora updated_at e created_at)
+  const camposAlterados: string[] = [];
+  for (const k of Object.keys(dadosNovos)) {
+    if (k === "updated_at" || k === "created_at" || k === "id") continue;
+    const v1 = dadosAntes?.[k];
+    const v2 = dadosNovos[k];
+    const norm = (x: any) => (x === null || x === undefined || x === "" ? null : x);
+    if (norm(v1) !== norm(v2)) camposAlterados.push(k);
+  }
 
-function ModalGenerico({ titulo, fechar, children }: { titulo: string; fechar: () => void; children: any }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
-      style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
-      onClick={fechar}>
-      <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-        style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{titulo}</p>
-          <button onClick={fechar} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
+  if (camposAlterados.length === 0) return {};
+
+  const payload = { ...dadosNovos, updated_at: new Date().toISOString() };
+  const { error } = await supabase
+    .from("empresas")
+    .update(payload)
+    .eq("id", empresaId)
+    .eq("user_id", userId);
+  if (error) return { erro: error.message };
+
+  // Auditoria: 1 registro por campo alterado
+  for (const campo of camposAlterados) {
+    await registrarAuditoria({
+      empresaId,
+      userId,
+      tabela: "empresas",
+      registroId: empresaId,
+      acao: "editar",
+      campo,
+      valorAntes: { [campo]: dadosAntes?.[campo] || null },
+      valorDepois: { [campo]: dadosNovos[campo] || null },
+    });
+  }
+
+  return {};
 }
 
-function FormSocio({ inicial, onSalvar, cancelar }: any) {
-  const [form, setForm] = useState<any>(inicial || {});
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
-  return (
-    <div className="space-y-3">
-      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-        placeholder="Nome completo *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.cpf_cnpj || ""} onChange={(e) => setForm({ ...form, cpf_cnpj: e.target.value })}
-        placeholder="CPF ou CNPJ" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <div className="grid grid-cols-2 gap-2">
-        <select value={form.tipo_pessoa || "PF"} onChange={(e) => setForm({ ...form, tipo_pessoa: e.target.value })}
-          className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="PF" style={{ background: "#020810" }}>Pessoa Física</option>
-          <option value="PJ" style={{ background: "#020810" }}>Pessoa Jurídica</option>
-        </select>
-        <select value={form.qualificacao || ""} onChange={(e) => setForm({ ...form, qualificacao: e.target.value })}
-          className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="" style={{ background: "#020810" }}>Qualificação</option>
-          {QUALIFICACOES_SOCIOS.map((q) => <option key={q} value={q} style={{ background: "#020810" }}>{q}</option>)}
-        </select>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <input type="number" step="0.01" value={form.participacao_pct || ""} onChange={(e) => setForm({ ...form, participacao_pct: parseFloat(e.target.value) || 0 })}
-          placeholder="% Participação" className="px-3 py-2 rounded-lg text-sm" style={inp} />
-        <input type="date" value={form.data_entrada || ""} onChange={(e) => setForm({ ...form, data_entrada: e.target.value })}
-          className="px-3 py-2 rounded-lg text-sm" style={inp} />
-      </div>
-      <input type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })}
-        placeholder="E-mail" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.telefone || ""} onChange={(e) => setForm({ ...form, telefone: e.target.value })}
-        placeholder="Telefone" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <div className="flex gap-2">
-        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
-        <button onClick={() => onSalvar(form)} disabled={!form.nome}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>✓ Salvar</button>
-      </div>
-    </div>
-  );
+// ============================================================================
+// SÓCIOS - CRUD
+// ============================================================================
+
+export async function carregarSocios(empresaId: string, userId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("empresa_socios")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", userId)
+    .eq("ativo", true)
+    .order("participacao_pct", { ascending: false });
+  return data || [];
 }
 
-function FormDocumento({ onSalvar, cancelar }: any) {
-  const [form, setForm] = useState<any>({ tipo: "outros" });
-  const [file, setFile] = useState<File | null>(null);
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
-  return (
-    <div className="space-y-3">
-      <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-        className="w-full px-3 py-2 rounded-lg text-sm" style={inp}>
-        {TIPOS_DOCUMENTOS.map((t) => <option key={t.key} value={t.key} style={{ background: "#020810" }}>{t.icon} {t.label}</option>)}
-      </select>
-      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-        placeholder="Nome do documento *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.numero_documento || ""} onChange={(e) => setForm({ ...form, numero_documento: e.target.value })}
-        placeholder="Número/Protocolo" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Emissão</label>
-          <input type="date" value={form.data_emissao || ""} onChange={(e) => setForm({ ...form, data_emissao: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-        </div>
-        <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Validade</label>
-          <input type="date" value={form.data_validade || ""} onChange={(e) => setForm({ ...form, data_validade: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-        </div>
-      </div>
-      <input value={form.orgao_emissor || ""} onChange={(e) => setForm({ ...form, orgao_emissor: e.target.value })}
-        placeholder="Órgão emissor" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)}
-        className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <div className="flex gap-2">
-        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
-        <button onClick={() => onSalvar(form, file)} disabled={!form.nome}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>✓ Salvar</button>
-      </div>
-    </div>
-  );
+export async function criarSocio(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
+  const payload = { ...dados, empresa_id: empresaId, user_id: userId };
+  const { data, error } = await supabase.from("empresa_socios").insert(payload).select("id").single();
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId,
+    userId,
+    tabela: "empresa_socios",
+    registroId: data.id,
+    acao: "criar",
+    valorDepois: payload,
+    descricao: `Sócio adicionado: ${dados.nome}`,
+  });
+  return { id: data.id };
 }
 
-function FormObrigacao({ inicial, onSalvar, cancelar }: any) {
-  const [form, setForm] = useState<any>(inicial || { status: "pendente", recorrencia: "mensal" });
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
-  return (
-    <div className="space-y-3">
-      <input value={form.tipo || ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-        placeholder="Tipo (DAS, DCTF, ECF, ICMS, etc) *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-        placeholder="Nome *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.descricao || ""} onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-        placeholder="Descrição" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Vencimento *</label>
-          <input type="date" value={form.data_vencimento || ""} onChange={(e) => setForm({ ...form, data_vencimento: e.target.value })}
-            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-        </div>
-        <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Valor estimado (R$)</label>
-          <input type="number" step="0.01" value={form.valor_estimado || ""} onChange={(e) => setForm({ ...form, valor_estimado: parseFloat(e.target.value) || 0 })}
-            className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <select value={form.status || "pendente"} onChange={(e) => setForm({ ...form, status: e.target.value })}
-          className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="pendente" style={{ background: "#020810" }}>Pendente</option>
-          <option value="paga" style={{ background: "#020810" }}>Paga</option>
-          <option value="atrasada" style={{ background: "#020810" }}>Atrasada</option>
-          <option value="dispensada" style={{ background: "#020810" }}>Dispensada</option>
-        </select>
-        <select value={form.recorrencia || "mensal"} onChange={(e) => setForm({ ...form, recorrencia: e.target.value })}
-          className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="mensal" style={{ background: "#020810" }}>Mensal</option>
-          <option value="trimestral" style={{ background: "#020810" }}>Trimestral</option>
-          <option value="anual" style={{ background: "#020810" }}>Anual</option>
-          <option value="unica" style={{ background: "#020810" }}>Única</option>
-        </select>
-      </div>
-      <div className="flex gap-2">
-        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
-        <button onClick={() => onSalvar(form)} disabled={!form.tipo || !form.nome || !form.data_vencimento}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>✓ Salvar</button>
-      </div>
-    </div>
-  );
+export async function atualizarSocio(socioId: string, empresaId: string, userId: string, dados: any): Promise<{ erro?: string }> {
+  const { error } = await supabase
+    .from("empresa_socios")
+    .update({ ...dados, updated_at: new Date().toISOString() })
+    .eq("id", socioId)
+    .eq("user_id", userId);
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId,
+    userId,
+    tabela: "empresa_socios",
+    registroId: socioId,
+    acao: "editar",
+    valorDepois: dados,
+    descricao: `Sócio atualizado: ${dados.nome}`,
+  });
+  return {};
 }
 
-function FormMembro({ onSalvar, cancelar }: any) {
-  const [form, setForm] = useState<any>({ papel: "leitor" });
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
-  return (
-    <div className="space-y-3">
-      <input type="email" value={form.email_convidado || ""} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
-        placeholder="E-mail do convidado *" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-        placeholder="Nome" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.cargo || ""} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-        placeholder="Cargo" className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
-        className="w-full px-3 py-2 rounded-lg text-sm" style={inp}>
-        <option value="admin" style={{ background: "#020810" }}>👑 Admin (acesso total)</option>
-        <option value="financeiro" style={{ background: "#020810" }}>💰 Financeiro</option>
-        <option value="contabil" style={{ background: "#020810" }}>📊 Contábil</option>
-        <option value="leitor" style={{ background: "#020810" }}>👁️ Leitor (somente visualização)</option>
-      </select>
-      <div className="flex gap-2">
-        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>Cancelar</button>
-        <button onClick={() => onSalvar(form)} disabled={!form.email_convidado}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>✓ Convidar</button>
-      </div>
-    </div>
-  );
+export async function excluirSocio(socioId: string, empresaId: string, userId: string, nome: string): Promise<{ erro?: string }> {
+  const { error } = await supabase
+    .from("empresa_socios")
+    .delete()
+    .eq("id", socioId)
+    .eq("user_id", userId);
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId,
+    userId,
+    tabela: "empresa_socios",
+    registroId: socioId,
+    acao: "excluir",
+    descricao: `Sócio removido: ${nome}`,
+  });
+  return {};
 }
+
+// ============================================================================
+// IMPORTAR SÓCIOS DO QSA (BrasilAPI)
+// ============================================================================
+
+export async function importarSociosDoQSA(empresaId: string, userId: string, qsa: any[]): Promise<number> {
+  let importados = 0;
+  for (const s of qsa) {
+    const dados = {
+      nome: s.nome_socio || s.nome,
+      qualificacao: s.qualificacao_socio || s.qualificacao,
+      cpf_cnpj: s.cnpj_cpf_do_socio || s.cpf_cnpj || null,
+      tipo_pessoa: ((s.cnpj_cpf_do_socio || s.cpf_cnpj || "").replace(/\D/g, "").length > 11) ? "PJ" : "PF",
+      data_entrada: s.data_entrada_sociedade || s.data_entrada || null,
+    };
+    if (!dados.nome) continue;
+
+    const { data, error } = await supabase
+      .from("empresa_socios")
+      .insert({ ...dados, empresa_id: empresaId, user_id: userId, ativo: true })
+      .select("id")
+      .single();
+    if (!error && data) {
+      importados++;
+      await registrarAuditoria({
+        empresaId,
+        userId,
+        tabela: "empresa_socios",
+        registroId: data.id,
+        acao: "criar",
+        descricao: `Sócio importado da Receita Federal: ${dados.nome}`,
+      });
+    }
+  }
+  return importados;
+}
+
+// ============================================================================
+// DOCUMENTOS - CRUD + STORAGE
+// ============================================================================
+
+export async function carregarDocumentos(empresaId: string, userId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("empresa_documentos")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return data || [];
+}
+
+export async function uploadDocumento(
+  file: File,
+  empresaId: string,
+  userId: string,
+  tipo: string
+): Promise<{ path?: string; erro?: string }> {
+  const timestamp = Date.now();
+  const nomeArquivo = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+  const path = `${userId}/${empresaId}/${tipo}/${timestamp}-${nomeArquivo}`;
+
+  const { error } = await supabase.storage
+    .from("empresa-documentos")
+    .upload(path, file, { upsert: false, contentType: file.type || "application/octet-stream" });
+  if (error) return { erro: error.message };
+  return { path };
+}
+
+export async function criarDocumento(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
+  const payload = { ...dados, empresa_id: empresaId, user_id: userId };
+  const { data, error } = await supabase.from("empresa_documentos").insert(payload).select("id").single();
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId,
+    userId,
+    tabela: "empresa_documentos",
+    registroId: data.id,
+    acao: "criar",
+    valorDepois: payload,
+    descricao: `Documento adicionado: ${dados.nome}`,
+  });
+  return { id: data.id };
+}
+
+export async function gerarUrlDocumento(path: string, segundos: number = 3600): Promise<string | null> {
+  const { data } = await supabase.storage.from("empresa-documentos").createSignedUrl(path, segundos);
+  return data?.signedUrl || null;
+}
+
+export async function excluirDocumento(
+  docId: string,
+  empresaId: string,
+  userId: string,
+  storagePath: string | null,
+  nome: string
+): Promise<{ erro?: string }> {
+  if (storagePath) {
+    await supabase.storage.from("empresa-documentos").remove([storagePath]);
+  }
+  const { error } = await supabase
+    .from("empresa_documentos")
+    .delete()
+    .eq("id", docId)
+    .eq("user_id", userId);
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId,
+    userId,
+    tabela: "empresa_documentos",
+    registroId: docId,
+    acao: "excluir",
+    descricao: `Documento removido: ${nome}`,
+  });
+  return {};
+}
+
+// ============================================================================
+// LOGO DA EMPRESA (bucket público)
+// ============================================================================
+
+export async function uploadLogo(file: File, userId: string): Promise<{ url?: string; erro?: string }> {
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `${userId}/logo-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("empresa-logos")
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) return { erro: error.message };
+  const { data } = supabase.storage.from("empresa-logos").getPublicUrl(path);
+  return { url: data.publicUrl };
+}
+
+// ============================================================================
+// AUDITORIA
+// ============================================================================
+
+export async function registrarAuditoria(params: {
+  empresaId: string;
+  userId: string;
+  tabela: string;
+  registroId?: string;
+  acao: "criar" | "editar" | "excluir";
+  campo?: string;
+  valorAntes?: any;
+  valorDepois?: any;
+  descricao?: string;
+}): Promise<void> {
+  await supabase.from("empresa_auditoria").insert({
+    empresa_id: params.empresaId,
+    user_id: params.userId,
+    tabela: params.tabela,
+    registro_id: params.registroId,
+    acao: params.acao,
+    campo: params.campo,
+    valor_antes: params.valorAntes,
+    valor_depois: params.valorDepois,
+    descricao: params.descricao,
+  });
+}
+
+export async function carregarAuditoria(empresaId: string, userId: string, limit: number = 100): Promise<any[]> {
+  const { data } = await supabase
+    .from("empresa_auditoria")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return data || [];
+}
+
+// ============================================================================
+// OBRIGAÇÕES FISCAIS
+// ============================================================================
+
+export async function carregarObrigacoes(empresaId: string, userId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("empresa_obrigacoes")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", userId)
+    .order("data_vencimento", { ascending: true });
+  return data || [];
+}
+
+export async function criarObrigacao(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
+  const payload = { ...dados, empresa_id: empresaId, user_id: userId };
+  const { data, error } = await supabase.from("empresa_obrigacoes").insert(payload).select("id").single();
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId, userId,
+    tabela: "empresa_obrigacoes",
+    registroId: data.id,
+    acao: "criar",
+    valorDepois: payload,
+    descricao: `Obrigação criada: ${dados.nome}`,
+  });
+  return { id: data.id };
+}
+
+export async function atualizarObrigacao(id: string, empresaId: string, userId: string, dados: any): Promise<{ erro?: string }> {
+  const { error } = await supabase
+    .from("empresa_obrigacoes")
+    .update({ ...dados, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId, userId,
+    tabela: "empresa_obrigacoes",
+    registroId: id,
+    acao: "editar",
+    valorDepois: dados,
+    descricao: `Obrigação atualizada: ${dados.nome || ""}`,
+  });
+  return {};
+}
+
+export async function excluirObrigacao(id: string, empresaId: string, userId: string, nome: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("empresa_obrigacoes").delete().eq("id", id).eq("user_id", userId);
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId, userId,
+    tabela: "empresa_obrigacoes",
+    registroId: id,
+    acao: "excluir",
+    descricao: `Obrigação removida: ${nome}`,
+  });
+  return {};
+}
+
+// Gera calendário fiscal baseado no regime
+const NOMES_MESES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): any[] {
+  const obrigacoes: any[] = [];
+  const regime = (regimeTributario || "").toLowerCase();
+
+  if (regime === "mei") {
+    // DAS MEI mensal (vencimento dia 20 do mês seguinte)
+    for (let mes = 0; mes < 12; mes++) {
+      const venc = new Date(ano, mes + 1, 20);
+      obrigacoes.push({
+        tipo: "DAS-MEI",
+        nome: `DAS MEI ${NOMES_MESES[mes]}/${ano}`,
+        descricao: "Documento de Arrecadação do MEI",
+        data_vencimento: venc.toISOString().slice(0, 10),
+        recorrencia: "mensal",
+        notificar_dias_antes: 7,
+        valor_estimado: 0,
+      });
+    }
+    // DASN-SIMEI anual (até 31/05)
+    obrigacoes.push({
+      tipo: "DASN-SIMEI",
+      nome: `DASN-SIMEI ${ano}`,
+      descricao: "Declaração Anual do MEI",
+      data_vencimento: `${ano}-05-31`,
+      recorrencia: "anual",
+      notificar_dias_antes: 30,
+    });
+  } else if (regime.includes("simples")) {
+    // DAS mensal (vencimento dia 20 do mês seguinte)
+    for (let mes = 0; mes < 12; mes++) {
+      const venc = new Date(ano, mes + 1, 20);
+      obrigacoes.push({
+        tipo: "DAS",
+        nome: `DAS ${NOMES_MESES[mes]}/${ano}`,
+        descricao: "Documento de Arrecadação do Simples Nacional",
+        data_vencimento: venc.toISOString().slice(0, 10),
+        recorrencia: "mensal",
+        notificar_dias_antes: 7,
+      });
+    }
+    // DEFIS (até 31/03)
+    obrigacoes.push({
+      tipo: "DEFIS",
+      nome: `DEFIS ${ano}`,
+      descricao: "Declaração de Informações Socioeconômicas e Fiscais",
+      data_vencimento: `${ano}-03-31`,
+      recorrencia: "anual",
+      notificar_dias_antes: 30,
+    });
+  } else if (regime.includes("presumido") || regime.includes("real")) {
+    // DCTF mensal (até 15º dia útil do 2º mês subsequente)
+    for (let mes = 0; mes < 12; mes++) {
+      const venc = new Date(ano, mes + 2, 15);
+      obrigacoes.push({
+        tipo: "DCTF",
+        nome: `DCTF ${NOMES_MESES[mes]}/${ano}`,
+        descricao: "Declaração de Débitos e Créditos Tributários Federais",
+        data_vencimento: venc.toISOString().slice(0, 10),
+        recorrencia: "mensal",
+        notificar_dias_antes: 7,
+      });
+    }
+    // EFD-Contribuições mensal
+    for (let mes = 0; mes < 12; mes++) {
+      const venc = new Date(ano, mes + 1, 10);
+      obrigacoes.push({
+        tipo: "EFD-Contribuicoes",
+        nome: `EFD-Contribuições ${NOMES_MESES[mes]}/${ano}`,
+        descricao: "Escrituração Fiscal Digital - PIS/COFINS",
+        data_vencimento: venc.toISOString().slice(0, 10),
+        recorrencia: "mensal",
+        notificar_dias_antes: 7,
+      });
+    }
+    // ECF anual (julho)
+    obrigacoes.push({
+      tipo: "ECF",
+      nome: `ECF ${ano}`,
+      descricao: "Escrituração Contábil Fiscal",
+      data_vencimento: `${ano}-07-31`,
+      recorrencia: "anual",
+      notificar_dias_antes: 60,
+    });
+    // ECD anual (maio)
+    obrigacoes.push({
+      tipo: "ECD",
+      nome: `ECD ${ano}`,
+      descricao: "Escrituração Contábil Digital",
+      data_vencimento: `${ano}-05-31`,
+      recorrencia: "anual",
+      notificar_dias_antes: 60,
+    });
+  }
+
+  return obrigacoes;
+}
+
+// ============================================================================
+// EQUIPE - CRUD
+// ============================================================================
+
+export async function carregarEquipe(empresaId: string, userId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("empresa_equipe")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return data || [];
+}
+
+export async function convidarMembro(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
+  const token = typeof crypto !== "undefined" && (crypto as any).randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
+  const payload = { ...dados, empresa_id: empresaId, user_id: userId, token_convite: token };
+  const { data, error } = await supabase.from("empresa_equipe").insert(payload).select("id").single();
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId, userId,
+    tabela: "empresa_equipe",
+    registroId: data.id,
+    acao: "criar",
+    valorDepois: payload,
+    descricao: `Membro convidado: ${dados.email_convidado}`,
+  });
+  return { id: data.id };
+}
+
+export async function excluirMembro(id: string, empresaId: string, userId: string, email: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("empresa_equipe").delete().eq("id", id).eq("user_id", userId);
+  if (error) return { erro: error.message };
+  await registrarAuditoria({
+    empresaId, userId,
+    tabela: "empresa_equipe",
+    registroId: id,
+    acao: "excluir",
+    descricao: `Membro removido: ${email}`,
+  });
+  return {};
+}
+
+// ============================================================================
+// HEALTH SCORE (0-100): completude dos dados cadastrais
+// ============================================================================
+
+export type ScoreResultado = {
+  score: number;
+  nivel: string;
+  cor: string;
+  itens: { label: string; ok: boolean; pontos: number }[];
+};
+
+export function calcularHealthScore(empresa: any, socios: any[], documentos: any[]): ScoreResultado {
+  if (!empresa) return { score: 0, nivel: "Sem dados", cor: "#f87171", itens: [] };
+
+  const itens = [
+    { label: "Razão Social", ok: !!empresa.razao_social, pontos: 8 },
+    { label: "Nome Fantasia", ok: !!empresa.nome_fantasia, pontos: 4 },
+    { label: "CNPJ válido", ok: !!empresa.cnpj && validarCNPJ(empresa.cnpj), pontos: 10 },
+    { label: "Inscrição Estadual", ok: !!empresa.inscricao_estadual || empresa.opcao_mei, pontos: 6 },
+    { label: "Regime Tributário", ok: !!empresa.regime_tributario, pontos: 8 },
+    { label: "CNAE Principal", ok: !!empresa.cnae_principal, pontos: 5 },
+    { label: "Endereço completo", ok: !!(empresa.cep && empresa.logradouro && empresa.cidade && empresa.uf), pontos: 10 },
+    { label: "Telefone principal", ok: !!empresa.telefone_principal, pontos: 4 },
+    { label: "E-mail principal", ok: !!empresa.email_principal, pontos: 5 },
+    { label: "Dados bancários", ok: !!(empresa.banco_principal && empresa.agencia && empresa.conta), pontos: 5 },
+    { label: "Contador cadastrado", ok: !!empresa.contador_nome, pontos: 5 },
+    { label: "Logo da empresa", ok: !!empresa.logo_url, pontos: 5 },
+    { label: "Pelo menos 1 sócio", ok: socios.length > 0, pontos: 10 },
+    { label: "Pelo menos 3 documentos", ok: documentos.length >= 3, pontos: 15 },
+  ];
+
+  const score = itens.reduce((s, i) => s + (i.ok ? i.pontos : 0), 0);
+
+  let nivel = "Crítico", cor = "#f87171";
+  if (score >= 90) { nivel = "Excelente"; cor = "#34d399"; }
+  else if (score >= 70) { nivel = "Bom"; cor = "#6ab0ff"; }
+  else if (score >= 50) { nivel = "Regular"; cor = "#fbbf24"; }
+  else if (score >= 30) { nivel = "Atenção"; cor = "#fb923c"; }
+
+  return { score, nivel, cor, itens };
+}
+
+// ============================================================================
+// COMPLIANCE SCORE (0-100): adequação fiscal e legal
+// ============================================================================
+
+export function calcularComplianceScore(empresa: any, obrigacoes: any[], documentos: any[]): ScoreResultado {
+  if (!empresa) return { score: 0, nivel: "Sem dados", cor: "#f87171", itens: [] };
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const docsValidos = documentos.filter((d: any) => !d.data_validade || d.data_validade >= hoje);
+  const obrigVencidasNaoPagas = obrigacoes.filter((o: any) => o.status === "pendente" && o.data_vencimento < hoje);
+
+  const itens = [
+    { label: "Regime tributário definido", ok: !!empresa.regime_tributario, pontos: 15 },
+    { label: "CNAE principal cadastrado", ok: !!empresa.cnae_principal, pontos: 10 },
+    { label: "Situação cadastral ativa", ok: empresa.situacao_cadastral === "ativa" || !empresa.situacao_cadastral, pontos: 15 },
+    { label: "IE preenchida (se aplicável)", ok: !!empresa.inscricao_estadual || empresa.opcao_mei, pontos: 10 },
+    { label: "Contador cadastrado com CRC", ok: !!(empresa.contador_nome && empresa.contador_crc), pontos: 15 },
+    { label: "Calendário de obrigações ativo", ok: obrigacoes.length > 0, pontos: 10 },
+    { label: "Sem obrigações vencidas", ok: obrigVencidasNaoPagas.length === 0, pontos: 15 },
+    { label: "Documentos válidos no cofre (5+)", ok: docsValidos.length >= 5, pontos: 10 },
+  ];
+
+  const score = itens.reduce((s, i) => s + (i.ok ? i.pontos : 0), 0);
+
+  let nivel = "Crítico", cor = "#f87171";
+  if (score >= 90) { nivel = "Excelente"; cor = "#34d399"; }
+  else if (score >= 70) { nivel = "Bom"; cor = "#6ab0ff"; }
+  else if (score >= 50) { nivel = "Regular"; cor = "#fbbf24"; }
+  else if (score >= 30) { nivel = "Atenção"; cor = "#fb923c"; }
+
+  return { score, nivel, cor, itens };
+}
+
+// ============================================================================
+// TIPOS DE DOCUMENTOS RECOMENDADOS
+// ============================================================================
+
+export const TIPOS_DOCUMENTOS = [
+  { key: "contrato_social", label: "Contrato Social", icon: "📜" },
+  { key: "cnpj_card", label: "Cartão CNPJ", icon: "🪪" },
+  { key: "alvara_funcionamento", label: "Alvará de Funcionamento", icon: "🏢" },
+  { key: "alvara_sanitario", label: "Alvará Sanitário", icon: "🏥" },
+  { key: "alvara_bombeiros", label: "Alvará Bombeiros", icon: "🚒" },
+  { key: "certidao_negativa_federal", label: "CND Federal", icon: "📋" },
+  { key: "certidao_negativa_estadual", label: "CND Estadual", icon: "📋" },
+  { key: "certidao_negativa_municipal", label: "CND Municipal", icon: "📋" },
+  { key: "certidao_fgts", label: "CRF FGTS", icon: "💼" },
+  { key: "certidao_trabalhista", label: "CNDT Trabalhista", icon: "⚖️" },
+  { key: "inscricao_estadual", label: "Inscrição Estadual", icon: "🗂️" },
+  { key: "inscricao_municipal", label: "Inscrição Municipal", icon: "🗂️" },
+  { key: "registro_junta_comercial", label: "Registro Junta Comercial", icon: "📑" },
+  { key: "alteracao_contratual", label: "Alteração Contratual", icon: "✏️" },
+  { key: "ata_assembleia", label: "Ata de Assembleia", icon: "📝" },
+  { key: "procuracao", label: "Procuração", icon: "✒️" },
+  { key: "outros", label: "Outros", icon: "📎" },
+];
+
+export const REGIMES_TRIBUTARIOS = [
+  { key: "mei", label: "MEI - Microempreendedor Individual" },
+  { key: "simples", label: "Simples Nacional" },
+  { key: "presumido", label: "Lucro Presumido" },
+  { key: "real", label: "Lucro Real" },
+  { key: "arbitrado", label: "Lucro Arbitrado" },
+  { key: "imune", label: "Imune / Isento" },
+];
