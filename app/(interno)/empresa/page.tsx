@@ -79,6 +79,7 @@ export default function EmpresaPage() {
   const [modalObrigacao, setModalObrigacao] = useState<any>(null);
   const [modalMembro, setModalMembro] = useState<any>(null);
   const [modalScoreDetalhe, setModalScoreDetalhe] = useState<"health" | "compliance" | null>(null);
+  const [shareModalAberto, setShareModalAberto] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
@@ -415,7 +416,63 @@ export default function EmpresaPage() {
   }
 
   // =========================================================================
-  // HELPERS UI
+  // CENTRO DE COMPARTILHAMENTO - Cartão de Apresentação da Empresa
+  // =========================================================================
+  function montarTextoCompartilhamento(): string {
+    if (!empresa) return "Axioma AI.Tech";
+    const endereco = [empresa.logradouro, empresa.numero, empresa.bairro, empresa.cidade, empresa.uf].filter(Boolean).join(", ");
+    return [
+      `🦅 *AXIOMA AI.TECH — Cartão da Empresa*`,
+      ``,
+      `🏢 *${empresa.nome_fantasia || empresa.razao_social || empresa.nome}*`,
+      empresa.razao_social ? `📋 ${empresa.razao_social}` : "",
+      empresa.cnpj ? `📄 CNPJ: ${empresa.cnpj}` : "",
+      empresa.inscricao_estadual ? `🗂️ IE: ${empresa.inscricao_estadual}` : "",
+      empresa.regime_tributario ? `🏛️ Regime: ${empresa.regime_tributario}` : "",
+      ``,
+      endereco ? `📍 ${endereco}` : "",
+      empresa.cep ? `📮 CEP: ${empresa.cep}` : "",
+      empresa.telefone_principal ? `📞 ${empresa.telefone_principal}` : "",
+      empresa.email_principal ? `✉️ ${empresa.email_principal}` : "",
+      empresa.website ? `🌐 ${empresa.website}` : "",
+      ``,
+      `📊 *Health Score:* ${healthScore.score}/100 (${healthScore.nivel})`,
+      `🛡️ *Compliance Score:* ${complianceScore.score}/100 (${complianceScore.nivel})`,
+      ``,
+      `_Gerado por axiomaai.com.br_`,
+    ].filter(Boolean).join("\n");
+  }
+
+  function shareWhatsApp() {
+    const texto = encodeURIComponent(montarTextoCompartilhamento());
+    window.open(`https://wa.me/?text=${texto}`, "_blank");
+  }
+  function shareTelegram() {
+    const texto = encodeURIComponent(montarTextoCompartilhamento());
+    window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${texto}`, "_blank");
+  }
+  function shareGmail() {
+    const assunto = encodeURIComponent(`Axioma - Cartão da Empresa ${empresa?.nome_fantasia || empresa?.razao_social || ""}`);
+    const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
+    window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${assunto}&body=${corpo}`, "_blank", "noopener,noreferrer");
+  }
+  function shareOutlook() {
+    const assunto = encodeURIComponent(`Axioma - Cartão da Empresa ${empresa?.nome_fantasia || empresa?.razao_social || ""}`);
+    const corpo = encodeURIComponent(montarTextoCompartilhamento().replace(/\*/g, ""));
+    window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${assunto}&body=${corpo}`, "_blank", "noopener,noreferrer");
+  }
+  async function shareCopiarTexto() {
+    try {
+      await navigator.clipboard.writeText(montarTextoCompartilhamento().replace(/\*/g, ""));
+      showToast("Cartão copiado!", "ok");
+    } catch {
+      showToast("Erro ao copiar", "erro");
+    }
+  }
+  async function sharePdf() {
+    await exportarPDF();
+  }
+
   // =========================================================================
   function setCampo(campo: string, valor: any) {
     setEmpresaForm((prev: any) => ({ ...prev, [campo]: valor }));
@@ -503,6 +560,13 @@ export default function EmpresaPage() {
               </button>
             </CanvasBox>
           </div>
+
+          {/* BOTÃO COMPARTILHAR */}
+          <button onClick={() => setShareModalAberto(true)}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold sm:self-end"
+            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            📤 Compartilhar Cartão da Empresa
+          </button>
 
           {/* ABAS */}
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -1020,6 +1084,78 @@ export default function EmpresaPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ============= MODAL: CENTRO DE COMPARTILHAMENTO ============= */}
+      {shareModalAberto && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
+          onClick={() => setShareModalAberto(false)}>
+          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
+            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📤 Centro de Compartilhamento</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: "#c8d8f0" }}>{empresa?.nome_fantasia || empresa?.razao_social || empresa?.nome}</p>
+              </div>
+              <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+            </div>
+
+            {/* Mini-preview */}
+            {empresa && (
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                <p style={{ color: "#c8d8f0" }}>
+                  📄 <strong style={{ color: "#6ab0ff" }}>{empresa.cnpj || "Sem CNPJ"}</strong>
+                </p>
+                <p style={{ color: "#c8d8f0" }}>
+                  📊 Health: <strong style={{ color: healthScore.cor }}>{healthScore.score}/100</strong> •
+                  🛡️ Compliance: <strong style={{ color: complianceScore.cor }}>{complianceScore.score}/100</strong>
+                </p>
+              </div>
+            )}
+
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>Compartilhar via</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              <button onClick={shareWhatsApp}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}>
+                <span className="text-xl">📱</span>WhatsApp
+              </button>
+              <button onClick={shareTelegram}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}>
+                <span className="text-xl">✈️</span>Telegram
+              </button>
+              <button onClick={shareGmail}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}>
+                <span className="text-xl">📨</span>Gmail
+              </button>
+              <button onClick={shareOutlook}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}>
+                <span className="text-xl">📩</span>Outlook
+              </button>
+              <button onClick={shareCopiarTexto}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                <span className="text-xl">📋</span>Copiar
+              </button>
+              <button onClick={sharePdf} disabled={exportando}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50"
+                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
+                <span className="text-xl">{exportando ? "⏳" : "📄"}</span>
+                {exportando ? "Gerando..." : "PDF Cartão"}
+              </button>
+            </div>
+
+            <button onClick={() => setShareModalAberto(false)}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+              Fechar
+            </button>
+          </div>
         </div>
       )}
 
