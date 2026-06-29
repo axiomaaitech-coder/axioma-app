@@ -270,6 +270,16 @@ export default function IATributariaPage() {
             ))}
           </div>
 
+          {/* Regime atual + editar */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-xs" style={{ color: "#5a7a9a" }}>
+              {lang === "en" ? "Current regime" : lang === "es" ? "Régimen actual" : "Regime atual"}: <strong style={{ color: "#6ab0ff" }}>{dados.regime_atual || (lang === "en" ? "Not defined" : lang === "es" ? "No definido" : "Não definido")}</strong>
+            </span>
+            <a href="/empresa" className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+              ✏️ {lang === "en" ? "Edit in Company" : lang === "es" ? "Editar en Empresa" : "Editar na Empresa"}
+            </a>
+          </div>
+
           <button onClick={() => setShareAberto(true)} className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
             style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.compartilhar}</button>
 
@@ -299,7 +309,14 @@ export default function IATributariaPage() {
                       {it.ok ? <span style={{ color: "#34d399" }}>✓</span> : <span style={{ color: "#f87171" }}>✗</span>}
                       <span style={{ color: "#c8d8f0" }}>{sfLabel(it)}</span>
                     </span>
-                    <span className="text-xs font-bold" style={{ color: it.ok ? "#34d399" : "#5a7a9a" }}>+{it.pontos}pts</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold" style={{ color: it.ok ? "#34d399" : "#5a7a9a" }}>+{it.pontos}pts</span>
+                      {!it.ok && (
+                        <a href="/empresa" className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                          ✏️
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -485,7 +502,7 @@ export default function IATributariaPage() {
             <CanvasBox cor="#fbbf24">
               <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.calendarioTitulo}</p>
               <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.calendarioDesc}</p>
-              <a href="/(interno)/empresa" className="inline-block px-4 py-2.5 rounded-xl text-sm font-semibold"
+              <a href="/empresa" className="inline-block px-4 py-2.5 rounded-xl text-sm font-semibold"
                 style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>{tt.irParaEmpresa}</a>
             </CanvasBox>
           )}

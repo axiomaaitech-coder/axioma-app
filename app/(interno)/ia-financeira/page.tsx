@@ -561,7 +561,12 @@ export default function IAFinanceiraPage() {
                       {d.indicadores.map((ind, j) => (
                         <div key={j} className="flex items-center justify-between text-xs">
                           <span style={{ color: "#c8d8f0" }}>{ind.nome}</span>
-                          <span style={{ color: ind.status === "bom" ? "#34d399" : ind.status === "atencao" ? "#fbbf24" : "#f87171" }}>{ind.valor}</span>
+                          <div className="flex items-center gap-2">
+                            <span style={{ color: ind.status === "bom" ? "#34d399" : ind.status === "atencao" ? "#fbbf24" : "#f87171" }}>{ind.valor}</span>
+                            {ind.status !== "bom" && (
+                              <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>✏️</a>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
