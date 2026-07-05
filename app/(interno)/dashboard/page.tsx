@@ -181,7 +181,19 @@ export default function DashboardPage() {
       setSnap(s); setScore360(sc); setAnomalias(detectarAnomalias(s, b)); setAcoes(gerarPlanoAcao(s, sc, detectarAnomalias(s, b)));
 
       const nm = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-      setEvolucao(s.total_receitas_6m.map((r, i) => ({ mes: nm[(new Date().getMonth() - 5 + i + 12) % 12], receita: r, custos: s.total_custos_6m[i] || 0, lucro: r - (s.total_custos_6m[i] || 0) })));
+      const evolReal = s.total_receitas_6m.map((r, i) => ({ mes: nm[(new Date().getMonth() - 5 + i + 12) % 12], receita: r, custos: s.total_custos_6m[i] || 0, lucro: r - (s.total_custos_6m[i] || 0) }));
+      const temDadosEvolucao = s.total_receitas_6m.some(r => r > 0);
+
+      const evolExemplo = [
+        { mes: "Jan", receita: 8500, custos: 5200, lucro: 3300 },
+        { mes: "Fev", receita: 9200, custos: 5500, lucro: 3700 },
+        { mes: "Mar", receita: 11000, custos: 6100, lucro: 4900 },
+        { mes: "Abr", receita: 10500, custos: 5900, lucro: 4600 },
+        { mes: "Mai", receita: 12800, custos: 6400, lucro: 6400 },
+        { mes: "Jun", receita: 14200, custos: 6800, lucro: 7400 },
+      ];
+
+      setEvolucao(temDadosEvolucao ? evolReal : evolExemplo);
 
       const { data: cv } = await supabase.from("custos_variaveis").select("valor, categoria").eq("user_id", user.id);
       const { data: cf } = await supabase.from("custos_fixos").select("valor_mensal, categoria").eq("user_id", user.id);
@@ -191,8 +203,18 @@ export default function DashboardPage() {
       const sorted = Array.from(m.entries()).map(([name, value], i) => ({ name, value: Math.round(value), color: CORES_DIST[i % CORES_DIST.length], pct: 0 })).sort((a, b) => b.value - a.value);
       const totalD = sorted.reduce((s, d) => s + d.value, 0);
       sorted.forEach(d => d.pct = totalD > 0 ? Math.round((d.value / totalD) * 100) : 0);
-      setTopCustos(sorted.slice(0, 5));
-      setDistribuicao(sorted.slice(0, 6));
+
+      // Se não tem dados reais, usa exemplo pra o Dashboard não ficar vazio
+      const exemploDistribuicao = [
+        { name: lang === "en" ? "Rent" : lang === "es" ? "Alquiler" : "Aluguel", value: 3500, color: CORES_DIST[0], pct: 28 },
+        { name: lang === "en" ? "Payroll" : lang === "es" ? "Nómina" : "Folha", value: 5200, color: CORES_DIST[1], pct: 41 },
+        { name: lang === "en" ? "Suppliers" : lang === "es" ? "Proveedores" : "Fornecedores", value: 2400, color: CORES_DIST[2], pct: 19 },
+        { name: "Marketing", value: 1100, color: CORES_DIST[3], pct: 9 },
+        { name: lang === "en" ? "Others" : lang === "es" ? "Otros" : "Outros", value: 380, color: CORES_DIST[4], pct: 3 },
+      ];
+
+      setTopCustos(sorted.length > 0 ? sorted.slice(0, 5) : exemploDistribuicao);
+      setDistribuicao(sorted.length > 0 ? sorted.slice(0, 6) : exemploDistribuicao);
 
       const { data: ob } = await supabase.from("empresa_obrigacoes").select("nome, data_vencimento, status, valor_estimado")
         .eq("user_id", user.id).eq("status", "pendente").order("data_vencimento", { ascending: true }).limit(4);
@@ -205,11 +227,20 @@ export default function DashboardPage() {
     ? ((snap.total_receitas_6m[5] - snap.total_receitas_6m[4]) / Math.max(snap.total_receitas_6m[4], 1)) * 100 : 0;
 
   // Composição financeira (pra 2o donut)
-  const composicao = snap ? [
+  const composicaoReal = snap ? [
     { name: tt.lucroPct, value: Math.max(0, snap.lucro_liquido), color: COR.verde, pct: snap.receita_bruta > 0 ? Math.round((Math.max(0, snap.lucro_liquido) / snap.receita_bruta) * 100) : 0 },
     { name: tt.custoFixoPct, value: snap.custos_fixos, color: COR.vermelho, pct: snap.receita_bruta > 0 ? Math.round((snap.custos_fixos / snap.receita_bruta) * 100) : 0 },
     { name: tt.custoVarPct, value: snap.custos_variaveis, color: COR.laranja, pct: snap.receita_bruta > 0 ? Math.round((snap.custos_variaveis / snap.receita_bruta) * 100) : 0 },
   ].filter(d => d.value > 0) : [];
+
+  const exemploComposicao = [
+    { name: tt.lucroPct, value: 4200, color: COR.verde, pct: 35 },
+    { name: tt.custoFixoPct, value: 4800, color: COR.vermelho, pct: 40 },
+    { name: tt.custoVarPct, value: 3000, color: COR.laranja, pct: 25 },
+  ];
+
+  const composicao = composicaoReal.length > 0 ? composicaoReal : exemploComposicao;
+  const usandoExemplo = composicaoReal.length === 0;
 
   // Share
   function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
@@ -424,7 +455,14 @@ export default function DashboardPage() {
             {/* ★ DONUT GROSSO — Distribuição de Custos — estilo Traffic Sources da referência */}
             <GC cor={COR.cyan} onClick={() => router.push("/relatorios")}>
               <div className="p-5">
-                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>🥧 {tt.distribuicaoCustos}</p>
+                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>
+                  🥧 {tt.distribuicaoCustos}
+                  {distribuicao === topCustos && topCustos[0]?.name === (lang === "en" ? "Rent" : lang === "es" ? "Alquiler" : "Aluguel") && (
+                    <span className="ml-2 text-[9px] px-2 py-0.5 rounded-md font-bold" style={{ background: "rgba(139,92,246,0.2)", color: COR.roxo }}>
+                      {lang === "en" ? "SAMPLE" : lang === "es" ? "EJEMPLO" : "EXEMPLO"}
+                    </span>
+                  )}
+                </p>
                 {distribuicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
                   <div className="flex items-center gap-4">
                     {/* Donut GROSSO igual referência */}
@@ -460,7 +498,14 @@ export default function DashboardPage() {
             {/* ★ 2o DONUT — Composição Financeira (Receita = Lucro + CF + CV) */}
             <GC cor={COR.verde} onClick={() => router.push("/dre")}>
               <div className="p-5">
-                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>💰 {tt.composicaoFinanceira}</p>
+                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>
+                  💰 {tt.composicaoFinanceira}
+                  {usandoExemplo && (
+                    <span className="ml-2 text-[9px] px-2 py-0.5 rounded-md font-bold" style={{ background: "rgba(139,92,246,0.2)", color: COR.roxo }}>
+                      {lang === "en" ? "SAMPLE" : lang === "es" ? "EJEMPLO" : "EXEMPLO"}
+                    </span>
+                  )}
+                </p>
                 {composicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
                   <div className="flex items-center gap-4">
                     <div className="flex-shrink-0" style={{ width: "140px", height: "140px" }}>
