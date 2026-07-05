@@ -16,28 +16,30 @@ import {
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
-// I18N
 const T = {
   pt: {
     bomDia: "Bom dia", boaTarde: "Boa tarde", boaNoite: "Boa noite",
     carregando: "Carregando Dashboard...", tagline: "Seu CFO Digital — powered by IA",
     receita: "Receita", custos: "Custos", lucro: "Lucro Líquido", margem: "Margem Líquida",
     inadimplencia: "Inadimplência", ticket: "Ticket Médio", score360: "Score 360°",
-    receber: "A Receber", pagar: "A Pagar", endividamento: "Endividamento",
-    evolucaoReceita: "Evolução de Receita", receitaL: "Receita", custosL: "Custos", lucroL: "Lucro",
+    receber: "A Receber", pagar: "A Pagar", endividamento: "Dívidas",
+    evolucaoReceita: "Evolução de Receita",
+    receitaL: "Receita", custosL: "Custos", lucroL: "Lucro",
+    composicaoFinanceira: "Composição Financeira",
+    receitaPct: "Receita Líq.", custoFixoPct: "Custos Fixos", custoVarPct: "Custos Variáveis", lucroPct: "Lucro",
+    distribuicaoCustos: "Distribuição de Custos",
     insightsEmpresa: "Insights da Empresa",
-    lancamentos: "Lançamentos", clientes: "Clientes", eficiencia: "Eficiência",
-    deste_mes: "deste mês", vsMes: "vs mês anterior",
-    topCustos: "Top Categorias de Custo", topCustosDesc: "Ranking por valor mensal",
-    distribuicao: "Distribuição de Custos",
+    lancamentos: "Lançamentos", eficiencia: "Eficiência Op.",
+    topCustos: "Top Categorias de Custo",
     dimensoesScore: "Dimensões Score 360°",
-    alertasIA: "Alertas IA", semAlertas: "Nenhum alerta ativo.",
+    alertasIA: "Alertas Inteligentes", semAlertas: "Todos indicadores saudáveis.",
     acoesIA: "Ações Prioritárias", impacto: "Impacto",
-    obrigacoes: "Obrigações Fiscais", vence: "Vence", semObrig: "Sem obrigações pendentes.",
+    obrigacoes: "Obrigações Fiscais", vence: "Vence", semObrig: "Nenhuma pendência.",
     modulos: "Módulos Axioma",
     compartilhar: "📤 Compartilhar", fechar: "Fechar", copiar: "Copiar",
     centroCompart: "Centro de Compartilhamento", compartilharVia: "Compartilhar via",
     gerando: "Gerando...", copiado: "Copiado!", erroCopiar: "Erro",
+    mensal: "Mensal", deste_mes: "deste mês",
     mReceitas: "Receitas", mCustosF: "C.Fixos", mCustosV: "C.Variáveis", mDre: "DRE",
     mFluxo: "Fluxo", mClientes: "Clientes", mRelatorios: "Relatórios", mEmpresa: "Empresa",
     mIaFin: "IA Financ.", mIaTrib: "IA Tribut.", mMei: "MEI", mFornec: "Fornecedores",
@@ -48,20 +50,23 @@ const T = {
     receita: "Revenue", custos: "Costs", lucro: "Net Profit", margem: "Net Margin",
     inadimplencia: "Delinquency", ticket: "Avg Ticket", score360: "Score 360°",
     receber: "Receivable", pagar: "Payable", endividamento: "Debt",
-    evolucaoReceita: "Revenue Growth", receitaL: "Revenue", custosL: "Costs", lucroL: "Profit",
+    evolucaoReceita: "Revenue Growth",
+    receitaL: "Revenue", custosL: "Costs", lucroL: "Profit",
+    composicaoFinanceira: "Financial Composition",
+    receitaPct: "Net Revenue", custoFixoPct: "Fixed Costs", custoVarPct: "Variable Costs", lucroPct: "Profit",
+    distribuicaoCustos: "Cost Distribution",
     insightsEmpresa: "Company Insights",
-    lancamentos: "Entries", clientes: "Clients", eficiencia: "Efficiency",
-    deste_mes: "this month", vsMes: "vs last month",
-    topCustos: "Top Cost Categories", topCustosDesc: "Ranked by monthly value",
-    distribuicao: "Cost Distribution",
+    lancamentos: "Entries", eficiencia: "Op. Efficiency",
+    topCustos: "Top Cost Categories",
     dimensoesScore: "Score 360° Dimensions",
-    alertasIA: "AI Alerts", semAlertas: "No active alerts.",
+    alertasIA: "Smart Alerts", semAlertas: "All indicators healthy.",
     acoesIA: "Priority Actions", impacto: "Impact",
-    obrigacoes: "Fiscal Obligations", vence: "Due", semObrig: "No pending obligations.",
+    obrigacoes: "Fiscal Obligations", vence: "Due", semObrig: "No pending items.",
     modulos: "Axioma Modules",
     compartilhar: "📤 Share", fechar: "Close", copiar: "Copy",
     centroCompart: "Sharing Center", compartilharVia: "Share via",
     gerando: "Generating...", copiado: "Copied!", erroCopiar: "Error",
+    mensal: "Monthly", deste_mes: "this month",
     mReceitas: "Revenue", mCustosF: "Fixed", mCustosV: "Variable", mDre: "P&L",
     mFluxo: "Cash Flow", mClientes: "Clients", mRelatorios: "Reports", mEmpresa: "Company",
     mIaFin: "Fin.AI", mIaTrib: "Tax AI", mMei: "MEI", mFornec: "Suppliers",
@@ -72,80 +77,66 @@ const T = {
     receita: "Ingresos", custos: "Costos", lucro: "Beneficio Neto", margem: "Margen Neto",
     inadimplencia: "Morosidad", ticket: "Ticket Medio", score360: "Score 360°",
     receber: "Cobrar", pagar: "Pagar", endividamento: "Deuda",
-    evolucaoReceita: "Evolución de Ingresos", receitaL: "Ingresos", custosL: "Costos", lucroL: "Beneficio",
+    evolucaoReceita: "Evolución de Ingresos",
+    receitaL: "Ingresos", custosL: "Costos", lucroL: "Beneficio",
+    composicaoFinanceira: "Composición Financiera",
+    receitaPct: "Ingreso Neto", custoFixoPct: "Costos Fijos", custoVarPct: "Costos Variables", lucroPct: "Beneficio",
+    distribuicaoCustos: "Distribución de Costos",
     insightsEmpresa: "Insights de la Empresa",
-    lancamentos: "Movimientos", clientes: "Clientes", eficiencia: "Eficiencia",
-    deste_mes: "este mes", vsMes: "vs mes anterior",
-    topCustos: "Top Categorías de Costo", topCustosDesc: "Ranking por valor mensual",
-    distribuicao: "Distribución de Costos",
+    lancamentos: "Movimientos", eficiencia: "Eficiencia Op.",
+    topCustos: "Top Categorías de Costo",
     dimensoesScore: "Dimensiones Score 360°",
-    alertasIA: "Alertas IA", semAlertas: "Sin alertas activas.",
+    alertasIA: "Alertas Inteligentes", semAlertas: "Indicadores saludables.",
     acoesIA: "Acciones Prioritarias", impacto: "Impacto",
-    obrigacoes: "Obligaciones Fiscales", vence: "Vence", semObrig: "Sin obligaciones pendientes.",
+    obrigacoes: "Obligaciones Fiscales", vence: "Vence", semObrig: "Sin pendencias.",
     modulos: "Módulos Axioma",
     compartilhar: "📤 Compartir", fechar: "Cerrar", copiar: "Copiar",
     centroCompart: "Centro de Compartir", compartilharVia: "Compartir vía",
     gerando: "Generando...", copiado: "¡Copiado!", erroCopiar: "Error",
+    mensal: "Mensual", deste_mes: "este mes",
     mReceitas: "Ingresos", mCustosF: "C.Fijos", mCustosV: "C.Variables", mDre: "Estado R.",
     mFluxo: "Flujo", mClientes: "Clientes", mRelatorios: "Informes", mEmpresa: "Empresa",
     mIaFin: "IA Financ.", mIaTrib: "IA Tribut.", mMei: "MEI", mFornec: "Proveedores",
   },
 };
 
-const CORES = ["#8b5cf6", "#6366f1", "#3b82f6", "#06b6d4", "#14b8a6", "#a78bfa", "#818cf8", "#f472b6"];
-const ttip = { background: "rgba(15,10,40,0.97)", border: "1px solid rgba(139,92,246,0.4)", borderRadius: "12px", color: "#e2e8f0", fontSize: "12px" };
+// Cores exatas da referência (roxa/azul/cyan/rosa/verde)
+const COR = { roxo: "#8b5cf6", indigo: "#6366f1", azul: "#3b82f6", cyan: "#06b6d4", teal: "#14b8a6", rosa: "#ec4899", verde: "#10b981", laranja: "#f97316", vermelho: "#ef4444", amarelo: "#eab308" };
+const CORES_DIST = [COR.roxo, COR.azul, COR.cyan, COR.rosa, COR.teal, COR.indigo, COR.laranja, COR.amarelo];
+const CORES_COMP = [COR.verde, COR.vermelho, COR.laranja, COR.roxo];
+const ttip = { background: "rgba(10,8,30,0.97)", border: "1px solid rgba(139,92,246,0.4)", borderRadius: "14px", color: "#e2e8f0", fontSize: "12px", padding: "8px 12px" };
+
 function fBRL(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0); }
 function fData(iso: string, l: string) { if (!iso) return "—"; try { return new Date(iso + "T00:00:00").toLocaleDateString(l === "en" ? "en-US" : l === "es" ? "es-ES" : "pt-BR"); } catch { return iso; } }
 
-// ============================================================================
-// DASH CARD — estilo da referência: fundo glass escuro, borda sutil, hover glow
-// ============================================================================
-function DC({ children, cor = "#8b5cf6", onClick, className = "" }: {
-  children: React.ReactNode; cor?: string; onClick?: () => void; className?: string;
-}) {
+// Glass Card — estilo referência com borda sutil e hover glow
+function GC({ children, cor = COR.roxo, onClick, className = "" }: { children: React.ReactNode; cor?: string; onClick?: () => void; className?: string }) {
   return (
     <div onClick={onClick}
-      className={`rounded-2xl overflow-hidden transition-all duration-300 hover:translate-y-[-3px] ${onClick ? "cursor-pointer" : ""} ${className}`}
-      style={{
-        background: "linear-gradient(160deg, rgba(20,15,50,0.95) 0%, rgba(12,10,35,0.98) 100%)",
-        border: `1px solid rgba(99,102,241,0.15)`,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 8px 40px rgba(0,0,0,0.5), 0 0 20px ${cor}15`;
-        e.currentTarget.style.borderColor = `${cor}40`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)";
-        e.currentTarget.style.borderColor = "rgba(99,102,241,0.15)";
-      }}
-    >{children}</div>
+      className={`rounded-2xl overflow-hidden transition-all duration-300 hover:translate-y-[-4px] ${onClick ? "cursor-pointer" : ""} ${className}`}
+      style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.92) 0%, rgba(10,8,35,0.96) 100%)", border: "1px solid rgba(99,102,241,0.12)", boxShadow: "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)" }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 12px 50px rgba(0,0,0,0.5), 0 0 25px ${cor}12, inset 0 1px 0 rgba(255,255,255,0.06)`; e.currentTarget.style.borderColor = `${cor}35`; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.12)"; }}>
+      {children}
+    </div>
   );
 }
 
-// Mini sparkline
-function Spark({ data, cor = "#8b5cf6", h = 35 }: { data: number[]; cor?: string; h?: number }) {
+// Sparkline
+function Spark({ data, cor = COR.roxo, h = 40 }: { data: number[]; cor?: string; h?: number }) {
   if (!data || data.length < 2) return null;
-  return (
-    <ResponsiveContainer width="100%" height={h}>
-      <AreaChart data={data.map(v => ({ v }))}>
-        <defs><linearGradient id={`sp${cor.replace("#","")}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={cor} stopOpacity={0.4}/><stop offset="95%" stopColor={cor} stopOpacity={0}/></linearGradient></defs>
-        <Area type="monotone" dataKey="v" stroke={cor} fill={`url(#sp${cor.replace("#","")})`} strokeWidth={2} dot={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
+  return (<ResponsiveContainer width="100%" height={h}><AreaChart data={data.map(v => ({ v }))}>
+    <defs><linearGradient id={`s${cor.slice(1)}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={cor} stopOpacity={0.5}/><stop offset="95%" stopColor={cor} stopOpacity={0}/></linearGradient></defs>
+    <Area type="monotone" dataKey="v" stroke={cor} fill={`url(#s${cor.slice(1)})`} strokeWidth={2} dot={false} />
+  </AreaChart></ResponsiveContainer>);
 }
 
-// Mini bar chart (como na referência "Conversion Rate")
-function MiniBars({ data, cor = "#8b5cf6", h = 35 }: { data: number[]; cor?: string; h?: number }) {
+// Mini bars
+function MBars({ data, cor = COR.roxo, h = 40 }: { data: number[]; cor?: string; h?: number }) {
   if (!data || data.length < 2) return null;
-  return (
-    <ResponsiveContainer width="100%" height={h}>
-      <BarChart data={data.map(v => ({ v }))}>
-        <Bar dataKey="v" fill={cor} radius={[2, 2, 0, 0]} opacity={0.7} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
+  return (<ResponsiveContainer width="100%" height={h}><BarChart data={data.map(v => ({ v: Math.max(0, v) }))}>
+    <Bar dataKey="v" fill={cor} radius={[3, 3, 0, 0]} opacity={0.8} />
+  </BarChart></ResponsiveContainer>);
 }
 
 export default function DashboardPage() {
@@ -168,7 +159,7 @@ export default function DashboardPage() {
   const [obrigacoes, setObrigacoes] = useState<any[]>([]);
   const [shareAberto, setShareAberto] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: string } | null>(null);
-  function showToast(msg: string, tipo: string = "info") { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); }
+  function showToast(m: string, t: string = "info") { setToast({ msg: m, tipo: t }); setTimeout(() => setToast(null), 3000); }
 
   const hora = new Date();
   const saudacao = hora.getHours() < 12 ? tt.bomDia : hora.getHours() < 18 ? tt.boaTarde : tt.boaNoite;
@@ -179,8 +170,7 @@ export default function DashboardPage() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const nc = user.user_metadata?.nome || user.user_metadata?.full_name || user.email?.split("@")[0] || "";
-    setNomeUsuario(nc.split(" ")[0]);
+    setNomeUsuario((user.user_metadata?.nome || user.user_metadata?.full_name || user.email?.split("@")[0] || "").split(" ")[0]);
     const { data: emp } = await supabase.from("empresas").select("nome_fantasia, razao_social, nome").eq("user_id", user.id).limit(1).maybeSingle();
     if (emp) setEmpresaNome(emp.nome_fantasia || emp.razao_social || emp.nome || "");
 
@@ -188,28 +178,22 @@ export default function DashboardPage() {
       const s = await carregarSnapshot(user.id);
       const b = await carregarBenchmark(s.setor);
       const sc = calcularScore360(s, b);
-      const an = detectarAnomalias(s, b);
-      const ac = gerarPlanoAcao(s, sc, an);
-      setSnap(s); setScore360(sc); setAnomalias(an); setAcoes(ac);
+      setSnap(s); setScore360(sc); setAnomalias(detectarAnomalias(s, b)); setAcoes(gerarPlanoAcao(s, sc, detectarAnomalias(s, b)));
 
-      // Evolução
       const nm = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-      setEvolucao(s.total_receitas_6m.map((r, i) => ({
-        mes: nm[(new Date().getMonth() - 5 + i + 12) % 12],
-        receita: r, custos: s.total_custos_6m[i] || 0, lucro: r - (s.total_custos_6m[i] || 0),
-      })));
+      setEvolucao(s.total_receitas_6m.map((r, i) => ({ mes: nm[(new Date().getMonth() - 5 + i + 12) % 12], receita: r, custos: s.total_custos_6m[i] || 0, lucro: r - (s.total_custos_6m[i] || 0) })));
 
-      // Top custos
       const { data: cv } = await supabase.from("custos_variaveis").select("valor, categoria").eq("user_id", user.id);
       const { data: cf } = await supabase.from("custos_fixos").select("valor_mensal, categoria").eq("user_id", user.id);
       const m = new Map<string, number>();
       (cv || []).forEach((r: any) => { const c = r.categoria || "Variáveis"; m.set(c, (m.get(c) || 0) + Number(r.valor || 0)); });
       (cf || []).forEach((r: any) => { const c = r.categoria || "Fixos"; m.set(c, (m.get(c) || 0) + Number(r.valor_mensal || 0)); });
-      const sorted = Array.from(m.entries()).map(([name, value], i) => ({ name, value: Math.round(value), color: CORES[i % CORES.length] })).sort((a, b) => b.value - a.value);
+      const sorted = Array.from(m.entries()).map(([name, value], i) => ({ name, value: Math.round(value), color: CORES_DIST[i % CORES_DIST.length], pct: 0 })).sort((a, b) => b.value - a.value);
+      const totalD = sorted.reduce((s, d) => s + d.value, 0);
+      sorted.forEach(d => d.pct = totalD > 0 ? Math.round((d.value / totalD) * 100) : 0);
       setTopCustos(sorted.slice(0, 5));
       setDistribuicao(sorted.slice(0, 6));
 
-      // Obrigações
       const { data: ob } = await supabase.from("empresa_obrigacoes").select("nome, data_vencimento, status, valor_estimado")
         .eq("user_id", user.id).eq("status", "pendente").order("data_vencimento", { ascending: true }).limit(4);
       setObrigacoes(ob || []);
@@ -220,30 +204,29 @@ export default function DashboardPage() {
   const mom = snap && snap.total_receitas_6m.length >= 2
     ? ((snap.total_receitas_6m[5] - snap.total_receitas_6m[4]) / Math.max(snap.total_receitas_6m[4], 1)) * 100 : 0;
 
+  // Composição financeira (pra 2o donut)
+  const composicao = snap ? [
+    { name: tt.lucroPct, value: Math.max(0, snap.lucro_liquido), color: COR.verde, pct: snap.receita_bruta > 0 ? Math.round((Math.max(0, snap.lucro_liquido) / snap.receita_bruta) * 100) : 0 },
+    { name: tt.custoFixoPct, value: snap.custos_fixos, color: COR.vermelho, pct: snap.receita_bruta > 0 ? Math.round((snap.custos_fixos / snap.receita_bruta) * 100) : 0 },
+    { name: tt.custoVarPct, value: snap.custos_variaveis, color: COR.laranja, pct: snap.receita_bruta > 0 ? Math.round((snap.custos_variaveis / snap.receita_bruta) * 100) : 0 },
+  ].filter(d => d.value > 0) : [];
+
   // Share
-  function mShare() {
-    if (!snap || !score360) return "Axioma AI.Tech";
-    return [`🦅 *AXIOMA AI.TECH — Dashboard CFO*`, empresaNome ? `🏢 *${empresaNome}*` : "",
-      `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL(snap.receita_bruta)}`,
-      `✅ ${tt.lucro}: ${fBRL(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`,
-      ``, `_axiomaai.com.br_`].filter(Boolean).join("\n");
-  }
-  function sWA() { window.open(`https://wa.me/?text=${encodeURIComponent(mShare())}`, "_blank"); }
-  function sTG() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(mShare())}`, "_blank"); }
-  function sGM() { window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mShare().replace(/\*/g, ""))}`, "_blank"); }
-  function sOL() { window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mShare().replace(/\*/g, ""))}`, "_blank"); }
-  async function sCp() { try { await navigator.clipboard.writeText(mShare().replace(/\*/g, "")); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
+  function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
+  function sWA() { window.open(`https://wa.me/?text=${encodeURIComponent(mSh())}`, "_blank"); }
+  function sTG() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(mSh())}`, "_blank"); }
+  function sGM() { window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mSh().replace(/\*/g, ""))}`, "_blank"); }
+  function sOL() { window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mSh().replace(/\*/g, ""))}`, "_blank"); }
+  async function sCp() { try { await navigator.clipboard.writeText(mSh().replace(/\*/g, "")); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
 
   async function exportarPDF() {
     if (!snap || !score360) return; setExportando(true);
-    try {
-      await gerarPdfTabela({ titulo: "Axioma Dashboard CFO", subtitulo: snap.periodo,
-        colunas: [{ header: "MÉTRICA", key: "m", width: 55, align: "left" as const }, { header: "VALOR", key: "v", width: 40, align: "right" as const }],
-        linhas: [{ m: tt.receita, v: fBRL(snap.receita_bruta) }, { m: tt.custos, v: fBRL(snap.custos_totais) }, { m: tt.lucro, v: fBRL(snap.lucro_liquido) }, { m: tt.margem, v: `${snap.margem_liquida.toFixed(1)}%` },
-          ...score360.dimensoes.map(d => ({ m: lang === "en" ? d.nome_en : d.nome, v: `${d.score}/100` }))],
-        resumo: [{ label: "Score 360°", valor: `${score360.total}/100` }], nomeArquivo: `axioma-dashboard.pdf`,
-      });
-    } catch (err: any) { showToast(err.message, "erro"); } setExportando(false);
+    try { await gerarPdfTabela({ titulo: "Axioma Dashboard CFO", subtitulo: snap.periodo,
+      colunas: [{ header: "MÉTRICA", key: "m", width: 55, align: "left" as const }, { header: "VALOR", key: "v", width: 40, align: "right" as const }],
+      linhas: [{ m: tt.receita, v: fBRL(snap.receita_bruta) }, { m: tt.custos, v: fBRL(snap.custos_totais) }, { m: tt.lucro, v: fBRL(snap.lucro_liquido) }, { m: tt.margem, v: `${snap.margem_liquida.toFixed(1)}%` },
+        ...score360.dimensoes.map(d => ({ m: lang === "en" ? d.nome_en : d.nome, v: `${d.score}/100` }))],
+      resumo: [{ label: "Score 360°", valor: `${score360.total}/100` }], nomeArquivo: "axioma-dashboard.pdf" });
+    } catch (e: any) { showToast(e.message, "erro"); } setExportando(false);
   }
 
   const dN = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
@@ -251,211 +234,184 @@ export default function DashboardPage() {
   const acN = (a: AcaoSugerida) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
 
   const mods = [
-    { l: tt.mReceitas, i: "💰", p: "/receitas", c: "#34d399" },
-    { l: tt.mCustosF, i: "📌", p: "/custos-fixos", c: "#f87171" },
-    { l: tt.mCustosV, i: "📉", p: "/custos-variaveis", c: "#fb923c" },
-    { l: tt.mDre, i: "📈", p: "/dre", c: "#6366f1" },
-    { l: tt.mFluxo, i: "💧", p: "/fluxo-caixa", c: "#06b6d4" },
-    { l: tt.mClientes, i: "👥", p: "/clientes", c: "#22d3ee" },
-    { l: tt.mRelatorios, i: "📊", p: "/relatorios", c: "#fbbf24" },
-    { l: tt.mEmpresa, i: "🏢", p: "/empresa", c: "#a78bfa" },
-    { l: tt.mIaFin, i: "🧠", p: "/ia-financeira", c: "#f472b6" },
-    { l: tt.mIaTrib, i: "🏛️", p: "/ia-tributaria", c: "#fb923c" },
-    { l: tt.mFornec, i: "🏭", p: "/fornecedores", c: "#14b8a6" },
-    { l: tt.mMei, i: "🧾", p: "/mei", c: "#f97316" },
+    { l: tt.mReceitas, i: "💰", p: "/receitas", c: COR.verde }, { l: tt.mCustosF, i: "📌", p: "/custos-fixos", c: COR.vermelho },
+    { l: tt.mCustosV, i: "📉", p: "/custos-variaveis", c: COR.laranja }, { l: tt.mDre, i: "📈", p: "/dre", c: COR.indigo },
+    { l: tt.mFluxo, i: "💧", p: "/fluxo-caixa", c: COR.cyan }, { l: tt.mClientes, i: "👥", p: "/clientes", c: COR.azul },
+    { l: tt.mRelatorios, i: "📊", p: "/relatorios", c: COR.amarelo }, { l: tt.mEmpresa, i: "🏢", p: "/empresa", c: COR.roxo },
+    { l: tt.mIaFin, i: "🧠", p: "/ia-financeira", c: COR.rosa }, { l: tt.mIaTrib, i: "🏛️", p: "/ia-tributaria", c: COR.laranja },
+    { l: tt.mFornec, i: "🏭", p: "/fornecedores", c: COR.teal }, { l: tt.mMei, i: "🧾", p: "/mei", c: COR.amarelo },
   ];
 
   return (
-    <div className="min-h-screen p-3 md:p-5 overflow-auto" style={{ background: "linear-gradient(180deg, #080420 0%, #020810 40%)" }}>
-      {toast && (<div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(99,102,241,0.95)", color: "#fff", fontWeight: 600, fontSize: 13 }}>{toast.msg}</div>)}
+    <div className="min-h-screen p-3 md:p-5 overflow-auto" style={{ background: "linear-gradient(180deg, #06031a 0%, #020810 50%)" }}>
+      {toast && (<div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : "rgba(99,102,241,0.95)", color: "#fff", fontWeight: 700, fontSize: 13 }}>{toast.msg}</div>)}
 
-      {carregando && (
-        <div className="py-32 text-center">
-          <div className="w-12 h-12 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm" style={{ color: "#8b5cf6" }}>{tt.carregando}</p>
-        </div>
-      )}
+      {carregando && (<div className="py-32 text-center"><div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-sm font-semibold" style={{ color: COR.roxo }}>{tt.carregando}</p></div>)}
 
       {!carregando && snap && score360 && (
         <div className="space-y-4 max-w-[1440px] mx-auto">
 
-          {/* ============ HERO VIDEO ============ */}
-          <div className="relative rounded-2xl overflow-hidden" style={{ height: "220px" }}>
+          {/* ══════ HERO VIDEO ══════ */}
+          <div className="relative rounded-2xl overflow-hidden" style={{ height: "200px" }}>
             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/hero-axioma.mp4" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(8,4,32,0.75), rgba(2,8,16,0.5), rgba(139,92,246,0.1))" }} />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(6,3,26,0.8), rgba(2,8,16,0.5), rgba(139,92,246,0.08))" }} />
             <div className="absolute inset-0 z-10 flex items-center justify-between px-6 md:px-10">
               <div>
-                <p className="text-[10px] uppercase tracking-widest" style={{ color: "#c4b5fd" }}>
-                  {hora.toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-                </p>
-                <h1 className="text-2xl md:text-3xl font-black mt-1" style={{ color: "#f1f5f9" }}>
+                <h1 className="text-2xl md:text-3xl font-black" style={{ color: "#f1f5f9" }}>
                   {saudacao}, <span style={{ color: "#c4b5fd" }}>{nomeUsuario}</span>
                 </h1>
                 {empresaNome && <p className="text-sm mt-1 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
-                <p className="text-[11px] mt-2" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
+                <p className="text-[11px] mt-2 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
               </div>
-              <div className="hidden md:flex gap-3">
-                <button onClick={() => setShareAberto(true)} className="px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105"
-                  style={{ background: "rgba(139,92,246,0.3)", border: "1px solid rgba(139,92,246,0.5)", color: "#e2e8f0" }}>{tt.compartilhar}</button>
-                <button onClick={exportarPDF} disabled={exportando} className="px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-50 transition-all hover:scale-105"
-                  style={{ background: "rgba(220,38,38,0.2)", border: "1px solid rgba(220,38,38,0.4)", color: "#fca5a5" }}>
-                  {exportando ? tt.gerando : "📄 PDF"}</button>
+              <div className="hidden md:flex gap-2">
+                <button onClick={() => setShareAberto(true)} className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105"
+                  style={{ background: "rgba(139,92,246,0.35)", border: "1px solid rgba(139,92,246,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
+                <button onClick={exportarPDF} disabled={exportando} className="px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50 transition-all hover:scale-105"
+                  style={{ background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
               </div>
             </div>
           </div>
 
-          {/* ============ LINHA 1: KPIs (esq) + GRÁFICO GRANDE (dir) — estilo referência ============ */}
+          {/* ══════ LINHA 1: 4 KPIs (esq) + GRÁFICO GRANDE (dir) ══════ */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-
-            {/* COLUNA ESQUERDA: 4 KPIs empilhados */}
+            {/* 4 KPIs em grid 2x2 */}
             <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-              {/* Receita — com sparkline */}
-              <DC cor="#8b5cf6" onClick={() => router.push("/receitas")}>
+              {/* Receita + sparkline */}
+              <GC cor={COR.roxo} onClick={() => router.push("/receitas")}>
                 <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#94a3b8" }}>{tt.receita}</p>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded font-bold" style={{ background: mom >= 0 ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: mom >= 0 ? "#34d399" : "#f87171" }}>
-                      {mom >= 0 ? "↑" : "↓"}{Math.abs(mom).toFixed(1)}%
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: "#94a3b8" }}>{tt.receita}</p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black" style={{ background: mom >= 0 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)", color: mom >= 0 ? COR.verde : COR.vermelho }}>
+                      {mom >= 0 ? "▲" : "▼"} {Math.abs(mom).toFixed(1)}%
                     </span>
                   </div>
-                  <p className="text-xl font-black" style={{ color: "#e2e8f0" }}>{fBRL(snap.receita_bruta)}</p>
-                  <div className="mt-2"><Spark data={snap.total_receitas_6m} cor="#8b5cf6" /></div>
+                  <p className="text-xl font-black tracking-tight" style={{ color: "#f1f5f9" }}>{fBRL(snap.receita_bruta)}</p>
+                  <div className="mt-2"><Spark data={snap.total_receitas_6m} cor={COR.roxo} /></div>
                 </div>
-              </DC>
+              </GC>
 
-              {/* Lucro — com mini bars */}
-              <DC cor={snap.lucro_liquido >= 0 ? "#34d399" : "#f87171"} onClick={() => router.push("/dre")}>
+              {/* Lucro + mini bars */}
+              <GC cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} onClick={() => router.push("/dre")}>
                 <div className="p-4">
-                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#94a3b8" }}>{tt.lucro}</p>
-                  <p className="text-xl font-black" style={{ color: snap.lucro_liquido >= 0 ? "#34d399" : "#f87171" }}>{fBRL(snap.lucro_liquido)}</p>
-                  <div className="mt-2"><MiniBars data={snap.total_receitas_6m.map((r, i) => r - (snap.total_custos_6m[i] || 0))} cor={snap.lucro_liquido >= 0 ? "#34d399" : "#f87171"} /></div>
+                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "#94a3b8" }}>{tt.lucro}</p>
+                  <p className="text-xl font-black tracking-tight" style={{ color: snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho }}>{fBRL(snap.lucro_liquido)}</p>
+                  <div className="mt-2"><MBars data={snap.total_receitas_6m.map((r, i) => r - (snap.total_custos_6m[i] || 0))} cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} /></div>
                 </div>
-              </DC>
+              </GC>
 
-              {/* Margem — com indicador */}
-              <DC cor="#06b6d4" onClick={() => router.push("/relatorios")}>
+              {/* Margem + barra */}
+              <GC cor={COR.cyan} onClick={() => router.push("/relatorios")}>
                 <div className="p-4">
-                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#94a3b8" }}>{tt.margem}</p>
-                  <p className="text-2xl font-black" style={{ color: snap.margem_liquida >= 10 ? "#06b6d4" : "#fbbf24" }}>{snap.margem_liquida.toFixed(1)}%</p>
-                  <div className="mt-2 rounded-full h-1.5" style={{ background: "rgba(6,182,212,0.15)" }}>
-                    <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, Math.max(0, snap.margem_liquida * 2))}%`, background: "linear-gradient(90deg, #06b6d4, #8b5cf6)" }} />
+                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "#94a3b8" }}>{tt.margem}</p>
+                  <p className="text-2xl font-black" style={{ color: snap.margem_liquida >= 10 ? COR.cyan : COR.amarelo }}>{snap.margem_liquida.toFixed(1)}%</p>
+                  <div className="mt-3 rounded-full h-2" style={{ background: "rgba(6,182,212,0.12)" }}>
+                    <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${Math.min(100, Math.max(0, snap.margem_liquida * 2.5))}%`, background: `linear-gradient(90deg, ${COR.cyan}, ${COR.roxo})` }} />
                   </div>
-                  <p className="text-[10px] mt-1" style={{ color: "#64748b" }}>Benchmark: 15-25%</p>
                 </div>
-              </DC>
+              </GC>
 
-              {/* Score 360 — com barra de progresso */}
-              <DC cor={score360.cor} onClick={() => router.push("/ia-financeira")}>
+              {/* Score 360 */}
+              <GC cor={score360.cor} onClick={() => router.push("/ia-financeira")}>
                 <div className="p-4">
-                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#94a3b8" }}>🏆 Score</p>
+                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "#94a3b8" }}>🏆 Score</p>
                   <div className="flex items-baseline gap-1">
                     <span className="text-3xl font-black" style={{ color: score360.cor }}>{score360.total}</span>
-                    <span className="text-xs" style={{ color: "#64748b" }}>/100</span>
+                    <span className="text-sm font-bold" style={{ color: "#475569" }}>/100</span>
                   </div>
-                  <p className="text-[10px] font-bold mt-1" style={{ color: score360.cor }}>
-                    {lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}
-                  </p>
-                  <div className="mt-2 rounded-full h-1.5" style={{ background: "rgba(139,92,246,0.15)" }}>
-                    <div className="h-1.5 rounded-full" style={{ width: `${score360.total}%`, background: `linear-gradient(90deg, ${score360.cor}, #8b5cf6)` }} />
-                  </div>
+                  <p className="text-[10px] font-bold mt-1" style={{ color: score360.cor }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
                 </div>
-              </DC>
+              </GC>
             </div>
 
-            {/* COLUNA DIREITA: Gráfico grande "Revenue Growth" */}
+            {/* Gráfico grande — Revenue Growth */}
             <div className="lg:col-span-8">
-              <DC cor="#6366f1">
+              <GC cor={COR.indigo}>
                 <div className="p-5">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-5">
                     <div>
-                      <p className="text-base font-bold" style={{ color: "#e2e8f0" }}>📈 {tt.evolucaoReceita}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: "#64748b" }}>{tt.deste_mes}</p>
+                      <p className="text-base font-black" style={{ color: "#f1f5f9" }}>📈 {tt.evolucaoReceita}</p>
+                      <p className="text-[10px] font-medium mt-0.5" style={{ color: "#64748b" }}>{tt.mensal} • {tt.deste_mes}</p>
                     </div>
-                    <div className="flex gap-4 text-[10px]">
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#8b5cf6" }}></span><span style={{ color: "#94a3b8" }}>{tt.receitaL}</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#f87171" }}></span><span style={{ color: "#94a3b8" }}>{tt.custosL}</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: "#34d399" }}></span><span style={{ color: "#94a3b8" }}>{tt.lucroL}</span></span>
+                    <div className="flex gap-4 text-[10px] font-bold">
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: COR.roxo }}></span><span style={{ color: "#cbd5e1" }}>{tt.receitaL}</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: COR.vermelho }}></span><span style={{ color: "#cbd5e1" }}>{tt.custosL}</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: COR.verde }}></span><span style={{ color: "#cbd5e1" }}>{tt.lucroL}</span></span>
                     </div>
                   </div>
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={evolucao}>
                       <defs>
-                        <linearGradient id="gDR2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/><stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/></linearGradient>
-                        <linearGradient id="gDC2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.2}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient>
-                        <linearGradient id="gDL2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.3}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient>
+                        <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COR.roxo} stopOpacity={0.5}/><stop offset="100%" stopColor={COR.roxo} stopOpacity={0}/></linearGradient>
+                        <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COR.vermelho} stopOpacity={0.15}/><stop offset="100%" stopColor={COR.vermelho} stopOpacity={0}/></linearGradient>
+                        <linearGradient id="gL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COR.verde} stopOpacity={0.35}/><stop offset="100%" stopColor={COR.verde} stopOpacity={0}/></linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,92,246,0.06)" />
-                      <XAxis dataKey="mes" stroke="#475569" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                      <YAxis stroke="#475569" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(99,102,241,0.06)" />
+                      <XAxis dataKey="mes" stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
+                      <YAxis stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8" }} />
                       <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-                      <Area type="monotone" dataKey="receita" stroke="#8b5cf6" fill="url(#gDR2)" strokeWidth={2.5} dot={{ fill: "#8b5cf6", r: 3 }} />
-                      <Area type="monotone" dataKey="custos" stroke="#f87171" fill="url(#gDC2)" strokeWidth={1.5} strokeDasharray="4 4" />
-                      <Area type="monotone" dataKey="lucro" stroke="#34d399" fill="url(#gDL2)" strokeWidth={2} dot={{ fill: "#34d399", r: 3 }} />
+                      <Area type="monotone" dataKey="receita" stroke={COR.roxo} fill="url(#gR)" strokeWidth={3} dot={{ fill: COR.roxo, r: 4, strokeWidth: 2, stroke: "#0f0a28" }} />
+                      <Area type="monotone" dataKey="custos" stroke={COR.vermelho} fill="url(#gC)" strokeWidth={1.5} strokeDasharray="5 5" />
+                      <Area type="monotone" dataKey="lucro" stroke={COR.verde} fill="url(#gL)" strokeWidth={2.5} dot={{ fill: COR.verde, r: 3, strokeWidth: 2, stroke: "#0f0a28" }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-              </DC>
+              </GC>
             </div>
           </div>
 
-          {/* ============ LINHA 2: Insights + Top Custos (ranking) + Distribuição (donut) ============ */}
+          {/* ══════ LINHA 2: Insights + Top Custos + Distribuição Custos (DONUT GROSSO) ══════ */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-            {/* Customer Insights → Insights da Empresa */}
-            <DC cor="#a78bfa" onClick={() => router.push("/ia-financeira")}>
+            {/* Insights da Empresa — estilo Customer Insights */}
+            <GC cor={COR.roxo} onClick={() => router.push("/ia-financeira")}>
               <div className="p-5">
-                <p className="text-sm font-bold mb-4" style={{ color: "#e2e8f0" }}>💡 {tt.insightsEmpresa}</p>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.15)" }}>
-                    <p className="text-2xl font-black" style={{ color: "#a78bfa" }}>{snap.qtd_lancamentos}</p>
-                    <p className="text-[9px] uppercase mt-1" style={{ color: "#94a3b8" }}>{tt.lancamentos}</p>
+                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>💡 {tt.insightsEmpresa}</p>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)" }}>
+                    <p className="text-2xl font-black" style={{ color: "#f1f5f9" }}>{snap.qtd_lancamentos}</p>
+                    <p className="text-[8px] uppercase tracking-wider font-bold mt-1" style={{ color: "#94a3b8" }}>{tt.lancamentos}</p>
                   </div>
-                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}>
-                    <p className="text-2xl font-black" style={{ color: "#34d399" }}>{snap.inadimplencia_pct.toFixed(0)}%</p>
-                    <p className="text-[9px] uppercase mt-1" style={{ color: "#94a3b8" }}>{tt.inadimplencia}</p>
+                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)" }}>
+                    <p className="text-2xl font-black" style={{ color: "#f1f5f9" }}>{snap.inadimplencia_pct.toFixed(0)}%</p>
+                    <p className="text-[8px] uppercase tracking-wider font-bold mt-1" style={{ color: "#94a3b8" }}>{tt.inadimplencia}</p>
                   </div>
-                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.15)" }}>
-                    <p className="text-2xl font-black" style={{ color: "#06b6d4" }}>{fBRL(snap.ticket_medio)}</p>
-                    <p className="text-[9px] uppercase mt-1" style={{ color: "#94a3b8" }}>{tt.ticket}</p>
+                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <p className="text-2xl font-black" style={{ color: "#f1f5f9" }}>{fBRL(snap.ticket_medio)}</p>
+                    <p className="text-[8px] uppercase tracking-wider font-bold mt-1" style={{ color: "#94a3b8" }}>{tt.ticket}</p>
                   </div>
                 </div>
-                {/* Mini KPIs extras */}
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(52,211,153,0.05)" }}>
-                    <span className="text-[10px]" style={{ color: "#94a3b8" }}>{tt.receber}</span>
-                    <span className="text-xs font-bold" style={{ color: "#34d399" }}>{fBRL(snap.contas_receber)}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg" style={{ background: "rgba(248,113,113,0.05)" }}>
-                    <span className="text-[10px]" style={{ color: "#94a3b8" }}>{tt.pagar}</span>
-                    <span className="text-xs font-bold" style={{ color: "#f87171" }}>{fBRL(snap.contas_pagar)}</span>
-                  </div>
+                <div className="space-y-2">
+                  {[{ l: tt.receber, v: fBRL(snap.contas_receber), c: COR.verde }, { l: tt.pagar, v: fBRL(snap.contas_pagar), c: COR.vermelho }, { l: tt.endividamento, v: fBRL(snap.endividamento_total), c: COR.roxo }].map((r, i) => (
+                    <div key={i} className="flex items-center justify-between p-2.5 rounded-lg transition-all hover:translate-x-1" style={{ background: `${r.c}08`, border: `1px solid ${r.c}12` }}>
+                      <span className="text-[11px] font-bold" style={{ color: "#94a3b8" }}>{r.l}</span>
+                      <span className="text-sm font-black" style={{ color: r.c }}>{r.v}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </DC>
+            </GC>
 
-            {/* Order Performance → Top Custos (ranking com barras) */}
-            <DC cor="#6366f1" onClick={() => router.push("/custos-fixos")}>
+            {/* Top Custos — estilo Order Performance com ranking + barras */}
+            <GC cor={COR.indigo} onClick={() => router.push("/custos-fixos")}>
               <div className="p-5">
-                <p className="text-sm font-bold mb-1" style={{ color: "#e2e8f0" }}>📊 {tt.topCustos}</p>
-                <p className="text-[10px] mb-4" style={{ color: "#64748b" }}>{tt.topCustosDesc}</p>
-                {topCustos.length === 0 ? (
-                  <p className="text-xs py-4 text-center" style={{ color: "#64748b" }}>—</p>
-                ) : (
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>📊 {tt.topCustos}</p>
+                  <span className="text-[10px] px-2 py-1 rounded-lg font-bold" style={{ background: "rgba(99,102,241,0.15)", color: COR.indigo }}>{topCustos.length}</span>
+                </div>
+                {topCustos.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
                   <div className="space-y-3">
                     {topCustos.map((c, i) => {
-                      const maxVal = topCustos[0]?.value || 1;
-                      const pct = (c.value / maxVal) * 100;
+                      const maxV = topCustos[0]?.value || 1;
                       return (
-                        <div key={i}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs flex items-center gap-2" style={{ color: "#e2e8f0" }}>
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }}></span>
-                              {c.name}
+                        <div key={i} className="transition-all hover:translate-x-1">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-xs font-bold flex items-center gap-2" style={{ color: "#e2e8f0" }}>
+                              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }}></span>{c.name}
                             </span>
-                            <span className="text-xs font-bold" style={{ color: c.color }}>{fBRL(c.value)}</span>
+                            <span className="text-xs font-black" style={{ color: c.color }}>{fBRL(c.value)}</span>
                           </div>
-                          <div className="rounded-full h-1.5" style={{ background: "rgba(99,102,241,0.1)" }}>
-                            <div className="h-1.5 rounded-full transition-all duration-700" style={{ width: `${pct}%`, background: c.color }} />
+                          <div className="rounded-full h-2" style={{ background: "rgba(99,102,241,0.08)" }}>
+                            <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${(c.value / maxV) * 100}%`, background: `linear-gradient(90deg, ${c.color}, ${c.color}aa)` }} />
                           </div>
                         </div>
                       );
@@ -463,140 +419,179 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-            </DC>
+            </GC>
 
-            {/* Revenue Breakdown → Distribuição (donut) */}
-            <DC cor="#06b6d4" onClick={() => router.push("/relatorios")}>
+            {/* ★ DONUT GROSSO — Distribuição de Custos — estilo Traffic Sources da referência */}
+            <GC cor={COR.cyan} onClick={() => router.push("/relatorios")}>
               <div className="p-5">
-                <p className="text-sm font-bold mb-3" style={{ color: "#e2e8f0" }}>🥧 {tt.distribuicao}</p>
-                {distribuicao.length === 0 ? (
-                  <p className="text-xs py-4 text-center" style={{ color: "#64748b" }}>—</p>
-                ) : (
-                  <>
-                    <ResponsiveContainer width="100%" height={150}>
-                      <PieChart>
-                        <Pie data={distribuicao} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" paddingAngle={2}>
-                          {distribuicao.map((d, i) => <Cell key={i} fill={d.color} />)}
-                        </Pie>
-                        <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-1 mt-2">
-                      {distribuicao.slice(0, 4).map((d, i) => (
-                        <div key={i} className="flex items-center justify-between text-[10px]">
-                          <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: d.color }}></span><span style={{ color: "#94a3b8" }}>{d.name}</span></span>
-                          <span className="font-bold" style={{ color: "#e2e8f0" }}>{fBRL(d.value)}</span>
+                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>🥧 {tt.distribuicaoCustos}</p>
+                {distribuicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
+                  <div className="flex items-center gap-4">
+                    {/* Donut GROSSO igual referência */}
+                    <div className="flex-shrink-0" style={{ width: "140px", height: "140px" }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={distribuicao} cx="50%" cy="50%" innerRadius={38} outerRadius={65} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                            {distribuicao.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(10,8,35,0.8)" strokeWidth={2} />)}
+                          </Pie>
+                          <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Dados ao lado do donut — estilo referência com % e cor */}
+                    <div className="flex-1 space-y-2">
+                      {distribuicao.map((d, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: d.color }}></span>
+                          <span className="text-[11px] font-medium flex-1 truncate" style={{ color: "#cbd5e1" }}>{d.name}</span>
+                          <span className="text-sm font-black" style={{ color: "#f1f5f9" }}>{d.pct}%</span>
                         </div>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
-            </DC>
+            </GC>
           </div>
 
-          {/* ============ LINHA 3: Score Radar + Alertas + Ações ============ */}
+          {/* ══════ LINHA 3: Composição Financeira (2o DONUT) + Radar Score + Alertas/Ações ══════ */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Radar */}
-            <DC cor="#8b5cf6" onClick={() => router.push("/ia-financeira")}>
+
+            {/* ★ 2o DONUT — Composição Financeira (Receita = Lucro + CF + CV) */}
+            <GC cor={COR.verde} onClick={() => router.push("/dre")}>
+              <div className="p-5">
+                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>💰 {tt.composicaoFinanceira}</p>
+                {composicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0" style={{ width: "140px", height: "140px" }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={composicao} cx="50%" cy="50%" innerRadius={38} outerRadius={65} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                            {composicao.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(10,8,35,0.8)" strokeWidth={2} />)}
+                          </Pie>
+                          <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex-1 space-y-2.5">
+                      {composicao.map((d, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: d.color }}></span>
+                          <span className="text-[11px] font-medium flex-1" style={{ color: "#cbd5e1" }}>{d.name}</span>
+                          <span className="text-sm font-black" style={{ color: "#f1f5f9" }}>{d.pct}%</span>
+                        </div>
+                      ))}
+                      <div className="pt-2 mt-2" style={{ borderTop: "1px solid rgba(99,102,241,0.1)" }}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold" style={{ color: "#94a3b8" }}>{tt.receita}</span>
+                          <span className="text-sm font-black" style={{ color: COR.roxo }}>{fBRL(snap.receita_bruta)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </GC>
+
+            {/* Radar Score */}
+            <GC cor={COR.roxo} onClick={() => router.push("/ia-financeira")}>
               <div className="p-4">
-                <p className="text-sm font-bold mb-2" style={{ color: "#e2e8f0" }}>{tt.dimensoesScore}</p>
+                <p className="text-sm font-black mb-2" style={{ color: "#f1f5f9" }}>🏆 {tt.dimensoesScore}</p>
                 <ResponsiveContainer width="100%" height={200}>
                   <RadarChart data={score360.dimensoes.map(d => ({ s: dN(d), v: d.score, b: 70, f: 100 }))}>
-                    <defs><radialGradient id="rGD2" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.6}/><stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05}/></radialGradient></defs>
-                    <PolarGrid stroke="rgba(139,92,246,0.12)" gridType="polygon" />
-                    <PolarAngleAxis dataKey="s" tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: 600 }} />
+                    <defs><radialGradient id="rG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor={COR.roxo} stopOpacity={0.7}/><stop offset="100%" stopColor={COR.roxo} stopOpacity={0.05}/></radialGradient></defs>
+                    <PolarGrid stroke="rgba(139,92,246,0.1)" gridType="polygon" />
+                    <PolarAngleAxis dataKey="s" tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: 700 }} />
                     <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar dataKey="b" stroke="#fbbf24" strokeWidth={1} strokeDasharray="3 3" fill="transparent" dot={false} />
-                    <Radar dataKey="v" stroke="#a78bfa" fill="url(#rGD2)" strokeWidth={2}
-                      dot={(p: any) => { const d = score360.dimensoes[p.index]; return d ? <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={d.cor} stroke="#0f0a28" strokeWidth={2} /> : null; }} />
+                    <Radar dataKey="b" stroke={COR.amarelo} strokeWidth={1} strokeDasharray="3 3" fill="transparent" dot={false} />
+                    <Radar dataKey="v" stroke={COR.roxo} fill="url(#rG)" strokeWidth={2.5}
+                      dot={(p: any) => { const d = score360.dimensoes[p.index]; return d ? <circle key={p.index} cx={p.cx} cy={p.cy} r={5} fill={d.cor} stroke="#0a0823" strokeWidth={2} /> : null; }} />
                   </RadarChart>
                 </ResponsiveContainer>
                 <div className="grid grid-cols-5 gap-1 mt-1">{score360.dimensoes.map((d, i) => <div key={i} className="text-center"><p className="text-xs font-black" style={{ color: d.cor }}>{d.score}</p></div>)}</div>
               </div>
-            </DC>
+            </GC>
 
-            {/* Alertas */}
-            <DC cor="#fbbf24">
+            {/* Alertas + Ações + Obrigações */}
+            <GC cor={COR.rosa}>
               <div className="p-4">
-                <p className="text-sm font-bold mb-3" style={{ color: "#e2e8f0" }}>🔍 {tt.alertasIA}</p>
-                {anomalias.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#34d399" }}>✅ {tt.semAlertas}</p> : (
-                  <div className="space-y-2">{anomalias.slice(0, 4).map((a, i) => {
-                    const c = a.severidade === "alerta" ? "#f87171" : a.severidade === "atencao" ? "#fbbf24" : "#34d399";
-                    return (<div key={i} className="rounded-lg p-2.5 transition-all hover:translate-x-1" style={{ background: `${c}08`, border: `1px solid ${c}15` }}>
-                      <p className="text-[11px] font-bold" style={{ color: c }}>{a.severidade === "alerta" ? "🚨" : "⚠️"} {aN(a)}</p>
+                {/* Alertas */}
+                <p className="text-sm font-black mb-2" style={{ color: "#f1f5f9" }}>🔍 {tt.alertasIA}</p>
+                {anomalias.length === 0 ? <p className="text-[11px] mb-3" style={{ color: COR.verde }}>✅ {tt.semAlertas}</p> : (
+                  <div className="space-y-1.5 mb-3">{anomalias.slice(0, 2).map((a, i) => {
+                    const c = a.severidade === "alerta" ? COR.vermelho : a.severidade === "atencao" ? COR.amarelo : COR.verde;
+                    return (<div key={i} className="rounded-lg p-2 transition-all hover:translate-x-1" style={{ background: `${c}08`, border: `1px solid ${c}12` }}>
+                      <p className="text-[10px] font-bold" style={{ color: c }}>{a.severidade === "alerta" ? "🚨" : "⚠️"} {aN(a)}</p>
                     </div>);
                   })}</div>
                 )}
-              </div>
-            </DC>
-
-            {/* Ações + Obrigações */}
-            <DC cor="#34d399">
-              <div className="p-4">
-                <p className="text-sm font-bold mb-3" style={{ color: "#e2e8f0" }}>🎯 {tt.acoesIA}</p>
-                {acoes.length === 0 ? <p className="text-xs py-3 text-center" style={{ color: "#64748b" }}>—</p> : (
-                  <div className="space-y-2 mb-4">{acoes.slice(0, 2).map((a, i) => {
-                    const c = a.categoria === "custo" ? "#f87171" : a.categoria === "receita" ? "#34d399" : "#8b5cf6";
-                    return (<div key={i} className="rounded-lg p-2 flex items-start gap-2 transition-all hover:translate-x-1" style={{ background: "rgba(15,10,40,0.5)", border: `1px solid ${c}20` }}>
-                      <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black flex-shrink-0" style={{ background: `${c}20`, color: c }}>{a.prioridade}</span>
-                      <div><p className="text-[11px] font-bold" style={{ color: "#e2e8f0" }}>{acN(a)}</p><p className="text-[9px]" style={{ color: c }}>{tt.impacto}: {a.impacto_estimado}</p></div>
+                {/* Ações */}
+                <p className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: "#94a3b8" }}>🎯 {tt.acoesIA}</p>
+                {acoes.length === 0 ? <p className="text-[10px] mb-3" style={{ color: "#475569" }}>—</p> : (
+                  <div className="space-y-1.5 mb-3">{acoes.slice(0, 2).map((a, i) => {
+                    const c = a.categoria === "custo" ? COR.vermelho : a.categoria === "receita" ? COR.verde : COR.roxo;
+                    return (<div key={i} className="flex items-start gap-1.5 p-2 rounded-lg transition-all hover:translate-x-1" style={{ background: "rgba(15,10,40,0.4)" }}>
+                      <span className="text-[10px] font-black" style={{ color: c }}>{a.prioridade}.</span>
+                      <div><p className="text-[10px] font-bold" style={{ color: "#e2e8f0" }}>{acN(a)}</p></div>
                     </div>);
                   })}</div>
                 )}
-                {/* Obrigações inline */}
-                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#94a3b8" }}>📅 {tt.obrigacoes}</p>
-                {obrigacoes.length === 0 ? <p className="text-[10px]" style={{ color: "#64748b" }}>{tt.semObrig}</p> : (
+                {/* Obrigações */}
+                <p className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: "#94a3b8" }}>📅 {tt.obrigacoes}</p>
+                {obrigacoes.length === 0 ? <p className="text-[10px]" style={{ color: "#475569" }}>{tt.semObrig}</p> : (
                   <div className="space-y-1">{obrigacoes.slice(0, 2).map((o, i) => (
                     <div key={i} className="flex items-center justify-between p-1.5 rounded text-[10px]" style={{ background: "rgba(15,10,40,0.3)" }}>
-                      <span className="truncate" style={{ color: "#94a3b8" }}>{o.nome}</span>
-                      <span className="font-bold flex-shrink-0 ml-1" style={{ color: "#a78bfa" }}>{fData(o.data_vencimento, lang)}</span>
+                      <span className="truncate font-medium" style={{ color: "#94a3b8" }}>{o.nome}</span>
+                      <span className="font-bold flex-shrink-0 ml-1" style={{ color: COR.roxo }}>{fData(o.data_vencimento, lang)}</span>
                     </div>
                   ))}</div>
                 )}
               </div>
-            </DC>
+            </GC>
           </div>
 
-          {/* ============ LINHA 4: MÓDULOS — estilo Frontend/API/Backend da referência ============ */}
-          <DC cor="#6366f1">
+          {/* ══════ MÓDULOS — estilo Frontend/API/Backend da referência ══════ */}
+          <GC cor={COR.indigo}>
             <div className="p-4">
-              <p className="text-sm font-bold mb-3" style={{ color: "#e2e8f0" }}>⚡ {tt.modulos}</p>
+              <p className="text-sm font-black mb-3" style={{ color: "#f1f5f9" }}>⚡ {tt.modulos}</p>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2">
                 {mods.map((m, i) => (
                   <button key={i} onClick={() => router.push(m.p)}
-                    className="flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all duration-200 hover:translate-y-[-3px]"
-                    style={{ background: `${m.c}08`, border: `1px solid ${m.c}15` }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = `${m.c}20`; e.currentTarget.style.borderColor = `${m.c}40`; e.currentTarget.style.boxShadow = `0 4px 15px ${m.c}20`; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = `${m.c}08`; e.currentTarget.style.borderColor = `${m.c}15`; e.currentTarget.style.boxShadow = "none"; }}>
-                    <span className="text-lg">{m.i}</span>
-                    <span className="text-[8px] md:text-[9px] font-semibold leading-tight text-center" style={{ color: m.c }}>{m.l}</span>
+                    className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl transition-all duration-200 hover:translate-y-[-4px]"
+                    style={{ background: `${m.c}06`, border: `1px solid ${m.c}12` }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = `${m.c}18`; e.currentTarget.style.borderColor = `${m.c}40`; e.currentTarget.style.boxShadow = `0 6px 20px ${m.c}15`; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = `${m.c}06`; e.currentTarget.style.borderColor = `${m.c}12`; e.currentTarget.style.boxShadow = "none"; }}>
+                    <span className="text-xl">{m.i}</span>
+                    <span className="text-[8px] md:text-[9px] font-bold leading-tight text-center" style={{ color: m.c }}>{m.l}</span>
                   </button>
                 ))}
               </div>
             </div>
-          </DC>
-
+          </GC>
         </div>
       )}
 
-      {/* MODAL SHARE */}
+      {/* SHARE MODAL */}
       {shareAberto && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto" style={{ background: "rgba(8,4,32,0.9)", backdropFilter: "blur(8px)" }} onClick={() => setShareAberto(false)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()} style={{ background: "linear-gradient(160deg, rgba(20,15,50,0.98), rgba(12,10,35,0.99))", border: "1px solid rgba(139,92,246,0.3)" }}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto" style={{ background: "rgba(6,3,26,0.92)", backdropFilter: "blur(10px)" }} onClick={() => setShareAberto(false)}>
+          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()} style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.98), rgba(10,8,35,0.99))", border: "1px solid rgba(139,92,246,0.25)" }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-bold" style={{ color: "#e2e8f0" }}>{tt.centroCompart}</p>
-              <button onClick={() => setShareAberto(false)} className="text-xl" style={{ color: "#64748b" }}>✕</button>
+              <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>{tt.centroCompart}</p>
+              <button onClick={() => setShareAberto(false)} className="text-xl" style={{ color: "#475569" }}>✕</button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-              <button onClick={sWA} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)", color: "#25d366" }}><span className="text-xl">📱</span>WhatsApp</button>
-              <button onClick={sTG} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: "rgba(34,158,217,0.1)", border: "1px solid rgba(34,158,217,0.3)", color: "#229ed9" }}><span className="text-xl">✈️</span>Telegram</button>
-              <button onClick={sGM} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: "rgba(234,67,53,0.1)", border: "1px solid rgba(234,67,53,0.3)", color: "#ea4335" }}><span className="text-xl">📨</span>Gmail</button>
-              <button onClick={sOL} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: "rgba(0,120,212,0.1)", border: "1px solid rgba(0,120,212,0.3)", color: "#0078d4" }}><span className="text-xl">📩</span>Outlook</button>
-              <button onClick={sCp} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all hover:scale-105" style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar}</button>
-              <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-semibold transition-all hover:scale-105 disabled:opacity-50" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)", color: "#dc2626" }}><span className="text-xl">{exportando ? "⏳" : "📄"}</span>PDF</button>
+              {[
+                { fn: sWA, l: "WhatsApp", i: "📱", bg: "rgba(37,211,102,0.1)", bd: "rgba(37,211,102,0.3)", c: "#25d366" },
+                { fn: sTG, l: "Telegram", i: "✈️", bg: "rgba(34,158,217,0.1)", bd: "rgba(34,158,217,0.3)", c: "#229ed9" },
+                { fn: sGM, l: "Gmail", i: "📨", bg: "rgba(234,67,53,0.1)", bd: "rgba(234,67,53,0.3)", c: "#ea4335" },
+                { fn: sOL, l: "Outlook", i: "📩", bg: "rgba(0,120,212,0.1)", bd: "rgba(0,120,212,0.3)", c: "#0078d4" },
+                { fn: sCp, l: tt.copiar, i: "📋", bg: "rgba(139,92,246,0.1)", bd: "rgba(139,92,246,0.3)", c: COR.roxo },
+                { fn: exportarPDF, l: "PDF", i: exportando ? "⏳" : "📄", bg: "rgba(239,68,68,0.1)", bd: "rgba(239,68,68,0.3)", c: COR.vermelho },
+              ].map((b, i) => (
+                <button key={i} onClick={b.fn} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105" style={{ background: b.bg, border: `1px solid ${b.bd}`, color: b.c }}><span className="text-xl">{b.i}</span>{b.l}</button>
+              ))}
             </div>
-            <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-[1.02]" style={{ background: "rgba(139,92,246,0.1)", color: "#a78bfa" }}>{tt.fechar}</button>
+            <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02]" style={{ background: "rgba(139,92,246,0.1)", color: COR.roxo }}>{tt.fechar}</button>
           </div>
         </div>
       )}
