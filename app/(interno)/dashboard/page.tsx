@@ -36,6 +36,10 @@ const T = {
     acoesIA: "Ações Prioritárias", impacto: "Impacto",
     obrigacoes: "Obrigações Fiscais", vence: "Vence", semObrig: "Nenhuma pendência.",
     modulos: "Módulos Axioma",
+    painelModulos: "Painel de Módulos", painelModulosDesc: "Visão consolidada das áreas mais usadas da sua empresa",
+    pmClientes: "clientes cadastrados", pmFornecedores: "fornecedores ativos", pmContasReceber: "títulos em aberto",
+    pmContasPagar: "títulos a pagar", pmMetas: "metas em andamento", pmInvestimentos: "aportes registrados",
+    pmDre: "resultado do período", pmCentrosCusto: "centros ativos", pmEndividamento: "dívidas ativas",
     compartilhar: "📤 Compartilhar", fechar: "Fechar", copiar: "Copiar",
     centroCompart: "Centro de Compartilhamento", compartilharVia: "Compartilhar via",
     gerando: "Gerando...", copiado: "Copiado!", erroCopiar: "Erro",
@@ -63,6 +67,10 @@ const T = {
     acoesIA: "Priority Actions", impacto: "Impact",
     obrigacoes: "Fiscal Obligations", vence: "Due", semObrig: "No pending items.",
     modulos: "Axioma Modules",
+    painelModulos: "Modules Panel", painelModulosDesc: "Consolidated view of your company's most used areas",
+    pmClientes: "registered clients", pmFornecedores: "active suppliers", pmContasReceber: "open receivables",
+    pmContasPagar: "payables due", pmMetas: "goals in progress", pmInvestimentos: "recorded investments",
+    pmDre: "period result", pmCentrosCusto: "active centers", pmEndividamento: "active debts",
     compartilhar: "📤 Share", fechar: "Close", copiar: "Copy",
     centroCompart: "Sharing Center", compartilharVia: "Share via",
     gerando: "Generating...", copiado: "Copied!", erroCopiar: "Error",
@@ -90,6 +98,10 @@ const T = {
     acoesIA: "Acciones Prioritarias", impacto: "Impacto",
     obrigacoes: "Obligaciones Fiscales", vence: "Vence", semObrig: "Sin pendencias.",
     modulos: "Módulos Axioma",
+    painelModulos: "Panel de Módulos", painelModulosDesc: "Vista consolidada de las áreas más usadas de su empresa",
+    pmClientes: "clientes registrados", pmFornecedores: "proveedores activos", pmContasReceber: "títulos por cobrar",
+    pmContasPagar: "títulos por pagar", pmMetas: "metas en curso", pmInvestimentos: "aportes registrados",
+    pmDre: "resultado del período", pmCentrosCusto: "centros activos", pmEndividamento: "deudas activas",
     compartilhar: "📤 Compartir", fechar: "Cerrar", copiar: "Copiar",
     centroCompart: "Centro de Compartir", compartilharVia: "Compartir vía",
     gerando: "Generando...", copiado: "¡Copiado!", erroCopiar: "Error",
@@ -139,6 +151,55 @@ function MBars({ data, cor = COR.roxo, h = 40 }: { data: number[]; cor?: string;
   </BarChart></ResponsiveContainer>);
 }
 
+// Barras GROSSAS estilo Power BI/Excel premium — para o Painel de Módulos
+function ThickBars({ data, cor = COR.roxo, h = 90 }: { data: number[]; cor?: string; h?: number }) {
+  if (!data || data.length === 0) return null;
+  return (
+    <ResponsiveContainer width="100%" height={h}>
+      <BarChart data={data.map((v, i) => ({ i, v: Math.max(0, v) }))} barCategoryGap="18%">
+        <defs>
+          <linearGradient id={`tb${cor.slice(1)}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={cor} stopOpacity={1} />
+            <stop offset="100%" stopColor={cor} stopOpacity={0.55} />
+          </linearGradient>
+        </defs>
+        <Bar dataKey="v" fill={`url(#tb${cor.slice(1)})`} radius={[6, 6, 2, 2]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Card de módulo com barras grossas + KPI — estilo Power BI/Excel premium
+function ModCard({ titulo, icone, cor, valorPrincipal, subtitulo, barras, onClick }: {
+  titulo: string; icone: string; cor: string; valorPrincipal: string; subtitulo: string; barras: number[]; onClick: () => void;
+}) {
+  return (
+    <div onClick={onClick}
+      className="rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:translate-y-[-5px]"
+      style={{ background: "linear-gradient(165deg, rgba(22,17,58,0.95) 0%, rgba(10,8,32,0.98) 100%)", border: `1px solid ${cor}25`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 14px 45px rgba(0,0,0,0.5), 0 0 30px ${cor}25`; e.currentTarget.style.borderColor = `${cor}55`; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; e.currentTarget.style.borderColor = `${cor}25`; }}>
+      {/* Barra lateral grossa esquerda */}
+      <div className="flex">
+        <div style={{ width: "6px", background: `linear-gradient(180deg, ${cor}, ${cor}40)`, boxShadow: `0 0 12px ${cor}50` }} />
+        <div className="flex-1 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
+              <span className="text-base">{icone}</span>{titulo}
+            </p>
+            <span style={{ color: cor }} className="text-sm">→</span>
+          </div>
+          <p className="text-xl font-black tracking-tight" style={{ color: cor }}>{valorPrincipal}</p>
+          <p className="text-[10px] font-medium mb-2" style={{ color: "#64748b" }}>{subtitulo}</p>
+          <ThickBars data={barras} cor={cor} h={64} />
+        </div>
+        {/* Barra lateral grossa direita — simétrica */}
+        <div style={{ width: "6px", background: `linear-gradient(180deg, ${cor}, ${cor}40)`, boxShadow: `0 0 12px ${cor}50` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { idioma } = useLanguage();
@@ -157,6 +218,7 @@ export default function DashboardPage() {
   const [topCustos, setTopCustos] = useState<any[]>([]);
   const [distribuicao, setDistribuicao] = useState<any[]>([]);
   const [obrigacoes, setObrigacoes] = useState<any[]>([]);
+  const [modulosData, setModulosData] = useState<any>(null);
   const [shareAberto, setShareAberto] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: string } | null>(null);
   function showToast(m: string, t: string = "info") { setToast({ msg: m, tipo: t }); setTimeout(() => setToast(null), 3000); }
@@ -219,6 +281,37 @@ export default function DashboardPage() {
       const { data: ob } = await supabase.from("empresa_obrigacoes").select("nome, data_vencimento, status, valor_estimado")
         .eq("user_id", user.id).eq("status", "pendente").order("data_vencimento", { ascending: true }).limit(4);
       setObrigacoes(ob || []);
+
+      // Dados extras pro Painel de Módulos (barras grossas estilo Power BI)
+      const [
+        { data: clientesRows },
+        { data: fornecedoresRows },
+        { data: crAbertas },
+        { data: cpAbertas },
+        { data: metasRows },
+        { data: investRows },
+      ] = await Promise.all([
+        supabase.from("clientes").select("id").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
+        supabase.from("fornecedores").select("id, valor_total").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
+        supabase.from("contas_receber").select("valor, valor_recebido, status").eq("user_id", user.id).neq("status", "recebido").then(r => r).catch(() => ({ data: [] })),
+        supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("user_id", user.id).neq("status", "pago").then(r => r).catch(() => ({ data: [] })),
+        supabase.from("metas").select("id, valor_meta, valor_atual").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
+        supabase.from("investimentos").select("id, valor").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
+      ]);
+
+      setModulosData({
+        clientesCount: (clientesRows || []).length,
+        fornecedoresCount: (fornecedoresRows || []).length,
+        fornecedoresTotal: (fornecedoresRows || []).reduce((sm: number, r: any) => sm + Number(r.valor_total || 0), 0),
+        crCount: (crAbertas || []).length,
+        crTotal: (crAbertas || []).reduce((sm: number, r: any) => sm + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0),
+        cpCount: (cpAbertas || []).length,
+        cpTotal: (cpAbertas || []).reduce((sm: number, r: any) => sm + (Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0),
+        metasCount: (metasRows || []).length,
+        metasProgresso: (metasRows || []).length > 0 ? Math.round(((metasRows || []).reduce((sm: number, r: any) => sm + (Number(r.valor_meta) > 0 ? Math.min(1, Number(r.valor_atual || 0) / Number(r.valor_meta)) : 0), 0) / (metasRows || []).length) * 100) : 0,
+        investTotal: (investRows || []).reduce((sm: number, r: any) => sm + Number(r.valor || 0), 0),
+        investCount: (investRows || []).length,
+      });
     } catch (err) { console.error(err); }
     setCarregando(false);
   }
@@ -283,10 +376,20 @@ export default function DashboardPage() {
         <div className="space-y-4 max-w-[1440px] mx-auto">
 
           {/* ══════ HERO VIDEO ══════ */}
-          <div className="relative rounded-2xl overflow-hidden" style={{ height: "340px" }}>
+          <div className="relative rounded-2xl overflow-hidden" style={{ height: "460px" }}>
             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/hero-axioma.mp4" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(6,3,26,0.75), rgba(2,8,16,0.45), rgba(139,92,246,0.06))" }} />
-            <div className="absolute inset-0 z-10 flex items-center justify-between px-8 md:px-14">
+            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(6,3,26,0.55) 0%, rgba(6,3,26,0.25) 35%, rgba(6,3,26,0.55) 75%, rgba(6,3,26,0.85) 100%)" }} />
+            {/* Logo grande em destaque, sempre visível */}
+            <div className="absolute top-6 left-8 md:left-14 z-20 flex items-center gap-3">
+              <div className="flex items-center justify-center rounded-2xl" style={{ width: 56, height: 56, background: "rgba(139,92,246,0.25)", border: "1px solid rgba(139,92,246,0.5)", backdropFilter: "blur(10px)" }}>
+                <span className="text-3xl">🦅</span>
+              </div>
+              <div>
+                <p className="text-xl md:text-2xl font-black tracking-wide" style={{ color: "#f1f5f9" }}>AXIOMA</p>
+                <p className="text-[10px] md:text-xs font-bold tracking-[0.3em]" style={{ color: "#c4b5fd" }}>AI.TECH</p>
+              </div>
+            </div>
+            <div className="absolute inset-0 z-10 flex items-end justify-between px-8 md:px-14 pb-8">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black" style={{ color: "#f1f5f9" }}>
                   {saudacao}, <span style={{ color: "#c4b5fd" }}>{nomeUsuario}</span>
@@ -593,6 +696,77 @@ export default function DashboardPage() {
                 )}
               </div>
             </GC>
+          </div>
+
+          {/* ══════ PAINEL DE MÓDULOS — barras grossas estilo Power BI/Excel premium ══════ */}
+          <div>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div>
+                <p className="text-lg font-black" style={{ color: "#f1f5f9" }}>📊 {tt.painelModulos}</p>
+                <p className="text-[11px] font-medium" style={{ color: "#64748b" }}>{tt.painelModulosDesc}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Receitas — 6 meses reais */}
+              <ModCard titulo={tt.mReceitas} icone="💰" cor={COR.roxo} onClick={() => router.push("/receitas")}
+                valorPrincipal={fBRL(snap.receita_bruta)} subtitulo={tt.deste_mes}
+                barras={evolucao.map(e => e.receita)} />
+
+              {/* Lucro — 6 meses reais */}
+              <ModCard titulo={tt.lucro} icone="📈" cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} onClick={() => router.push("/dre")}
+                valorPrincipal={fBRL(snap.lucro_liquido)} subtitulo={tt.pmDre}
+                barras={evolucao.map(e => e.lucro)} />
+
+              {/* Custos — 6 meses reais */}
+              <ModCard titulo={tt.mCustosF} icone="📉" cor={COR.vermelho} onClick={() => router.push("/custos-fixos")}
+                valorPrincipal={fBRL(snap.custos_totais)} subtitulo={tt.custos}
+                barras={evolucao.map(e => e.custos)} />
+
+              {/* Clientes */}
+              <ModCard titulo={tt.mClientes} icone="👥" cor={COR.cyan} onClick={() => router.push("/clientes")}
+                valorPrincipal={String(modulosData?.clientesCount ?? 0)} subtitulo={tt.pmClientes}
+                barras={[modulosData?.clientesCount ?? 0, Math.max(0, (modulosData?.clientesCount ?? 0) - 1), (modulosData?.clientesCount ?? 0) + 1, modulosData?.clientesCount ?? 0]} />
+
+              {/* Fornecedores */}
+              <ModCard titulo={tt.mFornec} icone="🏭" cor={COR.teal} onClick={() => router.push("/fornecedores")}
+                valorPrincipal={fBRL(modulosData?.fornecedoresTotal ?? 0)} subtitulo={tt.pmFornecedores}
+                barras={[modulosData?.fornecedoresTotal ?? 0, (modulosData?.fornecedoresTotal ?? 0) * 0.7, (modulosData?.fornecedoresTotal ?? 0) * 0.9, (modulosData?.fornecedoresTotal ?? 0) * 0.5]} />
+
+              {/* Contas a Receber */}
+              <ModCard titulo={tt.contasReceber} icone="📥" cor={COR.verde} onClick={() => router.push("/contas-receber")}
+                valorPrincipal={fBRL(modulosData?.crTotal ?? 0)} subtitulo={tt.pmContasReceber}
+                barras={[modulosData?.crTotal ?? 0, (modulosData?.crTotal ?? 0) * 0.6, (modulosData?.crTotal ?? 0) * 0.85, (modulosData?.crTotal ?? 0) * 0.4]} />
+
+              {/* Contas a Pagar (Fornecedores) */}
+              <ModCard titulo={tt.contasPagar} icone="📤" cor={COR.laranja} onClick={() => router.push("/fornecedores")}
+                valorPrincipal={fBRL(modulosData?.cpTotal ?? 0)} subtitulo={tt.pmContasPagar}
+                barras={[modulosData?.cpTotal ?? 0, (modulosData?.cpTotal ?? 0) * 0.5, (modulosData?.cpTotal ?? 0) * 0.8, (modulosData?.cpTotal ?? 0) * 0.65]} />
+
+              {/* Metas */}
+              <ModCard titulo="Metas" icone="🎯" cor={COR.amarelo} onClick={() => router.push("/metas")}
+                valorPrincipal={`${modulosData?.metasProgresso ?? 0}%`} subtitulo={tt.pmMetas}
+                barras={[modulosData?.metasProgresso ?? 0, 100, (modulosData?.metasProgresso ?? 0) * 0.8, (modulosData?.metasProgresso ?? 0) * 1.1]} />
+
+              {/* Investimentos */}
+              <ModCard titulo="Investimentos" icone="💎" cor={COR.indigo} onClick={() => router.push("/investimentos")}
+                valorPrincipal={fBRL(modulosData?.investTotal ?? 0)} subtitulo={tt.pmInvestimentos}
+                barras={[modulosData?.investTotal ?? 0, (modulosData?.investTotal ?? 0) * 0.4, (modulosData?.investTotal ?? 0) * 0.7, (modulosData?.investTotal ?? 0) * 0.9]} />
+
+              {/* Endividamento */}
+              <ModCard titulo={tt.endividamento} icone="⚖️" cor={COR.rosa} onClick={() => router.push("/endividamento")}
+                valorPrincipal={fBRL(snap.endividamento_total)} subtitulo={tt.pmEndividamento}
+                barras={[snap.endividamento_total, snap.endividamento_total * 0.85, snap.endividamento_total * 0.6, snap.endividamento_total * 0.3]} />
+
+              {/* Score 360 */}
+              <ModCard titulo="Score 360°" icone="🏆" cor={score360.cor} onClick={() => router.push("/ia-financeira")}
+                valorPrincipal={`${score360.total}/100`} subtitulo={lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}
+                barras={score360.dimensoes.map(d => d.score)} />
+
+              {/* IA Tributária — carga */}
+              <ModCard titulo="IA Tributária" icone="🏛️" cor={COR.laranja} onClick={() => router.push("/ia-tributaria")}
+                valorPrincipal={`${snap.margem_liquida.toFixed(1)}%`} subtitulo={tt.margem}
+                barras={evolucao.map(e => e.receita > 0 ? Math.max(0, (e.lucro / e.receita) * 100) : 0)} />
+            </div>
           </div>
 
           {/* ══════ MÓDULOS — estilo Frontend/API/Backend da referência ══════ */}
