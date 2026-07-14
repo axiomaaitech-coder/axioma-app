@@ -283,21 +283,21 @@ export default function DashboardPage() {
         <div className="space-y-4 max-w-[1440px] mx-auto">
 
           {/* ══════ HERO VIDEO ══════ */}
-          <div className="relative rounded-2xl overflow-hidden" style={{ height: "200px" }}>
+          <div className="relative rounded-2xl overflow-hidden" style={{ height: "340px" }}>
             <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" src="/hero-axioma.mp4" />
-            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(6,3,26,0.8), rgba(2,8,16,0.5), rgba(139,92,246,0.08))" }} />
-            <div className="absolute inset-0 z-10 flex items-center justify-between px-6 md:px-10">
+            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(6,3,26,0.75), rgba(2,8,16,0.45), rgba(139,92,246,0.06))" }} />
+            <div className="absolute inset-0 z-10 flex items-center justify-between px-8 md:px-14">
               <div>
-                <h1 className="text-2xl md:text-3xl font-black" style={{ color: "#f1f5f9" }}>
+                <h1 className="text-3xl md:text-4xl font-black" style={{ color: "#f1f5f9" }}>
                   {saudacao}, <span style={{ color: "#c4b5fd" }}>{nomeUsuario}</span>
                 </h1>
-                {empresaNome && <p className="text-sm mt-1 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
-                <p className="text-[11px] mt-2 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
+                {empresaNome && <p className="text-base mt-2 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
+                <p className="text-sm mt-3 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
               </div>
-              <div className="hidden md:flex gap-2">
-                <button onClick={() => setShareAberto(true)} className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105"
+              <div className="hidden md:flex gap-3">
+                <button onClick={() => setShareAberto(true)} className="px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
                   style={{ background: "rgba(139,92,246,0.35)", border: "1px solid rgba(139,92,246,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
-                <button onClick={exportarPDF} disabled={exportando} className="px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50 transition-all hover:scale-105"
+                <button onClick={exportarPDF} disabled={exportando} className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
                   style={{ background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
               </div>
             </div>
