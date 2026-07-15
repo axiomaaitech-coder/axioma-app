@@ -5,7 +5,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, LabelList,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -152,53 +152,87 @@ function MBars({ data, cor = COR.roxo, h = 40 }: { data: number[]; cor?: string;
 }
 
 // Barras GROSSAS estilo Power BI/Excel premium — para o Painel de Módulos
-function ThickBars({ data, cor = COR.roxo, h = 90 }: { data: number[]; cor?: string; h?: number }) {
-  if (!data || data.length === 0) return null;
+function fmtCompact(v: number): string {
+  if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(1).replace(".0", "")}k`;
+  return `${Math.round(v)}`;
+}
+
+// Rótulo customizado em cima de cada barra — valor formatado em R$
+function ValueLabel(props: any) {
+  const { x, y, width, value, cor } = props;
   return (
-    <ResponsiveContainer width="100%" height={h}>
-      <BarChart data={data.map((v, i) => ({ i, v: Math.max(0, v) }))} barCategoryGap="18%">
-        <defs>
-          <linearGradient id={`tb${cor.slice(1)}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={cor} stopOpacity={1} />
-            <stop offset="100%" stopColor={cor} stopOpacity={0.55} />
-          </linearGradient>
-        </defs>
-        <Bar dataKey="v" fill={`url(#tb${cor.slice(1)})`} radius={[6, 6, 2, 2]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <text x={x + width / 2} y={y - 8} textAnchor="middle" fill={cor || "#f1f5f9"} fontSize={12} fontWeight={800}>
+      {typeof value === "number" ? fBRL(value) : value}
+    </text>
   );
 }
 
-// Card de módulo com barras grossas + KPI — estilo Power BI/Excel premium
-function ModCard({ titulo, icone, cor, valorPrincipal, subtitulo, barras, onClick }: {
-  titulo: string; icone: string; cor: string; valorPrincipal: string; subtitulo: string; barras: number[]; onClick: () => void;
+// ══════ PAINEL GROSSO ESTILO POWER BI — barras vivas, multicoloridas, com valores ══════
+function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altura = 260, horizontal = false }: {
+  titulo: string; icone: string; cor: string; subtitulo: string;
+  dados: { label: string; value: number; color: string }[]; path: string; router: any; altura?: number; horizontal?: boolean;
 }) {
   return (
-    <div onClick={onClick}
-      className="rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:translate-y-[-5px]"
-      style={{ background: "linear-gradient(165deg, rgba(22,17,58,0.95) 0%, rgba(10,8,32,0.98) 100%)", border: `1px solid ${cor}25`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
-      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 14px 45px rgba(0,0,0,0.5), 0 0 30px ${cor}25`; e.currentTarget.style.borderColor = `${cor}55`; }}
-      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; e.currentTarget.style.borderColor = `${cor}25`; }}>
-      {/* Barra lateral grossa esquerda */}
-      <div className="flex">
-        <div style={{ width: "6px", background: `linear-gradient(180deg, ${cor}, ${cor}40)`, boxShadow: `0 0 12px ${cor}50` }} />
-        <div className="flex-1 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
-              <span className="text-base">{icone}</span>{titulo}
+    <GC cor={cor}>
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-base font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
+              <span className="text-xl">{icone}</span>{titulo}
             </p>
-            <span style={{ color: cor }} className="text-sm">→</span>
+            <p className="text-[11px] font-medium mt-0.5" style={{ color: "#64748b" }}>{subtitulo}</p>
           </div>
-          <p className="text-xl font-black tracking-tight" style={{ color: cor }}>{valorPrincipal}</p>
-          <p className="text-[10px] font-medium mb-2" style={{ color: "#64748b" }}>{subtitulo}</p>
-          <ThickBars data={barras} cor={cor} h={64} />
+          <button onClick={() => router.push(path)}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 flex-shrink-0"
+            style={{ background: `${cor}18`, border: `1px solid ${cor}40`, color: cor }}>
+            {`Ver módulo →`}
+          </button>
         </div>
-        {/* Barra lateral grossa direita — simétrica */}
-        <div style={{ width: "6px", background: `linear-gradient(180deg, ${cor}, ${cor}40)`, boxShadow: `0 0 12px ${cor}50` }} />
+        <ResponsiveContainer width="100%" height={altura}>
+          <BarChart data={dados} layout={horizontal ? "vertical" : "horizontal"} margin={{ top: 24, right: 16, left: horizontal ? 8 : 0, bottom: 0 }} barCategoryGap="22%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" horizontal={!horizontal} vertical={horizontal} />
+            {horizontal ? (
+              <>
+                <XAxis type="number" stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
+                <YAxis type="category" dataKey="label" stroke="#334155" tick={{ fontSize: 12, fill: "#e2e8f0", fontWeight: 700 }} width={110} />
+              </>
+            ) : (
+              <>
+                <XAxis dataKey="label" stroke="#334155" tick={{ fontSize: 12, fill: "#e2e8f0", fontWeight: 700 }} />
+                <YAxis stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8" }} />
+              </>
+            )}
+            <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
+            <Bar dataKey="value" radius={horizontal ? [0, 10, 10, 0] : [10, 10, 3, 3]} barSize={horizontal ? 26 : 54}>
+              {dados.map((d, i) => <Cell key={i} fill={d.color} />)}
+              <LabelList dataKey="value" position={horizontal ? "right" : "top"}
+                formatter={(v: number) => fBRL(v)}
+                style={{ fill: "#f1f5f9", fontSize: 12, fontWeight: 800 }} />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
+    </GC>
+  );
+}
+
+// Caixa hexagonal de KPI — estilo dos cards da referência (129 / 641 / 770)
+function StatHex({ valor, label, cor, onClick }: { valor: string; label: string; cor: string; onClick?: () => void }) {
+  return (
+    <div onClick={onClick} className={`flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-105 ${onClick ? "cursor-pointer" : ""}`}
+      style={{
+        clipPath: "polygon(25% 4%, 75% 4%, 96% 50%, 75% 96%, 25% 96%, 4% 50%)",
+        background: `linear-gradient(160deg, ${cor}30, ${cor}10)`,
+        border: `1px solid ${cor}50`,
+        width: "128px", height: "128px",
+        boxShadow: `0 0 25px ${cor}20`,
+      }}>
+      <p className="text-2xl font-black" style={{ color: cor }}>{valor}</p>
+      <p className="text-[9px] font-bold uppercase tracking-wide mt-1 px-2" style={{ color: "#cbd5e1" }}>{label}</p>
     </div>
   );
 }
+
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -698,75 +732,64 @@ export default function DashboardPage() {
             </GC>
           </div>
 
-          {/* ══════ PAINEL DE MÓDULOS — barras grossas estilo Power BI/Excel premium ══════ */}
-          <div>
-            <div className="flex items-center justify-between mb-3 px-1">
-              <div>
-                <p className="text-lg font-black" style={{ color: "#f1f5f9" }}>📊 {tt.painelModulos}</p>
-                <p className="text-[11px] font-medium" style={{ color: "#64748b" }}>{tt.painelModulosDesc}</p>
+          {/* ══════ PAINÉIS EMPILHADOS ESTILO POWER BI — barras grossas, cores vivas, valores nas barras ══════ */}
+          <div className="space-y-4">
+            <div className="px-1">
+              <p className="text-lg font-black" style={{ color: "#f1f5f9" }}>📊 {tt.painelModulos}</p>
+              <p className="text-[11px] font-medium" style={{ color: "#64748b" }}>{tt.painelModulosDesc}</p>
+            </div>
+
+            {/* Evolução de Receita — mensal */}
+            <BigBarPanel titulo={tt.mReceitas} icone="💰" cor={COR.roxo} subtitulo={tt.deste_mes} path="/receitas" router={router}
+              dados={evolucao.map(e => ({ label: e.mes, value: e.receita, color: COR.roxo }))} />
+
+            {/* Evolução de Lucro — mensal */}
+            <BigBarPanel titulo={tt.lucro} icone="📈" cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} subtitulo={tt.pmDre} path="/dre" router={router}
+              dados={evolucao.map(e => ({ label: e.mes, value: e.lucro, color: e.lucro >= 0 ? COR.verde : COR.vermelho }))} />
+
+            {/* Custos por Categoria — cores vivas distintas por barra, horizontal */}
+            {topCustos.length > 0 && (
+              <BigBarPanel titulo={tt.topCustos} icone="📉" cor={COR.vermelho} subtitulo={tt.custos} path="/custos-fixos" router={router}
+                dados={topCustos.map(c => ({ label: c.name, value: c.value, color: c.color }))} horizontal altura={220} />
+            )}
+
+            {/* Composição Financeira — Lucro x Custos Fixos x Custos Variáveis, cores vivas */}
+            {composicao.length > 0 && (
+              <BigBarPanel titulo={tt.composicaoFinanceira} icone="💠" cor={COR.cyan} subtitulo={tt.receita + ": " + fBRL(snap.receita_bruta)} path="/relatorios" router={router}
+                dados={composicao.map(c => ({ label: c.name, value: c.value, color: c.color }))} />
+            )}
+
+            {/* Score 360° por Dimensão — cada barra com a cor da própria dimensão */}
+            <BigBarPanel titulo={tt.dimensoesScore} icone="🏆" cor={score360.cor} subtitulo={`Score total: ${score360.total}/100`} path="/ia-financeira" router={router}
+              dados={score360.dimensoes.map(d => ({ label: dN(d), value: d.score, color: d.cor }))} altura={230} />
+
+            {/* Linha de KPIs hexagonais — Relacionamento & Compromissos */}
+            <GC cor={COR.cyan}>
+              <div className="p-5">
+                <p className="text-base font-black mb-4" style={{ color: "#f1f5f9" }}>🤝 {tt.insightsEmpresa}</p>
+                <div className="flex flex-wrap items-center justify-around gap-4">
+                  <StatHex valor={String(modulosData?.clientesCount ?? 0)} label={tt.mClientes} cor={COR.cyan} onClick={() => router.push("/clientes")} />
+                  <StatHex valor={String(modulosData?.fornecedoresCount ?? 0)} label={tt.mFornec} cor={COR.teal} onClick={() => router.push("/fornecedores")} />
+                  <StatHex valor={fmtCompact(modulosData?.crTotal ?? 0)} label={tt.contasReceber} cor={COR.verde} onClick={() => router.push("/contas-receber")} />
+                  <StatHex valor={fmtCompact(modulosData?.cpTotal ?? 0)} label={tt.contasPagar} cor={COR.laranja} onClick={() => router.push("/fornecedores")} />
+                  <StatHex valor={`${snap.inadimplencia_pct.toFixed(0)}%`} label={tt.inadimplencia} cor={COR.rosa} onClick={() => router.push("/contas-receber")} />
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Receitas — 6 meses reais */}
-              <ModCard titulo={tt.mReceitas} icone="💰" cor={COR.roxo} onClick={() => router.push("/receitas")}
-                valorPrincipal={fBRL(snap.receita_bruta)} subtitulo={tt.deste_mes}
-                barras={evolucao.map(e => e.receita)} />
+            </GC>
 
-              {/* Lucro — 6 meses reais */}
-              <ModCard titulo={tt.lucro} icone="📈" cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} onClick={() => router.push("/dre")}
-                valorPrincipal={fBRL(snap.lucro_liquido)} subtitulo={tt.pmDre}
-                barras={evolucao.map(e => e.lucro)} />
-
-              {/* Custos — 6 meses reais */}
-              <ModCard titulo={tt.mCustosF} icone="📉" cor={COR.vermelho} onClick={() => router.push("/custos-fixos")}
-                valorPrincipal={fBRL(snap.custos_totais)} subtitulo={tt.custos}
-                barras={evolucao.map(e => e.custos)} />
-
-              {/* Clientes */}
-              <ModCard titulo={tt.mClientes} icone="👥" cor={COR.cyan} onClick={() => router.push("/clientes")}
-                valorPrincipal={String(modulosData?.clientesCount ?? 0)} subtitulo={tt.pmClientes}
-                barras={[modulosData?.clientesCount ?? 0, Math.max(0, (modulosData?.clientesCount ?? 0) - 1), (modulosData?.clientesCount ?? 0) + 1, modulosData?.clientesCount ?? 0]} />
-
-              {/* Fornecedores */}
-              <ModCard titulo={tt.mFornec} icone="🏭" cor={COR.teal} onClick={() => router.push("/fornecedores")}
-                valorPrincipal={fBRL(modulosData?.fornecedoresTotal ?? 0)} subtitulo={tt.pmFornecedores}
-                barras={[modulosData?.fornecedoresTotal ?? 0, (modulosData?.fornecedoresTotal ?? 0) * 0.7, (modulosData?.fornecedoresTotal ?? 0) * 0.9, (modulosData?.fornecedoresTotal ?? 0) * 0.5]} />
-
-              {/* Contas a Receber */}
-              <ModCard titulo={tt.contasReceber} icone="📥" cor={COR.verde} onClick={() => router.push("/contas-receber")}
-                valorPrincipal={fBRL(modulosData?.crTotal ?? 0)} subtitulo={tt.pmContasReceber}
-                barras={[modulosData?.crTotal ?? 0, (modulosData?.crTotal ?? 0) * 0.6, (modulosData?.crTotal ?? 0) * 0.85, (modulosData?.crTotal ?? 0) * 0.4]} />
-
-              {/* Contas a Pagar (Fornecedores) */}
-              <ModCard titulo={tt.contasPagar} icone="📤" cor={COR.laranja} onClick={() => router.push("/fornecedores")}
-                valorPrincipal={fBRL(modulosData?.cpTotal ?? 0)} subtitulo={tt.pmContasPagar}
-                barras={[modulosData?.cpTotal ?? 0, (modulosData?.cpTotal ?? 0) * 0.5, (modulosData?.cpTotal ?? 0) * 0.8, (modulosData?.cpTotal ?? 0) * 0.65]} />
-
-              {/* Metas */}
-              <ModCard titulo="Metas" icone="🎯" cor={COR.amarelo} onClick={() => router.push("/metas")}
-                valorPrincipal={`${modulosData?.metasProgresso ?? 0}%`} subtitulo={tt.pmMetas}
-                barras={[modulosData?.metasProgresso ?? 0, 100, (modulosData?.metasProgresso ?? 0) * 0.8, (modulosData?.metasProgresso ?? 0) * 1.1]} />
-
-              {/* Investimentos */}
-              <ModCard titulo="Investimentos" icone="💎" cor={COR.indigo} onClick={() => router.push("/investimentos")}
-                valorPrincipal={fBRL(modulosData?.investTotal ?? 0)} subtitulo={tt.pmInvestimentos}
-                barras={[modulosData?.investTotal ?? 0, (modulosData?.investTotal ?? 0) * 0.4, (modulosData?.investTotal ?? 0) * 0.7, (modulosData?.investTotal ?? 0) * 0.9]} />
-
-              {/* Endividamento */}
-              <ModCard titulo={tt.endividamento} icone="⚖️" cor={COR.rosa} onClick={() => router.push("/endividamento")}
-                valorPrincipal={fBRL(snap.endividamento_total)} subtitulo={tt.pmEndividamento}
-                barras={[snap.endividamento_total, snap.endividamento_total * 0.85, snap.endividamento_total * 0.6, snap.endividamento_total * 0.3]} />
-
-              {/* Score 360 */}
-              <ModCard titulo="Score 360°" icone="🏆" cor={score360.cor} onClick={() => router.push("/ia-financeira")}
-                valorPrincipal={`${score360.total}/100`} subtitulo={lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}
-                barras={score360.dimensoes.map(d => d.score)} />
-
-              {/* IA Tributária — carga */}
-              <ModCard titulo="IA Tributária" icone="🏛️" cor={COR.laranja} onClick={() => router.push("/ia-tributaria")}
-                valorPrincipal={`${snap.margem_liquida.toFixed(1)}%`} subtitulo={tt.margem}
-                barras={evolucao.map(e => e.receita > 0 ? Math.max(0, (e.lucro / e.receita) * 100) : 0)} />
-            </div>
+            {/* Linha de KPIs hexagonais — Crescimento & Capital */}
+            <GC cor={COR.amarelo}>
+              <div className="p-5">
+                <p className="text-base font-black mb-4" style={{ color: "#f1f5f9" }}>🚀 {lang === "en" ? "Growth & Capital" : lang === "es" ? "Crecimiento & Capital" : "Crescimento & Capital"}</p>
+                <div className="flex flex-wrap items-center justify-around gap-4">
+                  <StatHex valor={`${modulosData?.metasProgresso ?? 0}%`} label="Metas" cor={COR.amarelo} onClick={() => router.push("/metas")} />
+                  <StatHex valor={fmtCompact(modulosData?.investTotal ?? 0)} label="Investimentos" cor={COR.indigo} onClick={() => router.push("/investimentos")} />
+                  <StatHex valor={fmtCompact(snap.endividamento_total)} label={tt.endividamento} cor={COR.rosa} onClick={() => router.push("/endividamento")} />
+                  <StatHex valor={`${snap.margem_liquida.toFixed(0)}%`} label={tt.margem} cor={COR.verde} onClick={() => router.push("/ia-tributaria")} />
+                  <StatHex valor={`${score360.total}`} label="Score 360°" cor={score360.cor} onClick={() => router.push("/ia-financeira")} />
+                </div>
+              </div>
+            </GC>
           </div>
 
           {/* ══════ MÓDULOS — estilo Frontend/API/Backend da referência ══════ */}
