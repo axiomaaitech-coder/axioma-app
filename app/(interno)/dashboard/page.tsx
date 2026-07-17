@@ -10,6 +10,8 @@ import {
 } from "recharts";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import ReactECharts from "echarts-for-react";
+import DashFinanceiro from "../../../components/DashFinanceiro";
+import DashComercial from "../../../components/DashComercial";
 import {
   carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias, gerarPlanoAcao,
   type SnapshotFinanceiro, type Score360, type Anomalia, type AcaoSugerida,
@@ -833,6 +835,18 @@ export default function DashboardPage() {
                 </div>
               </div>
             </GC>
+          </div>
+
+          {/* ══════ DASHBOARD FINANCEIRO — full-bleed, da borda esquerda à direita ══════ */}
+          <div className="-mx-3 md:-mx-5 px-3 md:px-5 pt-6 pb-2"
+            style={{ borderTop: "1px solid rgba(99,102,241,0.12)", background: "linear-gradient(180deg, rgba(139,92,246,0.045), transparent 60%)" }}>
+            <DashFinanceiro />
+          </div>
+
+          {/* ══════ DASHBOARD COMERCIAL & CRESCIMENTO — full-bleed ══════ */}
+          <div className="-mx-3 md:-mx-5 px-3 md:px-5 pt-6 pb-2"
+            style={{ borderTop: "1px solid rgba(99,102,241,0.12)", background: "linear-gradient(180deg, rgba(6,182,212,0.045), transparent 60%)" }}>
+            <DashComercial />
           </div>
 
           {/* ══════ MÓDULOS — estilo Frontend/API/Backend da referência ══════ */}
