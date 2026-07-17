@@ -168,7 +168,7 @@ function ValueLabel(props: any) {
 }
 
 // ══════ PAINEL GROSSO ESTILO POWER BI — barras vivas, multicoloridas, com valores ══════
-function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altura = 260, horizontal = false }: {
+function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altura = 380, horizontal = false }: {
   titulo: string; icone: string; cor: string; subtitulo: string;
   dados: { label: string; value: number; color: string }[]; path: string; router: any; altura?: number; horizontal?: boolean;
 }) {
@@ -189,7 +189,7 @@ function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altur
           </button>
         </div>
         <ResponsiveContainer width="100%" height={altura}>
-          <BarChart data={dados} layout={horizontal ? "vertical" : "horizontal"} margin={{ top: 24, right: 16, left: horizontal ? 8 : 0, bottom: 0 }} barCategoryGap="22%">
+          <BarChart data={dados} layout={horizontal ? "vertical" : "horizontal"} margin={{ top: 28, right: 24, left: horizontal ? 8 : 0, bottom: 0 }} barCategoryGap="10%">
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" horizontal={!horizontal} vertical={horizontal} />
             {horizontal ? (
               <>
@@ -203,7 +203,7 @@ function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altur
               </>
             )}
             <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-            <Bar dataKey="value" radius={horizontal ? [0, 10, 10, 0] : [10, 10, 3, 3]} barSize={horizontal ? 26 : 54}>
+            <Bar dataKey="value" radius={horizontal ? [0, 12, 12, 0] : [12, 12, 4, 4]} barSize={horizontal ? 46 : 92}>
               {dados.map((d, i) => <Cell key={i} fill={d.color} />)}
               <LabelList dataKey="value" position={horizontal ? "right" : "top"}
                 formatter={(v: number) => fBRL(v)}
@@ -407,7 +407,7 @@ export default function DashboardPage() {
       {carregando && (<div className="py-32 text-center"><div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-sm font-semibold" style={{ color: COR.roxo }}>{tt.carregando}</p></div>)}
 
       {!carregando && snap && score360 && (
-        <div className="space-y-4 max-w-[1440px] mx-auto">
+        <div className="space-y-5 w-full">
 
           {/* ══════ HERO VIDEO ══════ */}
           <div className="relative rounded-2xl overflow-hidden" style={{ height: "460px" }}>
@@ -528,7 +528,7 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ LINHA 2: Insights + Top Custos + Distribuição Custos (DONUT GROSSO) ══════ */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-5">
 
             {/* Insights da Empresa — estilo Customer Insights */}
             <GC cor={COR.roxo} onClick={() => router.push("/ia-financeira")}>
@@ -603,10 +603,10 @@ export default function DashboardPage() {
                 {distribuicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
                   <div className="flex items-center gap-4">
                     {/* Donut GROSSO igual referência */}
-                    <div className="flex-shrink-0" style={{ width: "140px", height: "140px" }}>
+                    <div className="flex-shrink-0" style={{ width: "280px", height: "280px" }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={distribuicao} cx="50%" cy="50%" innerRadius={38} outerRadius={65} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                          <Pie data={distribuicao} cx="50%" cy="50%" innerRadius={78} outerRadius={132} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
                             {distribuicao.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(10,8,35,0.8)" strokeWidth={2} />)}
                           </Pie>
                           <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
@@ -630,7 +630,7 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ LINHA 3: Composição Financeira (2o DONUT) + Radar Score + Alertas/Ações ══════ */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-5">
 
             {/* ★ 2o DONUT — Composição Financeira (Receita = Lucro + CF + CV) */}
             <GC cor={COR.verde} onClick={() => router.push("/dre")}>
@@ -645,10 +645,10 @@ export default function DashboardPage() {
                 </p>
                 {composicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
                   <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0" style={{ width: "140px", height: "140px" }}>
+                    <div className="flex-shrink-0" style={{ width: "280px", height: "280px" }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={composicao} cx="50%" cy="50%" innerRadius={38} outerRadius={65} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                          <Pie data={composicao} cx="50%" cy="50%" innerRadius={78} outerRadius={132} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
                             {composicao.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(10,8,35,0.8)" strokeWidth={2} />)}
                           </Pie>
                           <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
