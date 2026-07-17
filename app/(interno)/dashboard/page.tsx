@@ -5,10 +5,11 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, LabelList,
+  BarChart, Bar, LineChart, Line,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import ReactECharts from "echarts-for-react";
 import {
   carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias, gerarPlanoAcao,
   type SnapshotFinanceiro, type Score360, type Anomalia, type AcaoSugerida,
@@ -168,14 +169,79 @@ function ValueLabel(props: any) {
 }
 
 // ══════ PAINEL GROSSO ESTILO POWER BI — barras vivas, multicoloridas, com valores ══════
-function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altura = 380, horizontal = false }: {
+function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altura = 340, horizontal = false }: {
   titulo: string; icone: string; cor: string; subtitulo: string;
   dados: { label: string; value: number; color: string }[]; path: string; router: any; altura?: number; horizontal?: boolean;
 }) {
+  const grad = (c: string) => ({
+    type: "linear", x: 0, y: horizontal ? 0 : 0, x2: horizontal ? 1 : 0, y2: horizontal ? 0 : 1,
+    colorStops: [{ offset: 0, color: c }, { offset: 1, color: c + "70" }],
+  });
+
+  const eixoCat = {
+    type: "category" as const,
+    data: dados.map(d => d.label),
+    axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } },
+    axisTick: { show: false },
+    axisLabel: { color: "#cbd5e1", fontSize: 12, fontWeight: 700 },
+  };
+  const eixoVal = {
+    type: "value" as const,
+    axisLine: { show: false },
+    axisTick: { show: false },
+    splitLine: { lineStyle: { color: "rgba(148,163,184,0.07)", type: "dashed" } },
+    axisLabel: { color: "#64748b", fontSize: 11, formatter: (v: number) => fBRL(v) },
+  };
+
+  const option = {
+    backgroundColor: "transparent",
+    animationDuration: 800,
+    animationEasing: "cubicOut",
+    grid: horizontal
+      ? { left: 130, right: 90, top: 16, bottom: 24, containLabel: false }
+      : { left: 74, right: 24, top: 42, bottom: 34, containLabel: false },
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "rgba(10,8,30,0.97)",
+      borderColor: cor,
+      borderWidth: 1,
+      padding: [8, 12],
+      textStyle: { color: "#e2e8f0", fontSize: 13 },
+      formatter: (p: any) => `<b style="color:${p.color?.colorStops?.[0]?.color || cor}">${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b>`,
+    },
+    xAxis: horizontal ? eixoVal : eixoCat,
+    yAxis: horizontal ? eixoCat : eixoVal,
+    series: [{
+      type: "bar",
+      barWidth: horizontal ? 30 : 64,
+      data: dados.map(d => ({
+        value: d.value,
+        name: d.label,
+        itemStyle: {
+          color: grad(d.color),
+          borderRadius: horizontal ? [0, 8, 8, 0] : [8, 8, 0, 0],
+          shadowColor: d.color + "60",
+          shadowBlur: 14,
+          shadowOffsetY: horizontal ? 0 : -2,
+        },
+      })),
+      label: {
+        show: true,
+        position: horizontal ? "right" : "top",
+        distance: 8,
+        color: "#f1f5f9",
+        fontSize: 12,
+        fontWeight: 800,
+        formatter: (p: any) => fBRL(p.value),
+      },
+      emphasis: { itemStyle: { shadowBlur: 26 }, scale: false },
+    }],
+  };
+
   return (
     <GC cor={cor}>
       <div className="p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <p className="text-base font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
               <span className="text-xl">{icone}</span>{titulo}
@@ -188,29 +254,73 @@ function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altur
             {`Ver módulo →`}
           </button>
         </div>
-        <ResponsiveContainer width="100%" height={altura}>
-          <BarChart data={dados} layout={horizontal ? "vertical" : "horizontal"} margin={{ top: 28, right: 24, left: horizontal ? 8 : 0, bottom: 0 }} barCategoryGap="10%">
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" horizontal={!horizontal} vertical={horizontal} />
-            {horizontal ? (
-              <>
-                <XAxis type="number" stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
-                <YAxis type="category" dataKey="label" stroke="#334155" tick={{ fontSize: 12, fill: "#e2e8f0", fontWeight: 700 }} width={110} />
-              </>
-            ) : (
-              <>
-                <XAxis dataKey="label" stroke="#334155" tick={{ fontSize: 12, fill: "#e2e8f0", fontWeight: 700 }} />
-                <YAxis stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-              </>
-            )}
-            <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-            <Bar dataKey="value" radius={horizontal ? [0, 12, 12, 0] : [12, 12, 4, 4]} barSize={horizontal ? 46 : 92}>
-              {dados.map((d, i) => <Cell key={i} fill={d.color} />)}
-              <LabelList dataKey="value" position={horizontal ? "right" : "top"}
-                formatter={(v: number) => fBRL(v)}
-                style={{ fill: "#f1f5f9", fontSize: 12, fontWeight: 800 }} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
+      </div>
+    </GC>
+  );
+}
+
+// ══ DONUT ECharts estilo Power BI — aro grosso, % no centro, legenda lateral ══
+function DonutPanel({ titulo, icone, cor, subtitulo, dados, path, router, centroLabel, centroValor, tag }: {
+  titulo: string; icone: string; cor: string; subtitulo: string;
+  dados: { name: string; value: number; color: string; pct?: number }[];
+  path: string; router: any; centroLabel: string; centroValor: string; tag?: string;
+}) {
+  const total = dados.reduce((a, b) => a + b.value, 0);
+  const option = {
+    backgroundColor: "transparent",
+    animationDuration: 900,
+    tooltip: {
+      trigger: "item",
+      backgroundColor: "rgba(10,8,30,0.97)",
+      borderColor: cor, borderWidth: 1, padding: [8, 12],
+      textStyle: { color: "#e2e8f0", fontSize: 13 },
+      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> &nbsp;<span style="color:${cor}">${p.percent}%</span>`,
+    },
+    legend: {
+      orient: "vertical", right: "4%", top: "center",
+      itemWidth: 14, itemHeight: 14, itemGap: 16, icon: "roundRect",
+      textStyle: { color: "#cbd5e1", fontSize: 13, fontWeight: 600 },
+      formatter: (name: string) => {
+        const d = dados.find(x => x.name === name);
+        const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0;
+        return `${name}  ${pct}%`;
+      },
+    },
+    series: [{
+      type: "pie",
+      radius: ["58%", "82%"],
+      center: ["32%", "50%"],
+      avoidLabelOverlap: false,
+      itemStyle: { borderColor: "rgba(10,8,32,0.9)", borderWidth: 3, borderRadius: 6 },
+      label: { show: false },
+      labelLine: { show: false },
+      emphasis: { scale: true, scaleSize: 8, itemStyle: { shadowBlur: 24, shadowColor: cor + "80" } },
+      data: dados.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })),
+    }],
+    graphic: [
+      { type: "text", left: "32%", top: "46%", style: { text: centroValor, textAlign: "center", fill: "#f1f5f9", fontSize: 22, fontWeight: 900 }, z: 10 },
+      { type: "text", left: "32%", top: "55%", style: { text: centroLabel, textAlign: "center", fill: "#64748b", fontSize: 11, fontWeight: 700 }, z: 10 },
+    ],
+  };
+  return (
+    <GC cor={cor}>
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <p className="text-base font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
+              <span className="text-xl">{icone}</span>{titulo}
+              {tag && <span className="text-[9px] px-2 py-0.5 rounded-md font-bold" style={{ background: `${cor}25`, color: cor }}>{tag}</span>}
+            </p>
+            <p className="text-[11px] font-medium mt-0.5" style={{ color: "#64748b" }}>{subtitulo}</p>
+          </div>
+          <button onClick={() => router.push(path)}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 flex-shrink-0"
+            style={{ background: `${cor}18`, border: `1px solid ${cor}40`, color: cor }}>
+            {`Ver módulo →`}
+          </button>
+        </div>
+        <ReactECharts option={option} style={{ height: 320, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
       </div>
     </GC>
   );
@@ -415,9 +525,7 @@ export default function DashboardPage() {
             <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(6,3,26,0.55) 0%, rgba(6,3,26,0.25) 35%, rgba(6,3,26,0.55) 75%, rgba(6,3,26,0.85) 100%)" }} />
             {/* Logo grande em destaque, sempre visível */}
             <div className="absolute top-6 left-8 md:left-14 z-20 flex items-center gap-3">
-              <div className="flex items-center justify-center rounded-2xl" style={{ width: 56, height: 56, background: "rgba(139,92,246,0.25)", border: "1px solid rgba(139,92,246,0.5)", backdropFilter: "blur(10px)" }}>
-                <span className="text-3xl">🦅</span>
-              </div>
+              <img src="/logo-aitech.png" alt="Axioma AI.Tech" style={{ width: 56, height: 56, objectFit: "contain" }} />
               <div>
                 <p className="text-xl md:text-2xl font-black tracking-wide" style={{ color: "#f1f5f9" }}>AXIOMA</p>
                 <p className="text-[10px] md:text-xs font-bold tracking-[0.3em]" style={{ color: "#c4b5fd" }}>AI.TECH</p>
@@ -589,91 +697,26 @@ export default function DashboardPage() {
               </div>
             </GC>
 
-            {/* ★ DONUT GROSSO — Distribuição de Custos — estilo Traffic Sources da referência */}
-            <GC cor={COR.cyan} onClick={() => router.push("/relatorios")}>
-              <div className="p-5">
-                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>
-                  🥧 {tt.distribuicaoCustos}
-                  {distribuicao === topCustos && topCustos[0]?.name === (lang === "en" ? "Rent" : lang === "es" ? "Alquiler" : "Aluguel") && (
-                    <span className="ml-2 text-[9px] px-2 py-0.5 rounded-md font-bold" style={{ background: "rgba(139,92,246,0.2)", color: COR.roxo }}>
-                      {lang === "en" ? "SAMPLE" : lang === "es" ? "EJEMPLO" : "EXEMPLO"}
-                    </span>
-                  )}
-                </p>
-                {distribuicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
-                  <div className="flex items-center gap-4">
-                    {/* Donut GROSSO igual referência */}
-                    <div className="flex-shrink-0" style={{ width: "280px", height: "280px" }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={distribuicao} cx="50%" cy="50%" innerRadius={78} outerRadius={132} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
-                            {distribuicao.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(10,8,35,0.8)" strokeWidth={2} />)}
-                          </Pie>
-                          <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    {/* Dados ao lado do donut — estilo referência com % e cor */}
-                    <div className="flex-1 space-y-2">
-                      {distribuicao.map((d, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: d.color }}></span>
-                          <span className="text-[11px] font-medium flex-1 truncate" style={{ color: "#cbd5e1" }}>{d.name}</span>
-                          <span className="text-sm font-black" style={{ color: "#f1f5f9" }}>{d.pct}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </GC>
+            {/* ★ DONUT ECharts — Distribuição de Custos */}
+            {distribuicao.length > 0 && (
+              <DonutPanel titulo={tt.distribuicaoCustos} icone="🥧" cor={COR.cyan}
+                subtitulo={tt.custos} path="/relatorios" router={router}
+                centroLabel={tt.custos.toUpperCase()} centroValor={fBRL(distribuicao.reduce((a, b) => a + b.value, 0))}
+                dados={distribuicao.map(d => ({ name: d.name, value: d.value, color: d.color }))} />
+            )}
           </div>
 
           {/* ══════ LINHA 3: Composição Financeira (2o DONUT) + Radar Score + Alertas/Ações ══════ */}
           <div className="grid grid-cols-1 gap-5">
 
-            {/* ★ 2o DONUT — Composição Financeira (Receita = Lucro + CF + CV) */}
-            <GC cor={COR.verde} onClick={() => router.push("/dre")}>
-              <div className="p-5">
-                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>
-                  💰 {tt.composicaoFinanceira}
-                  {usandoExemplo && (
-                    <span className="ml-2 text-[9px] px-2 py-0.5 rounded-md font-bold" style={{ background: "rgba(139,92,246,0.2)", color: COR.roxo }}>
-                      {lang === "en" ? "SAMPLE" : lang === "es" ? "EJEMPLO" : "EXEMPLO"}
-                    </span>
-                  )}
-                </p>
-                {composicao.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
-                  <div className="flex items-center gap-4">
-                    <div className="flex-shrink-0" style={{ width: "280px", height: "280px" }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={composicao} cx="50%" cy="50%" innerRadius={78} outerRadius={132} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
-                            {composicao.map((d, i) => <Cell key={i} fill={d.color} stroke="rgba(10,8,35,0.8)" strokeWidth={2} />)}
-                          </Pie>
-                          <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="flex-1 space-y-2.5">
-                      {composicao.map((d, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: d.color }}></span>
-                          <span className="text-[11px] font-medium flex-1" style={{ color: "#cbd5e1" }}>{d.name}</span>
-                          <span className="text-sm font-black" style={{ color: "#f1f5f9" }}>{d.pct}%</span>
-                        </div>
-                      ))}
-                      <div className="pt-2 mt-2" style={{ borderTop: "1px solid rgba(99,102,241,0.1)" }}>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold" style={{ color: "#94a3b8" }}>{tt.receita}</span>
-                          <span className="text-sm font-black" style={{ color: COR.roxo }}>{fBRL(snap.receita_bruta)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </GC>
+            {/* ★ DONUT ECharts — Composição Financeira */}
+            {composicao.length > 0 && (
+              <DonutPanel titulo={tt.composicaoFinanceira} icone="💠" cor={COR.verde}
+                subtitulo={`${tt.receita}: ${fBRL(snap.receita_bruta)}`} path="/dre" router={router}
+                tag={usandoExemplo ? (lang === "en" ? "SAMPLE" : lang === "es" ? "EJEMPLO" : "EXEMPLO") : undefined}
+                centroLabel={tt.receita.toUpperCase()} centroValor={fBRL(snap.receita_bruta)}
+                dados={composicao.map(d => ({ name: d.name, value: d.value, color: d.color }))} />
+            )}
 
             {/* Radar Score */}
             <GC cor={COR.roxo} onClick={() => router.push("/ia-financeira")}>
