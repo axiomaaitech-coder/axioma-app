@@ -267,3 +267,77 @@ export function optLinhaMulti(
     })),
   };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// RADAR DE RENOVAÇÕES — detecta contratos/assinaturas próximos de renovar
+// Reutilizável: custos fixos, fornecedores, assinaturas, e-commerce
+// ═══════════════════════════════════════════════════════════════
+export type ItemRenovavel = {
+  descricao: string;
+  valor: number;
+  data_renovacao?: string | null; // ISO "YYYY-MM-DD"
+  categoria?: string;
+};
+
+export type Renovacao = {
+  descricao: string; valor: number; categoria?: string;
+  data: string; diasRestantes: number;
+  urgencia: "vencido" | "critico" | "proximo" | "futuro";
+};
+
+export function radarRenovacoes(itens: ItemRenovavel[], janelaDias = 60): Renovacao[] {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const out: Renovacao[] = [];
+  itens.forEach((it) => {
+    if (!it.data_renovacao) return;
+    const d = new Date(it.data_renovacao + "T00:00:00");
+    const dias = Math.round((d.getTime() - hoje.getTime()) / 86400000);
+    if (dias > janelaDias) return;
+    const urgencia: Renovacao["urgencia"] =
+      dias < 0 ? "vencido" : dias <= 7 ? "critico" : dias <= 30 ? "proximo" : "futuro";
+    out.push({ descricao: it.descricao, valor: it.valor, categoria: it.categoria, data: it.data_renovacao, diasRestantes: dias, urgencia });
+  });
+  return out.sort((a, b) => a.diasRestantes - b.diasRestantes);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DETECTOR DE DESPERDÍCIO — encontra duplicados e economia potencial
+// A "medalha de ouro": nenhum ERP BR tem isso para PME
+// ═══════════════════════════════════════════════════════════════
+export type ItemDespesa = { descricao: string; valor: number; categoria?: string };
+export type Desperdicio = {
+  tipo: "duplicado" | "concentracao";
+  descricao: string; valorPotencial: number;
+};
+
+// Normaliza texto p/ comparação (minúsculo, sem acento, sem espaços extras)
+function norm(s: string): string {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+}
+
+export function detectarDesperdicio(itens: ItemDespesa[]): { alertas: Desperdicio[]; economiaPotencial: number } {
+  const alertas: Desperdicio[] = [];
+  let economia = 0;
+
+  // 1) Duplicados: descrições muito parecidas (mesmo prefixo) OU mesma categoria+valor próximo
+  const vistos: { chave: string; valor: number; descricao: string }[] = [];
+  itens.forEach((it) => {
+    const chave = norm(it.descricao).slice(0, 12); // prefixo
+    const dup = vistos.find((v) => v.chave === chave && chave.length >= 4);
+    if (dup) {
+      const menor = Math.min(dup.valor, it.valor);
+      economia += menor;
+      alertas.push({ tipo: "duplicado", descricao: it.descricao, valorPotencial: menor });
+    } else {
+      vistos.push({ chave, valor: it.valor, descricao: it.descricao });
+    }
+  });
+
+  return { alertas, economiaPotencial: economia };
+}
+
+// Peso do custo sobre a receita (indicador de saúde) — em %
+export function pesoSobreReceita(custoTotal: number, receitaTotal: number): number {
+  if (receitaTotal <= 0) return 0;
+  return (custoTotal / receitaTotal) * 100;
+}
