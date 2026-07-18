@@ -292,14 +292,6 @@ export default function DashFinanceiro() {
   return (
     <div className="space-y-4 w-full">
 
-        {/* ═══ CABEÇALHO ═══ */}
-        <div className="flex items-end justify-between flex-wrap gap-2 px-1">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight" style={{ color: "#f1f5f9" }}>💼 {tt.titulo}</h1>
-            <p className="text-[11px] font-medium mt-1" style={{ color: "#64748b" }}>{tt.subtitulo}</p>
-          </div>
-        </div>
-
         {/* ═══ KPIs ═══ */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {kpis.map((k, i) => (

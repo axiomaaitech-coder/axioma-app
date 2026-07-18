@@ -40,6 +40,8 @@ const T = {
     obrigacoes: "Obrigações Fiscais", vence: "Vence", semObrig: "Nenhuma pendência.",
     modulos: "Módulos Axioma",
     painelModulos: "Painel de Módulos", painelModulosDesc: "Visão consolidada das áreas mais usadas da sua empresa",
+    dfTitulo: "Dashboard Financeiro", dfSub: "Receita · Custos · Fluxo de Caixa · Endividamento",
+    dcTitulo: "Dashboard Comercial & Crescimento", dcSub: "Metas · Clientes · Recebíveis · Investimentos",
     pmClientes: "clientes cadastrados", pmFornecedores: "fornecedores ativos", pmContasReceber: "títulos em aberto",
     pmContasPagar: "títulos a pagar", pmMetas: "metas em andamento", pmInvestimentos: "aportes registrados",
     pmDre: "resultado do período", pmCentrosCusto: "centros ativos", pmEndividamento: "dívidas ativas",
@@ -71,6 +73,8 @@ const T = {
     obrigacoes: "Fiscal Obligations", vence: "Due", semObrig: "No pending items.",
     modulos: "Axioma Modules",
     painelModulos: "Modules Panel", painelModulosDesc: "Consolidated view of your company's most used areas",
+    dfTitulo: "Financial Dashboard", dfSub: "Revenue · Costs · Cash Flow · Debt",
+    dcTitulo: "Sales & Growth Dashboard", dcSub: "Goals · Clients · Receivables · Investments",
     pmClientes: "registered clients", pmFornecedores: "active suppliers", pmContasReceber: "open receivables",
     pmContasPagar: "payables due", pmMetas: "goals in progress", pmInvestimentos: "recorded investments",
     pmDre: "period result", pmCentrosCusto: "active centers", pmEndividamento: "active debts",
@@ -102,6 +106,8 @@ const T = {
     obrigacoes: "Obligaciones Fiscales", vence: "Vence", semObrig: "Sin pendencias.",
     modulos: "Módulos Axioma",
     painelModulos: "Panel de Módulos", painelModulosDesc: "Vista consolidada de las áreas más usadas de su empresa",
+    dfTitulo: "Dashboard Financiero", dfSub: "Ingresos · Costos · Flujo de Caja · Deuda",
+    dcTitulo: "Dashboard Comercial & Crecimiento", dcSub: "Metas · Clientes · Cobrar · Inversiones",
     pmClientes: "clientes registrados", pmFornecedores: "proveedores activos", pmContasReceber: "títulos por cobrar",
     pmContasPagar: "títulos por pagar", pmMetas: "metas en curso", pmInvestimentos: "aportes registrados",
     pmDre: "resultado del período", pmCentrosCusto: "centros activos", pmEndividamento: "deudas activas",
@@ -550,302 +556,43 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ══════ LINHA 1: 4 KPIs (esq) + GRÁFICO GRANDE (dir) ══════ */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-            {/* 4 KPIs em grid 2x2 */}
-            <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-              {/* Receita + sparkline */}
-              <GC cor={COR.roxo} onClick={() => router.push("/receitas")}>
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: "#94a3b8" }}>{tt.receita}</p>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black" style={{ background: mom >= 0 ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)", color: mom >= 0 ? COR.verde : COR.vermelho }}>
-                      {mom >= 0 ? "▲" : "▼"} {Math.abs(mom).toFixed(1)}%
-                    </span>
-                  </div>
-                  <p className="text-xl font-black tracking-tight" style={{ color: "#f1f5f9" }}>{fBRL(snap.receita_bruta)}</p>
-                  <div className="mt-2"><Spark data={snap.total_receitas_6m} cor={COR.roxo} /></div>
-                </div>
-              </GC>
-
-              {/* Lucro + mini bars */}
-              <GC cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} onClick={() => router.push("/dre")}>
-                <div className="p-4">
-                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "#94a3b8" }}>{tt.lucro}</p>
-                  <p className="text-xl font-black tracking-tight" style={{ color: snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho }}>{fBRL(snap.lucro_liquido)}</p>
-                  <div className="mt-2"><MBars data={snap.total_receitas_6m.map((r, i) => r - (snap.total_custos_6m[i] || 0))} cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} /></div>
-                </div>
-              </GC>
-
-              {/* Margem + barra */}
-              <GC cor={COR.cyan} onClick={() => router.push("/relatorios")}>
-                <div className="p-4">
-                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "#94a3b8" }}>{tt.margem}</p>
-                  <p className="text-2xl font-black" style={{ color: snap.margem_liquida >= 10 ? COR.cyan : COR.amarelo }}>{snap.margem_liquida.toFixed(1)}%</p>
-                  <div className="mt-3 rounded-full h-2" style={{ background: "rgba(6,182,212,0.12)" }}>
-                    <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${Math.min(100, Math.max(0, snap.margem_liquida * 2.5))}%`, background: `linear-gradient(90deg, ${COR.cyan}, ${COR.roxo})` }} />
-                  </div>
-                </div>
-              </GC>
-
-              {/* Score 360 */}
-              <GC cor={score360.cor} onClick={() => router.push("/ia-financeira")}>
-                <div className="p-4">
-                  <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: "#94a3b8" }}>🏆 Score</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black" style={{ color: score360.cor }}>{score360.total}</span>
-                    <span className="text-sm font-bold" style={{ color: "#475569" }}>/100</span>
-                  </div>
-                  <p className="text-[10px] font-bold mt-1" style={{ color: score360.cor }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
-                </div>
-              </GC>
-            </div>
-
-            {/* Gráfico grande — Revenue Growth */}
-            <div className="lg:col-span-8">
-              <GC cor={COR.indigo}>
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-5">
-                    <div>
-                      <p className="text-base font-black" style={{ color: "#f1f5f9" }}>📈 {tt.evolucaoReceita}</p>
-                      <p className="text-[10px] font-medium mt-0.5" style={{ color: "#64748b" }}>{tt.mensal} • {tt.deste_mes}</p>
-                    </div>
-                    <div className="flex gap-4 text-[10px] font-bold">
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: COR.roxo }}></span><span style={{ color: "#cbd5e1" }}>{tt.receitaL}</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: COR.vermelho }}></span><span style={{ color: "#cbd5e1" }}>{tt.custosL}</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full" style={{ background: COR.verde }}></span><span style={{ color: "#cbd5e1" }}>{tt.lucroL}</span></span>
-                    </div>
-                  </div>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={evolucao}>
-                      <defs>
-                        <linearGradient id="gR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COR.roxo} stopOpacity={0.5}/><stop offset="100%" stopColor={COR.roxo} stopOpacity={0}/></linearGradient>
-                        <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COR.vermelho} stopOpacity={0.15}/><stop offset="100%" stopColor={COR.vermelho} stopOpacity={0}/></linearGradient>
-                        <linearGradient id="gL" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={COR.verde} stopOpacity={0.35}/><stop offset="100%" stopColor={COR.verde} stopOpacity={0}/></linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(99,102,241,0.06)" />
-                      <XAxis dataKey="mes" stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8", fontWeight: 600 }} />
-                      <YAxis stroke="#334155" tick={{ fontSize: 11, fill: "#94a3b8" }} />
-                      <Tooltip contentStyle={ttip} formatter={(v: number) => fBRL(v)} />
-                      <Area type="monotone" dataKey="receita" stroke={COR.roxo} fill="url(#gR)" strokeWidth={3} dot={{ fill: COR.roxo, r: 4, strokeWidth: 2, stroke: "#0f0a28" }} />
-                      <Area type="monotone" dataKey="custos" stroke={COR.vermelho} fill="url(#gC)" strokeWidth={1.5} strokeDasharray="5 5" />
-                      <Area type="monotone" dataKey="lucro" stroke={COR.verde} fill="url(#gL)" strokeWidth={2.5} dot={{ fill: COR.verde, r: 3, strokeWidth: 2, stroke: "#0f0a28" }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </GC>
+          {/* ══════ LETREIRO — DASHBOARD FINANCEIRO ══════ */}
+          <div className="relative rounded-2xl overflow-hidden mt-2"
+            style={{ background: "linear-gradient(120deg, rgba(139,92,246,0.16), rgba(10,8,32,0.6) 55%, rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.28)" }}>
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: "linear-gradient(180deg, #8b5cf6, #06b6d4)", boxShadow: "0 0 18px #8b5cf6" }} />
+            <div className="px-7 py-5 flex items-center gap-4">
+              <span className="text-3xl">💼</span>
+              <div>
+                <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
+                  {tt.dfTitulo}
+                </h2>
+                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#a5b4fc" }}>{tt.dfSub}</p>
+              </div>
             </div>
           </div>
 
-          {/* ══════ LINHA 2: Insights + Top Custos + Distribuição Custos (DONUT GROSSO) ══════ */}
-          <div className="grid grid-cols-1 gap-5">
-
-            {/* Insights da Empresa — estilo Customer Insights */}
-            <GC cor={COR.roxo} onClick={() => router.push("/ia-financeira")}>
-              <div className="p-5">
-                <p className="text-sm font-black mb-4" style={{ color: "#f1f5f9" }}>💡 {tt.insightsEmpresa}</p>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)" }}>
-                    <p className="text-2xl font-black" style={{ color: "#f1f5f9" }}>{snap.qtd_lancamentos}</p>
-                    <p className="text-[8px] uppercase tracking-wider font-bold mt-1" style={{ color: "#94a3b8" }}>{tt.lancamentos}</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.2)" }}>
-                    <p className="text-2xl font-black" style={{ color: "#f1f5f9" }}>{snap.inadimplencia_pct.toFixed(0)}%</p>
-                    <p className="text-[8px] uppercase tracking-wider font-bold mt-1" style={{ color: "#94a3b8" }}>{tt.inadimplencia}</p>
-                  </div>
-                  <div className="text-center p-3 rounded-xl" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                    <p className="text-2xl font-black" style={{ color: "#f1f5f9" }}>{fBRL(snap.ticket_medio)}</p>
-                    <p className="text-[8px] uppercase tracking-wider font-bold mt-1" style={{ color: "#94a3b8" }}>{tt.ticket}</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {[{ l: tt.receber, v: fBRL(snap.contas_receber), c: COR.verde }, { l: tt.pagar, v: fBRL(snap.contas_pagar), c: COR.vermelho }, { l: tt.endividamento, v: fBRL(snap.endividamento_total), c: COR.roxo }].map((r, i) => (
-                    <div key={i} className="flex items-center justify-between p-2.5 rounded-lg transition-all hover:translate-x-1" style={{ background: `${r.c}08`, border: `1px solid ${r.c}12` }}>
-                      <span className="text-[11px] font-bold" style={{ color: "#94a3b8" }}>{r.l}</span>
-                      <span className="text-sm font-black" style={{ color: r.c }}>{r.v}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </GC>
-
-            {/* Top Custos — estilo Order Performance com ranking + barras */}
-            <GC cor={COR.indigo} onClick={() => router.push("/custos-fixos")}>
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>📊 {tt.topCustos}</p>
-                  <span className="text-[10px] px-2 py-1 rounded-lg font-bold" style={{ background: "rgba(99,102,241,0.15)", color: COR.indigo }}>{topCustos.length}</span>
-                </div>
-                {topCustos.length === 0 ? <p className="text-xs py-8 text-center" style={{ color: "#475569" }}>—</p> : (
-                  <div className="space-y-3">
-                    {topCustos.map((c, i) => {
-                      const maxV = topCustos[0]?.value || 1;
-                      return (
-                        <div key={i} className="transition-all hover:translate-x-1">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs font-bold flex items-center gap-2" style={{ color: "#e2e8f0" }}>
-                              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }}></span>{c.name}
-                            </span>
-                            <span className="text-xs font-black" style={{ color: c.color }}>{fBRL(c.value)}</span>
-                          </div>
-                          <div className="rounded-full h-2" style={{ background: "rgba(99,102,241,0.08)" }}>
-                            <div className="h-2 rounded-full transition-all duration-700" style={{ width: `${(c.value / maxV) * 100}%`, background: `linear-gradient(90deg, ${c.color}, ${c.color}aa)` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </GC>
-
-            {/* ★ DONUT ECharts — Distribuição de Custos */}
-            {distribuicao.length > 0 && (
-              <DonutPanel titulo={tt.distribuicaoCustos} icone="🥧" cor={COR.cyan}
-                subtitulo={tt.custos} path="/relatorios" router={router}
-                centroLabel={tt.custos.toUpperCase()} centroValor={fBRL(distribuicao.reduce((a, b) => a + b.value, 0))}
-                dados={distribuicao.map(d => ({ name: d.name, value: d.value, color: d.color }))} />
-            )}
-          </div>
-
-          {/* ══════ LINHA 3: Composição Financeira (2o DONUT) + Radar Score + Alertas/Ações ══════ */}
-          <div className="grid grid-cols-1 gap-5">
-
-            {/* ★ DONUT ECharts — Composição Financeira */}
-            {composicao.length > 0 && (
-              <DonutPanel titulo={tt.composicaoFinanceira} icone="💠" cor={COR.verde}
-                subtitulo={`${tt.receita}: ${fBRL(snap.receita_bruta)}`} path="/dre" router={router}
-                tag={usandoExemplo ? (lang === "en" ? "SAMPLE" : lang === "es" ? "EJEMPLO" : "EXEMPLO") : undefined}
-                centroLabel={tt.receita.toUpperCase()} centroValor={fBRL(snap.receita_bruta)}
-                dados={composicao.map(d => ({ name: d.name, value: d.value, color: d.color }))} />
-            )}
-
-            {/* Radar Score */}
-            <GC cor={COR.roxo} onClick={() => router.push("/ia-financeira")}>
-              <div className="p-4">
-                <p className="text-sm font-black mb-2" style={{ color: "#f1f5f9" }}>🏆 {tt.dimensoesScore}</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <RadarChart data={score360.dimensoes.map(d => ({ s: dN(d), v: d.score, b: 70, f: 100 }))}>
-                    <defs><radialGradient id="rG" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor={COR.roxo} stopOpacity={0.7}/><stop offset="100%" stopColor={COR.roxo} stopOpacity={0.05}/></radialGradient></defs>
-                    <PolarGrid stroke="rgba(139,92,246,0.1)" gridType="polygon" />
-                    <PolarAngleAxis dataKey="s" tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: 700 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar dataKey="b" stroke={COR.amarelo} strokeWidth={1} strokeDasharray="3 3" fill="transparent" dot={false} />
-                    <Radar dataKey="v" stroke={COR.roxo} fill="url(#rG)" strokeWidth={2.5}
-                      dot={(p: any) => { const d = score360.dimensoes[p.index]; return d ? <circle key={p.index} cx={p.cx} cy={p.cy} r={5} fill={d.cor} stroke="#0a0823" strokeWidth={2} /> : null; }} />
-                  </RadarChart>
-                </ResponsiveContainer>
-                <div className="grid grid-cols-5 gap-1 mt-1">{score360.dimensoes.map((d, i) => <div key={i} className="text-center"><p className="text-xs font-black" style={{ color: d.cor }}>{d.score}</p></div>)}</div>
-              </div>
-            </GC>
-
-            {/* Alertas + Ações + Obrigações */}
-            <GC cor={COR.rosa}>
-              <div className="p-4">
-                {/* Alertas */}
-                <p className="text-sm font-black mb-2" style={{ color: "#f1f5f9" }}>🔍 {tt.alertasIA}</p>
-                {anomalias.length === 0 ? <p className="text-[11px] mb-3" style={{ color: COR.verde }}>✅ {tt.semAlertas}</p> : (
-                  <div className="space-y-1.5 mb-3">{anomalias.slice(0, 2).map((a, i) => {
-                    const c = a.severidade === "alerta" ? COR.vermelho : a.severidade === "atencao" ? COR.amarelo : COR.verde;
-                    return (<div key={i} className="rounded-lg p-2 transition-all hover:translate-x-1" style={{ background: `${c}08`, border: `1px solid ${c}12` }}>
-                      <p className="text-[10px] font-bold" style={{ color: c }}>{a.severidade === "alerta" ? "🚨" : "⚠️"} {aN(a)}</p>
-                    </div>);
-                  })}</div>
-                )}
-                {/* Ações */}
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: "#94a3b8" }}>🎯 {tt.acoesIA}</p>
-                {acoes.length === 0 ? <p className="text-[10px] mb-3" style={{ color: "#475569" }}>—</p> : (
-                  <div className="space-y-1.5 mb-3">{acoes.slice(0, 2).map((a, i) => {
-                    const c = a.categoria === "custo" ? COR.vermelho : a.categoria === "receita" ? COR.verde : COR.roxo;
-                    return (<div key={i} className="flex items-start gap-1.5 p-2 rounded-lg transition-all hover:translate-x-1" style={{ background: "rgba(15,10,40,0.4)" }}>
-                      <span className="text-[10px] font-black" style={{ color: c }}>{a.prioridade}.</span>
-                      <div><p className="text-[10px] font-bold" style={{ color: "#e2e8f0" }}>{acN(a)}</p></div>
-                    </div>);
-                  })}</div>
-                )}
-                {/* Obrigações */}
-                <p className="text-[10px] uppercase tracking-wider font-bold mb-2" style={{ color: "#94a3b8" }}>📅 {tt.obrigacoes}</p>
-                {obrigacoes.length === 0 ? <p className="text-[10px]" style={{ color: "#475569" }}>{tt.semObrig}</p> : (
-                  <div className="space-y-1">{obrigacoes.slice(0, 2).map((o, i) => (
-                    <div key={i} className="flex items-center justify-between p-1.5 rounded text-[10px]" style={{ background: "rgba(15,10,40,0.3)" }}>
-                      <span className="truncate font-medium" style={{ color: "#94a3b8" }}>{o.nome}</span>
-                      <span className="font-bold flex-shrink-0 ml-1" style={{ color: COR.roxo }}>{fData(o.data_vencimento, lang)}</span>
-                    </div>
-                  ))}</div>
-                )}
-              </div>
-            </GC>
-          </div>
-
-          {/* ══════ PAINÉIS EMPILHADOS ESTILO POWER BI — barras grossas, cores vivas, valores nas barras ══════ */}
-          <div className="space-y-4">
-            <div className="px-1">
-              <p className="text-lg font-black" style={{ color: "#f1f5f9" }}>📊 {tt.painelModulos}</p>
-              <p className="text-[11px] font-medium" style={{ color: "#64748b" }}>{tt.painelModulosDesc}</p>
-            </div>
-
-            {/* Evolução de Receita — mensal */}
-            <BigBarPanel titulo={tt.mReceitas} icone="💰" cor={COR.roxo} subtitulo={tt.deste_mes} path="/receitas" router={router}
-              dados={evolucao.map(e => ({ label: e.mes, value: e.receita, color: COR.roxo }))} />
-
-            {/* Evolução de Lucro — mensal */}
-            <BigBarPanel titulo={tt.lucro} icone="📈" cor={snap.lucro_liquido >= 0 ? COR.verde : COR.vermelho} subtitulo={tt.pmDre} path="/dre" router={router}
-              dados={evolucao.map(e => ({ label: e.mes, value: e.lucro, color: e.lucro >= 0 ? COR.verde : COR.vermelho }))} />
-
-            {/* Custos por Categoria — cores vivas distintas por barra, horizontal */}
-            {topCustos.length > 0 && (
-              <BigBarPanel titulo={tt.topCustos} icone="📉" cor={COR.vermelho} subtitulo={tt.custos} path="/custos-fixos" router={router}
-                dados={topCustos.map(c => ({ label: c.name, value: c.value, color: c.color }))} horizontal altura={220} />
-            )}
-
-            {/* Composição Financeira — Lucro x Custos Fixos x Custos Variáveis, cores vivas */}
-            {composicao.length > 0 && (
-              <BigBarPanel titulo={tt.composicaoFinanceira} icone="💠" cor={COR.cyan} subtitulo={tt.receita + ": " + fBRL(snap.receita_bruta)} path="/relatorios" router={router}
-                dados={composicao.map(c => ({ label: c.name, value: c.value, color: c.color }))} />
-            )}
-
-            {/* Score 360° por Dimensão — cada barra com a cor da própria dimensão */}
-            <BigBarPanel titulo={tt.dimensoesScore} icone="🏆" cor={score360.cor} subtitulo={`Score total: ${score360.total}/100`} path="/ia-financeira" router={router}
-              dados={score360.dimensoes.map(d => ({ label: dN(d), value: d.score, color: d.cor }))} altura={230} />
-
-            {/* Linha de KPIs hexagonais — Relacionamento & Compromissos */}
-            <GC cor={COR.cyan}>
-              <div className="p-5">
-                <p className="text-base font-black mb-4" style={{ color: "#f1f5f9" }}>🤝 {tt.insightsEmpresa}</p>
-                <div className="flex flex-wrap items-center justify-around gap-4">
-                  <StatHex valor={String(modulosData?.clientesCount ?? 0)} label={tt.mClientes} cor={COR.cyan} onClick={() => router.push("/clientes")} />
-                  <StatHex valor={String(modulosData?.fornecedoresCount ?? 0)} label={tt.mFornec} cor={COR.teal} onClick={() => router.push("/fornecedores")} />
-                  <StatHex valor={fmtCompact(modulosData?.crTotal ?? 0)} label={tt.contasReceber} cor={COR.verde} onClick={() => router.push("/contas-receber")} />
-                  <StatHex valor={fmtCompact(modulosData?.cpTotal ?? 0)} label={tt.contasPagar} cor={COR.laranja} onClick={() => router.push("/fornecedores")} />
-                  <StatHex valor={`${snap.inadimplencia_pct.toFixed(0)}%`} label={tt.inadimplencia} cor={COR.rosa} onClick={() => router.push("/contas-receber")} />
-                </div>
-              </div>
-            </GC>
-
-            {/* Linha de KPIs hexagonais — Crescimento & Capital */}
-            <GC cor={COR.amarelo}>
-              <div className="p-5">
-                <p className="text-base font-black mb-4" style={{ color: "#f1f5f9" }}>🚀 {lang === "en" ? "Growth & Capital" : lang === "es" ? "Crecimiento & Capital" : "Crescimento & Capital"}</p>
-                <div className="flex flex-wrap items-center justify-around gap-4">
-                  <StatHex valor={`${modulosData?.metasProgresso ?? 0}%`} label="Metas" cor={COR.amarelo} onClick={() => router.push("/metas")} />
-                  <StatHex valor={fmtCompact(modulosData?.investTotal ?? 0)} label="Investimentos" cor={COR.indigo} onClick={() => router.push("/investimentos")} />
-                  <StatHex valor={fmtCompact(snap.endividamento_total)} label={tt.endividamento} cor={COR.rosa} onClick={() => router.push("/endividamento")} />
-                  <StatHex valor={`${snap.margem_liquida.toFixed(0)}%`} label={tt.margem} cor={COR.verde} onClick={() => router.push("/ia-tributaria")} />
-                  <StatHex valor={`${score360.total}`} label="Score 360°" cor={score360.cor} onClick={() => router.push("/ia-financeira")} />
-                </div>
-              </div>
-            </GC>
-          </div>
-
-          {/* ══════ DASHBOARD FINANCEIRO — full-bleed, da borda esquerda à direita ══════ */}
-          <div className="-mx-3 md:-mx-5 px-3 md:px-5 pt-6 pb-2"
-            style={{ borderTop: "1px solid rgba(99,102,241,0.12)", background: "linear-gradient(180deg, rgba(139,92,246,0.045), transparent 60%)" }}>
+          {/* ══════ DASHBOARD FINANCEIRO — full-bleed ══════ */}
+          <div className="-mx-3 md:-mx-5 px-3 md:px-5 pt-2 pb-1">
             <DashFinanceiro />
           </div>
 
-          {/* ══════ DASHBOARD COMERCIAL & CRESCIMENTO — full-bleed ══════ */}
-          <div className="-mx-3 md:-mx-5 px-3 md:px-5 pt-6 pb-2"
-            style={{ borderTop: "1px solid rgba(99,102,241,0.12)", background: "linear-gradient(180deg, rgba(6,182,212,0.045), transparent 60%)" }}>
+          {/* ══════ LETREIRO — DASHBOARD COMERCIAL ══════ */}
+          <div className="relative rounded-2xl overflow-hidden mt-4"
+            style={{ background: "linear-gradient(120deg, rgba(6,182,212,0.16), rgba(10,8,32,0.6) 55%, rgba(212,175,55,0.10))", border: "1px solid rgba(6,182,212,0.28)" }}>
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: "linear-gradient(180deg, #06b6d4, #d4af37)", boxShadow: "0 0 18px #06b6d4" }} />
+            <div className="px-7 py-5 flex items-center gap-4">
+              <span className="text-3xl">🚀</span>
+              <div>
+                <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
+                  {tt.dcTitulo}
+                </h2>
+                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#67e8f9" }}>{tt.dcSub}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ══════ DASHBOARD COMERCIAL — full-bleed ══════ */}
+          <div className="-mx-3 md:-mx-5 px-3 md:px-5 pt-2 pb-1">
             <DashComercial />
           </div>
 
