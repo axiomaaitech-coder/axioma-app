@@ -341,3 +341,10 @@ export function pesoSobreReceita(custoTotal: number, receitaTotal: number): numb
   if (receitaTotal <= 0) return 0;
   return (custoTotal / receitaTotal) * 100;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
+// Usar em TODOS os títulos de painel e letreiros dos módulos.
+// ═══════════════════════════════════════════════════════════════
+export const FONTE_EXEC = { fontFamily: "'Georgia','Times New Roman',serif" };
+export const FONTE_EXEC_TITULO = { fontFamily: "'Georgia','Times New Roman',serif", letterSpacing: "0.3px" };

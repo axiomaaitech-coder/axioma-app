@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
   fBRL, fBRL2, CORES, porCategoria, optRosca, optBarrasV,
-  radarRenovacoes, detectarDesperdicio, type ItemRenovavel, type ItemDespesa,
+  radarRenovacoes, detectarDesperdicio, FONTE_EXEC, type ItemRenovavel, type ItemDespesa,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
 
@@ -165,7 +165,7 @@ export default function CustosFixos() {
     <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-        <p className="text-[13px] font-black" style={{ color: "#f1f5f9" }}>{titulo}</p>
+        <p className="text-[13px] font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{titulo}</p>
       </div>
       <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
     </div>
@@ -202,7 +202,7 @@ export default function CustosFixos() {
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor}>
                 <p className="text-[10px] md:text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
-                <p className="text-sm md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
+                <p className="text-sm md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
           ))}
@@ -218,7 +218,7 @@ export default function CustosFixos() {
                   className="rounded-2xl p-3 md:p-4"
                   style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
-                  <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}>{k.v}</p>
+                  <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
                   <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
                 </motion.div>
               ))}
@@ -241,7 +241,7 @@ export default function CustosFixos() {
               <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))", border: "1px solid rgba(249,115,22,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Bell size={16} style={{ color: CORES.laranja }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>{cx.radarRenovacoes}</p>
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.radarRenovacoes}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {renovacoes.map((r, i) => (
@@ -282,7 +282,7 @@ export default function CustosFixos() {
               <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: CORES.ouro }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>{cx.insights}</p>
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
