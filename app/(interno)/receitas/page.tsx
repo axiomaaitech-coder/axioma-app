@@ -1,12 +1,13 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { Search, Trash2, X, Pencil } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Trash2, X, Pencil, Share2, TrendingUp, TrendingDown, AlertTriangle, Sparkles } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactECharts from "echarts-for-react";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,13 +16,78 @@ const supabase = createBrowserClient(
 
 const categorias = ["Vendas de produtos", "Prestação de serviços", "Recorrentes", "Eventuais", "Outras"];
 
-type Receita = {
-  id: string; descricao: string; valor: number;
-  data: string; categoria: string; status: string;
+// i18n complementar (o que o LanguageContext não tem ainda) — CFO layer
+const TX = {
+  pt: {
+    visaoCFO: "Visão CFO", inteligenciaReceita: "Inteligência de Receita",
+    mrr: "Receita Recorrente (MRR)", arr: "Receita Anual (ARR)", crescimentoMoM: "Crescimento no Mês",
+    ticketMedio: "Ticket Médio", concentracao: "Concentração Top 20%", recorrenciaPct: "% Recorrente",
+    analiseAnual: "Análise Anual de Receita", subAnalise: "Evolução · Composição · Previsão IA",
+    evolucao: "Evolução Mensal", composicao: "Composição por Categoria", previsao: "Previsão (próx. 3 meses)",
+    variacao: "Variação Mês a Mês", realizado: "Realizado", projetado: "Projeção IA",
+    insights: "Insights Inteligentes", semDados: "Adicione receitas para ver a inteligência CFO",
+    alertaConcentracao: "Alta concentração: poucos lançamentos representam a maior parte da receita.",
+    alertaQueda: "Receita caiu em relação ao mês anterior. Atenção ao fluxo.",
+    alertaRecorrencia: "Baixa recorrência: dependência de receitas eventuais aumenta o risco.",
+    positivoCrescimento: "Receita em crescimento consistente. Continue acelerando.",
+    positivoRecorrencia: "Boa base recorrente: receita previsível e saudável.",
+    compartilhar: "Compartilhar", centroCompart: "Centro de Compartilhamento", copiar: "Copiar", copiado: "Copiado!",
+    fechar: "Fechar", editar: "Editar Receita",
+  },
+  en: {
+    visaoCFO: "CFO View", inteligenciaReceita: "Revenue Intelligence",
+    mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)", crescimentoMoM: "Month Growth",
+    ticketMedio: "Avg Ticket", concentracao: "Top 20% Concentration", recorrenciaPct: "% Recurring",
+    analiseAnual: "Annual Revenue Analysis", subAnalise: "Evolution · Composition · AI Forecast",
+    evolucao: "Monthly Evolution", composicao: "Composition by Category", previsao: "Forecast (next 3 months)",
+    variacao: "Month-over-Month", realizado: "Actual", projetado: "AI Forecast",
+    insights: "Smart Insights", semDados: "Add revenue to see CFO intelligence",
+    alertaConcentracao: "High concentration: few entries represent most revenue.",
+    alertaQueda: "Revenue dropped vs last month. Watch cash flow.",
+    alertaRecorrencia: "Low recurrence: dependence on one-off revenue raises risk.",
+    positivoCrescimento: "Consistent revenue growth. Keep accelerating.",
+    positivoRecorrencia: "Good recurring base: predictable, healthy revenue.",
+    compartilhar: "Share", centroCompart: "Sharing Center", copiar: "Copy", copiado: "Copied!",
+    fechar: "Close", editar: "Edit Revenue",
+  },
+  es: {
+    visaoCFO: "Visión CFO", inteligenciaReceita: "Inteligencia de Ingresos",
+    mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)", crescimentoMoM: "Crecimiento del Mes",
+    ticketMedio: "Ticket Medio", concentracao: "Concentración Top 20%", recorrenciaPct: "% Recurrente",
+    analiseAnual: "Análisis Anual de Ingresos", subAnalise: "Evolución · Composición · Previsión IA",
+    evolucao: "Evolución Mensual", composicao: "Composición por Categoría", previsao: "Previsión (próx. 3 meses)",
+    variacao: "Variación Mes a Mes", realizado: "Realizado", projetado: "Previsión IA",
+    insights: "Insights Inteligentes", semDados: "Agregue ingresos para ver la inteligencia CFO",
+    alertaConcentracao: "Alta concentración: pocos registros representan la mayor parte.",
+    alertaQueda: "Los ingresos cayeron vs el mes anterior. Atención al flujo.",
+    alertaRecorrencia: "Baja recurrencia: la dependencia de ingresos eventuales aumenta el riesgo.",
+    positivoCrescimento: "Crecimiento de ingresos consistente. Sigue acelerando.",
+    positivoRecorrencia: "Buena base recurrente: ingresos predecibles y saludables.",
+    compartilhar: "Compartir", centroCompart: "Centro de Compartir", copiar: "Copiar", copiado: "¡Copiado!",
+    fechar: "Cerrar", editar: "Editar Ingreso",
+  },
 };
+
+const COR = {
+  ouro: "#d4af37", ouroC: "#f0d878", roxo: "#8b5cf6", roxoC: "#c4b5fd",
+  cyan: "#06b6d4", cyanC: "#67e8f9", verde: "#10b981", verdeC: "#6ee7b7",
+  vermelho: "#ef4444", laranja: "#f97316", laranjaC: "#fdba74", rosa: "#ec4899", teal: "#14b8a6", azul: "#3b82f6",
+};
+const CAT_COR: Record<string, string> = {
+  "Vendas de produtos": COR.ouro, "Prestação de serviços": COR.roxo,
+  "Recorrentes": COR.cyan, "Eventuais": COR.laranja, "Outras": COR.teal,
+};
+
+type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; };
+
+const fBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+const fK = (n: number) => Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toFixed(0)}k` : `R$ ${Math.round(n)}`;
 
 export default function Receitas() {
   const { t, idioma } = useLanguage();
+  const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const tx = TX[lang];
+
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
@@ -31,6 +97,8 @@ export default function Receitas() {
   const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
+  const [shareAberto, setShareAberto] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   const carregarReceitas = async () => {
     setCarregando(true);
@@ -40,19 +108,10 @@ export default function Receitas() {
     setReceitas(data || []);
     setCarregando(false);
   };
-
   useEffect(() => { carregarReceitas(); }, []);
 
-  const fecharModal = () => {
-    setModalAberto(false); setEditando(null);
-    setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" });
-  };
-
-  const abrirEdicao = (r: Receita) => {
-    setEditando(r);
-    setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status });
-    setModalAberto(true);
-  };
+  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" }); };
+  const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status }); setModalAberto(true); };
 
   const salvar = async () => {
     if (!novo.descricao || !novo.valor) return;
@@ -66,44 +125,7 @@ export default function Receitas() {
     if (!error) { fecharModal(); await carregarReceitas(); }
     setSalvando(false);
   };
-
-  const excluir = async (id: string) => {
-    await supabase.from("receitas").delete().eq("id", id);
-    setReceitas(receitas.filter(r => r.id !== id));
-  };
-
-  // PDF preto e branco (relatório/auditoria)
-  const exportarPDF = async () => {
-    setExportando(true);
-    try {
-      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      gerarPdfTabela({
-        titulo: t.receitas.titulo,
-        subtitulo: t.receitas.subtitulo,
-        colunas: [
-          { header: "Descrição", key: "descricao", width: 4 },
-          { header: "Categoria", key: "categoria", width: 3 },
-          { header: "Data", key: "data", width: 2 },
-          { header: "Status", key: "status", width: 2 },
-          { header: "Valor (R$)", key: "valor", width: 2, align: "right" },
-        ],
-        linhas: receitasFiltradas.map((r) => ({
-          descricao: r.descricao,
-          categoria: r.categoria,
-          data: r.data ? new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR") : "-",
-          status: r.status === "recebido" ? "Recebido" : "Pendente",
-          valor: fmt(r.valor),
-        })),
-        resumo: [
-          { label: "Total de Receitas", valor: `R$ ${fmt(totalReceitas)}` },
-          { label: "Recebido", valor: `R$ ${fmt(totalRecebido)}` },
-          { label: "Pendente", valor: `R$ ${fmt(totalPendente)}` },
-        ],
-        nomeArquivo: `axioma-receitas-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
-    } catch (err) { console.error(err); }
-    setExportando(false);
-  };
+  const excluir = async (id: string) => { await supabase.from("receitas").delete().eq("id", id); setReceitas(receitas.filter(r => r.id !== id)); };
 
   const receitasFiltradas = receitas.filter(r =>
     r.descricao.toLowerCase().includes(busca.toLowerCase()) &&
@@ -114,32 +136,299 @@ export default function Receitas() {
   const totalRecebido = receitas.filter(r => r.status === "recebido").reduce((acc, r) => acc + r.valor, 0);
   const totalPendente = receitas.filter(r => r.status === "pendente").reduce((acc, r) => acc + r.valor, 0);
 
+  // ═══════════ INTELIGÊNCIA CFO ═══════════
+  const hoje = new Date();
+  const mesesLabels = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const mesesLabelsI18n = lang === "en" ? ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    : lang === "es" ? ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"] : mesesLabels;
+
+  // Série 12 meses do ano corrente
+  const serie12 = Array(12).fill(0);
+  receitas.forEach(r => {
+    if (!r.data) return;
+    const d = new Date(r.data + "T00:00:00");
+    if (d.getFullYear() === hoje.getFullYear()) serie12[d.getMonth()] += r.valor;
+  });
+
+  const mesAtual = hoje.getMonth();
+  const receitaMesAtual = serie12[mesAtual];
+  const receitaMesAnterior = mesAtual > 0 ? serie12[mesAtual - 1] : 0;
+  const crescimentoMoM = receitaMesAnterior > 0 ? ((receitaMesAtual - receitaMesAnterior) / receitaMesAnterior) * 100 : 0;
+
+  // Recorrência
+  const totalRecorrente = receitas.filter(r => r.categoria === "Recorrentes").reduce((a, r) => a + r.valor, 0);
+  const recorrenciaPct = totalReceitas > 0 ? (totalRecorrente / totalReceitas) * 100 : 0;
+  const mrr = totalRecorrente / 12;
+  const arr = totalRecorrente;
+
+  // Ticket médio
+  const ticketMedio = receitas.length > 0 ? totalReceitas / receitas.length : 0;
+
+  // Concentração: top 20% dos lançamentos representam quanto?
+  const valoresOrdenados = [...receitas].sort((a, b) => b.valor - a.valor);
+  const top20Count = Math.max(1, Math.ceil(valoresOrdenados.length * 0.2));
+  const top20Soma = valoresOrdenados.slice(0, top20Count).reduce((a, r) => a + r.valor, 0);
+  const concentracao = totalReceitas > 0 ? (top20Soma / totalReceitas) * 100 : 0;
+
+  // Composição por categoria
+  const porCategoria = categorias.map(c => ({
+    name: c, value: receitas.filter(r => r.categoria === c).reduce((a, r) => a + r.valor, 0), color: CAT_COR[c],
+  })).filter(x => x.value > 0);
+
+  // Previsão IA simples (média móvel + tendência dos últimos meses com dados)
+  const mesesComDados = serie12.slice(0, mesAtual + 1).filter(v => v > 0);
+  const mediaRecente = mesesComDados.length > 0 ? mesesComDados.slice(-3).reduce((a, b) => a + b, 0) / Math.min(3, mesesComDados.slice(-3).length) : 0;
+  const tendencia = mesesComDados.length >= 2 ? (mesesComDados[mesesComDados.length - 1] - mesesComDados[0]) / mesesComDados.length : 0;
+  const previsao = [1, 2, 3].map(i => Math.max(0, mediaRecente + tendencia * i));
+
+  const temDados = receitas.length > 0;
+
+  // Insights
+  const insights: { tipo: "alerta" | "positivo"; texto: string }[] = [];
+  if (temDados) {
+    if (concentracao > 70) insights.push({ tipo: "alerta", texto: tx.alertaConcentracao });
+    if (crescimentoMoM < 0 && receitaMesAnterior > 0) insights.push({ tipo: "alerta", texto: tx.alertaQueda });
+    if (recorrenciaPct < 20) insights.push({ tipo: "alerta", texto: tx.alertaRecorrencia });
+    if (crescimentoMoM > 5) insights.push({ tipo: "positivo", texto: tx.positivoCrescimento });
+    if (recorrenciaPct >= 40) insights.push({ tipo: "positivo", texto: tx.positivoRecorrencia });
+  }
+
+  // ═══════════ PDF ═══════════
+  const exportarPDF = async () => {
+    setExportando(true);
+    try {
+      const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      gerarPdfTabela({
+        titulo: t.receitas.titulo, subtitulo: t.receitas.subtitulo,
+        colunas: [
+          { header: "Descrição", key: "descricao", width: 4 },
+          { header: "Categoria", key: "categoria", width: 3 },
+          { header: "Data", key: "data", width: 2 },
+          { header: "Status", key: "status", width: 2 },
+          { header: "Valor (R$)", key: "valor", width: 2, align: "right" },
+        ],
+        linhas: receitasFiltradas.map((r) => ({
+          descricao: r.descricao, categoria: r.categoria,
+          data: r.data ? new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR") : "-",
+          status: r.status === "recebido" ? "Recebido" : "Pendente", valor: fmt(r.valor),
+        })),
+        resumo: [
+          { label: "Total de Receitas", valor: `R$ ${fmt(totalReceitas)}` },
+          { label: "Recebido", valor: `R$ ${fmt(totalRecebido)}` },
+          { label: "Pendente", valor: `R$ ${fmt(totalPendente)}` },
+          { label: "MRR (Recorrente)", valor: `R$ ${fmt(mrr)}` },
+          { label: "ARR (Anual)", valor: `R$ ${fmt(arr)}` },
+        ],
+        nomeArquivo: `axioma-receitas-${new Date().toISOString().slice(0, 10)}.pdf`,
+      });
+    } catch (err) { console.error(err); }
+    setExportando(false);
+  };
+
+  // ═══════════ COMPARTILHAR ═══════════
+  const textoShare = [
+    `🚀 AXIOMA AI.TECH — ${t.receitas.titulo}`,
+    `💰 ${t.receitas.totalReceitas}: ${fBRL(totalReceitas)}`,
+    `📈 MRR: ${fBRL(mrr)} · ARR: ${fBRL(arr)}`,
+    `📊 ${tx.crescimentoMoM}: ${crescimentoMoM >= 0 ? "▲" : "▼"} ${Math.abs(crescimentoMoM).toFixed(1)}%`,
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const encoded = encodeURIComponent(textoShare);
+  const canais = [
+    { nome: "WhatsApp", cor: "#25D366", url: `https://wa.me/?text=${encoded}` },
+    { nome: "Telegram", cor: "#0088cc", url: `https://t.me/share/url?url=axiomaai.com.br&text=${encoded}` },
+    { nome: "Gmail", cor: "#EA4335", url: `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(t.receitas.titulo + " — Axioma")}&body=${encoded}` },
+    { nome: "Outlook", cor: "#0078D4", url: `https://outlook.live.com/owa/?path=/mail/action/compose&subject=${encodeURIComponent(t.receitas.titulo)}&body=${encoded}` },
+  ];
+  const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  // ═══════════ GRÁFICOS ECharts ═══════════
+  const tip = { backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, padding: [10, 14], textStyle: { color: "#e2e8f0", fontSize: 13 }, extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);" };
+
+  const optEvolucao = {
+    backgroundColor: "transparent", animationDuration: 900,
+    grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
+    tooltip: { ...tip, trigger: "item", borderColor: COR.roxo, formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${COR.roxoC}">${fBRL(p.value)}</b>` },
+    xAxis: { type: "category", data: mesesLabelsI18n, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+    series: [{
+      type: "bar", barWidth: "58%",
+      itemStyle: { borderRadius: [8, 8, 2, 2], color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: COR.roxoC }, { offset: 1, color: COR.roxo }] }, shadowColor: COR.roxo + "55", shadowBlur: 12 },
+      label: { show: true, position: "top", distance: 6, color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
+      emphasis: { itemStyle: { shadowBlur: 24 } }, data: serie12,
+    }],
+  };
+
+  const optCategoria = (() => {
+    const total = porCategoria.reduce((a, b) => a + b.value, 0);
+    return {
+      backgroundColor: "transparent", animationDuration: 1000,
+      tooltip: { ...tip, trigger: "item", borderColor: COR.ouro, formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${COR.ouro}">${p.percent}%</span>` },
+      legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle", textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 600 },
+        formatter: (name: string) => { const d = porCategoria.find(x => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name.length > 14 ? name.slice(0, 13) + "…" : name}  ${pct}%`; } },
+      series: [{ type: "pie", radius: ["54%", "80%"], center: ["32%", "52%"], avoidLabelOverlap: false,
+        itemStyle: { borderColor: "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 }, label: { show: false }, labelLine: { show: false },
+        emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 26 } },
+        data: porCategoria.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })) }],
+      graphic: [
+        { type: "text", left: "32%", top: "45%", style: { text: fK(total), textAlign: "center", fill: "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
+        { type: "text", left: "32%", top: "55%", style: { text: t.receitas.totalReceitas?.toUpperCase?.() || "TOTAL", textAlign: "center", fill: "#64748b", fontSize: 9, fontWeight: 700 }, z: 10 },
+      ],
+    };
+  })();
+
+  const optPrevisao = {
+    backgroundColor: "transparent", animationDuration: 1100,
+    grid: { left: 52, right: 16, top: 20, bottom: 28, containLabel: false },
+    tooltip: { ...tip, trigger: "axis", borderColor: COR.cyan, formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter(p => p.value != null).map(p => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
+    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [tx.realizado, tx.projetado] },
+    xAxis: { type: "category", boundaryGap: false, data: [...mesesLabelsI18n.slice(Math.max(0, mesAtual - 2), mesAtual + 1), "+1", "+2", "+3"],
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false }, axisLabel: { color: "#94a3b8", fontSize: 11, fontWeight: 700 } },
+    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+    series: [
+      { name: tx.realizado, type: "line", smooth: true, symbol: "circle", symbolSize: 7,
+        lineStyle: { width: 4, color: COR.verde, shadowColor: COR.verde + "80", shadowBlur: 12 }, itemStyle: { color: COR.verde, borderColor: "#0a0820", borderWidth: 2 },
+        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(16,185,129,0.35)" }, { offset: 1, color: "rgba(16,185,129,0)" }] } },
+        data: [...serie12.slice(Math.max(0, mesAtual - 2), mesAtual + 1), null, null, null] },
+      { name: tx.projetado, type: "line", smooth: true, symbol: "emptyCircle", symbolSize: 7,
+        lineStyle: { width: 3, color: COR.cyan, type: "dotted", shadowColor: COR.cyan + "70", shadowBlur: 10 }, itemStyle: { color: COR.cyan, borderColor: "#0a0820", borderWidth: 2 },
+        data: [...Array(Math.min(3, mesAtual + 1) - 1).fill(null), serie12[mesAtual], ...previsao] },
+    ],
+  };
+
+  const kpisCFO = [
+    { l: tx.mrr, v: fBRL(mrr), c: COR.cyan, i: "🔄" },
+    { l: tx.arr, v: fBRL(arr), c: COR.roxo, i: "📅" },
+    { l: tx.crescimentoMoM, v: `${crescimentoMoM >= 0 ? "▲" : "▼"} ${Math.abs(crescimentoMoM).toFixed(1)}%`, c: crescimentoMoM >= 0 ? COR.verde : COR.vermelho, i: "📈" },
+    { l: tx.ticketMedio, v: fBRL(ticketMedio), c: COR.ouro, i: "🎫" },
+    { l: tx.recorrenciaPct, v: `${recorrenciaPct.toFixed(0)}%`, c: COR.teal, i: "♻️" },
+    { l: tx.concentracao, v: `${concentracao.toFixed(0)}%`, c: concentracao > 70 ? COR.laranja : COR.verde, i: "🎯" },
+  ];
+
+  const marquee = [
+    `🚀 AXIOMA AI.TECH`, `${t.receitas.totalReceitas} ${fBRL(totalReceitas)}`,
+    `MRR ${fBRL(mrr)}`, `ARR ${fBRL(arr)}`,
+    `${tx.crescimentoMoM} ${crescimentoMoM >= 0 ? "▲" : "▼"}${Math.abs(crescimentoMoM).toFixed(1)}%`,
+    `${tx.ticketMedio} ${fBRL(ticketMedio)}`, `${t.receitas.recebido} ${fBRL(totalRecebido)}`,
+  ];
+
+  const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
+    <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
+        <p className="text-[13px] font-black" style={{ color: "#f1f5f9" }}>{titulo}</p>
+      </div>
+      <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
+    </div>
+  );
+
   return (
     <ModuloLayout titulo={t.receitas.titulo} subtitulo={t.receitas.subtitulo} onExportarPDF={exportarPDF}
       exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" }); setModalAberto(true); }}
       labelBotao={t.receitas.novaReceita}>
       <div className="space-y-4">
+
+        {/* Botão Compartilhar */}
+        <div className="flex justify-end">
+          <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
+            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}>
+            <Share2 size={16} /> {tx.compartilhar}
+          </motion.button>
+        </div>
+
+        {/* KPIs originais (mantidos) */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.receitas.totalReceitas, value: `R$ ${totalReceitas.toLocaleString("pt-BR")}`, cor: "#6ab0ff" },
-            { label: t.receitas.recebido, value: `R$ ${totalRecebido.toLocaleString("pt-BR")}`, cor: "#34d399" },
-            { label: t.receitas.pendente, value: `R$ ${totalPendente.toLocaleString("pt-BR")}`, cor: "#fbbf24" },
+            { label: t.receitas.totalReceitas, value: fBRL(totalReceitas), cor: "#6ab0ff" },
+            { label: t.receitas.recebido, value: fBRL(totalRecebido), cor: "#34d399" },
+            { label: t.receitas.pendente, value: fBRL(totalPendente), cor: "#fbbf24" },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
-                <p className="text-base md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
+                <p className="text-[10px] md:text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
+                <p className="text-sm md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
           ))}
         </div>
+
+        {/* ═══════════ CAMADA CFO ═══════════ */}
+        {temDados && (
+          <>
+            {/* KPIs CFO */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {kpisCFO.map((k, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
+                  className="rounded-2xl p-3 md:p-4"
+                  style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
+                  <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
+                  <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}>{k.v}</p>
+                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Letreiro em loop */}
+            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.22)" }}>
+              <div className="marquee-rec py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
+                {[0, 1].map(rep => (
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#c4b5fd" : "#e2e8f0" }}>{m}<span style={{ color: "#8b5cf6" }}>{"  •  "}</span></span>))}
+                  </span>
+                ))}
+              </div>
+              <style>{`.marquee-rec{animation:marqueeRec 30s linear infinite}@keyframes marqueeRec{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-rec:hover{animation-play-state:paused}`}</style>
+            </div>
+
+            {/* MODAL ÚNICO — Análise Anual */}
+            <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+              <div className="p-4 md:p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#8b5cf6,#06b6d4)", boxShadow: "0 0 12px #8b5cf6" }} />
+                  <div>
+                    <p className="text-sm md:text-base font-black" style={{ color: "#f1f5f9", fontFamily: "'Georgia',serif" }}>{tx.analiseAnual}</p>
+                    <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{tx.subAnalise}</p>
+                  </div>
+                </div>
+
+                <div className="mb-4"><SubChart titulo={tx.evolucao} cor={COR.roxo} option={optEvolucao} altura={260} /></div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <SubChart titulo={tx.composicao} cor={COR.ouro} option={optCategoria} altura={240} />
+                  <SubChart titulo={tx.previsao} cor={COR.cyan} option={optPrevisao} altura={240} />
+                </div>
+              </div>
+            </div>
+
+            {/* Insights */}
+            {insights.length > 0 && (
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(99,102,241,0.15)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles size={16} style={{ color: COR.ouro }} />
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>{tx.insights}</p>
+                </div>
+                <div className="space-y-2">
+                  {insights.map((ins, i) => (
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+                      style={{ background: ins.tipo === "alerta" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)", border: `1px solid ${ins.tipo === "alerta" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
+                      {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: COR.vermelho, flexShrink: 0 }} /> : <TrendingUp size={15} style={{ color: COR.verde, flexShrink: 0 }} />}
+                      <p className="text-xs md:text-[13px] font-medium" style={{ color: ins.tipo === "alerta" ? "#fca5a5" : "#6ee7b7" }}>{ins.texto}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Busca + filtro */}
         <div className="flex flex-col md:flex-row gap-3">
           <CanvasBox cor="#3b6fd4">
             <div className="flex items-center gap-2 py-1">
               <Search size={16} style={{ color: "#5a7a9a" }} />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.receitas.buscar}
-                className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "#c8d8f0", minWidth: "200px" }} />
+                className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "#c8d8f0", minWidth: "160px" }} />
             </div>
           </CanvasBox>
           <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
@@ -149,12 +438,12 @@ export default function Receitas() {
             {categorias.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
+
+        {/* Tabela (mantida) */}
         <CanvasBox cor="#6ab0ff">
           <div className="overflow-x-auto">
             {carregando ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-              </div>
+              <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <table className="w-full min-w-[600px]">
                 <thead>
@@ -172,10 +461,10 @@ export default function Receitas() {
                       whileHover={{ backgroundColor: "rgba(106,176,255,0.03)" }}
                       style={{ borderBottom: i < receitasFiltradas.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "#c8d8f0" }}>{r.descricao}</td>
-                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(59,111,212,0.1)", color: "#6ab0ff" }}>{r.categoria}</span></td>
+                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: `${CAT_COR[r.categoria]}18`, color: CAT_COR[r.categoria] || "#6ab0ff" }}>{r.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "#5a7a9a" }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? "#34d399" : "#fbbf24" }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: "#34d399" }}>R$ {r.valor.toLocaleString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: "#34d399" }}>{fBRL(r.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(r)} style={{ color: "#6ab0ff" }}><Pencil size={16} /></motion.button>
@@ -191,19 +480,17 @@ export default function Receitas() {
         </CanvasBox>
       </div>
 
+      {/* Modal criar/editar (mantido) */}
       <AnimatePresence>
         {modalAberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-md max-h-screen overflow-y-auto">
+            className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }} className="w-full max-w-md max-h-screen overflow-y-auto">
               <CanvasBox cor="#6ab0ff">
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? "Editar Receita" : t.receitas.novaReceita}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? tx.editar : t.receitas.novaReceita}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                 </div>
@@ -216,15 +503,12 @@ export default function Receitas() {
                     <div key={key}>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{label}</label>
                       <input type={type} value={novo[key as keyof typeof novo]} onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
                     </div>
                   ))}
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.receitas.categoria}</label>
-                    <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                    <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
@@ -232,20 +516,43 @@ export default function Receitas() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.receitas.status}</label>
                     <div className="flex gap-2">
                       {["recebido", "pendente"].map((s) => (
-                        <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })}
-                          className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+                        <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
                           style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(59,111,212,0.05)", color: novo.status === s ? (s === "recebido" ? "#34d399" : "#fbbf24") : "#5a7a9a", border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(59,111,212,0.1)"}` }}>
                           {s === "recebido" ? t.receitas.recebido : t.receitas.pendente}
                         </motion.button>
                       ))}
                     </div>
                   </div>
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={salvar} disabled={salvando}
-                    className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                    {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.receitas.salvarReceita}
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando} className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                    {salvando ? t.geral.carregando : editando ? (lang === "en" ? "Save Changes" : lang === "es" ? "Guardar Cambios" : "Salvar Alterações") : t.receitas.salvarReceita}
                   </motion.button>
+                </div>
+              </CanvasBox>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Centro de Compartilhamento */}
+      <AnimatePresence>
+        {shareAberto && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => setShareAberto(false)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+              <CanvasBox cor="#8b5cf6">
+                <div className="flex justify-between items-center mb-5">
+                  <div>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#c4b5fd" }}>AXIOMA AI.TECH</p>
+                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{tx.centroCompart}</h3>
+                  </div>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {canais.map(c => (
+                    <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                      style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
+                  ))}
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? tx.copiado : tx.copiar}</button>
+                  <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>PDF</button>
                 </div>
               </CanvasBox>
             </motion.div>
