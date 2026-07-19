@@ -3,6 +3,7 @@
 // Implementa 12+ indicadores brasileiros, Score CFO 0-100, insights automáticos.
 
 import { createBrowserClient } from "@supabase/ssr";
+import { calcularImpostoRegime } from "./iaTributariaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -133,9 +134,15 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
     // mantém 0 se a consulta falhar por qualquer motivo
   }
 
-  // 5) Deduções: aproximação simples como 7% (Simples Nacional faixa básica)
-  // Quando o módulo de Impostos estiver pronto, troca por valor real.
-  const deducoes = Math.round(receita_bruta * 0.07);
+  // 5) Deduções: imposto real da empresa pelo regime tributário (mesmo cálculo do
+  // módulo IA Tributária), em vez de um percentual fixo chutado.
+  const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
+  const [{ data: empresa }, { data: rec12m }] = await Promise.all([
+    supabase.from("empresas").select("regime_tributario").eq("user_id", userId).limit(1).maybeSingle(),
+    supabase.from("receitas").select("valor").eq("user_id", userId).gte("data", inicio12m).lte("data", periodo.fim),
+  ]);
+  const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+  const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta));
 
   const receita_liquida = receita_bruta - deducoes;
   const margem_contribuicao = receita_liquida - custos_variaveis;

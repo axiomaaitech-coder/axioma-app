@@ -671,6 +671,273 @@ export function detectarAnomaliasHistoricas(itens: Lancamento[]): AnomaliaHistor
 }
 
 // ═══════════════════════════════════════════════════════════════
+// DRE — DIAGNÓSTICO CFO (cascata, análise vertical/horizontal,
+// decomposição de causa raiz, ponte lucro×caixa, semáforo de saúde,
+// runway, conselho acionável, projeção). Reutilizável por DRE e
+// Relatórios — única fonte de verdade da cascata, nunca duplicar.
+// ═══════════════════════════════════════════════════════════════
+
+export type LinhaDRE = { valor: number; avPct: number | null };
+
+export type DRE = {
+  receitaBruta: LinhaDRE;
+  deducoes: LinhaDRE;
+  receitaLiquida: LinhaDRE;
+  custoVariavel: LinhaDRE;
+  margemContribuicao: LinhaDRE;
+  custoFixo: LinhaDRE;
+  ebitda: LinhaDRE;
+  despesasFinanceiras: LinhaDRE;
+  lucroLiquido: LinhaDRE;
+  margemContribuicaoPct: number; // sobre receita líquida
+  margemLiquidaPct: number;      // sobre receita líquida
+};
+
+// Cascata completa. AV% sempre sobre Receita Líquida (base = 100%) — a Receita
+// Bruta fica acima da base (deduções ainda não saíram), por isso avPct null nela.
+export function montarDRE(p: {
+  receitaBruta: number; deducoes: number; custoVariavel: number; custoFixo: number; despesasFinanceiras: number;
+}): DRE {
+  const receitaLiquida = p.receitaBruta - p.deducoes;
+  const mc = margemContribuicao(receitaLiquida, p.custoVariavel);
+  const ebitda = mc.valor - p.custoFixo;
+  const lucroLiquido = ebitda - p.despesasFinanceiras;
+  const base = receitaLiquida > 0 ? receitaLiquida : 0;
+  const av = (v: number): number | null => (base > 0 ? (v / base) * 100 : null);
+
+  return {
+    receitaBruta: { valor: p.receitaBruta, avPct: null },
+    deducoes: { valor: p.deducoes, avPct: av(p.deducoes) },
+    receitaLiquida: { valor: receitaLiquida, avPct: base > 0 ? 100 : null },
+    custoVariavel: { valor: p.custoVariavel, avPct: av(p.custoVariavel) },
+    margemContribuicao: { valor: mc.valor, avPct: av(mc.valor) },
+    custoFixo: { valor: p.custoFixo, avPct: av(p.custoFixo) },
+    ebitda: { valor: ebitda, avPct: av(ebitda) },
+    despesasFinanceiras: { valor: p.despesasFinanceiras, avPct: av(p.despesasFinanceiras) },
+    lucroLiquido: { valor: lucroLiquido, avPct: av(lucroLiquido) },
+    margemContribuicaoPct: mc.pct,
+    margemLiquidaPct: base > 0 ? (lucroLiquido / base) * 100 : 0,
+  };
+}
+
+// ---------- DECOMPOSIÇÃO DA VARIAÇÃO DO LUCRO (causa raiz) ----------
+// Soma dos impactos == variação real do lucro líquido (atual - anterior).
+// O primeiro item do array (maior |impacto|) é a causa raiz a apontar antes de sugerir corte.
+export type FatorVariacaoLucro = {
+  fator: "receita" | "deducoes" | "custoVariavel" | "custoFixo" | "despesasFinanceiras";
+  impacto: number;
+};
+
+export function decomporVariacaoLucro(atual: DRE, anterior: DRE): FatorVariacaoLucro[] {
+  const fatores: FatorVariacaoLucro[] = [
+    { fator: "receita", impacto: atual.receitaBruta.valor - anterior.receitaBruta.valor },
+    { fator: "deducoes", impacto: -(atual.deducoes.valor - anterior.deducoes.valor) },
+    { fator: "custoVariavel", impacto: -(atual.custoVariavel.valor - anterior.custoVariavel.valor) },
+    { fator: "custoFixo", impacto: -(atual.custoFixo.valor - anterior.custoFixo.valor) },
+    { fator: "despesasFinanceiras", impacto: -(atual.despesasFinanceiras.valor - anterior.despesasFinanceiras.valor) },
+  ];
+  return fatores.sort((a, b) => Math.abs(b.impacto) - Math.abs(a.impacto));
+}
+
+// ---------- PONTE LUCRO × CAIXA ----------
+// Detecta "lucrativo no papel mas consome caixa" — nenhum ERP BR pra PME faz essa ponte.
+export type PonteLucroCaixa = {
+  lucroLiquido: number; caixaRealizado: number; diferenca: number;
+  alerta: boolean;
+  causaProvavel: "recebiveis" | "amortizacaoDivida" | "indefinida" | null;
+};
+
+export function ponteLucroCaixa(p: {
+  lucroLiquido: number; caixaRealizado: number;
+  variacaoRecebiveisAbertos: number; // aumento de títulos em aberto no período (positivo = mais parado)
+  variacaoAmortizacaoDivida: number; // principal pago no período (reduz caixa, não é despesa do DRE)
+}): PonteLucroCaixa {
+  const diferenca = p.caixaRealizado - p.lucroLiquido;
+  const sinalOposto = (p.lucroLiquido > 0 && p.caixaRealizado < 0) || (p.lucroLiquido < 0 && p.caixaRealizado > 0);
+  const relevante = p.lucroLiquido !== 0 ? Math.abs(diferenca) > Math.abs(p.lucroLiquido) * 0.15 : Math.abs(diferenca) > 0;
+  const alerta = sinalOposto || relevante;
+  let causaProvavel: PonteLucroCaixa["causaProvavel"] = null;
+  if (alerta) {
+    if (p.variacaoRecebiveisAbertos > 0 && p.variacaoRecebiveisAbertos >= p.variacaoAmortizacaoDivida) causaProvavel = "recebiveis";
+    else if (p.variacaoAmortizacaoDivida > 0) causaProvavel = "amortizacaoDivida";
+    else causaProvavel = "indefinida";
+  }
+  return { lucroLiquido: p.lucroLiquido, caixaRealizado: p.caixaRealizado, diferenca, alerta, causaProvavel };
+}
+
+// ---------- SEMÁFORO DE SAÚDE ----------
+// Cada sinal é calculado individualmente (nunca escondido) e a cor geral é a PIOR
+// entre eles — o raciocínio completo fica sempre disponível pro usuário conferir.
+export type CorSaude = "verde" | "amarelo" | "vermelho";
+export type SinalSaude = { chave: "margemLiquida" | "ebitdaQueda" | "pesoCustoFixo" | "concentracao"; cor: CorSaude; valor: number };
+
+export function calcularSinaisSaude(p: {
+  margemLiquidaPct: number; mesesQuedaEbitda: number;
+  pesoCustoFixoPct: number; pesoCustoFixoBenchmark: number; concentracaoPct: number;
+}): SinalSaude[] {
+  return [
+    { chave: "margemLiquida", valor: p.margemLiquidaPct, cor: p.margemLiquidaPct < 0 ? "vermelho" : p.margemLiquidaPct < 10 ? "amarelo" : "verde" },
+    { chave: "ebitdaQueda", valor: p.mesesQuedaEbitda, cor: p.mesesQuedaEbitda >= 3 ? "vermelho" : p.mesesQuedaEbitda >= 1 ? "amarelo" : "verde" },
+    { chave: "pesoCustoFixo", valor: p.pesoCustoFixoPct, cor: p.pesoCustoFixoPct > p.pesoCustoFixoBenchmark * 1.2 ? "vermelho" : p.pesoCustoFixoPct > p.pesoCustoFixoBenchmark ? "amarelo" : "verde" },
+    { chave: "concentracao", valor: p.concentracaoPct, cor: p.concentracaoPct > 70 ? "vermelho" : p.concentracaoPct > 50 ? "amarelo" : "verde" },
+  ];
+}
+
+export function semaforoSaude(sinais: SinalSaude[]): CorSaude {
+  const PIOR: Record<CorSaude, number> = { verde: 0, amarelo: 1, vermelho: 2 };
+  return sinais.reduce((pior, s) => (PIOR[s.cor] > PIOR[pior] ? s.cor : pior), "verde" as CorSaude);
+}
+
+// Meses consecutivos em queda, contando a partir do mais recente
+export function mesesQuedaConsecutiva(serie: number[]): number {
+  let count = 0;
+  for (let i = serie.length - 1; i > 0; i--) {
+    if (serie[i] < serie[i - 1]) count++; else break;
+  }
+  return count;
+}
+
+// ---------- RUNWAY ATÉ SITUAÇÃO CRÍTICA ----------
+// Tendência linear simples que ACEITA valores negativos — diferente de preverTendencia
+// (que assume séries sempre positivas, tipo receita/custo, e não serve pro lucro líquido).
+export function projetarTendenciaLivre(serie: number[], horizonte = 12): number[] {
+  if (serie.length === 0) return Array(horizonte).fill(0);
+  if (serie.length < 2) return Array(horizonte).fill(serie[0]);
+  const ultimos = serie.slice(-3);
+  const media = ultimos.reduce((a, b) => a + b, 0) / ultimos.length;
+  const tendencia = (serie[serie.length - 1] - serie[0]) / serie.length;
+  return Array.from({ length: horizonte }, (_, i) => media + tendencia * (i + 1));
+}
+
+// Retorna em quantos meses a projeção do lucro líquido cruza zero, ou null se não cruzar no horizonte
+export function runwayCritico(serieLucroLiquido: number[], horizonte = 12): number | null {
+  const projecao = projetarTendenciaLivre(serieLucroLiquido, horizonte);
+  const idx = projecao.findIndex((v) => v < 0);
+  return idx === -1 ? null : idx + 1;
+}
+
+// ---------- CONSELHO CFO ACIONÁVEL ----------
+// Cada gatilho só dispara com uma condição objetiva real — nunca "corte custos" genérico.
+// A frase final (ação + motivo + impacto) é montada no cfoTextos, aqui só o cálculo.
+export type GatilhoConselho =
+  | { tipo: "renegociarCusto"; descricao: string; impacto: number }
+  | { tipo: "revisarCustoFixo"; categoria: string; pesoPct: number; impacto: number }
+  | { tipo: "aumentarMargemSeguranca"; margemAtualPct: number; receitaNecessaria: number }
+  | { tipo: "cobrarRecebiveis"; valorParado: number };
+
+export function gerarConselhoCFO(p: {
+  maiorFatorNegativo: FatorVariacaoLucro | null;
+  anomaliaPrincipal: AnomaliaHistorica | null;
+  custoFixoPorCategoria: { categoria: string; valor: number }[];
+  pesoCustoFixoBenchmark: number;
+  custoFixoTotal: number;
+  receitaLiquida: number;
+  margemSegurancaPct: number | null;
+  pontoEquilibrioValor: number | null;
+  recebiveisParados: number;
+}): GatilhoConselho[] {
+  const out: GatilhoConselho[] = [];
+
+  if (p.maiorFatorNegativo?.fator === "custoVariavel" && p.anomaliaPrincipal) {
+    out.push({ tipo: "renegociarCusto", descricao: p.anomaliaPrincipal.descricao, impacto: p.anomaliaPrincipal.impacto });
+  }
+
+  const pesoAtual = p.receitaLiquida > 0 ? (p.custoFixoTotal / p.receitaLiquida) * 100 : 0;
+  if (pesoAtual > p.pesoCustoFixoBenchmark && p.custoFixoPorCategoria.length > 0) {
+    const maior = [...p.custoFixoPorCategoria].sort((a, b) => b.valor - a.valor)[0];
+    const reducaoNecessaria = p.custoFixoTotal - (p.pesoCustoFixoBenchmark / 100) * p.receitaLiquida;
+    out.push({ tipo: "revisarCustoFixo", categoria: maior.categoria, pesoPct: pesoAtual, impacto: Math.max(0, reducaoNecessaria) });
+  }
+
+  if (p.margemSegurancaPct !== null && p.margemSegurancaPct < 15 && p.pontoEquilibrioValor !== null) {
+    const receitaParaMeta = p.pontoEquilibrioValor / (1 - 0.20); // meta: 20% de margem de segurança
+    out.push({ tipo: "aumentarMargemSeguranca", margemAtualPct: p.margemSegurancaPct, receitaNecessaria: Math.max(0, receitaParaMeta - p.receitaLiquida) });
+  }
+
+  if (p.recebiveisParados > 0 && p.recebiveisParados > p.receitaLiquida * 0.1) {
+    out.push({ tipo: "cobrarRecebiveis", valorParado: p.recebiveisParados });
+  }
+
+  return out.slice(0, 4);
+}
+
+// ---------- PROJEÇÃO DO DRE (próximos meses) ----------
+export function projetarDRE(p: {
+  serieReceitaBruta: number[]; serieCustoVariavel: number[]; serieCustoFixo: number[];
+  aliquotaEfetivaPct: number; despesasFinanceirasMensal: number; horizonte?: number;
+}): DRE[] {
+  const horizonte = p.horizonte ?? 3;
+  const receitas = preverTendencia(p.serieReceitaBruta, horizonte);
+  const custosVar = preverTendencia(p.serieCustoVariavel, horizonte);
+  const custosFix = preverTendencia(p.serieCustoFixo, horizonte);
+  return Array.from({ length: horizonte }, (_, i) => montarDRE({
+    receitaBruta: receitas[i],
+    deducoes: receitas[i] * (p.aliquotaEfetivaPct / 100),
+    custoVariavel: custosVar[i],
+    custoFixo: custosFix[i],
+    despesasFinanceiras: p.despesasFinanceirasMensal,
+  }));
+}
+
+// ---------- GRÁFICO CASCATA (waterfall) — modal único do DRE ----------
+export type ItemCascata = { label: string; valor: number; tipo: "subtotal" | "variacao" };
+
+export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativo: string, corSubtotal: string) {
+  let acumulado = 0;
+  const base: number[] = [];
+  const valores: number[] = [];
+  const cores: string[] = [];
+
+  itens.forEach((it) => {
+    if (it.tipo === "subtotal") {
+      base.push(0);
+      valores.push(it.valor);
+      cores.push(corSubtotal);
+      acumulado = it.valor;
+    } else {
+      const inicio = acumulado;
+      const fim = acumulado + it.valor;
+      base.push(Math.min(inicio, fim));
+      valores.push(Math.abs(it.valor));
+      cores.push(it.valor >= 0 ? corPositivo : corNegativo);
+      acumulado = fim;
+    }
+  });
+
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    grid: { left: 58, right: 16, top: 34, bottom: 56, containLabel: false },
+    tooltip: {
+      ...tipBase, trigger: "axis",
+      formatter: (ps: any[]) => {
+        const p = ps.find((x: any) => x.seriesName === "valor");
+        if (!p) return "";
+        return `<b>${p.axisValue}</b><br/><b style="font-size:15px">${fBRL(itens[p.dataIndex].valor)}</b>`;
+      },
+    },
+    xAxis: {
+      type: "category", data: itens.map((it) => it.label),
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
+      axisLabel: { color: "#cbd5e1", fontSize: 10, fontWeight: 700, interval: 0, rotate: 20 },
+    },
+    yAxis: {
+      type: "value", axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
+      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) },
+    },
+    series: [
+      { name: "base", type: "bar", stack: "cascata", itemStyle: { color: "transparent" }, silent: true, data: base },
+      {
+        name: "valor", type: "bar", stack: "cascata", barWidth: "55%",
+        itemStyle: { borderRadius: [6, 6, 2, 2], color: (p: any) => cores[p.dataIndex] },
+        label: { show: true, position: "top", color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => fK(itens[p.dataIndex].valor) },
+        data: valores,
+      },
+    ],
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
 // Usar em TODOS os títulos de painel e letreiros dos módulos.
 // ═══════════════════════════════════════════════════════════════

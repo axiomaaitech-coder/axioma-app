@@ -129,7 +129,7 @@ export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
   const resultados: SimulacaoRegime[] = [];
 
   // Cálculo imposto atual (estimativa)
-  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes, dados);
+  const impostoAtual = calcularImpostoRegime(dados.regime_atual, rb12, rbMes);
 
   // 1. MEI
   const meiElegivel = rb12 <= 144000;
@@ -212,7 +212,9 @@ export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
   return resultados.sort((a, b) => a.imposto_mensal - b.imposto_mensal);
 }
 
-function calcularImpostoRegime(regime: string, rb12: number, rbMes: number, dados: DadosFiscais): number {
+// Exportada para reuso no DRE (calcula a dedução/imposto real da empresa a partir
+// do regime tributário, em vez de um percentual fixo chutado).
+export function calcularImpostoRegime(regime: string, rb12: number, rbMes: number): number {
   const r = (regime || "").toLowerCase();
   if (r === "mei") return 76.90;
   if (r.includes("simples")) {
@@ -226,7 +228,7 @@ function calcularImpostoRegime(regime: string, rb12: number, rbMes: number, dado
   return rbMes * (aliq / 100);
 }
 
-function calcularAliquotaSimples(rb12: number, anexo: string): number {
+export function calcularAliquotaSimples(rb12: number, anexo: string): number {
   // Tabela simplificada Simples Nacional
   const faixas: Record<string, { max: number; aliq: number; ded: number }[]> = {
     "I": [
