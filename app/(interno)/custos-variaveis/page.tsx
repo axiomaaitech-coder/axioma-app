@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap } from "lucide-react";
+import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap, MessageSquareText } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
@@ -8,12 +8,15 @@ import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
+import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fBRL2, fPct, CORES, porCategoria, optRosca, optBarrasV, optLinhaMulti, serieRolling,
+  fBRL, fBRL2, fPct, CORES, porCategoria, optRosca, optBarrasV, optLinhaMulti, optLinhaPrevisao, serieRolling,
   margemContribuicao, pontoEquilibrio, margemSeguranca, coeficienteVariacao, pesoSobreReceita,
-  FONTE_EXEC, type Lancamento,
+  resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos, compararPeriodosPorCategoria,
+  detectarAnomaliasHistoricas, preverTendencia, FONTE_EXEC,
+  type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo,
 } from "../../../lib/cfoCore";
-import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { cfoT, canaisCompartilhamento, montarNarrativaVariacao, montarNarrativaMargem, montarSugestao } from "../../../lib/cfoTextos";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,6 +32,14 @@ const CAT_COR: Record<string, string> = {
 type CustoVariavel = {
   id: string; descricao: string; valor: number; data: string; categoria: string;
 };
+
+// Janela de histórico buscada no banco — limitada por design (não busca a vida toda da
+// empresa de uma vez). 24 meses cobre comparativo + anomalias + projeção com folga,
+// e escala igual pra empresa nova ou com anos de dado.
+function inicioJanelaHistorica(fimPeriodo: string): string {
+  const fim = new Date(fimPeriodo + "T00:00:00");
+  return new Date(fim.getFullYear(), fim.getMonth() - 23, 1).toISOString().slice(0, 10);
+}
 
 export default function CustosVariaveis() {
   const { t, idioma } = useLanguage();
@@ -48,19 +59,31 @@ export default function CustosVariaveis() {
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  useEffect(() => { carregarTudo(); }, []);
+  // Seletor de período — controla comparativo, narrativa, anomalias e projeção
+  const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
+  const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo("mes_atual"));
+
+  const periodo = resolverPeriodo(presetPeriodo, personalizado);
+  const periodoAnt = periodoAnterior(periodo);
+
+  useEffect(() => { carregarTudo(); }, [presetPeriodo, personalizado.inicio, personalizado.fim]);
 
   const carregarTudo = async () => {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
 
+    const inicioHistorico = inicioJanelaHistorica(periodo.fim);
+
     const [{ data: cv }, { data: cf }, { data: rec }] = await Promise.all([
-      supabase.from("custos_variaveis").select("*").eq("user_id", user.id).order("data", { ascending: false }),
+      supabase.from("custos_variaveis").select("*").eq("user_id", user.id)
+        .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }),
       // Leitura só (SELECT) de Custos Fixos — necessária pro Ponto de Equilíbrio. Nunca escreve nessa tabela.
       supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
       // Leitura só (SELECT) de Receitas — necessária pra Margem de Contribuição. Nunca escreve nessa tabela.
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id),
+      // Limitada à mesma janela histórica — não traz o histórico inteiro da empresa de uma vez.
+      supabase.from("receitas").select("valor, data").eq("user_id", user.id)
+        .gte("data", inicioHistorico).lte("data", periodo.fim),
     ]);
 
     setCustos(cv || []);
@@ -104,37 +127,46 @@ export default function CustosVariaveis() {
   const temDados = custos.length > 0;
 
   // ═══════════════════════ INTELIGÊNCIA CFO (alicerce) ═══════════════════════
-  const custoVariavelItens: Lancamento[] = custos.map(c => ({ valor: c.valor, data: c.data, categoria: c.categoria }));
+  const custoVariavelItens: Lancamento[] = custos.map(c => ({ valor: c.valor, data: c.data, categoria: c.categoria, descricao: c.descricao }));
 
-  const serieCV12 = serieRolling(custoVariavelItens, 12);
-  const serieRec12 = serieRolling(receitas, 12);
-  const serieCV6 = serieRolling(custoVariavelItens, 6);
-  const serieRec6 = serieRolling(receitas, 6);
+  const custosNoPeriodo = filtrarPorPeriodo(custoVariavelItens, periodo);
+  const custosNoPeriodoAnt = filtrarPorPeriodo(custoVariavelItens, periodoAnt);
+  const receitasNoPeriodo = filtrarPorPeriodo(receitas, periodo);
+  const receitasNoPeriodoAnt = filtrarPorPeriodo(receitas, periodoAnt);
 
-  const custoVariavelMesAtual = serieCV12[serieCV12.length - 1]?.value || 0;
-  const receitaMesAtual = serieRec12[serieRec12.length - 1]?.value || 0;
+  const comparativoCV: ComparativoPeriodo = compararPeriodos(custosNoPeriodo, custosNoPeriodoAnt);
+  const comparativoReceita: ComparativoPeriodo = compararPeriodos(receitasNoPeriodo, receitasNoPeriodoAnt);
+  const comparativoCategoria = compararPeriodosPorCategoria(custosNoPeriodo, custosNoPeriodoAnt, categorias);
 
-  const mc = margemContribuicao(receitaMesAtual, custoVariavelMesAtual);
+  const mc = margemContribuicao(comparativoReceita.atual, comparativoCV.atual);
+  const mcAnt = margemContribuicao(comparativoReceita.anterior, comparativoCV.anterior);
   const pe = pontoEquilibrio(custoFixoTotal, mc.pct);
-  const ms = margemSeguranca(receitaMesAtual, pe);
-  const volatilidade = coeficienteVariacao(serieCV6.map(b => b.value));
-  const pesoReceita = pesoSobreReceita(custoVariavelMesAtual, receitaMesAtual);
+  const ms = margemSeguranca(comparativoReceita.atual, pe);
 
-  // Sangria de margem: custo variável crescendo mais rápido que a receita no último mês fechado
-  const cvAnt = serieCV6[serieCV6.length - 2]?.value || 0;
-  const recAnt = serieRec6[serieRec6.length - 2]?.value || 0;
-  const cvUlt = serieCV6[serieCV6.length - 1]?.value || 0;
-  const recUlt = serieRec6[serieRec6.length - 1]?.value || 0;
-  const crescCV = cvAnt > 0 ? ((cvUlt - cvAnt) / cvAnt) * 100 : 0;
-  const crescRec = recAnt > 0 ? ((recUlt - recAnt) / recAnt) * 100 : 0;
-  const sangriaMargem = cvAnt > 0 && recAnt > 0 && crescCV > 0 && crescCV > crescRec + 5;
+  const serieCVHist = serieRolling(custoVariavelItens, 12, periodo.fim);
+  const volatilidade = coeficienteVariacao(serieCVHist.slice(-6).map(b => b.value));
+  const pesoReceita = pesoSobreReceita(comparativoCV.atual, comparativoReceita.atual);
+
+  const anomalias = detectarAnomaliasHistoricas(custoVariavelItens).slice(0, 3);
+  const sugestoes = anomalias.slice(0, 3).map(a => montarSugestao(lang, a));
+
+  const previsaoCV = preverTendencia(serieCVHist.map(b => b.value), 3);
+
+  const metricaLabel = lang === "en" ? "Variable costs" : lang === "es" ? "Costos variables" : "Custos variáveis";
+  const narrativaVariacao = temDados ? montarNarrativaVariacao(lang, {
+    metrica: metricaLabel, pct: comparativoCV.variacaoPct,
+    categoriaPrincipal: comparativoCategoria[0]?.categoria, valorCategoriaPrincipal: comparativoCategoria[0]?.variacaoValor,
+  }) : "";
+  const narrativaMargem = temDados && comparativoReceita.atual > 0 ? montarNarrativaMargem(lang, mcAnt.pct, mc.pct) : "";
 
   const insights: { tipo: "alerta" | "positivo"; texto: string }[] = [];
   if (temDados) {
     if (pe === null) insights.push({ tipo: "alerta", texto: cx.alertaSemBreakeven });
     else if (ms !== null && ms < 15) insights.push({ tipo: "alerta", texto: cx.alertaMargemBaixa });
     if (volatilidade > 25) insights.push({ tipo: "alerta", texto: cx.alertaVolatilidade });
-    if (sangriaMargem) insights.push({ tipo: "alerta", texto: cx.alertaSangriaMargem });
+    if (comparativoCV.direcao === "alta" && comparativoReceita.direcao !== "alta" && comparativoCV.variacaoPct > 5) {
+      insights.push({ tipo: "alerta", texto: cx.alertaSangriaMargem });
+    }
     if (pe !== null && ms !== null && ms >= 30) insights.push({ tipo: "positivo", texto: cx.positivoMargemSaudavel });
   }
 
@@ -158,7 +190,7 @@ export default function CustosVariaveis() {
           valor: fBRL2(c.valor),
         })),
         resumo: [
-          { label: "Total no Mês", valor: `R$ ${fBRL2(totalMes)}` },
+          { label: "Total no Período", valor: `R$ ${fBRL2(comparativoCV.atual)}` },
           { label: "Lançamentos", valor: `${custos.length}` },
           { label: "Maior Custo", valor: `R$ ${fBRL2(maiorCusto)}` },
           { label: "Margem de Contribuição", valor: fPct(mc.pct) },
@@ -173,49 +205,76 @@ export default function CustosVariaveis() {
   // ═══════════════════════ COMPARTILHAR ═══════════════════════
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${t.custosVariaveis.titulo}`,
-    `📉 ${cx.custoVariavelMes}: ${fBRL(custoVariavelMesAtual)}`,
+    `📉 ${cx.custoVariavelMes}: ${fBRL(comparativoCV.atual)}`,
     `📊 ${cx.margemContribuicao}: ${fPct(mc.pct)}`,
     pe !== null ? `⚖️ ${cx.pontoEquilibrio}: ${fBRL(pe)}` : `⚠️ ${cx.semBreakeven}`,
     ms !== null ? `🛡️ ${cx.margemSeguranca}: ${fPct(ms)}` : "",
+    narrativaVariacao ? `💬 ${narrativaVariacao}` : "",
     `_axiomaai.com.br_`,
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${t.custosVariaveis.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
 
   // ═══════════════════════ GRÁFICOS ═══════════════════════
-  const composicao = porCategoria(custoVariavelItens, categorias, CAT_COR);
+  const composicao = porCategoria(custosNoPeriodo, categorias, CAT_COR);
   const optCat = optRosca(composicao, CORES.laranja, cx.custoVariavelMes.toUpperCase());
 
-  const topCustos = [...custos].sort((a, b) => b.valor - a.valor).slice(0, 8);
-  const optTop = optBarrasV(topCustos.map(c => c.valor), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), CORES.amarelo, CORES.amareloC);
+  const topCustos = [...custosNoPeriodo].sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0)).slice(0, 8) as (Lancamento & { descricao: string })[];
+  const optTop = optBarrasV(
+    topCustos.map(c => Number(c.valor) || 0),
+    topCustos.map(c => (c.descricao || "").length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao),
+    CORES.amarelo, CORES.amareloC
+  );
 
-  const labels12 = serieCV12.map(b => b.label);
+  const labelsHist = serieCVHist.map(b => b.label);
   const peSerie: number[] = pe !== null ? Array(12).fill(pe) : [];
   const optMargem = optLinhaMulti(
     [
-      { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRec12.map(b => b.value), cor: CORES.verde, area: true },
-      { nome: t.custosVariaveis.titulo, dados: serieCV12.map(b => b.value), cor: CORES.laranja },
+      { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRolling(receitas, 12, periodo.fim).map(b => b.value), cor: CORES.verde, area: true },
+      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: CORES.laranja },
       { nome: cx.pontoEquilibrio, dados: peSerie, cor: CORES.rosa, tipo: "dashed" as const },
     ],
-    labels12, CORES.laranja
+    labelsHist, CORES.laranja
+  );
+
+  const labelsProj = ["+1", "+2", "+3"];
+  const optProjecao = optLinhaPrevisao(
+    [...serieCVHist.slice(-6).map(b => b.value), ...Array(3).fill(null)],
+    previsaoCV,
+    [...serieCVHist.slice(-6).map(b => b.label), ...labelsProj],
+    cx.realizado, cx.projetado, CORES.laranja, CORES.laranjaC
   );
 
   const kpisCFO = [
-    { l: cx.custoVariavelMes, v: fBRL(custoVariavelMesAtual), c: CORES.laranja, i: "📉" },
-    { l: cx.margemContribuicao, v: fPct(mc.pct), c: CORES.verde, i: "📊" },
-    { l: cx.pontoEquilibrio, v: pe !== null ? fBRL(pe) : cx.semBreakeven, c: CORES.cyan, i: "⚖️" },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? CORES.rosa : ms < 15 ? CORES.vermelho : ms < 30 ? CORES.amarelo : CORES.verde, i: "🛡️" },
-    { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? CORES.vermelho : volatilidade > 15 ? CORES.amarelo : CORES.verde, i: "🌊" },
-    { l: cx.pesoReceita, v: fPct(pesoReceita), c: CORES.roxo, i: "⚡" },
+    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: CORES.laranja, i: "📉", delta: comparativoCV, polaridadeInvertida: true },
+    { l: cx.margemContribuicao, v: fPct(mc.pct), c: CORES.verde, i: "📊", delta: null as ComparativoPeriodo | null, polaridadeInvertida: false },
+    { l: cx.pontoEquilibrio, v: pe !== null ? fBRL(pe) : cx.semBreakeven, c: CORES.cyan, i: "⚖️", delta: null, polaridadeInvertida: false },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? CORES.rosa : ms < 15 ? CORES.vermelho : ms < 30 ? CORES.amarelo : CORES.verde, i: "🛡️", delta: null, polaridadeInvertida: false },
+    { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? CORES.vermelho : volatilidade > 15 ? CORES.amarelo : CORES.verde, i: "🌊", delta: null, polaridadeInvertida: false },
+    { l: cx.pesoReceita, v: fPct(pesoReceita), c: CORES.roxo, i: "⚡", delta: null, polaridadeInvertida: false },
   ];
 
   const marquee = [
-    `🚀 AXIOMA AI.TECH`, `${cx.custoVariavelMes} ${fBRL(custoVariavelMesAtual)}`,
+    `🚀 AXIOMA AI.TECH`, `${cx.custoVariavelMes} ${fBRL(comparativoCV.atual)}`,
     `${cx.margemContribuicao} ${fPct(mc.pct)}`,
     pe !== null ? `${cx.pontoEquilibrio} ${fBRL(pe)}` : cx.semBreakeven,
     ms !== null ? `${cx.margemSeguranca} ${fPct(ms)}` : "",
     `${cx.volatilidade} ${fPct(volatilidade)}`,
   ].filter(Boolean);
+
+  const DeltaBadge = ({ comp, invertido }: { comp: ComparativoPeriodo; invertido: boolean }) => {
+    if (comp.direcao === "estavel") {
+      return <span className="text-[9px] font-bold" style={{ color: "#64748b" }}>{cx.periodoEstavel}</span>;
+    }
+    const bom = invertido ? comp.direcao === "baixa" : comp.direcao === "alta";
+    const cor = bom ? CORES.verde : CORES.vermelho;
+    const seta = comp.direcao === "alta" ? "▲" : "▼";
+    return (
+      <span className="text-[9px] font-bold" style={{ color: cor }}>
+        {seta} {fPct(Math.abs(comp.variacaoPct))} {cx.vsPeriodoAnterior}
+      </span>
+    );
+  };
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
     <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
@@ -233,7 +292,12 @@ export default function CustosVariaveis() {
       onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0] }); setModalAberto(true); }}>
       <div className="space-y-4">
 
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SeletorPeriodo
+            preset={presetPeriodo} onChangePreset={setPresetPeriodo}
+            personalizado={personalizado} onChangePersonalizado={setPersonalizado}
+            cor={CORES.laranja} lang={lang}
+          />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}>
@@ -260,7 +324,7 @@ export default function CustosVariaveis() {
         {/* CAMADA CFO */}
         {temDados && (
           <>
-            {/* KPIs CFO */}
+            {/* KPIs CFO com comparativo vs período anterior */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
@@ -269,6 +333,7 @@ export default function CustosVariaveis() {
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
                   <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+                  {k.delta && <div className="mt-1"><DeltaBadge comp={k.delta} invertido={k.polaridadeInvertida} /></div>}
                 </motion.div>
               ))}
             </div>
@@ -285,6 +350,19 @@ export default function CustosVariaveis() {
               <style>{`.marquee-cv{animation:marqueeCv 30s linear infinite}@keyframes marqueeCv{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-cv:hover{animation-play-state:paused}`}</style>
             </div>
 
+            {/* NARRATIVA AUTOMÁTICA — "o que mudou", sempre citando a origem do número */}
+            {(narrativaVariacao || narrativaMargem) && (
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(249,115,22,0.2)" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquareText size={16} style={{ color: CORES.laranja }} />
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: "#e2e8f0" }}>
+                  {narrativaVariacao} {narrativaMargem}
+                </p>
+              </div>
+            )}
+
             {/* MODAL ÚNICO — Análise de Margem */}
             <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
@@ -300,12 +378,54 @@ export default function CustosVariaveis() {
                   <SubChart titulo={cx.analiseMargem} cor={CORES.laranja} option={optMargem} altura={280} />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <SubChart titulo={t.geral.categoria} cor={CORES.laranja} option={optCat} altura={260} />
                   <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={CORES.amarelo} option={optTop} altura={260} />
+                  <SubChart titulo={cx.previsao} cor={CORES.roxo} option={optProjecao} altura={260} />
                 </div>
               </div>
             </div>
+
+            {/* ANOMALIAS HISTÓRICAS / PRICE CREEP */}
+            {anomalias.length > 0 && (
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))", border: "1px solid rgba(249,115,22,0.25)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle size={16} style={{ color: CORES.laranja }} />
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.anomaliasTitulo}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {anomalias.map((a, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)" }}>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold truncate" style={{ color: "#e2e8f0" }}>{a.descricao}</p>
+                        <p className="text-[10px] font-medium" style={{ color: CORES.laranja }}>
+                          {a.tipo === "aumento_recorrente" ? cx.itemRenegociar : `${fBRL(a.valorAtual)} ${cx.acimaPropriaMedia} (${fBRL(a.valorReferencia)})`}
+                        </p>
+                      </div>
+                      <p className="text-sm font-black flex-shrink-0 ml-2" style={{ color: CORES.laranja }}>{fBRL(a.impacto)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* SUGESTÕES ACIONÁVEIS */}
+            {sugestoes.length > 0 && (
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(99,102,241,0.15)" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap size={16} style={{ color: CORES.ouro }} />
+                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.sugestoesTitulo}</p>
+                </div>
+                <div className="space-y-2">
+                  {sugestoes.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
+                      <Sparkles size={15} style={{ color: CORES.ouro, flexShrink: 0 }} />
+                      <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{s}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Insights */}
             {insights.length > 0 && (

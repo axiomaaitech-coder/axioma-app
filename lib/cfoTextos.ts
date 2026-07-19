@@ -6,6 +6,8 @@
 // Uso: const cx = cfoT(lang);  cx.mrr
 // ═══════════════════════════════════════════════════════════════
 
+import { fBRL, fPct } from "./cfoCore";
+
 export type CfoLang = "pt" | "en" | "es";
 
 const TEXTOS = {
@@ -50,6 +52,16 @@ const TEXTOS = {
     alertaVolatilidade: "Custos variáveis muito instáveis mês a mês — dificulta previsão de caixa.",
     alertaSangriaMargem: "Custo variável crescendo mais rápido que a receita — a margem está sendo corroída.",
     positivoMargemSaudavel: "Margem de segurança saudável — boa folga até o ponto de equilíbrio.",
+    // Seletor de período
+    periodoMesAtual: "Mês atual", periodoMesAnterior: "Mês anterior", periodoTrimestreAtual: "Trimestre atual",
+    periodoAnoAtual: "Ano atual", periodoUltimos12: "Últimos 12 meses", periodoPersonalizado: "Personalizado",
+    vsPeriodoAnterior: "vs período anterior", periodoEstavel: "estável",
+    // Narrativa e sugestões
+    narrativaTitulo: "O que mudou", sugestoesTitulo: "Sugestões da IA", anomaliasTitulo: "Anomalias Detectadas",
+    puxadoPor: "puxado por", subiram: "subiram", cairam: "caíram", ficaramEstaveis: "ficaram estáveis",
+    acimaPropriaMedia: "acima da própria média histórica", economiaPotencialSugestao: "Economia potencial",
+    itemRenegociar: "subiu de forma consistente nos últimos meses. Vale renegociar.",
+    itemAcimaMedia: "veio bem acima do que costuma custar — vale conferir o motivo.",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -85,6 +97,14 @@ const TEXTOS = {
     alertaVolatilidade: "Variable costs are very unstable month to month — makes cash forecasting harder.",
     alertaSangriaMargem: "Variable cost growing faster than revenue — margin is being eroded.",
     positivoMargemSaudavel: "Healthy margin of safety — good room above the break-even point.",
+    periodoMesAtual: "Current month", periodoMesAnterior: "Previous month", periodoTrimestreAtual: "Current quarter",
+    periodoAnoAtual: "Current year", periodoUltimos12: "Last 12 months", periodoPersonalizado: "Custom",
+    vsPeriodoAnterior: "vs previous period", periodoEstavel: "stable",
+    narrativaTitulo: "What changed", sugestoesTitulo: "AI Suggestions", anomaliasTitulo: "Detected Anomalies",
+    puxadoPor: "driven by", subiram: "went up", cairam: "went down", ficaramEstaveis: "stayed stable",
+    acimaPropriaMedia: "above its own historical average", economiaPotencialSugestao: "Potential savings",
+    itemRenegociar: "has been rising consistently over the last months. Worth renegotiating.",
+    itemAcimaMedia: "came in well above what it usually costs — worth checking why.",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -120,6 +140,14 @@ const TEXTOS = {
     alertaVolatilidade: "Costos variables muy inestables mes a mes — dificulta la previsión de caja.",
     alertaSangriaMargem: "El costo variable crece más rápido que los ingresos — el margen se está erosionando.",
     positivoMargemSaudavel: "Margen de seguridad saludable — buen margen sobre el punto de equilibrio.",
+    periodoMesAtual: "Mes actual", periodoMesAnterior: "Mes anterior", periodoTrimestreAtual: "Trimestre actual",
+    periodoAnoAtual: "Año actual", periodoUltimos12: "Últimos 12 meses", periodoPersonalizado: "Personalizado",
+    vsPeriodoAnterior: "vs período anterior", periodoEstavel: "estable",
+    narrativaTitulo: "Qué cambió", sugestoesTitulo: "Sugerencias de la IA", anomaliasTitulo: "Anomalías Detectadas",
+    puxadoPor: "impulsado por", subiram: "subieron", cairam: "cayeron", ficaramEstaveis: "se mantuvieron estables",
+    acimaPropriaMedia: "por encima de su propio promedio histórico", economiaPotencialSugestao: "Ahorro potencial",
+    itemRenegociar: "subió de forma consistente en los últimos meses. Vale la pena renegociar.",
+    itemAcimaMedia: "costó bastante más de lo habitual — vale la pena revisar el motivo.",
   },
 };
 
@@ -139,6 +167,41 @@ export function textoInsight(lang: string, chave: string): string {
 // CANAIS DE COMPARTILHAMENTO — padrão único Axioma
 // (WhatsApp, Telegram, Gmail, Outlook — sem "Email Padrão"/mailto)
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// NARRATIVA AUTOMÁTICA DE VARIAÇÃO — a IA "mostra o raciocínio":
+// sempre cita a categoria/item que puxou o número, nunca solto.
+// ═══════════════════════════════════════════════════════════════
+export function montarNarrativaVariacao(lang: string, p: {
+  metrica: string; pct: number; categoriaPrincipal?: string; valorCategoriaPrincipal?: number;
+}): string {
+  const cx = cfoT(lang);
+  const direcaoTxt = Math.abs(p.pct) < 1 ? cx.ficaramEstaveis : p.pct > 0 ? cx.subiram : cx.cairam;
+  const pctTxt = fPct(Math.abs(p.pct));
+  let frase = `${p.metrica} ${direcaoTxt} ${pctTxt}`;
+  if (Math.abs(p.pct) >= 1 && p.categoriaPrincipal && p.valorCategoriaPrincipal) {
+    frase += `, ${cx.puxadoPor} ${p.categoriaPrincipal} (${p.valorCategoriaPrincipal > 0 ? "+" : ""}${fBRL(p.valorCategoriaPrincipal)})`;
+  }
+  return frase + ".";
+}
+
+export function montarNarrativaMargem(lang: string, pctAntes: number, pctDepois: number): string {
+  const cx = cfoT(lang);
+  const diff = pctDepois - pctAntes;
+  if (Math.abs(diff) < 0.5) return `${cx.margemContribuicao} ${cx.ficaramEstaveis} em ${fPct(pctDepois)}.`;
+  const verbo = diff > 0 ? cx.subiram : cx.cairam;
+  return `${cx.margemContribuicao} ${verbo} de ${fPct(pctAntes)} para ${fPct(pctDepois)}.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUGESTÕES ACIONÁVEIS — sempre amarradas a uma anomalia real,
+// nunca genéricas. Espelha AnomaliaHistorica do cfoCore.
+// ═══════════════════════════════════════════════════════════════
+export function montarSugestao(lang: string, anomalia: { tipo: "acima_media" | "aumento_recorrente"; descricao: string; impacto: number }): string {
+  const cx = cfoT(lang);
+  const base = anomalia.tipo === "aumento_recorrente" ? cx.itemRenegociar : cx.itemAcimaMedia;
+  return `"${anomalia.descricao}" ${base} ${cx.economiaPotencialSugestao}: ${fBRL(Math.abs(anomalia.impacto))}.`;
+}
+
 export function canaisCompartilhamento(texto: string, assunto: string) {
   const enc = encodeURIComponent(texto);
   const encAssunto = encodeURIComponent(assunto);

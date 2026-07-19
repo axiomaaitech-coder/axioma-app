@@ -10,6 +10,7 @@ export type Lancamento = {
   data: string;        // ISO "YYYY-MM-DD"
   categoria?: string;
   status?: string;
+  descricao?: string;
 };
 
 // ---------- FORMATADORES ----------
@@ -41,9 +42,11 @@ export function serieMensal(itens: Lancamento[], ano?: number): number[] {
   return serie;
 }
 
-// Série dos últimos N meses (rolling), independente do ano
-export function serieRolling(itens: Lancamento[], meses = 12): { label: string; value: number }[] {
-  const hoje = new Date();
+// Série dos últimos N meses (rolling), independente do ano.
+// ateData opcional (ISO "YYYY-MM-DD") — permite ancorar em qualquer período
+// selecionado, não só em "hoje". Sem ateData, comportamento igual a antes.
+export function serieRolling(itens: Lancamento[], meses = 12, ateData?: string): { label: string; value: number }[] {
+  const hoje = ateData ? new Date(ateData + "T00:00:00") : new Date();
   const buckets: { ano: number; mes: number; value: number }[] = [];
   for (let i = meses - 1; i >= 0; i--) {
     const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
@@ -113,14 +116,22 @@ export function porCategoria(
 }
 
 // ---------- PREVISÃO IA (média móvel + tendência linear) ----------
-export function preverProximosMeses(serie: number[], mesRef?: number, horizonte = 3): number[] {
-  const m = mesRef ?? new Date().getMonth();
-  const comDados = serie.slice(0, m + 1).filter((v) => v > 0);
+// Núcleo reutilizável: projeta os próximos N valores a partir de qualquer série
+// histórica já ordenada (mais antigo → mais recente), sem depender de calendário.
+// Serve tanto pra serieMensal (ano corrente) quanto serieRolling (qualquer janela).
+export function preverTendencia(serieHistorica: number[], horizonte = 3): number[] {
+  const comDados = serieHistorica.filter((v) => v > 0);
   if (!comDados.length) return Array(horizonte).fill(0);
   const ultimos = comDados.slice(-3);
   const media = ultimos.reduce((a, b) => a + b, 0) / ultimos.length;
   const tendencia = comDados.length >= 2 ? (comDados[comDados.length - 1] - comDados[0]) / comDados.length : 0;
   return Array.from({ length: horizonte }, (_, i) => Math.max(0, media + tendencia * (i + 1)));
+}
+
+// Mantido por compatibilidade com módulos que já usam serieMensal (ano calendário atual)
+export function preverProximosMeses(serie: number[], mesRef?: number, horizonte = 3): number[] {
+  const m = mesRef ?? new Date().getMonth();
+  return preverTendencia(serie.slice(0, m + 1), horizonte);
 }
 
 // ---------- INSIGHTS AUTOMÁTICOS ----------
@@ -311,7 +322,7 @@ export type Desperdicio = {
 };
 
 // Normaliza texto p/ comparação (minúsculo, sem acento, sem espaços extras)
-function norm(s: string): string {
+export function normalizarTexto(s: string): string {
   return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
 }
 
@@ -322,7 +333,7 @@ export function detectarDesperdicio(itens: ItemDespesa[]): { alertas: Desperdici
   // 1) Duplicados: descrições muito parecidas (mesmo prefixo) OU mesma categoria+valor próximo
   const vistos: { chave: string; valor: number; descricao: string }[] = [];
   itens.forEach((it) => {
-    const chave = norm(it.descricao).slice(0, 12); // prefixo
+    const chave = normalizarTexto(it.descricao).slice(0, 12); // prefixo
     const dup = vistos.find((v) => v.chave === chave && chave.length >= 4);
     if (dup) {
       const menor = Math.min(dup.valor, it.valor);
@@ -377,6 +388,134 @@ export function coeficienteVariacao(serie: number[]): number {
   if (media <= 0) return 0;
   const variancia = vals.reduce((a, b) => a + Math.pow(b - media, 2), 0) / vals.length;
   return (Math.sqrt(variancia) / media) * 100;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SELETOR DE PERÍODO — base reutilizável para comparativos, narrativa
+// e projeção em qualquer módulo. Datas sempre ISO "YYYY-MM-DD".
+// ═══════════════════════════════════════════════════════════════
+export type PeriodoPreset = "mes_atual" | "mes_anterior" | "trimestre_atual" | "ano_atual" | "ultimos_12_meses" | "personalizado";
+export type Periodo = { inicio: string; fim: string };
+
+function isoData(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+export function resolverPeriodo(preset: PeriodoPreset, personalizado?: Periodo): Periodo {
+  const hoje = new Date();
+  const y = hoje.getFullYear();
+  const m = hoje.getMonth();
+  switch (preset) {
+    case "mes_atual":
+      return { inicio: isoData(new Date(y, m, 1)), fim: isoData(new Date(y, m + 1, 0)) };
+    case "mes_anterior":
+      return { inicio: isoData(new Date(y, m - 1, 1)), fim: isoData(new Date(y, m, 0)) };
+    case "trimestre_atual": {
+      const qStart = m - (m % 3);
+      return { inicio: isoData(new Date(y, qStart, 1)), fim: isoData(new Date(y, qStart + 3, 0)) };
+    }
+    case "ano_atual":
+      return { inicio: isoData(new Date(y, 0, 1)), fim: isoData(new Date(y, 11, 31)) };
+    case "ultimos_12_meses":
+      return { inicio: isoData(new Date(y, m - 11, 1)), fim: isoData(new Date(y, m + 1, 0)) };
+    case "personalizado":
+      return personalizado ?? { inicio: isoData(new Date(y, m, 1)), fim: isoData(new Date(y, m + 1, 0)) };
+  }
+}
+
+// Período anterior equivalente (mesma duração, imediatamente antes) — base do comparativo
+export function periodoAnterior(periodo: Periodo): Periodo {
+  const ini = new Date(periodo.inicio + "T00:00:00");
+  const fim = new Date(periodo.fim + "T00:00:00");
+  const duracaoDias = Math.round((fim.getTime() - ini.getTime()) / 86400000) + 1;
+  const novoFim = new Date(ini.getTime() - 86400000);
+  const novoIni = new Date(novoFim.getTime() - (duracaoDias - 1) * 86400000);
+  return { inicio: isoData(novoIni), fim: isoData(novoFim) };
+}
+
+export function filtrarPorPeriodo(itens: Lancamento[], periodo: Periodo): Lancamento[] {
+  return itens.filter((it) => it.data && it.data >= periodo.inicio && it.data <= periodo.fim);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPARATIVO ENTRE PERÍODOS (variance analysis) — reutilizável
+// por qualquer módulo que já tenha Lancamento[] filtrado por período.
+// ═══════════════════════════════════════════════════════════════
+export type ComparativoPeriodo = {
+  atual: number; anterior: number; variacaoValor: number; variacaoPct: number;
+  direcao: "alta" | "baixa" | "estavel";
+};
+
+function somaLancamentos(itens: Lancamento[]): number {
+  return itens.reduce((a, r) => a + (Number(r.valor) || 0), 0);
+}
+
+export function compararPeriodos(itensAtual: Lancamento[], itensAnterior: Lancamento[]): ComparativoPeriodo {
+  const atual = somaLancamentos(itensAtual);
+  const anterior = somaLancamentos(itensAnterior);
+  const variacaoValor = atual - anterior;
+  const variacaoPct = anterior > 0 ? (variacaoValor / anterior) * 100 : atual > 0 ? 100 : 0;
+  const direcao: ComparativoPeriodo["direcao"] = Math.abs(variacaoPct) < 1 ? "estavel" : variacaoValor > 0 ? "alta" : "baixa";
+  return { atual, anterior, variacaoValor, variacaoPct, direcao };
+}
+
+export type ComparativoCategoria = { categoria: string; atual: number; anterior: number; variacaoValor: number; variacaoPct: number };
+
+// Comparativo quebrado por categoria, ordenado pelo maior impacto (em módulo) —
+// é o que permite a narrativa dizer QUAL categoria puxou a variação, nunca um número solto.
+export function compararPeriodosPorCategoria(itensAtual: Lancamento[], itensAnterior: Lancamento[], categorias: string[]): ComparativoCategoria[] {
+  return categorias
+    .map((cat) => {
+      const atual = somaLancamentos(itensAtual.filter((i) => i.categoria === cat));
+      const anterior = somaLancamentos(itensAnterior.filter((i) => i.categoria === cat));
+      const variacaoValor = atual - anterior;
+      const variacaoPct = anterior > 0 ? (variacaoValor / anterior) * 100 : atual > 0 ? 100 : 0;
+      return { categoria: cat, atual, anterior, variacaoValor, variacaoPct };
+    })
+    .filter((c) => c.atual > 0 || c.anterior > 0)
+    .sort((a, b) => Math.abs(b.variacaoValor) - Math.abs(a.variacaoValor));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANOMALIAS HISTÓRICAS / PRICE CREEP — detecta item muito acima da
+// própria média e aumentos silenciosos recorrentes (mesmo fornecedor
+// subindo aos poucos). Reutiliza normalizarTexto do detector de desperdício.
+// ═══════════════════════════════════════════════════════════════
+export type AnomaliaHistorica = {
+  tipo: "acima_media" | "aumento_recorrente";
+  descricao: string; categoria?: string; valorAtual: number; valorReferencia: number; impacto: number;
+};
+
+export function detectarAnomaliasHistoricas(itens: Lancamento[]): AnomaliaHistorica[] {
+  const grupos = new Map<string, { descricao: string; categoria?: string; ocorrencias: { valor: number; data: string }[] }>();
+  itens.forEach((it) => {
+    const chave = normalizarTexto(it.descricao || "");
+    if (!chave) return;
+    if (!grupos.has(chave)) grupos.set(chave, { descricao: it.descricao || "", categoria: it.categoria, ocorrencias: [] });
+    grupos.get(chave)!.ocorrencias.push({ valor: Number(it.valor) || 0, data: it.data });
+  });
+
+  const anomalias: AnomaliaHistorica[] = [];
+  grupos.forEach((g) => {
+    if (g.ocorrencias.length < 2) return;
+    const valores = [...g.ocorrencias].sort((a, b) => a.data.localeCompare(b.data)).map((o) => o.valor);
+    const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+    const ultimo = valores[valores.length - 1];
+
+    if (media > 0 && ultimo > media * 1.4) {
+      anomalias.push({ tipo: "acima_media", descricao: g.descricao, categoria: g.categoria, valorAtual: ultimo, valorReferencia: media, impacto: ultimo - media });
+    }
+
+    if (valores.length >= 3) {
+      const ultimas3 = valores.slice(-3);
+      const subindoSempre = ultimas3[1] > ultimas3[0] && ultimas3[2] > ultimas3[1];
+      if (subindoSempre) {
+        anomalias.push({ tipo: "aumento_recorrente", descricao: g.descricao, categoria: g.categoria, valorAtual: ultimas3[2], valorReferencia: ultimas3[0], impacto: ultimas3[2] - ultimas3[0] });
+      }
+    }
+  });
+
+  return anomalias.sort((a, b) => b.impacto - a.impacto);
 }
 
 // ═══════════════════════════════════════════════════════════════
