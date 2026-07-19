@@ -12,7 +12,8 @@ import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
   fBRL, fBRL2, fPct, fK, CORES, serieRolling, serieSemanal, optLinhaMulti,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos,
-  detectarRupturaCaixa, desvioMedioPrevistoRealizado, projecaoSaldoComCenarios, FONTE_EXEC,
+  detectarRupturaCaixa, desvioMedioPrevistoRealizado, projecaoSaldoComCenarios,
+  proximaOcorrenciaDoDia, projetarRecorrenciaMensal, FONTE_EXEC,
   type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo, type EventoCaixa,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento, montarNarrativaVariacao, montarNarrativaRuptura } from "../../../lib/cfoTextos";
@@ -81,6 +82,13 @@ export default function FluxoCaixa() {
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
   const [visaoSemanal, setVisaoSemanal] = useState(true);
+  const [previstosAutoAtivo, setPrevistosAutoAtivo] = useState(true);
+
+  // Previstos automáticos — puxados (só leitura) de outros módulos
+  const [contasReceberRows, setContasReceberRows] = useState<any[]>([]);
+  const [contasPagarRows, setContasPagarRows] = useState<any[]>([]);
+  const [custosFixosRows, setCustosFixosRows] = useState<any[]>([]);
+  const [dividasRows, setDividasRows] = useState<any[]>([]);
 
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
   const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo("mes_atual"));
@@ -94,10 +102,23 @@ export default function FluxoCaixa() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const { data } = await supabase.from("fluxo_caixa").select("*").eq("user_id", user.id)
-      .gte("data", inicioJanelaHistorica(periodo.fim)).lte("data", fimJanelaFutura(periodo.fim))
-      .order("data", { ascending: false });
-    setLancamentos(data || []);
+
+    const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }] = await Promise.all([
+      supabase.from("fluxo_caixa").select("*").eq("user_id", user.id)
+        .gte("data", inicioJanelaHistorica(periodo.fim)).lte("data", fimJanelaFutura(periodo.fim))
+        .order("data", { ascending: false }),
+      // Leitura só (SELECT) — base dos previstos automáticos. Nunca escreve nessas tabelas.
+      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("user_id", user.id).neq("status", "recebido"),
+      supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("user_id", user.id).neq("status", "pago"),
+      supabase.from("custos_fixos").select("valor_mensal, dia_vencimento").eq("user_id", user.id),
+      supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("user_id", user.id),
+    ]);
+
+    setLancamentos(fc || []);
+    setContasReceberRows(cr || []);
+    setContasPagarRows(cp || []);
+    setCustosFixosRows(cf || []);
+    setDividasRows(dv || []);
     setCarregando(false);
   };
 
@@ -160,8 +181,43 @@ export default function FluxoCaixa() {
     - saidasItens.filter(s => s.status === "realizado").reduce((a, r) => a + r.valor, 0);
 
   const hoje = isoHoje();
-  const entradasFuturasPrevistas: EventoCaixa[] = entradasItens.filter(e => e.status === "previsto" && e.data >= hoje).map(e => ({ data: e.data, valor: e.valor }));
-  const saidasFuturasPrevistas: EventoCaixa[] = saidasItens.filter(s => s.status === "previsto" && s.data >= hoje).map(s => ({ data: s.data, valor: s.valor }));
+  const entradasManualPrevistas: EventoCaixa[] = entradasItens.filter(e => e.status === "previsto" && e.data >= hoje).map(e => ({ data: e.data, valor: e.valor }));
+  const saidasManualPrevistas: EventoCaixa[] = saidasItens.filter(s => s.status === "previsto" && s.data >= hoje).map(s => ({ data: s.data, valor: s.valor }));
+
+  // ═══════════════════════ PREVISTOS AUTOMÁTICOS (cross-módulo) ═══════════════════════
+  // Contas a Receber em aberto — cada título vira uma entrada prevista na data de vencimento
+  const entradasAutoContasReceber: EventoCaixa[] = contasReceberRows
+    .filter((c: any) => c.data_vencimento && c.data_vencimento >= hoje)
+    .map((c: any) => ({ data: c.data_vencimento, valor: Math.max(0, Number(c.valor || 0) - Number(c.valor_recebido || 0)) }))
+    .filter((e) => e.valor > 0);
+
+  // Contas a Pagar em aberto — cada título vira uma saída prevista na data de vencimento
+  const saidasAutoContasPagar: EventoCaixa[] = contasPagarRows
+    .filter((c: any) => c.data_vencimento && c.data_vencimento >= hoje)
+    .map((c: any) => ({ data: c.data_vencimento, valor: Math.max(0, Number(c.valor_total || 0) - Number(c.valor_pago || 0)) }))
+    .filter((e) => e.valor > 0);
+
+  // Custos Fixos — recorrentes todo mês, projetados pelo dia de vencimento
+  const saidasAutoCustosFixos: EventoCaixa[] = custosFixosRows.flatMap((c: any) => {
+    if (!c.valor_mensal || !c.dia_vencimento) return [];
+    const proxima = proximaOcorrenciaDoDia(Number(c.dia_vencimento));
+    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, 120);
+  });
+
+  // Dívidas — parcelas restantes projetadas a partir da próxima data de vencimento
+  const saidasAutoDividas: EventoCaixa[] = dividasRows.flatMap((d: any) => {
+    const saldo = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
+    const parcelas = Math.max(1, Number(d.parcelas || 1));
+    if (saldo <= 0 || !d.vencimento) return [];
+    const valorParcela = saldo / parcelas;
+    return projetarRecorrenciaMensal(valorParcela, d.vencimento, 120, parcelas);
+  });
+
+  const totalAutoEntradas = entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0);
+  const totalAutoSaidas = [...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas].reduce((a, e) => a + e.valor, 0);
+
+  const entradasFuturasPrevistas: EventoCaixa[] = previstosAutoAtivo ? [...entradasManualPrevistas, ...entradasAutoContasReceber] : entradasManualPrevistas;
+  const saidasFuturasPrevistas: EventoCaixa[] = previstosAutoAtivo ? [...saidasManualPrevistas, ...saidasAutoContasPagar, ...saidasAutoCustosFixos, ...saidasAutoDividas] : saidasManualPrevistas;
 
   const ruptura = detectarRupturaCaixa(saldoAtualReal, entradasFuturasPrevistas, saidasFuturasPrevistas, 90);
 
@@ -359,6 +415,36 @@ export default function FluxoCaixa() {
                   <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: "#e2e8f0" }}>{narrativaSaldo}</p>
+              </div>
+            )}
+
+            {/* PREVISTOS AUTOMÁTICOS — cross-módulo */}
+            {(totalAutoEntradas > 0 || totalAutoSaidas > 0) && (
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(6,182,212,0.2)" }}>
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.previstosAutomaticos}</p>
+                    <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{cx.subPrevistosAutomaticos}</p>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer text-[11px] font-bold" style={{ color: previstosAutoAtivo ? CORES.cyan : "#5a7a9a" }}>
+                    <input type="checkbox" checked={previstosAutoAtivo} onChange={(e) => setPrevistosAutoAtivo(e.target.checked)} className="accent-cyan-500" />
+                    {cx.incluirPrevistosAuto}
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { l: cx.origemContasReceber, v: entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0), c: CORES.verde },
+                    { l: cx.origemContasPagar, v: saidasAutoContasPagar.reduce((a, e) => a + e.valor, 0), c: CORES.vermelho },
+                    { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: CORES.laranja },
+                    { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: CORES.rosa },
+                  ].map((o) => (
+                    <div key={o.l} className="rounded-xl px-3 py-2.5" style={{ background: `${o.c}0c`, border: `1px solid ${o.c}25` }}>
+                      <p className="text-[9px] uppercase tracking-wider font-bold" style={{ color: "#64748b" }}>{o.l}</p>
+                      <p className="text-sm font-black" style={{ color: o.c }}>{fBRL(o.v)}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] mt-3" style={{ color: "#64748b" }}>{cx.avisoDuplicidade}</p>
               </div>
             )}
 

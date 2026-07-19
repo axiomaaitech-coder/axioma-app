@@ -115,21 +115,22 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
   const custos_fixos = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
 
   // 4) Despesas financeiras (juros de endividamento — estimativa simples)
+  // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
+  // uma tabela órfã com schema diferente, nunca alimentada pela UI.
   let despesas_financeiras = 0;
   try {
     const { data: dividas } = await supabase
-      .from("endividamento")
-      .select("valor_atual, taxa_juros")
-      .eq("user_id", userId)
-      .eq("status", "ativo");
+      .from("dividas")
+      .select("valor_total, valor_pago, taxa_juros")
+      .eq("user_id", userId);
     if (dividas) {
-      despesas_financeiras = dividas.reduce(
-        (s: number, d: any) => s + (Number(d.valor_atual || 0) * Number(d.taxa_juros || 0) / 100),
-        0
-      );
+      despesas_financeiras = dividas.reduce((s: number, d: any) => {
+        const saldoDevedor = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
+        return s + (saldoDevedor * Number(d.taxa_juros || 0) / 100);
+      }, 0);
     }
   } catch {
-    // tabela pode não existir em todos os ambientes
+    // mantém 0 se a consulta falhar por qualquer motivo
   }
 
   // 5) Deduções: aproximação simples como 7% (Simples Nacional faixa básica)
@@ -367,8 +368,8 @@ export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): 
   // ---- 6. ENDIVIDAMENTO ----
   let totalDividas = 0;
   try {
-    const { data: div } = await supabase.from("endividamento").select("valor_atual").eq("user_id", userId).eq("status", "ativo");
-    totalDividas = (div || []).reduce((s: number, r: any) => s + Number(r.valor_atual || 0), 0);
+    const { data: div } = await supabase.from("dividas").select("valor_total, valor_pago").eq("user_id", userId);
+    totalDividas = (div || []).reduce((s: number, r: any) => s + Math.max(0, Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
   } catch {}
   const patrimonio = Math.max(dre.receita_bruta * 3, 1); // estimativa: 3x receita do mês
   const endividamento = (totalDividas / patrimonio) * 100;

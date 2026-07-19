@@ -69,6 +69,9 @@ const TEXTOS = {
     cenarioOtimista: "Otimista", cenarioPessimista: "Pessimista", cenarioPrevisto: "Previsto",
     saldoAtual: "Saldo Atual", entradasPrevistas: "Entradas Previstas", saidasPrevistas: "Saídas Previstas",
     precisaoPrevisao: "Precisão da Previsão",
+    previstosAutomaticos: "Previstos Automáticos", subPrevistosAutomaticos: "Puxado direto de outros módulos — não precisa lançar de novo aqui",
+    origemContasReceber: "Contas a Receber", origemContasPagar: "Contas a Pagar", origemCustosFixos: "Custos Fixos", origemDividas: "Parcelas de Dívidas",
+    incluirPrevistosAuto: "Incluir previstos automáticos na projeção", avisoDuplicidade: "Se você já lança esses itens manualmente aqui, desative pra não contar em dobro.",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -118,6 +121,9 @@ const TEXTOS = {
     cenarioOtimista: "Optimistic", cenarioPessimista: "Pessimistic", cenarioPrevisto: "Forecast",
     saldoAtual: "Current Balance", entradasPrevistas: "Projected Inflows", saidasPrevistas: "Projected Outflows",
     precisaoPrevisao: "Forecast Accuracy",
+    previstosAutomaticos: "Automatic Forecasts", subPrevistosAutomaticos: "Pulled directly from other modules — no need to log it again here",
+    origemContasReceber: "Receivables", origemContasPagar: "Payables", origemCustosFixos: "Fixed Costs", origemDividas: "Debt Installments",
+    incluirPrevistosAuto: "Include automatic forecasts in projection", avisoDuplicidade: "If you already log these items manually here, turn this off to avoid double-counting.",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -167,6 +173,9 @@ const TEXTOS = {
     cenarioOtimista: "Optimista", cenarioPessimista: "Pesimista", cenarioPrevisto: "Previsto",
     saldoAtual: "Saldo Actual", entradasPrevistas: "Entradas Previstas", saidasPrevistas: "Salidas Previstas",
     precisaoPrevisao: "Precisión del Pronóstico",
+    previstosAutomaticos: "Previstos Automáticos", subPrevistosAutomaticos: "Traído directo de otros módulos — no hace falta registrar de nuevo aquí",
+    origemContasReceber: "Cuentas por Cobrar", origemContasPagar: "Cuentas por Pagar", origemCustosFixos: "Costos Fijos", origemDividas: "Cuotas de Deudas",
+    incluirPrevistosAuto: "Incluir previstos automáticos en la proyección", avisoDuplicidade: "Si ya registra estos ítems manualmente aquí, desactive para no contar dos veces.",
   },
 };
 

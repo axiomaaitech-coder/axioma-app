@@ -126,7 +126,9 @@ export async function carregarSnapshot(userId: string): Promise<SnapshotFinancei
     supabase.from("custos_fixos").select("valor_mensal, categoria").eq("user_id", userId),
     supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("user_id", userId),
     supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("user_id", userId),
-    Promise.resolve(supabase.from("endividamento").select("valor_atual, status").eq("user_id", userId).eq("status", "ativo")).catch(() => ({ data: [] })),
+    // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
+    // uma tabela órfã com schema diferente, nunca alimentada pela UI.
+    Promise.resolve(supabase.from("dividas").select("valor_total, valor_pago").eq("user_id", userId)).catch(() => ({ data: [] })),
     supabase.from("empresas").select("setor, regime_tributario, cnae_principal").eq("user_id", userId).limit(1).maybeSingle(),
   ]);
 
@@ -166,7 +168,7 @@ export async function carregarSnapshot(userId: string): Promise<SnapshotFinancei
 
   const qtd_lancamentos = (receitas || []).length;
   const ticket_medio = qtd_lancamentos > 0 ? receita_bruta / qtd_lancamentos : 0;
-  const endividamento_total = (dividas || []).reduce((s, d) => s + Number(d.valor_atual || 0), 0);
+  const endividamento_total = (dividas || []).reduce((s, d: any) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
 
   return {
     periodo: `${String(mesAtual).padStart(2, "0")}/${anoAtual}`,

@@ -152,6 +152,32 @@ export function desvioMedioPrevistoRealizado(itens: { valor: number; status?: st
 // derivada do desvio histórico real da empresa. Reutilizável por
 // Fluxo de Caixa, Dashboard (prévia) e DRE.
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// RECORRÊNCIA MENSAL — projeta ocorrências futuras de um item que se
+// repete todo mês (custo fixo por dia de vencimento, parcela de dívida
+// por data da próxima parcela). Base da auto-população do Fluxo de Caixa.
+// ═══════════════════════════════════════════════════════════════
+export function proximaOcorrenciaDoDia(dia: number): string {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  let d = new Date(hoje.getFullYear(), hoje.getMonth(), dia);
+  if (d < hoje) d = new Date(hoje.getFullYear(), hoje.getMonth() + 1, dia);
+  return d.toISOString().slice(0, 10);
+}
+
+export function projetarRecorrenciaMensal(valor: number, primeiraData: string, horizonteDias: number, maxOcorrencias?: number): EventoCaixa[] {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const limite = new Date(hoje); limite.setDate(hoje.getDate() + horizonteDias);
+  const out: EventoCaixa[] = [];
+  let d = new Date(primeiraData + "T00:00:00");
+  let i = 0;
+  while (d <= limite && (maxOcorrencias === undefined || i < maxOcorrencias)) {
+    if (d >= hoje) out.push({ data: d.toISOString().slice(0, 10), valor });
+    d = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    i++;
+  }
+  return out;
+}
+
 export function projecaoSaldoComCenarios(
   saldoInicial: number,
   entradasPrevistas: EventoCaixa[],
