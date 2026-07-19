@@ -4,15 +4,15 @@
 ---
 
 ## 1. RESUMO EM UMA FRASE
-Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. Já entregamos Dashboard principal, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa e DRE. O próximo é **Endividamento**.
+Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. Próxima decisão: aprofundar **IA Tributária** (brechas legais de imposto, MEI vs empresa, reforma tributária) ou seguir pro menu Crescimento/Comercial — ver seção 4.
 
 ---
 
 ## 2. O ALICERCE (já construído e funcionando)
 Dois arquivos base que todo módulo usa. **Nunca duplicar lógica — sempre importar daqui:**
 
-- **`lib/cfoCore.ts`** — cálculos (MRR, ARR, crescimento MoM, ticket médio, concentração, % recorrente, previsão IA, radar de renovações, detector de desperdício, peso sobre receita, margem de contribuição/break-even/margem de segurança/volatilidade, comparativo entre períodos, anomalias históricas/price creep, série semanal rolante, detector de ruptura de caixa, projeção de saldo com cenários, recorrência mensal projetada) + **DRE completo** (`montarDRE`, `decomporVariacaoLucro`, `ponteLucroCaixa`, `calcularSinaisSaude`/`semaforoSaude`, `runwayCritico`, `gerarConselhoCFO`, `projetarDRE`) + options ECharts prontas (`optBarrasV`, `optRosca`, `optLinhaPrevisao`, `optLinhaMulti`, `optCascata` waterfall) + `CORES` + `FONTE_EXEC` (Georgia serif).
-- **`lib/cfoTextos.ts`** — traduções CFO PT/EN/ES (`cfoT(lang)`, `textoInsight`) + narrativas automáticas (variação, margem, ruptura de caixa, causa raiz, ponte lucro×caixa, runway, conselho CFO) + `canaisCompartilhamento` (WhatsApp/Telegram/Gmail/Outlook/sem mailto).
+- **`lib/cfoCore.ts`** — cálculos (MRR, ARR, crescimento MoM, ticket médio, concentração, % recorrente, previsão IA, radar de renovações, detector de desperdício, peso sobre receita, margem de contribuição/break-even/margem de segurança/volatilidade, comparativo entre períodos, anomalias históricas/price creep, série semanal rolante, detector de ruptura de caixa, projeção de saldo com cenários, recorrência mensal projetada) + **núcleo de DRE** (`montarDRE`, `decomporVariacaoLucro`, `ponteLucroCaixa`, `calcularSinaisSaude`/`semaforoSaude`, `runwayCritico`, `gerarConselhoCFO`, `projetarDRE`) + **núcleo de Endividamento** (`escadaVencimentos`, `ordenarAvalanche`, `coberturaJuros`, `dividaEbitda`, `dividaReceita`, `comprometimentoMensal`, `fluxoCaixaSobreDivida`, `calcularSinaisSolvencia`, `simularRefinanciamento`, `projetarQuitacao`, `runwayDivida`, `gerarConselhoDivida`) + options ECharts prontas (`optBarrasV` com suporte a cor por barra, `optRosca`, `optLinhaPrevisao`, `optLinhaMulti`, `optCascata` waterfall) + `CORES` + `FONTE_EXEC` (Georgia serif).
+- **`lib/cfoTextos.ts`** — traduções CFO PT/EN/ES (`cfoT(lang)`, `textoInsight`) + narrativas automáticas (variação, margem, ruptura de caixa, causa raiz, ponte lucro×caixa, runway do DRE, conselho CFO, muro de vencimentos, runway da dívida, conselho de dívida) + `canaisCompartilhamento` (WhatsApp/Telegram/Gmail/Outlook/sem mailto).
 
 > Regra de ouro: quando um módulo precisar de um cálculo ou texto novo que outro módulo também usará, adicione ao alicerce, não ao módulo.
 
@@ -36,23 +36,29 @@ Margem de Contribuição, Ponto de Equilíbrio, Margem de Segurança, Volatilida
 ### Fluxo de Caixa (`/fluxo-caixa`) — CONECTADO a dados reais
 Visão semanal rolante de 13 semanas, detector de ruptura de caixa com data exata, cenários otimista/pessimista baseados no desvio histórico real, auto-população de previstos cruzando Contas a Receber/Pagar/Custos Fixos/Dívidas (leitura, nunca escreve).
 
-### DRE (`/dre`) — CONECTADO a dados reais, entregue nesta rodada
-**Não é um relatório estático — é um diagnóstico.** Cascata completa (Receita Bruta → Margem de Contribuição → EBITDA → Lucro Líquido) com Análise Vertical (% sobre receita líquida) e Horizontal (vs período anterior) linha a linha, gráfico waterfall. **Decomposição de causa raiz** da variação do lucro (aponta qual fator puxou o resultado antes de sugerir corte). **Ponte Lucro × Caixa** (detecta empresa lucrativa no papel mas que consome caixa, com causa provável: recebíveis parados ou amortização de dívida). **Semáforo de Saúde** (margem líquida, EBITDA em queda, peso de custo fixo vs benchmark setorial, concentração de clientes) + **Runway** até situação crítica. **Conselho CFO acionável** (2-4 recomendações com ação + motivo + impacto em R$, nunca genérico). Projeção 3 meses. **Histórico consultável** — tabela nova `dre_historico`, snapshot automático que congela pra sempre assim que o período fecha. Cor tema verde/teal.
-Bug real corrigido no caminho: imposto calculado com % fixo chutado em vez do regime tributário real da empresa (já calculado pela IA Tributária, nunca reaproveitado) — corrigido no DRE e também no Relatórios, que tinha o mesmo chute e mostrava lucro líquido diferente do DRE pro mesmo período.
+### DRE (`/dre`) — CONECTADO a dados reais
+**Não é um relatório estático — é um diagnóstico.** Cascata completa (Receita Bruta → Margem de Contribuição → EBITDA → Lucro Líquido) com Análise Vertical/Horizontal linha a linha, gráfico waterfall. Decomposição de causa raiz da variação do lucro. Ponte Lucro × Caixa. Semáforo de Saúde + Runway. Conselho CFO acionável. Projeção 3 meses. Histórico consultável (tabela `dre_historico`, snapshot que congela ao fechar o período). Cor verde/teal.
+Bug real corrigido: imposto calculado com % fixo chutado em vez do regime tributário real — corrigido no DRE e no Relatórios (mesmo chute, lucro líquido divergente pro mesmo período).
+
+### Endividamento (`/endividamento`) — CONECTADO a dados reais, entregue nesta rodada
+**Sistema de sobrevivência, não lista de dívidas.** Escada de Vencimentos (cronograma projetado 24 meses, detector de "muro" ancorado na capacidade real de pagamento). Método Avalanche (ranking por taxa de juro real, tag "cara", "quitar primeiro"). 5 indicadores de solvência com semáforo: Cobertura de Juros, Dívida/EBITDA (reaproveita `montarDRE`), Dívida/Receita, Comprometimento Mensal, Fluxo de Caixa/Dívida. Simulador de Refinanciamento interativo. Runway da Dívida. Conselho CFO amarrado a gatilhos reais. Projeção de Quitação (ritmo atual vs avalanche). Cor rosa/magenta.
+Tabela usada: **`dividas`** (não `endividamento` — essa é órfã, ver seção 8). Nenhuma coluna/tabela nova precisou ser criada — tudo derivado do schema existente cruzado com Receitas/Custos/Fluxo de Caixa/Empresas.
 
 ---
 
-## 4. PRÓXIMO PASSO IMEDIATO — Endividamento (`/endividamento`)
+## 4. PRÓXIMO PASSO — duas frentes em aberto, decidir com o Elias
 
-**Tabela:** `dividas` (id, descricao, tipo, valor_total, valor_pago, parcelas, vencimento, taxa_juros, user_id).
-**Cor tema:** rosa/magenta.
+**a) IA Tributária (`/ia-tributaria`) — aprofundar, não é módulo novo.**
+Elias pediu conteúdo educativo sobre taxas/juros do governo, reforma tributária, o que vale pra MEI vs empresa maior, e uma IA que ache "brechas legítimas" pra pagar menos imposto. O módulo já tem a espinha dorsal: `simularRegimes` (MEI/Simples/Presumido/Real lado a lado — isso já É a brecha legítima), Score Fiscal, tipo `AlertaReforma`, chat fiscal. Falta: conteúdo educativo estruturado MEI vs ME/EPP, aprofundar alertas de reforma (IBS/CBS, transição 2026-2033), radar de economia legal cruzando com Custos (holding, split de CNPJ, créditos PIS/COFINS no Lucro Real). Precisa de pesquisa de concorrentes (Contabilizei, Nibo, Bling) + plano antes de codificar.
 
-Pesquisar brecha dos concorrentes antes de codificar (protocolo padrão). Candidatos a investigar: custo médio ponderado de capital, simulador de quitação antecipada vs investir a diferença, alerta de concentração de dívida com poucos credores, cruzamento com o EBITDA do DRE (endividamento/EBITDA é métrica clássica de risco que nenhum ERP BR pra PME mostra).
+**b) Seguir a fila do menu Financeiro pro Crescimento/Comercial** (ver seção 5) ou pro **E-commerce/PDV** (alta prioridade — 2 clientes esperando).
+
+**Pergunte ao Elias qual das duas frentes ele quer primeiro antes de começar.**
 
 ---
 
-## 5. FILA DEPOIS DE ENDIVIDAMENTO (menu Financeiro)
-Depois: Crescimento (Metas, Investimentos, Simulações, Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, e o módulo **E-commerce/PDV** (alta prioridade — 2 clientes esperando).
+## 5. FILA DEPOIS (menu Crescimento/Comercial)
+Crescimento (Metas, Investimentos, Simulações, Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
 
 ---
 
@@ -69,6 +75,9 @@ Depois: Crescimento (Metas, Investimentos, Simulações, Precificação), Comerc
 ---
 
 ## 7. COMO O ELIAS TRABALHA
-Não é programador. No Claude Code, ele aprova planos e você executa direto nos arquivos. Ele valoriza: honestidade técnica, código limpo sem sobras, qualidade acima de velocidade, e recursos que os concorrentes não têm. Quando ele diz "ok", é para prosseguir. Tom com ele: direto, didático, 🦅, sem enrolação.
+Não é programador. No Claude Code, ele aprova planos e você executa direto nos arquivos. Ele valoriza: honestidade técnica, código limpo sem sobras, qualidade acima de velocidade, e recursos que os concorrentes não têm. Quando ele diz "ok"/"pode continuar", é para prosseguir. Tom com ele: direto, didático, 🦅, sem enrolação. Se um pedido dele contradizer o que o código real mostra (ex: nome de tabela errado), aponte a contradição e explique — não obedeça cegamente algo que reintroduziria um bug já corrigido.
 
-**Comece pedindo aprovação do plano de Endividamento (não implemente antes de ele aprovar — é a regra dele).**
+## 8. ARMADILHA CONHECIDA — dívidas vs endividamento
+A tabela real, populada e usada por Endividamento/DRE/Fluxo de Caixa/Relatórios é **`dividas`**. A tabela `endividamento` é órfã (schema diferente, nunca alimentada pela UI) — bug identificado e corrigido no commit `f421c93`. Se qualquer instrução futura mencionar "tabela endividamento", é quase certo um engano — confirme antes de agir.
+
+**Pergunte ao Elias qual das duas frentes da seção 4 ele quer primeiro (não implemente antes dele decidir — é a regra dele).**

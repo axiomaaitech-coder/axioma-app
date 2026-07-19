@@ -325,8 +325,10 @@ const tipBase = {
   extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);",
 };
 
-// Barras verticais com gradiente + valor no topo
-export function optBarrasV(dados: number[], labels: string[], cor: string, corC: string) {
+// Barras verticais com gradiente + valor no topo. coresIndividuais opcional destaca
+// barras específicas (ex: meses de "muro de vencimentos") com uma cor sólida diferente.
+export function optBarrasV(dados: number[], labels: string[], cor: string, corC: string, coresIndividuais?: (string | null)[]) {
+  const gradientePadrao = { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] };
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
@@ -341,7 +343,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
     series: [{
       type: "bar", barWidth: "58%",
       itemStyle: { borderRadius: [8, 8, 2, 2],
-        color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
+        color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
         shadowColor: cor + "55", shadowBlur: 12 },
       label: { show: true, position: "top", distance: 6, color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
       emphasis: { itemStyle: { shadowBlur: 24 } }, data: dados,
@@ -783,7 +785,8 @@ export function calcularSinaisSaude(p: {
   ];
 }
 
-export function semaforoSaude(sinais: SinalSaude[]): CorSaude {
+// Genérico o bastante pra qualquer lista de sinais com cor (DRE, Endividamento, futuros módulos).
+export function semaforoSaude(sinais: { cor: CorSaude }[]): CorSaude {
   const PIOR: Record<CorSaude, number> = { verde: 0, amarelo: 1, vermelho: 2 };
   return sinais.reduce((pior, s) => (PIOR[s.cor] > PIOR[pior] ? s.cor : pior), "verde" as CorSaude);
 }
@@ -935,6 +938,230 @@ export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativ
       },
     ],
   };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENDIVIDAMENTO — SISTEMA DE SOBREVIVÊNCIA (escada de vencimentos,
+// avalanche, indicadores de solvência, simulador de refinanciamento,
+// conselho e projeção de quitação). Reutilizável só por Endividamento
+// por enquanto, mas segue o mesmo padrão do núcleo de DRE acima.
+// ═══════════════════════════════════════════════════════════════
+
+export type DividaBase = {
+  descricao: string; tipo?: string; valor_total: number; valor_pago: number;
+  parcelas: number; vencimento: string; taxa_juros: number; // taxa_juros em % ao mês
+};
+
+// ---------- ESCADA DE VENCIMENTOS (maturity wall) ----------
+export type BucketVencimento = { mes: string; label: string; valor: number; muro: boolean };
+
+// Projeta o cronograma de parcelas de TODAS as dívidas (reusa projetarRecorrenciaMensal,
+// mesma engine do Fluxo de Caixa) e soma por mês. "Muro" = mês em que a soma das parcelas
+// agendadas ultrapassa limiarMuroPct% da capacidade mensal real de pagamento (não um
+// múltiplo arbitrário da própria média — ancorado em caixa real).
+export function escadaVencimentos(
+  dividas: DividaBase[], capacidadeMensalPagamento: number, horizonteMeses = 24, limiarMuroPct = 40
+): BucketVencimento[] {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const buckets: BucketVencimento[] = [];
+  for (let i = 0; i < horizonteMeses; i++) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+    buckets.push({ mes: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, label: `${mesesPt[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`, valor: 0, muro: false });
+  }
+  dividas.forEach((dv) => {
+    const saldo = Math.max(0, dv.valor_total - dv.valor_pago);
+    const parcelas = Math.max(1, dv.parcelas);
+    if (saldo <= 0 || !dv.vencimento) return;
+    const valorParcela = saldo / parcelas;
+    const eventos = projetarRecorrenciaMensal(valorParcela, dv.vencimento, horizonteMeses * 31, parcelas);
+    eventos.forEach((ev) => {
+      const d = new Date(ev.data + "T00:00:00");
+      const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const b = buckets.find((x) => x.mes === chave);
+      if (b) b.valor += ev.valor;
+    });
+  });
+  // Capacidade <= 0 (EBITDA negativo/zero) = empresa sem fôlego pra pagar nada — qualquer
+  // parcela futura já é risco, não só as que passam do limiar percentual.
+  return buckets.map((b) => ({
+    ...b,
+    muro: b.valor > 0 && (capacidadeMensalPagamento <= 0 || (b.valor / capacidadeMensalPagamento) * 100 > limiarMuroPct),
+  }));
+}
+
+// ---------- MÉTODO AVALANCHE ----------
+export type ItemAvalanche = {
+  descricao: string; tipo?: string; saldoDevedor: number; taxaJurosAM: number;
+  jurosMensalAtual: number; ordem: number; cara: boolean;
+};
+
+// Ordena por taxa de juros (custo real), não por valor — quem sai primeiro é quem mais
+// economiza. "Cara" = 15% acima da própria média do portfólio de dívidas da empresa.
+export function ordenarAvalanche(dividas: DividaBase[]): ItemAvalanche[] {
+  const comSaldo = dividas.filter((d) => d.valor_total - d.valor_pago > 0);
+  const taxaMedia = comSaldo.length ? comSaldo.reduce((s, d) => s + d.taxa_juros, 0) / comSaldo.length : 0;
+  return comSaldo
+    .map((d) => {
+      const saldoDevedor = d.valor_total - d.valor_pago;
+      return {
+        descricao: d.descricao, tipo: d.tipo, saldoDevedor, taxaJurosAM: d.taxa_juros,
+        jurosMensalAtual: saldoDevedor * (d.taxa_juros / 100),
+        cara: taxaMedia > 0 && d.taxa_juros > taxaMedia * 1.15,
+        ordem: 0,
+      };
+    })
+    .sort((a, b) => b.taxaJurosAM - a.taxaJurosAM)
+    .map((item, i) => ({ ...item, ordem: i + 1 }));
+}
+
+// ---------- INDICADORES DE SOLVÊNCIA ----------
+// Índice de Cobertura de Juros: quantas vezes o EBITDA cobre a despesa financeira do mês.
+// null = sem despesa financeira no período (indicador não se aplica, não é "infinito bom").
+export function coberturaJuros(ebitdaMensal: number, despesasFinanceirasMensal: number): number | null {
+  if (despesasFinanceirasMensal <= 0) return null;
+  return ebitdaMensal / despesasFinanceirasMensal;
+}
+
+// Dívida / EBITDA anualizado — clássico múltiplo de alavancagem que bancos e agências de rating usam.
+export function dividaEbitda(dividaTotal: number, ebitdaAnualizado: number): number | null {
+  if (ebitdaAnualizado <= 0) return null;
+  return dividaTotal / ebitdaAnualizado;
+}
+
+// Dívida total como % da receita anualizada — comprometimento estrutural.
+export function dividaReceita(dividaTotal: number, receitaAnualizada: number): number {
+  return receitaAnualizada > 0 ? (dividaTotal / receitaAnualizada) * 100 : 0;
+}
+
+// % da receita mensal já comprometida com parcelas de dívida no mês.
+export function comprometimentoMensal(parcelaMensalTotal: number, receitaMensal: number): number {
+  return receitaMensal > 0 ? (parcelaMensalTotal / receitaMensal) * 100 : 0;
+}
+
+// Fluxo de caixa (realizado) sobre dívida total — capacidade real de quitação, não teórica.
+export function fluxoCaixaSobreDivida(fluxoCaixaMensal: number, dividaTotal: number): number {
+  return dividaTotal > 0 ? (fluxoCaixaMensal / dividaTotal) * 100 : 0;
+}
+
+export type SinalSolvencia = {
+  chave: "coberturaJuros" | "dividaEbitda" | "dividaReceita" | "comprometimentoMensal" | "fluxoCaixaSobreDivida";
+  cor: CorSaude; valor: number | null;
+};
+
+// Faixas de referência de mercado (regra geral corporativa — não vêm de benchmarks_setoriais,
+// que não tem esses campos; documentado aqui pra ficar claro de onde vem cada corte).
+export function calcularSinaisSolvencia(p: {
+  coberturaJurosX: number | null; dividaEbitdaX: number | null; dividaReceitaPct: number;
+  comprometimentoMensalPct: number; fluxoCaixaSobreDividaPct: number;
+}): SinalSolvencia[] {
+  const corCobertura: CorSaude = p.coberturaJurosX === null ? "verde" : p.coberturaJurosX < 1.5 ? "vermelho" : p.coberturaJurosX < 3 ? "amarelo" : "verde";
+  const corDividaEbitda: CorSaude = p.dividaEbitdaX === null ? "amarelo" : p.dividaEbitdaX > 4 ? "vermelho" : p.dividaEbitdaX > 2 ? "amarelo" : "verde";
+  const corDividaReceita: CorSaude = p.dividaReceitaPct > 50 ? "vermelho" : p.dividaReceitaPct > 30 ? "amarelo" : "verde";
+  const corComprometimento: CorSaude = p.comprometimentoMensalPct > 20 ? "vermelho" : p.comprometimentoMensalPct > 10 ? "amarelo" : "verde";
+  const corFCDivida: CorSaude = p.fluxoCaixaSobreDividaPct < 10 ? "vermelho" : p.fluxoCaixaSobreDividaPct < 20 ? "amarelo" : "verde";
+  return [
+    { chave: "coberturaJuros", cor: corCobertura, valor: p.coberturaJurosX },
+    { chave: "dividaEbitda", cor: corDividaEbitda, valor: p.dividaEbitdaX },
+    { chave: "dividaReceita", cor: corDividaReceita, valor: p.dividaReceitaPct },
+    { chave: "comprometimentoMensal", cor: corComprometimento, valor: p.comprometimentoMensalPct },
+    { chave: "fluxoCaixaSobreDivida", cor: corFCDivida, valor: p.fluxoCaixaSobreDividaPct },
+  ];
+}
+
+// ---------- SIMULADOR DE REFINANCIAMENTO ----------
+// Modelo simplificado (juro flat sobre saldo devedor, igual ao resto do app) — não é uma
+// tabela de amortização Price/SAC completa, mas já mostra a direção e a ordem de grandeza real.
+export type ResultadoRefinanciamento = {
+  jurosMensalAtual: number; jurosMensalNovo: number; economiaJurosMensal: number;
+  parcelaAtual: number; parcelaNova: number; liberacaoCaixaMensal: number; economiaJurosTotal: number;
+};
+
+export function simularRefinanciamento(p: {
+  saldoDevedor: number; taxaJurosAtualAM: number; parcelasRestantesAtual: number;
+  novaTaxaAM: number; novoPrazoParcelas: number;
+}): ResultadoRefinanciamento {
+  const jurosMensalAtual = p.saldoDevedor * (p.taxaJurosAtualAM / 100);
+  const parcelaAtual = p.parcelasRestantesAtual > 0 ? p.saldoDevedor / p.parcelasRestantesAtual + jurosMensalAtual : 0;
+  const jurosMensalNovo = p.saldoDevedor * (p.novaTaxaAM / 100);
+  const parcelaNova = p.novoPrazoParcelas > 0 ? p.saldoDevedor / p.novoPrazoParcelas + jurosMensalNovo : 0;
+  return {
+    jurosMensalAtual, jurosMensalNovo, economiaJurosMensal: jurosMensalAtual - jurosMensalNovo,
+    parcelaAtual, parcelaNova, liberacaoCaixaMensal: parcelaAtual - parcelaNova,
+    economiaJurosTotal: jurosMensalAtual * p.parcelasRestantesAtual - jurosMensalNovo * p.novoPrazoParcelas,
+  };
+}
+
+// ---------- PROJEÇÃO DE QUITAÇÃO (3 cenários) ----------
+export type CenarioQuitacao = "minimo" | "avalanche";
+export type PontoQuitacao = { mes: number; saldoDevedor: number };
+
+// Simula a carteira de dívidas mês a mês. "minimo" paga só a parcela normal de cada uma.
+// "avalanche" direciona qualquer folga extra de caixa pra quitar primeiro a mais cara.
+export function projetarQuitacao(
+  dividas: DividaBase[], cenario: CenarioQuitacao, horizonteMeses = 60, folgaExtraMensal = 0
+): PontoQuitacao[] {
+  type Estado = { saldo: number; taxa: number; parcelaBase: number };
+  let carteira: Estado[] = dividas
+    .filter((d) => d.valor_total - d.valor_pago > 0)
+    .map((d) => {
+      const saldo = d.valor_total - d.valor_pago;
+      const parcelas = Math.max(1, d.parcelas);
+      return { saldo, taxa: d.taxa_juros / 100, parcelaBase: saldo / parcelas + saldo * (d.taxa_juros / 100) };
+    });
+
+  if (cenario === "avalanche") carteira = [...carteira].sort((a, b) => b.taxa - a.taxa);
+
+  const pontos: PontoQuitacao[] = [{ mes: 0, saldoDevedor: Math.round(carteira.reduce((s, c) => s + c.saldo, 0)) }];
+
+  for (let mes = 1; mes <= horizonteMeses; mes++) {
+    let folga = cenario === "avalanche" ? folgaExtraMensal : 0;
+    carteira = carteira.map((c) => {
+      if (c.saldo <= 0) return c;
+      const juros = c.saldo * c.taxa;
+      const pagamento = Math.min(c.saldo + juros, c.parcelaBase + folga);
+      if (folga > 0) folga = Math.max(0, folga - Math.max(0, pagamento - c.parcelaBase));
+      return { ...c, saldo: Math.max(0, c.saldo + juros - pagamento) };
+    });
+    pontos.push({ mes, saldoDevedor: Math.round(carteira.reduce((s, c) => s + c.saldo, 0)) });
+    if (carteira.every((c) => c.saldo <= 0)) break;
+  }
+  return pontos;
+}
+
+// Meses até quitação total no ritmo atual (cenário mínimo) — null = não quita dentro do
+// horizonte analisado, sinal vermelho de dívida perpétua/crescente.
+export function runwayDivida(dividas: DividaBase[], horizonteMeses = 120): number | null {
+  const pontos = projetarQuitacao(dividas, "minimo", horizonteMeses);
+  const quitado = pontos.find((p) => p.saldoDevedor <= 0);
+  return quitado ? quitado.mes : null;
+}
+
+// ---------- CONSELHO CFO DE DÍVIDA ----------
+export type GatilhoConselhoDivida =
+  | { tipo: "quitarPrimeiro"; descricao: string; taxaJurosAM: number; economiaEstimada: number }
+  | { tipo: "refinanciarAntesMuro"; mesMuro: string; valorMuro: number }
+  | { tipo: "coberturaJurosBaixa"; coberturaAtual: number }
+  | { tipo: "dividaAltaSobreEbitda"; multiplo: number };
+
+export function gerarConselhoDivida(p: {
+  avalanche: ItemAvalanche[]; escada: BucketVencimento[];
+  coberturaJurosX: number | null; dividaEbitdaX: number | null;
+}): GatilhoConselhoDivida[] {
+  const out: GatilhoConselhoDivida[] = [];
+
+  const maisCara = p.avalanche[0];
+  if (maisCara && maisCara.cara) {
+    out.push({ tipo: "quitarPrimeiro", descricao: maisCara.descricao, taxaJurosAM: maisCara.taxaJurosAM, economiaEstimada: maisCara.jurosMensalAtual * 6 });
+  }
+
+  const proximoMuro = p.escada.find((b) => b.muro);
+  if (proximoMuro) out.push({ tipo: "refinanciarAntesMuro", mesMuro: proximoMuro.label, valorMuro: proximoMuro.valor });
+
+  if (p.coberturaJurosX !== null && p.coberturaJurosX < 1.5) out.push({ tipo: "coberturaJurosBaixa", coberturaAtual: p.coberturaJurosX });
+
+  if (p.dividaEbitdaX !== null && p.dividaEbitdaX > 4) out.push({ tipo: "dividaAltaSobreEbitda", multiplo: p.dividaEbitdaX });
+
+  return out.slice(0, 4);
 }
 
 // ═══════════════════════════════════════════════════════════════

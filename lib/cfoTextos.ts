@@ -6,7 +6,10 @@
 // Uso: const cx = cfoT(lang);  cx.mrr
 // ═══════════════════════════════════════════════════════════════
 
-import { fBRL, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho } from "./cfoCore";
+import {
+  fBRL, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho,
+  type BucketVencimento, type GatilhoConselhoDivida,
+} from "./cfoCore";
 
 export type CfoLang = "pt" | "en" | "es";
 
@@ -87,6 +90,22 @@ const TEXTOS = {
     // DRE — histórico
     historicoTitulo: "Histórico de Resultados", historicoVazio: "Nenhum período fechado ainda — volte no fim do mês.",
     periodoFechado: "Fechado", periodoAberto: "Em andamento", verHistorico: "Ver Histórico",
+    // Endividamento
+    escadaVencimentosTitulo: "Escada de Vencimentos", muroDetectado: "Muro de vencimentos",
+    semMuro: "Nenhum muro de vencimentos no horizonte analisado.",
+    avalancheTitulo: "Método Avalanche", dividaCaraTag: "Cara", quitarPrimeiroLabel: "Quitar primeiro",
+    indicadoresSolvenciaTitulo: "Indicadores de Solvência",
+    coberturaJurosLabel: "Cobertura de Juros", dividaEbitdaLabel: "Dívida / EBITDA", dividaReceitaLabel: "Dívida / Receita",
+    comprometimentoMensalLabel: "Comprometimento Mensal", fluxoCaixaSobreDividaLabel: "Fluxo de Caixa / Dívida",
+    semJuros: "Sem despesa financeira", semEbitda: "EBITDA insuficiente",
+    simuladorTitulo: "Simulador de Refinanciamento", novaTaxaLabel: "Nova taxa (% a.m.)", novoPrazoLabel: "Novo prazo (parcelas)",
+    economiaJurosLabel: "Economia de Juros", liberacaoCaixaLabel: "Libera de Caixa/Mês",
+    radarPrevencaoTitulo: "Radar de Prevenção de Quebra", runwayDividaTitulo: "Runway da Dívida",
+    conselhoDividaTitulo: "Conselho CFO", semGatilhoDivida: "Nenhuma recomendação crítica no momento — endividamento sob controle.",
+    projecaoQuitacaoTitulo: "Projeção de Quitação", cenarioMinimoLabel: "Ritmo Atual", cenarioAvalancheLabel: "Avalanche",
+    semDividaTitulo: "Nenhuma dívida cadastrada — estrutura de capital livre de endividamento.",
+    regraOuroNegociar: "Regra de ouro: negocie antes de atrasar — depois do atraso, você perde poder de barganha.",
+    quitacaoEm: "quita em", naoQuitaHorizonte: "não quita no horizonte analisado",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -151,6 +170,21 @@ const TEXTOS = {
     sinalMargemLiquida: "Net Margin", sinalEbitdaQueda: "EBITDA Declining", sinalPesoCustoFixo: "Fixed Cost Weight", sinalConcentracao: "Customer Concentration",
     historicoTitulo: "Results History", historicoVazio: "No closed period yet — check back at month end.",
     periodoFechado: "Closed", periodoAberto: "In progress", verHistorico: "View History",
+    escadaVencimentosTitulo: "Maturity Wall", muroDetectado: "Maturity wall",
+    semMuro: "No maturity wall in the analyzed horizon.",
+    avalancheTitulo: "Avalanche Method", dividaCaraTag: "Expensive", quitarPrimeiroLabel: "Pay off first",
+    indicadoresSolvenciaTitulo: "Solvency Indicators",
+    coberturaJurosLabel: "Interest Coverage", dividaEbitdaLabel: "Debt / EBITDA", dividaReceitaLabel: "Debt / Revenue",
+    comprometimentoMensalLabel: "Monthly Commitment", fluxoCaixaSobreDividaLabel: "Cash Flow / Debt",
+    semJuros: "No financial expense", semEbitda: "Insufficient EBITDA",
+    simuladorTitulo: "Refinancing Simulator", novaTaxaLabel: "New rate (% monthly)", novoPrazoLabel: "New term (installments)",
+    economiaJurosLabel: "Interest Savings", liberacaoCaixaLabel: "Cash Freed/Month",
+    radarPrevencaoTitulo: "Bankruptcy Prevention Radar", runwayDividaTitulo: "Debt Runway",
+    conselhoDividaTitulo: "CFO Advice", semGatilhoDivida: "No critical recommendation right now — debt under control.",
+    projecaoQuitacaoTitulo: "Payoff Projection", cenarioMinimoLabel: "Current Pace", cenarioAvalancheLabel: "Avalanche",
+    semDividaTitulo: "No debt on record — debt-free capital structure.",
+    regraOuroNegociar: "Golden rule: negotiate before falling behind — once overdue, you lose bargaining power.",
+    quitacaoEm: "pays off in", naoQuitaHorizonte: "doesn't pay off within the analyzed horizon",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -215,6 +249,21 @@ const TEXTOS = {
     sinalMargemLiquida: "Margen Neto", sinalEbitdaQueda: "EBITDA en Caída", sinalPesoCustoFixo: "Peso del Costo Fijo", sinalConcentracao: "Concentración de Clientes",
     historicoTitulo: "Historial de Resultados", historicoVazio: "Ningún período cerrado todavía — vuelva a fin de mes.",
     periodoFechado: "Cerrado", periodoAberto: "En curso", verHistorico: "Ver Historial",
+    escadaVencimentosTitulo: "Muro de Vencimientos", muroDetectado: "Muro de vencimientos",
+    semMuro: "Ningún muro de vencimientos en el horizonte analizado.",
+    avalancheTitulo: "Método Avalancha", dividaCaraTag: "Cara", quitarPrimeiroLabel: "Pagar primero",
+    indicadoresSolvenciaTitulo: "Indicadores de Solvencia",
+    coberturaJurosLabel: "Cobertura de Intereses", dividaEbitdaLabel: "Deuda / EBITDA", dividaReceitaLabel: "Deuda / Ingresos",
+    comprometimentoMensalLabel: "Compromiso Mensual", fluxoCaixaSobreDividaLabel: "Flujo de Caja / Deuda",
+    semJuros: "Sin gasto financiero", semEbitda: "EBITDA insuficiente",
+    simuladorTitulo: "Simulador de Refinanciación", novaTaxaLabel: "Nueva tasa (% mensual)", novoPrazoLabel: "Nuevo plazo (cuotas)",
+    economiaJurosLabel: "Ahorro de Intereses", liberacaoCaixaLabel: "Libera de Caja/Mes",
+    radarPrevencaoTitulo: "Radar de Prevención de Quiebra", runwayDividaTitulo: "Runway de la Deuda",
+    conselhoDividaTitulo: "Consejo CFO", semGatilhoDivida: "Ninguna recomendación crítica por ahora — endeudamiento bajo control.",
+    projecaoQuitacaoTitulo: "Proyección de Pago", cenarioMinimoLabel: "Ritmo Actual", cenarioAvalancheLabel: "Avalancha",
+    semDividaTitulo: "Ninguna deuda registrada — estructura de capital libre de endeudamiento.",
+    regraOuroNegociar: "Regla de oro: negocie antes de atrasarse — después del atraso, pierde poder de negociación.",
+    quitacaoEm: "se paga en", naoQuitaHorizonte: "no se paga dentro del horizonte analizado",
   },
 };
 
@@ -343,6 +392,45 @@ export function montarConselhoCFO(lang: string, g: GatilhoConselho): string {
   if (lang === "en") return `There's ${fBRL(g.valorParado)} in pending receivables. Collecting it turns paper profit into real cash.`;
   if (lang === "es") return `Hay ${fBRL(g.valorParado)} en cuentas por cobrar pendientes. Cobrarlas convierte la utilidad en caja real.`;
   return `Há ${fBRL(g.valorParado)} em recebíveis parados. Cobrar isso converte lucro de papel em caixa de verdade.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENDIVIDAMENTO — NARRATIVAS (muro de vencimentos, avalanche, runway,
+// conselho CFO de dívida). Mesma regra: sempre citar o número/origem real.
+// ═══════════════════════════════════════════════════════════════
+export function montarNarrativaMuro(lang: string, bucket: BucketVencimento): string {
+  if (lang === "en") return `You have ${fBRL(bucket.valor)} coming due in ${bucket.label}. Start renegotiating now, while you still have bargaining power.`;
+  if (lang === "es") return `Tiene ${fBRL(bucket.valor)} venciendo en ${bucket.label}. Empiece a renegociar ahora, mientras tiene poder de negociación.`;
+  return `Você tem ${fBRL(bucket.valor)} vencendo em ${bucket.label}. Comece a renegociar agora, enquanto tem poder de barganha.`;
+}
+
+export function montarNarrativaRunwayDivida(lang: string, meses: number | null): string {
+  const cx = cfoT(lang);
+  if (meses === null) return cx.naoQuitaHorizonte;
+  if (lang === "en") return `At the current pace, you become debt-free in ${meses} month${meses > 1 ? "s" : ""}.`;
+  if (lang === "es") return `Al ritmo actual, queda libre de deudas en ${meses} mes${meses > 1 ? "es" : ""}.`;
+  return `No ritmo atual, você fica livre de dívidas em ${meses} ${meses > 1 ? "meses" : "mês"}.`;
+}
+
+export function montarConselhoDivida(lang: string, g: GatilhoConselhoDivida): string {
+  if (g.tipo === "quitarPrimeiro") {
+    if (lang === "en") return `Pay off "${g.descricao}" first (${fPct(g.taxaJurosAM)}/mo): it's the most expensive debt in your portfolio. Prioritizing it saves about ${fBRL(g.economiaEstimada)} over 6 months.`;
+    if (lang === "es") return `Pague primero "${g.descricao}" (${fPct(g.taxaJurosAM)}/mes): es la deuda más cara de su cartera. Priorizarla ahorra cerca de ${fBRL(g.economiaEstimada)} en 6 meses.`;
+    return `Quite primeiro "${g.descricao}" (${fPct(g.taxaJurosAM)}/mês): é a dívida mais cara do seu portfólio. Priorizá-la economiza cerca de ${fBRL(g.economiaEstimada)} em 6 meses.`;
+  }
+  if (g.tipo === "refinanciarAntesMuro") {
+    if (lang === "en") return `Refinance before ${g.mesMuro}: ${fBRL(g.valorMuro)} in installments come due that month — a maturity wall risking cash flow.`;
+    if (lang === "es") return `Refinancie antes de ${g.mesMuro}: ${fBRL(g.valorMuro)} en cuotas vencen ese mes — un muro de vencimientos que arriesga el flujo de caja.`;
+    return `Refinancie antes de ${g.mesMuro}: ${fBRL(g.valorMuro)} em parcelas vencem nesse mês — um muro de vencimentos que arrisca o caixa.`;
+  }
+  if (g.tipo === "coberturaJurosBaixa") {
+    if (lang === "en") return `Interest coverage is only ${g.coberturaAtual.toFixed(1)}x — EBITDA barely covers financial expenses. Any drop in results risks default.`;
+    if (lang === "es") return `La cobertura de intereses es de solo ${g.coberturaAtual.toFixed(1)}x — el EBITDA apenas cubre los gastos financieros. Cualquier caída en el resultado arriesga el incumplimiento.`;
+    return `A cobertura de juros está em apenas ${g.coberturaAtual.toFixed(1)}x — o EBITDA mal cobre as despesas financeiras. Qualquer queda no resultado arrisca calote.`;
+  }
+  if (lang === "en") return `Debt is ${g.multiplo.toFixed(1)}x EBITDA — above the healthy 4x ceiling. New debt should wait until this ratio comes down.`;
+  if (lang === "es") return `La deuda es ${g.multiplo.toFixed(1)}x el EBITDA — por encima del techo saludable de 4x. Nueva deuda debería esperar hasta que este ratio baje.`;
+  return `A dívida está em ${g.multiplo.toFixed(1)}x o EBITDA — acima do teto saudável de 4x. Nova dívida deveria esperar esse múltiplo cair.`;
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {
