@@ -4,15 +4,15 @@
 ---
 
 ## 1. RESUMO EM UMA FRASE
-Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. Já entregamos o Dashboard principal, Receitas e Custos Fixos. O próximo é **Custos Variáveis**.
+Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. Já entregamos Dashboard principal, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa e DRE. O próximo é **Endividamento**.
 
 ---
 
 ## 2. O ALICERCE (já construído e funcionando)
 Dois arquivos base que todo módulo usa. **Nunca duplicar lógica — sempre importar daqui:**
 
-- **`lib/cfoCore.ts`** — cálculos (MRR, ARR, crescimento MoM, ticket médio, concentração, % recorrente, previsão IA, radar de renovações, detector de desperdício, peso sobre receita) + options ECharts prontas (`optBarrasV`, `optRosca`, `optLinhaPrevisao`, `optLinhaMulti`) + `CORES` + `FONTE_EXEC` (Georgia serif).
-- **`lib/cfoTextos.ts`** — traduções CFO PT/EN/ES (`cfoT(lang)`, `textoInsight`) + `canaisCompartilhamento` (WhatsApp/Telegram/Gmail/Outlook/sem mailto).
+- **`lib/cfoCore.ts`** — cálculos (MRR, ARR, crescimento MoM, ticket médio, concentração, % recorrente, previsão IA, radar de renovações, detector de desperdício, peso sobre receita, margem de contribuição/break-even/margem de segurança/volatilidade, comparativo entre períodos, anomalias históricas/price creep, série semanal rolante, detector de ruptura de caixa, projeção de saldo com cenários, recorrência mensal projetada) + **DRE completo** (`montarDRE`, `decomporVariacaoLucro`, `ponteLucroCaixa`, `calcularSinaisSaude`/`semaforoSaude`, `runwayCritico`, `gerarConselhoCFO`, `projetarDRE`) + options ECharts prontas (`optBarrasV`, `optRosca`, `optLinhaPrevisao`, `optLinhaMulti`, `optCascata` waterfall) + `CORES` + `FONTE_EXEC` (Georgia serif).
+- **`lib/cfoTextos.ts`** — traduções CFO PT/EN/ES (`cfoT(lang)`, `textoInsight`) + narrativas automáticas (variação, margem, ruptura de caixa, causa raiz, ponte lucro×caixa, runway, conselho CFO) + `canaisCompartilhamento` (WhatsApp/Telegram/Gmail/Outlook/sem mailto).
 
 > Regra de ouro: quando um módulo precisar de um cálculo ou texto novo que outro módulo também usará, adicione ao alicerce, não ao módulo.
 
@@ -22,40 +22,36 @@ Dois arquivos base que todo módulo usa. **Nunca duplicar lógica — sempre imp
 
 ### Dashboard principal (`/dashboard`)
 Vídeo hero (logo `/logo-aitech.png` sempre visível) → letreiro premium "Dashboard Financeiro" → `components/DashFinanceiro.tsx` → letreiro premium "Dashboard Comercial" → `components/DashComercial.tsx` → cards de módulos.
-Cada componente = KPIs + letreiro em loop + **modal único estilo Power BI** (linha no topo + barras verticais + roscas).
 **Status dos dados:** DEMO (fictícios, com tag "DEMO"). Conectar ao Supabase na fase de integração — usando `cfoCore`, sem reescrita.
 
 ### Receitas (`/receitas`) — CONECTADO a dados reais
-Camada CFO: MRR, ARR, crescimento MoM, ticket médio, % recorrente, concentração top 20%. Modal único: barras evolução + rosca categoria + linha previsão IA. Insights automáticos, letreiro, compartilhamento. Cor tema: roxo.
+MRR, ARR, crescimento MoM, ticket médio, % recorrente, concentração top 20%. Modal único: barras evolução + rosca categoria + linha previsão IA.
 
 ### Custos Fixos (`/custos-fixos`) — CONECTADO a dados reais
-Diferenciais que nenhum ERP BR tem: **Radar de Renovações** (avisa contratos perto de renovar, urgência colorida) + **Detector de Desperdício** (duplicados + economia potencial em R$). Coluna nova `data_renovacao` já criada no Supabase. Modal: rosca categoria + barras maiores custos. Cor tema: vermelho/laranja.
+Radar de Renovações + Detector de Desperdício (duplicados + economia potencial).
+
+### Custos Variáveis (`/custos-variaveis`) — CONECTADO a dados reais
+Margem de Contribuição, Ponto de Equilíbrio, Margem de Segurança, Volatilidade, comparativo entre períodos por categoria, anomalias históricas/price creep, sugestões acionáveis, projeção.
+
+### Fluxo de Caixa (`/fluxo-caixa`) — CONECTADO a dados reais
+Visão semanal rolante de 13 semanas, detector de ruptura de caixa com data exata, cenários otimista/pessimista baseados no desvio histórico real, auto-população de previstos cruzando Contas a Receber/Pagar/Custos Fixos/Dívidas (leitura, nunca escreve).
+
+### DRE (`/dre`) — CONECTADO a dados reais, entregue nesta rodada
+**Não é um relatório estático — é um diagnóstico.** Cascata completa (Receita Bruta → Margem de Contribuição → EBITDA → Lucro Líquido) com Análise Vertical (% sobre receita líquida) e Horizontal (vs período anterior) linha a linha, gráfico waterfall. **Decomposição de causa raiz** da variação do lucro (aponta qual fator puxou o resultado antes de sugerir corte). **Ponte Lucro × Caixa** (detecta empresa lucrativa no papel mas que consome caixa, com causa provável: recebíveis parados ou amortização de dívida). **Semáforo de Saúde** (margem líquida, EBITDA em queda, peso de custo fixo vs benchmark setorial, concentração de clientes) + **Runway** até situação crítica. **Conselho CFO acionável** (2-4 recomendações com ação + motivo + impacto em R$, nunca genérico). Projeção 3 meses. **Histórico consultável** — tabela nova `dre_historico`, snapshot automático que congela pra sempre assim que o período fecha. Cor tema verde/teal.
+Bug real corrigido no caminho: imposto calculado com % fixo chutado em vez do regime tributário real da empresa (já calculado pela IA Tributária, nunca reaproveitado) — corrigido no DRE e também no Relatórios, que tinha o mesmo chute e mostrava lucro líquido diferente do DRE pro mesmo período.
 
 ---
 
-## 4. PRÓXIMO PASSO IMEDIATO — Custos Variáveis (`/custos-variaveis`)
+## 4. PRÓXIMO PASSO IMEDIATO — Endividamento (`/endividamento`)
 
-**Tabela:** `custos_variaveis` (colunas: `id, descricao, valor, data, categoria, user_id`).
-**Categorias atuais:** Marketing, Logística, Matéria-prima, Comissões, Embalagens, Outros.
-**Cor tema:** laranja/âmbar (não repetir cor dos outros).
+**Tabela:** `dividas` (id, descricao, tipo, valor_total, valor_pago, parcelas, vencimento, taxa_juros, user_id).
+**Cor tema:** rosa/magenta.
 
-**Brecha pesquisada (o que os grandes CFOs calculam e nenhum ERP BR entrega para PME):**
-- **Margem de Contribuição** — quanto sobra de cada real depois do custo variável
-- **Ponto de Equilíbrio (break-even)** — quanto faturar para não ter prejuízo (puxa Custos Fixos)
-- **Margem de Segurança** — quanto a receita pode cair antes do prejuízo
-- **Volatilidade dos custos** — detecta oscilação anormal (risco)
-- **Alerta de sangria de margem** — custo variável crescendo mais rápido que a receita
-
-> Esses cálculos conectam Custos Variáveis + Custos Fixos + Receitas. Vale avaliar adicionar as funções novas (margem de contribuição, break-even, margem de segurança, volatilidade) ao `cfoCore` para reuso no DRE e no Dashboard depois.
-
-**Estrutura atual do módulo (a manter):** CRUD completo com tabela `custos_variaveis`, modal criar/editar, PDF via `gerarPdfTabela`, CanvasBox azul, KPIs (total no mês, lançamentos, maior custo), i18n `t.custosVariaveis.*` e `t.geral.*`. **Não quebrar nada disso** — adicionar a camada CFO por cima, como foi feito em Receitas e Custos Fixos.
+Pesquisar brecha dos concorrentes antes de codificar (protocolo padrão). Candidatos a investigar: custo médio ponderado de capital, simulador de quitação antecipada vs investir a diferença, alerta de concentração de dívida com poucos credores, cruzamento com o EBITDA do DRE (endividamento/EBITDA é métrica clássica de risco que nenhum ERP BR pra PME mostra).
 
 ---
 
-## 5. FILA DEPOIS DE CUSTOS VARIÁVEIS (menu Financeiro)
-**Fluxo de Caixa** (cor cyan/azul) → **DRE** (verde/teal) → **Endividamento** (rosa/magenta).
-Cada um: pesquisar brecha → plano → aprovação do Elias → construir sobre o alicerce → cor própria → git.
-
+## 5. FILA DEPOIS DE ENDIVIDAMENTO (menu Financeiro)
 Depois: Crescimento (Metas, Investimentos, Simulações, Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, e o módulo **E-commerce/PDV** (alta prioridade — 2 clientes esperando).
 
 ---
@@ -67,7 +63,7 @@ Depois: Crescimento (Metas, Investimentos, Simulações, Precificação), Comerc
 4. Busca/filtro + tabela CRUD (mantidos).
 5. Modais criar/editar + Centro de Compartilhamento.
 6. Fonte `FONTE_EXEC` nos títulos. Cor de tema própria. Responsivo. i18n completo. Dados reais.
-7. Se precisar coluna nova → avisar Elias + SQL `ADD COLUMN IF NOT EXISTS` antes.
+7. Se precisar coluna/tabela nova → avisar Elias + SQL antes.
 8. Fechar com `git add . && git commit && git push`.
 
 ---
@@ -75,4 +71,4 @@ Depois: Crescimento (Metas, Investimentos, Simulações, Precificação), Comerc
 ## 7. COMO O ELIAS TRABALHA
 Não é programador. No Claude Code, ele aprova planos e você executa direto nos arquivos. Ele valoriza: honestidade técnica, código limpo sem sobras, qualidade acima de velocidade, e recursos que os concorrentes não têm. Quando ele diz "ok", é para prosseguir. Tom com ele: direto, didático, 🦅, sem enrolação.
 
-**Comece pedindo aprovação do plano de Custos Variáveis (não implemente antes de ele aprovar — é a regra dele).**
+**Comece pedindo aprovação do plano de Endividamento (não implemente antes de ele aprovar — é a regra dele).**
