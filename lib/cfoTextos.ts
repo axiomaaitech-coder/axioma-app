@@ -62,6 +62,13 @@ const TEXTOS = {
     acimaPropriaMedia: "acima da própria média histórica", economiaPotencialSugestao: "Economia potencial",
     itemRenegociar: "subiu de forma consistente nos últimos meses. Vale renegociar.",
     itemAcimaMedia: "veio bem acima do que costuma custar — vale conferir o motivo.",
+    // Fluxo de Caixa
+    visaoSemanal: "Visão Semanal (13 semanas)", visaoMensal: "Visão Mensal",
+    rupturaCaixaTitulo: "Alerta de Ruptura de Caixa", saldoProjetado: "Saldo Projetado",
+    semRupturaPrevista: "Nenhuma ruptura de caixa prevista no horizonte analisado — fôlego saudável.",
+    cenarioOtimista: "Otimista", cenarioPessimista: "Pessimista", cenarioPrevisto: "Previsto",
+    saldoAtual: "Saldo Atual", entradasPrevistas: "Entradas Previstas", saidasPrevistas: "Saídas Previstas",
+    precisaoPrevisao: "Precisão da Previsão",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -105,6 +112,12 @@ const TEXTOS = {
     acimaPropriaMedia: "above its own historical average", economiaPotencialSugestao: "Potential savings",
     itemRenegociar: "has been rising consistently over the last months. Worth renegotiating.",
     itemAcimaMedia: "came in well above what it usually costs — worth checking why.",
+    visaoSemanal: "Weekly View (13 weeks)", visaoMensal: "Monthly View",
+    rupturaCaixaTitulo: "Cash Flow Gap Alert", saldoProjetado: "Projected Balance",
+    semRupturaPrevista: "No cash flow gap predicted in the analyzed horizon — healthy runway.",
+    cenarioOtimista: "Optimistic", cenarioPessimista: "Pessimistic", cenarioPrevisto: "Forecast",
+    saldoAtual: "Current Balance", entradasPrevistas: "Projected Inflows", saidasPrevistas: "Projected Outflows",
+    precisaoPrevisao: "Forecast Accuracy",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -148,6 +161,12 @@ const TEXTOS = {
     acimaPropriaMedia: "por encima de su propio promedio histórico", economiaPotencialSugestao: "Ahorro potencial",
     itemRenegociar: "subió de forma consistente en los últimos meses. Vale la pena renegociar.",
     itemAcimaMedia: "costó bastante más de lo habitual — vale la pena revisar el motivo.",
+    visaoSemanal: "Vista Semanal (13 semanas)", visaoMensal: "Vista Mensual",
+    rupturaCaixaTitulo: "Alerta de Ruptura de Caja", saldoProjetado: "Saldo Proyectado",
+    semRupturaPrevista: "Ninguna ruptura de caja prevista en el horizonte analizado — buen margen.",
+    cenarioOtimista: "Optimista", cenarioPessimista: "Pesimista", cenarioPrevisto: "Previsto",
+    saldoAtual: "Saldo Actual", entradasPrevistas: "Entradas Previstas", saidasPrevistas: "Salidas Previstas",
+    precisaoPrevisao: "Precisión del Pronóstico",
   },
 };
 
@@ -200,6 +219,18 @@ export function montarSugestao(lang: string, anomalia: { tipo: "acima_media" | "
   const cx = cfoT(lang);
   const base = anomalia.tipo === "aumento_recorrente" ? cx.itemRenegociar : cx.itemAcimaMedia;
   return `"${anomalia.descricao}" ${base} ${cx.economiaPotencialSugestao}: ${fBRL(Math.abs(anomalia.impacto))}.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RUPTURA DE CAIXA — frase com a data exata, formatada por idioma
+// ═══════════════════════════════════════════════════════════════
+export function montarNarrativaRuptura(lang: string, dataISO: string, diasRestantes: number): string {
+  const d = new Date(dataISO + "T00:00:00");
+  const localeMap: Record<string, string> = { pt: "pt-BR", en: "en-US", es: "es-ES" };
+  const dataFmt = d.toLocaleDateString(localeMap[lang] || "pt-BR", { day: "2-digit", month: "long" });
+  if (lang === "en") return `If nothing changes, your cash balance goes negative on ${dataFmt} (in ${diasRestantes} days).`;
+  if (lang === "es") return `Si nada cambia, su saldo de caja queda negativo el ${dataFmt} (en ${diasRestantes} días).`;
+  return `Se nada mudar, seu saldo de caixa fica negativo em ${dataFmt} (daqui a ${diasRestantes} dias).`;
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {

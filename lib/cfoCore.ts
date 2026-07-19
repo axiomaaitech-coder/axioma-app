@@ -61,6 +61,132 @@ export function serieRolling(itens: Lancamento[], meses = 12, ateData?: string):
   return buckets.map((b) => ({ label: mesesPt[b.mes], value: b.value }));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SÉRIE SEMANAL ROLANTE — base do "13 week cash flow", padrão de
+// CFO profissional (Agicap/Float) que nenhum ERP nacional oferece
+// pra PME. Semanas de segunda a domingo.
+// ═══════════════════════════════════════════════════════════════
+function inicioSemana(d: Date): Date {
+  const dia = d.getDay(); // 0 = domingo
+  const diff = (dia === 0 ? -6 : 1) - dia; // volta pra segunda-feira
+  const seg = new Date(d);
+  seg.setDate(d.getDate() + diff);
+  seg.setHours(0, 0, 0, 0);
+  return seg;
+}
+
+export type BucketSemanal = { label: string; inicio: string; fim: string; value: number };
+
+export function serieSemanal(itens: Lancamento[], semanas = 13, ateData?: string): BucketSemanal[] {
+  const hoje = ateData ? new Date(ateData + "T00:00:00") : new Date();
+  const semanaAtual = inicioSemana(hoje);
+  const buckets: { inicio: Date; fim: Date; value: number }[] = [];
+  for (let i = semanas - 1; i >= 0; i--) {
+    const ini = new Date(semanaAtual);
+    ini.setDate(semanaAtual.getDate() - i * 7);
+    const fim = new Date(ini);
+    fim.setDate(ini.getDate() + 6);
+    buckets.push({ inicio: ini, fim, value: 0 });
+  }
+  itens.forEach((it) => {
+    if (!it.data) return;
+    const d = new Date(it.data + "T00:00:00");
+    const b = buckets.find((x) => d >= x.inicio && d <= x.fim);
+    if (b) b.value += Number(it.valor) || 0;
+  });
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return buckets.map((b) => ({ label: `${b.inicio.getDate()}/${b.inicio.getMonth() + 1}`, inicio: iso(b.inicio), fim: iso(b.fim), value: b.value }));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DETECTOR DE RUPTURA DE CAIXA — projeta o saldo dia a dia a partir
+// dos eventos previstos (entradas/saídas com data) e aponta a data
+// exata em que o caixa ficaria negativo, se nada mudar. Nenhum ERP
+// nacional pra PME entrega isso hoje.
+// ═══════════════════════════════════════════════════════════════
+export type EventoCaixa = { data: string; valor: number };
+export type RupturaCaixa = { data: string; diasRestantes: number; saldoProjetado: number };
+
+export function detectarRupturaCaixa(
+  saldoAtual: number,
+  entradasPrevistas: EventoCaixa[],
+  saidasPrevistas: EventoCaixa[],
+  horizonteDias = 90
+): RupturaCaixa | null {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  let saldo = saldoAtual;
+
+  const eventos = [
+    ...entradasPrevistas.map((e) => ({ data: new Date(e.data + "T00:00:00"), delta: Number(e.valor) || 0 })),
+    ...saidasPrevistas.map((s) => ({ data: new Date(s.data + "T00:00:00"), delta: -(Number(s.valor) || 0) })),
+  ]
+    .filter((e) => e.data >= hoje)
+    .sort((a, b) => a.data.getTime() - b.data.getTime());
+
+  for (const ev of eventos) {
+    const dias = Math.round((ev.data.getTime() - hoje.getTime()) / 86400000);
+    if (dias > horizonteDias) break;
+    saldo += ev.delta;
+    if (saldo < 0) {
+      return { data: ev.data.toISOString().slice(0, 10), diasRestantes: dias, saldoProjetado: saldo };
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DESVIO HISTÓRICO PREVISTO x REALIZADO — base pra cenários otimista
+// /pessimista de verdade (baseados no comportamento real da própria
+// empresa), em vez de uma margem fixa arbitrária.
+// ═══════════════════════════════════════════════════════════════
+export function desvioMedioPrevistoRealizado(itens: { valor: number; status?: string }[]): number {
+  const previsto = itens.filter((i) => i.status === "previsto").reduce((a, r) => a + (Number(r.valor) || 0), 0);
+  const realizado = itens.filter((i) => i.status === "realizado").reduce((a, r) => a + (Number(r.valor) || 0), 0);
+  if (previsto <= 0) return 0;
+  return ((realizado - previsto) / previsto) * 100;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROJEÇÃO DE SALDO SEMANAL COM CENÁRIOS — saldo acumulado semana a
+// semana a partir de eventos previstos, com banda otimista/pessimista
+// derivada do desvio histórico real da empresa. Reutilizável por
+// Fluxo de Caixa, Dashboard (prévia) e DRE.
+// ═══════════════════════════════════════════════════════════════
+export function projecaoSaldoComCenarios(
+  saldoInicial: number,
+  entradasPrevistas: EventoCaixa[],
+  saidasPrevistas: EventoCaixa[],
+  semanas = 13,
+  bandaPct = 15
+): { labels: string[]; previsto: number[]; otimista: number[]; pessimista: number[] } {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const labels: string[] = [];
+  const previsto: number[] = [];
+  const otimista: number[] = [];
+  const pessimista: number[] = [];
+  let saldo = saldoInicial;
+
+  for (let i = 0; i < semanas; i++) {
+    const inicioSem = new Date(hoje); inicioSem.setDate(hoje.getDate() + i * 7);
+    const fimSem = new Date(inicioSem); fimSem.setDate(inicioSem.getDate() + 6);
+
+    const entradasSemana = entradasPrevistas
+      .filter((e) => { const d = new Date(e.data + "T00:00:00"); return d >= inicioSem && d <= fimSem; })
+      .reduce((a, r) => a + (Number(r.valor) || 0), 0);
+    const saidasSemana = saidasPrevistas
+      .filter((s) => { const d = new Date(s.data + "T00:00:00"); return d >= inicioSem && d <= fimSem; })
+      .reduce((a, r) => a + (Number(r.valor) || 0), 0);
+
+    saldo += entradasSemana - saidasSemana;
+    labels.push(`${inicioSem.getDate()}/${inicioSem.getMonth() + 1}`);
+    previsto.push(Math.round(saldo));
+    otimista.push(Math.round(saldo * (1 + bandaPct / 100)));
+    pessimista.push(Math.round(saldo * (1 - bandaPct / 100)));
+  }
+
+  return { labels, previsto, otimista, pessimista };
+}
+
 // ---------- CRESCIMENTO MÊS-A-MÊS ----------
 export function crescimentoMoM(serie: number[], mesRef?: number): number {
   const m = mesRef ?? new Date().getMonth();
