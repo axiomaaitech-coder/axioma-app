@@ -71,7 +71,7 @@ function BandeiraES({ size = 22 }: { size?: number }) {
   );
 }
 
-const BANDEIRAS: Record<Idioma, ({ size }: { size?: number }) => JSX.Element> = {
+const BANDEIRAS: Record<Idioma, ({ size }: { size?: number }) => ReactNode> = {
   pt: BandeiraBR,
   en: BandeiraUS,
   es: BandeiraES,

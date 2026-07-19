@@ -3,7 +3,7 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-05-28.basil',
+  apiVersion: '2026-05-27.dahlia',
 })
 
 const supabase = createClient(
@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice
         const customerId = invoice.customer as string
-        const subscriptionId = invoice.subscription as string
+        // Na API 2026-05-27.dahlia, invoice.subscription foi movido pra invoice.parent.subscription_details.subscription
+        const subscriptionId = invoice.parent?.subscription_details?.subscription
         if (customerId && subscriptionId) {
           await supabase.from('perfis')
             .update({

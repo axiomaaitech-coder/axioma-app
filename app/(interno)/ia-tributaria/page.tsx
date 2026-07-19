@@ -417,7 +417,7 @@ export default function IATributariaPage() {
                       <Pie data={carga.composicao} cx="50%" cy="50%" outerRadius={80} dataKey="valor" label={(e: any) => `${e.nome}: ${e.pct.toFixed(1)}%`} labelLine={false}>
                         {carga.composicao.map((_: any, i: number) => <Cell key={i} fill={CORES_PIE[i % CORES_PIE.length]} />)}
                       </Pie>
-                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                     </PieChart>
                   </ResponsiveContainer>
                 </CanvasBox>

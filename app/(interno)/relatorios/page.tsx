@@ -576,7 +576,7 @@ export default function Relatorios() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
                   <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
                   <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                   <Area type="monotone" dataKey="lucro" stroke="#34d399" fill="url(#gExec1)" strokeWidth={2} name={tt.lucro} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -670,7 +670,7 @@ export default function Relatorios() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
                 <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="receita" stroke="#6ab0ff" fill="url(#gEvR)" strokeWidth={2} name={tt.receita} />
                 <Area type="monotone" dataKey="custos" stroke="#f87171" fill="url(#gEvC)" strokeWidth={2} name={tt.custos} />
@@ -687,7 +687,7 @@ export default function Relatorios() {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
                 <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
                 <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} unit="%" />
-                <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => `${v}%`} />
+                <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${v}%`} />
                 <Line type="monotone" dataKey="margem" stroke="#a78bfa" strokeWidth={2.5} dot={{ fill: "#a78bfa", r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
@@ -716,7 +716,7 @@ export default function Relatorios() {
                       label={(entry: any) => `${entry.pct}%`} labelLine={false}>
                       {distribuicao.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="grid grid-cols-2 gap-1 mt-2 text-[11px]">
@@ -736,7 +736,7 @@ export default function Relatorios() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
                     <XAxis type="number" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
                     <YAxis dataKey="name" type="category" stroke="#5a7a9a" tick={{ fontSize: 10 }} width={100} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                     <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                       {distribuicao.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                     </Bar>

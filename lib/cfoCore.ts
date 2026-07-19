@@ -152,7 +152,7 @@ export const CORES = {
   laranja: "#f97316", laranjaC: "#fdba74",
   rosa: "#ec4899", rosaC: "#f9a8d4",
   azul: "#3b82f6", azulC: "#93c5fd",
-  indigo: "#6366f1", teal: "#14b8a6", amarelo: "#eab308",
+  indigo: "#6366f1", teal: "#14b8a6", amarelo: "#eab308", amareloC: "#fde68a",
 };
 
 // ---------- OPTIONS ECharts REUTILIZÁVEIS ----------
@@ -340,6 +340,43 @@ export function detectarDesperdicio(itens: ItemDespesa[]): { alertas: Desperdici
 export function pesoSobreReceita(custoTotal: number, receitaTotal: number): number {
   if (receitaTotal <= 0) return 0;
   return (custoTotal / receitaTotal) * 100;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MARGEM DE CONTRIBUIÇÃO / PONTO DE EQUILÍBRIO — reutilizável por
+// Custos Variáveis, DRE, Precificação e Dashboard.
+// ═══════════════════════════════════════════════════════════════
+
+// Margem de contribuição: quanto sobra da receita depois do custo variável
+export function margemContribuicao(receita: number, custoVariavel: number): { valor: number; pct: number } {
+  const valor = receita - custoVariavel;
+  const pct = receita > 0 ? (valor / receita) * 100 : 0;
+  return { valor, pct };
+}
+
+// Ponto de equilíbrio (R$ de faturamento mínimo). Retorna null quando a margem
+// de contribuição é zero ou negativa — nessa estrutura de custo não existe
+// equilíbrio possível, é preciso revisar preço/custo antes de calcular.
+export function pontoEquilibrio(custoFixoTotal: number, margemContribuicaoPct: number): number | null {
+  if (margemContribuicaoPct <= 0) return null;
+  return custoFixoTotal / (margemContribuicaoPct / 100);
+}
+
+// Margem de segurança: quanto a receita atual pode cair antes do prejuízo (%)
+export function margemSeguranca(receitaAtual: number, pontoEquilibrioValor: number | null): number | null {
+  if (pontoEquilibrioValor === null || receitaAtual <= 0) return null;
+  return ((receitaAtual - pontoEquilibrioValor) / receitaAtual) * 100;
+}
+
+// Coeficiente de variação (desvio padrão / média, em %) — mede o quão instável
+// é uma série de valores mês a mês. Quanto maior, menos previsível o custo.
+export function coeficienteVariacao(serie: number[]): number {
+  const vals = serie.filter((v) => v > 0);
+  if (vals.length < 2) return 0;
+  const media = vals.reduce((a, b) => a + b, 0) / vals.length;
+  if (media <= 0) return 0;
+  const variancia = vals.reduce((a, b) => a + Math.pow(b - media, 2), 0) / vals.length;
+  return (Math.sqrt(variancia) / media) * 100;
 }
 
 // ═══════════════════════════════════════════════════════════════

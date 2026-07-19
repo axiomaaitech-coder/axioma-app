@@ -64,9 +64,9 @@ export function formatarTelefone(tel: string): string {
 
 export type DadosCNPJ = {
   razao_social?: string;
-  nome_fantasia?: string;
+  nome_fantasia?: string | null;
   cnpj?: string;
-  cnae_principal?: string;
+  cnae_principal?: string | null;
   cnae_descricao?: string;
   cnaes_secundarios?: any[];
   natureza_juridica?: string;
@@ -76,14 +76,14 @@ export type DadosCNPJ = {
   situacao_cadastral?: string;
   opcao_simples?: boolean;
   opcao_mei?: boolean;
-  cep?: string;
-  logradouro?: string;
-  numero?: string;
+  cep?: string | null;
+  logradouro?: string | null;
+  numero?: string | null;
   complemento?: string;
   bairro?: string;
   cidade?: string;
   uf?: string;
-  telefone_principal?: string;
+  telefone_principal?: string | null;
   email_principal?: string;
   socios?: any[];
 };

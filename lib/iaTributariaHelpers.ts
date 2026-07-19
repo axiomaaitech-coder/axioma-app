@@ -88,7 +88,7 @@ export async function carregarDadosFiscais(userId: string): Promise<DadosFiscais
     supabase.from("custos_fixos").select("valor_mensal").eq("user_id", userId),
     supabase.from("custos_variaveis").select("valor").eq("user_id", userId).gte("data", inicio).lte("data", fim),
     supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("user_id", userId).limit(1).maybeSingle(),
-    supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("user_id", userId).then(r => r).catch(() => ({ data: [] })),
+    Promise.resolve(supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("user_id", userId)).catch(() => ({ data: [] })),
   ]);
 
   const receita_bruta_12m = (rec12m || []).reduce((s, r) => s + Number(r.valor || 0), 0);

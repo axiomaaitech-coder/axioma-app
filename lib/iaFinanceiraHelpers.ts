@@ -126,7 +126,7 @@ export async function carregarSnapshot(userId: string): Promise<SnapshotFinancei
     supabase.from("custos_fixos").select("valor_mensal, categoria").eq("user_id", userId),
     supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("user_id", userId),
     supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("user_id", userId),
-    supabase.from("endividamento").select("valor_atual, status").eq("user_id", userId).eq("status", "ativo").then(r => r).catch(() => ({ data: [] })),
+    Promise.resolve(supabase.from("endividamento").select("valor_atual, status").eq("user_id", userId).eq("status", "ativo")).catch(() => ({ data: [] })),
     supabase.from("empresas").select("setor, regime_tributario, cnae_principal").eq("user_id", userId).limit(1).maybeSingle(),
   ]);
 

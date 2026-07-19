@@ -99,8 +99,8 @@ type Idioma = "pt" | "en" | "es";
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
-  const { locale } = useLanguage() as { locale: Idioma; t: (k: string) => string };
-  const lang: Idioma = (["pt", "en", "es"].includes(locale) ? locale : "pt") as Idioma;
+  const { idioma } = useLanguage();
+  const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
   const [dropdown, setDropdown] = useState<string | null>(null);
   const [menuMobile, setMenuMobile] = useState(false);
   const [grupoMobile, setGrupoMobile] = useState<string | null>(null);

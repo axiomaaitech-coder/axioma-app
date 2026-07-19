@@ -697,7 +697,7 @@ export default function IAFinanceiraPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
                     <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
                     <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatBRL(v)} />
+                    <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                     <Area type="monotone" dataKey="otimista" stroke="#34d399" fill="url(#gOt)" strokeWidth={2} name={tt.otimista} />
                     <Area type="monotone" dataKey="realista" stroke="#6ab0ff" fill="url(#gRe)" strokeWidth={2} name={tt.realista} />
                     <Area type="monotone" dataKey="pessimista" stroke="#f87171" fill="url(#gPe)" strokeWidth={2} name={tt.pessimista} />

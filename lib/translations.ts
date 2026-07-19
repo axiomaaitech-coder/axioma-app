@@ -106,6 +106,7 @@ export const traducoes = {
       categoria: "Categoria",
       status: "Status",
       salvarReceita: "Salvar Receita",
+      semReceitas: "Nenhuma receita encontrada",
     },
     custosFixos: {
       titulo: "Custos Fixos",
@@ -119,6 +120,7 @@ export const traducoes = {
       valorAnual: "Valor Anual",
       vencimento: "Dia Vencimento",
       salvarCusto: "Salvar Custo Fixo",
+      semCustos: "Nenhum custo fixo encontrado",
     },
     custosVariaveis: {
       titulo: "Custos Variáveis",
@@ -130,6 +132,7 @@ export const traducoes = {
       buscar: "Buscar custo...",
       percentual: "% do Total",
       salvarCusto: "Salvar Custo",
+      semCustos: "Nenhum custo variável encontrado",
     },
     fornecedores: {
       titulo: "Fornecedores",
@@ -145,6 +148,7 @@ export const traducoes = {
       contato: "Contato",
       valorMensal: "Valor Mensal (R$)",
       salvarFornecedor: "Salvar Fornecedor",
+      semFornecedores: "Nenhum fornecedor encontrado",
     },
     endividamento: {
       titulo: "Endividamento",
@@ -162,6 +166,7 @@ export const traducoes = {
       vencimento: "Vencimento",
       parcelas: "parcelas",
       salvarDivida: "Salvar Dívida",
+      semDividas: "Nenhuma dívida encontrada",
     },
     fluxoCaixa: {
       titulo: "Fluxo de Caixa",
@@ -179,6 +184,7 @@ export const traducoes = {
       realizado: "✓ Realizado",
       previsto: "⏳ Previsto",
       salvarLancamento: "Salvar Lançamento",
+      semLancamentos: "Nenhum lançamento encontrado",
     },
     relatorios: {
       titulo: "Relatórios",
@@ -535,6 +541,7 @@ export const traducoes = {
       categoria: "Category",
       status: "Status",
       salvarReceita: "Save Revenue",
+      semReceitas: "No revenue found",
     },
     custosFixos: {
       titulo: "Fixed Costs",
@@ -548,6 +555,7 @@ export const traducoes = {
       valorAnual: "Annual Value",
       vencimento: "Due Day",
       salvarCusto: "Save Fixed Cost",
+      semCustos: "No fixed costs found",
     },
     custosVariaveis: {
       titulo: "Variable Costs",
@@ -559,6 +567,7 @@ export const traducoes = {
       buscar: "Search cost...",
       percentual: "% of Total",
       salvarCusto: "Save Cost",
+      semCustos: "No variable costs found",
     },
     fornecedores: {
       titulo: "Suppliers",
@@ -574,6 +583,7 @@ export const traducoes = {
       contato: "Contact",
       valorMensal: "Monthly Value (R$)",
       salvarFornecedor: "Save Supplier",
+      semFornecedores: "No suppliers found",
     },
     endividamento: {
       titulo: "Debt",
@@ -591,6 +601,7 @@ export const traducoes = {
       vencimento: "Due date",
       parcelas: "installments",
       salvarDivida: "Save Debt",
+      semDividas: "No debts found",
     },
     fluxoCaixa: {
       titulo: "Cash Flow",
@@ -608,6 +619,7 @@ export const traducoes = {
       realizado: "✓ Done",
       previsto: "⏳ Projected",
       salvarLancamento: "Save Entry",
+      semLancamentos: "No entries found",
     },
     relatorios: {
       titulo: "Reports",
@@ -934,7 +946,7 @@ export const traducoes = {
       atencaoNecessaria: "Atención necesaria",
       nivelSaudavel: "Nivel saludable",
       nivelElevado: "Nivel elevado",
-      acimaPunto: "✓ Por encima del punto",
+      acimaPonto: "✓ Por encima del punto",
       abaixoPonto: "⚠ Por debajo del punto",
       previsaoCaixa: "🔮 Previsión de Caja",
       trintaDias: "30 días",
@@ -964,6 +976,7 @@ export const traducoes = {
       categoria: "Categoría",
       status: "Estado",
       salvarReceita: "Guardar Ingreso",
+      semReceitas: "Ningún ingreso encontrado",
     },
     custosFixos: {
       titulo: "Costos Fijos",
@@ -977,6 +990,7 @@ export const traducoes = {
       valorAnual: "Valor Anual",
       vencimento: "Día de Vencimiento",
       salvarCusto: "Guardar Costo Fijo",
+      semCustos: "Ningún costo fijo encontrado",
     },
     custosVariaveis: {
       titulo: "Costos Variables",
@@ -988,6 +1002,7 @@ export const traducoes = {
       buscar: "Buscar costo...",
       percentual: "% del Total",
       salvarCusto: "Guardar Costo",
+      semCustos: "Ningún costo variable encontrado",
     },
     fornecedores: {
       titulo: "Proveedores",
@@ -1003,6 +1018,7 @@ export const traducoes = {
       contato: "Contacto",
       valorMensal: "Valor Mensual (R$)",
       salvarFornecedor: "Guardar Proveedor",
+      semFornecedores: "Ningún proveedor encontrado",
     },
     endividamento: {
       titulo: "Endeudamiento",
@@ -1020,6 +1036,7 @@ export const traducoes = {
       vencimento: "Vencimiento",
       parcelas: "cuotas",
       salvarDivida: "Guardar Deuda",
+      semDividas: "Ninguna deuda encontrada",
     },
     fluxoCaixa: {
       titulo: "Flujo de Caja",
@@ -1037,6 +1054,7 @@ export const traducoes = {
       realizado: "✓ Realizado",
       previsto: "⏳ Previsto",
       salvarLancamento: "Guardar Registro",
+      semLancamentos: "Ningún registro encontrado",
     },
     relatorios: {
       titulo: "Informes",

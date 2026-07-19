@@ -443,12 +443,12 @@ export default function DashboardPage() {
         { data: metasRows },
         { data: investRows },
       ] = await Promise.all([
-        supabase.from("clientes").select("id").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
-        supabase.from("fornecedores").select("id, valor_total").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
-        supabase.from("contas_receber").select("valor, valor_recebido, status").eq("user_id", user.id).neq("status", "recebido").then(r => r).catch(() => ({ data: [] })),
-        supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("user_id", user.id).neq("status", "pago").then(r => r).catch(() => ({ data: [] })),
-        supabase.from("metas").select("id, valor_meta, valor_atual").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
-        supabase.from("investimentos").select("id, valor").eq("user_id", user.id).then(r => r).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("clientes").select("id").eq("user_id", user.id)).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("fornecedores").select("id, valor_total").eq("user_id", user.id)).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("contas_receber").select("valor, valor_recebido, status").eq("user_id", user.id).neq("status", "recebido")).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("user_id", user.id).neq("status", "pago")).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("metas").select("id, valor_meta, valor_atual").eq("user_id", user.id)).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("investimentos").select("id, valor").eq("user_id", user.id)).catch(() => ({ data: [] })),
       ]);
 
       setModulosData({
