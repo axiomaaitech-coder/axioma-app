@@ -370,18 +370,16 @@ export default function Simulacoes() {
             )}
 
             {/* Letreiro */}
-            {resultado && (
-              <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(99,102,241,0.16), rgba(148,163,184,0.10))", border: "1px solid rgba(99,102,241,0.28)" }}>
-                <div className="marquee-sim py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
-                  {[0, 1].map((rep) => (
-                    <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                      {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#a5b4fc" : "#e2e8f0" }}>{m}<span style={{ color: CORES.indigo }}>{"  •  "}</span></span>))}
-                    </span>
-                  ))}
-                </div>
-                <style>{`.marquee-sim{animation:marqueeSim 30s linear infinite}@keyframes marqueeSim{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-sim:hover{animation-play-state:paused}`}</style>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(99,102,241,0.16), rgba(148,163,184,0.10))", border: "1px solid rgba(99,102,241,0.28)" }}>
+              <div className="marquee-sim py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
+                {[0, 1].map((rep) => (
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#a5b4fc" : "#e2e8f0" }}>{m}<span style={{ color: CORES.indigo }}>{"  •  "}</span></span>))}
+                  </span>
+                ))}
               </div>
-            )}
+              <style>{`.marquee-sim{animation:marqueeSim 30s linear infinite}@keyframes marqueeSim{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-sim:hover{animation-play-state:paused}`}</style>
+            </div>
 
             {/* OBJETIVOS RÁPIDOS */}
             <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
