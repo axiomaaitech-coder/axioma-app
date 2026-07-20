@@ -4,7 +4,7 @@
 ---
 
 ## 1. RESUMO EM UMA FRASE
-Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. **Metas** (menu Crescimento) foi entregue nesta rodada — ver seção 3-A. Próximo: Investimentos, Simulações, Precificação, ou pular pro E-commerce/PDV (ver seção 4).
+Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. **Metas** e **Investimentos** (menu Crescimento) foram entregues — ver seções 3-A e 3-B. Investimentos ainda tem uma Fase 2 pendente de aprovação (Capital Allocation Engine/Simulador/Digital Twin). Próximo: Simulações, Precificação, ou pular pro E-commerce/PDV (ver seção 4). Combinado com o Elias: a Claude API entra como a "IA inteligente" real do Axioma só no final, depois de todos os módulos prontos — até lá, a camada "IA"/"Conselho CFO" é lógica determinística baseada em regras (mesmo padrão já usado em todo o app).
 
 ---
 
@@ -76,13 +76,39 @@ ALTER TABLE metas
 
 **Verificação feita:** `tsc --noEmit` limpo (as duas rodadas) e `next build` da v1 compilou com sucesso (incluindo `metas/page.tsx`, `cfoCore.ts`, `cfoTextos.ts`) — o build só falhou depois disso, num ponto sem relação (rota `/api/stripe/webhook`, pré-existente, falta chave da Stripe no `.env.local` local). **Não testado no navegador com login real** — sem ferramenta de browser disponível nesta sessão e sem credencial (decisão consciente de não usar login/senha real em chat). Elias está testando manualmente.
 
+## 3-B. Investimentos (`/investimentos`) — CONECTADO a dados reais, Fase 1 entregue nesta rodada
+**Centro de Inteligência para Alocação de Capital — não uma lista de aplicações financeiras.** O módulo antigo era um CRUD simples (nome/valor/tipo/data/rentabilidade digitada à mão, zero camada CFO). Pesquisa que embasou o desenho: Omie só controla a movimentação entre "conta corrente" e "conta aplicação" sem calcular rentabilidade real; Conta Azul não tem módulo de investimentos; as ferramentas globais de tesouraria (Rho, Slash, Brex) otimizam onde a empresa guarda o caixa, mas nenhuma cruza isso com a própria dívida da empresa.
+
+**Diferencial mundial:** Custo de Oportunidade vs Dívida — `detectarCustoOportunidade` (novo em `cfoCore.ts`) compara a rentabilidade líquida real de cada investimento de liquidez rápida (IR regressivo automático por prazo decorrido, Lei 11.033/2004, via `rentabilidadeLiquidaAnual`) com a taxa da dívida mais cara ativa (reaproveita `dividas`) e recomenda resgatar-e-quitar quando compensa, com a economia mensal estimada em R$. Nenhum ERP nacional ou plataforma global de tesouraria faz essa ponte hoje.
+
+Entregue: Escada de Liquidez (`escadaLiquidezInvestimentos` — quando cada aplicação libera capital, 12 meses), Radar de Riscos (concentração por tipo, concentração por instituição, liquidez, Dívida/EBITDA reaproveitando `montarDRE`+`dividaEbitda`, volatilidade renda variável/cripto), Score de Investimento 0-1000 (`calcularScoreInvestimento` — diversificação, liquidez, rentabilidade vs CDI real, caixa, eficiência), Detector de Capital Ocioso (`detectarCapitalOcioso` — caixa acima de uma reserva operacional saudável de 2 meses), Conselho CFO acionável, Indicadores de Mercado REAIS — Selic/CDI/IPCA acumulado 12m/dólar PTAX via API pública do Banco Central (SGS, sem chave, sem custo — novo `lib/bcbApi.ts`), com fallback fixo se a API cair. Modal único (Power BI style): Composição por Tipo + Composição por Instituição + Radar de Risco + Score Breakdown. Cor tema: azul-royal + dourado.
+
+**Schema (SQL enviado ao Elias — rodar no Supabase antes de testar o módulo):**
+```sql
+ALTER TABLE investimentos
+  ADD COLUMN IF NOT EXISTS data_vencimento date,
+  ADD COLUMN IF NOT EXISTS indexador text,
+  ADD COLUMN IF NOT EXISTS instituicao text,
+  ADD COLUMN IF NOT EXISTS liquidez text DEFAULT 'no_vencimento',
+  ADD COLUMN IF NOT EXISTS status text DEFAULT 'ativo';
+```
+
+**Decisões técnicas honestas (comunicadas ao Elias antes de codar):**
+- "Caixa disponível" vem do mesmo cálculo do Fluxo de Caixa (entradas−saídas realizadas), não do saldo bancário do Open Finance — o Pluggy hoje só persiste transações (`of_transacoes`), não saldo de conta.
+- Nenhuma chamada a LLM real — a camada "Conselho CFO" é determinística (mesmo padrão de `gerarConselhoDivida`/`gerarConselhoMeta`), porque a Claude API só entra como IA real do Axioma na etapa final do projeto (decisão do Elias).
+- Pluggy e Stripe seguem em modo de teste — nenhuma função de ativação real foi tocada neste módulo.
+
+**Fase 2 (pendente de aprovação do Elias — NÃO implementada ainda):** Capital Allocation Engine (comparador CDB/Tesouro/Fundos/Debêntures vs expansão/equipamento/marketing/contratação/redução de dívida, com retorno esperado/impacto em liquidez/caixa/EBITDA/payback/risco), Simulador Executivo de cenários (Selic/dólar/inflação/receita/despesas ↑↓, 4 cenários conservador/base/otimista/adverso), Radar de Oportunidades (saída ranqueada da Allocation Engine) e "Digital Twin Financeiro" — na prática, os 4 itens do brief original do Elias colapsam numa única engine de simulação rodando em cima do `projetarDRE`+`projecaoSaldoComCenarios` já existentes, não 4 sistemas separados.
+
+**Verificação feita:** `tsc --noEmit` limpo e `next build` compilou com sucesso (incluindo `investimentos/page.tsx`, `cfoCore.ts`, `cfoTextos.ts`, `bcbApi.ts`) — o build só parou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/pluggy/webhook`, falta chave do Supabase/Pluggy no `.env.local` local). Não testado no navegador com login real nesta sessão.
+
 ## 4. PRÓXIMO PASSO
-Investimentos, Simulações, Precificação (resto do menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Fase 2 de Investimentos (Capital Allocation Engine/Simulador/Radar de Oportunidades/Digital Twin) → Simulações, Precificação (resto do menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
 ## 5. FILA DEPOIS (menu Crescimento/Comercial)
-Crescimento (Metas, Investimentos, Simulações, Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
+Investimentos Fase 2 (Capital Allocation Engine/Simulador/Digital Twin), resto do Crescimento (Simulações, Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
 
 ---
 
