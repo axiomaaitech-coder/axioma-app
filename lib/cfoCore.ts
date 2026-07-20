@@ -1641,6 +1641,180 @@ export function simularCenariosExecutivos(p: {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SIMULAÇÕES — ANÁLISE DE SENSIBILIDADE
+// Varia cada driver isoladamente (mantendo os demais parados) e mede
+// o impacto no lucro líquido mensal via o mesmo montarDRE do resto do
+// alicerce. Rankeia por amplitude pra apontar a variável que mais
+// decide o resultado — sem estatística inventada, só o próprio motor
+// de DRE rodado várias vezes.
+// ═══════════════════════════════════════════════════════════════
+export type DriverSensibilidade = "receita" | "custoFixo" | "custoVariavel" | "juros" | "cambio";
+
+export type ImpactoSensibilidade = {
+  driver: DriverSensibilidade;
+  impactoFavoravelRS: number;    // Δ lucro líquido mensal no sentido favorável desse driver
+  impactoDesfavoravelRS: number; // Δ lucro líquido mensal no sentido desfavorável
+  amplitudeRS: number;           // |favorável| + |desfavorável| — usado pra rankear
+  pesoPct: number;               // amplitude normalizada (soma 100% entre os drivers testados)
+};
+
+function lucroLiquidoComChoque(base: {
+  receitaMensalAtual: number; custoFixoMensalAtual: number; custoVariavelMensalAtual: number;
+  despesasFinanceirasMensalAtual: number; dividaTotalAtual: number; aliquotaEfetivaPct: number;
+}, c: { receitaPct?: number; custoFixoPct?: number; custoVariavelPct?: number; jurosDividaPontos?: number; cambioPct?: number; exposicaoCambialPct?: number }): number {
+  // Câmbio não tem linha própria no DRE — modela como o quanto do custo variável está
+  // indexado ao dólar (exposicaoCambialPct, informado pelo usuário, nunca estimado).
+  const efeitoCambioPct = (c.cambioPct || 0) * ((c.exposicaoCambialPct || 0) / 100);
+  const receitaMensal = base.receitaMensalAtual * (1 + (c.receitaPct || 0) / 100);
+  const custoFixoMensal = base.custoFixoMensalAtual * (1 + (c.custoFixoPct || 0) / 100);
+  const custoVariavelMensal = base.custoVariavelMensalAtual * (1 + ((c.custoVariavelPct || 0) + efeitoCambioPct) / 100);
+  const despesasFinanceirasMensal = Math.max(0, base.despesasFinanceirasMensalAtual + (base.dividaTotalAtual * ((c.jurosDividaPontos || 0) / 100)) / 12);
+  const dre = montarDRE({
+    receitaBruta: receitaMensal, deducoes: receitaMensal * (base.aliquotaEfetivaPct / 100),
+    custoVariavel: custoVariavelMensal, custoFixo: custoFixoMensal, despesasFinanceiras: despesasFinanceirasMensal,
+  });
+  return dre.lucroLiquido.valor;
+}
+
+export function analiseSensibilidade(p: {
+  receitaMensalAtual: number; custoFixoMensalAtual: number; custoVariavelMensalAtual: number;
+  despesasFinanceirasMensalAtual: number; dividaTotalAtual: number; aliquotaEfetivaPct: number;
+  amplitudeTestePct?: number; exposicaoCambialPct?: number;
+}): ImpactoSensibilidade[] {
+  const amplitude = p.amplitudeTestePct ?? 10;
+  const lucroBase = lucroLiquidoComChoque(p, {});
+  const impacto = (choque: { receitaPct?: number; custoFixoPct?: number; custoVariavelPct?: number; jurosDividaPontos?: number; cambioPct?: number }) =>
+    lucroLiquidoComChoque(p, { ...choque, exposicaoCambialPct: p.exposicaoCambialPct }) - lucroBase;
+
+  const receitaAlta = impacto({ receitaPct: amplitude }), receitaBaixa = impacto({ receitaPct: -amplitude });
+  const custoFixoAlta = impacto({ custoFixoPct: amplitude }), custoFixoBaixa = impacto({ custoFixoPct: -amplitude });
+  const custoVariavelAlta = impacto({ custoVariavelPct: amplitude }), custoVariavelBaixa = impacto({ custoVariavelPct: -amplitude });
+  const jurosAlta = impacto({ jurosDividaPontos: amplitude }), jurosBaixa = impacto({ jurosDividaPontos: -amplitude });
+
+  const brutos: { driver: DriverSensibilidade; impactoFavoravelRS: number; impactoDesfavoravelRS: number; amplitudeRS: number }[] = [
+    { driver: "receita", impactoFavoravelRS: receitaAlta, impactoDesfavoravelRS: receitaBaixa, amplitudeRS: Math.abs(receitaAlta) + Math.abs(receitaBaixa) },
+    { driver: "custoFixo", impactoFavoravelRS: custoFixoBaixa, impactoDesfavoravelRS: custoFixoAlta, amplitudeRS: Math.abs(custoFixoAlta) + Math.abs(custoFixoBaixa) },
+    { driver: "custoVariavel", impactoFavoravelRS: custoVariavelBaixa, impactoDesfavoravelRS: custoVariavelAlta, amplitudeRS: Math.abs(custoVariavelAlta) + Math.abs(custoVariavelBaixa) },
+    { driver: "juros", impactoFavoravelRS: jurosBaixa, impactoDesfavoravelRS: jurosAlta, amplitudeRS: Math.abs(jurosAlta) + Math.abs(jurosBaixa) },
+  ];
+  if ((p.exposicaoCambialPct || 0) > 0) {
+    const cambioAlta = impacto({ cambioPct: amplitude }), cambioBaixa = impacto({ cambioPct: -amplitude });
+    brutos.push({ driver: "cambio", impactoFavoravelRS: cambioBaixa, impactoDesfavoravelRS: cambioAlta, amplitudeRS: Math.abs(cambioAlta) + Math.abs(cambioBaixa) });
+  }
+
+  const somaAmplitudes = brutos.reduce((s, b) => s + b.amplitudeRS, 0);
+  return brutos
+    .map((b) => ({ ...b, pesoPct: somaAmplitudes > 0 ? (b.amplitudeRS / somaAmplitudes) * 100 : 0 }))
+    .sort((a, b) => b.amplitudeRS - a.amplitudeRS);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIMULAÇÃO MONTE CARLO
+// Não inventa distribuição estatística arbitrária: usa os próprios
+// limites que o cenário otimista/adverso (escalarChoque) já definem
+// como bordas de uma distribuição triangular, com o cenário base
+// digitado pelo usuário como valor mais provável (moda). N iterações,
+// cada uma roda o mesmo motor de DRE já usado nos cenários nomeados.
+// ═══════════════════════════════════════════════════════════════
+export type ResultadoMonteCarlo = {
+  iteracoes: number;
+  probabilidadeLucroPositivoPct: number;
+  probabilidadeRupturaCaixaPct: number; // % de iterações em que o saldo projetado no horizonte fica negativo
+  lucroLiquidoP10: number; lucroLiquidoP50: number; lucroLiquidoP90: number;
+  saldoCaixaP10: number; saldoCaixaP50: number; saldoCaixaP90: number;
+};
+
+function amostraTriangular(min: number, moda: number, max: number, rnd: number): number {
+  if (max <= min) return moda;
+  const m = Math.min(Math.max(moda, min), max);
+  const f = (m - min) / (max - min);
+  return rnd < f
+    ? min + Math.sqrt(rnd * (max - min) * (m - min))
+    : max - Math.sqrt((1 - rnd) * (max - min) * (max - m));
+}
+
+function percentil(valoresOrdenados: number[], p: number): number {
+  if (valoresOrdenados.length === 0) return 0;
+  const idx = Math.min(valoresOrdenados.length - 1, Math.max(0, Math.floor((p / 100) * valoresOrdenados.length)));
+  return valoresOrdenados[idx];
+}
+
+export function simulacaoMonteCarlo(p: {
+  receitaMensalAtual: number; custoFixoMensalAtual: number; custoVariavelMensalAtual: number;
+  despesasFinanceirasMensalAtual: number; dividaTotalAtual: number; aliquotaEfetivaPct: number;
+  saldoCaixaAtual: number; choque: ChoqueSimulador; horizonteMeses?: number; iteracoes?: number;
+}): ResultadoMonteCarlo {
+  const n = p.iteracoes ?? 2000;
+  const horizonte = p.horizonteMeses ?? 12;
+  const otimista = escalarChoque("otimista", p.choque);
+  const adverso = escalarChoque("adverso", p.choque);
+  const lucros: number[] = []; const saldos: number[] = [];
+  let rupturas = 0; let lucrosPositivos = 0;
+
+  for (let i = 0; i < n; i++) {
+    const receitaPct = amostraTriangular(Math.min(otimista.receitaPct, adverso.receitaPct), p.choque.receitaPct, Math.max(otimista.receitaPct, adverso.receitaPct), Math.random());
+    const custoFixoPct = amostraTriangular(Math.min(otimista.custoFixoPct, adverso.custoFixoPct), p.choque.custoFixoPct, Math.max(otimista.custoFixoPct, adverso.custoFixoPct), Math.random());
+    const custoVariavelPct = amostraTriangular(Math.min(otimista.custoVariavelPct, adverso.custoVariavelPct), p.choque.custoVariavelPct, Math.max(otimista.custoVariavelPct, adverso.custoVariavelPct), Math.random());
+    const jurosDividaPontos = amostraTriangular(Math.min(otimista.jurosDividaPontos, adverso.jurosDividaPontos), p.choque.jurosDividaPontos, Math.max(otimista.jurosDividaPontos, adverso.jurosDividaPontos), Math.random());
+
+    const receitaMensal = p.receitaMensalAtual * (1 + receitaPct / 100) + p.choque.retornoMensalAporte;
+    const custoFixoMensal = p.custoFixoMensalAtual * (1 + custoFixoPct / 100);
+    const custoVariavelMensal = p.custoVariavelMensalAtual * (1 + custoVariavelPct / 100);
+    const despesasFinanceirasMensal = Math.max(0, p.despesasFinanceirasMensalAtual + (p.dividaTotalAtual * (jurosDividaPontos / 100)) / 12);
+    const dre = montarDRE({
+      receitaBruta: receitaMensal, deducoes: receitaMensal * (p.aliquotaEfetivaPct / 100),
+      custoVariavel: custoVariavelMensal, custoFixo: custoFixoMensal, despesasFinanceiras: despesasFinanceirasMensal,
+    });
+    const lucroLiquidoMensal = dre.lucroLiquido.valor;
+    const saldoCaixaProjetado = p.saldoCaixaAtual - p.choque.aporteCapital + lucroLiquidoMensal * horizonte;
+
+    lucros.push(lucroLiquidoMensal); saldos.push(saldoCaixaProjetado);
+    if (lucroLiquidoMensal > 0) lucrosPositivos++;
+    if (saldoCaixaProjetado < 0) rupturas++;
+  }
+
+  lucros.sort((a, b) => a - b); saldos.sort((a, b) => a - b);
+  return {
+    iteracoes: n,
+    probabilidadeLucroPositivoPct: (lucrosPositivos / n) * 100,
+    probabilidadeRupturaCaixaPct: (rupturas / n) * 100,
+    lucroLiquidoP10: percentil(lucros, 10), lucroLiquidoP50: percentil(lucros, 50), lucroLiquidoP90: percentil(lucros, 90),
+    saldoCaixaP10: percentil(saldos, 10), saldoCaixaP50: percentil(saldos, 50), saldoCaixaP90: percentil(saldos, 90),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRESETS DE CHOQUE — pontos de partida honestos (não previsões):
+// "crise"/"expansão" são heurísticas de mercado documentadas aqui,
+// que o usuário sempre pode editar antes de simular. Objetivos como
+// "dobrar faturamento" resolvem exatamente o Δ% necessário; "reduzir
+// custos"/"reduzir dívida" usam o alvo em % que o próprio usuário digita.
+// ═══════════════════════════════════════════════════════════════
+export type PresetSimulacao = "dobrarFaturamento" | "reduzirCustos" | "melhorarFluxoCaixa" | "reduzirDivida" | "crise" | "expansao";
+
+export function gerarChoquePreset(preset: PresetSimulacao, contexto: { custoPct?: number; jurosPontos?: number } = {}): Partial<ChoqueSimulador> {
+  switch (preset) {
+    case "dobrarFaturamento": return { receitaPct: 100 };
+    case "reduzirCustos": return { custoFixoPct: -(contexto.custoPct ?? 10), custoVariavelPct: -(contexto.custoPct ?? 10) };
+    case "melhorarFluxoCaixa": return { custoVariavelPct: -10, receitaPct: 5 };
+    case "reduzirDivida": return { jurosDividaPontos: -(contexto.jurosPontos ?? 2) };
+    case "crise": return { receitaPct: -30, custoFixoPct: 10, custoVariavelPct: 15, jurosDividaPontos: 3 };
+    case "expansao": return { receitaPct: 40, custoFixoPct: 20, custoVariavelPct: 25 };
+  }
+}
+
+// Quanto a receita precisa crescer (%) pra multiplicar o lucro líquido atual por um fator,
+// assumindo margem de contribuição % e custo fixo constantes — premissa que o relatório
+// executivo declara explicitamente (é o que muda se a margem variar na prática).
+export function receitaPctParaMultiplicarLucro(lucroAtual: number, receitaAtual: number, margemContribuicaoPct: number, multiplicador: number): number | null {
+  if (receitaAtual <= 0 || margemContribuicaoPct <= 0) return null;
+  const lucroAlvo = lucroAtual * multiplicador;
+  const deltaLucro = lucroAlvo - lucroAtual;
+  const deltaReceita = deltaLucro / (margemContribuicaoPct / 100);
+  return (deltaReceita / receitaAtual) * 100;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
 // Usar em TODOS os títulos de painel e letreiros dos módulos.
 // ═══════════════════════════════════════════════════════════════

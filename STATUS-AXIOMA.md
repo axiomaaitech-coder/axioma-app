@@ -4,7 +4,7 @@
 ---
 
 ## 1. RESUMO EM UMA FRASE
-Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. **Metas** e **Investimentos** (menu Crescimento) estão completos — ver seções 3-A e 3-B (Investimentos com as duas fases entregues: núcleo CFO + Capital Allocation Engine/Simulador Executivo). Próximo: Simulações, Precificação, ou pular pro E-commerce/PDV (ver seção 4). Combinado com o Elias: a Claude API entra como a "IA inteligente" real do Axioma só no final, depois de todos os módulos prontos — até lá, a camada "IA"/"Conselho CFO" é lógica determinística baseada em regras (mesmo padrão já usado em todo o app).
+Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. Do menu Crescimento, **Metas**, **Investimentos** e agora **Simulações** estão completos — ver seções 3-A, 3-B e 3-C (Simulações é o novo "Centro de Simulação Estratégica": motor multi-cenário + análise de sensibilidade + Monte Carlo + comparador de regime tributário + conselho executivo). Próximo: Precificação (fecha o Crescimento), ou pular pro E-commerce/PDV (ver seção 4). Combinado com o Elias: a Claude API entra como a "IA inteligente" real do Axioma só no final, depois de todos os módulos prontos — até lá, a camada "IA"/"Conselho CFO" é lógica determinística baseada em regras (mesmo padrão já usado em todo o app, e o módulo de Simulações é explícito sobre isso na própria interface).
 
 ---
 
@@ -102,13 +102,24 @@ ALTER TABLE investimentos
 
 **Verificação feita:** `tsc --noEmit` limpo e `next build` compilou com sucesso nas duas rodadas (Fase 1 e Fase 2, incluindo `investimentos/page.tsx`, `cfoCore.ts`, `cfoTextos.ts`, `bcbApi.ts`) — o build só parou depois disso, em pontos pré-existentes e sem relação (`/api/pluggy/webhook` e `/api/stripe/create-checkout`, faltam chaves no `.env.local` local — Pluggy e Stripe seguem em modo teste por decisão do Elias). Não testado no navegador com login real nesta sessão.
 
+## 3-C. Simulações (`/simulacoes`) — reescrito do zero, entregue nesta rodada
+**Centro de Simulação Estratégica — antes era uma calculadora isolada de 3 campos (lucro/ponto de equilíbrio/crescimento composto), sem tabela no banco, sem nenhum dado real.** Pesquisa que embasou o desenho (Workday Adaptive Planning, Anaplan, Pigment, Planful, Vena, Oracle EPM, SAP Analytics Cloud, Dynamics 365, NetSuite P&B, IBM TM1): confirmou que Monte Carlo não é nativo em praticamente nenhuma ferramenta de porte PME (é add-on caro ou depende de consultoria), que o modelo de planejamento nessas plataformas vive desconectado do realizado (recarrega por ETL), e que nenhuma ferramenta global ou nacional simula os 3 regimes tributários brasileiros dentro do próprio cenário financeiro projetado.
+
+**Generalizou, não duplicou:** o motor de 4 cenários nomeados (`simularCenariosExecutivos`, criado na Fase 2 de Investimentos) virou a base compartilhada — Investimentos continua funcionando sem alteração, Simulações reaproveita a mesma função.
+
+Entregue: **Ponto de Partida automático** (receita/custo fixo/custo variável/dívida/caixa/regime tributário puxados ao vivo de Receitas, Custos Fixos, Custos Variáveis, Dívidas, Fluxo de Caixa e Empresa — leitura, nunca escreve), **Objetivos Rápidos** por botão (Dobrar Faturamento, Triplicar Lucro — resolve o Δ% de receita necessário via `receitaPctParaMultiplicarLucro`, novo em `cfoCore.ts` —, Reduzir Custos e Reduzir Custo da Dívida com alvo digitado pelo usuário, Melhorar Fluxo de Caixa) e presets de **Crise**/**Expansão** (`gerarChoquePreset`, novo em `cfoCore.ts` — heurísticas de mercado documentadas, sempre editáveis antes de simular), **6 cenários** (conservador/base/otimista/adverso + crise/expansão via preset), **Análise de Sensibilidade** (`analiseSensibilidade`, novo em `cfoCore.ts` — varia cada driver isoladamente incluindo câmbio opcional via exposição cambial declarada pelo usuário, rankeia por impacto no lucro líquido), **Simulação Monte Carlo** (`simulacaoMonteCarlo`, novo em `cfoCore.ts` — 2000 iterações com distribuição triangular usando os próprios limites otimista/adverso como bordas, sem estatística inventada; produz probabilidade de lucro positivo, probabilidade de ruptura de caixa, faixas P10/P50/P90), **Simulação Tributária integrada** (compara Simples Nacional/Presumido/Real dentro do mesmo cenário simulado, reaproveitando `calcularImpostoRegime` já existente em `iaTributariaHelpers.ts`), e **Conselho Executivo determinístico** (resumo, riscos, oportunidades, premissas usadas, limitações, nível de confiança, plano de ação — com nota de transparência explícita na tela: "nenhum texto aqui foi gerado por um modelo de linguagem", já antecipando a integração futura da Claude API). Cenários são efêmeros (estado de sessão, sem tabela nova, sem SQL). Cor tema: índigo profundo + prata (nova, nenhum módulo usava ainda).
+
+**Decisão consciente registrada no plano aprovado pelo Elias:** o briefing original pedia "IA conversa naturalmente" / "a IA monta o cenário sozinha" — isso contradiz a decisão já tomada de que a Claude API só entra como IA real do Axioma no final do projeto. Resolvido com presets determinísticos por botão (mesmo resultado prático pro usuário, sem LLM). M&A/fusões/franquias/internacionalização ficaram fora de escopo (exigem módulo de valuation que não existe ainda) — registrado como backlog explícito.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado no navegador com login real nesta sessão.
+
 ## 4. PRÓXIMO PASSO
-Simulações, Precificação (resto do menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Precificação (fecha o menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
 ## 5. FILA DEPOIS (menu Crescimento/Comercial)
-Resto do Crescimento (Simulações, Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
+Resto do Crescimento (Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
 
 ---
 

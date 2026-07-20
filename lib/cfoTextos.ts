@@ -11,6 +11,7 @@ import {
   type BucketVencimento, type GatilhoConselhoDivida, type GatilhoConselhoMeta, type ArvoreMeta, type TipoMeta,
   type GatilhoConselhoInvestimento, type OportunidadeResgate,
   type ResultadoAlocacao, type CategoriaAlocacao, type ResultadoCenario,
+  type ImpactoSensibilidade, type ResultadoMonteCarlo, type DriverSensibilidade,
 } from "./cfoCore";
 
 export type CfoLang = "pt" | "en" | "es";
@@ -169,6 +170,45 @@ const TEXTOS = {
     invSimular: "Simular Cenários", invCenarioConservador: "Conservador", invCenarioBase: "Base", invCenarioOtimista: "Otimista", invCenarioAdverso: "Adverso",
     invLucroLiquidoMensal: "Lucro Líquido/Mês", invSaldoProjetado12m: "Saldo de Caixa (12m)", invRunwayCritico: "Runway Crítico",
     invSemRunway: "Sem risco de ruptura", invUsarNaSimulacao: "Simular este cenário",
+    // Simulações
+    simTitulo: "Simulações Estratégicas", simSubtitulo: "Motor de cenários conectado aos seus dados reais — não é previsão, é inteligência de decisão",
+    simPontoPartidaTitulo: "Ponto de Partida (dados reais)", simPontoPartidaSub: "Puxado automaticamente de Receitas, Custos, Dívidas e Fluxo de Caixa",
+    simReceitaMensalLabel: "Receita Mensal Média", simCustoFixoMensalLabel: "Custo Fixo Mensal", simCustoVariavelMensalLabel: "Custo Variável Mensal",
+    simDividaTotalLabel: "Dívida Total Ativa", simCaixaDisponivelLabel: "Caixa Disponível", simRegimeAtualLabel: "Regime Tributário Atual",
+    simObjetivosTitulo: "Objetivos Rápidos", simObjetivosSub: "Cada botão pré-preenche os choques abaixo — regra determinística, não é IA generativa",
+    simObjDobrarFaturamento: "Dobrar Faturamento", simObjTriplicarLucro: "Triplicar Lucro", simObjReduzirCustos: "Reduzir Custos",
+    simObjMelhorarFluxoCaixa: "Melhorar Fluxo de Caixa", simObjReduzirDivida: "Reduzir Custo da Dívida",
+    simPresetCrise: "Cenário de Crise", simPresetExpansao: "Cenário de Expansão",
+    simChoqueCambio: "Choque Cambial — Dólar (%)", simExposicaoCambial: "% do Custo Variável Indexado ao Dólar",
+    simHorizonteLabel: "Horizonte de Simulação (meses)",
+    simSimular: "Rodar Simulação",
+    simCenariosTitulo: "Cenários Simulados", simCenariosSub: "Conservador · Base · Otimista · Adverso",
+    simSensibilidadeTitulo: "Análise de Sensibilidade", simSensibilidadeSub: "Qual variável mais decide o seu resultado",
+    simDriverReceita: "Receita", simDriverCustoFixo: "Custo Fixo", simDriverCustoVariavel: "Custo Variável",
+    simDriverJuros: "Juros da Dívida", simDriverCambio: "Câmbio (Dólar)",
+    simFavoravel: "Favorável", simDesfavoravel: "Desfavorável", simPeso: "Peso no Risco",
+    simMonteCarloTitulo: "Simulação Monte Carlo", simMonteCarloSub: "Milhares de cenários aleatórios dentro dos limites que você definiu",
+    simProbLucroPositivo: "Probabilidade de Lucro Positivo", simProbRupturaCaixa: "Probabilidade de Ruptura de Caixa",
+    simFaixaLucroP10P90: "Faixa de Lucro Mensal (P10–P90)", simFaixaCaixaP10P90: "Faixa de Saldo de Caixa (P10–P90)",
+    simIteracoes: "iterações simuladas", simMediana: "Mediana",
+    simTributarioTitulo: "Impacto por Regime Tributário", simTributarioSub: "Mesmo cenário simulado, comparado nos 3 regimes",
+    simRegimeSimples: "Simples Nacional", simRegimePresumido: "Lucro Presumido", simRegimeReal: "Lucro Real",
+    simImpostoMensalLabel: "Imposto Mensal Estimado", simLucroLiquidoRegimeLabel: "Lucro Líquido no Regime", simRegimeAtualTag: "regime atual", simRegimeMelhorTag: "melhor no cenário",
+    simConselhoTitulo: "Conselho Executivo", simConselhoSub: "Resumo, riscos, oportunidades e plano de ação — gerado por regras, não por IA generativa (ver nota de transparência)",
+    simResumoLabel: "Resumo Executivo", simRiscosLabel: "Principais Riscos", simOportunidadesLabel: "Principais Oportunidades",
+    simPremissasLabel: "Premissas Utilizadas", simLimitacoesLabel: "Limitações desta Projeção", simNivelConfiancaLabel: "Nível de Confiança",
+    simPlanoAcaoLabel: "Plano de Ação Recomendado",
+    simConfiancaBaixo: "Baixo", simConfiancaMedio: "Médio", simConfiancaAlto: "Alto",
+    simLimitacoesTexto: "Projeção determinística/probabilística baseada nos dados cadastrados e nos choques informados. Não considera eventos fora do modelo (ex: mudança regulatória súbita) nem garante resultado futuro.",
+    simTransparenciaTexto: "Esta análise é 100% baseada em regras e nos números reais da sua empresa — nenhum texto aqui foi gerado por um modelo de linguagem.",
+    simPremissaReceita: "Receita mensal considerada", simPremissaCustoFixo: "Custo fixo mensal considerado", simPremissaCustoVariavel: "Custo variável mensal considerado",
+    simPremissaChoque: "Choque testado no cenário base",
+    simPlanoAcaoRevisarCusto: "Revisar o driver de maior sensibilidade antes de comprometer caixa com decisões grandes.",
+    simPlanoAcaoAumentarReserva: "Aumentar a reserva de caixa antes de executar este cenário — a probabilidade de ruptura simulada está acima do confortável.",
+    simPlanoAcaoAproveitarOportunidade: "Cenário otimista mostra ganho relevante de lucro — vale detalhar o que precisa ser verdade pra chegar lá.",
+    simPlanoAcaoManterMonitorando: "Nenhum risco crítico detectado neste cenário — manter monitorando os indicadores reais mês a mês.",
+    simSemDados: "Cadastre Receitas, Custos Fixos e Custos Variáveis para o motor de simulação usar dados reais como ponto de partida.",
+    simUsarPreset: "Carregar neste simulador",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -309,6 +349,45 @@ const TEXTOS = {
     invSimular: "Simulate Scenarios", invCenarioConservador: "Conservative", invCenarioBase: "Base", invCenarioOtimista: "Optimistic", invCenarioAdverso: "Adverse",
     invLucroLiquidoMensal: "Net Profit/Month", invSaldoProjetado12m: "Cash Balance (12m)", invRunwayCritico: "Critical Runway",
     invSemRunway: "No risk of shortfall", invUsarNaSimulacao: "Simulate this scenario",
+    // Simulations
+    simTitulo: "Strategic Simulations", simSubtitulo: "Scenario engine connected to your real data — not a forecast, a decision intelligence tool",
+    simPontoPartidaTitulo: "Starting Point (real data)", simPontoPartidaSub: "Pulled automatically from Revenue, Costs, Debt and Cash Flow",
+    simReceitaMensalLabel: "Average Monthly Revenue", simCustoFixoMensalLabel: "Monthly Fixed Cost", simCustoVariavelMensalLabel: "Monthly Variable Cost",
+    simDividaTotalLabel: "Total Active Debt", simCaixaDisponivelLabel: "Available Cash", simRegimeAtualLabel: "Current Tax Regime",
+    simObjetivosTitulo: "Quick Objectives", simObjetivosSub: "Each button pre-fills the shocks below — deterministic rule, not generative AI",
+    simObjDobrarFaturamento: "Double Revenue", simObjTriplicarLucro: "Triple Profit", simObjReduzirCustos: "Reduce Costs",
+    simObjMelhorarFluxoCaixa: "Improve Cash Flow", simObjReduzirDivida: "Reduce Debt Cost",
+    simPresetCrise: "Crisis Scenario", simPresetExpansao: "Expansion Scenario",
+    simChoqueCambio: "FX Shock — USD (%)", simExposicaoCambial: "% of Variable Cost Indexed to USD",
+    simHorizonteLabel: "Simulation Horizon (months)",
+    simSimular: "Run Simulation",
+    simCenariosTitulo: "Simulated Scenarios", simCenariosSub: "Conservative · Base · Optimistic · Adverse",
+    simSensibilidadeTitulo: "Sensitivity Analysis", simSensibilidadeSub: "Which variable most decides your result",
+    simDriverReceita: "Revenue", simDriverCustoFixo: "Fixed Cost", simDriverCustoVariavel: "Variable Cost",
+    simDriverJuros: "Debt Interest", simDriverCambio: "FX (USD)",
+    simFavoravel: "Favorable", simDesfavoravel: "Unfavorable", simPeso: "Risk Weight",
+    simMonteCarloTitulo: "Monte Carlo Simulation", simMonteCarloSub: "Thousands of random scenarios within the limits you set",
+    simProbLucroPositivo: "Probability of Positive Profit", simProbRupturaCaixa: "Probability of Cash Shortfall",
+    simFaixaLucroP10P90: "Monthly Profit Range (P10–P90)", simFaixaCaixaP10P90: "Cash Balance Range (P10–P90)",
+    simIteracoes: "simulated iterations", simMediana: "Median",
+    simTributarioTitulo: "Impact by Tax Regime", simTributarioSub: "Same simulated scenario, compared across 3 regimes",
+    simRegimeSimples: "Simples Nacional", simRegimePresumido: "Presumed Profit", simRegimeReal: "Actual Profit",
+    simImpostoMensalLabel: "Estimated Monthly Tax", simLucroLiquidoRegimeLabel: "Net Profit under Regime", simRegimeAtualTag: "current regime", simRegimeMelhorTag: "best in scenario",
+    simConselhoTitulo: "Executive Advisory", simConselhoSub: "Summary, risks, opportunities and action plan — rule-generated, not generative AI (see transparency note)",
+    simResumoLabel: "Executive Summary", simRiscosLabel: "Key Risks", simOportunidadesLabel: "Key Opportunities",
+    simPremissasLabel: "Assumptions Used", simLimitacoesLabel: "Limitations of this Projection", simNivelConfiancaLabel: "Confidence Level",
+    simPlanoAcaoLabel: "Recommended Action Plan",
+    simConfiancaBaixo: "Low", simConfiancaMedio: "Medium", simConfiancaAlto: "High",
+    simLimitacoesTexto: "Deterministic/probabilistic projection based on your registered data and the shocks entered. Does not account for events outside the model (e.g. sudden regulatory change) nor guarantee a future outcome.",
+    simTransparenciaTexto: "This analysis is 100% rule-based and built from your company's real numbers — no text here was generated by a language model.",
+    simPremissaReceita: "Monthly revenue considered", simPremissaCustoFixo: "Monthly fixed cost considered", simPremissaCustoVariavel: "Monthly variable cost considered",
+    simPremissaChoque: "Shock tested in the base scenario",
+    simPlanoAcaoRevisarCusto: "Review the most sensitive driver before committing cash to major decisions.",
+    simPlanoAcaoAumentarReserva: "Increase your cash reserve before acting on this scenario — the simulated shortfall probability is above a comfortable level.",
+    simPlanoAcaoAproveitarOportunidade: "The optimistic scenario shows a meaningful profit gain — worth detailing what needs to hold true to get there.",
+    simPlanoAcaoManterMonitorando: "No critical risk detected in this scenario — keep tracking the real indicators month by month.",
+    simSemDados: "Register Revenue, Fixed Costs and Variable Costs so the simulation engine can use real data as a starting point.",
+    simUsarPreset: "Load into this simulator",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -449,6 +528,45 @@ const TEXTOS = {
     invSimular: "Simular Escenarios", invCenarioConservador: "Conservador", invCenarioBase: "Base", invCenarioOtimista: "Optimista", invCenarioAdverso: "Adverso",
     invLucroLiquidoMensal: "Utilidad Neta/Mes", invSaldoProjetado12m: "Saldo de Caja (12m)", invRunwayCritico: "Runway Crítico",
     invSemRunway: "Sin riesgo de ruptura", invUsarNaSimulacao: "Simular este escenario",
+    // Simulaciones
+    simTitulo: "Simulaciones Estratégicas", simSubtitulo: "Motor de escenarios conectado a sus datos reales — no es un pronóstico, es inteligencia de decisión",
+    simPontoPartidaTitulo: "Punto de Partida (datos reales)", simPontoPartidaSub: "Extraído automáticamente de Ingresos, Costos, Deudas y Flujo de Caja",
+    simReceitaMensalLabel: "Ingreso Mensual Promedio", simCustoFixoMensalLabel: "Costo Fijo Mensual", simCustoVariavelMensalLabel: "Costo Variable Mensual",
+    simDividaTotalLabel: "Deuda Total Activa", simCaixaDisponivelLabel: "Caja Disponible", simRegimeAtualLabel: "Régimen Tributario Actual",
+    simObjetivosTitulo: "Objetivos Rápidos", simObjetivosSub: "Cada botón precompleta los choques abajo — regla determinística, no es IA generativa",
+    simObjDobrarFaturamento: "Duplicar Facturación", simObjTriplicarLucro: "Triplicar Utilidad", simObjReduzirCustos: "Reducir Costos",
+    simObjMelhorarFluxoCaixa: "Mejorar Flujo de Caja", simObjReduzirDivida: "Reducir Costo de la Deuda",
+    simPresetCrise: "Escenario de Crisis", simPresetExpansao: "Escenario de Expansión",
+    simChoqueCambio: "Choque Cambiario — Dólar (%)", simExposicaoCambial: "% del Costo Variable Indexado al Dólar",
+    simHorizonteLabel: "Horizonte de Simulación (meses)",
+    simSimular: "Ejecutar Simulación",
+    simCenariosTitulo: "Escenarios Simulados", simCenariosSub: "Conservador · Base · Optimista · Adverso",
+    simSensibilidadeTitulo: "Análisis de Sensibilidad", simSensibilidadeSub: "Qué variable decide más su resultado",
+    simDriverReceita: "Ingresos", simDriverCustoFixo: "Costo Fijo", simDriverCustoVariavel: "Costo Variable",
+    simDriverJuros: "Intereses de la Deuda", simDriverCambio: "Cambio (Dólar)",
+    simFavoravel: "Favorable", simDesfavoravel: "Desfavorable", simPeso: "Peso en el Riesgo",
+    simMonteCarloTitulo: "Simulación Monte Carlo", simMonteCarloSub: "Miles de escenarios aleatorios dentro de los límites que usted definió",
+    simProbLucroPositivo: "Probabilidad de Utilidad Positiva", simProbRupturaCaixa: "Probabilidad de Ruptura de Caja",
+    simFaixaLucroP10P90: "Rango de Utilidad Mensual (P10–P90)", simFaixaCaixaP10P90: "Rango de Saldo de Caja (P10–P90)",
+    simIteracoes: "iteraciones simuladas", simMediana: "Mediana",
+    simTributarioTitulo: "Impacto por Régimen Tributario", simTributarioSub: "Mismo escenario simulado, comparado en los 3 regímenes",
+    simRegimeSimples: "Simples Nacional", simRegimePresumido: "Utilidad Presunta", simRegimeReal: "Utilidad Real",
+    simImpostoMensalLabel: "Impuesto Mensual Estimado", simLucroLiquidoRegimeLabel: "Utilidad Neta en el Régimen", simRegimeAtualTag: "régimen actual", simRegimeMelhorTag: "mejor en el escenario",
+    simConselhoTitulo: "Consejo Ejecutivo", simConselhoSub: "Resumen, riesgos, oportunidades y plan de acción — generado por reglas, no por IA generativa (ver nota de transparencia)",
+    simResumoLabel: "Resumen Ejecutivo", simRiscosLabel: "Principales Riesgos", simOportunidadesLabel: "Principales Oportunidades",
+    simPremissasLabel: "Premisas Utilizadas", simLimitacoesLabel: "Limitaciones de esta Proyección", simNivelConfiancaLabel: "Nivel de Confianza",
+    simPlanoAcaoLabel: "Plan de Acción Recomendado",
+    simConfiancaBaixo: "Bajo", simConfiancaMedio: "Medio", simConfiancaAlto: "Alto",
+    simLimitacoesTexto: "Proyección determinística/probabilística basada en los datos registrados y los choques ingresados. No considera eventos fuera del modelo (ej. cambio regulatorio súbito) ni garantiza un resultado futuro.",
+    simTransparenciaTexto: "Este análisis es 100% basado en reglas y en los números reales de su empresa — ningún texto aquí fue generado por un modelo de lenguaje.",
+    simPremissaReceita: "Ingreso mensual considerado", simPremissaCustoFixo: "Costo fijo mensual considerado", simPremissaCustoVariavel: "Costo variable mensual considerado",
+    simPremissaChoque: "Choque probado en el escenario base",
+    simPlanoAcaoRevisarCusto: "Revisar la variable más sensible antes de comprometer caja en decisiones grandes.",
+    simPlanoAcaoAumentarReserva: "Aumentar la reserva de caja antes de ejecutar este escenario — la probabilidad de ruptura simulada está por encima de un nivel cómodo.",
+    simPlanoAcaoAproveitarOportunidade: "El escenario optimista muestra una ganancia relevante de utilidad — vale la pena detallar qué debe cumplirse para llegar allí.",
+    simPlanoAcaoManterMonitorando: "No se detectó ningún riesgo crítico en este escenario — siga monitoreando los indicadores reales mes a mes.",
+    simSemDados: "Registre Ingresos, Costos Fijos y Costos Variables para que el motor de simulación use datos reales como punto de partida.",
+    simUsarPreset: "Cargar en este simulador",
   },
 };
 
@@ -753,6 +871,57 @@ export function montarNarrativaCenario(lang: string, r: ResultadoCenario): strin
   if (lang === "en") return `Monthly net profit of ${fBRL(r.lucroLiquidoMensal)}, cash balance of ${fBRL(r.saldoCaixaProjetado)} after 12 months${r.runwayMeses !== null ? `, critical runway in ${r.runwayMeses} months if this holds` : ""}.`;
   if (lang === "es") return `Utilidad neta mensual de ${fBRL(r.lucroLiquidoMensal)}, saldo de caja de ${fBRL(r.saldoCaixaProjetado)} después de 12 meses${r.runwayMeses !== null ? `, runway crítico en ${r.runwayMeses} meses si esto se mantiene` : ""}.`;
   return `Lucro líquido mensal de ${fBRL(r.lucroLiquidoMensal)}, saldo de caixa de ${fBRL(r.saldoCaixaProjetado)} após 12 meses${r.runwayMeses !== null ? `, runway crítico em ${r.runwayMeses} meses se isso se mantiver` : ""}.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIMULAÇÕES — ANÁLISE DE SENSIBILIDADE / MONTE CARLO / CONSELHO EXECUTIVO
+// ═══════════════════════════════════════════════════════════════
+const NOME_DRIVER_SENSIBILIDADE: Record<DriverSensibilidade, keyof CfoTextos> = {
+  receita: "simDriverReceita", custoFixo: "simDriverCustoFixo", custoVariavel: "simDriverCustoVariavel",
+  juros: "simDriverJuros", cambio: "simDriverCambio",
+};
+
+export function nomeDriverSensibilidade(lang: string, driver: DriverSensibilidade): string {
+  return cfoT(lang)[NOME_DRIVER_SENSIBILIDADE[driver]] as string;
+}
+
+export function montarNarrativaSensibilidade(lang: string, impactos: ImpactoSensibilidade[]): string {
+  if (impactos.length === 0) return "";
+  const top = impactos[0];
+  const nome = nomeDriverSensibilidade(lang, top.driver);
+  if (lang === "en") return `Your result is most sensitive to ${nome}: monthly net profit swings between ${fBRL(top.impactoDesfavoravelRS)} (unfavorable) and ${fBRL(top.impactoFavoravelRS)} (favorable) — ${fPct(top.pesoPct)} of the simulated risk weight.`;
+  if (lang === "es") return `Su resultado es más sensible a ${nome}: la utilidad neta mensual varía entre ${fBRL(top.impactoDesfavoravelRS)} (desfavorable) y ${fBRL(top.impactoFavoravelRS)} (favorable) — ${fPct(top.pesoPct)} del peso de riesgo simulado.`;
+  return `Seu resultado é mais sensível a ${nome}: o lucro líquido mensal varia entre ${fBRL(top.impactoDesfavoravelRS)} (desfavorável) e ${fBRL(top.impactoFavoravelRS)} (favorável) — ${fPct(top.pesoPct)} do peso de risco simulado.`;
+}
+
+export function montarNarrativaMonteCarlo(lang: string, mc: ResultadoMonteCarlo): string {
+  if (lang === "en") return `Across ${mc.iteracoes.toLocaleString("en-US")} simulated scenarios, ${fPct(mc.probabilidadeLucroPositivoPct)} resulted in positive profit and ${fPct(mc.probabilidadeRupturaCaixaPct)} pointed to a cash shortfall within the horizon. Expected monthly profit range: ${fBRL(mc.lucroLiquidoP10)} to ${fBRL(mc.lucroLiquidoP90)} (median ${fBRL(mc.lucroLiquidoP50)}).`;
+  if (lang === "es") return `En ${mc.iteracoes.toLocaleString("es-ES")} escenarios simulados, ${fPct(mc.probabilidadeLucroPositivoPct)} resultaron en utilidad positiva y ${fPct(mc.probabilidadeRupturaCaixaPct)} indicaron ruptura de caja dentro del horizonte. Rango de utilidad mensual esperado: ${fBRL(mc.lucroLiquidoP10)} a ${fBRL(mc.lucroLiquidoP90)} (mediana ${fBRL(mc.lucroLiquidoP50)}).`;
+  return `Em ${mc.iteracoes.toLocaleString("pt-BR")} cenários simulados, ${fPct(mc.probabilidadeLucroPositivoPct)} resultaram em lucro positivo e ${fPct(mc.probabilidadeRupturaCaixaPct)} indicaram ruptura de caixa dentro do horizonte. Faixa de lucro mensal esperada: ${fBRL(mc.lucroLiquidoP10)} a ${fBRL(mc.lucroLiquidoP90)} (mediana ${fBRL(mc.lucroLiquidoP50)}).`;
+}
+
+export function montarNarrativaRiscoRuptura(lang: string, probabilidadeRupturaCaixaPct: number): string {
+  if (lang === "en") return `In ${fPct(probabilidadeRupturaCaixaPct)} of the simulated scenarios, cash goes negative within the horizon — build a larger buffer before committing to this plan.`;
+  if (lang === "es") return `En ${fPct(probabilidadeRupturaCaixaPct)} de los escenarios simulados, la caja queda negativa dentro del horizonte — construya un colchón mayor antes de comprometerse con este plan.`;
+  return `Em ${fPct(probabilidadeRupturaCaixaPct)} dos cenários simulados, o caixa fica negativo dentro do horizonte — construa uma reserva maior antes de se comprometer com esse plano.`;
+}
+
+export function montarNarrativaOportunidadeCenario(lang: string, lucroBase: number, lucroOtimista: number): string {
+  const ganhoPct = lucroBase !== 0 ? ((lucroOtimista - lucroBase) / Math.abs(lucroBase)) * 100 : 0;
+  if (lang === "en") return `In the optimistic scenario, monthly net profit reaches ${fBRL(lucroOtimista)} (vs. ${fBRL(lucroBase)} in the base scenario) — a potential gain of ${fPct(ganhoPct)}.`;
+  if (lang === "es") return `En el escenario optimista, la utilidad neta mensual llega a ${fBRL(lucroOtimista)} (vs. ${fBRL(lucroBase)} en el escenario base) — una ganancia potencial de ${fPct(ganhoPct)}.`;
+  return `No cenário otimista, o lucro líquido mensal chega a ${fBRL(lucroOtimista)} (vs. ${fBRL(lucroBase)} no cenário base) — um ganho potencial de ${fPct(ganhoPct)}.`;
+}
+
+export function montarNarrativaRegimeTributario(lang: string, nomeRegime: string, economiaMensal: number): string {
+  if (economiaMensal <= 0) {
+    if (lang === "en") return `Under this simulated scenario, your current tax regime remains the most favorable — no switch needed.`;
+    if (lang === "es") return `En este escenario simulado, su régimen tributario actual sigue siendo el más favorable — no es necesario cambiar.`;
+    return `Nesse cenário simulado, seu regime tributário atual continua o mais favorável — nenhuma troca é necessária.`;
+  }
+  if (lang === "en") return `Under this simulated scenario, ${nomeRegime} yields the highest net profit — about ${fBRL(economiaMensal)}/month more than your current regime.`;
+  if (lang === "es") return `En este escenario simulado, ${nomeRegime} genera la mayor utilidad neta — cerca de ${fBRL(economiaMensal)}/mes más que su régimen actual.`;
+  return `Nesse cenário simulado, ${nomeRegime} gera o maior lucro líquido — cerca de ${fBRL(economiaMensal)}/mês a mais que seu regime atual.`;
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {
