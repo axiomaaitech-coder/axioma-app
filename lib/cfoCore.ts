@@ -1338,6 +1338,184 @@ export function gerarConselhoMeta(metas: {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// INVESTIMENTOS — CENTRO DE ALOCAÇÃO DE CAPITAL. Reaproveita EBITDA
+// (montarDRE), custo de dívida real (DividaBase/ordenarAvalanche) e
+// caixa realizado (mesmo padrão de leitura do Fluxo de Caixa) — nunca
+// escreve nessas tabelas. Diferencial: nenhum ERP nacional ou global
+// de tesouraria cruza "quanto rende aplicado" com "quanto custa a
+// própria dívida da empresa" pra decidir se vale resgatar e quitar.
+// ═══════════════════════════════════════════════════════════════
+
+export type TipoInvestimento = "renda_fixa" | "renda_variavel" | "criptomoeda" | "imovel" | "outro";
+export type Liquidez = "diaria" | "curto_prazo" | "longo_prazo" | "no_vencimento";
+export type StatusInvestimento = "ativo" | "resgatado";
+
+export type InvestimentoItem = {
+  id: string; nome: string; valor: number; tipo: TipoInvestimento;
+  data: string; rentabilidade: number; // % a.a. nominal informado pelo usuário
+  data_vencimento?: string | null; indexador?: string | null;
+  instituicao?: string | null; liquidez?: Liquidez | null; status?: StatusInvestimento;
+};
+
+// ---------- IR REGRESSIVO (renda fixa) — Lei 11.033/2004, tabela real da Receita ----------
+export function aliquotaIRRegressiva(diasDecorridos: number): number {
+  if (diasDecorridos <= 180) return 22.5;
+  if (diasDecorridos <= 360) return 20;
+  if (diasDecorridos <= 720) return 17.5;
+  return 15;
+}
+
+// Rentabilidade líquida real anualizada. Só renda fixa tem tabela de IR única e objetiva —
+// renda variável/cripto/imóvel dependem do regime de tributação (ganho de capital, isenções),
+// então ficam nominais aqui (mais honesto que aplicar uma alíquota genérica errada).
+export function rentabilidadeLiquidaAnual(item: { tipo: TipoInvestimento; rentabilidade: number; data: string }, hojeISO?: string): number {
+  if (item.tipo !== "renda_fixa") return item.rentabilidade;
+  const hoje = hojeISO ? new Date(hojeISO + "T00:00:00") : new Date();
+  const aplicacao = new Date(item.data + "T00:00:00");
+  const dias = Math.max(0, Math.round((hoje.getTime() - aplicacao.getTime()) / 86400000));
+  const aliquota = aliquotaIRRegressiva(dias);
+  return item.rentabilidade * (1 - aliquota / 100);
+}
+
+// ---------- CUSTO DE OPORTUNIDADE vs DÍVIDA (o diferencial mundial) ----------
+export type OportunidadeResgate = {
+  investimentoNome: string; investimentoValor: number; rentabilidadeLiquidaAA: number;
+  dividaDescricao: string; taxaJurosAM: number; taxaJurosAAEquivalente: number;
+  economiaMensalEstimada: number;
+};
+
+// Compara a rentabilidade líquida de cada investimento de liquidez rápida com a taxa da dívida
+// mais cara ativa. Só sinaliza investimentos que o usuário PODE resgatar sem penalidade
+// (liquidez diária/curto prazo, ou sem liquidez informada) — nunca sugere quebrar algo travado.
+export function detectarCustoOportunidade(itens: InvestimentoItem[], dividas: DividaBase[]): OportunidadeResgate[] {
+  const dividasComSaldo = dividas.filter((d) => d.valor_total - d.valor_pago > 0 && d.taxa_juros > 0);
+  if (!dividasComSaldo.length) return [];
+  const maisCara = [...dividasComSaldo].sort((a, b) => b.taxa_juros - a.taxa_juros)[0];
+  const taxaAAEquivalente = (Math.pow(1 + maisCara.taxa_juros / 100, 12) - 1) * 100;
+
+  const out: OportunidadeResgate[] = [];
+  itens
+    .filter((i) => i.status !== "resgatado" && (i.liquidez === "diaria" || i.liquidez === "curto_prazo" || !i.liquidez))
+    .forEach((it) => {
+      const liquidaAA = rentabilidadeLiquidaAnual(it);
+      if (liquidaAA < taxaAAEquivalente) {
+        const saldoDevedor = Math.max(0, maisCara.valor_total - maisCara.valor_pago);
+        const valorMovimentavel = Math.min(it.valor, saldoDevedor);
+        const economiaMensal = valorMovimentavel * (maisCara.taxa_juros / 100 - liquidaAA / 100 / 12);
+        if (economiaMensal > 0) {
+          out.push({
+            investimentoNome: it.nome, investimentoValor: it.valor, rentabilidadeLiquidaAA: liquidaAA,
+            dividaDescricao: maisCara.descricao, taxaJurosAM: maisCara.taxa_juros, taxaJurosAAEquivalente: taxaAAEquivalente,
+            economiaMensalEstimada: economiaMensal,
+          });
+        }
+      }
+    });
+  return out.sort((a, b) => b.economiaMensalEstimada - a.economiaMensalEstimada);
+}
+
+// ---------- ESCADA DE LIQUIDEZ — quando cada investimento libera capital ----------
+export type BucketLiquidez = { label: string; valor: number; mesIndex: number };
+
+export function escadaLiquidezInvestimentos(itens: InvestimentoItem[], horizonteMeses = 24): BucketLiquidez[] {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const buckets: BucketLiquidez[] = Array.from({ length: horizonteMeses + 1 }, (_, i) => ({
+    label: i === 0 ? "Imediata" : `M${i}`, valor: 0, mesIndex: i,
+  }));
+  itens.filter((i) => i.status !== "resgatado").forEach((it) => {
+    if (!it.data_vencimento || it.liquidez === "diaria") { buckets[0].valor += it.valor; return; }
+    const venc = new Date(it.data_vencimento + "T00:00:00");
+    const mesesRestantes = Math.max(0, Math.round((venc.getTime() - hoje.getTime()) / (86400000 * 30)));
+    const idx = Math.min(mesesRestantes, horizonteMeses);
+    buckets[idx].valor += it.valor;
+  });
+  return buckets;
+}
+
+// ---------- DETECTOR DE CAIXA OCIOSO ----------
+// Reserva saudável = referência comum de capital de giro (2 meses de custo operacional).
+// Não afirmamos "há quanto tempo" está parado (o schema não guarda histórico de saldo) —
+// só o quanto excede hoje a reserva, honestidade em vez de inventar um dado que não existe.
+export type CapitalOcioso = { valor: number; custoOportunidadeMensal: number };
+
+export function detectarCapitalOcioso(caixaDisponivel: number, custoOperacionalMensal: number, cdiMensalPct: number): CapitalOcioso | null {
+  const reservaSaudavel = custoOperacionalMensal * 2;
+  const ocioso = caixaDisponivel - reservaSaudavel;
+  if (ocioso <= 0) return null;
+  return { valor: ocioso, custoOportunidadeMensal: ocioso * (cdiMensalPct / 100) };
+}
+
+// ---------- SCORE DE INVESTIMENTO (0-1000) ----------
+export type ScoreInvestimento = {
+  total: number; nivel: "critico" | "atencao" | "bom" | "excelente"; cor: CorSaude;
+  subscores: { chave: string; valor: number; peso: number }[];
+};
+
+export function calcularScoreInvestimento(p: {
+  concentracaoTipoPct: number; liquidezImediataPct: number;
+  rentabilidadeMediaLiquidaAA: number; cdiAtual: number;
+  capitalOciosoPct: number; custoOportunidadeAtivo: boolean;
+}): ScoreInvestimento {
+  const scoreDiversificacao = Math.max(0, 100 - p.concentracaoTipoPct);
+  const scoreLiquidez = Math.min(100, p.liquidezImediataPct * 2);
+  const scoreRentabilidade = p.cdiAtual > 0 ? Math.max(0, Math.min(100, (p.rentabilidadeMediaLiquidaAA / p.cdiAtual) * 100)) : 50;
+  const scoreCaixa = Math.max(0, 100 - p.capitalOciosoPct);
+  const scoreEficiencia = p.custoOportunidadeAtivo ? 30 : 100;
+
+  const subscores = [
+    { chave: "diversificacao", valor: scoreDiversificacao, peso: 0.2 },
+    { chave: "liquidez", valor: scoreLiquidez, peso: 0.2 },
+    { chave: "rentabilidade", valor: scoreRentabilidade, peso: 0.25 },
+    { chave: "caixa", valor: scoreCaixa, peso: 0.15 },
+    { chave: "eficiencia", valor: scoreEficiencia, peso: 0.2 },
+  ];
+  const totalPct = subscores.reduce((s, x) => s + x.valor * x.peso, 0);
+  const total = Math.round(totalPct * 10);
+  const nivel: ScoreInvestimento["nivel"] = total < 400 ? "critico" : total < 650 ? "atencao" : total < 850 ? "bom" : "excelente";
+  const cor: CorSaude = total < 400 ? "vermelho" : total < 650 ? "amarelo" : "verde";
+  return { total, nivel, cor, subscores };
+}
+
+// ---------- RADAR DE RISCOS ----------
+export type ChaveRiscoInvestimento = "concentracaoTipo" | "concentracaoInstituicao" | "liquidez" | "iliquidezEndividada" | "volatilidade";
+export type RiscoInvestimento = { chave: ChaveRiscoInvestimento; score: number; cor: CorSaude };
+
+export function calcularRadarRiscoInvestimento(p: {
+  concentracaoTipoPct: number; concentracaoInstituicaoPct: number;
+  liquidezImediataPct: number; dividaEbitdaX: number | null; pctRendaVariavelCripto: number;
+}): RiscoInvestimento[] {
+  const corAltoRuim = (v: number): CorSaude => (v > 70 ? "vermelho" : v > 50 ? "amarelo" : "verde");
+  const corBaixoRuim = (v: number): CorSaude => (v < 20 ? "vermelho" : v < 40 ? "amarelo" : "verde");
+  return [
+    { chave: "concentracaoTipo", score: p.concentracaoTipoPct, cor: corAltoRuim(p.concentracaoTipoPct) },
+    { chave: "concentracaoInstituicao", score: p.concentracaoInstituicaoPct, cor: corAltoRuim(p.concentracaoInstituicaoPct) },
+    { chave: "liquidez", score: p.liquidezImediataPct, cor: corBaixoRuim(p.liquidezImediataPct) },
+    { chave: "iliquidezEndividada", score: p.dividaEbitdaX === null ? 0 : Math.min(100, p.dividaEbitdaX * 20), cor: p.dividaEbitdaX === null ? "verde" : corAltoRuim(Math.min(100, p.dividaEbitdaX * 20)) },
+    { chave: "volatilidade", score: p.pctRendaVariavelCripto, cor: corAltoRuim(p.pctRendaVariavelCripto) },
+  ];
+}
+
+// ---------- CONSELHO CFO DE INVESTIMENTOS ----------
+export type GatilhoConselhoInvestimento =
+  | { tipo: "resgatarEQuitar"; oportunidade: OportunidadeResgate }
+  | { tipo: "caixaOcioso"; valor: number; custoOportunidadeMensal: number }
+  | { tipo: "concentracaoAlta"; pct: number; tipoConcentrado: string }
+  | { tipo: "abaixoCDI"; rentabilidadeLiquidaAA: number; cdiAtual: number };
+
+export function gerarConselhoInvestimento(p: {
+  oportunidades: OportunidadeResgate[]; capitalOcioso: CapitalOcioso | null;
+  concentracaoTipoPct: number; tipoMaisConcentrado: string;
+  rentabilidadeMediaLiquidaAA: number; cdiAtual: number;
+}): GatilhoConselhoInvestimento[] {
+  const out: GatilhoConselhoInvestimento[] = [];
+  if (p.oportunidades[0]) out.push({ tipo: "resgatarEQuitar", oportunidade: p.oportunidades[0] });
+  if (p.capitalOcioso) out.push({ tipo: "caixaOcioso", valor: p.capitalOcioso.valor, custoOportunidadeMensal: p.capitalOcioso.custoOportunidadeMensal });
+  if (p.concentracaoTipoPct > 70) out.push({ tipo: "concentracaoAlta", pct: p.concentracaoTipoPct, tipoConcentrado: p.tipoMaisConcentrado });
+  if (p.cdiAtual > 0 && p.rentabilidadeMediaLiquidaAA < p.cdiAtual * 0.9) out.push({ tipo: "abaixoCDI", rentabilidadeLiquidaAA: p.rentabilidadeMediaLiquidaAA, cdiAtual: p.cdiAtual });
+  return out.slice(0, 4);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
 // Usar em TODOS os títulos de painel e letreiros dos módulos.
 // ═══════════════════════════════════════════════════════════════

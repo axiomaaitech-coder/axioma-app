@@ -9,6 +9,7 @@
 import {
   fBRL, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho,
   type BucketVencimento, type GatilhoConselhoDivida, type GatilhoConselhoMeta, type ArvoreMeta, type TipoMeta,
+  type GatilhoConselhoInvestimento, type OportunidadeResgate,
 } from "./cfoCore";
 
 export type CfoLang = "pt" | "en" | "es";
@@ -132,6 +133,26 @@ const TEXTOS = {
     metaResponsavelLabel: "Responsável", metaResponsavelPlaceholder: "Quem é o dono dessa meta?",
     metaDescricaoLabel: "Estratégia (como vai bater essa meta)", metaDescricaoPlaceholder: "Ex: renegociar os 3 maiores fornecedores até março",
     metaDeParaLabel: "de", metaParaLabel: "para", metaErroSalvar: "Não foi possível salvar a meta. Detalhe do erro:",
+    // Investimentos
+    invPainelExecutivo: "Painel Executivo", invPatrimonioTotal: "Patrimônio Total", invCaixaDisponivel: "Caixa Disponível",
+    invCapitalInvestido: "Capital Investido", invCapitalOcioso: "Capital Ocioso", invLiquidezImediata: "Liquidez Imediata",
+    invLiquidezProjetada: "Liquidez Projetada (12m)", invRentabilidadeConsolidada: "Rentabilidade Líquida Média",
+    invRentabilidadeAnualizada: "Rentabilidade Anualizada", invExposicaoRisco: "Exposição a Risco", invDiversificacao: "Diversificação",
+    invScoreTitulo: "Score de Investimento", invScoreCritico: "Crítico", invScoreAtencao: "Atenção", invScoreBom: "Bom", invScoreExcelente: "Excelente",
+    invIndicadoresMacro: "Indicadores de Mercado (Banco Central)", invSelic: "Selic", invCdi: "CDI", invIpca: "IPCA 12m", invDolar: "Dólar (PTAX)",
+    invFonteBcb: "Fonte: Banco Central (SGS), tempo real", invFonteFallback: "API do Banco Central indisponível — usando referência aproximada",
+    invCustoOportunidadeTitulo: "Custo de Oportunidade vs Dívida", invSemOportunidade: "Nenhuma aplicação líquida rende menos que sua dívida mais cara no momento.",
+    invEscadaLiquidezTitulo: "Escada de Liquidez", invRadarRiscoTitulo: "Radar de Riscos",
+    invRiscoConcentracaoTipo: "Concentração por Tipo", invRiscoConcentracaoInstituicao: "Concentração por Instituição",
+    invRiscoLiquidez: "Liquidez", invRiscoIliquidezEndividada: "Dívida vs Capacidade", invRiscoVolatilidade: "Volatilidade (Renda Variável/Cripto)",
+    invConselhoTitulo: "Conselho CFO", invSemGatilho: "Nenhuma recomendação crítica agora — carteira sob controle.",
+    invSemDados: "Nenhum investimento cadastrado — cadastre para ativar a inteligência de alocação de capital.",
+    invTipoRendaFixa: "Renda Fixa", invTipoRendaVariavel: "Renda Variável", invTipoCriptomoeda: "Criptomoeda", invTipoImovel: "Imóvel", invTipoOutro: "Outro",
+    invLiquidezDiaria: "Diária", invLiquidezCurtoPrazo: "Curto Prazo", invLiquidezLongoPrazo: "Longo Prazo", invLiquidezNoVencimento: "No Vencimento",
+    invStatusAtivo: "Ativo", invStatusResgatado: "Resgatado",
+    invInstituicaoLabel: "Instituição", invVencimentoLabel: "Vencimento (resgate)", invIndexadorLabel: "Indexador", invLiquidezLabel: "Liquidez", invStatusLabel: "Status",
+    invModalAnaliseTitulo: "Análise de Investimentos", invModalAnaliseSub: "Composição · Escada de Liquidez · Custo de Oportunidade",
+    invGraficoComposicaoTipo: "Composição por Tipo", invGraficoEscadaLiquidez: "Liquidez ao Longo do Tempo",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -237,6 +258,26 @@ const TEXTOS = {
     metaResponsavelLabel: "Owner", metaResponsavelPlaceholder: "Who owns this goal?",
     metaDescricaoLabel: "Strategy (how you'll hit this goal)", metaDescricaoPlaceholder: "E.g.: renegotiate the top 3 suppliers by March",
     metaDeParaLabel: "from", metaParaLabel: "to", metaErroSalvar: "Couldn't save the goal. Error detail:",
+    // Investments
+    invPainelExecutivo: "Executive Panel", invPatrimonioTotal: "Total Assets", invCaixaDisponivel: "Available Cash",
+    invCapitalInvestido: "Invested Capital", invCapitalOcioso: "Idle Capital", invLiquidezImediata: "Immediate Liquidity",
+    invLiquidezProjetada: "Projected Liquidity (12m)", invRentabilidadeConsolidada: "Average Net Return",
+    invRentabilidadeAnualizada: "Annualized Return", invExposicaoRisco: "Risk Exposure", invDiversificacao: "Diversification",
+    invScoreTitulo: "Investment Score", invScoreCritico: "Critical", invScoreAtencao: "Attention", invScoreBom: "Good", invScoreExcelente: "Excellent",
+    invIndicadoresMacro: "Market Indicators (Central Bank)", invSelic: "Selic", invCdi: "CDI", invIpca: "CPI 12m", invDolar: "USD (PTAX)",
+    invFonteBcb: "Source: Brazilian Central Bank (SGS), real-time", invFonteFallback: "Central Bank API unavailable — using approximate reference",
+    invCustoOportunidadeTitulo: "Opportunity Cost vs Debt", invSemOportunidade: "No liquid investment currently yields less than your most expensive debt.",
+    invEscadaLiquidezTitulo: "Liquidity Ladder", invRadarRiscoTitulo: "Risk Radar",
+    invRiscoConcentracaoTipo: "Concentration by Type", invRiscoConcentracaoInstituicao: "Concentration by Institution",
+    invRiscoLiquidez: "Liquidity", invRiscoIliquidezEndividada: "Debt vs Capacity", invRiscoVolatilidade: "Volatility (Variable Income/Crypto)",
+    invConselhoTitulo: "CFO Advice", invSemGatilho: "No critical recommendation right now — portfolio under control.",
+    invSemDados: "No investments on record — add one to activate capital allocation intelligence.",
+    invTipoRendaFixa: "Fixed Income", invTipoRendaVariavel: "Variable Income", invTipoCriptomoeda: "Cryptocurrency", invTipoImovel: "Real Estate", invTipoOutro: "Other",
+    invLiquidezDiaria: "Daily", invLiquidezCurtoPrazo: "Short Term", invLiquidezLongoPrazo: "Long Term", invLiquidezNoVencimento: "At Maturity",
+    invStatusAtivo: "Active", invStatusResgatado: "Redeemed",
+    invInstituicaoLabel: "Institution", invVencimentoLabel: "Maturity Date", invIndexadorLabel: "Index", invLiquidezLabel: "Liquidity", invStatusLabel: "Status",
+    invModalAnaliseTitulo: "Investment Analysis", invModalAnaliseSub: "Composition · Liquidity Ladder · Opportunity Cost",
+    invGraficoComposicaoTipo: "Composition by Type", invGraficoEscadaLiquidez: "Liquidity Over Time",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -342,6 +383,26 @@ const TEXTOS = {
     metaResponsavelLabel: "Responsable", metaResponsavelPlaceholder: "¿Quién es el dueño de esta meta?",
     metaDescricaoLabel: "Estrategia (cómo va a lograr esta meta)", metaDescricaoPlaceholder: "Ej: renegociar los 3 principales proveedores antes de marzo",
     metaDeParaLabel: "de", metaParaLabel: "a", metaErroSalvar: "No se pudo guardar la meta. Detalle del error:",
+    // Inversiones
+    invPainelExecutivo: "Panel Ejecutivo", invPatrimonioTotal: "Patrimonio Total", invCaixaDisponivel: "Caja Disponible",
+    invCapitalInvestido: "Capital Invertido", invCapitalOcioso: "Capital Ocioso", invLiquidezImediata: "Liquidez Inmediata",
+    invLiquidezProjetada: "Liquidez Proyectada (12m)", invRentabilidadeConsolidada: "Rentabilidad Neta Media",
+    invRentabilidadeAnualizada: "Rentabilidad Anualizada", invExposicaoRisco: "Exposición al Riesgo", invDiversificacao: "Diversificación",
+    invScoreTitulo: "Score de Inversión", invScoreCritico: "Crítico", invScoreAtencao: "Atención", invScoreBom: "Bueno", invScoreExcelente: "Excelente",
+    invIndicadoresMacro: "Indicadores de Mercado (Banco Central)", invSelic: "Selic", invCdi: "CDI", invIpca: "IPCA 12m", invDolar: "Dólar (PTAX)",
+    invFonteBcb: "Fuente: Banco Central de Brasil (SGS), en tiempo real", invFonteFallback: "API del Banco Central no disponible — usando referencia aproximada",
+    invCustoOportunidadeTitulo: "Costo de Oportunidad vs Deuda", invSemOportunidade: "Ninguna inversión líquida rinde hoy menos que su deuda más cara.",
+    invEscadaLiquidezTitulo: "Escalera de Liquidez", invRadarRiscoTitulo: "Radar de Riesgos",
+    invRiscoConcentracaoTipo: "Concentración por Tipo", invRiscoConcentracaoInstituicao: "Concentración por Institución",
+    invRiscoLiquidez: "Liquidez", invRiscoIliquidezEndividada: "Deuda vs Capacidad", invRiscoVolatilidade: "Volatilidad (Renta Variable/Cripto)",
+    invConselhoTitulo: "Consejo CFO", invSemGatilho: "Ninguna recomendación crítica ahora — cartera bajo control.",
+    invSemDados: "Ninguna inversión registrada — agregue una para activar la inteligencia de asignación de capital.",
+    invTipoRendaFixa: "Renta Fija", invTipoRendaVariavel: "Renta Variable", invTipoCriptomoeda: "Criptomoneda", invTipoImovel: "Inmueble", invTipoOutro: "Otro",
+    invLiquidezDiaria: "Diaria", invLiquidezCurtoPrazo: "Corto Plazo", invLiquidezLongoPrazo: "Largo Plazo", invLiquidezNoVencimento: "Al Vencimiento",
+    invStatusAtivo: "Activo", invStatusResgatado: "Rescatado",
+    invInstituicaoLabel: "Institución", invVencimentoLabel: "Vencimiento (rescate)", invIndexadorLabel: "Índice", invLiquidezLabel: "Liquidez", invStatusLabel: "Estado",
+    invModalAnaliseTitulo: "Análisis de Inversiones", invModalAnaliseSub: "Composición · Escalera de Liquidez · Costo de Oportunidad",
+    invGraficoComposicaoTipo: "Composición por Tipo", invGraficoEscadaLiquidez: "Liquidez a lo Largo del Tiempo",
   },
 };
 
@@ -583,6 +644,41 @@ export function montarNarrativaDependencia(lang: string, tituloMeta: string, arv
   if (lang === "en") return `"${tituloMeta}" depends on ${nomes} — currently at risk, which threatens this goal too.`;
   if (lang === "es") return `"${tituloMeta}" depende de ${nomes} — actualmente en riesgo, lo que amenaza también esta meta.`;
   return `"${tituloMeta}" depende de ${nomes} — em risco no momento, o que ameaça essa meta também.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INVESTIMENTOS — NARRATIVAS (custo de oportunidade, caixa ocioso,
+// concentração, comparação com CDI). Sempre citando o número real.
+// ═══════════════════════════════════════════════════════════════
+export function montarNarrativaCustoOportunidade(lang: string, o: OportunidadeResgate): string {
+  if (lang === "en") return `"${o.investimentoNome}" yields ${fPct(o.rentabilidadeLiquidaAA)}/yr net while "${o.dividaDescricao}" costs ${fPct(o.taxaJurosAAEquivalente)}/yr — redeeming and paying it off saves about ${fBRL(o.economiaMensalEstimada)}/month.`;
+  if (lang === "es") return `"${o.investimentoNome}" rinde ${fPct(o.rentabilidadeLiquidaAA)}/año neto mientras "${o.dividaDescricao}" cuesta ${fPct(o.taxaJurosAAEquivalente)}/año — rescatar y pagarla ahorra cerca de ${fBRL(o.economiaMensalEstimada)}/mes.`;
+  return `"${o.investimentoNome}" rende ${fPct(o.rentabilidadeLiquidaAA)}/ano líquido enquanto "${o.dividaDescricao}" custa ${fPct(o.taxaJurosAAEquivalente)}/ano — resgatar e quitar economiza cerca de ${fBRL(o.economiaMensalEstimada)}/mês.`;
+}
+
+export function montarNarrativaCaixaOcioso(lang: string, valor: number, custoOportunidadeMensal: number): string {
+  if (lang === "en") return `${fBRL(valor)} sits idle above a healthy operating buffer. Investing it at the current CDI could earn about ${fBRL(custoOportunidadeMensal)}/month.`;
+  if (lang === "es") return `${fBRL(valor)} está ocioso por encima de una reserva operativa saludable. Invertirlo al CDI actual podría rendir cerca de ${fBRL(custoOportunidadeMensal)}/mes.`;
+  return `${fBRL(valor)} está parado acima de uma reserva operacional saudável. Investir isso no CDI atual poderia render cerca de ${fBRL(custoOportunidadeMensal)}/mês.`;
+}
+
+export function montarNarrativaConcentracaoInvestimento(lang: string, pct: number, tipo: string): string {
+  if (lang === "en") return `${fPct(pct)} of your portfolio is concentrated in ${tipo}. Diversifying reduces exposure to a single asset class.`;
+  if (lang === "es") return `${fPct(pct)} de su cartera está concentrado en ${tipo}. Diversificar reduce la exposición a una sola clase de activo.`;
+  return `${fPct(pct)} da sua carteira está concentrado em ${tipo}. Diversificar reduz a exposição a uma única classe de ativo.`;
+}
+
+export function montarNarrativaAbaixoCDI(lang: string, rentabilidadeLiquidaAA: number, cdiAtual: number): string {
+  if (lang === "en") return `Your average net return (${fPct(rentabilidadeLiquidaAA)}/yr) is below the current CDI (${fPct(cdiAtual)}/yr) — review underperforming allocations.`;
+  if (lang === "es") return `Su rentabilidad neta media (${fPct(rentabilidadeLiquidaAA)}/año) está por debajo del CDI actual (${fPct(cdiAtual)}/año) — revise las asignaciones de bajo rendimiento.`;
+  return `Sua rentabilidade líquida média (${fPct(rentabilidadeLiquidaAA)}/ano) está abaixo do CDI atual (${fPct(cdiAtual)}/ano) — revise as alocações de baixo desempenho.`;
+}
+
+export function montarConselhoInvestimento(lang: string, g: GatilhoConselhoInvestimento): string {
+  if (g.tipo === "resgatarEQuitar") return montarNarrativaCustoOportunidade(lang, g.oportunidade);
+  if (g.tipo === "caixaOcioso") return montarNarrativaCaixaOcioso(lang, g.valor, g.custoOportunidadeMensal);
+  if (g.tipo === "concentracaoAlta") return montarNarrativaConcentracaoInvestimento(lang, g.pct, g.tipoConcentrado);
+  return montarNarrativaAbaixoCDI(lang, g.rentabilidadeLiquidaAA, g.cdiAtual);
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {
