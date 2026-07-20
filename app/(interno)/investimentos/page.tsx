@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   TrendingUp, Trash2, X, Pencil, Share2, Sparkles, ShieldCheck, AlertTriangle,
-  Wallet, PiggyBank, Landmark,
+  Wallet, PiggyBank, Landmark, Sliders, Layers, Plus,
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -18,13 +18,14 @@ import {
   dividaEbitda,
   rentabilidadeLiquidaAnual, detectarCustoOportunidade, escadaLiquidezInvestimentos,
   detectarCapitalOcioso, calcularScoreInvestimento, calcularRadarRiscoInvestimento,
-  gerarConselhoInvestimento,
+  gerarConselhoInvestimento, compararAlocacoes, simularCenariosExecutivos,
   type Lancamento, type Periodo, type PeriodoPreset, type DividaBase, type CorSaude,
   type TipoInvestimento, type Liquidez, type StatusInvestimento, type InvestimentoItem,
+  type CategoriaAlocacao, type ParametroAlocacao, type ResultadoAlocacao, type ChoqueSimulador, type ResultadoCenario,
 } from "../../../lib/cfoCore";
 import {
   cfoT, canaisCompartilhamento,
-  montarConselhoInvestimento,
+  montarConselhoInvestimento, nomeCategoriaAlocacao, montarNarrativaAlocacao, montarNarrativaCenario,
 } from "../../../lib/cfoTextos";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
@@ -120,6 +121,24 @@ export default function Investimentos() {
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
   const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo("mes_atual"));
   const periodo = resolverPeriodo(presetPeriodo, personalizado);
+
+  // ═══════════════════════ FASE 2 — CAPITAL ALLOCATION ENGINE ═══════════════════════
+  const [opcoesAlocacao, setOpcoesAlocacao] = useState<ParametroAlocacao[]>([]);
+  const [novaCategoria, setNovaCategoria] = useState<CategoriaAlocacao>("cdb");
+  const [novoValorAlocacao, setNovoValorAlocacao] = useState("");
+  const [novoRetornoPct, setNovoRetornoPct] = useState("");
+  const [novoGanhoMensal, setNovoGanhoMensal] = useState("");
+
+  // ═══════════════════════ FASE 2 — SIMULADOR EXECUTIVO ═══════════════════════
+  const [choqueReceita, setChoqueReceita] = useState("0");
+  const [choqueCustoFixo, setChoqueCustoFixo] = useState("0");
+  const [choqueCustoVariavel, setChoqueCustoVariavel] = useState("0");
+  const [choqueJuros, setChoqueJuros] = useState("0");
+  const [choqueAporte, setChoqueAporte] = useState("0");
+  const [choqueRetornoAporte, setChoqueRetornoAporte] = useState("0");
+  const [cenarios, setCenarios] = useState<ResultadoCenario[] | null>(null);
+
+  const CATEGORIAS_FINANCEIRAS: CategoriaAlocacao[] = ["cdb", "tesouro", "fundos", "debentures"];
 
   const txt = {
     titulo: idioma === "pt" ? "Investimentos" : idioma === "en" ? "Investments" : "Inversiones",
@@ -258,6 +277,57 @@ export default function Investimentos() {
 
   const cdiAtual = macro?.cdi ?? 0;
   const cdiMensalPct = cdiAtual > 0 ? (Math.pow(1 + cdiAtual / 100, 1 / 12) - 1) * 100 : 0;
+
+  // ═══════════════════════ FASE 2 — CUSTO DE CAPITAL DA EMPRESA ═══════════════════════
+  // Referência única pro Allocation Engine: a taxa da dívida mais cara ativa (o que a empresa
+  // já paga hoje) ou o CDI se não houver dívida — mesma régua do custo de oportunidade.
+  const dividasComSaldo = dividasBase.filter((d) => d.valor_total - d.valor_pago > 0 && d.taxa_juros > 0);
+  const taxaMaisCaraAM = dividasComSaldo.length ? Math.max(...dividasComSaldo.map((d) => d.taxa_juros)) : 0;
+  const custoCapitalAnualPct = dividasComSaldo.length ? (Math.pow(1 + taxaMaisCaraAM / 100, 12) - 1) * 100 : cdiAtual;
+
+  function adicionarOpcaoAlocacao() {
+    if (!novoValorAlocacao) return;
+    const valorNum = parseFloat(novoValorAlocacao);
+    const financeira = CATEGORIAS_FINANCEIRAS.includes(novaCategoria);
+    const opcao: ParametroAlocacao = {
+      id: `${Date.now()}`, categoria: novaCategoria, valor: valorNum,
+      retornoMensalPct: financeira ? parseFloat(novoRetornoPct || "0") : undefined,
+      ganhoMensalEstimado: !financeira
+        ? (novaCategoria === "reducao_divida" ? valorNum * (taxaMaisCaraAM / 100) : parseFloat(novoGanhoMensal || "0"))
+        : undefined,
+    };
+    setOpcoesAlocacao([...opcoesAlocacao, opcao]);
+    setNovoValorAlocacao(""); setNovoRetornoPct(""); setNovoGanhoMensal("");
+  }
+
+  function removerOpcaoAlocacao(id: string) {
+    setOpcoesAlocacao(opcoesAlocacao.filter((o) => o.id !== id));
+  }
+
+  const resultadosAlocacao = compararAlocacoes(opcoesAlocacao, { custoCapitalAnualPct });
+
+  function simularCenariosClick(prefillAporte?: number, prefillRetorno?: number) {
+    const choque: ChoqueSimulador = {
+      receitaPct: parseFloat(choqueReceita || "0"), custoFixoPct: parseFloat(choqueCustoFixo || "0"),
+      custoVariavelPct: parseFloat(choqueCustoVariavel || "0"), jurosDividaPontos: parseFloat(choqueJuros || "0"),
+      aporteCapital: prefillAporte ?? parseFloat(choqueAporte || "0"),
+      retornoMensalAporte: prefillRetorno ?? parseFloat(choqueRetornoAporte || "0"),
+    };
+    const aliquotaEfetivaPct = receitaMensalMedia > 0 ? (impostoMensalEstimado / receitaMensalMedia) * 100 : 0;
+    const resultado = simularCenariosExecutivos({
+      receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoMensalTotal,
+      custoVariavelMensalAtual: custoVarPeriodo / meses, despesasFinanceirasMensalAtual: despesasFinanceirasMensal,
+      dividaTotalAtual: dividaTotal, aliquotaEfetivaPct, saldoCaixaAtual: caixaDisponivel, choque, horizonteMeses: 12,
+    });
+    setCenarios(resultado);
+  }
+
+  function simularOportunidade(r: ResultadoAlocacao) {
+    setChoqueAporte(String(r.valor)); setChoqueRetornoAporte(String(r.retornoMensalRS));
+    simularCenariosClick(r.valor, r.retornoMensalRS);
+  }
+
+  const temDadosFinanceiros = receitaMensalMedia > 0 || custoFixoMensalTotal > 0;
 
   const oportunidades = temDados ? detectarCustoOportunidade(ativos, dividasBase) : [];
   const capitalOcioso = detectarCapitalOcioso(caixaDisponivel, custoOperacionalMensal, cdiMensalPct);
@@ -570,6 +640,132 @@ export default function Investimentos() {
                 </div>
               ) : (
                 <p className="text-xs md:text-[13px] font-medium" style={{ color: "#6ee7b7" }}>{cx.invSemGatilho}</p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════ FASE 2 — CAPITAL ALLOCATION ENGINE + SIMULADOR EXECUTIVO ═══════════════════════ */}
+        {temDadosFinanceiros && (
+          <>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(59,130,246,0.2)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Layers size={16} style={{ color: CORES.azul }} />
+                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.invAllocationTitulo}</p>
+              </div>
+              <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.invAllocationSub}</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                <select value={novaCategoria} onChange={(e) => setNovaCategoria(e.target.value as CategoriaAlocacao)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
+                  style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,130,246,0.2)", color: "#c8d8f0" }}>
+                  {(["cdb", "tesouro", "fundos", "debentures", "expansao", "equipamento", "marketing", "contratacao", "automacao", "reducao_divida"] as CategoriaAlocacao[]).map((c) => (
+                    <option key={c} value={c}>{nomeCategoriaAlocacao(lang, c)}</option>
+                  ))}
+                </select>
+                <input type="number" placeholder={cx.invValorAlocarLabel} value={novoValorAlocacao} onChange={(e) => setNovoValorAlocacao(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,130,246,0.2)", color: "#c8d8f0" }} />
+                {CATEGORIAS_FINANCEIRAS.includes(novaCategoria) ? (
+                  <input type="number" placeholder={cx.invRetornoMensalLabel} value={novoRetornoPct} onChange={(e) => setNovoRetornoPct(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,130,246,0.2)", color: "#c8d8f0" }} />
+                ) : novaCategoria === "reducao_divida" ? (
+                  <div className="flex items-center px-3 py-2.5 rounded-xl text-xs" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(59,130,246,0.1)", color: "#64748b" }}>
+                    {taxaMaisCaraAM > 0 ? `${fPct(taxaMaisCaraAM)}/m (dívida mais cara)` : "—"}
+                  </div>
+                ) : (
+                  <input type="number" placeholder={cx.invGanhoMensalLabel} value={novoGanhoMensal} onChange={(e) => setNovoGanhoMensal(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,130,246,0.2)", color: "#c8d8f0" }} />
+                )}
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarOpcaoAlocacao}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
+                  style={{ background: "linear-gradient(135deg, #1e3a8a, #3b82f6)", color: "#fff" }}>
+                  <Plus size={16} /> {cx.invAdicionarOpcao}
+                </motion.button>
+              </div>
+
+              {/* RADAR DE OPORTUNIDADES */}
+              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: CORES.ouro }}>{cx.invRadarOportunidadesTitulo}</p>
+              {resultadosAlocacao.length === 0 ? (
+                <p className="text-xs md:text-[13px] font-medium" style={{ color: "#64748b" }}>{cx.invSemOpcoes}</p>
+              ) : (
+                <div className="space-y-2">
+                  {resultadosAlocacao.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap" style={{ background: r.prioridade === 1 ? "rgba(212,175,55,0.08)" : "rgba(255,255,255,0.03)", border: `1px solid ${r.prioridade === 1 ? "rgba(212,175,55,0.3)" : "rgba(255,255,255,0.06)"}` }}>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.prioridade === 1 ? CORES.ouro : "rgba(255,255,255,0.08)", color: r.prioridade === 1 ? "#1a1400" : "#94a3b8" }}>{r.prioridade}</span>
+                        <p className="text-xs md:text-[13px] font-medium truncate" style={{ color: "#e2e8f0" }}>{montarNarrativaAlocacao(lang, r)}</p>
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: r.risco === "alto" ? "rgba(239,68,68,0.15)" : r.risco === "medio" ? "rgba(234,179,8,0.15)" : "rgba(16,185,129,0.15)", color: r.risco === "alto" ? CORES.vermelho : r.risco === "medio" ? CORES.amarelo : CORES.verde }}>
+                          {r.risco === "alto" ? cx.invRiscoAlto : r.risco === "medio" ? cx.invRiscoMedio : cx.invRiscoBaixo}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => simularOportunidade(r)}
+                          className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(59,130,246,0.15)", color: CORES.azulC }}>
+                          {cx.invUsarNaSimulacao}
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerOpcaoAlocacao(r.id)}>
+                          <Trash2 size={14} style={{ color: "#f87171" }} />
+                        </motion.button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* SIMULADOR EXECUTIVO */}
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(212,175,55,0.2)" }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Sliders size={16} style={{ color: CORES.ouro }} />
+                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.invSimuladorTitulo}</p>
+              </div>
+              <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.invSimuladorSub}</p>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                {[
+                  { l: cx.invChoqueReceita, v: choqueReceita, set: setChoqueReceita },
+                  { l: cx.invChoqueCustoFixo, v: choqueCustoFixo, set: setChoqueCustoFixo },
+                  { l: cx.invChoqueCustoVariavel, v: choqueCustoVariavel, set: setChoqueCustoVariavel },
+                  { l: cx.invChoqueJuros, v: choqueJuros, set: setChoqueJuros },
+                  { l: cx.invChoqueAporte, v: choqueAporte, set: setChoqueAporte },
+                  { l: cx.invChoqueRetornoAporte, v: choqueRetornoAporte, set: setChoqueRetornoAporte },
+                ].map((f, i) => (
+                  <div key={i}>
+                    <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#5a8fd4" }}>{f.l}</label>
+                    <input type="number" value={f.v} onChange={(e) => f.set(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(212,175,55,0.2)", color: "#c8d8f0" }} />
+                  </div>
+                ))}
+              </div>
+
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => simularCenariosClick()}
+                className="w-full py-3 rounded-xl text-sm font-bold mb-4"
+                style={{ background: "linear-gradient(135deg, #7a5c00, #d4af37)", color: "#1a1400" }}>
+                {cx.invSimular}
+              </motion.button>
+
+              {cenarios && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  {cenarios.map((r) => {
+                    const nomeLabel: Record<string, string> = { conservador: cx.invCenarioConservador, base: cx.invCenarioBase, otimista: cx.invCenarioOtimista, adverso: cx.invCenarioAdverso };
+                    const corCenario = r.nome === "otimista" ? CORES.verde : r.nome === "adverso" ? CORES.vermelho : r.nome === "base" ? CORES.azul : CORES.amarelo;
+                    return (
+                      <div key={r.nome} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corCenario}30` }}>
+                        <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{nomeLabel[r.nome]}</p>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invLucroLiquidoMensal}</p>
+                        <p className="text-sm font-black mb-2" style={{ color: r.lucroLiquidoMensal >= 0 ? CORES.verde : CORES.vermelho }}>{fBRL(r.lucroLiquidoMensal)}</p>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invSaldoProjetado12m}</p>
+                        <p className="text-sm font-black mb-2" style={{ color: r.saldoCaixaProjetado >= 0 ? "#e2e8f0" : CORES.vermelho }}>{fBRL(r.saldoCaixaProjetado)}</p>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invRunwayCritico}</p>
+                        <p className="text-xs font-black" style={{ color: r.runwayMeses !== null ? CORES.vermelho : CORES.verde }}>{r.runwayMeses !== null ? `${r.runwayMeses}m` : cx.invSemRunway}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </>

@@ -10,6 +10,7 @@ import {
   fBRL, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho,
   type BucketVencimento, type GatilhoConselhoDivida, type GatilhoConselhoMeta, type ArvoreMeta, type TipoMeta,
   type GatilhoConselhoInvestimento, type OportunidadeResgate,
+  type ResultadoAlocacao, type CategoriaAlocacao, type ResultadoCenario,
 } from "./cfoCore";
 
 export type CfoLang = "pt" | "en" | "es";
@@ -153,6 +154,21 @@ const TEXTOS = {
     invInstituicaoLabel: "Instituição", invVencimentoLabel: "Vencimento (resgate)", invIndexadorLabel: "Indexador", invLiquidezLabel: "Liquidez", invStatusLabel: "Status",
     invModalAnaliseTitulo: "Análise de Investimentos", invModalAnaliseSub: "Composição · Escada de Liquidez · Custo de Oportunidade",
     invGraficoComposicaoTipo: "Composição por Tipo", invGraficoEscadaLiquidez: "Liquidez ao Longo do Tempo",
+    // Fase 2 — Capital Allocation Engine / Simulador Executivo
+    invAllocationTitulo: "Capital Allocation Engine", invAllocationSub: "Compare onde alocar o próximo real de capital",
+    invRadarOportunidadesTitulo: "Radar de Oportunidades", invAdicionarOpcao: "Adicionar à Comparação",
+    invCategoriaLabel: "Categoria", invValorAlocarLabel: "Valor a Alocar", invRetornoMensalLabel: "Retorno % a.m.",
+    invGanhoMensalLabel: "Ganho/Economia Mensal Estimado (R$)", invPaybackLabel: "Payback", invRiscoLabel: "Risco",
+    invPrioridadeLabel: "Prioridade", invSemOpcoes: "Adicione opções para comparar onde alocar capital.",
+    invRiscoBaixo: "Baixo", invRiscoMedio: "Médio", invRiscoAlto: "Alto", invSemPayback: "Não recupera",
+    invCatCdb: "CDB", invCatTesouro: "Tesouro Direto", invCatFundos: "Fundos de Investimento", invCatDebentures: "Debêntures",
+    invCatExpansao: "Expansão", invCatEquipamento: "Equipamentos", invCatMarketing: "Marketing", invCatContratacao: "Contratação", invCatAutomacao: "Automação", invCatReducaoDivida: "Redução de Dívida",
+    invSimuladorTitulo: "Simulador Executivo", invSimuladorSub: "Simule o impacto de decisões antes de tomá-las — cenários conservador, base, otimista e adverso",
+    invChoqueReceita: "Receita (%)", invChoqueCustoFixo: "Custo Fixo (%)", invChoqueCustoVariavel: "Custo Variável (%)",
+    invChoqueJuros: "Juros da Dívida (pontos, efeito Selic)", invChoqueAporte: "Aporte de Capital (R$)", invChoqueRetornoAporte: "Retorno Mensal Esperado do Aporte (R$)",
+    invSimular: "Simular Cenários", invCenarioConservador: "Conservador", invCenarioBase: "Base", invCenarioOtimista: "Otimista", invCenarioAdverso: "Adverso",
+    invLucroLiquidoMensal: "Lucro Líquido/Mês", invSaldoProjetado12m: "Saldo de Caixa (12m)", invRunwayCritico: "Runway Crítico",
+    invSemRunway: "Sem risco de ruptura", invUsarNaSimulacao: "Simular este cenário",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -278,6 +294,21 @@ const TEXTOS = {
     invInstituicaoLabel: "Institution", invVencimentoLabel: "Maturity Date", invIndexadorLabel: "Index", invLiquidezLabel: "Liquidity", invStatusLabel: "Status",
     invModalAnaliseTitulo: "Investment Analysis", invModalAnaliseSub: "Composition · Liquidity Ladder · Opportunity Cost",
     invGraficoComposicaoTipo: "Composition by Type", invGraficoEscadaLiquidez: "Liquidity Over Time",
+    // Phase 2 — Capital Allocation Engine / Executive Simulator
+    invAllocationTitulo: "Capital Allocation Engine", invAllocationSub: "Compare where to allocate the next dollar of capital",
+    invRadarOportunidadesTitulo: "Opportunity Radar", invAdicionarOpcao: "Add to Comparison",
+    invCategoriaLabel: "Category", invValorAlocarLabel: "Amount to Allocate", invRetornoMensalLabel: "Monthly Return %",
+    invGanhoMensalLabel: "Estimated Monthly Gain/Savings ($)", invPaybackLabel: "Payback", invRiscoLabel: "Risk",
+    invPrioridadeLabel: "Priority", invSemOpcoes: "Add options to compare where to allocate capital.",
+    invRiscoBaixo: "Low", invRiscoMedio: "Medium", invRiscoAlto: "High", invSemPayback: "Never pays back",
+    invCatCdb: "CD", invCatTesouro: "Treasury Bonds", invCatFundos: "Investment Funds", invCatDebentures: "Corporate Bonds",
+    invCatExpansao: "Expansion", invCatEquipamento: "Equipment", invCatMarketing: "Marketing", invCatContratacao: "Hiring", invCatAutomacao: "Automation", invCatReducaoDivida: "Debt Reduction",
+    invSimuladorTitulo: "Executive Simulator", invSimuladorSub: "Simulate the impact of decisions before making them — conservative, base, optimistic and adverse scenarios",
+    invChoqueReceita: "Revenue (%)", invChoqueCustoFixo: "Fixed Cost (%)", invChoqueCustoVariavel: "Variable Cost (%)",
+    invChoqueJuros: "Debt Interest (points, rate-hike effect)", invChoqueAporte: "Capital Investment ($)", invChoqueRetornoAporte: "Expected Monthly Return on Investment ($)",
+    invSimular: "Simulate Scenarios", invCenarioConservador: "Conservative", invCenarioBase: "Base", invCenarioOtimista: "Optimistic", invCenarioAdverso: "Adverse",
+    invLucroLiquidoMensal: "Net Profit/Month", invSaldoProjetado12m: "Cash Balance (12m)", invRunwayCritico: "Critical Runway",
+    invSemRunway: "No risk of shortfall", invUsarNaSimulacao: "Simulate this scenario",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -403,6 +434,21 @@ const TEXTOS = {
     invInstituicaoLabel: "Institución", invVencimentoLabel: "Vencimiento (rescate)", invIndexadorLabel: "Índice", invLiquidezLabel: "Liquidez", invStatusLabel: "Estado",
     invModalAnaliseTitulo: "Análisis de Inversiones", invModalAnaliseSub: "Composición · Escalera de Liquidez · Costo de Oportunidad",
     invGraficoComposicaoTipo: "Composición por Tipo", invGraficoEscadaLiquidez: "Liquidez a lo Largo del Tiempo",
+    // Fase 2 — Capital Allocation Engine / Simulador Ejecutivo
+    invAllocationTitulo: "Capital Allocation Engine", invAllocationSub: "Compare dónde asignar el próximo real de capital",
+    invRadarOportunidadesTitulo: "Radar de Oportunidades", invAdicionarOpcao: "Agregar a la Comparación",
+    invCategoriaLabel: "Categoría", invValorAlocarLabel: "Valor a Asignar", invRetornoMensalLabel: "Retorno % mensual",
+    invGanhoMensalLabel: "Ganancia/Ahorro Mensual Estimado (R$)", invPaybackLabel: "Payback", invRiscoLabel: "Riesgo",
+    invPrioridadeLabel: "Prioridad", invSemOpcoes: "Agregue opciones para comparar dónde asignar capital.",
+    invRiscoBaixo: "Bajo", invRiscoMedio: "Medio", invRiscoAlto: "Alto", invSemPayback: "No se recupera",
+    invCatCdb: "CDB", invCatTesouro: "Tesoro Directo", invCatFundos: "Fondos de Inversión", invCatDebentures: "Debentures",
+    invCatExpansao: "Expansión", invCatEquipamento: "Equipamiento", invCatMarketing: "Marketing", invCatContratacao: "Contratación", invCatAutomacao: "Automatización", invCatReducaoDivida: "Reducción de Deuda",
+    invSimuladorTitulo: "Simulador Ejecutivo", invSimuladorSub: "Simule el impacto de decisiones antes de tomarlas — escenarios conservador, base, optimista y adverso",
+    invChoqueReceita: "Ingresos (%)", invChoqueCustoFixo: "Costo Fijo (%)", invChoqueCustoVariavel: "Costo Variable (%)",
+    invChoqueJuros: "Intereses de la Deuda (puntos, efecto Selic)", invChoqueAporte: "Aporte de Capital (R$)", invChoqueRetornoAporte: "Retorno Mensual Esperado del Aporte (R$)",
+    invSimular: "Simular Escenarios", invCenarioConservador: "Conservador", invCenarioBase: "Base", invCenarioOtimista: "Optimista", invCenarioAdverso: "Adverso",
+    invLucroLiquidoMensal: "Utilidad Neta/Mes", invSaldoProjetado12m: "Saldo de Caja (12m)", invRunwayCritico: "Runway Crítico",
+    invSemRunway: "Sin riesgo de ruptura", invUsarNaSimulacao: "Simular este escenario",
   },
 };
 
@@ -679,6 +725,34 @@ export function montarConselhoInvestimento(lang: string, g: GatilhoConselhoInves
   if (g.tipo === "caixaOcioso") return montarNarrativaCaixaOcioso(lang, g.valor, g.custoOportunidadeMensal);
   if (g.tipo === "concentracaoAlta") return montarNarrativaConcentracaoInvestimento(lang, g.pct, g.tipoConcentrado);
   return montarNarrativaAbaixoCDI(lang, g.rentabilidadeLiquidaAA, g.cdiAtual);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAPITAL ALLOCATION ENGINE / SIMULADOR EXECUTIVO — NARRATIVAS
+// ═══════════════════════════════════════════════════════════════
+const NOME_CATEGORIA_ALOCACAO: Record<CategoriaAlocacao, keyof CfoTextos> = {
+  cdb: "invCatCdb", tesouro: "invCatTesouro", fundos: "invCatFundos", debentures: "invCatDebentures",
+  expansao: "invCatExpansao", equipamento: "invCatEquipamento", marketing: "invCatMarketing",
+  contratacao: "invCatContratacao", automacao: "invCatAutomacao", reducao_divida: "invCatReducaoDivida",
+};
+
+export function nomeCategoriaAlocacao(lang: string, categoria: CategoriaAlocacao): string {
+  return cfoT(lang)[NOME_CATEGORIA_ALOCACAO[categoria]] as string;
+}
+
+export function montarNarrativaAlocacao(lang: string, r: ResultadoAlocacao): string {
+  const cx = cfoT(lang);
+  const nome = nomeCategoriaAlocacao(lang, r.categoria);
+  const paybackTxt = r.paybackMeses !== null ? `${r.paybackMeses}m` : cx.invSemPayback;
+  if (lang === "en") return `${nome}: ${fBRL(r.retornoMensalRS)}/month, ${r.retornoLiquidoVsCapitalMensal >= 0 ? "above" : "below"} the cost of capital (${fPct(r.custoCapitalAnualPct)}/yr) — payback ${paybackTxt}.`;
+  if (lang === "es") return `${nome}: ${fBRL(r.retornoMensalRS)}/mes, ${r.retornoLiquidoVsCapitalMensal >= 0 ? "por encima" : "por debajo"} del costo de capital (${fPct(r.custoCapitalAnualPct)}/año) — payback ${paybackTxt}.`;
+  return `${nome}: ${fBRL(r.retornoMensalRS)}/mês, ${r.retornoLiquidoVsCapitalMensal >= 0 ? "acima" : "abaixo"} do custo de capital (${fPct(r.custoCapitalAnualPct)}/ano) — payback ${paybackTxt}.`;
+}
+
+export function montarNarrativaCenario(lang: string, r: ResultadoCenario): string {
+  if (lang === "en") return `Monthly net profit of ${fBRL(r.lucroLiquidoMensal)}, cash balance of ${fBRL(r.saldoCaixaProjetado)} after 12 months${r.runwayMeses !== null ? `, critical runway in ${r.runwayMeses} months if this holds` : ""}.`;
+  if (lang === "es") return `Utilidad neta mensual de ${fBRL(r.lucroLiquidoMensal)}, saldo de caja de ${fBRL(r.saldoCaixaProjetado)} después de 12 meses${r.runwayMeses !== null ? `, runway crítico en ${r.runwayMeses} meses si esto se mantiene` : ""}.`;
+  return `Lucro líquido mensal de ${fBRL(r.lucroLiquidoMensal)}, saldo de caixa de ${fBRL(r.saldoCaixaProjetado)} após 12 meses${r.runwayMeses !== null ? `, runway crítico em ${r.runwayMeses} meses se isso se mantiver` : ""}.`;
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {

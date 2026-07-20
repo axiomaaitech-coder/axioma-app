@@ -1516,6 +1516,131 @@ export function gerarConselhoInvestimento(p: {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CAPITAL ALLOCATION ENGINE — compara alternativas reais de uso do
+// capital (aplicações financeiras conhecidas vs iniciativas do negócio
+// com retorno estimado pelo usuário vs quitar dívida). Nenhum ERP
+// nacional ou tesouraria global compara isso lado a lado com o custo
+// de capital real da própria empresa.
+// ═══════════════════════════════════════════════════════════════
+export type CategoriaAlocacao =
+  | "cdb" | "tesouro" | "fundos" | "debentures"
+  | "expansao" | "equipamento" | "marketing" | "contratacao" | "automacao" | "reducao_divida";
+
+// cdb/tesouro/fundos/debentures: retorno vem de uma taxa conhecida (% a.m.).
+// Demais categorias são decisão de negócio — o sistema não tem como prever ROI
+// de marketing/contratação sozinho, então o ganho mensal é uma estimativa que
+// o próprio usuário informa; a engine só calcula os indicadores derivados.
+export type ParametroAlocacao = {
+  id: string; categoria: CategoriaAlocacao; valor: number;
+  retornoMensalPct?: number; ganhoMensalEstimado?: number;
+};
+
+export type ResultadoAlocacao = {
+  id: string; categoria: CategoriaAlocacao; valor: number;
+  retornoMensalRS: number; retornoAnualEquivalentePct: number;
+  custoCapitalAnualPct: number; retornoLiquidoVsCapitalMensal: number;
+  paybackMeses: number | null; risco: "baixo" | "medio" | "alto"; prioridade: number;
+};
+
+const CATEGORIAS_FINANCEIRAS: CategoriaAlocacao[] = ["cdb", "tesouro", "fundos", "debentures"];
+const RISCO_CATEGORIA: Record<CategoriaAlocacao, "baixo" | "medio" | "alto"> = {
+  cdb: "baixo", tesouro: "baixo", fundos: "medio", debentures: "medio", reducao_divida: "baixo",
+  expansao: "medio", equipamento: "medio", automacao: "medio", contratacao: "alto", marketing: "alto",
+};
+
+// Ranking = retorno mensal real menos o custo de capital da empresa (taxa da dívida mais cara
+// ativa, ou CDI se não houver dívida) — a mesma lógica de "vale mais que pagar a própria dívida"
+// do custo de oportunidade, generalizada pra qualquer decisão de alocação, não só resgate.
+export function compararAlocacoes(opcoes: ParametroAlocacao[], contexto: { custoCapitalAnualPct: number }): ResultadoAlocacao[] {
+  const custoCapitalMensalPct = (Math.pow(1 + contexto.custoCapitalAnualPct / 100, 1 / 12) - 1) * 100;
+  const out: ResultadoAlocacao[] = opcoes.map((op) => {
+    const financeira = CATEGORIAS_FINANCEIRAS.includes(op.categoria);
+    const retornoMensalRS = financeira ? op.valor * ((op.retornoMensalPct || 0) / 100) : (op.ganhoMensalEstimado || 0);
+    const retornoAnualEquivalentePct = op.valor > 0 ? (Math.pow(1 + retornoMensalRS / op.valor, 12) - 1) * 100 : 0;
+    const custoCapitalMensalRS = op.valor * (custoCapitalMensalPct / 100);
+    const retornoLiquidoVsCapitalMensal = retornoMensalRS - custoCapitalMensalRS;
+    const paybackMeses = retornoMensalRS > 0 ? Math.ceil(op.valor / retornoMensalRS) : null;
+    return {
+      id: op.id, categoria: op.categoria, valor: op.valor, retornoMensalRS, retornoAnualEquivalentePct,
+      custoCapitalAnualPct: contexto.custoCapitalAnualPct, retornoLiquidoVsCapitalMensal,
+      paybackMeses, risco: RISCO_CATEGORIA[op.categoria], prioridade: 0,
+    };
+  });
+  return out
+    .sort((a, b) => b.retornoLiquidoVsCapitalMensal - a.retornoLiquidoVsCapitalMensal)
+    .map((r, i) => ({ ...r, prioridade: i + 1 }));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIMULADOR EXECUTIVO / "DIGITAL TWIN" — uma única engine de simulação
+// em cima do núcleo do DRE já existente (montarDRE), não um sistema
+// separado. Um conjunto de choques (Selic/dólar via juros da dívida,
+// receita, custos, aporte de capital) gera 4 cenários nomeados —
+// cada um amplia ou atenua o choque informado pelo usuário, nunca
+// inventa um número que ele não digitou.
+// ═══════════════════════════════════════════════════════════════
+export type NomeCenario = "conservador" | "base" | "otimista" | "adverso";
+
+export type ChoqueSimulador = {
+  receitaPct: number; custoFixoPct: number; custoVariavelPct: number;
+  jurosDividaPontos: number; aporteCapital: number; retornoMensalAporte: number;
+};
+
+export type ResultadoCenario = {
+  nome: NomeCenario; receitaMensal: number; ebitdaMensal: number; lucroLiquidoMensal: number;
+  saldoCaixaProjetado: number; runwayMeses: number | null;
+};
+
+function escalarChoque(nome: NomeCenario, c: ChoqueSimulador): ChoqueSimulador {
+  if (nome === "base") return c;
+  if (nome === "conservador") {
+    return { receitaPct: c.receitaPct * 0.5, custoFixoPct: c.custoFixoPct * 0.5, custoVariavelPct: c.custoVariavelPct * 0.5,
+      jurosDividaPontos: c.jurosDividaPontos * 0.5, aporteCapital: c.aporteCapital, retornoMensalAporte: c.retornoMensalAporte * 0.5 };
+  }
+  if (nome === "otimista") {
+    return {
+      receitaPct: c.receitaPct >= 0 ? c.receitaPct * 1.5 : c.receitaPct * 0.5,
+      custoFixoPct: c.custoFixoPct <= 0 ? c.custoFixoPct * 1.5 : c.custoFixoPct * 0.5,
+      custoVariavelPct: c.custoVariavelPct <= 0 ? c.custoVariavelPct * 1.5 : c.custoVariavelPct * 0.5,
+      jurosDividaPontos: c.jurosDividaPontos <= 0 ? c.jurosDividaPontos * 1.5 : c.jurosDividaPontos * 0.5,
+      aporteCapital: c.aporteCapital, retornoMensalAporte: c.retornoMensalAporte * 1.3,
+    };
+  }
+  // adverso
+  return {
+    receitaPct: c.receitaPct <= 0 ? c.receitaPct * 1.5 : c.receitaPct * -0.5,
+    custoFixoPct: c.custoFixoPct >= 0 ? c.custoFixoPct * 1.5 : Math.abs(c.custoFixoPct) * 0.5,
+    custoVariavelPct: c.custoVariavelPct >= 0 ? c.custoVariavelPct * 1.5 : Math.abs(c.custoVariavelPct) * 0.5,
+    jurosDividaPontos: c.jurosDividaPontos >= 0 ? c.jurosDividaPontos * 1.5 : Math.abs(c.jurosDividaPontos) * 0.5,
+    aporteCapital: c.aporteCapital, retornoMensalAporte: c.retornoMensalAporte * 0.5,
+  };
+}
+
+export function simularCenariosExecutivos(p: {
+  receitaMensalAtual: number; custoFixoMensalAtual: number; custoVariavelMensalAtual: number;
+  despesasFinanceirasMensalAtual: number; dividaTotalAtual: number; aliquotaEfetivaPct: number;
+  saldoCaixaAtual: number; choque: ChoqueSimulador; horizonteMeses?: number;
+}): ResultadoCenario[] {
+  const horizonte = p.horizonteMeses ?? 12;
+  const nomes: NomeCenario[] = ["conservador", "base", "otimista", "adverso"];
+  return nomes.map((nome) => {
+    const c = escalarChoque(nome, p.choque);
+    const receitaMensal = p.receitaMensalAtual * (1 + c.receitaPct / 100) + c.retornoMensalAporte;
+    const custoFixoMensal = p.custoFixoMensalAtual * (1 + c.custoFixoPct / 100);
+    const custoVariavelMensal = p.custoVariavelMensalAtual * (1 + c.custoVariavelPct / 100);
+    const despesasFinanceirasMensal = Math.max(0, p.despesasFinanceirasMensalAtual + (p.dividaTotalAtual * (c.jurosDividaPontos / 100)) / 12);
+    const dre = montarDRE({
+      receitaBruta: receitaMensal, deducoes: receitaMensal * (p.aliquotaEfetivaPct / 100),
+      custoVariavel: custoVariavelMensal, custoFixo: custoFixoMensal, despesasFinanceiras: despesasFinanceirasMensal,
+    });
+    const lucroLiquidoMensal = dre.lucroLiquido.valor;
+    const saldoCaixaProjetado = p.saldoCaixaAtual - c.aporteCapital + lucroLiquidoMensal * horizonte;
+    const runwayMeses = lucroLiquidoMensal >= 0 ? null : Math.max(0, Math.floor((p.saldoCaixaAtual - c.aporteCapital) / Math.abs(lucroLiquidoMensal)));
+    return { nome, receitaMensal, ebitdaMensal: dre.ebitda.valor, lucroLiquidoMensal, saldoCaixaProjetado, runwayMeses };
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
 // Usar em TODOS os títulos de painel e letreiros dos módulos.
 // ═══════════════════════════════════════════════════════════════
