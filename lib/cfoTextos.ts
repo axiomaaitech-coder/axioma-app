@@ -8,7 +8,7 @@
 
 import {
   fBRL, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho,
-  type BucketVencimento, type GatilhoConselhoDivida,
+  type BucketVencimento, type GatilhoConselhoDivida, type GatilhoConselhoMeta, type ArvoreMeta, type TipoMeta,
 } from "./cfoCore";
 
 export type CfoLang = "pt" | "en" | "es";
@@ -106,6 +106,26 @@ const TEXTOS = {
     semDividaTitulo: "Nenhuma dívida cadastrada — estrutura de capital livre de endividamento.",
     regraOuroNegociar: "Regra de ouro: negocie antes de atrasar — depois do atraso, você perde poder de barganha.",
     quitacaoEm: "quita em", naoQuitaHorizonte: "não quita no horizonte analisado",
+    // Metas
+    metaKpiNoRitmo: "No Ritmo", metaKpiEmRisco: "Em Risco", metaKpiValorEmJogo: "Valor em Jogo",
+    metaKpiTaxaSucesso: "Taxa de Sucesso Histórica", metaKpiProximaPrazo: "Mais Próxima do Prazo", metaKpiMarcos: "Marcos Conquistados",
+    metaTipoFaturamento: "Faturamento", metaTipoLucro: "Lucro", metaTipoMargem: "Margem",
+    metaTipoReducaoCusto: "Redução de Custo", metaTipoReducaoDivida: "Redução de Dívida",
+    metaTipoCaixa: "Saldo de Caixa", metaTipoTicketMedio: "Ticket Médio", metaTipoNumClientes: "Nº de Clientes Ativos",
+    metaSemaforoVerde: "No Ritmo", metaSemaforoAmarelo: "Atenção", metaSemaforoVermelho: "Em Risco",
+    metaClassificacaoFacil: "Fácil demais", metaClassificacaoImpossivel: "Fora de alcance", metaClassificacaoRealista: "Realista",
+    metaRitmoNecessario: "Ritmo Necessário", metaRitmoAtual: "Ritmo Atual",
+    metaProgressoReal: "Progresso Real", metaProgressoEsperadoLabel: "Progresso Esperado",
+    metaFaltam: "faltam", metaPorMes: "/mês",
+    metaArvoreTitulo: "Árvore de Dependência entre Metas", metaSemDependencia: "Nenhuma meta depende de outra em risco no momento.",
+    metaRaciocinioTitulo: "De onde veio esse número", metaRankingRitmoTitulo: "Ritmo Necessário vs Ritmo Atual",
+    metaMarco25: "1/4 do caminho andado", metaMarco50: "Metade da meta conquistada", metaMarco75: "Reta final — 3/4 andados", metaMarco100: "Meta batida",
+    metaConselhoTitulo: "Conselho CFO", metaSemGatilho: "Nenhuma recomendação crítica agora — metas sob controle.",
+    metaModalAnaliseTitulo: "Análise de Metas", metaModalAnaliseSub: "Progresso Real × Esperado · Evolução · Status",
+    metaGraficoProgresso: "Progresso: Real vs Esperado", metaGraficoEvolucao: "Evolução até a Meta", metaGraficoStatus: "Metas por Semáforo",
+    metaSemTipoAviso: "Metas antigas sem tipo vinculado a dado real — reclassifique-as para ativar o acompanhamento automático.",
+    metaValorInicial: "Valor Inicial", metaValorAlvo: "Valor Alvo", metaValorAtual: "Valor Atual",
+    metaConcluidaAuto: "Concluída", metaArquivada: "Arquivada", metaAtiva: "Ativa", metaArquivar: "Arquivar",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -185,6 +205,26 @@ const TEXTOS = {
     semDividaTitulo: "No debt on record — debt-free capital structure.",
     regraOuroNegociar: "Golden rule: negotiate before falling behind — once overdue, you lose bargaining power.",
     quitacaoEm: "pays off in", naoQuitaHorizonte: "doesn't pay off within the analyzed horizon",
+    // Goals
+    metaKpiNoRitmo: "On Pace", metaKpiEmRisco: "At Risk", metaKpiValorEmJogo: "Value at Stake",
+    metaKpiTaxaSucesso: "Historical Success Rate", metaKpiProximaPrazo: "Closest to Deadline", metaKpiMarcos: "Milestones Hit",
+    metaTipoFaturamento: "Revenue", metaTipoLucro: "Profit", metaTipoMargem: "Margin",
+    metaTipoReducaoCusto: "Cost Reduction", metaTipoReducaoDivida: "Debt Reduction",
+    metaTipoCaixa: "Cash Balance", metaTipoTicketMedio: "Average Ticket", metaTipoNumClientes: "Active Customers",
+    metaSemaforoVerde: "On Pace", metaSemaforoAmarelo: "Attention", metaSemaforoVermelho: "At Risk",
+    metaClassificacaoFacil: "Too easy", metaClassificacaoImpossivel: "Out of reach", metaClassificacaoRealista: "Realistic",
+    metaRitmoNecessario: "Required Pace", metaRitmoAtual: "Current Pace",
+    metaProgressoReal: "Actual Progress", metaProgressoEsperadoLabel: "Expected Progress",
+    metaFaltam: "remaining", metaPorMes: "/month",
+    metaArvoreTitulo: "Goal Dependency Tree", metaSemDependencia: "No goal currently depends on another that's at risk.",
+    metaRaciocinioTitulo: "Where this number came from", metaRankingRitmoTitulo: "Required Pace vs Current Pace",
+    metaMarco25: "1/4 of the way there", metaMarco50: "Halfway to the goal", metaMarco75: "Home stretch — 3/4 there", metaMarco100: "Goal hit",
+    metaConselhoTitulo: "CFO Advice", metaSemGatilho: "No critical recommendation right now — goals under control.",
+    metaModalAnaliseTitulo: "Goal Analysis", metaModalAnaliseSub: "Actual × Expected Progress · Evolution · Status",
+    metaGraficoProgresso: "Progress: Actual vs Expected", metaGraficoEvolucao: "Evolution Toward the Goal", metaGraficoStatus: "Goals by Signal",
+    metaSemTipoAviso: "Old goals with no type linked to real data — reclassify them to enable automatic tracking.",
+    metaValorInicial: "Starting Value", metaValorAlvo: "Target Value", metaValorAtual: "Current Value",
+    metaConcluidaAuto: "Completed", metaArquivada: "Archived", metaAtiva: "Active", metaArquivar: "Archive",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -264,6 +304,26 @@ const TEXTOS = {
     semDividaTitulo: "Ninguna deuda registrada — estructura de capital libre de endeudamiento.",
     regraOuroNegociar: "Regla de oro: negocie antes de atrasarse — después del atraso, pierde poder de negociación.",
     quitacaoEm: "se paga en", naoQuitaHorizonte: "no se paga dentro del horizonte analizado",
+    // Metas
+    metaKpiNoRitmo: "En Ritmo", metaKpiEmRisco: "En Riesgo", metaKpiValorEmJogo: "Valor en Juego",
+    metaKpiTaxaSucesso: "Tasa de Éxito Histórica", metaKpiProximaPrazo: "Más Cerca del Plazo", metaKpiMarcos: "Hitos Conquistados",
+    metaTipoFaturamento: "Facturación", metaTipoLucro: "Utilidad", metaTipoMargem: "Margen",
+    metaTipoReducaoCusto: "Reducción de Costo", metaTipoReducaoDivida: "Reducción de Deuda",
+    metaTipoCaixa: "Saldo de Caja", metaTipoTicketMedio: "Ticket Medio", metaTipoNumClientes: "Nº de Clientes Activos",
+    metaSemaforoVerde: "En Ritmo", metaSemaforoAmarelo: "Atención", metaSemaforoVermelho: "En Riesgo",
+    metaClassificacaoFacil: "Demasiado fácil", metaClassificacaoImpossivel: "Fuera de alcance", metaClassificacaoRealista: "Realista",
+    metaRitmoNecessario: "Ritmo Necesario", metaRitmoAtual: "Ritmo Actual",
+    metaProgressoReal: "Progreso Real", metaProgressoEsperadoLabel: "Progreso Esperado",
+    metaFaltam: "faltan", metaPorMes: "/mes",
+    metaArvoreTitulo: "Árbol de Dependencia entre Metas", metaSemDependencia: "Ninguna meta depende de otra en riesgo por ahora.",
+    metaRaciocinioTitulo: "De dónde vino este número", metaRankingRitmoTitulo: "Ritmo Necesario vs Ritmo Actual",
+    metaMarco25: "1/4 del camino recorrido", metaMarco50: "Mitad de la meta conquistada", metaMarco75: "Recta final — 3/4 recorridos", metaMarco100: "Meta alcanzada",
+    metaConselhoTitulo: "Consejo CFO", metaSemGatilho: "Ninguna recomendación crítica ahora — metas bajo control.",
+    metaModalAnaliseTitulo: "Análisis de Metas", metaModalAnaliseSub: "Progreso Real × Esperado · Evolución · Estado",
+    metaGraficoProgresso: "Progreso: Real vs Esperado", metaGraficoEvolucao: "Evolución hacia la Meta", metaGraficoStatus: "Metas por Semáforo",
+    metaSemTipoAviso: "Metas antiguas sin tipo vinculado a datos reales — reclasifíquelas para activar el seguimiento automático.",
+    metaValorInicial: "Valor Inicial", metaValorAlvo: "Valor Objetivo", metaValorAtual: "Valor Actual",
+    metaConcluidaAuto: "Completada", metaArquivada: "Archivada", metaAtiva: "Activa", metaArquivar: "Archivar",
   },
 };
 
@@ -431,6 +491,80 @@ export function montarConselhoDivida(lang: string, g: GatilhoConselhoDivida): st
   if (lang === "en") return `Debt is ${g.multiplo.toFixed(1)}x EBITDA — above the healthy 4x ceiling. New debt should wait until this ratio comes down.`;
   if (lang === "es") return `La deuda es ${g.multiplo.toFixed(1)}x el EBITDA — por encima del techo saludable de 4x. Nueva deuda debería esperar hasta que este ratio baje.`;
   return `A dívida está em ${g.multiplo.toFixed(1)}x o EBITDA — acima do teto saudável de 4x. Nova dívida deveria esperar esse múltiplo cair.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// METAS — NARRATIVAS (ritmo, projeção, meta irreal, marco, conselho,
+// árvore de dependência). Sempre citando o número real por trás.
+// ═══════════════════════════════════════════════════════════════
+const NOMES_TIPO_META: Record<TipoMeta, keyof CfoTextos> = {
+  faturamento: "metaTipoFaturamento", lucro: "metaTipoLucro", margem: "metaTipoMargem",
+  reducao_custo: "metaTipoReducaoCusto", reducao_divida: "metaTipoReducaoDivida",
+  caixa: "metaTipoCaixa", ticket_medio: "metaTipoTicketMedio", num_clientes: "metaTipoNumClientes",
+};
+
+export function nomeTipoMeta(lang: string, tipo: TipoMeta): string {
+  return cfoT(lang)[NOMES_TIPO_META[tipo]] as string;
+}
+
+// p.necessarioFmt/atualFmt/faltaFmt já vêm formatados pelo chamador (R$, % ou nº — a unidade varia por tipo).
+export function montarNarrativaRitmo(lang: string, p: { necessarioFmt: string; atualFmt: string; faltaFmt: string | null }): string {
+  if (lang === "en") return `To hit the goal you need ${p.necessarioFmt}/month. You're doing ${p.atualFmt}/month${p.faltaFmt ? ` — ${p.faltaFmt}/month short` : ""}.`;
+  if (lang === "es") return `Para lograr la meta necesita ${p.necessarioFmt}/mes. Está haciendo ${p.atualFmt}/mes${p.faltaFmt ? ` — faltan ${p.faltaFmt}/mes` : ""}.`;
+  return `Para bater a meta, você precisa de ${p.necessarioFmt}/mês. Está fazendo ${p.atualFmt}/mês${p.faltaFmt ? ` — faltam ${p.faltaFmt}/mês` : ""}.`;
+}
+
+export function montarNarrativaProjecaoMeta(lang: string, projecaoPct: number): string {
+  const pct = fPct(Math.max(0, projecaoPct));
+  if (projecaoPct >= 100) {
+    if (lang === "en") return `At the current pace, you beat this goal — projected at ${pct}.`;
+    if (lang === "es") return `Al ritmo actual, supera esta meta — proyectado en ${pct}.`;
+    return `No ritmo atual, você bate esta meta — projeção de ${pct}.`;
+  }
+  if (lang === "en") return `At the current pace you don't hit this goal — projected to close at ${pct}. Accelerate or extend the deadline.`;
+  if (lang === "es") return `Al ritmo actual no logra esta meta — proyectado a cerrar en ${pct}. Acelere o extienda el plazo.`;
+  return `No ritmo atual você não bate esta meta — projeção de fechamento em ${pct}. Precisa acelerar ou estender o prazo.`;
+}
+
+export function montarNarrativaMetaIrreal(lang: string, classificacao: "facil" | "impossivel", sugestaoFmt: string): string {
+  if (classificacao === "facil") {
+    if (lang === "en") return `This goal is below what the business already does on its own. Consider raising the target to ${sugestaoFmt}.`;
+    if (lang === "es") return `Esta meta está por debajo de lo que el negocio ya hace por sí solo. Considere subir el objetivo a ${sugestaoFmt}.`;
+    return `Essa meta está abaixo do que a empresa já faz sozinha. Considere subir o alvo para ${sugestaoFmt}.`;
+  }
+  if (lang === "en") return `This goal is far beyond the pace the business has ever shown. A realistic ambitious target would be ${sugestaoFmt}.`;
+  if (lang === "es") return `Esta meta está muy por encima del ritmo que el negocio ya demostró. Un objetivo ambicioso pero realista sería ${sugestaoFmt}.`;
+  return `Essa meta está muito acima do ritmo que a empresa já demonstrou. Um alvo ambicioso e realista seria ${sugestaoFmt}.`;
+}
+
+export function montarNarrativaMarco(lang: string, marco: 25 | 50 | 75 | 100, titulo: string): string {
+  const cx = cfoT(lang);
+  const chave = marco === 25 ? "metaMarco25" : marco === 50 ? "metaMarco50" : marco === 75 ? "metaMarco75" : "metaMarco100";
+  return `"${titulo}" — ${cx[chave as keyof CfoTextos]}.`;
+}
+
+export function montarConselhoMeta(lang: string, g: GatilhoConselhoMeta): string {
+  if (g.tipo === "acelerar") {
+    if (lang === "en") return `Accelerate "${g.tituloMeta}": at the current pace you need to speed up ${fPct(g.percentualAcelerar)} to hit the deadline.`;
+    if (lang === "es") return `Acelere "${g.tituloMeta}": al ritmo actual necesita acelerar ${fPct(g.percentualAcelerar)} para llegar al plazo.`;
+    return `Acelere "${g.tituloMeta}": no ritmo atual, você precisa acelerar ${fPct(g.percentualAcelerar)} pra bater o prazo.`;
+  }
+  if (g.tipo === "retaFinal") {
+    if (lang === "en") return `"${g.tituloMeta}" is in the home stretch — ${fBRL(g.faltam)} left to close it out.`;
+    if (lang === "es") return `"${g.tituloMeta}" está en la recta final — faltan ${fBRL(g.faltam)} para cerrarla.`;
+    return `"${g.tituloMeta}" está na reta final — faltam ${fBRL(g.faltam)} pra fechar.`;
+  }
+  const classTxt = cfoT(lang)[g.classificacao === "facil" ? "metaClassificacaoFacil" : "metaClassificacaoImpossivel"];
+  if (lang === "en") return `"${g.tituloMeta}" was flagged as "${classTxt}" — suggested target: ${fBRL(g.sugestaoAlvo)}.`;
+  if (lang === "es") return `"${g.tituloMeta}" fue marcada como "${classTxt}" — objetivo sugerido: ${fBRL(g.sugestaoAlvo)}.`;
+  return `"${g.tituloMeta}" foi sinalizada como "${classTxt}" — alvo sugerido: ${fBRL(g.sugestaoAlvo)}.`;
+}
+
+export function montarNarrativaDependencia(lang: string, tituloMeta: string, arvore: ArvoreMeta): string {
+  const nomes = arvore.dependenciaEmRisco.map((t) => nomeTipoMeta(lang, t)).join(", ");
+  if (lang === "en") return `"${tituloMeta}" depends on ${nomes} — currently at risk, which threatens this goal too.`;
+  if (lang === "es") return `"${tituloMeta}" depende de ${nomes} — actualmente en riesgo, lo que amenaza también esta meta.`;
+  return `"${tituloMeta}" depende de ${nomes} — em risco no momento, o que ameaça essa meta também.`;
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {

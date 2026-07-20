@@ -1165,6 +1165,167 @@ export function gerarConselhoDivida(p: {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// METAS SMART AUTOMÁTICAS — ritmo, progresso esperado, projeção de
+// fechamento, detector de meta irreal, árvore de dependências,
+// conselho CFO. Progresso sempre puxado do dado real, nunca manual.
+// ═══════════════════════════════════════════════════════════════
+
+export type TipoMeta = "faturamento" | "lucro" | "margem" | "reducao_custo" | "reducao_divida" | "caixa" | "ticket_medio" | "num_clientes";
+
+// ---------- RITMO NECESSÁRIO (pace) ----------
+export type RitmoMeta = { ritmoNecessarioMensal: number; ritmoAtualMensal: number; mesesDecorridos: number; mesesRestantes: number; mesesTotais: number };
+
+export function calcularRitmoMeta(p: {
+  valorInicial: number; valorMeta: number; valorAtual: number; dataInicio: string; prazo: string; hoje?: string;
+}): RitmoMeta {
+  const hoje = p.hoje ? new Date(p.hoje + "T00:00:00") : new Date();
+  const inicio = new Date(p.dataInicio + "T00:00:00");
+  const fim = new Date(p.prazo + "T00:00:00");
+  const diasTotais = Math.max(1, (fim.getTime() - inicio.getTime()) / 86400000);
+  const diasDecorridos = Math.min(diasTotais, Math.max(0, (hoje.getTime() - inicio.getTime()) / 86400000));
+  const mesesTotais = Math.max(0.1, diasTotais / 30);
+  const mesesDecorridos = Math.max(0.1, diasDecorridos / 30);
+  const mesesRestantes = Math.max(0, mesesTotais - mesesDecorridos);
+  const distanciaTotal = p.valorMeta - p.valorInicial;
+  const distanciaPercorrida = p.valorAtual - p.valorInicial;
+  return {
+    ritmoNecessarioMensal: distanciaTotal / mesesTotais,
+    ritmoAtualMensal: distanciaPercorrida / mesesDecorridos,
+    mesesDecorridos, mesesRestantes, mesesTotais,
+  };
+}
+
+// Onde a meta DEVERIA estar hoje se estivesse seguindo o ritmo necessário desde o início (linear).
+export function progressoEsperado(valorInicial: number, ritmoNecessarioMensal: number, mesesDecorridos: number): number {
+  return valorInicial + ritmoNecessarioMensal * mesesDecorridos;
+}
+
+// Onde a meta VAI TERMINAR se o ritmo atual continuar até o prazo.
+export function projetarFechamentoMeta(valorAtual: number, ritmoAtualMensal: number, mesesRestantes: number): number {
+  return valorAtual + ritmoAtualMensal * mesesRestantes;
+}
+
+// % da distância percorrida — mesma fórmula serve pra meta crescente (faturamento) e
+// decrescente (redução de dívida/custo), o sinal de distanciaTotal já embute a direção.
+export function progressoPercentual(valorInicial: number, valorAtual: number, valorMeta: number): number {
+  const distanciaTotal = valorMeta - valorInicial;
+  if (distanciaTotal === 0) return valorAtual === valorMeta ? 100 : 0;
+  return ((valorAtual - valorInicial) / distanciaTotal) * 100;
+}
+
+// ---------- RITMO HISTÓRICO (capacidade real demonstrada, base pro detector de meta irreal) ----------
+// Média do movimento mensal absoluto numa série histórica (ex: 12 meses de receita, custo,
+// clientes ativos...). Não é % de crescimento — é "quanto a empresa costuma mover por mês",
+// no mesmo tipo de unidade da meta (R$, %, ou contagem), pra comparar com o ritmo necessário.
+export function ritmoHistoricoMedio(serieMensal: number[]): number {
+  if (serieMensal.length < 2) return 0;
+  let soma = 0;
+  for (let i = 1; i < serieMensal.length; i++) soma += serieMensal[i] - serieMensal[i - 1];
+  return soma / (serieMensal.length - 1);
+}
+
+// ---------- DETECTOR DE META IRREAL (anti goal-gaming) ----------
+export type ClassificacaoMeta = "facil" | "impossivel" | "realista";
+
+export function detectarMetaIrreal(p: {
+  valorInicial: number; valorMeta: number; ritmoNecessarioMensal: number;
+  ritmoHistoricoMedioMensal: number; mesesTotais: number;
+}): { classificacao: ClassificacaoMeta; sugestaoAlvo: number | null } {
+  const distanciaTotal = p.valorMeta - p.valorInicial;
+  const direcao = distanciaTotal >= 0 ? 1 : -1;
+  const baseHistorica = Math.abs(p.ritmoHistoricoMedioMensal);
+
+  // Sem histórico suficiente pra julgar (empresa nova) — não classifica, evita falso alarme.
+  if (baseHistorica <= 0) return { classificacao: "realista", sugestaoAlvo: null };
+
+  // Fácil demais: pede menos do que a empresa já faz sozinha em meio mês no ritmo histórico.
+  if (Math.abs(distanciaTotal) < baseHistorica * 0.5) {
+    return { classificacao: "facil", sugestaoAlvo: p.valorInicial + baseHistorica * 1.15 * p.mesesTotais * direcao };
+  }
+  // Impossível: pede mais que 2,5x o que a empresa já demonstrou ser capaz de fazer por mês.
+  if (Math.abs(p.ritmoNecessarioMensal) > baseHistorica * 2.5) {
+    return { classificacao: "impossivel", sugestaoAlvo: p.valorInicial + baseHistorica * 1.15 * p.mesesTotais * direcao };
+  }
+  return { classificacao: "realista", sugestaoAlvo: null };
+}
+
+// ---------- SEMÁFORO E MARCOS ----------
+export function semaforoMeta(progressoPct: number, progressoEsperadoPct: number): CorSaude {
+  if (progressoEsperadoPct <= 0) return "verde"; // ainda no início do prazo, sem base de comparação
+  const razao = progressoPct / progressoEsperadoPct;
+  if (razao < 0.7) return "vermelho";
+  if (razao < 0.95) return "amarelo";
+  return "verde";
+}
+
+export function marcoAlcancado(progressoPct: number): 0 | 25 | 50 | 75 | 100 {
+  if (progressoPct >= 100) return 100;
+  if (progressoPct >= 75) return 75;
+  if (progressoPct >= 50) return 50;
+  if (progressoPct >= 25) return 25;
+  return 0;
+}
+
+// ---------- TRADUÇÃO EM DINHEIRO ----------
+export function traduzirMetaEmDinheiro(valorAtual: number, valorMeta: number): number {
+  return Math.abs(valorMeta - valorAtual);
+}
+
+// ---------- ÁRVORE DE DEPENDÊNCIAS ----------
+// Implícita pelo tipo — nunca um campo pro usuário preencher (reintroduziria a vaguidão).
+const DEPENDENCIAS_META: Partial<Record<TipoMeta, TipoMeta[]>> = {
+  lucro: ["faturamento", "reducao_custo"],
+  caixa: ["faturamento", "reducao_custo", "reducao_divida"],
+  margem: ["faturamento", "reducao_custo"],
+};
+
+export type ArvoreMeta = { tipoMeta: TipoMeta; dependeDe: TipoMeta[]; dependenciaEmRisco: TipoMeta[] };
+
+export function conectarMetas(metas: { tipoMeta: TipoMeta; corSemaforo: CorSaude }[]): ArvoreMeta[] {
+  const porTipo = new Map<TipoMeta, CorSaude[]>();
+  metas.forEach((m) => {
+    const arr = porTipo.get(m.tipoMeta) || [];
+    arr.push(m.corSemaforo);
+    porTipo.set(m.tipoMeta, arr);
+  });
+
+  const out: ArvoreMeta[] = [];
+  metas.forEach((m) => {
+    const deps = DEPENDENCIAS_META[m.tipoMeta];
+    if (!deps) return;
+    const emRisco = deps.filter((d) => {
+      const cores = porTipo.get(d);
+      return cores && semaforoSaude(cores.map((c) => ({ cor: c }))) !== "verde";
+    });
+    if (emRisco.length > 0) out.push({ tipoMeta: m.tipoMeta, dependeDe: deps, dependenciaEmRisco: emRisco });
+  });
+  return out;
+}
+
+// ---------- CONSELHO CFO DE METAS ----------
+export type GatilhoConselhoMeta =
+  | { tipo: "acelerar"; tituloMeta: string; percentualAcelerar: number }
+  | { tipo: "retaFinal"; tituloMeta: string; faltam: number }
+  | { tipo: "ajustarAlvo"; tituloMeta: string; classificacao: ClassificacaoMeta; sugestaoAlvo: number };
+
+export function gerarConselhoMeta(metas: {
+  titulo: string; progressoPct: number; corSemaforo: CorSaude;
+  ritmoAtualMensal: number; ritmoNecessarioRestante: number; faltamValor: number;
+  classificacao: ClassificacaoMeta; sugestaoAlvo: number | null;
+}[]): GatilhoConselhoMeta[] {
+  const out: GatilhoConselhoMeta[] = [];
+  metas.forEach((m) => {
+    if (m.corSemaforo === "vermelho" && m.ritmoAtualMensal !== 0) {
+      const percentualAcelerar = (Math.abs(m.ritmoNecessarioRestante) / Math.abs(m.ritmoAtualMensal) - 1) * 100;
+      if (percentualAcelerar > 0) out.push({ tipo: "acelerar", tituloMeta: m.titulo, percentualAcelerar });
+    }
+    if (m.progressoPct >= 90 && m.progressoPct < 100) out.push({ tipo: "retaFinal", tituloMeta: m.titulo, faltam: m.faltamValor });
+    if (m.classificacao !== "realista" && m.sugestaoAlvo !== null) out.push({ tipo: "ajustarAlvo", tituloMeta: m.titulo, classificacao: m.classificacao, sugestaoAlvo: m.sugestaoAlvo });
+  });
+  return out.slice(0, 4);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
 // Usar em TODOS os títulos de painel e letreiros dos módulos.
 // ═══════════════════════════════════════════════════════════════

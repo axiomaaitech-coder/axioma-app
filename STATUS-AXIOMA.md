@@ -4,7 +4,7 @@
 ---
 
 ## 1. RESUMO EM UMA FRASE
-Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. Próxima decisão: aprofundar **IA Tributária** (brechas legais de imposto, MEI vs empresa, reforma tributária) ou seguir pro menu Crescimento/Comercial — ver seção 4.
+Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. **Metas** (menu Crescimento) foi entregue nesta rodada — ver seção 3-A. Próximo: Investimentos, Simulações, Precificação, ou pular pro E-commerce/PDV (ver seção 4).
 
 ---
 
@@ -46,14 +46,26 @@ Tabela usada: **`dividas`** (não `endividamento` — essa é órfã, ver seçã
 
 ---
 
-## 4. PRÓXIMO PASSO — duas frentes em aberto, decidir com o Elias
+## 3-A. Metas (`/metas`) — CONECTADO a dados reais, entregue nesta rodada
+**O antídoto contra meta vaga, sem dono e "set and forget"** — não é mais uma lista onde `valor_atual` era digitado à mão. Toda meta é vinculada a um dos 8 tipos ligados a dado real (`faturamento, lucro, margem, reducao_custo, reducao_divida, caixa, ticket_medio, num_clientes`) e o progresso é **calculado ao vivo** cruzando Receitas/Custos Fixos+Variáveis/Dívidas/Fluxo de Caixa/Clientes (leitura, nunca escreve nessas tabelas) — e gravado de volta em `metas.valor_atual` a cada carregamento, pra qualquer outro módulo (Dashboard/Relatórios/IA Financeira) que um dia ler dessa tabela já achar o valor certo, sem duplicar a lógica (lição do bug dívidas/endividamento).
 
-**a) IA Tributária (`/ia-tributaria`) — aprofundar, não é módulo novo.**
-Elias pediu conteúdo educativo sobre taxas/juros do governo, reforma tributária, o que vale pra MEI vs empresa maior, e uma IA que ache "brechas legítimas" pra pagar menos imposto. O módulo já tem a espinha dorsal: `simularRegimes` (MEI/Simples/Presumido/Real lado a lado — isso já É a brecha legítima), Score Fiscal, tipo `AlertaReforma`, chat fiscal. Falta: conteúdo educativo estruturado MEI vs ME/EPP, aprofundar alertas de reforma (IBS/CBS, transição 2026-2033), radar de economia legal cruzando com Custos (holding, split de CNPJ, créditos PIS/COFINS no Lucro Real). Precisa de pesquisa de concorrentes (Contabilizei, Nibo, Bling) + plano antes de codificar.
+Entregue: Ritmo Necessário vs Ritmo Atual, barra Progresso Real × Esperado, Detector de Meta Irreal (fácil/impossível/realista comparando com o ritmo histórico real da empresa via `ritmoHistoricoMedio`, novo em `cfoCore.ts`), Projeção de Fechamento com alerta antecipado, Árvore de Dependência entre Metas (ex: meta de Lucro em risco porque Faturamento ou Redução de Custo dela está vermelha), Tradução em Dinheiro + Conselho CFO acionável, marcos 25/50/75/100% com celebração executiva (sem carnaval), status `concluida` promovido automaticamente ao bater 100%, `arquivada` como ação manual pra encerrar sem apagar histórico. Cor tema: roxo/violeta `#8b5cf6` + dourado `#d4af37` nas conquistas.
 
-**b) Seguir a fila do menu Financeiro pro Crescimento/Comercial** (ver seção 5) ou pro **E-commerce/PDV** (alta prioridade — 2 clientes esperando).
+Pesquisa que embasou o desenho: nem Conta Azul/Omie nem ferramentas globais de OKR (Lattice, Profit.co, Align) puxam progresso automaticamente das transações reais. Pra "nº de clientes" especificamente, o padrão de mercado sério (ChartMogul/Baremetrics) é contar **clientes ativos líquidos** (descontando churn), não "novos clientes brutos" — decisão tomada assim de propósito pra fechar a mesma brecha de goal-gaming que esse módulo existe pra evitar.
 
-**Pergunte ao Elias qual das duas frentes ele quer primeiro antes de começar.**
+**Schema (SQL já aplicado pelo Elias no Supabase):**
+```sql
+ALTER TABLE metas
+  ADD COLUMN IF NOT EXISTS tipo_meta text,
+  ADD COLUMN IF NOT EXISTS valor_inicial numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS data_inicio date DEFAULT CURRENT_DATE;
+```
+`tipo_meta` é travado depois de criada a meta (define de onde o progresso é lido). Metas antigas (tipo receita/economia/investimento/reducao, sem `tipo_meta`) continuam visíveis com aviso pra reclassificar — não foram migradas automaticamente porque "investimento" não tem correspondente real nos 8 tipos novos.
+
+**Verificação feita:** `tsc --noEmit` limpo e `next build` compilou com sucesso (incluindo `metas/page.tsx`, `cfoCore.ts`, `cfoTextos.ts`) — o build só falhou depois disso, num ponto sem relação (rota `/api/stripe/webhook`, pré-existente, falta chave da Stripe no `.env.local` local). **Não testado no navegador com login real** — middleware redireciona rota interna sem sessão, e não há credencial disponível pra isso. Pedir ao Elias uma checagem visual rápida antes de considerar 100% fechado.
+
+## 4. PRÓXIMO PASSO
+Investimentos, Simulações, Precificação (resto do menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
