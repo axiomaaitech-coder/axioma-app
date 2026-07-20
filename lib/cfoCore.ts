@@ -1213,6 +1213,18 @@ export function progressoPercentual(valorInicial: number, valorAtual: number, va
   return ((valorAtual - valorInicial) / distanciaTotal) * 100;
 }
 
+// ---------- DIREÇÃO DA META (validação, não recálculo — o sinal já embute a direção) ----------
+// O usuário declara explicitamente aumentar/reduzir (trava de segurança contra erro de
+// digitação no valor-alvo, ex: marcar "Reduzir" mas digitar um alvo maior que o inicial).
+// A matemática de ritmo/progresso não muda — ela já é direção-agnóstica por design.
+export type DirecaoMeta = "aumentar" | "reduzir";
+
+export function validarDirecaoMeta(direcao: DirecaoMeta, valorInicial: number, valorMeta: number): boolean {
+  if (valorMeta === valorInicial) return true; // sem distância ainda, nada pra contradizer
+  const cresce = valorMeta > valorInicial;
+  return direcao === "aumentar" ? cresce : !cresce;
+}
+
 // ---------- RITMO HISTÓRICO (capacidade real demonstrada, base pro detector de meta irreal) ----------
 // Média do movimento mensal absoluto numa série histórica (ex: 12 meses de receita, custo,
 // clientes ativos...). Não é % de crescimento — é "quanto a empresa costuma mover por mês",

@@ -126,6 +126,12 @@ const TEXTOS = {
     metaSemTipoAviso: "Metas antigas sem tipo vinculado a dado real — reclassifique-as para ativar o acompanhamento automático.",
     metaValorInicial: "Valor Inicial", metaValorAlvo: "Valor Alvo", metaValorAtual: "Valor Atual",
     metaConcluidaAuto: "Concluída", metaArquivada: "Arquivada", metaAtiva: "Ativa", metaArquivar: "Arquivar",
+    metaValorInicialLabel: "Valor Inicial", metaValorInicialAjuda: "Ponto de partida — pré-preenchido com o valor real de hoje, você pode ajustar.",
+    metaDirecaoLabel: "Direção", metaDirecaoAumentar: "Aumentar", metaDirecaoReduzir: "Reduzir",
+    metaDirecaoInconsistente: "A direção não bate com os valores: confira o valor inicial e o valor-alvo.",
+    metaResponsavelLabel: "Responsável", metaResponsavelPlaceholder: "Quem é o dono dessa meta?",
+    metaDescricaoLabel: "Estratégia (como vai bater essa meta)", metaDescricaoPlaceholder: "Ex: renegociar os 3 maiores fornecedores até março",
+    metaDeParaLabel: "de", metaParaLabel: "para", metaErroSalvar: "Não foi possível salvar a meta. Detalhe do erro:",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -225,6 +231,12 @@ const TEXTOS = {
     metaSemTipoAviso: "Old goals with no type linked to real data — reclassify them to enable automatic tracking.",
     metaValorInicial: "Starting Value", metaValorAlvo: "Target Value", metaValorAtual: "Current Value",
     metaConcluidaAuto: "Completed", metaArquivada: "Archived", metaAtiva: "Active", metaArquivar: "Archive",
+    metaValorInicialLabel: "Starting Value", metaValorInicialAjuda: "Starting point — pre-filled with today's real value, you can adjust it.",
+    metaDirecaoLabel: "Direction", metaDirecaoAumentar: "Increase", metaDirecaoReduzir: "Decrease",
+    metaDirecaoInconsistente: "Direction doesn't match the values: check the starting value and the target.",
+    metaResponsavelLabel: "Owner", metaResponsavelPlaceholder: "Who owns this goal?",
+    metaDescricaoLabel: "Strategy (how you'll hit this goal)", metaDescricaoPlaceholder: "E.g.: renegotiate the top 3 suppliers by March",
+    metaDeParaLabel: "from", metaParaLabel: "to", metaErroSalvar: "Couldn't save the goal. Error detail:",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -324,6 +336,12 @@ const TEXTOS = {
     metaSemTipoAviso: "Metas antiguas sin tipo vinculado a datos reales — reclasifíquelas para activar el seguimiento automático.",
     metaValorInicial: "Valor Inicial", metaValorAlvo: "Valor Objetivo", metaValorAtual: "Valor Actual",
     metaConcluidaAuto: "Completada", metaArquivada: "Archivada", metaAtiva: "Activa", metaArquivar: "Archivar",
+    metaValorInicialLabel: "Valor Inicial", metaValorInicialAjuda: "Punto de partida — prellenado con el valor real de hoy, puede ajustarlo.",
+    metaDirecaoLabel: "Dirección", metaDirecaoAumentar: "Aumentar", metaDirecaoReduzir: "Reducir",
+    metaDirecaoInconsistente: "La dirección no coincide con los valores: revise el valor inicial y el objetivo.",
+    metaResponsavelLabel: "Responsable", metaResponsavelPlaceholder: "¿Quién es el dueño de esta meta?",
+    metaDescricaoLabel: "Estrategia (cómo va a lograr esta meta)", metaDescricaoPlaceholder: "Ej: renegociar los 3 principales proveedores antes de marzo",
+    metaDeParaLabel: "de", metaParaLabel: "a", metaErroSalvar: "No se pudo guardar la meta. Detalle del error:",
   },
 };
 

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Target, Trash2, X, Pencil, Share2, Sparkles, GitBranch, Gauge, Archive, ArchiveRestore, Trophy } from "lucide-react";
+import { Target, Trash2, X, Pencil, Share2, Sparkles, GitBranch, Archive, ArchiveRestore, Trophy } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
@@ -13,8 +13,8 @@ import {
   filtrarPorPeriodo, montarDRE, ticketMedio, serieRolling, optRosca, optLinhaMulti,
   calcularRitmoMeta, progressoEsperado, projetarFechamentoMeta, progressoPercentual,
   detectarMetaIrreal, semaforoMeta, marcoAlcancado, traduzirMetaEmDinheiro,
-  conectarMetas, gerarConselhoMeta, ritmoHistoricoMedio,
-  type Lancamento, type Periodo, type TipoMeta, type CorSaude,
+  conectarMetas, gerarConselhoMeta, ritmoHistoricoMedio, validarDirecaoMeta,
+  type Lancamento, type Periodo, type TipoMeta, type CorSaude, type DirecaoMeta,
 } from "../../../lib/cfoCore";
 import {
   cfoT, canaisCompartilhamento, nomeTipoMeta,
@@ -34,6 +34,13 @@ type MetaRow = {
   id: string; titulo: string; tipo_meta: TipoMeta | null;
   valor_meta: number; valor_inicial: number; valor_atual: number;
   data_inicio: string; prazo: string | null; status: string; created_at?: string;
+  direcao: DirecaoMeta | null; responsavel: string | null; descricao: string | null;
+};
+
+const DIRECAO_PADRAO: Record<TipoMeta, DirecaoMeta> = {
+  faturamento: "aumentar", lucro: "aumentar", margem: "aumentar", caixa: "aumentar",
+  ticket_medio: "aumentar", num_clientes: "aumentar",
+  reducao_custo: "reduzir", reducao_divida: "reduzir",
 };
 
 // ═══════════════════════ HELPERS DE DATA (mesmo padrão do DRE/Endividamento) ═══════════════════════
@@ -203,8 +210,13 @@ export default function Metas() {
   const [titulo, setTitulo] = useState("");
   const [tipoMetaSel, setTipoMetaSel] = useState<TipoMeta>("faturamento");
   const [valorMeta, setValorMeta] = useState("");
+  const [valorInicialInput, setValorInicialInput] = useState("");
+  const [direcaoSel, setDirecaoSel] = useState<DirecaoMeta>("aumentar");
+  const [responsavelInput, setResponsavelInput] = useState("");
+  const [descricaoInput, setDescricaoInput] = useState("");
   const [prazo, setPrazo] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [erroModal, setErroModal] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -281,6 +293,8 @@ export default function Metas() {
       valor_meta: Number(m.valor_meta || 0), valor_inicial: Number(m.valor_inicial || 0), valor_atual: Number(m.valor_atual || 0),
       data_inicio: m.data_inicio || hoje, prazo: m.prazo || null,
       status: m.status === "em_andamento" ? "ativa" : (m.status || "ativa"),
+      direcao: (m.direcao as DirecaoMeta) || (m.tipo_meta ? DIRECAO_PADRAO[m.tipo_meta as TipoMeta] : null),
+      responsavel: m.responsavel || null, descricao: m.descricao || null,
     }));
 
     const atualizacoes: { id: string; valor_atual: number; status?: string }[] = [];
@@ -294,7 +308,9 @@ export default function Metas() {
     });
 
     if (atualizacoes.length > 0) {
-      await Promise.all(atualizacoes.map(a => supabase.from("metas").update({ valor_atual: a.valor_atual, status: a.status }).eq("id", a.id)));
+      const resultados = await Promise.all(atualizacoes.map(a => supabase.from("metas").update({ valor_atual: a.valor_atual, status: a.status }).eq("id", a.id)));
+      const erroSync = resultados.find(r => r.error)?.error;
+      if (erroSync) console.error("Falha ao sincronizar valor_atual/status de metas:", erroSync.message);
     }
 
     setMetas(metasFinal);
@@ -321,46 +337,82 @@ export default function Metas() {
     caixa: cx.saldoAtual, ticket_medio: cx.ticketMedio, num_clientes: t.clientes?.titulo || "Clientes",
   };
 
+  const preencherValorInicialLive = (tipo: TipoMeta) => {
+    const hoje = hojeISO();
+    const v = valorMetrica(tipo, hoje, hoje, ctxAtual, lang, origemLabels).valor;
+    setValorInicialInput(String(Math.round(v * 100) / 100));
+    setDirecaoSel(DIRECAO_PADRAO[tipo]);
+  };
+
   const abrirNovo = () => {
-    setEditando(null); setTitulo(""); setTipoMetaSel("faturamento"); setValorMeta(""); setPrazo("");
+    setEditando(null); setTitulo(""); setTipoMetaSel("faturamento"); setValorMeta("");
+    setPrazo(""); setResponsavelInput(""); setDescricaoInput(""); setErroModal(null);
+    preencherValorInicialLive("faturamento");
     setModalAberto(true);
   };
   const abrirEdicao = (m: MetaRow) => {
     setEditando(m); setTitulo(m.titulo); setTipoMetaSel(m.tipo_meta || "faturamento");
     setValorMeta(String(m.valor_meta || "")); setPrazo(m.prazo || "");
+    setResponsavelInput(m.responsavel || ""); setDescricaoInput(m.descricao || "");
+    setErroModal(null);
+    if (m.tipo_meta) {
+      setValorInicialInput(String(m.valor_inicial)); setDirecaoSel(m.direcao || DIRECAO_PADRAO[m.tipo_meta]);
+    } else {
+      preencherValorInicialLive("faturamento"); // meta antiga sem tipo — reclassificando agora
+    }
     setModalAberto(true);
   };
-  const fecharModal = () => { setModalAberto(false); setEditando(null); };
+  const trocarTipoModal = (tipo: TipoMeta) => {
+    setTipoMetaSel(tipo);
+    if (!editando || !editando.tipo_meta) preencherValorInicialLive(tipo); // só recalcula em criação/reclassificação — meta já ativa mantém o tipo travado
+  };
+  const fecharModal = () => { setModalAberto(false); setEditando(null); setErroModal(null); };
+
+  const direcaoInconsistente = valorMeta && valorInicialInput
+    ? !validarDirecaoMeta(direcaoSel, parseFloat(valorInicialInput), parseFloat(valorMeta))
+    : false;
 
   const salvar = async () => {
-    if (!titulo || !valorMeta || !prazo) return;
+    if (!titulo || !valorMeta || !prazo || !valorInicialInput) return;
     setSalvando(true);
+    setErroModal(null);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
+    if (!user) { setSalvando(false); setErroModal("Sessão expirada — faça login de novo."); return; }
 
+    const camposComuns = {
+      titulo, valor_meta: parseFloat(valorMeta), prazo, direcao: direcaoSel,
+      responsavel: responsavelInput.trim() || null, descricao: descricaoInput.trim() || null,
+    };
+
+    let error;
     if (editando) {
-      const payload: any = { titulo, valor_meta: parseFloat(valorMeta), prazo };
+      const payload: any = { ...camposComuns, valor_inicial: parseFloat(valorInicialInput) };
       if (!editando.tipo_meta) { // meta antiga sendo reclassificada agora — vira meta moderna
-        const hoje = hojeISO();
         payload.tipo_meta = tipoMetaSel;
-        payload.data_inicio = hoje;
-        payload.valor_inicial = valorMetrica(tipoMetaSel, hoje, hoje, ctxAtual, lang, origemLabels).valor;
+        payload.data_inicio = hojeISO();
       }
-      await supabase.from("metas").update(payload).eq("id", editando.id);
+      ({ error } = await supabase.from("metas").update(payload).eq("id", editando.id));
     } else {
       const hoje = hojeISO();
-      const valorInicial = valorMetrica(tipoMetaSel, hoje, hoje, ctxAtual, lang, origemLabels).valor;
-      await supabase.from("metas").insert({
-        titulo, tipo_meta: tipoMetaSel, valor_meta: parseFloat(valorMeta), valor_inicial: valorInicial,
-        valor_atual: valorInicial, data_inicio: hoje, prazo, status: "ativa", user_id: user.id,
-      });
+      ({ error } = await supabase.from("metas").insert({
+        ...camposComuns, tipo_meta: tipoMetaSel, valor_inicial: parseFloat(valorInicialInput),
+        valor_atual: parseFloat(valorInicialInput), data_inicio: hoje, status: "ativa", user_id: user.id,
+      }));
     }
-    fecharModal(); setSalvando(false); await carregarTudo();
+
+    setSalvando(false);
+    if (error) { setErroModal(`${cx.metaErroSalvar} ${error.message}`); return; } // mantém o modal aberto com os dados preenchidos — nada se perde
+    fecharModal(); await carregarTudo();
   };
 
-  const excluir = async (id: string) => { await supabase.from("metas").delete().eq("id", id); carregarTudo(); };
+  const excluir = async (id: string) => {
+    const { error } = await supabase.from("metas").delete().eq("id", id);
+    if (error) { console.error("Erro ao excluir meta:", error.message); return; }
+    carregarTudo();
+  };
   const arquivar = async (m: MetaRow) => {
-    await supabase.from("metas").update({ status: m.status === "arquivada" ? "ativa" : "arquivada" }).eq("id", m.id);
+    const { error } = await supabase.from("metas").update({ status: m.status === "arquivada" ? "ativa" : "arquivada" }).eq("id", m.id);
+    if (error) { console.error("Erro ao arquivar meta:", error.message); return; }
     carregarTudo();
   };
 
@@ -693,6 +745,11 @@ export default function Metas() {
                                 {c.classificacao.classificacao === "facil" ? cx.metaClassificacaoFacil : cx.metaClassificacaoImpossivel}
                               </span>
                             )}
+                            {m.responsavel && (
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(148,163,184,0.1)", color: "#cbd5e1" }}>
+                                👤 {m.responsavel}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
@@ -704,9 +761,13 @@ export default function Metas() {
                         </div>
                       </div>
 
-                      <p className="text-2xl font-black mb-1" style={{ color: concluida ? CORES.ouro : "#e2e8f0" }}>
+                      <p className="text-2xl font-black mb-0.5" style={{ color: concluida ? CORES.ouro : "#e2e8f0" }}>
                         {formatarValorMeta(m.tipo_meta, m.valor_meta)}
                       </p>
+                      <p className="text-[11px] mb-1" style={{ color: "#5a7a9a" }}>
+                        {cx.metaDeParaLabel} {formatarValorMeta(m.tipo_meta, m.valor_inicial)} {cx.metaParaLabel} {formatarValorMeta(m.tipo_meta, m.valor_meta)}
+                      </p>
+                      {m.descricao && <p className="text-xs mb-2 italic" style={{ color: "#94a3b8" }}>{m.descricao}</p>}
 
                       {c && (
                         <>
@@ -789,7 +850,7 @@ export default function Metas() {
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.tipoLabel}</label>
-                    <select value={tipoMetaSel} onChange={e => setTipoMetaSel(e.target.value as TipoMeta)}
+                    <select value={tipoMetaSel} onChange={e => trocarTipoModal(e.target.value as TipoMeta)}
                       disabled={!!editando && !!editando.tipo_meta}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm disabled:opacity-50"
                       style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
@@ -797,11 +858,33 @@ export default function Metas() {
                     </select>
                     {!!editando && !!editando.tipo_meta && <p className="text-[10px] mt-1.5" style={{ color: "#64748b" }}>{txt.tipoTravado}</p>}
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{cx.metaValorInicialLabel}</label>
+                      <input type="number" value={valorInicialInput} onChange={e => setValorInicialInput(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.valorAlvoLabel}</label>
+                      <input type="number" value={valorMeta} onChange={e => setValorMeta(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                    </div>
+                  </div>
+                  <p className="text-[10px] -mt-2" style={{ color: "#64748b" }}>{cx.metaValorInicialAjuda}</p>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.valorAlvoLabel}</label>
-                    <input type="number" value={valorMeta} onChange={e => setValorMeta(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{cx.metaDirecaoLabel}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["aumentar", "reduzir"] as DirecaoMeta[]).map(d => (
+                        <motion.button key={d} type="button" whileTap={{ scale: 0.97 }} onClick={() => setDirecaoSel(d)}
+                          className="py-2.5 rounded-xl text-xs font-semibold"
+                          style={{ background: direcaoSel === d ? "rgba(139,92,246,0.2)" : "rgba(59,111,212,0.05)", color: direcaoSel === d ? CORES.roxoC : "#5a7a9a", border: `1px solid ${direcaoSel === d ? "rgba(139,92,246,0.4)" : "rgba(59,111,212,0.1)"}` }}>
+                          {d === "aumentar" ? cx.metaDirecaoAumentar : cx.metaDirecaoReduzir}
+                        </motion.button>
+                      ))}
+                    </div>
+                    {direcaoInconsistente && <p className="text-[11px] mt-1.5" style={{ color: CORES.amarelo }}>{cx.metaDirecaoInconsistente}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.prazoLabel}</label>
@@ -809,6 +892,23 @@ export default function Metas() {
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
                   </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{cx.metaResponsavelLabel}</label>
+                    <input value={responsavelInput} onChange={e => setResponsavelInput(e.target.value)} placeholder={cx.metaResponsavelPlaceholder}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{cx.metaDescricaoLabel}</label>
+                    <textarea value={descricaoInput} onChange={e => setDescricaoInput(e.target.value)} placeholder={cx.metaDescricaoPlaceholder} rows={2}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm resize-none"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                  </div>
+                  {erroModal && (
+                    <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
+                      {erroModal}
+                    </div>
+                  )}
                   <div className="flex gap-3 pt-2">
                     <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{txt.cancelar}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}

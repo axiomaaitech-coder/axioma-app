@@ -58,11 +58,23 @@ Pesquisa que embasou o desenho: nem Conta Azul/Omie nem ferramentas globais de O
 ALTER TABLE metas
   ADD COLUMN IF NOT EXISTS tipo_meta text,
   ADD COLUMN IF NOT EXISTS valor_inicial numeric DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS data_inicio date DEFAULT CURRENT_DATE;
+  ADD COLUMN IF NOT EXISTS data_inicio date DEFAULT CURRENT_DATE,
+  ADD COLUMN IF NOT EXISTS direcao text,
+  ADD COLUMN IF NOT EXISTS responsavel text,
+  ADD COLUMN IF NOT EXISTS descricao text;
 ```
 `tipo_meta` é travado depois de criada a meta (define de onde o progresso é lido). Metas antigas (tipo receita/economia/investimento/reducao, sem `tipo_meta`) continuam visíveis com aviso pra reclassificar — não foram migradas automaticamente porque "investimento" não tem correspondente real nos 8 tipos novos.
 
-**Verificação feita:** `tsc --noEmit` limpo e `next build` compilou com sucesso (incluindo `metas/page.tsx`, `cfoCore.ts`, `cfoTextos.ts`) — o build só falhou depois disso, num ponto sem relação (rota `/api/stripe/webhook`, pré-existente, falta chave da Stripe no `.env.local` local). **Não testado no navegador com login real** — middleware redireciona rota interna sem sessão, e não há credencial disponível pra isso. Pedir ao Elias uma checagem visual rápida antes de considerar 100% fechado.
+**Rodada 2 (mesmo dia):** Elias pediu 3 campos no modal — atendido:
+- **Valor Inicial**: já era calculado automaticamente desde a v1, mas ficava invisível. Agora aparece no modal, pré-preenchido ao vivo com o valor real do módulo vinculado, editável.
+- **Direção (aumentar/reduzir)**: a matemática de ritmo/progresso já era direção-agnóstica (sinal da diferença `valor_meta − valor_inicial` já resolvia isso) — o campo novo não é correção de cálculo, é **trava de segurança**: `validarDirecaoMeta` (novo em `cfoCore.ts`) avisa se a direção escolhida contradiz os valores digitados (ex: erro de digitação no alvo).
+- **Responsável**: campo novo, opcional. Pesquisa (Lattice/Profit.co) confirma: metas com dono único têm 26% mais conclusão.
+- **Descrição/Estratégia**: campo novo opcional, fecha "objetivo + métrica + valor + prazo + como".
+- **Alerta de ritmo configurável — deixado de fora**, por decisão consciente: pesquisa mostrou que as ferramentas líderes (Profit.co, Lattice) fazem esse alerta automático via IA/threshold interno, não configurado pelo usuário — exatamente o que o semáforo verde/amarelo/vermelho já faz sem exigir setup manual.
+
+**Bug crítico corrigido:** salvar/editar meta engolia erro do Supabase silenciosamente — fechava o modal como se tivesse salvo mesmo quando o INSERT/UPDATE falhava (RLS ou constraint), perdendo os dados digitados. Agora `salvar()` mostra o erro real na tela e **mantém o modal aberto com os dados preenchidos** em caso de falha — nada mais some. Hipótese mais provável do bug relatado: CHECK constraint antiga em `metas.status` rejeitando os novos valores (`ativa`/`arquivada`) — SQL defensivo pra remover essa trava (se existir) foi passado ao Elias.
+
+**Verificação feita:** `tsc --noEmit` limpo (as duas rodadas) e `next build` da v1 compilou com sucesso (incluindo `metas/page.tsx`, `cfoCore.ts`, `cfoTextos.ts`) — o build só falhou depois disso, num ponto sem relação (rota `/api/stripe/webhook`, pré-existente, falta chave da Stripe no `.env.local` local). **Não testado no navegador com login real** — sem ferramenta de browser disponível nesta sessão e sem credencial (decisão consciente de não usar login/senha real em chat). Elias está testando manualmente.
 
 ## 4. PRÓXIMO PASSO
 Investimentos, Simulações, Precificação (resto do menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
