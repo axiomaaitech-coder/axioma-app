@@ -828,11 +828,11 @@ export default function Metas() {
       <AnimatePresence>
         {modalAberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+            className="fixed inset-0 flex justify-center px-4 overflow-y-auto"
+            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", zIndex: 9999, alignItems: "flex-start", paddingTop: 80, paddingBottom: 32 }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
+              className="w-full max-w-md overflow-y-auto rounded-2xl" style={{ maxHeight: "calc(100vh - 112px)" }}>
               <CanvasBox cor={CORES.roxo}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
