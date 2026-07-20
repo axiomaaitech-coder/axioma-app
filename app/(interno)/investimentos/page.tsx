@@ -170,7 +170,9 @@ export default function Investimentos() {
     const inicioHist = inicioJanela24m(periodo.fim);
 
     const [{ data: inv }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
-      supabase.from("investimentos").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("investimentos")
+        .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
+        .eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
       supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
       supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
@@ -218,7 +220,7 @@ export default function Investimentos() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const payload = {
-      nome, valor: parseFloat(valor), tipo, data, rentabilidade: parseFloat(rentabilidade || "0"),
+      descricao: nome, valor: parseFloat(valor), categoria: tipo, data, retorno_esperado: parseFloat(rentabilidade || "0"),
       data_vencimento: dataVencimento || null, indexador: indexador || null,
       instituicao: instituicao || null, liquidez, status,
     };
