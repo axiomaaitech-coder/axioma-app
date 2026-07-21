@@ -460,6 +460,24 @@ export function optDispersao(pontos: { nome: string; x: number; y: number; cor: 
   };
 }
 
+// Velocímetro (gauge) — score/índice único 0..max com faixas de cor (ex: 0-400
+// vermelho, 401-700 âmbar, 701-1000 verde). "faixas" define até onde vai cada cor.
+export function optVelocimetro(valor: number, max: number, faixas: { ate: number; cor: string }[]) {
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    series: [{
+      type: "gauge", min: 0, max, startAngle: 210, endAngle: -30,
+      pointer: { itemStyle: { color: "#e2e8f0" } },
+      progress: { show: false },
+      axisLine: { lineStyle: { width: 14, color: faixas.map((f) => [f.ate / max, f.cor]) } },
+      axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+      anchor: { show: true, size: 12, itemStyle: { color: "#0a0820", borderColor: "#e2e8f0", borderWidth: 2 } },
+      detail: { valueAnimation: true, fontSize: 26, fontWeight: 900, color: "#f1f5f9", offsetCenter: [0, "60%"], formatter: (v: number) => `${Math.round(v)}` },
+      data: [{ value: valor }],
+    }],
+  };
+}
+
 // Radar/spider chart — visão multi-eixo de um composto (ex: risco da carteira).
 // Cada indicador já deve vir normalizado (0..max) pelo chamador.
 export function optRadar(indicadores: { nome: string; max: number }[], valores: number[], cor: string) {

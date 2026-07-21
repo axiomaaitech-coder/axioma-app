@@ -340,36 +340,101 @@ export function tempoMedioRelacionamentoDias(fornecedores: FornecedorRow[]): num
   return Math.round(soma / comData.length);
 }
 
-export type ScoreFornecedor = { total: number; componentes: { nome: string; valor: number; peso: number }[]; amostraSuficiente: boolean };
+// ============================================================================
+// FASE 3 — SCORE CORPORATIVO AXIOMA (0-1000), 14 critérios.
+// Substitui a v1 da Fase 2 (mais simples) por um motor completo e transparente.
+// Pesos num objeto único, fácil de ajustar. Critério sem dado real não penaliza —
+// fica de fora do cálculo e o peso dele é redistribuído entre os que têm dado.
+// ============================================================================
 
-// Score 0-100 — v1 transparente, só com o que é real hoje (status, qualidade e risco
-// cadastrados na Fase 1, pontualidade de pagamento). Cada componente só entra se tiver
-// dado — nunca completa com número inventado. Sempre explica o que pesou.
-export function calcularScoreFornecedor(f: FornecedorRow, contasDoFornecedor: ContaPagarRow[]): ScoreFornecedor {
-  const componentes: { nome: string; valor: number; peso: number }[] = [
-    { nome: "status", valor: (f.status || "ativo") === "ativo" ? 100 : 0, peso: 20 },
-  ];
-  if (f.nivel_qualidade && PESO_QUALIDADE[f.nivel_qualidade]) {
-    componentes.push({ nome: "qualidade", valor: (PESO_QUALIDADE[f.nivel_qualidade] / 4) * 100, peso: 30 });
-  }
-  if (f.classificacao_risco && PESO_RISCO[f.classificacao_risco]) {
-    componentes.push({ nome: "risco", valor: 100 - ((PESO_RISCO[f.classificacao_risco] - 1) / 2) * 100, peso: 30 });
-  }
+// 7 critérios com dado real hoje + 7 reservados para infraestrutura futura
+// (histórico de entrega/defeito, benchmark de preço, volume de pedidos,
+// dados financeiros de terceiros, ESG estruturado, RFQ) — nenhum é inventado.
+export const PESOS_SCORE_AXIOMA: Record<string, number> = {
+  qualidade: 15, pontualidade: 15, risco: 12, compliance: 10, dependencia: 8,
+  estabilidade: 7, relacionamento: 6,
+  confiabilidade: 6, preco: 5, capacidadeEntrega: 5, saudeFinanceira: 4,
+  sustentabilidade: 3, inovacao: 2, flexibilidade: 2,
+};
+
+const TIPOS_DOC_COMPLIANCE = ["cnd", "alvara", "licenca", "seguro"];
+
+export type CriterioScoreAxioma = { chave: string; valor: number | null; peso: number; contribuicao: number; semDados: boolean };
+export type ScoreAxiomaFornecedor = { total: number; nivel: "critico" | "atencao" | "saudavel"; criterios: CriterioScoreAxioma[] };
+
+export function calcularScoreAxiomaFornecedor(
+  f: FornecedorRow,
+  contasDoFornecedor: ContaPagarRow[],
+  documentosDoFornecedor: FornecedorDocumento[],
+  interacoesDoFornecedor: FornecedorInteracao[],
+  totalComprasCarteira: number,
+): ScoreAxiomaFornecedor {
+  const valores: Record<string, number | null> = {
+    confiabilidade: null, preco: null, capacidadeEntrega: null, saudeFinanceira: null,
+    sustentabilidade: null, inovacao: null, flexibilidade: null,
+  };
+
+  valores.qualidade = f.nivel_qualidade && PESO_QUALIDADE[f.nivel_qualidade] ? (PESO_QUALIDADE[f.nivel_qualidade] / 4) * 100 : null;
+
   const pont = pontualidadePagamento(contasDoFornecedor);
-  if (pont.pagas > 0) componentes.push({ nome: "pontualidade", valor: pont.percentual, peso: 20 });
+  valores.pontualidade = pont.pagas > 0 ? pont.percentual : null;
 
-  const pesoTotal = componentes.reduce((s, c) => s + c.peso, 0);
-  const total = pesoTotal > 0 ? Math.round(componentes.reduce((s, c) => s + c.valor * c.peso, 0) / pesoTotal) : 0;
-  return { total, componentes, amostraSuficiente: componentes.length >= 2 };
+  valores.risco = f.classificacao_risco && PESO_RISCO[f.classificacao_risco] ? 100 - ((PESO_RISCO[f.classificacao_risco] - 1) / 2) * 100 : null;
+
+  const docsCompliance = documentosDoFornecedor.filter((d) => d.tipo && TIPOS_DOC_COMPLIANCE.includes(d.tipo));
+  if (docsCompliance.length > 0) {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const validos = docsCompliance.filter((d) => !d.data_validade || d.data_validade >= hoje);
+    valores.compliance = Math.round((validos.length / docsCompliance.length) * 100);
+  } else valores.compliance = null;
+
+  // Dependência invertida: quanto MENOR a fatia desse fornecedor no total comprado, melhor a nota.
+  if (totalComprasCarteira > 0) {
+    const gastoForn = contasDoFornecedor.reduce((s, c) => s + (c.valor_total || 0), 0);
+    valores.dependencia = Math.round(Math.max(0, 100 - (gastoForn / totalComprasCarteira) * 100));
+  } else valores.dependencia = null;
+
+  if (f.created_at) {
+    const dias = Math.max(0, (Date.now() - new Date(f.created_at).getTime()) / 86400000);
+    valores.estabilidade = Math.round(Math.min(100, (dias / 365) * 100));
+  } else valores.estabilidade = null;
+
+  valores.relacionamento = interacoesDoFornecedor.length > 0 ? Math.round(Math.min(100, interacoesDoFornecedor.length * 20)) : null;
+
+  const criterios: CriterioScoreAxioma[] = Object.keys(PESOS_SCORE_AXIOMA).map((chave) => ({
+    chave, valor: valores[chave], peso: PESOS_SCORE_AXIOMA[chave], contribuicao: 0, semDados: valores[chave] == null,
+  }));
+
+  const comDado = criterios.filter((c) => !c.semDados);
+  const pesoTotal = comDado.reduce((s, c) => s + c.peso, 0);
+  if (pesoTotal > 0) {
+    comDado.forEach((c) => { c.contribuicao = Math.round(((c.valor as number) * c.peso) / pesoTotal * 10); });
+  }
+  const total = comDado.reduce((s, c) => s + c.contribuicao, 0);
+  const nivel: ScoreAxiomaFornecedor["nivel"] = total <= 400 ? "critico" : total <= 700 ? "atencao" : "saudavel";
+  return { total, nivel, criterios };
 }
 
-export function scoreMedioCarteira(fornecedores: FornecedorRow[], contas: ContaPagarRow[]): MetricaCarteira {
-  const scores = fornecedores
-    .map((f) => calcularScoreFornecedor(f, contas.filter((c) => c.fornecedor_id === f.id)))
-    .filter((s) => s.amostraSuficiente);
-  if (scores.length === 0) return { media: 0, amostra: 0, total: fornecedores.length, amostraSuficiente: false };
-  const soma = scores.reduce((s, sc) => s + sc.total, 0);
-  return { media: Math.round(soma / scores.length), amostra: scores.length, total: fornecedores.length, amostraSuficiente: scores.length >= 3 };
+export function rankingScoreAxioma(
+  fornecedores: FornecedorRow[], contas: ContaPagarRow[], documentos: FornecedorDocumento[], interacoes: FornecedorInteracao[],
+): { fornecedor: FornecedorRow; score: ScoreAxiomaFornecedor }[] {
+  const totalCarteira = contas.reduce((s, c) => s + (c.valor_total || 0), 0);
+  return fornecedores
+    .map((f) => ({
+      fornecedor: f,
+      score: calcularScoreAxiomaFornecedor(
+        f, contas.filter((c) => c.fornecedor_id === f.id), documentos.filter((d) => d.fornecedor_id === f.id),
+        interacoes.filter((i) => i.fornecedor_id === f.id), totalCarteira,
+      ),
+    }))
+    .sort((a, b) => b.score.total - a.score.total);
+}
+
+export function scoreMedioCarteiraAxioma(ranking: { score: ScoreAxiomaFornecedor }[]): MetricaCarteira {
+  const comDado = ranking.filter((r) => r.score.criterios.some((c) => !c.semDados));
+  if (comDado.length === 0) return { media: 0, amostra: 0, total: ranking.length, amostraSuficiente: false };
+  const soma = comDado.reduce((s, r) => s + r.score.total, 0);
+  return { media: Math.round(soma / comDado.length), amostra: comDado.length, total: ranking.length, amostraSuficiente: comDado.length >= 3 };
 }
 
 // ============================================================================

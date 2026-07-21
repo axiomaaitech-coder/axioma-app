@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   Search, Trash2, Pencil, X, Building2, FileText, CheckCircle2, Check,
-  AlertTriangle, Download, Sparkles, Clock, Share2, ChevronRight,
+  AlertTriangle, Download, Sparkles, Clock, Share2, ChevronRight, Gauge, Trophy,
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import {
-  resolverPeriodo, optRadar, optBarrasV, optRosca, radarRenovacoes, FONTE_EXEC,
+  resolverPeriodo, optRadar, optBarrasV, optRosca, optVelocimetro, radarRenovacoes, FONTE_EXEC,
   type Periodo, type PeriodoPreset, type ItemRenovavel,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
@@ -28,7 +28,8 @@ import {
   listarInteracoes, criarInteracao, excluirInteracao,
   documentosVencendo, contratosVencendo,
   comprasNoPeriodo, concentracaoFornecedores, diversificacaoFornecedores, curvaABC, distribuicaoGeografica,
-  riscoMedioCarteira, qualidadeMediaCarteira, pontualidadePagamento, tempoMedioRelacionamentoDias, scoreMedioCarteira,
+  riscoMedioCarteira, qualidadeMediaCarteira, pontualidadePagamento, tempoMedioRelacionamentoDias,
+  rankingScoreAxioma, scoreMedioCarteiraAxioma,
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
 
@@ -252,6 +253,14 @@ const T = {
     eixoRisco: "Risco", eixoDependencia: "Dependência", eixoConcentracao: "Concentração", eixoQualidadeInv: "Qualidade (invertida)", eixoPontualidadeInv: "Atraso de Pagamento",
     escadaTitulo: "Escada de Vencimentos", escadaSub: "Documentos e contratos vencendo nos próximos 6 meses.",
     escadaVazio: "Nenhum documento ou contrato com data de vencimento cadastrada ainda.",
+    critRisco: "Risco", critCompliance: "Compliance", critRelacionamento: "Relacionamento",
+    critConfiabilidade: "Confiabilidade", critPreco: "Preço", critCapacidadeEntrega: "Capacidade de Entrega",
+    critSaudeFinanceira: "Saúde Financeira", critSustentabilidade: "Sustentabilidade", critInovacao: "Inovação", critFlexibilidade: "Flexibilidade",
+    nivelCritico: "Crítico", nivelAtencao: "Atenção", nivelSaudavel: "Saudável",
+    scoreAxiomaTitulo: "Score Corporativo Axioma", verScore: "Ver Score",
+    criteriosTitulo: "Critérios do Score", semDadosCriterio: "Sem dados", pesoLabel: "Peso", contribuicaoLabel: "Contribuição",
+    rankingTitulo: "Ranking Axioma", rankingSub: "Fornecedores ordenados pelo Score Corporativo Axioma (0-1000).",
+    rankingVazio: "Nenhum fornecedor cadastrado ainda.",
     explicacoes: {
       total: "Contagem simples de todos os fornecedores cadastrados, ativos e inativos.",
       ativos: "Fornecedores com status Ativo no cadastro.",
@@ -269,7 +278,7 @@ const T = {
       pontualidade: "Percentual das contas pagas por nós dentro do vencimento — mede nosso desempenho pagando, não o desempenho do fornecedor entregando.",
       qualidade: "Média do Nível de Qualidade preenchido manualmente no cadastro de cada fornecedor.",
       estabilidade: "Tempo médio, em meses, desde o cadastro de cada fornecedor ativo — quanto maior, mais estável a relação.",
-      scoreMedio: "Composto 0-100 de status + qualidade + risco + pontualidade de pagamento, só com fornecedores que já têm dado suficiente em pelo menos dois desses componentes.",
+      scoreMedio: "Média do Score Corporativo Axioma (0-1000, 14 critérios com peso próprio) entre os fornecedores que já têm pelo menos um critério com dado real.",
     },
   },
   en: {
@@ -349,6 +358,14 @@ const T = {
     eixoRisco: "Risk", eixoDependencia: "Dependency", eixoConcentracao: "Concentration", eixoQualidadeInv: "Quality (inverted)", eixoPontualidadeInv: "Payment Delay",
     escadaTitulo: "Expiration Ladder", escadaSub: "Documents and contracts expiring in the next 6 months.",
     escadaVazio: "No document or contract with an expiration date yet.",
+    critRisco: "Risk", critCompliance: "Compliance", critRelacionamento: "Relationship",
+    critConfiabilidade: "Reliability", critPreco: "Price", critCapacidadeEntrega: "Delivery Capacity",
+    critSaudeFinanceira: "Financial Health", critSustentabilidade: "Sustainability", critInovacao: "Innovation", critFlexibilidade: "Flexibility",
+    nivelCritico: "Critical", nivelAtencao: "Attention", nivelSaudavel: "Healthy",
+    scoreAxiomaTitulo: "Axioma Corporate Score", verScore: "View Score",
+    criteriosTitulo: "Score Criteria", semDadosCriterio: "No data", pesoLabel: "Weight", contribuicaoLabel: "Contribution",
+    rankingTitulo: "Axioma Ranking", rankingSub: "Suppliers ranked by the Axioma Corporate Score (0-1000).",
+    rankingVazio: "No supplier registered yet.",
     explicacoes: {
       total: "Simple count of all registered suppliers, active and inactive.",
       ativos: "Suppliers with Active status in the registration.",
@@ -366,7 +383,7 @@ const T = {
       pontualidade: "Share of bills we paid on time — measures our performance paying, not the supplier's delivery performance.",
       qualidade: "Average of the Quality Level manually set in each supplier's registration.",
       estabilidade: "Average time, in months, since each active supplier was registered — the higher, the more stable the relationship.",
-      scoreMedio: "0-100 composite of status + quality + risk + payment punctuality, only for suppliers with enough data in at least two of those components.",
+      scoreMedio: "Average Axioma Corporate Score (0-1000, 14 weighted criteria) among suppliers with at least one criterion backed by real data.",
     },
   },
   es: {
@@ -446,6 +463,14 @@ const T = {
     eixoRisco: "Riesgo", eixoDependencia: "Dependencia", eixoConcentracao: "Concentración", eixoQualidadeInv: "Calidad (invertida)", eixoPontualidadeInv: "Atraso de Pago",
     escadaTitulo: "Escalera de Vencimientos", escadaSub: "Documentos y contratos que vencen en los próximos 6 meses.",
     escadaVazio: "Ningún documento o contrato con fecha de vencimiento registrada aún.",
+    critRisco: "Riesgo", critCompliance: "Cumplimiento", critRelacionamento: "Relación",
+    critConfiabilidade: "Confiabilidad", critPreco: "Precio", critCapacidadeEntrega: "Capacidad de Entrega",
+    critSaudeFinanceira: "Salud Financiera", critSustentabilidade: "Sostenibilidad", critInovacao: "Innovación", critFlexibilidade: "Flexibilidad",
+    nivelCritico: "Crítico", nivelAtencao: "Atención", nivelSaudavel: "Saludable",
+    scoreAxiomaTitulo: "Score Corporativo Axioma", verScore: "Ver Score",
+    criteriosTitulo: "Criterios del Score", semDadosCriterio: "Sin datos", pesoLabel: "Peso", contribuicaoLabel: "Contribución",
+    rankingTitulo: "Ranking Axioma", rankingSub: "Proveedores ordenados por el Score Corporativo Axioma (0-1000).",
+    rankingVazio: "Ningún proveedor registrado aún.",
     explicacoes: {
       total: "Conteo simple de todos los proveedores registrados, activos e inactivos.",
       ativos: "Proveedores con estado Activo en el registro.",
@@ -463,7 +488,7 @@ const T = {
       pontualidade: "Porcentaje de cuentas que pagamos a tiempo — mide nuestro desempeño pagando, no el desempeño de entrega del proveedor.",
       qualidade: "Promedio del Nivel de Calidad definido manualmente en el registro de cada proveedor.",
       estabilidade: "Tiempo promedio, en meses, desde el registro de cada proveedor activo — cuanto mayor, más estable la relación.",
-      scoreMedio: "Compuesto 0-100 de estado + calidad + riesgo + puntualidad de pago, solo para proveedores con datos suficientes en al menos dos de esos componentes.",
+      scoreMedio: "Promedio del Score Corporativo Axioma (0-1000, 14 criterios con peso propio) entre proveedores que ya tienen al menos un criterio con dato real.",
     },
   },
 };
@@ -478,6 +503,8 @@ export default function Fornecedores() {
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [todosDocumentos, setTodosDocumentos] = useState<FornecedorDocumento[]>([]);
   const [todosContratos, setTodosContratos] = useState<FornecedorContrato[]>([]);
+  const [todasInteracoes, setTodasInteracoes] = useState<FornecedorInteracao[]>([]);
+  const [scoreDrillId, setScoreDrillId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [buscaContas, setBuscaContas] = useState("");
@@ -550,10 +577,12 @@ export default function Fornecedores() {
     const { data: cp } = await supabase.from("contas_pagar").select("*").eq("user_id", user.id).order("data_vencimento", { ascending: true });
     const { data: docs } = await supabase.from("fornecedor_documentos").select("*").eq("user_id", user.id);
     const { data: contratos } = await supabase.from("fornecedor_contratos").select("*").eq("user_id", user.id);
+    const { data: interacoes } = await supabase.from("fornecedor_interacoes").select("*").eq("user_id", user.id);
     setFornecedores(forn || []);
     setContas(cp || []);
     setTodosDocumentos(docs || []);
     setTodosContratos(contratos || []);
+    setTodasInteracoes(interacoes || []);
     setCarregando(false);
   };
 
@@ -961,7 +990,23 @@ export default function Fornecedores() {
   const qualidadeCarteira = qualidadeMediaCarteira(fornecedores);
   const pontualidade = pontualidadePagamento(contas);
   const tempoRelacionamentoDias = tempoMedioRelacionamentoDias(fornecedores);
-  const scoreCarteira = scoreMedioCarteira(fornecedores, contas);
+
+  // ========== SCORE CORPORATIVO AXIOMA (Fase 3) ==========
+  const rankingAxioma = rankingScoreAxioma(fornecedores, contas, todosDocumentos, todasInteracoes);
+  const scoreCarteira = scoreMedioCarteiraAxioma(rankingAxioma);
+  const NOME_CRITERIO: Record<string, string> = {
+    qualidade: tt.kpiQualidade, pontualidade: tt.kpiPontualidade, risco: tt.critRisco, compliance: tt.critCompliance,
+    dependencia: tt.kpiDependenciaFinanceira, estabilidade: tt.kpiEstabilidade, relacionamento: tt.critRelacionamento,
+    confiabilidade: tt.critConfiabilidade, preco: tt.critPreco, capacidadeEntrega: tt.critCapacidadeEntrega,
+    saudeFinanceira: tt.critSaudeFinanceira, sustentabilidade: tt.critSustentabilidade, inovacao: tt.critInovacao,
+    flexibilidade: tt.critFlexibilidade,
+  };
+  const NIVEL_SCORE_COR: Record<string, string> = { critico: "#f87171", atencao: AMBAR, saudavel: "#34d399" };
+  const NIVEL_SCORE_LABEL: Record<string, string> = { critico: tt.nivelCritico, atencao: tt.nivelAtencao, saudavel: tt.nivelSaudavel };
+  const scoreDrillItem = rankingAxioma.find((r) => r.fornecedor.id === scoreDrillId) || null;
+  const velocimetroOption = scoreDrillItem ? optVelocimetro(scoreDrillItem.score.total, 1000, [
+    { ate: 400, cor: "#f87171" }, { ate: 700, cor: AMBAR }, { ate: 1000, cor: "#34d399" },
+  ]) : null;
 
   const itensRenovaveis: ItemRenovavel[] = [
     ...todosDocumentos.filter(d => d.data_validade).map(d => ({ descricao: d.nome, valor: 0, data_renovacao: d.data_validade, categoria: tt.documentacaoTitulo })),
@@ -1030,7 +1075,7 @@ export default function Fornecedores() {
     { key: "pontualidade", label: tt.kpiPontualidade, valor: pontualidade.amostraSuficiente ? `${pontualidade.percentual}%` : "—", cor: !pontualidade.amostraSuficiente ? "#5a7a9a" : pontualidade.percentual >= 80 ? "#34d399" : pontualidade.percentual >= 50 ? AMBAR : "#f87171", vazio: !pontualidade.amostraSuficiente, mensagemVazio: tt.semPagamentos },
     { key: "qualidade", label: tt.kpiQualidade, valor: rotuloQualidadeTxt, cor: !qualidadeCarteira.amostraSuficiente ? "#5a7a9a" : qualidadeCarteira.media >= 3 ? "#34d399" : qualidadeCarteira.media >= 2 ? AMBAR : "#f87171", vazio: !qualidadeCarteira.amostraSuficiente, mensagemVazio: tt.semClassificacao },
     { key: "estabilidade", label: tt.kpiEstabilidade, valor: fornecedores.length > 0 ? `${Math.round(tempoRelacionamentoDias / 30)} ${tt.unidadeMeses}` : "—", cor: "#a78bfa", vazio: fornecedores.length === 0, mensagemVazio: tt.semDados },
-    { key: "scoreMedio", label: tt.kpiScoreMedio, valor: scoreCarteira.amostraSuficiente ? `${scoreCarteira.media}` : "—", cor: !scoreCarteira.amostraSuficiente ? "#5a7a9a" : scoreCarteira.media >= 70 ? "#34d399" : scoreCarteira.media >= 40 ? AMBAR : "#f87171", vazio: !scoreCarteira.amostraSuficiente, mensagemVazio: tt.semScore },
+    { key: "scoreMedio", label: tt.kpiScoreMedio, valor: scoreCarteira.amostraSuficiente ? `${scoreCarteira.media}` : "—", cor: !scoreCarteira.amostraSuficiente ? "#5a7a9a" : scoreCarteira.media > 700 ? "#34d399" : scoreCarteira.media > 400 ? AMBAR : "#f87171", vazio: !scoreCarteira.amostraSuficiente, mensagemVazio: tt.semScore },
   ];
   const kpiAtivo = kpis.find(k => k.key === drillDown) || null;
 
@@ -1038,7 +1083,7 @@ export default function Fornecedores() {
     `🚀 AXIOMA AI.TECH — ${tt.dashboardTitulo}`,
     `🏭 ${tt.kpiTotal}: ${fornecedores.length}`,
     `💰 ${tt.kpiComprasAno}: ${fmt(comprasAno)}`,
-    scoreCarteira.amostraSuficiente ? `⭐ ${tt.kpiScoreMedio}: ${scoreCarteira.media}/100` : "",
+    scoreCarteira.amostraSuficiente ? `⭐ ${tt.kpiScoreMedio}: ${scoreCarteira.media}/1000` : "",
     "_axiomaai.com.br_",
   ].filter(Boolean).join("\n");
   const canaisShare = canaisCompartilhamento(textoShare, `${tt.dashboardTitulo} — Axioma`);
@@ -1145,6 +1190,32 @@ export default function Fornecedores() {
               )}
             </div>
           </div>
+
+          {/* Ranking Axioma (Fase 3) */}
+          <div className="rounded-xl p-4 mt-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+            <p className="text-sm font-black mb-0.5 flex items-center gap-2" style={{ color: "#f1f5f9", ...FONTE_EXEC }}><Trophy size={15} style={{ color: AMBAR }} /> {tt.rankingTitulo}</p>
+            <p className="text-[10px] mb-3" style={{ color: "#5a7a9a" }}>{tt.rankingSub}</p>
+            {rankingAxioma.length === 0 ? (
+              <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.rankingVazio}</p>
+            ) : (
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {rankingAxioma.map((r, i) => (
+                  <button key={r.fornecedor.id} onClick={() => setScoreDrillId(r.fornecedor.id)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all hover:scale-[1.01]"
+                    style={{ background: `${NIVEL_SCORE_COR[r.score.nivel]}0e`, border: `1px solid ${NIVEL_SCORE_COR[r.score.nivel]}30` }}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-[10px] font-black w-5 flex-shrink-0" style={{ color: "#5a7a9a" }}>#{i + 1}</span>
+                      <div className="min-w-0 text-left">
+                        <p className="text-xs font-semibold truncate" style={{ color: "#e2e8f0" }}>{r.fornecedor.nome}</p>
+                        <p className="text-[10px]" style={{ color: NIVEL_SCORE_COR[r.score.nivel] }}>{NIVEL_SCORE_LABEL[r.score.nivel]}</p>
+                      </div>
+                    </div>
+                    <p className="text-base font-black flex-shrink-0 ml-2" style={{ color: NIVEL_SCORE_COR[r.score.nivel], ...FONTE_EXEC }}>{r.score.total}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </CanvasBox>
 
         {/* Cards resumo */}
@@ -1203,6 +1274,7 @@ export default function Fornecedores() {
                   const contasForn = contas.filter(c => c.fornecedor_id === f.id);
                   const aberto = contasForn.reduce((s, c) => s + Math.max(0, c.valor_total - c.valor_pago), 0);
                   const alertas = alertasDoFornecedor(f.id);
+                  const scoreItem = rankingAxioma.find(r => r.fornecedor.id === f.id);
                   return (
                     <motion.div key={f.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                       <CanvasBox cor={AMBAR}>
@@ -1221,10 +1293,16 @@ export default function Fornecedores() {
                                     <AlertTriangle size={10} /> {alertas}
                                   </span>
                                 )}
+                                {scoreItem && scoreItem.score.total > 0 && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1 font-bold" style={{ background: `${NIVEL_SCORE_COR[scoreItem.score.nivel]}18`, color: NIVEL_SCORE_COR[scoreItem.score.nivel] }}>
+                                    <Gauge size={10} /> {scoreItem.score.total}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
                           <div className="flex gap-2 flex-shrink-0">
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => setScoreDrillId(f.id)} title={tt.verScore} style={{ color: AMBAR }}><Gauge size={15} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoForn(f)} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirForn(f.id)} style={{ color: "#f87171" }}><Trash2 size={15} /></motion.button>
                           </div>
@@ -1812,6 +1890,58 @@ export default function Fornecedores() {
                       <p className="text-xs" style={{ color: "#e2e8f0" }}>{kpiAtivo.mensagemVazio}</p>
                     </div>
                   )}
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* ====== DETALHAMENTO — Score Corporativo Axioma (Fase 3) ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {scoreDrillItem && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => setScoreDrillId(null)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
+                className="w-full max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <CanvasBox cor={NIVEL_SCORE_COR[scoreDrillItem.score.nivel]}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{scoreDrillItem.fornecedor.nome}</h3>
+                      <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.scoreAxiomaTitulo}</p>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setScoreDrillId(null)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                  </div>
+
+                  {velocimetroOption && <ReactECharts option={velocimetroOption} style={{ height: 200 }} notMerge lazyUpdate />}
+                  <div className="flex justify-center -mt-3 mb-4">
+                    <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: `${NIVEL_SCORE_COR[scoreDrillItem.score.nivel]}18`, color: NIVEL_SCORE_COR[scoreDrillItem.score.nivel] }}>{NIVEL_SCORE_LABEL[scoreDrillItem.score.nivel]}</span>
+                  </div>
+
+                  <p className="text-xs font-black mb-2" style={{ color: AMBAR }}>{tt.criteriosTitulo}</p>
+                  <div className="space-y-1.5">
+                    {scoreDrillItem.score.criterios.map((c) => (
+                      <div key={c.chave} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold" style={{ color: "#e2e8f0" }}>{NOME_CRITERIO[c.chave]}</p>
+                          <p className="text-[10px]" style={{ color: "#5a7a9a" }}>{tt.pesoLabel}: {c.peso}</p>
+                        </div>
+                        {c.semDados ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(148,163,184,0.1)", color: "#5a7a9a" }}>{tt.semDadosCriterio}</span>
+                        ) : (
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-black" style={{ color: (c.valor || 0) >= 70 ? "#34d399" : (c.valor || 0) >= 40 ? AMBAR : "#f87171" }}>{Math.round(c.valor as number)}</p>
+                            <p className="text-[9px]" style={{ color: "#5a7a9a" }}>+{c.contribuicao} {tt.contribuicaoLabel.toLowerCase()}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </CanvasBox>
               </motion.div>
             </motion.div>
