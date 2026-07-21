@@ -460,6 +460,30 @@ export function optDispersao(pontos: { nome: string; x: number; y: number; cor: 
   };
 }
 
+// Radar/spider chart — visão multi-eixo de um composto (ex: risco da carteira).
+// Cada indicador já deve vir normalizado (0..max) pelo chamador.
+export function optRadar(indicadores: { nome: string; max: number }[], valores: number[], cor: string) {
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    tooltip: { ...tipBase, trigger: "item", borderColor: cor },
+    radar: {
+      indicator: indicadores.map((i) => ({ name: i.nome, max: i.max })),
+      splitNumber: 4,
+      axisName: { color: "#94a3b8", fontSize: 10, fontWeight: 700 },
+      splitLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
+      splitArea: { areaStyle: { color: ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.03)"] } },
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
+    },
+    series: [{
+      type: "radar",
+      areaStyle: { color: cor + "33" },
+      lineStyle: { width: 3, color: cor, shadowColor: cor + "80", shadowBlur: 10 },
+      itemStyle: { color: cor, borderColor: "#0a0820", borderWidth: 2 },
+      data: [{ value: valores }],
+    }],
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // RADAR DE RENOVAÇÕES — detecta contratos/assinaturas próximos de renovar
 // Reutilizável: custos fixos, fornecedores, assinaturas, e-commerce
