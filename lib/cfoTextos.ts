@@ -12,6 +12,8 @@ import {
   type GatilhoConselhoInvestimento, type OportunidadeResgate,
   type ResultadoAlocacao, type CategoriaAlocacao, type ResultadoCenario,
   type ImpactoSensibilidade, type ResultadoMonteCarlo, type DriverSensibilidade,
+  type ImpactoPreco, type ImpactoDesconto, type ElasticidadeEstimada,
+  type OportunidadePrecificacao, type TipoOportunidadePrecificacao, type IPPA,
 } from "./cfoCore";
 
 export type CfoLang = "pt" | "en" | "es";
@@ -209,6 +211,34 @@ const TEXTOS = {
     simPlanoAcaoManterMonitorando: "Nenhum risco crítico detectado neste cenário — manter monitorando os indicadores reais mês a mês.",
     simSemDados: "Cadastre Receitas, Custos Fixos e Custos Variáveis para o motor de simulação usar dados reais como ponto de partida.",
     simUsarPreset: "Carregar neste simulador",
+    // Precificação / Engenharia de Valor
+    prcTitulo: "Precificação", prcSubtitulo: "Centro de Engenharia de Valor — preço é consequência da inteligência, não ponto de partida",
+    prcIppaTitulo: "IPPA — Índice de Poder de Precificação Axioma", prcIppaSub: "0 a 1000 — quanto maior, menos a empresa depende de desconto pra vender",
+    prcNivelCritico: "Crítico", prcNivelAtencao: "Atenção", prcNivelBom: "Bom", prcNivelExcelente: "Excelente",
+    prcSubMargem: "Margem", prcSubDependenciaDesconto: "Dependência de Desconto", prcSubConcentracao: "Concentração de Receita", prcSubEstabilidade: "Estabilidade de Receita", prcSubCompetitividade: "Competitividade",
+    prcRadarTitulo: "Radar de Oportunidades", prcRadarSub: "Produtos que pedem atenção agora",
+    prcTipoDestroiMargem: "Destrói Margem", prcTipoSubprecificado: "Subprecificado", prcTipoSobreprecificado: "Sobreprecificado", prcTipoPremium: "Premium", prcTipoSustentaCaixa: "Sustenta o Caixa",
+    prcMotorTitulo: "Motor de Precificação por Valor", prcMotorSub: "Veja o impacto real de um novo preço antes de aplicá-lo",
+    prcPrecoAtualLabel: "Preço Atual", prcPrecoCandidatoLabel: "Preço Candidato", prcUnidadesVendidasLabel: "Unidades Vendidas/Mês",
+    prcImpactoReceitaLabel: "Impacto na Receita", prcImpactoLucroLabel: "Impacto no Lucro Líquido", prcImpactoEbitdaLabel: "Impacto no EBITDA", prcImpactoTributarioLabel: "Impacto Tributário", prcMargemNovaLabel: "Nova Margem de Contribuição",
+    prcAplicarPreco: "Aplicar Este Preço",
+    prcDescontoTitulo: "Engenharia de Descontos", prcDescontoSub: "Veja o impacto antes de conceder qualquer desconto",
+    prcDescontoPctLabel: "Desconto (%)", prcLimiteMaximoLabel: "Limite Máximo Saudável", prcDentroLimite: "Dentro do limite saudável", prcForaLimite: "Acima do limite — prejuízo direto por unidade",
+    prcConcorrentesTitulo: "Inteligência Competitiva", prcConcorrentesSub: "Cadastro manual — comparação automática de preço e posicionamento",
+    prcConcorrenteNomeLabel: "Nome do Concorrente", prcConcorrentePrecoLabel: "Preço do Concorrente", prcConcorrentePosicionamentoLabel: "Posicionamento",
+    prcAdicionarConcorrente: "Adicionar Concorrente", prcSemConcorrentes: "Nenhum concorrente cadastrado para este produto ainda.",
+    prcWarRoomTitulo: "War Room — Simulação Estratégica", prcWarRoomSub: "Reaproveita o motor de Simulações — escolha um cenário de guerra e veja o impacto real",
+    prcCenarioConcorrenteReduz: "Concorrente Reduz Preço", prcCenarioConcorrenteAumenta: "Concorrente Aumenta Preço", prcCenarioInflacao: "Alta da Inflação", prcCenarioSelic: "Alta da Selic", prcCenarioCambio: "Choque Cambial",
+    prcCenarioCrise: "Crise Econômica", prcCenarioMudancaTributaria: "Mudança Tributária", prcCenarioNovoConcorrente: "Novo Concorrente", prcCenarioExplosaoDemanda: "Explosão de Demanda", prcCenarioQuedaVendas: "Queda nas Vendas", prcCenarioMudancaFornecedores: "Mudança de Fornecedores",
+    prcPainelEspecialistasTitulo: "Painel de Especialistas", prcPainelEspecialistasSub: "Análise por regras determinísticas — não é IA generativa ainda (ver nota de transparência)",
+    prcEspecialistaCFO: "CFO", prcEspecialistaTributario: "Especialista Tributário", prcEspecialistaComercial: "Especialista Comercial/Pricing", prcEspecialistaRisco: "Especialista em Riscos", prcEspecialistaAnalista: "Analista Financeiro",
+    prcRecomendacaoConsolidadaTitulo: "Recomendação Consolidada",
+    prcElasticidadeTitulo: "Elasticidade de Preço", prcElasticidadeDadosInsuficientes: "Dados insuficientes — registre pelo menos 3 mudanças de preço para este produto para calcular elasticidade real.",
+    prcMemoriaTitulo: "Memória Estratégica", prcMemoriaSub: "Toda decisão de preço registrada, com o resultado real conferido depois",
+    prcDecisaoAnteriorLabel: "Preço Anterior", prcDecisaoNovaLabel: "Preço Novo", prcMotivoLabel: "Motivo da Decisão", prcResultadoEsperadoLabel: "Resultado Esperado", prcResultadoRealLabel: "Resultado Real",
+    prcRegistrarDecisao: "Registrar Decisão", prcSemDecisoes: "Nenhuma decisão registrada ainda.",
+    prcNenhumProduto: "Cadastre produtos para o Centro de Engenharia de Valor calcular tudo automaticamente.",
+    prcTransparenciaTexto: "O Painel de Especialistas e a Recomendação Consolidada são gerados 100% por regras a partir dos seus dados reais — nenhum texto aqui foi gerado por um modelo de linguagem ainda.",
   },
   en: {
     mrr: "Recurring Revenue (MRR)", arr: "Annual Revenue (ARR)",
@@ -388,6 +418,34 @@ const TEXTOS = {
     simPlanoAcaoManterMonitorando: "No critical risk detected in this scenario — keep tracking the real indicators month by month.",
     simSemDados: "Register Revenue, Fixed Costs and Variable Costs so the simulation engine can use real data as a starting point.",
     simUsarPreset: "Load into this simulator",
+    // Pricing / Value Engineering
+    prcTitulo: "Pricing", prcSubtitulo: "Value Engineering Center — price is a consequence of intelligence, not a starting point",
+    prcIppaTitulo: "IPPA — Axioma Pricing Power Index", prcIppaSub: "0 to 1000 — the higher, the less the company depends on discounts to sell",
+    prcNivelCritico: "Critical", prcNivelAtencao: "Attention", prcNivelBom: "Good", prcNivelExcelente: "Excellent",
+    prcSubMargem: "Margin", prcSubDependenciaDesconto: "Discount Dependency", prcSubConcentracao: "Revenue Concentration", prcSubEstabilidade: "Revenue Stability", prcSubCompetitividade: "Competitiveness",
+    prcRadarTitulo: "Opportunity Radar", prcRadarSub: "Products that need attention now",
+    prcTipoDestroiMargem: "Destroys Margin", prcTipoSubprecificado: "Underpriced", prcTipoSobreprecificado: "Overpriced", prcTipoPremium: "Premium", prcTipoSustentaCaixa: "Cash Backbone",
+    prcMotorTitulo: "Value-Based Pricing Engine", prcMotorSub: "See the real impact of a new price before applying it",
+    prcPrecoAtualLabel: "Current Price", prcPrecoCandidatoLabel: "Candidate Price", prcUnidadesVendidasLabel: "Units Sold/Month",
+    prcImpactoReceitaLabel: "Revenue Impact", prcImpactoLucroLabel: "Net Profit Impact", prcImpactoEbitdaLabel: "EBITDA Impact", prcImpactoTributarioLabel: "Tax Impact", prcMargemNovaLabel: "New Contribution Margin",
+    prcAplicarPreco: "Apply This Price",
+    prcDescontoTitulo: "Discount Engineering", prcDescontoSub: "See the impact before granting any discount",
+    prcDescontoPctLabel: "Discount (%)", prcLimiteMaximoLabel: "Healthy Maximum Limit", prcDentroLimite: "Within the healthy limit", prcForaLimite: "Above the limit — direct loss per unit",
+    prcConcorrentesTitulo: "Competitive Intelligence", prcConcorrentesSub: "Manual entry — automatic price and positioning comparison",
+    prcConcorrenteNomeLabel: "Competitor Name", prcConcorrentePrecoLabel: "Competitor Price", prcConcorrentePosicionamentoLabel: "Positioning",
+    prcAdicionarConcorrente: "Add Competitor", prcSemConcorrentes: "No competitors registered for this product yet.",
+    prcWarRoomTitulo: "War Room — Strategic Simulation", prcWarRoomSub: "Reuses the Simulations engine — pick a war scenario and see the real impact",
+    prcCenarioConcorrenteReduz: "Competitor Cuts Price", prcCenarioConcorrenteAumenta: "Competitor Raises Price", prcCenarioInflacao: "Inflation Spike", prcCenarioSelic: "Interest Rate Hike", prcCenarioCambio: "FX Shock",
+    prcCenarioCrise: "Economic Crisis", prcCenarioMudancaTributaria: "Tax Change", prcCenarioNovoConcorrente: "New Competitor", prcCenarioExplosaoDemanda: "Demand Surge", prcCenarioQuedaVendas: "Sales Drop", prcCenarioMudancaFornecedores: "Supplier Change",
+    prcPainelEspecialistasTitulo: "Specialist Panel", prcPainelEspecialistasSub: "Rule-based analysis — not generative AI yet (see transparency note)",
+    prcEspecialistaCFO: "CFO", prcEspecialistaTributario: "Tax Specialist", prcEspecialistaComercial: "Commercial/Pricing Specialist", prcEspecialistaRisco: "Risk Specialist", prcEspecialistaAnalista: "Financial Analyst",
+    prcRecomendacaoConsolidadaTitulo: "Consolidated Recommendation",
+    prcElasticidadeTitulo: "Price Elasticity", prcElasticidadeDadosInsuficientes: "Insufficient data — record at least 3 price changes for this product to calculate real elasticity.",
+    prcMemoriaTitulo: "Strategic Memory", prcMemoriaSub: "Every pricing decision logged, with the real outcome checked later",
+    prcDecisaoAnteriorLabel: "Previous Price", prcDecisaoNovaLabel: "New Price", prcMotivoLabel: "Decision Reason", prcResultadoEsperadoLabel: "Expected Outcome", prcResultadoRealLabel: "Actual Outcome",
+    prcRegistrarDecisao: "Log Decision", prcSemDecisoes: "No decisions logged yet.",
+    prcNenhumProduto: "Register products for the Value Engineering Center to calculate everything automatically.",
+    prcTransparenciaTexto: "The Specialist Panel and Consolidated Recommendation are 100% rule-generated from your real data — no text here was generated by a language model yet.",
   },
   es: {
     mrr: "Ingresos Recurrentes (MRR)", arr: "Ingresos Anuales (ARR)",
@@ -567,6 +625,34 @@ const TEXTOS = {
     simPlanoAcaoManterMonitorando: "No se detectó ningún riesgo crítico en este escenario — siga monitoreando los indicadores reales mes a mes.",
     simSemDados: "Registre Ingresos, Costos Fijos y Costos Variables para que el motor de simulación use datos reales como punto de partida.",
     simUsarPreset: "Cargar en este simulador",
+    // Precios / Ingeniería de Valor
+    prcTitulo: "Precios", prcSubtitulo: "Centro de Ingeniería de Valor — el precio es consecuencia de la inteligencia, no un punto de partida",
+    prcIppaTitulo: "IPPA — Índice de Poder de Precificación Axioma", prcIppaSub: "0 a 1000 — cuanto más alto, menos depende la empresa del descuento para vender",
+    prcNivelCritico: "Crítico", prcNivelAtencao: "Atención", prcNivelBom: "Bueno", prcNivelExcelente: "Excelente",
+    prcSubMargem: "Margen", prcSubDependenciaDesconto: "Dependencia de Descuento", prcSubConcentracao: "Concentración de Ingresos", prcSubEstabilidade: "Estabilidad de Ingresos", prcSubCompetitividade: "Competitividad",
+    prcRadarTitulo: "Radar de Oportunidades", prcRadarSub: "Productos que necesitan atención ahora",
+    prcTipoDestroiMargem: "Destruye Margen", prcTipoSubprecificado: "Subprecificado", prcTipoSobreprecificado: "Sobreprecificado", prcTipoPremium: "Premium", prcTipoSustentaCaixa: "Sostiene la Caja",
+    prcMotorTitulo: "Motor de Precificación por Valor", prcMotorSub: "Vea el impacto real de un nuevo precio antes de aplicarlo",
+    prcPrecoAtualLabel: "Precio Actual", prcPrecoCandidatoLabel: "Precio Candidato", prcUnidadesVendidasLabel: "Unidades Vendidas/Mes",
+    prcImpactoReceitaLabel: "Impacto en Ingresos", prcImpactoLucroLabel: "Impacto en la Utilidad Neta", prcImpactoEbitdaLabel: "Impacto en el EBITDA", prcImpactoTributarioLabel: "Impacto Tributario", prcMargemNovaLabel: "Nuevo Margen de Contribución",
+    prcAplicarPreco: "Aplicar Este Precio",
+    prcDescontoTitulo: "Ingeniería de Descuentos", prcDescontoSub: "Vea el impacto antes de conceder cualquier descuento",
+    prcDescontoPctLabel: "Descuento (%)", prcLimiteMaximoLabel: "Límite Máximo Saludable", prcDentroLimite: "Dentro del límite saludable", prcForaLimite: "Por encima del límite — pérdida directa por unidad",
+    prcConcorrentesTitulo: "Inteligencia Competitiva", prcConcorrentesSub: "Registro manual — comparación automática de precio y posicionamiento",
+    prcConcorrenteNomeLabel: "Nombre del Competidor", prcConcorrentePrecoLabel: "Precio del Competidor", prcConcorrentePosicionamentoLabel: "Posicionamiento",
+    prcAdicionarConcorrente: "Agregar Competidor", prcSemConcorrentes: "Ningún competidor registrado para este producto aún.",
+    prcWarRoomTitulo: "War Room — Simulación Estratégica", prcWarRoomSub: "Reutiliza el motor de Simulaciones — elija un escenario de guerra y vea el impacto real",
+    prcCenarioConcorrenteReduz: "Competidor Reduce Precio", prcCenarioConcorrenteAumenta: "Competidor Aumenta Precio", prcCenarioInflacao: "Alza de la Inflación", prcCenarioSelic: "Alza de la Tasa de Interés", prcCenarioCambio: "Choque Cambiario",
+    prcCenarioCrise: "Crisis Económica", prcCenarioMudancaTributaria: "Cambio Tributario", prcCenarioNovoConcorrente: "Nuevo Competidor", prcCenarioExplosaoDemanda: "Explosión de Demanda", prcCenarioQuedaVendas: "Caída de Ventas", prcCenarioMudancaFornecedores: "Cambio de Proveedores",
+    prcPainelEspecialistasTitulo: "Panel de Especialistas", prcPainelEspecialistasSub: "Análisis basado en reglas determinísticas — todavía no es IA generativa (ver nota de transparencia)",
+    prcEspecialistaCFO: "CFO", prcEspecialistaTributario: "Especialista Tributario", prcEspecialistaComercial: "Especialista Comercial/Pricing", prcEspecialistaRisco: "Especialista en Riesgos", prcEspecialistaAnalista: "Analista Financiero",
+    prcRecomendacaoConsolidadaTitulo: "Recomendación Consolidada",
+    prcElasticidadeTitulo: "Elasticidad de Precio", prcElasticidadeDadosInsuficientes: "Datos insuficientes — registre al menos 3 cambios de precio para este producto para calcular elasticidad real.",
+    prcMemoriaTitulo: "Memoria Estratégica", prcMemoriaSub: "Cada decisión de precio registrada, con el resultado real verificado después",
+    prcDecisaoAnteriorLabel: "Precio Anterior", prcDecisaoNovaLabel: "Precio Nuevo", prcMotivoLabel: "Motivo de la Decisión", prcResultadoEsperadoLabel: "Resultado Esperado", prcResultadoRealLabel: "Resultado Real",
+    prcRegistrarDecisao: "Registrar Decisión", prcSemDecisoes: "Ninguna decisión registrada aún.",
+    prcNenhumProduto: "Registre productos para que el Centro de Ingeniería de Valor calcule todo automáticamente.",
+    prcTransparenciaTexto: "El Panel de Especialistas y la Recomendación Consolidada se generan 100% por reglas a partir de sus datos reales — ningún texto aquí fue generado por un modelo de lenguaje todavía.",
   },
 };
 
@@ -922,6 +1008,85 @@ export function montarNarrativaRegimeTributario(lang: string, nomeRegime: string
   if (lang === "en") return `Under this simulated scenario, ${nomeRegime} yields the highest net profit — about ${fBRL(economiaMensal)}/month more than your current regime.`;
   if (lang === "es") return `En este escenario simulado, ${nomeRegime} genera la mayor utilidad neta — cerca de ${fBRL(economiaMensal)}/mes más que su régimen actual.`;
   return `Nesse cenário simulado, ${nomeRegime} gera o maior lucro líquido — cerca de ${fBRL(economiaMensal)}/mês a mais que seu regime atual.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRECIFICAÇÃO / ENGENHARIA DE VALOR — NARRATIVAS
+// ═══════════════════════════════════════════════════════════════
+const NOME_TIPO_OPORTUNIDADE_PRECIFICACAO: Record<TipoOportunidadePrecificacao, keyof CfoTextos> = {
+  destroiMargem: "prcTipoDestroiMargem", subprecificado: "prcTipoSubprecificado", sobreprecificado: "prcTipoSobreprecificado",
+  premium: "prcTipoPremium", sustentaCaixa: "prcTipoSustentaCaixa",
+};
+
+export function nomeTipoOportunidadePrecificacao(lang: string, tipo: TipoOportunidadePrecificacao): string {
+  return cfoT(lang)[NOME_TIPO_OPORTUNIDADE_PRECIFICACAO[tipo]] as string;
+}
+
+export function montarNarrativaOportunidadePrecificacao(lang: string, o: OportunidadePrecificacao): string {
+  const nome = `"${o.nome}"`;
+  if (lang === "en") {
+    if (o.tipo === "destroiMargem") return `${nome} has negative margin (${fPct(o.margemPct)}) — every unit sold loses money.`;
+    if (o.tipo === "subprecificado") return `${nome} has margin well below your portfolio average (${fPct(o.margemPct)}) — likely room to raise price.`;
+    if (o.tipo === "sobreprecificado") return `${nome} is priced well above the registered competitor — risk of losing sales on price alone.`;
+    if (o.tipo === "premium") return `${nome} sustains a high margin (${fPct(o.margemPct)}) without being priced above the competition — genuine pricing power.`;
+    return `${nome} accounts for a large share of monthly revenue — protect it before changing its price.`;
+  }
+  if (lang === "es") {
+    if (o.tipo === "destroiMargem") return `${nome} tiene margen negativo (${fPct(o.margemPct)}) — cada unidad vendida genera pérdida.`;
+    if (o.tipo === "subprecificado") return `${nome} tiene margen muy por debajo del promedio de su cartera (${fPct(o.margemPct)}) — probablemente hay espacio para subir el precio.`;
+    if (o.tipo === "sobreprecificado") return `${nome} está muy por encima del competidor registrado — riesgo de perder ventas solo por precio.`;
+    if (o.tipo === "premium") return `${nome} sostiene un margen alto (${fPct(o.margemPct)}) sin estar por encima de la competencia — poder de precificación genuino.`;
+    return `${nome} representa una gran parte de los ingresos mensuales — protéjalo antes de cambiar su precio.`;
+  }
+  if (o.tipo === "destroiMargem") return `${nome} está com margem negativa (${fPct(o.margemPct)}) — cada unidade vendida dá prejuízo.`;
+  if (o.tipo === "subprecificado") return `${nome} está com margem bem abaixo da média da sua carteira (${fPct(o.margemPct)}) — provável espaço pra subir o preço.`;
+  if (o.tipo === "sobreprecificado") return `${nome} está bem acima do concorrente cadastrado — risco de perder venda só pelo preço.`;
+  if (o.tipo === "premium") return `${nome} sustenta margem alta (${fPct(o.margemPct)}) sem estar acima da concorrência — poder de precificação genuíno.`;
+  return `${nome} representa uma fatia grande da receita mensal — proteja-o antes de mexer no preço.`;
+}
+
+export function montarNarrativaImpactoPreco(lang: string, impacto: ImpactoPreco, precoAtual: number, precoCandidato: number): string {
+  if (lang === "en") return `Moving from ${fBRL(precoAtual)} to ${fBRL(precoCandidato)}: net profit ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "grows" : "shrinks"} by ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/month, new contribution margin ${fPct(impacto.margemContribuicaoPct)}.`;
+  if (lang === "es") return `Al pasar de ${fBRL(precoAtual)} a ${fBRL(precoCandidato)}: la utilidad neta ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "crece" : "cae"} ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/mes, nuevo margen de contribución ${fPct(impacto.margemContribuicaoPct)}.`;
+  return `Ao sair de ${fBRL(precoAtual)} para ${fBRL(precoCandidato)}: o lucro líquido ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "cresce" : "cai"} ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/mês, nova margem de contribuição ${fPct(impacto.margemContribuicaoPct)}.`;
+}
+
+export function montarNarrativaImpactoDesconto(lang: string, impacto: ImpactoDesconto, descontoPct: number): string {
+  if (!impacto.dentroDoLimite) {
+    if (lang === "en") return `${fPct(descontoPct)} discount goes past the healthy limit (${fPct(impacto.limiteMaximoSaudavelPct)}) — you'd be selling below direct cost.`;
+    if (lang === "es") return `Un descuento de ${fPct(descontoPct)} pasa el límite saludable (${fPct(impacto.limiteMaximoSaudavelPct)}) — estaría vendiendo por debajo del costo directo.`;
+    return `Um desconto de ${fPct(descontoPct)} passa do limite saudável (${fPct(impacto.limiteMaximoSaudavelPct)}) — você estaria vendendo abaixo do custo direto.`;
+  }
+  if (lang === "en") return `${fPct(descontoPct)} discount stays within the healthy limit (up to ${fPct(impacto.limiteMaximoSaudavelPct)}) — monthly profit impact of ${fBRL(impacto.impactoLucroMensal)}.`;
+  if (lang === "es") return `Un descuento de ${fPct(descontoPct)} se mantiene dentro del límite saludable (hasta ${fPct(impacto.limiteMaximoSaudavelPct)}) — impacto mensual en la utilidad de ${fBRL(impacto.impactoLucroMensal)}.`;
+  return `Um desconto de ${fPct(descontoPct)} fica dentro do limite saudável (até ${fPct(impacto.limiteMaximoSaudavelPct)}) — impacto mensal no lucro de ${fBRL(impacto.impactoLucroMensal)}.`;
+}
+
+export function montarNarrativaElasticidade(lang: string, e: ElasticidadeEstimada): string {
+  if (!e.temDadosSuficientes) {
+    if (lang === "en") return `Not enough price-change history yet (${e.amostras}/3 needed) — showing no elasticity estimate instead of guessing.`;
+    if (lang === "es") return `Aún no hay suficiente historial de cambios de precio (${e.amostras}/3 necesarios) — no se muestra una estimación en lugar de adivinar.`;
+    return `Ainda não há histórico suficiente de mudanças de preço (${e.amostras}/3 necessárias) — sem estimativa de elasticidade em vez de chutar um número.`;
+  }
+  const el = e.elasticidadePct ?? 0;
+  if (lang === "en") return `Based on ${e.amostras} real price changes: each 1% price increase moves volume by about ${el.toFixed(1)}%.`;
+  if (lang === "es") return `Basado en ${e.amostras} cambios de precio reales: cada 1% de aumento de precio mueve el volumen en cerca de ${el.toFixed(1)}%.`;
+  return `Baseado em ${e.amostras} mudanças de preço reais: cada 1% de aumento no preço move o volume em cerca de ${el.toFixed(1)}%.`;
+}
+
+export function montarNarrativaIPPA(lang: string, ippa: IPPA): string {
+  const pior = [...ippa.subscores].sort((a, b) => a.valor - b.valor)[0];
+  const NOME: Record<string, { pt: string; en: string; es: string }> = {
+    margem: { pt: "margem abaixo do saudável", en: "below-healthy margin", es: "margen por debajo de lo saludable" },
+    dependenciaDesconto: { pt: "dependência de desconto", en: "discount dependency", es: "dependencia de descuentos" },
+    concentracao: { pt: "concentração de receita em poucos produtos", en: "revenue concentration in few products", es: "concentración de ingresos en pocos productos" },
+    estabilidade: { pt: "instabilidade de receita", en: "revenue instability", es: "inestabilidad de ingresos" },
+    competitividade: { pt: "preço sistematicamente abaixo da concorrência", en: "price systematically below competitors", es: "precio sistemáticamente por debajo de la competencia" },
+  };
+  const fator = NOME[pior.chave]?.[lang as "pt" | "en" | "es"] || NOME[pior.chave]?.pt || pior.chave;
+  if (lang === "en") return `Score ${ippa.total}/1000 — the biggest drag right now is ${fator}.`;
+  if (lang === "es") return `Puntaje ${ippa.total}/1000 — el mayor freno ahora mismo es ${fator}.`;
+  return `Nota ${ippa.total}/1000 — o maior freio agora é ${fator}.`;
 }
 
 export function canaisCompartilhamento(texto: string, assunto: string) {

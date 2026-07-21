@@ -4,7 +4,7 @@
 ---
 
 ## 1. RESUMO EM UMA FRASE
-Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. Do menu Crescimento, **Metas**, **Investimentos** e agora **Simulações** estão completos — ver seções 3-A, 3-B e 3-C (Simulações é o novo "Centro de Simulação Estratégica": motor multi-cenário + análise de sensibilidade + Monte Carlo + comparador de regime tributário + conselho executivo). Próximo: Precificação (fecha o Crescimento), ou pular pro E-commerce/PDV (ver seção 4).
+Estamos transformando cada módulo do Axioma em "CFO de altíssimo nível", em cima de um alicerce reutilizável (`cfoCore` + `cfoTextos`), seguindo o menu Financeiro. **O menu Financeiro inteiro está completo**: Dashboard, Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE e Endividamento. **O menu Crescimento inteiro está completo**: Metas, Investimentos, Simulações e agora **Precificação** — ver seções 3-A a 3-D (Precificação é o novo "Centro de Engenharia de Valor": IPPA — Índice de Poder de Precificação —, Motor de Precificação por Valor, Radar de Oportunidades, Engenharia de Descontos, Elasticidade honesta, Inteligência Competitiva manual, War Room, Painel de Especialistas por regra e Memória Estratégica). Próximo: Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) ou E-commerce/PDV (ver seção 4).
 
 **IA real (Claude API) — correção de rota:** ao investigar a implementação de Precificação, descobrimos que a infraestrutura da IA real **já está pronta no código** (`@anthropic-ai/sdk` instalado, rota server-side `app/api/ia-chat/route.ts` funcional, já integrada com fallback gracioso em IA Financeira e IA Tributária, CSP e rate limit já configurados em `middleware.ts`) — isso corrige o que este documento registrava antes ("Claude API só no final"). **Decisão do Elias (rodada atual): por enquanto seguimos SEM ativar a `ANTHROPIC_API_KEY`.** IA Financeira e IA Tributária continuam rodando em modo por regras (fallback já existente, funciona normalmente) até ele ativar billing na conta Anthropic. Quando ativar, é só colar a chave em `.env.local`/Vercel e atualizar o modelo (a rota hoje usa `claude-sonnet-4-20250514`, desatualizado) — não é trabalho de implementação, é ativação. Até lá, todo módulo novo continua com a camada "IA"/"Conselho CFO" em lógica determinística baseada em regras, mesmo padrão já usado em todo o app.
 
@@ -115,13 +115,68 @@ Entregue: **Ponto de Partida automático** (receita/custo fixo/custo variável/d
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado no navegador com login real nesta sessão.
 
+## 3-D. Precificação (`/precificacao`) — reescrito do zero, entregue nesta rodada
+**Centro de Engenharia de Valor — antes era uma calculadora de markup de 1 tela (custo/(1−margem−impostos−despesas)), tabela `precificacao` com 4 campos, sem histórico, sem concorrente, sem ligação com nenhum outro módulo.** Briefing original pedia um "Executive Board" com 9 especialistas virtuais + IA conversacional livre ("Copiloto Executivo") + rastreamento automático de concorrentes + valuation completo. Pesquisa de mercado (Pricefx, Vendavo, PROS, Zilliant, Competera, Omnia, ProfitWell/Simon-Kucher) confirmou 3 coisas antes de codar: (1) nenhuma ferramenta do setor — nem as de US$100k+/ano — tem "war room" multiagente de IA nem um "pricing power score" pronto; (2) elasticidade real em qualquer ferramenta exige milhares de transações históricas por SKU, PME não tem isso no dia 1; (3) rastreamento automático de concorrentes é frágil mesmo pras líderes de mercado (matching de produto falha) e carrega risco jurídico de scraping.
+
+**3 decisões técnicas apresentadas ao Elias antes de codar, aprovadas para seguir com a recomendação:**
+1. **Painel de Especialistas por regra agora, Copiloto/Executive Board real de IA depois** — mesma lógica já usada em todo o app; a Claude API segue desativada por decisão do Elias (ver seção 1).
+2. **Cadastro manual de concorrentes**, não scraping — scraping fica de fora do escopo até uma decisão e aprovação própria, separada.
+3. **Elasticidade honestamente condicionada** — só calcula com ≥3 mudanças de preço reais registradas pro mesmo produto; abaixo disso, mostra "dados insuficientes" em vez de inventar uma curva.
+
+Entregue: **IPPA — Índice de Poder de Precificação Axioma** (0-1000, `calcularIPPA` novo em `cfoCore.ts` — margem vs. referência saudável, dependência de desconto, concentração de receita por produto, estabilidade de receita, competitividade vs. concorrente cadastrado; sempre explica qual componente está puxando a nota pra baixo), **Motor de Precificação por Valor** (`calcularImpactoPreco` — qualquer preço candidato recalcula receita/margem/lucro líquido/EBITDA/tributo em cima do DRE real da empresa, reaproveitando `montarDRE`/`margemContribuicao`), **Engenharia de Descontos** (`calcularImpactoDesconto` — mostra o limite máximo saudável de desconto antes de conceder qualquer um), **Radar de Oportunidades** (`detectarOportunidadesPrecificacao` — produtos que destroem margem, subprecificados, sobreprecificados vs. concorrente, premium, que sustentam o caixa), **Elasticidade honesta** (`estimarElasticidade`), **Inteligência Competitiva** (cadastro manual de concorrentes por produto, tabela nova `concorrentes`), **War Room** (reaproveita 100% o motor de Simulações — `simularCenariosExecutivos` — com 11 presets de cenário: concorrente reduz/aumenta preço, inflação, Selic, câmbio, crise, mudança tributária, novo concorrente, explosão de demanda, queda nas vendas, mudança de fornecedores), **Painel de Especialistas** (5 cards — CFO, Tributário, Comercial/Pricing, Risco, Analista Financeiro — cada um com dado real e nota de transparência de que é regra, não IA generativa) e **Memória Estratégica** (tabela nova `decisoes_precificacao` — toda mudança de preço aplicada via Motor de Precificação é logada automaticamente com preço anterior/novo, e o resultado real pode ser preenchido depois direto na lista, fechando o loop "decisão → resultado → aprendizado"). Cor tema: amarelo + dourado (nova).
+
+**Excluído conscientemente, não esquecido:** ROI/Payback, capital de giro, necessidade de estoque, capacidade operacional e valuation por múltiplo/DCF (o Axioma não tem módulo de Estoque/PDV nem dados de valuation ainda); LTV/CAC/Churn no IPPA (exige custo de aquisição de cliente, que não existe no schema); bundles/cross-sell/upsell/reposicionamento no Radar (exige dados de item por pedido, só existirão com o módulo E-commerce/PDV).
+
+**Schema (SQL a rodar no Supabase antes de testar — enviado ao Elias):**
+```sql
+ALTER TABLE precificacao
+  ADD COLUMN IF NOT EXISTS categoria text,
+  ADD COLUMN IF NOT EXISTS unidades_vendidas_mes numeric,
+  ADD COLUMN IF NOT EXISTS status text DEFAULT 'ativo';
+
+CREATE TABLE IF NOT EXISTS concorrentes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  produto_id uuid references precificacao(id) on delete cascade,
+  nome_concorrente text not null,
+  preco numeric not null,
+  posicionamento text,
+  created_at timestamptz default now()
+);
+alter table concorrentes enable row level security;
+create policy "concorrentes_select" on concorrentes for select using (auth.uid() = user_id);
+create policy "concorrentes_insert" on concorrentes for insert with check (auth.uid() = user_id);
+create policy "concorrentes_update" on concorrentes for update using (auth.uid() = user_id);
+create policy "concorrentes_delete" on concorrentes for delete using (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS decisoes_precificacao (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  produto_id uuid references precificacao(id) on delete cascade,
+  preco_anterior numeric,
+  preco_novo numeric,
+  motivo text,
+  unidades_no_momento numeric,
+  resultado_esperado text,
+  resultado_real text,
+  created_at timestamptz default now()
+);
+alter table decisoes_precificacao enable row level security;
+create policy "decisoes_precificacao_select" on decisoes_precificacao for select using (auth.uid() = user_id);
+create policy "decisoes_precificacao_insert" on decisoes_precificacao for insert with check (auth.uid() = user_id);
+create policy "decisoes_precificacao_update" on decisoes_precificacao for update using (auth.uid() = user_id);
+create policy "decisoes_precificacao_delete" on decisoes_precificacao for delete using (auth.uid() = user_id);
+```
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). Não testado no navegador com login real nesta sessão — e não pode ser testado de ponta a ponta até o SQL acima rodar no Supabase.
+
 ## 4. PRÓXIMO PASSO
-Precificação (fecha o menu Crescimento) → Clientes, Fornecedores, Contas a Receber, Inadimplência (Comercial) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
-## 5. FILA DEPOIS (menu Crescimento/Comercial)
-Resto do Crescimento (Precificação), Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
+## 5. FILA DEPOIS (Comercial)
+Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
 
 ---
 

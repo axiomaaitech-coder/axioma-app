@@ -1815,6 +1815,151 @@ export function receitaPctParaMultiplicarLucro(lucroAtual: number, receitaAtual:
 }
 
 // ═══════════════════════════════════════════════════════════════
+// PRECIFICAÇÃO — MOTOR DE ENGENHARIA DE VALOR
+// Preço nunca é markup isolado: toda alteração recalcula o impacto real
+// em receita/margem/lucro/EBITDA/tributos usando o mesmo núcleo de DRE
+// do resto do alicerce (montarDRE, margemContribuicao). Deliberadamente
+// NÃO modela capital de giro, necessidade de estoque, capacidade
+// operacional, ROI/Payback, CAC/LTV/Churn ou bundles/cross-sell — o
+// Axioma ainda não tem módulo de Estoque/PDV nem dados de aquisição de
+// cliente ou itens de pedido pra sustentar esses números com honestidade.
+// ═══════════════════════════════════════════════════════════════
+
+// ---------- IMPACTO DE PREÇO (Digital Twin de um produto) ----------
+export type ImpactoPreco = {
+  receitaMensalProduto: number; custoMensalProduto: number; margemContribuicaoPct: number;
+  impostoMensalEstimado: number; lucroMensalProduto: number;
+  deltaReceitaEmpresa: number; deltaLucroLiquidoEmpresa: number; deltaEbitdaEmpresa: number;
+};
+
+// Premissa declarada: unidades vendidas/mês do produto se mantêm constantes entre o preço
+// atual e o candidato (sem elasticidade aplicada aqui — ver estimarElasticidade). Os demais
+// produtos, custo fixo e demais despesas da empresa ficam constantes.
+export function calcularImpactoPreco(p: {
+  custoUnitario: number; unidadesVendidasMes: number; precoCandidato: number; aliquotaEfetivaPct: number;
+  receitaMensalProdutoAtual: number; custoMensalProdutoAtual: number;
+}): ImpactoPreco {
+  const receitaMensalProduto = p.precoCandidato * p.unidadesVendidasMes;
+  const custoMensalProduto = p.custoUnitario * p.unidadesVendidasMes;
+  const mc = margemContribuicao(receitaMensalProduto, custoMensalProduto);
+  const impostoMensalEstimado = receitaMensalProduto * (p.aliquotaEfetivaPct / 100);
+  const lucroMensalProduto = mc.valor - impostoMensalEstimado;
+
+  const deltaReceitaEmpresa = receitaMensalProduto - p.receitaMensalProdutoAtual;
+  const deltaCustoEmpresa = custoMensalProduto - p.custoMensalProdutoAtual;
+  const deltaImpostoEmpresa = deltaReceitaEmpresa * (p.aliquotaEfetivaPct / 100);
+  return {
+    receitaMensalProduto, custoMensalProduto, margemContribuicaoPct: mc.pct, impostoMensalEstimado, lucroMensalProduto,
+    deltaReceitaEmpresa,
+    deltaLucroLiquidoEmpresa: deltaReceitaEmpresa - deltaCustoEmpresa - deltaImpostoEmpresa,
+    deltaEbitdaEmpresa: deltaReceitaEmpresa - deltaCustoEmpresa,
+  };
+}
+
+// ---------- ENGENHARIA DE DESCONTOS ----------
+export type ImpactoDesconto = {
+  precoComDesconto: number; margemContribuicaoPctComDesconto: number;
+  impactoLucroMensal: number; impactoTributarioMensal: number;
+  limiteMaximoSaudavelPct: number; dentroDoLimite: boolean;
+};
+
+// limiteMaximoSaudavelPct = desconto que zera a margem de contribuição (abaixo disso, cada
+// unidade vendida dá prejuízo direto, antes mesmo de custo fixo/imposto).
+export function calcularImpactoDesconto(p: {
+  precoAtual: number; custoUnitario: number; unidadesVendidasMes: number;
+  descontoPct: number; aliquotaEfetivaPct: number;
+}): ImpactoDesconto {
+  const precoComDesconto = p.precoAtual * (1 - p.descontoPct / 100);
+  const custoTotal = p.custoUnitario * p.unidadesVendidasMes;
+  const receitaComDesconto = precoComDesconto * p.unidadesVendidasMes;
+  const receitaSemDesconto = p.precoAtual * p.unidadesVendidasMes;
+  const mcComDesconto = margemContribuicao(receitaComDesconto, custoTotal);
+  const mcSemDesconto = margemContribuicao(receitaSemDesconto, custoTotal);
+  const lucroComDesconto = mcComDesconto.valor - receitaComDesconto * (p.aliquotaEfetivaPct / 100);
+  const lucroSemDesconto = mcSemDesconto.valor - receitaSemDesconto * (p.aliquotaEfetivaPct / 100);
+  const limiteMaximoSaudavelPct = p.precoAtual > 0 ? Math.max(0, ((p.precoAtual - p.custoUnitario) / p.precoAtual) * 100) : 0;
+  return {
+    precoComDesconto, margemContribuicaoPctComDesconto: mcComDesconto.pct,
+    impactoLucroMensal: lucroComDesconto - lucroSemDesconto,
+    impactoTributarioMensal: receitaComDesconto * (p.aliquotaEfetivaPct / 100) - receitaSemDesconto * (p.aliquotaEfetivaPct / 100),
+    limiteMaximoSaudavelPct, dentroDoLimite: p.descontoPct <= limiteMaximoSaudavelPct,
+  };
+}
+
+// ---------- ELASTICIDADE HONESTA ----------
+// Elasticidade real exige histórico de preço × unidades vendidas por produto. A maioria das
+// PMEs não tem volume suficiente logo de início — em vez de inventar uma curva de demanda,
+// só calcula com ≥3 mudanças de preço registradas pro mesmo produto; abaixo disso, devolve
+// temDadosSuficientes=false e a interface deve mostrar isso claramente, nunca um número falso.
+export type ElasticidadeEstimada = { temDadosSuficientes: boolean; elasticidadePct: number | null; amostras: number };
+
+export function estimarElasticidade(historico: { precoAnterior: number; precoNovo: number; unidadesAntes: number; unidadesDepois: number }[]): ElasticidadeEstimada {
+  const validos = historico.filter((h) => h.precoAnterior > 0 && h.unidadesAntes > 0 && h.precoAnterior !== h.precoNovo);
+  if (validos.length < 3) return { temDadosSuficientes: false, elasticidadePct: null, amostras: validos.length };
+  const elasticidades = validos.map((h) => {
+    const varPrecoPct = ((h.precoNovo - h.precoAnterior) / h.precoAnterior) * 100;
+    const varUnidPct = ((h.unidadesDepois - h.unidadesAntes) / h.unidadesAntes) * 100;
+    return varPrecoPct !== 0 ? varUnidPct / varPrecoPct : 0;
+  });
+  return { temDadosSuficientes: true, elasticidadePct: elasticidades.reduce((a, b) => a + b, 0) / elasticidades.length, amostras: validos.length };
+}
+
+// ---------- RADAR DE OPORTUNIDADES ----------
+// "Bundles/Cross-sell/Upsell/Reposicionamento" ficam de fora deliberadamente — exigem dados
+// de itens por pedido/carrinho que o Axioma só terá com o módulo de E-commerce/PDV (backlog).
+export type TipoOportunidadePrecificacao = "destroiMargem" | "subprecificado" | "sobreprecificado" | "premium" | "sustentaCaixa";
+export type OportunidadePrecificacao = { produtoId: string; nome: string; tipo: TipoOportunidadePrecificacao; margemPct: number; receitaMensal: number };
+
+export function detectarOportunidadesPrecificacao(produtos: { id: string; nome: string; margemPct: number; receitaMensal: number; diferencaPctVsConcorrente: number | null }[]): OportunidadePrecificacao[] {
+  if (produtos.length < 2) return [];
+  const margemMedia = produtos.reduce((s, p) => s + p.margemPct, 0) / produtos.length;
+  const receitaTotal = produtos.reduce((s, p) => s + p.receitaMensal, 0);
+  const out: OportunidadePrecificacao[] = [];
+  produtos.forEach((p) => {
+    if (p.margemPct < 0) { out.push({ produtoId: p.id, nome: p.nome, tipo: "destroiMargem", margemPct: p.margemPct, receitaMensal: p.receitaMensal }); return; }
+    if (p.diferencaPctVsConcorrente !== null && p.diferencaPctVsConcorrente > 20) { out.push({ produtoId: p.id, nome: p.nome, tipo: "sobreprecificado", margemPct: p.margemPct, receitaMensal: p.receitaMensal }); return; }
+    if (p.margemPct < margemMedia * 0.6) { out.push({ produtoId: p.id, nome: p.nome, tipo: "subprecificado", margemPct: p.margemPct, receitaMensal: p.receitaMensal }); return; }
+    if (p.margemPct > margemMedia * 1.4 && (p.diferencaPctVsConcorrente === null || p.diferencaPctVsConcorrente <= 0)) { out.push({ produtoId: p.id, nome: p.nome, tipo: "premium", margemPct: p.margemPct, receitaMensal: p.receitaMensal }); return; }
+    if (receitaTotal > 0 && p.receitaMensal / receitaTotal > 0.3) { out.push({ produtoId: p.id, nome: p.nome, tipo: "sustentaCaixa", margemPct: p.margemPct, receitaMensal: p.receitaMensal }); }
+  });
+  return out;
+}
+
+// ---------- IPPA — ÍNDICE DE PODER DE PRECIFICAÇÃO AXIOMA (0-1000) ----------
+// Componentes deliberadamente restritos ao que o Axioma consegue medir com dado real hoje:
+// margem, dependência de desconto, concentração de receita por produto, estabilidade de
+// receita, competitividade (só se houver concorrente cadastrado). LTV/CAC/Churn/eficiência
+// comercial ficam de fora — exigem custo de aquisição e histórico de churn que não existem
+// no schema ainda (dependem do módulo Clientes ganhar camada CFO).
+export type IPPA = { total: number; nivel: "critico" | "atencao" | "bom" | "excelente"; cor: CorSaude; subscores: { chave: string; valor: number; peso: number }[] };
+
+export function calcularIPPA(p: {
+  margemMediaCarteiraPct: number; margemSaudavelReferenciaPct: number;
+  pctDecisoesComDesconto: number; concentracaoReceitaProdutosPct: number;
+  coeficienteVariacaoReceitaPct: number; diferencaPctVsConcorrenteMedia: number | null;
+}): IPPA {
+  const scoreMargem = p.margemSaudavelReferenciaPct > 0 ? Math.max(0, Math.min(100, (p.margemMediaCarteiraPct / p.margemSaudavelReferenciaPct) * 100)) : 50;
+  const scoreDescontos = Math.max(0, 100 - p.pctDecisoesComDesconto);
+  const scoreConcentracao = Math.max(0, 100 - p.concentracaoReceitaProdutosPct);
+  const scoreEstabilidade = Math.max(0, 100 - Math.min(100, p.coeficienteVariacaoReceitaPct));
+  const scoreCompetitividade = p.diferencaPctVsConcorrenteMedia === null ? 60
+    : p.diferencaPctVsConcorrenteMedia >= 0 ? 100
+    : Math.max(0, 100 + (p.diferencaPctVsConcorrenteMedia / 30) * 100);
+
+  const subscores = [
+    { chave: "margem", valor: scoreMargem, peso: 0.30 },
+    { chave: "dependenciaDesconto", valor: scoreDescontos, peso: 0.20 },
+    { chave: "concentracao", valor: scoreConcentracao, peso: 0.20 },
+    { chave: "estabilidade", valor: scoreEstabilidade, peso: 0.15 },
+    { chave: "competitividade", valor: scoreCompetitividade, peso: 0.15 },
+  ];
+  const total = Math.round(subscores.reduce((s, x) => s + x.valor * x.peso, 0) * 10);
+  const nivel: IPPA["nivel"] = total < 400 ? "critico" : total < 650 ? "atencao" : total < 850 ? "bom" : "excelente";
+  const cor: CorSaude = total < 400 ? "vermelho" : total < 650 ? "amarelo" : "verde";
+  return { total, nivel, cor, subscores };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
 // Usar em TODOS os títulos de painel e letreiros dos módulos.
 // ═══════════════════════════════════════════════════════════════
