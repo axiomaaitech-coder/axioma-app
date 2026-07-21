@@ -22,6 +22,7 @@ import {
   montarConselhoMeta, montarNarrativaDependencia,
 } from "../../../lib/cfoTextos";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -145,7 +146,9 @@ function valorMetrica(tipo: TipoMeta, ate: string, dataInicioFluxo: string, ctx:
       return { valor, raciocinio: raciocinioNivel(lang, origemLabels.ticket_medio, ate) };
     }
     case "num_clientes": {
-      const valor = ctx.clientes.filter(c => c.status === "ativo" && c.created_at <= ate + "T23:59:59").length;
+      // Mesmo helper usado no snapshot da carteira em Clientes (lib/clienteIntelHelpers.ts) —
+      // única fonte de verdade pra "clientes ativos líquidos", nunca duplicar o filtro aqui.
+      const valor = contarClientesAtivos(ctx.clientes, ate);
       return { valor, raciocinio: raciocinioNivel(lang, origemLabels.num_clientes, ate) };
     }
   }

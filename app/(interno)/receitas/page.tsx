@@ -27,7 +27,8 @@ const CAT_COR: Record<string, string> = {
   "Recorrentes": CORES.cyan, "Eventuais": CORES.laranja, "Outras": CORES.teal,
 };
 
-type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; };
+type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; cliente_id: string | null; };
+type ClienteOpcao = { id: string; nome: string };
 
 export default function Receitas() {
   const { t, idioma } = useLanguage();
@@ -36,12 +37,13 @@ export default function Receitas() {
   const meses = mesesPorLang(lang);
 
   const [receitas, setReceitas] = useState<Receita[]>([]);
+  const [clientesOpcoes, setClientesOpcoes] = useState<ClienteOpcao[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Receita | null>(null);
-  const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" });
+  const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "" });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
@@ -51,21 +53,25 @@ export default function Receitas() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const { data } = await supabase.from("receitas").select("*").eq("user_id", user.id).order("data", { ascending: false });
+    const [{ data }, { data: clientesData }] = await Promise.all([
+      supabase.from("receitas").select("*").eq("user_id", user.id).order("data", { ascending: false }),
+      supabase.from("clientes").select("id, nome").eq("user_id", user.id).order("nome", { ascending: true }),
+    ]);
     setReceitas(data || []);
+    setClientesOpcoes(clientesData || []);
     setCarregando(false);
   };
   useEffect(() => { carregarReceitas(); }, []);
 
-  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" }); };
-  const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status }); setModalAberto(true); };
+  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "" }); };
+  const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status, cliente_id: r.cliente_id || "" }); setModalAberto(true); };
 
   const salvar = async () => {
     if (!novo.descricao || !novo.valor) return;
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
-    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status };
+    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null };
     const { error } = editando
       ? await supabase.from("receitas").update(payload).eq("id", editando.id)
       : await supabase.from("receitas").insert({ ...payload, user_id: user.id });
@@ -180,7 +186,7 @@ export default function Receitas() {
   return (
     <ModuloLayout titulo={t.receitas.titulo} subtitulo={t.receitas.subtitulo} onExportarPDF={exportarPDF}
       exportando={exportando}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido" }); setModalAberto(true); }}
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "" }); setModalAberto(true); }}
       labelBotao={t.receitas.novaReceita}>
       <div className="space-y-4">
 
@@ -309,7 +315,14 @@ export default function Receitas() {
                     <motion.tr key={r.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       whileHover={{ backgroundColor: "rgba(106,176,255,0.03)" }}
                       style={{ borderBottom: i < receitasFiltradas.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
-                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "#c8d8f0" }}>{r.descricao}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "#c8d8f0" }}>
+                        {r.descricao}
+                        {r.cliente_id && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full ml-2" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                            👤 {clientesOpcoes.find(c => c.id === r.cliente_id)?.nome || "-"}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: `${CAT_COR[r.categoria]}18`, color: CAT_COR[r.categoria] || "#6ab0ff" }}>{r.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "#5a7a9a" }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? "#34d399" : "#fbbf24" }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
@@ -359,6 +372,13 @@ export default function Receitas() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.receitas.categoria}</label>
                     <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.clientes.cliente} <span style={{ color: "#5a7a9a", textTransform: "none" }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span></label>
+                    <select value={novo.cliente_id} onChange={(e) => setNovo({ ...novo, cliente_id: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      <option value="">-- {t.clientes.cliente} --</option>
+                      {clientesOpcoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
                   <div>

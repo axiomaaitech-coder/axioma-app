@@ -433,6 +433,33 @@ export function optLinhaMulti(
   };
 }
 
+// Dispersão (scatter) — posiciona pontos em dois eixos 0-100/0-1000 (ex: Mapa de Valor
+// de Clientes: score × saúde). Tamanho do ponto pode carregar uma terceira dimensão (ex: ticket).
+export function optDispersao(pontos: { nome: string; x: number; y: number; cor: string; tamanho?: number }[], labelX: string, labelY: string, maxX: number) {
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    grid: { left: 54, right: 24, top: 24, bottom: 44, containLabel: false },
+    tooltip: { ...tipBase, trigger: "item",
+      formatter: (p: any) => `<b>${p.data.nome}</b><br/>${labelX}: <b>${Math.round(p.value[0])}</b><br/>${labelY}: <b>${Math.round(p.value[1])}</b>` },
+    xAxis: { type: "value", name: labelX, min: 0, max: maxX, nameLocation: "middle", nameGap: 28,
+      nameTextStyle: { color: "#94a3b8", fontSize: 10, fontWeight: 700 },
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
+      axisLabel: { color: "#64748b", fontSize: 10 },
+      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } } },
+    yAxis: { type: "value", name: labelY, min: 0, max: 100, nameTextStyle: { color: "#94a3b8", fontSize: 10, fontWeight: 700 },
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
+      axisLabel: { color: "#64748b", fontSize: 10 },
+      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } } },
+    series: [{
+      type: "scatter",
+      symbolSize: (_val: any, p: any) => Math.max(14, Math.min(46, p.data.tamanho || 20)),
+      itemStyle: { color: (p: any) => p.data.cor, borderColor: "#0a0820", borderWidth: 1.5, shadowBlur: 8, shadowColor: "rgba(0,0,0,0.4)" },
+      emphasis: { itemStyle: { shadowBlur: 20 } },
+      data: pontos.map((p) => ({ value: [p.x, p.y], nome: p.nome, cor: p.cor, tamanho: p.tamanho })),
+    }],
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════
 // RADAR DE RENOVAÇÕES — detecta contratos/assinaturas próximos de renovar
 // Reutilizável: custos fixos, fornecedores, assinaturas, e-commerce

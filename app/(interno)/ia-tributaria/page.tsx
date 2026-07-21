@@ -178,7 +178,9 @@ export default function IATributariaPage() {
     try {
       const res = await fetch("/api/ia-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: montarPromptTributario(dados, scoreFiscal, carga, texto, lang), mensagens: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })) }),
+        // A rota espera {mensagem, historico, contexto} — antes mandava {prompt, mensagens} e
+        // nunca acertava o contrato real, então sempre caía no fallback de regras.
+        body: JSON.stringify({ mensagem: montarPromptTributario(dados, scoreFiscal, carga, texto, lang), historico: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })) }),
       });
       if (res.ok) { const data = await res.json(); resposta = data.resposta || ""; modelo = "claude"; }
     } catch {}

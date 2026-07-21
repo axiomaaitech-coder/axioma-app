@@ -352,8 +352,11 @@ export default function IAFinanceiraPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: montarPromptCFO(snap, score360, bench, texto, lang),
-          mensagens: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })),
+          // A rota (app/api/ia-chat/route.ts) espera {mensagem, historico, contexto} — antes
+          // este fetch mandava {prompt, mensagens} e nunca acertava o contrato real, então
+          // sempre caía no fallback de regras mesmo com ANTHROPIC_API_KEY ativa.
+          mensagem: montarPromptCFO(snap, score360, bench, texto, lang),
+          historico: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })),
         }),
       });
       if (res.ok) {
