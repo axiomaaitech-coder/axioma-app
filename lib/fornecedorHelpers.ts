@@ -438,6 +438,117 @@ export function scoreMedioCarteiraAxioma(ranking: { score: ScoreAxiomaFornecedor
 }
 
 // ============================================================================
+// FASE 4 — INTELIGÊNCIA DE COMPRAS + ALERTAS.
+// A maior parte da Fase 4 reaproveita funções que já existem em cfoCore.ts
+// (serieRolling, detectarAnomaliasHistoricas, detectarDesperdicio) — só o que
+// é genuinamente novo do domínio de fornecedores fica aqui.
+// ============================================================================
+
+export type InflacaoFornecedor = { ticketAtual: number; ticketAnterior: number; variacaoPct: number; amostraSuficiente: boolean };
+
+// "Inflação do fornecedor" = variação do ticket médio (valor/compra) entre o período
+// atual e o anterior. Não é inflação oficial — é a variação real do que a empresa paga.
+export function inflacaoFornecedor(
+  contasDoFornecedor: ContaPagarRow[],
+  periodoAtual: { inicio: string; fim: string },
+  periodoAnt: { inicio: string; fim: string },
+): InflacaoFornecedor {
+  const noPeriodo = (p: { inicio: string; fim: string }) => contasDoFornecedor.filter((c) => {
+    const d = c.data_emissao || c.data_vencimento; return d && d >= p.inicio && d <= p.fim;
+  });
+  const atual = noPeriodo(periodoAtual);
+  const anterior = noPeriodo(periodoAnt);
+  if (atual.length === 0 || anterior.length === 0) return { ticketAtual: 0, ticketAnterior: 0, variacaoPct: 0, amostraSuficiente: false };
+  const ticketAtual = atual.reduce((s, c) => s + (c.valor_total || 0), 0) / atual.length;
+  const ticketAnterior = anterior.reduce((s, c) => s + (c.valor_total || 0), 0) / anterior.length;
+  const variacaoPct = ticketAnterior > 0 ? ((ticketAtual - ticketAnterior) / ticketAnterior) * 100 : 0;
+  return { ticketAtual, ticketAnterior, variacaoPct: Math.round(variacaoPct * 10) / 10, amostraSuficiente: true };
+}
+
+export type GrupoConsolidacao = {
+  categoria: string;
+  fornecedores: { id: string; nome: string; totalGasto: number; ticketMedio: number; qtdCompras: number }[];
+  economiaEstimada: number;
+};
+
+// Oportunidades de Consolidação — fornecedores ativos na MESMA categoria, com histórico
+// de compra. Se consolidasse tudo no de menor ticket médio, essa seria a economia.
+// Comparação 100% interna (entre os próprios fornecedores cadastrados), sem inventar
+// preço de mercado externo — é aqui que "economia possível" ganha um número real.
+export function oportunidadesConsolidacao(fornecedores: FornecedorRow[], contas: ContaPagarRow[]): GrupoConsolidacao[] {
+  const porCategoria = new Map<string, FornecedorRow[]>();
+  fornecedores.filter((f) => (f.status || "ativo") === "ativo" && f.categoria).forEach((f) => {
+    const cat = f.categoria as string;
+    if (!porCategoria.has(cat)) porCategoria.set(cat, []);
+    porCategoria.get(cat)!.push(f);
+  });
+
+  const grupos: GrupoConsolidacao[] = [];
+  porCategoria.forEach((forns, categoria) => {
+    const linhas = forns.map((f) => {
+      const cf = contas.filter((c) => c.fornecedor_id === f.id);
+      const totalGasto = cf.reduce((s, c) => s + (c.valor_total || 0), 0);
+      return { id: f.id, nome: f.nome, totalGasto, ticketMedio: cf.length > 0 ? totalGasto / cf.length : 0, qtdCompras: cf.length };
+    }).filter((l) => l.qtdCompras > 0);
+    if (linhas.length < 2) return;
+    linhas.sort((a, b) => a.ticketMedio - b.ticketMedio);
+    const maisBarato = linhas[0];
+    const economiaEstimada = linhas.slice(1).reduce((s, l) => s + Math.max(0, (l.ticketMedio - maisBarato.ticketMedio) * l.qtdCompras), 0);
+    grupos.push({ categoria, fornecedores: linhas, economiaEstimada: Math.round(economiaEstimada) });
+  });
+  return grupos.sort((a, b) => b.economiaEstimada - a.economiaEstimada);
+}
+
+export type FornecedorParado = { id: string; nome: string; diasParado: number; ultimaCompra: string };
+
+// Fornecedor ativo, com histórico de compra, mas sem nenhuma conta_pagar recente.
+// Quem nunca comprou não entra aqui — isso não é "parado", é "sem histórico ainda".
+export function fornecedoresParados(fornecedores: FornecedorRow[], contas: ContaPagarRow[], diasLimite: number = 90): FornecedorParado[] {
+  const hoje = Date.now();
+  const out: FornecedorParado[] = [];
+  fornecedores.filter((f) => (f.status || "ativo") === "ativo").forEach((f) => {
+    const datas = contas.filter((c) => c.fornecedor_id === f.id && (c.data_emissao || c.data_vencimento))
+      .map((c) => (c.data_emissao || c.data_vencimento) as string).sort();
+    if (datas.length === 0) return;
+    const ultima = datas[datas.length - 1];
+    const dias = Math.round((hoje - new Date(ultima + "T00:00:00").getTime()) / 86400000);
+    if (dias >= diasLimite) out.push({ id: f.id, nome: f.nome, diasParado: dias, ultimaCompra: ultima });
+  });
+  return out.sort((a, b) => b.diasParado - a.diasParado);
+}
+
+export type FornecedorPrecoAlto = { id: string; nome: string; categoria: string; ticketMedio: number; mediaGrupo: number; percentualAcima: number };
+
+// "Preço acima do mercado" — Axioma não tem acesso a preço de mercado externo, então
+// a comparação é 100% interna: ticket médio do fornecedor vs a média dos outros
+// fornecedores da MESMA categoria. Só entra quem tem ≥2 fornecedores comparáveis.
+export function precoAcimaMediaInterna(fornecedores: FornecedorRow[], contas: ContaPagarRow[], limitePct: number = 20): FornecedorPrecoAlto[] {
+  const porCategoria = new Map<string, FornecedorRow[]>();
+  fornecedores.filter((f) => (f.status || "ativo") === "ativo" && f.categoria).forEach((f) => {
+    const cat = f.categoria as string;
+    if (!porCategoria.has(cat)) porCategoria.set(cat, []);
+    porCategoria.get(cat)!.push(f);
+  });
+
+  const out: FornecedorPrecoAlto[] = [];
+  porCategoria.forEach((forns, categoria) => {
+    const linhas = forns.map((f) => {
+      const cf = contas.filter((c) => c.fornecedor_id === f.id);
+      const totalGasto = cf.reduce((s, c) => s + (c.valor_total || 0), 0);
+      return { id: f.id, nome: f.nome, ticketMedio: cf.length > 0 ? totalGasto / cf.length : 0, qtdCompras: cf.length };
+    }).filter((l) => l.qtdCompras > 0);
+    if (linhas.length < 2) return;
+    const mediaGrupo = linhas.reduce((s, l) => s + l.ticketMedio, 0) / linhas.length;
+    if (mediaGrupo <= 0) return;
+    linhas.forEach((l) => {
+      const percentualAcima = ((l.ticketMedio - mediaGrupo) / mediaGrupo) * 100;
+      if (percentualAcima >= limitePct) out.push({ id: l.id, nome: l.nome, categoria, ticketMedio: l.ticketMedio, mediaGrupo, percentualAcima: Math.round(percentualAcima) });
+    });
+  });
+  return out.sort((a, b) => b.percentualAcima - a.percentualAcima);
+}
+
+// ============================================================================
 // ARQUITETURA PREPARADA (comentário only — não implementar antes de aprovação)
 // ============================================================================
 // Fase futura — Portal do Fornecedor: login próprio do fornecedor (tabela de convites +
@@ -446,3 +557,7 @@ export function scoreMedioCarteiraAxioma(ranking: { score: ScoreAxiomaFornecedor
 //   status "em homologação" → "aprovado", histórico de quem aprovou.
 // Fase futura — Cotação/RFQ: tabela de solicitações de cotação vinculada a fornecedor_produtos,
 //   comparação de propostas entre fornecedores concorrentes para o mesmo item.
+// Fase futura — Histórico de Qualidade: fornecedores.nivel_qualidade é um valor único
+//   atual, sem linha do tempo. O alerta "Queda de Qualidade" (Fase 4) fica reservado sem
+//   instância até existir uma tabela fornecedor_qualidade_historico (data + nota), pra
+//   dar de fato pra medir tendência em vez de comparar um ponto só contra ele mesmo.

@@ -15,8 +15,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import {
-  resolverPeriodo, optRadar, optBarrasV, optRosca, optVelocimetro, radarRenovacoes, FONTE_EXEC,
-  type Periodo, type PeriodoPreset, type ItemRenovavel,
+  resolverPeriodo, periodoAnterior, optRadar, optBarrasV, optRosca, optVelocimetro, radarRenovacoes,
+  serieRolling, detectarAnomaliasHistoricas, detectarDesperdicio, FONTE_EXEC,
+  type Periodo, type PeriodoPreset, type ItemRenovavel, type Lancamento, type ItemDespesa,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
 import {
@@ -30,6 +31,7 @@ import {
   comprasNoPeriodo, concentracaoFornecedores, diversificacaoFornecedores, curvaABC, distribuicaoGeografica,
   riscoMedioCarteira, qualidadeMediaCarteira, pontualidadePagamento, tempoMedioRelacionamentoDias,
   rankingScoreAxioma, scoreMedioCarteiraAxioma,
+  inflacaoFornecedor, oportunidadesConsolidacao, fornecedoresParados, precoAcimaMediaInterna,
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
 
@@ -261,6 +263,27 @@ const T = {
     criteriosTitulo: "Critérios do Score", semDadosCriterio: "Sem dados", pesoLabel: "Peso", contribuicaoLabel: "Contribuição",
     rankingTitulo: "Ranking Axioma", rankingSub: "Fornecedores ordenados pelo Score Corporativo Axioma (0-1000).",
     rankingVazio: "Nenhum fornecedor cadastrado ainda.",
+    inteligenciaTitulo: "Inteligência de Compras", inteligenciaSub: "Análises automáticas sobre o que já foi comprado — dado real, nunca inventado.",
+    lblSelecioneFornecedor: "Fornecedor",
+    evolucaoComprasTitulo: "Evolução de Compras", evolucaoComprasVazio: "Sem histórico de compras para este fornecedor ainda.",
+    inflacaoTitulo: "Inflação do Fornecedor", inflacaoVazio: "Precisa de compras no período atual e no anterior para comparar.",
+    tendenciaTitulo: "Tendência de Reajuste", tendenciaVazio: "Nenhum padrão de reajuste detectado ainda.",
+    tendenciaAcimaMedia: "Acima da própria média", tendenciaAumentoRecorrente: "Aumento recorrente",
+    sazonalidadeTitulo: "Sazonalidade", sazonalidadeSub: "Distribuição das compras nos últimos 12 meses — fica mais precisa com mais anos de histórico.", sazonalidadeVazio: "Sem compras registradas ainda.",
+    desperdiciosTitulo: "Desperdícios", desperdiciosSub: "Descrições de conta muito parecidas — possível cobrança duplicada.", desperdiciosVazio: "Nenhum desperdício detectado.",
+    consolidacaoTitulo: "Oportunidades de Consolidação", consolidacaoSub: "Fornecedores ativos na mesma categoria — economia estimada ao concentrar no de menor ticket médio.", consolidacaoVazio: "Nenhuma categoria com mais de um fornecedor ativo com histórico de compra.",
+    economiaEstimadaLabel: "Economia estimada", maisBaratoTag: "menor ticket",
+    alertasPainelTitulo: "Painel de Alertas", alertasPainelSub: "Tudo que pede atenção agora, com ação sugerida.", alertasVazio: "Nenhum alerta no momento — carteira sob controle.",
+    alertaParadoTitulo: "Fornecedor parado", alertaParadoDesc: "Sem novas compras há", alertaParadoAcao: "Confirmar se o fornecimento continua ativo ou encerrar o cadastro.",
+    alertaRiscoTitulo: "Fornecedor em risco", alertaRiscoDesc: "Classificado como risco alto no cadastro.", alertaRiscoAcao: "Revisar dependência e ter um plano B para este fornecedor.",
+    alertaContratoTitulo: "Contrato vencendo", alertaContratoAcao: "Iniciar renegociação ou renovação antes do vencimento.",
+    alertaDocumentoTitulo: "Documento vencendo", alertaDocumentoAcao: "Solicitar a atualização do documento ao fornecedor.",
+    alertaPrecoTitulo: "Preço acima da média interna", alertaPrecoDesc: "Ticket médio acima da média da categoria em", alertaPrecoAcao: "Renegociar ou comparar com os demais fornecedores da categoria.",
+    alertaDependenciaTitulo: "Dependência elevada", alertaDependenciaDesc: "Responde por", alertaDependenciaAcao: "Buscar um segundo fornecedor para essa categoria.",
+    alertaConcentracaoTitulo: "Compras concentradas", alertaConcentracaoDesc: "Índice de diversificação da carteira em", alertaConcentracaoAcao: "Diversificar a base de fornecedores ativos.",
+    alertaAumentoTitulo: "Aumento recorrente de preço", alertaAumentoDesc: "Subiu em 3 compras seguidas:", alertaAumentoAcao: "Questionar o motivo do aumento com o fornecedor.",
+    alertaQuedaQualidadeLegenda: "Queda de Qualidade — reservado, precisa de histórico de avaliação ao longo do tempo (ainda não existe).",
+    doTotalComprado: "do total comprado",
     explicacoes: {
       total: "Contagem simples de todos os fornecedores cadastrados, ativos e inativos.",
       ativos: "Fornecedores com status Ativo no cadastro.",
@@ -366,6 +389,27 @@ const T = {
     criteriosTitulo: "Score Criteria", semDadosCriterio: "No data", pesoLabel: "Weight", contribuicaoLabel: "Contribution",
     rankingTitulo: "Axioma Ranking", rankingSub: "Suppliers ranked by the Axioma Corporate Score (0-1000).",
     rankingVazio: "No supplier registered yet.",
+    inteligenciaTitulo: "Purchase Intelligence", inteligenciaSub: "Automatic analysis of what's already been purchased — real data, never invented.",
+    lblSelecioneFornecedor: "Supplier",
+    evolucaoComprasTitulo: "Purchase Evolution", evolucaoComprasVazio: "No purchase history for this supplier yet.",
+    inflacaoTitulo: "Supplier Inflation", inflacaoVazio: "Needs purchases in both the current and previous period to compare.",
+    tendenciaTitulo: "Price Adjustment Trend", tendenciaVazio: "No adjustment pattern detected yet.",
+    tendenciaAcimaMedia: "Above its own average", tendenciaAumentoRecorrente: "Recurring increase",
+    sazonalidadeTitulo: "Seasonality", sazonalidadeSub: "Purchase distribution over the last 12 months — gets more accurate with more years of history.", sazonalidadeVazio: "No purchases recorded yet.",
+    desperdiciosTitulo: "Waste", desperdiciosSub: "Very similar bill descriptions — possible duplicate charge.", desperdiciosVazio: "No waste detected.",
+    consolidacaoTitulo: "Consolidation Opportunities", consolidacaoSub: "Active suppliers in the same category — estimated savings by concentrating on the one with the lowest average ticket.", consolidacaoVazio: "No category with more than one active supplier with purchase history.",
+    economiaEstimadaLabel: "Estimated savings", maisBaratoTag: "lowest ticket",
+    alertasPainelTitulo: "Alerts Panel", alertasPainelSub: "Everything that needs attention now, with a suggested action.", alertasVazio: "No alerts right now — portfolio under control.",
+    alertaParadoTitulo: "Inactive supplier", alertaParadoDesc: "No new purchases for", alertaParadoAcao: "Confirm whether supply is still active or close the registration.",
+    alertaRiscoTitulo: "Supplier at risk", alertaRiscoDesc: "Rated as high risk in the registration.", alertaRiscoAcao: "Review dependency and have a backup plan for this supplier.",
+    alertaContratoTitulo: "Contract expiring", alertaContratoAcao: "Start renegotiation or renewal before expiry.",
+    alertaDocumentoTitulo: "Document expiring", alertaDocumentoAcao: "Request an updated document from the supplier.",
+    alertaPrecoTitulo: "Price above internal average", alertaPrecoDesc: "Average ticket above the category average by", alertaPrecoAcao: "Renegotiate or compare with other suppliers in the category.",
+    alertaDependenciaTitulo: "High dependency", alertaDependenciaDesc: "Accounts for", alertaDependenciaAcao: "Look for a second supplier for this category.",
+    alertaConcentracaoTitulo: "Concentrated purchases", alertaConcentracaoDesc: "Portfolio diversification index at", alertaConcentracaoAcao: "Diversify the active supplier base.",
+    alertaAumentoTitulo: "Recurring price increase", alertaAumentoDesc: "Rose across 3 consecutive purchases:", alertaAumentoAcao: "Ask the supplier about the reason for the increase.",
+    alertaQuedaQualidadeLegenda: "Quality Decline — reserved, needs a rating history over time (doesn't exist yet).",
+    doTotalComprado: "of total purchases",
     explicacoes: {
       total: "Simple count of all registered suppliers, active and inactive.",
       ativos: "Suppliers with Active status in the registration.",
@@ -471,6 +515,27 @@ const T = {
     criteriosTitulo: "Criterios del Score", semDadosCriterio: "Sin datos", pesoLabel: "Peso", contribuicaoLabel: "Contribución",
     rankingTitulo: "Ranking Axioma", rankingSub: "Proveedores ordenados por el Score Corporativo Axioma (0-1000).",
     rankingVazio: "Ningún proveedor registrado aún.",
+    inteligenciaTitulo: "Inteligencia de Compras", inteligenciaSub: "Análisis automáticos sobre lo que ya se compró — dato real, nunca inventado.",
+    lblSelecioneFornecedor: "Proveedor",
+    evolucaoComprasTitulo: "Evolución de Compras", evolucaoComprasVazio: "Sin historial de compras para este proveedor aún.",
+    inflacaoTitulo: "Inflación del Proveedor", inflacaoVazio: "Necesita compras en el período actual y en el anterior para comparar.",
+    tendenciaTitulo: "Tendencia de Reajuste", tendenciaVazio: "Ningún patrón de reajuste detectado aún.",
+    tendenciaAcimaMedia: "Por encima de su propio promedio", tendenciaAumentoRecorrente: "Aumento recurrente",
+    sazonalidadeTitulo: "Estacionalidad", sazonalidadeSub: "Distribución de las compras en los últimos 12 meses — se vuelve más precisa con más años de historial.", sazonalidadeVazio: "Sin compras registradas aún.",
+    desperdiciosTitulo: "Desperdicios", desperdiciosSub: "Descripciones de cuenta muy parecidas — posible cobro duplicado.", desperdiciosVazio: "Ningún desperdicio detectado.",
+    consolidacaoTitulo: "Oportunidades de Consolidación", consolidacaoSub: "Proveedores activos en la misma categoría — ahorro estimado al concentrar en el de menor ticket promedio.", consolidacaoVazio: "Ninguna categoría con más de un proveedor activo con historial de compra.",
+    economiaEstimadaLabel: "Ahorro estimado", maisBaratoTag: "menor ticket",
+    alertasPainelTitulo: "Panel de Alertas", alertasPainelSub: "Todo lo que necesita atención ahora, con una acción sugerida.", alertasVazio: "Ningún alerta por ahora — cartera bajo control.",
+    alertaParadoTitulo: "Proveedor detenido", alertaParadoDesc: "Sin nuevas compras hace", alertaParadoAcao: "Confirmar si el suministro sigue activo o cerrar el registro.",
+    alertaRiscoTitulo: "Proveedor en riesgo", alertaRiscoDesc: "Clasificado como riesgo alto en el registro.", alertaRiscoAcao: "Revisar la dependencia y tener un plan B para este proveedor.",
+    alertaContratoTitulo: "Contrato por vencer", alertaContratoAcao: "Iniciar renegociación o renovación antes del vencimiento.",
+    alertaDocumentoTitulo: "Documento por vencer", alertaDocumentoAcao: "Solicitar la actualización del documento al proveedor.",
+    alertaPrecoTitulo: "Precio por encima del promedio interno", alertaPrecoDesc: "Ticket promedio por encima del promedio de la categoría en", alertaPrecoAcao: "Renegociar o comparar con los demás proveedores de la categoría.",
+    alertaDependenciaTitulo: "Dependencia elevada", alertaDependenciaDesc: "Representa", alertaDependenciaAcao: "Buscar un segundo proveedor para esta categoría.",
+    alertaConcentracaoTitulo: "Compras concentradas", alertaConcentracaoDesc: "Índice de diversificación de la cartera en", alertaConcentracaoAcao: "Diversificar la base de proveedores activos.",
+    alertaAumentoTitulo: "Aumento recurrente de precio", alertaAumentoDesc: "Subió en 3 compras seguidas:", alertaAumentoAcao: "Preguntar al proveedor el motivo del aumento.",
+    alertaQuedaQualidadeLegenda: "Caída de Calidad — reservado, necesita un historial de evaluación en el tiempo (aún no existe).",
+    doTotalComprado: "del total comprado",
     explicacoes: {
       total: "Conteo simple de todos los proveedores registrados, activos e inactivos.",
       ativos: "Proveedores con estado Activo en el registro.",
@@ -505,6 +570,7 @@ export default function Fornecedores() {
   const [todosContratos, setTodosContratos] = useState<FornecedorContrato[]>([]);
   const [todasInteracoes, setTodasInteracoes] = useState<FornecedorInteracao[]>([]);
   const [scoreDrillId, setScoreDrillId] = useState<string | null>(null);
+  const [fornecedorEvolucaoId, setFornecedorEvolucaoId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [buscaContas, setBuscaContas] = useState("");
@@ -1079,6 +1145,84 @@ export default function Fornecedores() {
   ];
   const kpiAtivo = kpis.find(k => k.key === drillDown) || null;
 
+  // ========== INTELIGÊNCIA DE COMPRAS (Fase 4) ==========
+  const fornecedoresComHistorico = fornecedores.filter(f => contas.some(c => c.fornecedor_id === f.id));
+  const fornecedorEvolucaoAtual = fornecedores.find(f => f.id === fornecedorEvolucaoId) || fornecedoresComHistorico[0] || null;
+  const contasEvolucao: Lancamento[] = fornecedorEvolucaoAtual
+    ? contas.filter(c => c.fornecedor_id === fornecedorEvolucaoAtual.id).map(c => ({ valor: c.valor_total, data: c.data_emissao || c.data_vencimento || "", categoria: c.categoria, status: c.status, descricao: c.descricao }))
+    : [];
+  const serieEvolucao = serieRolling(contasEvolucao, 12);
+  const evolucaoOption = contasEvolucao.length > 0 ? optBarrasV(serieEvolucao.map(s => s.value), serieEvolucao.map(s => s.label), AMBAR, "#fcd34d") : null;
+  const inflacao = fornecedorEvolucaoAtual ? inflacaoFornecedor(contas.filter(c => c.fornecedor_id === fornecedorEvolucaoAtual.id), periodo, periodoAnterior(periodo)) : null;
+  const tendenciaFornecedor = detectarAnomaliasHistoricas(contasEvolucao);
+
+  const contasTodasLanc: Lancamento[] = contas.map(c => ({ valor: c.valor_total, data: c.data_emissao || c.data_vencimento || "", categoria: c.categoria, status: c.status, descricao: c.descricao }));
+  const sazonalidadeSerie = serieRolling(contasTodasLanc, 12);
+  const sazonalidadeOption = contas.length > 0 ? optBarrasV(sazonalidadeSerie.map(s => s.value), sazonalidadeSerie.map(s => s.label), "#6ab0ff", "#93c5fd") : null;
+
+  const itensDespesaContas: ItemDespesa[] = contas.map(c => ({ descricao: c.descricao, valor: c.valor_total, categoria: c.categoria || undefined }));
+  const desperdicios = detectarDesperdicio(itensDespesaContas);
+
+  const consolidacao = oportunidadesConsolidacao(fornecedores, contas);
+  const parados = fornecedoresParados(fornecedores, contas, 90);
+  const precosAltos = precoAcimaMediaInterna(fornecedores, contas, 20);
+  const anomaliasCarteira = detectarAnomaliasHistoricas(contasTodasLanc);
+
+  // ========== PAINEL DE ALERTAS (Fase 4) ==========
+  type Severidade = "atencao" | "critico";
+  type AlertaFornecedor = { tipo: string; severidade: Severidade; titulo: string; descricao: string; acao: string };
+  const alertas: AlertaFornecedor[] = [];
+
+  parados.forEach(p => alertas.push({
+    tipo: "parado", severidade: p.diasParado >= 180 ? "critico" : "atencao",
+    titulo: `${tt.alertaParadoTitulo}: ${p.nome}`, descricao: `${tt.alertaParadoDesc} ${p.diasParado} ${cx.dias}.`, acao: tt.alertaParadoAcao,
+  }));
+
+  fornecedores.filter(f => f.classificacao_risco === "alto" && (f.status || "ativo") === "ativo").forEach(f => alertas.push({
+    tipo: "risco", severidade: "critico",
+    titulo: `${tt.alertaRiscoTitulo}: ${f.nome}`, descricao: tt.alertaRiscoDesc, acao: tt.alertaRiscoAcao,
+  }));
+
+  escadaVencimentos.filter(r => r.categoria === tt.contratosTitulo && r.urgencia !== "futuro").forEach(r => alertas.push({
+    tipo: "contrato_vencendo", severidade: r.urgencia === "proximo" ? "atencao" : "critico",
+    titulo: `${tt.alertaContratoTitulo}: ${r.descricao}`, descricao: textoUrgencia(r.diasRestantes), acao: tt.alertaContratoAcao,
+  }));
+
+  escadaVencimentos.filter(r => r.categoria === tt.documentacaoTitulo && r.urgencia !== "futuro").forEach(r => alertas.push({
+    tipo: "documento_vencendo", severidade: r.urgencia === "proximo" ? "atencao" : "critico",
+    titulo: `${tt.alertaDocumentoTitulo}: ${r.descricao}`, descricao: textoUrgencia(r.diasRestantes), acao: tt.alertaDocumentoAcao,
+  }));
+
+  precosAltos.forEach(p => alertas.push({
+    tipo: "preco_alto", severidade: p.percentualAcima >= 50 ? "critico" : "atencao",
+    titulo: `${tt.alertaPrecoTitulo}: ${p.nome}`, descricao: `${tt.alertaPrecoDesc} ${p.percentualAcima}% (${p.categoria}).`, acao: tt.alertaPrecoAcao,
+  }));
+
+  const totalCarteiraContas = contas.reduce((s, c) => s + (c.valor_total || 0), 0);
+  fornecedores.filter(f => (f.status || "ativo") === "ativo").forEach(f => {
+    const gasto = contas.filter(c => c.fornecedor_id === f.id).reduce((s, c) => s + (c.valor_total || 0), 0);
+    if (totalCarteiraContas <= 0 || gasto <= 0) return;
+    const pct = (gasto / totalCarteiraContas) * 100;
+    if (pct >= 30) alertas.push({
+      tipo: "dependencia", severidade: pct >= 50 ? "critico" : "atencao",
+      titulo: `${tt.alertaDependenciaTitulo}: ${f.nome}`, descricao: `${tt.alertaDependenciaDesc} ${Math.round(pct)}%.`, acao: tt.alertaDependenciaAcao,
+    });
+  });
+
+  if (diversificacao.amostraSuficiente && diversificacao.indice < 40) alertas.push({
+    tipo: "concentracao", severidade: diversificacao.indice < 20 ? "critico" : "atencao",
+    titulo: tt.alertaConcentracaoTitulo, descricao: `${tt.alertaConcentracaoDesc} ${diversificacao.indice}/100.`, acao: tt.alertaConcentracaoAcao,
+  });
+
+  anomaliasCarteira.filter(a => a.tipo === "aumento_recorrente").slice(0, 8).forEach(a => alertas.push({
+    tipo: "aumento_preco", severidade: "critico",
+    titulo: `${tt.alertaAumentoTitulo}: ${a.descricao}`, descricao: `${tt.alertaAumentoDesc} ${fmt(a.valorReferencia)} → ${fmt(a.valorAtual)}.`, acao: tt.alertaAumentoAcao,
+  }));
+
+  alertas.sort((a, b) => (a.severidade === "critico" ? 0 : 1) - (b.severidade === "critico" ? 0 : 1));
+  const alertasCriticos = alertas.filter(a => a.severidade === "critico").length;
+  const alertasAtencao = alertas.filter(a => a.severidade === "atencao").length;
+
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${tt.dashboardTitulo}`,
     `🏭 ${tt.kpiTotal}: ${fornecedores.length}`,
@@ -1216,6 +1360,149 @@ export default function Fornecedores() {
               </div>
             )}
           </div>
+        </CanvasBox>
+
+        {/* ====== INTELIGÊNCIA DE COMPRAS (Fase 4) ====== */}
+        <CanvasBox cor={AMBAR}>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <div>
+              <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+              <h3 className="text-lg font-bold" style={{ color: "#c8d8f0", ...FONTE_EXEC }}>{tt.inteligenciaTitulo}</h3>
+              <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{tt.inteligenciaSub}</p>
+            </div>
+            {fornecedoresComHistorico.length > 0 && (
+              <select value={fornecedorEvolucaoAtual?.id || ""} onChange={(e) => setFornecedorEvolucaoId(e.target.value)}
+                className="px-3 py-2 rounded-xl text-xs font-bold focus:outline-none cursor-pointer"
+                style={{ background: "rgba(10,22,40,0.9)", border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+                {fornecedoresComHistorico.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* Evolução + Inflação + Tendência de Reajuste */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div className="lg:col-span-2 rounded-xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+              <p className="text-sm font-black mb-3" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.evolucaoComprasTitulo}{fornecedorEvolucaoAtual ? ` — ${fornecedorEvolucaoAtual.nome}` : ""}</p>
+              {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.evolucaoComprasVazio}</p>}
+            </div>
+            <div className="rounded-xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+              <p className="text-sm font-black mb-3" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.inflacaoTitulo}</p>
+              {inflacao && inflacao.amostraSuficiente ? (
+                <div>
+                  <p className="text-2xl font-black" style={{ color: inflacao.variacaoPct > 0 ? "#f87171" : inflacao.variacaoPct < 0 ? "#34d399" : "#6ab0ff", ...FONTE_EXEC }}>
+                    {inflacao.variacaoPct > 0 ? "+" : ""}{inflacao.variacaoPct}%
+                  </p>
+                  <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>{fmt(inflacao.ticketAnterior)} → {fmt(inflacao.ticketAtual)}</p>
+                </div>
+              ) : <p className="text-xs py-4" style={{ color: "#5a7a9a" }}>{tt.inflacaoVazio}</p>}
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4 mb-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+            <p className="text-sm font-black mb-3" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.tendenciaTitulo}{fornecedorEvolucaoAtual ? ` — ${fornecedorEvolucaoAtual.nome}` : ""}</p>
+            {tendenciaFornecedor.length === 0 ? (
+              <p className="text-xs py-4 text-center" style={{ color: "#5a7a9a" }}>{tt.tendenciaVazio}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {tendenciaFornecedor.slice(0, 6).map((a, i) => (
+                  <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)" }}>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: "#e2e8f0" }}>{a.descricao}</p>
+                      <p className="text-[10px]" style={{ color: "#f87171" }}>{a.tipo === "aumento_recorrente" ? tt.tendenciaAumentoRecorrente : tt.tendenciaAcimaMedia}</p>
+                    </div>
+                    <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: "#f87171" }}>{fmt(a.valorReferencia)} → {fmt(a.valorAtual)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Sazonalidade + Desperdícios */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div className="rounded-xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+              <p className="text-sm font-black mb-0.5" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.sazonalidadeTitulo}</p>
+              <p className="text-[10px] mb-3" style={{ color: "#5a7a9a" }}>{tt.sazonalidadeSub}</p>
+              {sazonalidadeOption ? <ReactECharts option={sazonalidadeOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.sazonalidadeVazio}</p>}
+            </div>
+            <div className="rounded-xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+              <p className="text-sm font-black mb-0.5" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.desperdiciosTitulo}</p>
+              <p className="text-[10px] mb-3" style={{ color: "#5a7a9a" }}>{tt.desperdiciosSub}</p>
+              {desperdicios.alertas.length === 0 ? (
+                <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.desperdiciosVazio}</p>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {desperdicios.alertas.slice(0, 8).map((d, i) => (
+                    <div key={i} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(248,113,113,0.08)" }}>
+                      <p className="text-xs truncate" style={{ color: "#e2e8f0" }}>{d.descricao}</p>
+                      <p className="text-xs font-black flex-shrink-0 ml-2" style={{ color: "#f87171" }}>{fmt(d.valorPotencial)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Oportunidades de Consolidação */}
+          <div className="rounded-xl p-4" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${AMBAR}20` }}>
+            <p className="text-sm font-black mb-0.5" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.consolidacaoTitulo}</p>
+            <p className="text-[10px] mb-3" style={{ color: "#5a7a9a" }}>{tt.consolidacaoSub}</p>
+            {consolidacao.length === 0 ? (
+              <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.consolidacaoVazio}</p>
+            ) : (
+              <div className="space-y-3">
+                {consolidacao.slice(0, 5).map((g) => (
+                  <div key={g.categoria} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-black" style={{ color: AMBAR }}>{g.categoria}</p>
+                      <p className="text-xs font-black" style={{ color: "#34d399" }}>{tt.economiaEstimadaLabel}: {fmt(g.economiaEstimada)}</p>
+                    </div>
+                    <div className="space-y-1">
+                      {g.fornecedores.map((f, idx) => (
+                        <div key={f.id} className="flex items-center justify-between text-[11px]">
+                          <span style={{ color: "#c8d8f0" }}>{f.nome} {idx === 0 && <span className="px-1.5 py-0.5 rounded-full ml-1" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", fontSize: "9px" }}>{tt.maisBaratoTag}</span>}</span>
+                          <span style={{ color: "#5a7a9a" }}>{fmt(f.ticketMedio)}/{idioma === "pt" ? "compra" : idioma === "es" ? "compra" : "purchase"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CanvasBox>
+
+        {/* ====== PAINEL DE ALERTAS (Fase 4) ====== */}
+        <CanvasBox cor={alertasCriticos > 0 ? "#f87171" : alertasAtencao > 0 ? AMBAR : "#34d399"}>
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <div>
+              <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+              <h3 className="text-lg font-bold" style={{ color: "#c8d8f0", ...FONTE_EXEC }}>{tt.alertasPainelTitulo}</h3>
+              <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{tt.alertasPainelSub}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {alertasCriticos > 0 && <span className="text-xs font-black px-3 py-1.5 rounded-full" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{alertasCriticos} {tt.nivelCritico}</span>}
+              {alertasAtencao > 0 && <span className="text-xs font-black px-3 py-1.5 rounded-full" style={{ background: "rgba(245,158,11,0.15)", color: AMBAR }}>{alertasAtencao} {tt.nivelAtencao}</span>}
+            </div>
+          </div>
+
+          {alertas.length === 0 ? (
+            <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.alertasVazio}</p>
+          ) : (
+            <div className="space-y-2">
+              {alertas.map((a, i) => (
+                <div key={i} className="rounded-xl p-3 flex items-start gap-3" style={{ background: `${NIVEL_SCORE_COR[a.severidade]}0e`, border: `1px solid ${NIVEL_SCORE_COR[a.severidade]}30` }}>
+                  <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: NIVEL_SCORE_COR[a.severidade] }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold" style={{ color: "#e2e8f0" }}>{a.titulo}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: "#94a3b8" }}>{a.descricao}</p>
+                    <p className="text-[11px] mt-1 font-semibold" style={{ color: NIVEL_SCORE_COR[a.severidade] }}>→ {a.acao}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="text-[10px] mt-4 pt-3" style={{ color: "#5a7a9a", borderTop: "1px solid rgba(255,255,255,0.06)" }}>{tt.alertaQuedaQualidadeLegenda}</p>
         </CanvasBox>
 
         {/* Cards resumo */}
