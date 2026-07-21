@@ -25,7 +25,7 @@ export type ClienteRow = {
   origem?: string | null; responsavel_comercial?: string | null;
   condicao_pagamento?: string | null; prazo_medio_dias?: number | null; limite_credito?: number | null;
   classificacao?: string | null; estado?: string | null; data_primeira_compra?: string | null;
-  observacoes?: string | null;
+  observacoes?: string | null; documentos_links?: string | null;
 };
 
 export type ClassificacaoCliente = "lead" | "cliente" | "parceiro" | "estrategico" | "premium";
@@ -37,6 +37,14 @@ export type ContaRow = {
   numero_documento?: string | null; categoria?: string | null; parcelas?: number | null;
   taxa_juros?: number | null; taxa_multa?: number | null; observacoes?: string | null;
   user_id: string; empresa_id?: string | null; created_at: string;
+  // Cobrança Enterprise — colunas novas, opcionais até o Elias rodar o ALTER TABLE
+  // (ver STATUS-AXIOMA.md). Sem tabela de contratos/plano de contas/contas bancárias
+  // no Axioma hoje, então contrato/conta contábil/banco são texto livre — não é
+  // fingir um relacionamento que não existe. centro_custo_id reaproveita a tabela
+  // centros_custo já existente (não duplica o conceito).
+  contrato_ref?: string | null; centro_custo_id?: string | null; conta_contabil?: string | null;
+  banco_recebedor?: string | null; competencia?: string | null; valor_desconto?: number | null;
+  recorrente?: boolean | null; frequencia_recorrencia?: string | null; anexo_url?: string | null;
 };
 
 export type EstagioInadimplencia = "aberto" | "aviso" | "negociacao" | "acordo" | "juridico" | "perda";
@@ -587,6 +595,120 @@ export function montarParecerExecutivo(lang: Idioma3, s: ClienteSnapshot, ivca: 
     oportunidades: positivos.map((p) => montarNarrativaSinal(lang, p)),
     sugestao, proximoPasso,
   };
+}
+
+// ============================================================================
+// COBRANÇA ENTERPRISE — score de recebimento e probabilidade de inadimplência
+// por conta, heurística determinística sobre os subscores do IVCA já calculados
+// (pontualidade/risco), mesmo princípio de transparência do resto do Axioma:
+// nunca é modelo de linguagem, sempre explica a partir de dado real.
+// ============================================================================
+
+// 0-100: quanto maior, mais provável o recebimento no prazo. Combina a pontualidade
+// histórica do cliente com a proximidade do vencimento (falta pouco tempo = mais risco
+// de atraso operacional, mesmo pra um bom pagador).
+export function scoreRecebimento(pontualidadeCliente: number, diasParaVencer: number): number {
+  let score = pontualidadeCliente;
+  if (diasParaVencer < 0) score -= Math.min(50, Math.abs(diasParaVencer) * 2);
+  else if (diasParaVencer <= 3) score -= 8;
+  return clamp(Math.round(score), 0, 100);
+}
+
+// 0-100: inverso do subscore de risco do IVCA (que é "segurança" — quanto maior, mais seguro).
+export function probabilidadeInadimplenciaConta(riscoClienteSubscore: number): number {
+  return clamp(Math.round(100 - riscoClienteSubscore), 0, 100);
+}
+
+// ============================================================================
+// PREVISÃO DE FATURAMENTO POR CLIENTE — heurística sobre a tendência já calculada
+// (valorUltimos3Meses vs valorTresMesesAnteriores), nunca inventa dado sem histórico.
+// ============================================================================
+
+export type PrevisaoFaturamento = { valorProjetado: number; confianca: "baixa" | "media" | "alta"; texto: string };
+
+export function previsaoFaturamentoCliente(lang: Idioma3, s: ClienteSnapshot): PrevisaoFaturamento {
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  if (s.valorTresMesesAnteriores <= 0) {
+    const base = s.valorUltimos3Meses / 3;
+    return {
+      valorProjetado: base, confianca: s.valorUltimos3Meses > 0 ? "baixa" : "baixa",
+      texto: lang === "en" ? `Not enough history yet — flat projection from the last 3 months (${fBRLLocal(base)}/mo).`
+        : lang === "es" ? `Historial insuficiente aún — proyección plana de los últimos 3 meses (${fBRLLocal(base)}/mes).`
+        : `Histórico ainda insuficiente — projeção plana dos últimos 3 meses (${fBRLLocal(base)}/mês).`,
+    };
+  }
+  const variacao = (s.valorUltimos3Meses - s.valorTresMesesAnteriores) / s.valorTresMesesAnteriores;
+  const projetado = (s.valorUltimos3Meses / 3) * (1 + clamp(variacao, -0.5, 0.5));
+  const confianca: PrevisaoFaturamento["confianca"] = s.qtdContas >= 6 ? "alta" : s.qtdContas >= 3 ? "media" : "baixa";
+  return {
+    valorProjetado: projetado, confianca,
+    texto: lang === "en" ? `Projected ~${fBRLLocal(projetado)}/mo based on the ${variacao >= 0 ? "up" : "down"}ward trend of the last 6 months.`
+      : lang === "es" ? `Proyección ~${fBRLLocal(projetado)}/mes según la tendencia de ${variacao >= 0 ? "alza" : "baja"} de los últimos 6 meses.`
+      : `Projeção de ~${fBRLLocal(projetado)}/mês com base na tendência de ${variacao >= 0 ? "alta" : "queda"} dos últimos 6 meses.`,
+  };
+}
+
+// ============================================================================
+// HEALTH SCORE E RISCO DA CARTEIRA — agregados de nível carteira, mesmo padrão
+// de tempoMedioRelacionamentoDias (calcularKpisCarteiraExecutivo): média simples
+// sobre o que já é calculado por cliente, nada novo inventado.
+// ============================================================================
+
+export function healthScoreCarteira(intel: ItemIntel[]): number {
+  if (intel.length === 0) return 0;
+  const media = intel.reduce((sum, i) => sum + (i.saude.pagamento + i.saude.relacionamento + i.saude.recorrencia + i.saude.comercial) / 4, 0) / intel.length;
+  return Math.round(media);
+}
+
+export function riscoCarteiraAgregado(intel: ItemIntel[]): number {
+  if (intel.length === 0) return 0;
+  const media = intel.reduce((sum, i) => sum + (i.ivca.subscores.find((x) => x.chave === "risco")?.valor ?? 50), 0) / intel.length;
+  return Math.round(100 - media); // inverte pra "risco" (maior = pior), mesma leitura de probabilidadeInadimplenciaConta
+}
+
+export type TendenciaCliente = "expansao" | "estavel" | "queda";
+export function classificarTendencia(tendenciaSubscore: number): TendenciaCliente {
+  if (tendenciaSubscore >= 60) return "expansao";
+  if (tendenciaSubscore < 40) return "queda";
+  return "estavel";
+}
+
+// ============================================================================
+// SÉRIE FUTURA DE RECEBIMENTOS — "Fluxo Futuro" / "Mapa Temporal de Recebimentos":
+// próximas N semanas (segunda a domingo) de contas_receber por vencimento,
+// separando previsto (pendente) de confirmado (já recebido nessa janela).
+// ============================================================================
+
+export type BucketRecebimento = { label: string; inicio: string; fim: string; previsto: number; confirmado: number };
+
+function inicioSemanaLocal(d: Date): Date {
+  const dia = d.getDay();
+  const diff = (dia === 0 ? -6 : 1) - dia;
+  const seg = new Date(d);
+  seg.setDate(d.getDate() + diff);
+  seg.setHours(0, 0, 0, 0);
+  return seg;
+}
+
+export function serieRecebimentosFutura(contas: ContaRow[], semanas = 8): BucketRecebimento[] {
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const semanaAtual = inicioSemanaLocal(hoje);
+  const buckets: { inicio: Date; fim: Date; previsto: number; confirmado: number }[] = [];
+  for (let i = 0; i < semanas; i++) {
+    const ini = new Date(semanaAtual); ini.setDate(semanaAtual.getDate() + i * 7);
+    const fim = new Date(ini); fim.setDate(ini.getDate() + 6);
+    buckets.push({ inicio: ini, fim, previsto: 0, confirmado: 0 });
+  }
+  contas.forEach((c) => {
+    if (!c.data_vencimento) return;
+    const d = new Date(c.data_vencimento + "T00:00:00");
+    const b = buckets.find((x) => d >= x.inicio && d <= x.fim);
+    if (!b) return;
+    if (c.status === "recebido") b.confirmado += Number(c.valor_recebido ?? c.valor) || 0;
+    else b.previsto += Number(c.valor) || 0;
+  });
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return buckets.map((b) => ({ label: `${b.inicio.getDate()}/${b.inicio.getMonth() + 1}`, inicio: iso(b.inicio), fim: iso(b.fim), previsto: b.previsto, confirmado: b.confirmado }));
 }
 
 // ============================================================================

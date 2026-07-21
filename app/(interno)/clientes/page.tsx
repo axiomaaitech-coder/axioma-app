@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
@@ -9,6 +10,7 @@ import {
   Pencil, Trash2, X, Phone, Mail, MapPin, FileText, ChevronRight, ChevronLeft,
   Award, Users, AlertTriangle, Clock, MessageCircle, Send, HeartPulse, Layers,
   Share2, Briefcase, Globe, ShoppingBag, ClipboardList, Radar as IconRadar,
+  Check, Activity,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -21,7 +23,8 @@ import {
   montarNarrativaSinal, montarTimelineCliente, enviarPerguntaZIA, ordenarSinaisPorSeveridade,
   montarRadarCarteira, calcularKpisCarteiraExecutivo, receitaPorSegmento, receitaPorCidade,
   receitaPorEstado, sugestaoAcaoCobranca, montarParecerExecutivo, resumoComprasCliente,
-  nomeClassificacao,
+  nomeClassificacao, scoreRecebimento, probabilidadeInadimplenciaConta, previsaoFaturamentoCliente,
+  healthScoreCarteira, riscoCarteiraAgregado, classificarTendencia, serieRecebimentosFutura,
   type ClienteRow, type ContaRow, type InadimplenciaRow, type Idioma3, type TipoSinalCliente,
 } from "../../../lib/clienteIntelHelpers";
 
@@ -64,13 +67,32 @@ function CampoSelect({ label, value, onChange, opcoes, placeholder }: { label: s
   );
 }
 
+function CampoTextarea({ label, value, onChange, placeholder, linhas = 3 }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; linhas?: number }) {
+  return (
+    <div>
+      <label className={labelCls} style={labelStyle}>{label}</label>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={linhas}
+        className={`${inputCls} resize-none`} style={inputStyle} />
+    </div>
+  );
+}
+
+function CampoCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer select-none py-2">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="w-4 h-4 rounded" />
+      <span className="text-xs font-semibold" style={labelStyle}>{label}</span>
+    </label>
+  );
+}
+
 type FormCliente = {
   nome: string; email: string; telefone: string; documento: string; status: string;
   razaoSocial: string; nomeFantasia: string; inscricaoEstadual: string; whatsapp: string; site: string;
   responsavel: string; cargo: string; segmento: string; porte: string; regimeTributario: string;
   numFuncionarios: string; faturamentoEstimado: string; origem: string; responsavelComercial: string;
   condicaoPagamento: string; prazoMedio: string; limiteCredito: string; classificacao: string;
-  estado: string; cidade: string; dataPrimeiraCompra: string; observacoes: string;
+  estado: string; cidade: string; dataPrimeiraCompra: string; observacoes: string; documentosLinks: string;
 };
 const FORM_VAZIO: FormCliente = {
   nome: "", email: "", telefone: "", documento: "", status: "ativo",
@@ -78,8 +100,26 @@ const FORM_VAZIO: FormCliente = {
   responsavel: "", cargo: "", segmento: "", porte: "", regimeTributario: "",
   numFuncionarios: "", faturamentoEstimado: "", origem: "", responsavelComercial: "",
   condicaoPagamento: "", prazoMedio: "", limiteCredito: "", classificacao: "cliente",
-  estado: "", cidade: "", dataPrimeiraCompra: "", observacoes: "",
+  estado: "", cidade: "", dataPrimeiraCompra: "", observacoes: "", documentosLinks: "",
 };
+
+type FormConta = {
+  descricao: string; valor: string; vencimento: string; emissao: string; clienteId: string;
+  numeroDocumento: string; categoria: string; formaRecebimento: string; parcelas: string;
+  taxaJuros: string; taxaMulta: string; valorDesconto: string; observacoes: string;
+  contratoRef: string; centroCustoId: string; contaContabil: string; bancoRecebedor: string;
+  competencia: string; recorrente: boolean; frequenciaRecorrencia: string; anexoUrl: string;
+};
+const FORM_CONTA_VAZIO: FormConta = {
+  descricao: "", valor: "", vencimento: "", emissao: "", clienteId: "",
+  numeroDocumento: "", categoria: "", formaRecebimento: "", parcelas: "",
+  taxaJuros: "", taxaMulta: "", valorDesconto: "", observacoes: "",
+  contratoRef: "", centroCustoId: "", contaContabil: "", bancoRecebedor: "",
+  competencia: "", recorrente: false, frequenciaRecorrencia: "", anexoUrl: "",
+};
+
+const ETAPAS_CADASTRO = ["identificacao", "contato", "endereco", "fiscal", "financeiro", "comercial", "cobrancas", "riscos", "documentos", "ia", "observacoes"] as const;
+type EtapaCadastro = typeof ETAPAS_CADASTRO[number];
 
 const T = {
   pt: {
@@ -144,6 +184,24 @@ const T = {
     // Cobranças detalhe
     verDetalhes: "Detalhes", ocultarDetalhes: "Ocultar", parcelasLbl: "Parcelas", jurosLbl: "Juros", multaLbl: "Multa",
     formaRecebLbl: "Forma de Recebimento", observacoesLbl: "Observações", sugestaoAcaoLbl: "Sugestão de Ação", semObservacoes: "Nenhuma observação.",
+    // Wizard de cadastro
+    etapaNomes: { identificacao: "Identificação", contato: "Contato", endereco: "Endereço", fiscal: "Fiscal", financeiro: "Financeiro", comercial: "Comercial", cobrancas: "Cobranças", riscos: "Riscos", documentos: "Documentos", ia: "Inteligência IA", observacoes: "Observações" } as Record<EtapaCadastro, string>,
+    anterior: "Anterior", proximo: "Próximo", finalizarCadastro: "Salvar Cliente",
+    secFiscal: "Fiscal", secFinanceiro: "Financeiro",
+    paisLabel: "País", paisValor: "Brasil",
+    semDadosNovoCliente: "Disponível depois de salvar o cliente e registrar o primeiro histórico.",
+    riscoEtapaTitulo: "Risco calculado (somente leitura)", cobrancasEtapaTitulo: "Cobranças deste cliente (somente leitura)",
+    iaEtapaTitulo: "Prévia do Parecer Executivo (somente leitura)",
+    lblDocumentosLinks: "Links de Documentos", documentosLinksPlaceholder: "Um link por linha (ex: contrato no Google Drive)",
+    // Cobrança Enterprise
+    secBasico: "Básico", secDocumentacao: "Documentação", secPagamento: "Pagamento", secInteligenciaConta: "Inteligência", secAnexoObs: "Anexo & Observações",
+    lblContrato: "Contrato Relacionado", lblNumeroCobranca: "Número da Cobrança", lblCategoria: "Categoria da Receita",
+    lblCentroReceita: "Centro de Receita", lblContaContabil: "Conta Contábil", lblBancoRecebedor: "Banco Recebedor",
+    lblEmissao: "Emissão", lblCompetencia: "Competência", lblDesconto: "Desconto (R$)", lblValorFinal: "Valor Final",
+    lblRecorrente: "Cobrança Recorrente", lblFrequencia: "Frequência", lblAnexoUrl: "Link do Anexo",
+    freqOpcoes: [{ value: "mensal", label: "Mensal" }, { value: "trimestral", label: "Trimestral" }, { value: "anual", label: "Anual" }],
+    scoreRecebimentoLbl: "Score de Recebimento", probInadimplenciaLbl: "Probabilidade de Inadimplência", previsaoIaLbl: "Previsão (regra, não IA generativa)",
+    selecioneClientePrevisao: "Selecione um cliente e vencimento para ver a previsão.",
   },
   en: {
     abaCarteira: "📊 Portfolio", abaCliente: "🧬 Client", abaCobrancas: "💳 Receivables",
@@ -198,6 +256,22 @@ const T = {
     parecerSugestao: "Suggestion", parecerProximoPasso: "Next Step",
     verDetalhes: "Details", ocultarDetalhes: "Hide", parcelasLbl: "Installments", jurosLbl: "Interest", multaLbl: "Late Fee",
     formaRecebLbl: "Payment Method", observacoesLbl: "Notes", sugestaoAcaoLbl: "Suggested Action", semObservacoes: "No notes.",
+    etapaNomes: { identificacao: "Identification", contato: "Contact", endereco: "Address", fiscal: "Tax", financeiro: "Financial", comercial: "Commercial", cobrancas: "Receivables", riscos: "Risk", documentos: "Documents", ia: "AI Intelligence", observacoes: "Notes" } as Record<EtapaCadastro, string>,
+    anterior: "Back", proximo: "Next", finalizarCadastro: "Save Customer",
+    secFiscal: "Tax", secFinanceiro: "Financial",
+    paisLabel: "Country", paisValor: "Brazil",
+    semDadosNovoCliente: "Available after saving the client and registering the first history.",
+    riscoEtapaTitulo: "Calculated risk (read-only)", cobrancasEtapaTitulo: "This client's receivables (read-only)",
+    iaEtapaTitulo: "Executive Opinion preview (read-only)",
+    lblDocumentosLinks: "Document Links", documentosLinksPlaceholder: "One link per line (e.g. contract on Google Drive)",
+    secBasico: "Basic", secDocumentacao: "Documentation", secPagamento: "Payment", secInteligenciaConta: "Intelligence", secAnexoObs: "Attachment & Notes",
+    lblContrato: "Related Contract", lblNumeroCobranca: "Charge Number", lblCategoria: "Revenue Category",
+    lblCentroReceita: "Revenue Center", lblContaContabil: "Ledger Account", lblBancoRecebedor: "Receiving Bank",
+    lblEmissao: "Issue Date", lblCompetencia: "Reference Month", lblDesconto: "Discount (R$)", lblValorFinal: "Final Value",
+    lblRecorrente: "Recurring Charge", lblFrequencia: "Frequency", lblAnexoUrl: "Attachment Link",
+    freqOpcoes: [{ value: "mensal", label: "Monthly" }, { value: "trimestral", label: "Quarterly" }, { value: "anual", label: "Yearly" }],
+    scoreRecebimentoLbl: "Collection Score", probInadimplenciaLbl: "Default Probability", previsaoIaLbl: "Forecast (rule-based, not generative AI)",
+    selecioneClientePrevisao: "Select a client and due date to see the forecast.",
   },
   es: {
     abaCarteira: "📊 Cartera", abaCliente: "🧬 Cliente", abaCobrancas: "💳 Cobros",
@@ -252,6 +326,22 @@ const T = {
     parecerSugestao: "Sugerencia", parecerProximoPasso: "Próximo Paso",
     verDetalhes: "Detalles", ocultarDetalhes: "Ocultar", parcelasLbl: "Cuotas", jurosLbl: "Interés", multaLbl: "Multa",
     formaRecebLbl: "Forma de Cobro", observacoesLbl: "Observaciones", sugestaoAcaoLbl: "Sugerencia de Acción", semObservacoes: "Sin observaciones.",
+    etapaNomes: { identificacao: "Identificación", contato: "Contacto", endereco: "Dirección", fiscal: "Fiscal", financeiro: "Financiero", comercial: "Comercial", cobrancas: "Cobros", riscos: "Riesgo", documentos: "Documentos", ia: "Inteligencia IA", observacoes: "Observaciones" } as Record<EtapaCadastro, string>,
+    anterior: "Anterior", proximo: "Siguiente", finalizarCadastro: "Guardar Cliente",
+    secFiscal: "Fiscal", secFinanceiro: "Financiero",
+    paisLabel: "País", paisValor: "Brasil",
+    semDadosNovoCliente: "Disponible después de guardar el cliente y registrar el primer historial.",
+    riscoEtapaTitulo: "Riesgo calculado (solo lectura)", cobrancasEtapaTitulo: "Cobros de este cliente (solo lectura)",
+    iaEtapaTitulo: "Vista previa del Parecer Ejecutivo (solo lectura)",
+    lblDocumentosLinks: "Enlaces de Documentos", documentosLinksPlaceholder: "Un enlace por línea (ej: contrato en Google Drive)",
+    secBasico: "Básico", secDocumentacao: "Documentación", secPagamento: "Pago", secInteligenciaConta: "Inteligencia", secAnexoObs: "Anexo y Observaciones",
+    lblContrato: "Contrato Relacionado", lblNumeroCobranca: "Número del Cobro", lblCategoria: "Categoría del Ingreso",
+    lblCentroReceita: "Centro de Ingreso", lblContaContabil: "Cuenta Contable", lblBancoRecebedor: "Banco Receptor",
+    lblEmissao: "Emisión", lblCompetencia: "Periodo Contable", lblDesconto: "Descuento (R$)", lblValorFinal: "Valor Final",
+    lblRecorrente: "Cobro Recurrente", lblFrequencia: "Frecuencia", lblAnexoUrl: "Enlace del Anexo",
+    freqOpcoes: [{ value: "mensal", label: "Mensual" }, { value: "trimestral", label: "Trimestral" }, { value: "anual", label: "Anual" }],
+    scoreRecebimentoLbl: "Score de Cobro", probInadimplenciaLbl: "Probabilidad de Impago", previsaoIaLbl: "Previsión (regla, no IA generativa)",
+    selecioneClientePrevisao: "Seleccione un cliente y vencimiento para ver la previsión.",
   },
 };
 
@@ -279,15 +369,14 @@ export default function ClientesPage() {
   const [editandoCliente, setEditandoCliente] = useState<ClienteRow | null>(null);
   const [form, setForm] = useState<FormCliente>(FORM_VAZIO);
   const [salvandoCliente, setSalvandoCliente] = useState(false);
+  const [etapaCadastro, setEtapaCadastro] = useState(0);
 
   const [estados, setEstados] = useState<EstadoIBGE[]>([]);
   const [municipios, setMunicipios] = useState<MunicipioIBGE[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
 
   const [modalConta, setModalConta] = useState(false);
-  const [descricaoConta, setDescricaoConta] = useState("");
-  const [valorConta, setValorConta] = useState("");
-  const [vencimentoConta, setVencimentoConta] = useState("");
-  const [clienteConta, setClienteConta] = useState("");
+  const [formConta, setFormConta] = useState<FormConta>(FORM_CONTA_VAZIO);
   const [salvandoConta, setSalvandoConta] = useState(false);
 
   const [inputChat, setInputChat] = useState("");
@@ -297,7 +386,14 @@ export default function ClientesPage() {
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  useEffect(() => { carregarDados(); buscarEstados().then((r) => setEstados(r.dados)); }, []);
+  useEffect(() => {
+    carregarDados();
+    buscarEstados().then((r) => setEstados(r.dados));
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("centros_custo").select("id, nome").eq("user_id", user.id).then(({ data }) => setCentrosCusto(data || []));
+    });
+  }, []);
 
   useEffect(() => {
     if (!modalCliente || !form.estado) { setMunicipios([]); return; }
@@ -342,6 +438,7 @@ export default function ClientesPage() {
       limite_credito: form.limiteCredito ? parseFloat(form.limiteCredito) : null,
       classificacao: form.classificacao || null, estado: form.estado || null,
       data_primeira_compra: form.dataPrimeiraCompra || null, observacoes: form.observacoes || null,
+      documentos_links: form.documentosLinks || null,
     };
     if (editandoCliente) {
       await supabase.from("clientes").update(payload).eq("id", editandoCliente.id);
@@ -358,13 +455,28 @@ export default function ClientesPage() {
   }
 
   async function salvarConta() {
-    if (!descricaoConta.trim() || !valorConta || !vencimentoConta) return;
+    if (!formConta.descricao.trim() || !formConta.valor || !formConta.vencimento) return;
     setSalvandoConta(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("contas_receber").insert({ descricao: descricaoConta, valor: parseFloat(valorConta), data_vencimento: vencimentoConta, status: "pendente", cliente_id: clienteConta || null, user_id: user.id, empresa_id: empresaId });
-    setModalConta(false);
-    setDescricaoConta(""); setValorConta(""); setVencimentoConta(""); setClienteConta("");
+    if (!user) { setSalvandoConta(false); return; }
+    await supabase.from("contas_receber").insert({
+      descricao: formConta.descricao, valor: parseFloat(formConta.valor), data_vencimento: formConta.vencimento,
+      data_emissao: formConta.emissao || null, status: "pendente", cliente_id: formConta.clienteId || null,
+      numero_documento: formConta.numeroDocumento || null, categoria: formConta.categoria || null,
+      forma_recebimento: formConta.formaRecebimento || null,
+      parcelas: formConta.parcelas ? parseInt(formConta.parcelas) : null,
+      taxa_juros: formConta.taxaJuros ? parseFloat(formConta.taxaJuros) : null,
+      taxa_multa: formConta.taxaMulta ? parseFloat(formConta.taxaMulta) : null,
+      valor_desconto: formConta.valorDesconto ? parseFloat(formConta.valorDesconto) : null,
+      observacoes: formConta.observacoes || null,
+      contrato_ref: formConta.contratoRef || null, centro_custo_id: formConta.centroCustoId || null,
+      conta_contabil: formConta.contaContabil || null, banco_recebedor: formConta.bancoRecebedor || null,
+      competencia: formConta.competencia || null, recorrente: formConta.recorrente,
+      frequencia_recorrencia: formConta.recorrente ? (formConta.frequenciaRecorrencia || null) : null,
+      anexo_url: formConta.anexoUrl || null,
+      user_id: user.id, empresa_id: empresaId,
+    });
+    setModalConta(false); setFormConta(FORM_CONTA_VAZIO);
     setSalvandoConta(false); carregarDados();
   }
 
@@ -394,12 +506,14 @@ export default function ClientesPage() {
       limiteCredito: cliente.limite_credito != null ? String(cliente.limite_credito) : "",
       classificacao: cliente.classificacao || "cliente", estado: cliente.estado || "", cidade: cliente.cidade || "",
       dataPrimeiraCompra: cliente.data_primeira_compra || "", observacoes: cliente.observacoes || "",
+      documentosLinks: cliente.documentos_links || "",
     });
+    setEtapaCadastro(0);
     setModalCliente(true);
   }
 
   function fecharModalCliente() {
-    setModalCliente(false); setEditandoCliente(null); setForm(FORM_VAZIO); setMunicipios([]);
+    setModalCliente(false); setEditandoCliente(null); setForm(FORM_VAZIO); setMunicipios([]); setEtapaCadastro(0);
   }
 
   const hoje = new Date().toISOString().split("T")[0];
@@ -421,6 +535,19 @@ export default function ClientesPage() {
     .filter((i) => i.s.cliente.nome.toLowerCase().includes(buscaCarteira.toLowerCase()))
     .filter((i) => !filtroSinalCarteira || i.sinais.some((x) => x.tipo === filtroSinalCarteira));
   const clienteAtual = intel.find((i) => i.s.cliente.id === clienteSelecionadoId) || null;
+  const intelDoClienteEditando = editandoCliente ? intel.find((i) => i.s.cliente.id === editandoCliente.id) || null : null;
+  const contasDoClienteEditando = editandoCliente ? contas.filter((c) => c.cliente_id === editandoCliente.id) : [];
+  const parecerDoClienteEditando = intelDoClienteEditando ? montarParecerExecutivo(lang, intelDoClienteEditando.s, intelDoClienteEditando.ivca, intelDoClienteEditando.sinais) : null;
+
+  const intelDoClienteConta = intel.find((i) => i.s.cliente.id === formConta.clienteId) || null;
+  const diasParaVencerConta = formConta.vencimento ? Math.round((new Date(formConta.vencimento + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000) : null;
+  const previewCobranca = intelDoClienteConta && diasParaVencerConta != null ? {
+    score: scoreRecebimento(intelDoClienteConta.ivca.subscores.find((x) => x.chave === "pontualidade")?.valor ?? 60, diasParaVencerConta),
+    prob: probabilidadeInadimplenciaConta(intelDoClienteConta.ivca.subscores.find((x) => x.chave === "risco")?.valor ?? 50),
+  } : null;
+  const valorFinalConta = (parseFloat(formConta.valor) || 0) - (parseFloat(formConta.valorDesconto) || 0)
+    + ((parseFloat(formConta.valor) || 0) * ((parseFloat(formConta.taxaJuros) || 0) / 100))
+    + ((parseFloat(formConta.valor) || 0) * ((parseFloat(formConta.taxaMulta) || 0) / 100));
 
   const valorEmAtrasoCarteira = snapshotCarteira.clientesSnapshot.reduce((s, c) => s + c.valorEmAtrasoAtual, 0);
   const inadimplenciaCarteiraPct = snapshotCarteira.valorTotalCarteira > 0 ? (valorEmAtrasoCarteira / snapshotCarteira.valorTotalCarteira) * 100 : 0;
@@ -432,6 +559,24 @@ export default function ClientesPage() {
 
   const kpisCarteira = useMemo(() => calcularKpisCarteiraExecutivo(clientes, intel), [clientes, intel]);
   const radarCarteira = useMemo(() => montarRadarCarteira(intel), [intel]);
+
+  // Motor de IA / Dashboard ampliado — tudo reaproveitando snapshots e subscores já calculados.
+  const recebimentoPrevisto = contas.filter((c) => c.status === "pendente" && c.data_vencimento >= hoje).reduce((s, c) => s + c.valor, 0);
+  const recebimentoConfirmado = contas.filter((c) => c.status === "recebido").reduce((s, c) => s + (c.valor_recebido ?? c.valor), 0);
+  const recebimentoEmRisco = contas.filter((c) => c.status === "pendente" && c.data_vencimento < hoje).reduce((s, c) => s + c.valor, 0);
+  const dependenciaMaiorCliente = snapshotCarteira.valorTotalCarteira > 0 && intel.length > 0
+    ? Math.max(...intel.map((i) => i.s.valorTotalCobrado)) / snapshotCarteira.valorTotalCarteira * 100 : 0;
+  const qtdExpansao = intel.filter((i) => classificarTendencia(i.ivca.subscores.find((x) => x.chave === "tendencia")?.valor ?? 50) === "expansao").length;
+  const qtdQueda = intel.filter((i) => classificarTendencia(i.ivca.subscores.find((x) => x.chave === "tendencia")?.valor ?? 50) === "queda").length;
+  const receitaRecorrente = contas.filter((c) => c.recorrente).reduce((s, c) => s + c.valor, 0);
+  const receitaNaoRecorrente = contas.filter((c) => !c.recorrente).reduce((s, c) => s + c.valor, 0);
+  const temContaRecorrenteMarcada = contas.some((c) => c.recorrente);
+  const healthCarteira = useMemo(() => healthScoreCarteira(intel), [intel]);
+  const riscoCarteira = useMemo(() => riscoCarteiraAgregado(intel), [intel]);
+  const optFluxoFuturo = useMemo(() => {
+    const serie = serieRecebimentosFutura(contas, 8);
+    return optBarrasV(serie.map((s) => s.previsto + s.confirmado), serie.map((s) => s.label), CORES.cyan, CORES.cyanC);
+  }, [contas]);
   const grupoSegmento = useMemo(() => receitaPorSegmento(intel, lang).slice(0, 8), [intel, lang]);
   const grupoCidade = useMemo(() => receitaPorCidade(intel, lang).slice(0, 8), [intel, lang]);
   const grupoEstado = useMemo(() => receitaPorEstado(intel, lang).slice(0, 8), [intel, lang]);
@@ -598,7 +743,7 @@ export default function ClientesPage() {
   return (
     <ModuloLayout titulo={`👥 ${cl.titulo}`} subtitulo={cl.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
-      onNovo={() => { setEditandoCliente(null); setForm(FORM_VAZIO); setModalCliente(true); }}
+      onNovo={() => { setEditandoCliente(null); setForm(FORM_VAZIO); setEtapaCadastro(0); setModalCliente(true); }}
       labelBotao={cl.novoCliente} botaoExtra={<div className="flex gap-2 flex-wrap">{botaoCobranca}{botaoCompartilhar}</div>}>
       <div className="space-y-4">
 
@@ -679,6 +824,49 @@ export default function ClientesPage() {
                       </div>
                     ))}
                   </div>
+                </CanvasBox>
+
+                {/* Motor de Inteligência — recebimentos, dependência, expansão/queda, recorrência, health/risco */}
+                <CanvasBox cor="#06b6d4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Activity size={16} style={{ color: CORES.cyan }} />
+                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{tt.dashExecTitulo} — {lang === "en" ? "Cash & Trends" : lang === "es" ? "Caja y Tendencias" : "Caixa & Tendências"}</p>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                    {[
+                      { label: lang === "en" ? "Expected Receivables" : lang === "es" ? "Cobro Previsto" : "Recebimento Previsto", valor: fmt(recebimentoPrevisto), cor: "#6ab0ff" },
+                      { label: lang === "en" ? "Confirmed Receivables" : lang === "es" ? "Cobro Confirmado" : "Recebimento Confirmado", valor: fmt(recebimentoConfirmado), cor: "#34d399" },
+                      { label: lang === "en" ? "At-Risk Receivables" : lang === "es" ? "Cobro en Riesgo" : "Recebimento em Risco", valor: fmt(recebimentoEmRisco), cor: "#f87171" },
+                      { label: lang === "en" ? "Top Client Dependency" : lang === "es" ? "Dependencia Mayor Cliente" : "Dependência Maior Cliente", valor: `${fmtN(dependenciaMaiorCliente)}%`, cor: dependenciaMaiorCliente > 30 ? "#f87171" : "#94a3b8" },
+                      { label: lang === "en" ? "Clients Expanding" : lang === "es" ? "Clientes en Expansión" : "Clientes em Expansão", valor: `${qtdExpansao}`, cor: "#34d399" },
+                      { label: lang === "en" ? "Clients Declining" : lang === "es" ? "Clientes en Caída" : "Clientes em Queda", valor: `${qtdQueda}`, cor: "#f87171" },
+                      { label: lang === "en" ? "Portfolio Health Score" : lang === "es" ? "Health Score de Cartera" : "Health Score da Carteira", valor: `${healthCarteira}/100`, cor: healthCarteira >= 70 ? "#34d399" : healthCarteira >= 40 ? "#fbbf24" : "#f87171" },
+                      { label: lang === "en" ? "Portfolio Risk" : lang === "es" ? "Riesgo de Cartera" : "Risco da Carteira", valor: `${riscoCarteira}/100`, cor: riscoCarteira <= 30 ? "#34d399" : riscoCarteira <= 60 ? "#fbbf24" : "#f87171" },
+                    ].map((k) => (
+                      <div key={k.label} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>{k.label}</p>
+                        <p className="text-base font-black" style={{ color: k.cor }}>{k.valor}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {temContaRecorrenteMarcada && (
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="rounded-xl p-3" style={{ background: "rgba(52,211,153,0.06)" }}>
+                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>{lang === "en" ? "Recurring Revenue" : lang === "es" ? "Ingresos Recurrentes" : "Receita Recorrente"}</p>
+                        <p className="text-base font-black" style={{ color: "#34d399" }}>{fmt(receitaRecorrente)}</p>
+                      </div>
+                      <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                        <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>{lang === "en" ? "Non-Recurring Revenue" : lang === "es" ? "Ingresos No Recurrentes" : "Receita Não Recorrente"}</p>
+                        <p className="text-base font-black" style={{ color: "#94a3b8" }}>{fmt(receitaNaoRecorrente)}</p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs font-black mb-1" style={{ color: "#f1f5f9" }}>{lang === "en" ? "Future Cash Flow — Receivables Time Map" : lang === "es" ? "Flujo Futuro — Mapa Temporal de Cobros" : "Fluxo Futuro — Mapa Temporal de Recebimentos"}</p>
+                  {contas.length > 0 ? (
+                    <ReactECharts option={optFluxoFuturo} style={{ height: 200, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
+                  ) : (
+                    <p className="text-[11px] py-4 text-center" style={{ color: "#5a7a9a" }}>{tt.semDadoAgrupado}</p>
+                  )}
                 </CanvasBox>
 
                 {/* Radar Executivo */}
@@ -1009,6 +1197,10 @@ export default function ClientesPage() {
                           <ul className="space-y-1">{parecer.oportunidades.map((p, i) => <li key={i} className="text-xs" style={{ color: "#e2e8f0" }}>• {p}</li>)}</ul>
                         </div>
                       )}
+                      <div className="px-3 py-2.5 rounded-xl mb-3" style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)" }}>
+                        <p className="text-[9px] font-black uppercase mb-1" style={{ color: CORES.cyan }}>{lang === "en" ? "Revenue Forecast" : lang === "es" ? "Previsión de Facturación" : "Previsão de Faturamento"}</p>
+                        <p className="text-xs" style={{ color: "#e2e8f0" }}>{previsaoFaturamentoCliente(lang, clienteAtual.s).texto}</p>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div className="px-3 py-2.5 rounded-xl" style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)" }}>
                           <p className="text-[9px] font-black uppercase mb-1" style={{ color: "#a78bfa" }}>{tt.parecerSugestao}</p>
@@ -1224,190 +1416,319 @@ export default function ClientesPage() {
         )}
       </div>
 
-      {/* Modal Cliente — Cadastro Executivo */}
-      <AnimatePresence>
-        {modalCliente && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-10 pb-8 overflow-y-auto"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-2xl">
-              <CanvasBox cor="#6ab0ff">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoCliente ? cl.editarCliente : cl.novoCliente}</h3>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCliente} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
-                </div>
-
-                <div className="space-y-5">
-                  {/* Identificação */}
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>{tt.secIdentificacao}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Campo label={cl.nome} value={form.nome} onChange={(v) => setForm({ ...form, nome: v })} />
-                      <Campo label={tt.lblRazaoSocial} value={form.razaoSocial} onChange={(v) => setForm({ ...form, razaoSocial: v })} />
-                      <Campo label={tt.lblNomeFantasia} value={form.nomeFantasia} onChange={(v) => setForm({ ...form, nomeFantasia: v })} />
-                      <Campo label={cl.documento} value={form.documento} onChange={(v) => setForm({ ...form, documento: v })} />
-                      <Campo label={tt.lblInscricaoEstadual} value={form.inscricaoEstadual} onChange={(v) => setForm({ ...form, inscricaoEstadual: v })} />
-                      <CampoSelect label={tt.lblStatus} value={form.status} onChange={(v) => setForm({ ...form, status: v })} opcoes={[{ value: "ativo", label: cl.ativo }, { value: "inativo", label: cl.inativo }]} />
+      {/* Modal Cliente — Cadastro Executivo em etapas */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalCliente && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
+                className="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
+                <CanvasBox cor="#6ab0ff">
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff" }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoCliente ? cl.editarCliente : cl.novoCliente}</h3>
                     </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCliente} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                   </div>
 
-                  {/* Contato */}
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>{tt.secContato}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Campo label={cl.telefone} value={form.telefone} onChange={(v) => setForm({ ...form, telefone: v })} />
-                      <Campo label={tt.lblWhatsapp} value={form.whatsapp} onChange={(v) => setForm({ ...form, whatsapp: v })} />
-                      <Campo label={cl.email} value={form.email} onChange={(v) => setForm({ ...form, email: v })} tipo="email" />
-                      <Campo label={tt.lblSite} value={form.site} onChange={(v) => setForm({ ...form, site: v })} />
-                      <Campo label={tt.lblResponsavel} value={form.responsavel} onChange={(v) => setForm({ ...form, responsavel: v })} />
-                      <Campo label={tt.lblCargo} value={form.cargo} onChange={(v) => setForm({ ...form, cargo: v })} />
+                  {/* Stepper */}
+                  <div className="flex items-start gap-0.5 mb-5 overflow-x-auto pb-1">
+                    {ETAPAS_CADASTRO.map((et, idx) => (
+                      <button key={et} onClick={() => setEtapaCadastro(idx)} className="flex flex-col items-center gap-1 flex-shrink-0 px-1.5" style={{ opacity: idx <= etapaCadastro ? 1 : 0.45 }}>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black"
+                          style={{ background: idx < etapaCadastro ? CORES.verde : idx === etapaCadastro ? "#6ab0ff" : "rgba(148,163,184,0.15)", color: idx <= etapaCadastro ? "#fff" : "#64748b" }}>
+                          {idx < etapaCadastro ? <Check size={12} /> : idx + 1}
+                        </div>
+                        <span className="text-[8px] whitespace-nowrap" style={{ color: idx === etapaCadastro ? "#6ab0ff" : "#5a7a9a" }}>{tt.etapaNomes[et]}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="space-y-3 min-h-[220px]">
+                    {ETAPAS_CADASTRO[etapaCadastro] === "identificacao" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={cl.nome} value={form.nome} onChange={(v) => setForm({ ...form, nome: v })} />
+                        <Campo label={tt.lblRazaoSocial} value={form.razaoSocial} onChange={(v) => setForm({ ...form, razaoSocial: v })} />
+                        <Campo label={tt.lblNomeFantasia} value={form.nomeFantasia} onChange={(v) => setForm({ ...form, nomeFantasia: v })} />
+                        <Campo label={cl.documento} value={form.documento} onChange={(v) => setForm({ ...form, documento: v })} />
+                        <CampoSelect label={tt.lblStatus} value={form.status} onChange={(v) => setForm({ ...form, status: v })} opcoes={[{ value: "ativo", label: cl.ativo }, { value: "inativo", label: cl.inativo }]} />
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "contato" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={cl.telefone} value={form.telefone} onChange={(v) => setForm({ ...form, telefone: v })} />
+                        <Campo label={tt.lblWhatsapp} value={form.whatsapp} onChange={(v) => setForm({ ...form, whatsapp: v })} />
+                        <Campo label={cl.email} value={form.email} onChange={(v) => setForm({ ...form, email: v })} tipo="email" />
+                        <Campo label={tt.lblSite} value={form.site} onChange={(v) => setForm({ ...form, site: v })} />
+                        <Campo label={tt.lblResponsavel} value={form.responsavel} onChange={(v) => setForm({ ...form, responsavel: v })} />
+                        <Campo label={tt.lblCargo} value={form.cargo} onChange={(v) => setForm({ ...form, cargo: v })} />
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "endereco" && (
+                      <div className="space-y-3">
+                        <div className="max-w-[220px]">
+                          <label className={labelCls} style={labelStyle}>{tt.paisLabel}</label>
+                          <input value={tt.paisValor} disabled className={inputCls} style={{ ...inputStyle, opacity: 0.6 }} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <CampoSelect label={tt.lblEstado} value={form.estado} onChange={(v) => setForm({ ...form, estado: v, cidade: "" })}
+                            opcoes={estados.map((e) => ({ value: e.sigla, label: `${e.sigla} — ${e.nome}` }))} placeholder={tt.selecioneEstado} />
+                          {municipios.length > 0 ? (
+                            <CampoSelect label={tt.lblCidade} value={form.cidade} onChange={(v) => setForm({ ...form, cidade: v })}
+                              opcoes={municipios.map((m) => ({ value: m.nome, label: m.nome }))} placeholder={tt.selecioneCidade} />
+                          ) : (
+                            <Campo label={tt.lblCidade} value={form.cidade} onChange={(v) => setForm({ ...form, cidade: v })}
+                              placeholder={form.estado ? tt.digiteCidadeManual : tt.selecioneEstadoPrimeiro} />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "fiscal" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={tt.lblInscricaoEstadual} value={form.inscricaoEstadual} onChange={(v) => setForm({ ...form, inscricaoEstadual: v })} />
+                        <CampoSelect label={tt.lblRegimeTributario} value={form.regimeTributario} onChange={(v) => setForm({ ...form, regimeTributario: v })} opcoes={tt.regimes} />
+                        <CampoSelect label={tt.lblPorte} value={form.porte} onChange={(v) => setForm({ ...form, porte: v })} opcoes={tt.portePorte} />
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "financeiro" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={tt.lblFaturamentoEstimado} value={form.faturamentoEstimado} onChange={(v) => setForm({ ...form, faturamentoEstimado: v })} tipo="number" />
+                        <Campo label={tt.lblLimiteCredito} value={form.limiteCredito} onChange={(v) => setForm({ ...form, limiteCredito: v })} tipo="number" />
+                        <Campo label={tt.lblCondicaoPagamento} value={form.condicaoPagamento} onChange={(v) => setForm({ ...form, condicaoPagamento: v })} />
+                        <Campo label={tt.lblPrazoMedio} value={form.prazoMedio} onChange={(v) => setForm({ ...form, prazoMedio: v })} tipo="number" />
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "comercial" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={tt.lblSegmento} value={form.segmento} onChange={(v) => setForm({ ...form, segmento: v })} />
+                        <CampoSelect label={tt.lblClassificacao} value={form.classificacao} onChange={(v) => setForm({ ...form, classificacao: v })} opcoes={tt.classificacoes} />
+                        <Campo label={tt.lblOrigem} value={form.origem} onChange={(v) => setForm({ ...form, origem: v })} />
+                        <Campo label={tt.lblResponsavelComercial} value={form.responsavelComercial} onChange={(v) => setForm({ ...form, responsavelComercial: v })} />
+                        <Campo label={tt.lblDataPrimeiraCompra} value={form.dataPrimeiraCompra} onChange={(v) => setForm({ ...form, dataPrimeiraCompra: v })} tipo="date" />
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "cobrancas" && (
+                      <div>
+                        <p className="text-xs font-black mb-2" style={{ color: "#fbbf24" }}>{tt.cobrancasEtapaTitulo}</p>
+                        {contasDoClienteEditando.length === 0 ? (
+                          <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semDadosNovoCliente}</p>
+                        ) : (
+                          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                            {contasDoClienteEditando.slice(0, 15).map((c) => (
+                              <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
+                                <span className="text-xs truncate" style={{ color: "#c8d8f0" }}>{c.descricao}</span>
+                                <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: c.status === "recebido" ? "#34d399" : "#fbbf24" }}>{fmt(c.valor)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "riscos" && (
+                      <div>
+                        <p className="text-xs font-black mb-2" style={{ color: "#f87171" }}>{tt.riscoEtapaTitulo}</p>
+                        {!intelDoClienteEditando ? (
+                          <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semDadosNovoCliente}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-2xl font-black" style={{ color: NIVEL_COR[intelDoClienteEditando.ivca.nivel] }}>{intelDoClienteEditando.ivca.total}<span className="text-xs" style={{ color: "#64748b" }}>/1000</span></p>
+                            {ordenarSinaisPorSeveridade(intelDoClienteEditando.sinais).slice(0, 4).map((s, i) => (
+                              <p key={i} className="text-xs" style={{ color: "#e2e8f0" }}>• {montarNarrativaSinal(lang, s)}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "documentos" && (
+                      <CampoTextarea label={tt.lblDocumentosLinks} value={form.documentosLinks} onChange={(v) => setForm({ ...form, documentosLinks: v })} placeholder={tt.documentosLinksPlaceholder} linhas={4} />
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "ia" && (
+                      <div>
+                        <p className="text-xs font-black mb-2" style={{ color: "#a78bfa" }}>{tt.iaEtapaTitulo}</p>
+                        {!parecerDoClienteEditando ? (
+                          <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semDadosNovoCliente}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs" style={{ color: "#e2e8f0" }}>{parecerDoClienteEditando.resumo}</p>
+                            <p className="text-xs" style={{ color: "#a78bfa" }}>→ {parecerDoClienteEditando.sugestao}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {ETAPAS_CADASTRO[etapaCadastro] === "observacoes" && (
+                      <CampoTextarea label={tt.lblObservacoes} value={form.observacoes} onChange={(v) => setForm({ ...form, observacoes: v })} linhas={3} />
+                    )}
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    {etapaCadastro > 0 ? (
+                      <button onClick={() => setEtapaCadastro(etapaCadastro - 1)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{tt.anterior}</button>
+                    ) : (
+                      <button onClick={fecharModalCliente} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+                    )}
+                    {etapaCadastro < ETAPAS_CADASTRO.length - 1 ? (
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setEtapaCadastro(etapaCadastro + 1)}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{tt.proximo}</motion.button>
+                    ) : (
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCliente} disabled={salvandoCliente}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
+                    )}
+                  </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* Modal Conta — Cobrança Enterprise */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalConta && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
+                className="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
+                <CanvasBox cor="#34d399">
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#34d399" }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cl.novaCobranca}</h3>
                     </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => { setModalConta(false); setFormConta(FORM_CONTA_VAZIO); }} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                   </div>
 
-                  {/* Comercial */}
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>{tt.secComercial}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <Campo label={tt.lblSegmento} value={form.segmento} onChange={(v) => setForm({ ...form, segmento: v })} />
-                      <CampoSelect label={tt.lblPorte} value={form.porte} onChange={(v) => setForm({ ...form, porte: v })} opcoes={tt.portePorte} />
-                      <CampoSelect label={tt.lblRegimeTributario} value={form.regimeTributario} onChange={(v) => setForm({ ...form, regimeTributario: v })} opcoes={tt.regimes} />
-                      <CampoSelect label={tt.lblClassificacao} value={form.classificacao} onChange={(v) => setForm({ ...form, classificacao: v })} opcoes={tt.classificacoes} />
-                      <Campo label={tt.lblNumFuncionarios} value={form.numFuncionarios} onChange={(v) => setForm({ ...form, numFuncionarios: v })} tipo="number" />
-                      <Campo label={tt.lblFaturamentoEstimado} value={form.faturamentoEstimado} onChange={(v) => setForm({ ...form, faturamentoEstimado: v })} tipo="number" />
-                      <Campo label={tt.lblOrigem} value={form.origem} onChange={(v) => setForm({ ...form, origem: v })} />
-                      <Campo label={tt.lblResponsavelComercial} value={form.responsavelComercial} onChange={(v) => setForm({ ...form, responsavelComercial: v })} />
-                      <Campo label={tt.lblCondicaoPagamento} value={form.condicaoPagamento} onChange={(v) => setForm({ ...form, condicaoPagamento: v })} />
-                      <Campo label={tt.lblPrazoMedio} value={form.prazoMedio} onChange={(v) => setForm({ ...form, prazoMedio: v })} tipo="number" />
-                      <Campo label={tt.lblLimiteCredito} value={form.limiteCredito} onChange={(v) => setForm({ ...form, limiteCredito: v })} tipo="number" />
-                      <Campo label={tt.lblDataPrimeiraCompra} value={form.dataPrimeiraCompra} onChange={(v) => setForm({ ...form, dataPrimeiraCompra: v })} tipo="date" />
+                  <div className="space-y-5">
+                    {/* Básico */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#34d399" }}>{tt.secBasico}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={cl.descricao} value={formConta.descricao} onChange={(v) => setFormConta({ ...formConta, descricao: v })} />
+                        <CampoSelect label={cl.cliente} value={formConta.clienteId} onChange={(v) => setFormConta({ ...formConta, clienteId: v })}
+                          opcoes={clientes.map((c) => ({ value: c.id, label: c.nome }))} placeholder={`-- ${cl.cliente} --`} />
+                        <Campo label={cl.valor} value={formConta.valor} onChange={(v) => setFormConta({ ...formConta, valor: v })} tipo="number" />
+                        <Campo label={tt.lblDesconto} value={formConta.valorDesconto} onChange={(v) => setFormConta({ ...formConta, valorDesconto: v })} tipo="number" />
+                        <Campo label={tt.lblEmissao} value={formConta.emissao} onChange={(v) => setFormConta({ ...formConta, emissao: v })} tipo="date" />
+                        <Campo label={cl.vencimento} value={formConta.vencimento} onChange={(v) => setFormConta({ ...formConta, vencimento: v })} tipo="date" />
+                        <Campo label={tt.lblCompetencia} value={formConta.competencia} onChange={(v) => setFormConta({ ...formConta, competencia: v })} tipo="date" />
+                        <div className="rounded-xl px-4 py-3" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.2)" }}>
+                          <p className="text-[10px] uppercase" style={{ color: "#64748b" }}>{tt.lblValorFinal}</p>
+                          <p className="text-sm font-black" style={{ color: "#34d399" }}>{fmt(valorFinalConta)}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Endereço Inteligente */}
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>{tt.secEndereco}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <CampoSelect label={tt.lblEstado} value={form.estado} onChange={(v) => setForm({ ...form, estado: v, cidade: "" })}
-                        opcoes={estados.map((e) => ({ value: e.sigla, label: `${e.sigla} — ${e.nome}` }))} placeholder={tt.selecioneEstado} />
-                      {municipios.length > 0 ? (
-                        <CampoSelect label={tt.lblCidade} value={form.cidade} onChange={(v) => setForm({ ...form, cidade: v })}
-                          opcoes={municipios.map((m) => ({ value: m.nome, label: m.nome }))} placeholder={tt.selecioneCidade} />
+                    {/* Documentação */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#34d399" }}>{tt.secDocumentacao}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={tt.lblNumeroCobranca} value={formConta.numeroDocumento} onChange={(v) => setFormConta({ ...formConta, numeroDocumento: v })} />
+                        <Campo label={tt.lblCategoria} value={formConta.categoria} onChange={(v) => setFormConta({ ...formConta, categoria: v })} />
+                        <Campo label={tt.lblContrato} value={formConta.contratoRef} onChange={(v) => setFormConta({ ...formConta, contratoRef: v })} />
+                        <CampoSelect label={tt.lblCentroReceita} value={formConta.centroCustoId} onChange={(v) => setFormConta({ ...formConta, centroCustoId: v })}
+                          opcoes={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))} />
+                        <Campo label={tt.lblContaContabil} value={formConta.contaContabil} onChange={(v) => setFormConta({ ...formConta, contaContabil: v })} />
+                        <Campo label={tt.lblBancoRecebedor} value={formConta.bancoRecebedor} onChange={(v) => setFormConta({ ...formConta, bancoRecebedor: v })} />
+                      </div>
+                    </div>
+
+                    {/* Pagamento */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#34d399" }}>{tt.secPagamento}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <Campo label={tt.formaRecebLbl} value={formConta.formaRecebimento} onChange={(v) => setFormConta({ ...formConta, formaRecebimento: v })} />
+                        <Campo label={tt.parcelasLbl} value={formConta.parcelas} onChange={(v) => setFormConta({ ...formConta, parcelas: v })} tipo="number" />
+                        <Campo label={tt.jurosLbl} value={formConta.taxaJuros} onChange={(v) => setFormConta({ ...formConta, taxaJuros: v })} tipo="number" />
+                        <Campo label={tt.multaLbl} value={formConta.taxaMulta} onChange={(v) => setFormConta({ ...formConta, taxaMulta: v })} tipo="number" />
+                        <CampoCheckbox label={tt.lblRecorrente} checked={formConta.recorrente} onChange={(v) => setFormConta({ ...formConta, recorrente: v })} />
+                        {formConta.recorrente && (
+                          <CampoSelect label={tt.lblFrequencia} value={formConta.frequenciaRecorrencia} onChange={(v) => setFormConta({ ...formConta, frequenciaRecorrencia: v })} opcoes={tt.freqOpcoes} />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Inteligência — preview somente leitura */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#34d399" }}>{tt.secInteligenciaConta}</p>
+                      {!previewCobranca ? (
+                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.selecioneClientePrevisao}</p>
                       ) : (
-                        <Campo label={tt.lblCidade} value={form.cidade} onChange={(v) => setForm({ ...form, cidade: v })}
-                          placeholder={form.estado ? tt.digiteCidadeManual : tt.selecioneEstadoPrimeiro} />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                            <p className="text-[9px] uppercase" style={{ color: "#64748b" }}>{tt.scoreRecebimentoLbl}</p>
+                            <p className="text-sm font-black" style={{ color: previewCobranca.score >= 70 ? "#34d399" : previewCobranca.score >= 40 ? "#fbbf24" : "#f87171" }}>{previewCobranca.score}/100</p>
+                          </div>
+                          <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                            <p className="text-[9px] uppercase" style={{ color: "#64748b" }}>{tt.probInadimplenciaLbl}</p>
+                            <p className="text-sm font-black" style={{ color: previewCobranca.prob <= 30 ? "#34d399" : previewCobranca.prob <= 60 ? "#fbbf24" : "#f87171" }}>{previewCobranca.prob}%</p>
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Observações */}
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>{tt.secObs}</p>
-                    <textarea value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                      rows={2} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm resize-none" style={inputStyle} />
-                  </div>
-
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={fecharModalCliente} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={salvarCliente} disabled={salvandoCliente}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold"
-                      style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
-                      {salvandoCliente ? "..." : cl.salvarCliente}
-                    </motion.button>
-                  </div>
-                </div>
-              </CanvasBox>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Modal Conta */}
-      <AnimatePresence>
-        {modalConta && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
-            style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-md max-h-screen overflow-y-auto">
-              <CanvasBox cor="#34d399">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#34d399" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cl.novaCobranca}</h3>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalConta(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { label: cl.descricao, value: descricaoConta, set: setDescricaoConta, type: "text" },
-                    { label: cl.valor, value: valorConta, set: setValorConta, type: "number" },
-                    { label: cl.vencimento, value: vencimentoConta, set: setVencimentoConta, type: "date" },
-                  ].map((campo) => (
-                    <div key={campo.label}>
-                      <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{campo.label}</label>
-                      <input type={campo.type} value={campo.value} onChange={(e) => campo.set(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                    {/* Anexo & Observações */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: "#34d399" }}>{tt.secAnexoObs}</p>
+                      <div className="space-y-3">
+                        <Campo label={tt.lblAnexoUrl} value={formConta.anexoUrl} onChange={(v) => setFormConta({ ...formConta, anexoUrl: v })} placeholder="https://..." />
+                        <CampoTextarea label={tt.observacoesLbl} value={formConta.observacoes} onChange={(v) => setFormConta({ ...formConta, observacoes: v })} linhas={2} />
+                      </div>
                     </div>
-                  ))}
-                  <div>
-                    <label className="text-xs font-semibold mb-1 block" style={{ color: "#5a8fd4" }}>{cl.cliente}</label>
-                    <select value={clienteConta} onChange={(e) => setClienteConta(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
-                      <option value="">-- {cl.cliente} --</option>
-                      {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
+
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => { setModalConta(false); setFormConta(FORM_CONTA_VAZIO); }} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                        onClick={salvarConta} disabled={salvandoConta}
+                        className="flex-1 py-3 rounded-xl text-sm font-bold"
+                        style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
+                        {salvandoConta ? "..." : cl.salvarCobranca}
+                      </motion.button>
+                    </div>
                   </div>
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={() => setModalConta(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={salvarConta} disabled={salvandoConta}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold"
-                      style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
-                      {salvandoConta ? "..." : cl.salvarCobranca}
-                    </motion.button>
-                  </div>
-                </div>
-              </CanvasBox>
+                </CanvasBox>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Centro de Compartilhamento */}
-      <AnimatePresence>
-        {shareAberto && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-start justify-center pt-20 pb-8 z-50 px-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => setShareAberto(false)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-              <CanvasBox cor="#6ab0ff">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cx.centroCompart}</h3>
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {shareAberto && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-start justify-center pt-24 pb-8 z-[100] px-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => setShareAberto(false)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md max-h-[calc(100vh-8rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <CanvasBox cor="#6ab0ff">
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#6ab0ff" }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cx.centroCompart}</h3>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {canais.map((c) => (
-                    <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                      style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
-                  ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
-                  <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
-                </div>
-              </CanvasBox>
+                  <div className="grid grid-cols-2 gap-3">
+                    {canais.map((c) => (
+                      <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
+                        style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
+                    ))}
+                    <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                    <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
+                  </div>
+                </CanvasBox>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </ModuloLayout>
   );
 }

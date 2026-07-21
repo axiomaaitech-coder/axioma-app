@@ -245,8 +245,42 @@ Até o Elias rodar esse SQL, salvar um cliente com qualquer um desses campos pre
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` compilou com sucesso (`✓ Compiled successfully in 3.0min`) — o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/stripe/create-checkout`, falta chave da Stripe local). Não testado no navegador com login real nesta sessão.
 
+## 3-I. Clientes v3 — fix do bug do modal, cadastro em etapas, Cobrança Enterprise, entregue nesta rodada
+Elias reportou bug real: o modal "Novo Cliente" renderizava cortado/atrás do Header. **Causa raiz confirmada, não achismo:** `components/ModuloLayout.tsx` envolve `{children}` num `motion.div` com `overflow-hidden` **e** `transform` (a animação do framer-motion mantém `transform` no estilo mesmo em repouso). Por especificação CSS, um ancestral com `transform` vira o *containing block* de qualquer descendente `position: fixed` — como os modais do Clientes eram filhos de `ModuloLayout`, ficaram presos dentro desse container e cortados pelo `overflow-hidden`, em vez de se posicionar relativos à viewport. O Header (`TopNav.tsx`, `fixed z-50`) tinha o mesmo z-index dos modais, o que também contribuía.
+
+**Correção (não paliativa):** os 3 modais do módulo (Cliente, Conta, Compartilhamento) agora renderizam via `createPortal` do `react-dom` direto em `document.body`, saindo da árvore do `ModuloLayout` — padrão React correto pra esse problema (mesma técnica de Radix/Headless UI), com `z-[100]` (acima do Header), `pt-24` (maior que os 64px/56px do Header) e `max-h-[calc(100vh-8rem)]` + `overflow-y-auto` no cartão, garantindo que nunca corta título nem ultrapassa a viewport em nenhuma resolução. **Provavelmente o mesmo bug existe em outros módulos que usam `ModuloLayout` com modal** — não mexi neles (fora do pedido), mas fica registrado pra decisão futura do Elias.
+
+**Cadastro em etapas (wizard):** o modal de cadastro, que era um scroll único com 5 seções, virou um wizard de 11 etapas com indicador de progresso clicável e navegação Anterior/Próximo: Identificação, Contato, Endereço (País fixo "Brasil" + Estado→Cidade via IBGE, já existente), Fiscal, Financeiro, Comercial, **Cobranças** (somente leitura — lista as cobranças reais do cliente, é entidade separada, não campo de cadastro), **Riscos** (somente leitura — IVCA e sinais reais do cliente, é dado calculado, não input), **Documentos** (campo novo `documentos_links`, texto livre — sem Storage bucket no Axioma, mesma limitação já registrada pra "Foto/Logo"), **Inteligência IA** (somente leitura — prévia do Parecer Executivo já existente, é saída, não entrada), Observações. Pra cliente novo (sem histórico), as etapas somente-leitura mostram estado neutro em vez de inventar dado.
+
+**Modal Nova Cobrança → Enterprise:** reorganizado em Básico/Documentação/Pagamento/Inteligência/Anexo & Observações, reaproveitando campos que já existiam no schema (`numero_documento`, `categoria`, `forma_recebimento`, `parcelas`, `taxa_juros`, `taxa_multa`, `observacoes` — antes só apareciam no detalhe expansível, agora também no cadastro) mais os genuinamente novos: `contrato_ref` (texto — sem módulo de contratos), `centro_custo_id` (reaproveita a tabela **`centros_custo` já existente**, não duplica o conceito de "centro de receita"), `conta_contabil`/`banco_recebedor` (texto — sem plano de contas/contas bancárias no Axioma), `competencia`, `valor_desconto` (o "valor final" é calculado na tela, não é coluna nova), `recorrente`+`frequencia_recorrencia` (**desbloqueia** a métrica Receita Recorrente do Dashboard), `anexo_url` (link, mesmo raciocínio de Documentos). Score de Recebimento e Probabilidade de Inadimplência aparecem como prévia calculada na tela (`scoreRecebimento`, `probabilidadeInadimplenciaConta`, novo em `clienteIntelHelpers.ts`), reaproveitando os subscores de pontualidade/risco do IVCA do cliente selecionado — nada de ML real, nada salvo no banco.
+
+**"Lembretes automáticos" pedidos ficaram de fora**, por decisão técnica honesta: exigiria motor de notificação (e-mail/SMS/push) + job agendado, infraestrutura que não existe em nenhum módulo do Axioma hoje.
+
+**Dashboard/Motor de Inteligência ampliado** — novo painel "Caixa & Tendências" na Carteira: Recebimento Previsto/Confirmado/Em Risco (filtro real sobre `contas_receber`), Dependência do Maior Cliente, Clientes em Expansão/Queda (extensão do subscore de tendência já calculado), Health Score e Risco da Carteira (`healthScoreCarteira`/`riscoCarteiraAgregado`, novo em `clienteIntelHelpers.ts` — média dos gauges/subscores já calculados por cliente), Receita Recorrente vs Não Recorrente (usa o flag `recorrente` novo, estado vazio honesto até o Elias marcar cobranças), e "Fluxo Futuro — Mapa Temporal de Recebimentos" (`serieRecebimentosFutura`, gráfico de barras das próximas 8 semanas de vencimentos, mesmo padrão do "13 week cash flow" já usado em Fluxo de Caixa). Previsão de Faturamento por cliente (`previsaoFaturamentoCliente`) aparece no Digital Twin, dentro do Parecer Executivo. **LTV/CAC reais seguem fora** (sem tabela de vendas/custo de aquisição, mesmo motivo já registrado 2x) e **"Churn Financeiro" não virou taxa numérica** (sem timestamp de mudança de status pra calcular por período — mesma honestidade do "Perdidos no Mês" já registrada); a leitura de risco de perda de carteira continua via contagem de sinais `emRisco`/`negligenciado` já existentes.
+
+**Schema — SQL já rodado pelo Elias no Supabase:**
+```sql
+ALTER TABLE clientes
+  ADD COLUMN IF NOT EXISTS documentos_links text;
+
+ALTER TABLE contas_receber
+  ADD COLUMN IF NOT EXISTS contrato_ref text,
+  ADD COLUMN IF NOT EXISTS centro_custo_id uuid REFERENCES centros_custo(id),
+  ADD COLUMN IF NOT EXISTS conta_contabil text,
+  ADD COLUMN IF NOT EXISTS banco_recebedor text,
+  ADD COLUMN IF NOT EXISTS competencia date,
+  ADD COLUMN IF NOT EXISTS valor_desconto numeric,
+  ADD COLUMN IF NOT EXISTS recorrente boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS frequencia_recorrencia text,
+  ADD COLUMN IF NOT EXISTS anexo_url text;
+```
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` compilou com sucesso (`✓ Compiled successfully in 14.9min`) — o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (rota Stripe, `/api/stripe/webhook` dessa vez, falta chave local). Não testado no navegador com login real nesta sessão.
+
+**Sugestões de evolução futura (registradas, não implementadas):** mover "conta contábil"/"banco recebedor" pra tabelas reais se o Axioma ganhar um plano de contas ou Open Finance com contas bancárias cadastradas; sistema de lembretes automáticos como módulo próprio com cron/e-mail; investigar e corrigir o mesmo bug de modal-atrás-do-Header nos demais módulos que usam `ModuloLayout`.
+
 ## 4. PRÓXIMO PASSO
-Elias rodar o SQL da seção 3-H no Supabase pra liberar o cadastro executivo completo, depois testar `/clientes` manualmente. Depois disso: Fornecedores, Contas a Receber e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias testar `/clientes` no navegador (modal em telas pequenas/grandes, wizard de cadastro, cobrança Enterprise). Depois: Fornecedores, Contas a Receber e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
