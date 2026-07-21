@@ -15,7 +15,20 @@ export type ClienteRow = {
   id: string; nome: string; email: string; telefone: string;
   documento: string; cidade: string; status: string;
   user_id: string; empresa_id: string; created_at: string;
+  // Cadastro executivo — colunas novas, opcionais até o Elias rodar o ALTER TABLE
+  // (ver STATUS-AXIOMA.md). Undefined/null é tratado como "não informado" em toda
+  // a UI, nunca como erro.
+  razao_social?: string | null; nome_fantasia?: string | null; inscricao_estadual?: string | null;
+  whatsapp?: string | null; site?: string | null; responsavel?: string | null; cargo?: string | null;
+  segmento?: string | null; porte?: string | null; regime_tributario?: string | null;
+  num_funcionarios?: number | null; faturamento_estimado?: number | null;
+  origem?: string | null; responsavel_comercial?: string | null;
+  condicao_pagamento?: string | null; prazo_medio_dias?: number | null; limite_credito?: number | null;
+  classificacao?: string | null; estado?: string | null; data_primeira_compra?: string | null;
+  observacoes?: string | null;
 };
+
+export type ClassificacaoCliente = "lead" | "cliente" | "parceiro" | "estrategico" | "premium";
 
 export type ContaRow = {
   id: string; descricao: string; valor: number; valor_recebido?: number | null;
@@ -384,11 +397,17 @@ export function montarConselhoExecutivo(lang: Idioma3, s: ClienteSnapshot, ivca:
 // LINHA DO TEMPO FINANCEIRA — 100% dado real (contas_receber + inadimplencia)
 // ============================================================================
 
-export type EventoTimeline = { data: string; tipo: "emissao" | "recebimento" | "vencido" | "contato" | "estagio"; texto: string };
+export type EventoTimeline = { data: string; tipo: "cadastro" | "emissao" | "recebimento" | "vencido" | "contato" | "estagio"; texto: string };
 
 export function montarTimelineCliente(lang: Idioma3, s: ClienteSnapshot): EventoTimeline[] {
   const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
   const eventos: EventoTimeline[] = [];
+  if (s.cliente.created_at) {
+    eventos.push({
+      data: s.cliente.created_at.slice(0, 10), tipo: "cadastro",
+      texto: lang === "en" ? `Client registered: ${s.cliente.nome}` : lang === "es" ? `Cliente registrado: ${s.cliente.nome}` : `Cliente cadastrado: ${s.cliente.nome}`,
+    });
+  }
   s.contas.forEach((c) => {
     const data = c.data_emissao || c.created_at?.slice(0, 10);
     if (data) eventos.push({ data, tipo: "emissao", texto: `${lang === "en" ? "Billing issued" : lang === "es" ? "Cobro emitido" : "Cobrança emitida"}: ${c.descricao} (${fBRLLocal(c.valor)})` });
@@ -398,6 +417,176 @@ export function montarTimelineCliente(lang: Idioma3, s: ClienteSnapshot): Evento
     if (i.data_ultimo_contato) eventos.push({ data: i.data_ultimo_contato, tipo: "contato", texto: `${lang === "en" ? "Contact" : lang === "es" ? "Contacto" : "Contato"}${i.forma_contato ? ` (${i.forma_contato})` : ""}${i.estagio ? ` — ${i.estagio}` : ""}` });
   });
   return eventos.filter((e) => !!e.data).sort((a, b) => b.data.localeCompare(a.data));
+}
+
+// ============================================================================
+// COMPRAS — Última, Maior e Primeira, derivadas de contas_receber já carregado
+// (nenhuma tabela nova; "compra" aqui = cobrança emitida, mesmo dado da timeline).
+// ============================================================================
+
+export type ResumoComprasCliente = { ultima: ContaRow | null; maior: ContaRow | null; primeira: string | null };
+
+export function resumoComprasCliente(s: ClienteSnapshot): ResumoComprasCliente {
+  const comDatas = s.contas.filter((c) => c.data_emissao || c.created_at);
+  const ordenadas = [...comDatas].sort((a, b) => (a.data_emissao || a.created_at).localeCompare(b.data_emissao || b.created_at));
+  const ultima = ordenadas.length > 0 ? ordenadas[ordenadas.length - 1] : null;
+  const maior = s.contas.length > 0 ? [...s.contas].sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0))[0] : null;
+  const primeira = s.cliente.data_primeira_compra || (ordenadas.length > 0 ? (ordenadas[0].data_emissao || ordenadas[0].created_at?.slice(0, 10)) : null);
+  return { ultima, maior, primeira: primeira || null };
+}
+
+// ============================================================================
+// CLASSIFICAÇÃO — rótulo do cadastro executivo (lead/cliente/parceiro/estratégico/premium)
+// ============================================================================
+
+const CLASSIFICACAO_LABEL: Record<Idioma3, Record<string, string>> = {
+  pt: { lead: "Lead", cliente: "Cliente", parceiro: "Parceiro", estrategico: "Estratégico", premium: "Premium" },
+  en: { lead: "Lead", cliente: "Customer", parceiro: "Partner", estrategico: "Strategic", premium: "Premium" },
+  es: { lead: "Lead", cliente: "Cliente", parceiro: "Socio", estrategico: "Estratégico", premium: "Premium" },
+};
+export function nomeClassificacao(lang: Idioma3, classificacao?: string | null): string {
+  if (!classificacao) return "";
+  return CLASSIFICACAO_LABEL[lang][classificacao] || classificacao;
+}
+
+// ============================================================================
+// RADAR EXECUTIVO — mesmo detectarSinaisCliente, agregado pra carteira toda em
+// vez de um cliente só. Cada bucket já vem ordenado por severidade/relevância.
+// ============================================================================
+
+export type ItemIntel = { s: ClienteSnapshot; ivca: IVCA; saude: SaudeCliente; sinais: SinalCliente[] };
+export type RadarCarteira = Record<TipoSinalCliente, SinalCliente[]>;
+
+export function montarRadarCarteira(intel: ItemIntel[]): RadarCarteira {
+  const radar: RadarCarteira = { premium: [], prontoParaUpsell: [], emRisco: [], negligenciado: [], geraCaixaRecorrente: [], concentracaoAlta: [] };
+  intel.forEach((i) => { i.sinais.forEach((sinal) => { radar[sinal.tipo].push(sinal); }); });
+  (Object.keys(radar) as TipoSinalCliente[]).forEach((tipo) => { radar[tipo] = ordenarSinaisPorSeveridade(radar[tipo]); });
+  return radar;
+}
+
+// ============================================================================
+// KPIs DE CARTEIRA — só o que dá pra calcular com dado real hoje.
+// "Perdidos no mês" fica de fora de propósito: não existe timestamp de mudança
+// de status (só o valor atual), então não dá pra saber QUANDO um cliente virou
+// inativo — mostrar "Clientes Inativos" (total, sem recorte de tempo) é honesto,
+// "Perdidos no mês" seria inventado. Mesmo princípio de nunca fabricar número.
+// ============================================================================
+
+export type KpisCarteiraExecutivo = {
+  clientesNovosMes: number;
+  clientesInativos: number;
+  tempoMedioRelacionamentoDias: number;
+  qtdPremium: number;
+  qtdEstrategico: number;
+  qtdEmRisco: number;
+  qtdNegligenciado: number;
+};
+
+export function calcularKpisCarteiraExecutivo(clientes: ClienteRow[], intel: ItemIntel[]): KpisCarteiraExecutivo {
+  const hoje = new Date();
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+  const clientesNovosMes = clientes.filter((c) => c.created_at && c.created_at.slice(0, 10) >= inicioMes).length;
+  const clientesInativos = clientes.filter((c) => c.status !== "ativo").length;
+  const ativos = intel.filter((i) => i.s.cliente.status === "ativo");
+  const tempoMedioRelacionamentoDias = ativos.length > 0 ? ativos.reduce((sum, i) => sum + i.s.tempoComoClienteDias, 0) / ativos.length : 0;
+  const contaTipo = (tipo: TipoSinalCliente) => intel.filter((i) => i.sinais.some((x) => x.tipo === tipo)).length;
+  return {
+    clientesNovosMes, clientesInativos, tempoMedioRelacionamentoDias,
+    qtdPremium: contaTipo("premium"),
+    qtdEstrategico: clientes.filter((c) => c.classificacao === "estrategico").length,
+    qtdEmRisco: contaTipo("emRisco"),
+    qtdNegligenciado: contaTipo("negligenciado"),
+  };
+}
+
+// ============================================================================
+// RECEITA POR SEGMENTO/CIDADE/ESTADO — agrupamento simples do valor cobrado.
+// Sem dado de segmento/cidade/estado preenchido, tudo cai em "não informado" —
+// painel honesto que preenche sozinho conforme o cadastro for completado.
+// ============================================================================
+
+export type GrupoReceita = { chave: string; valor: number };
+
+function rotuloNaoInformado(lang: Idioma3): string {
+  return lang === "en" ? "Not informed" : lang === "es" ? "No informado" : "Não informado";
+}
+
+function agruparPorCampo(intel: ItemIntel[], lang: Idioma3, campo: "segmento" | "cidade" | "estado"): GrupoReceita[] {
+  const mapa = new Map<string, number>();
+  intel.forEach((i) => {
+    const chave = (i.s.cliente[campo] as string | null | undefined)?.trim() || rotuloNaoInformado(lang);
+    mapa.set(chave, (mapa.get(chave) || 0) + i.s.valorTotalCobrado);
+  });
+  return [...mapa.entries()].map(([chave, valor]) => ({ chave, valor })).sort((a, b) => b.valor - a.valor);
+}
+
+export function receitaPorSegmento(intel: ItemIntel[], lang: Idioma3): GrupoReceita[] { return agruparPorCampo(intel, lang, "segmento"); }
+export function receitaPorCidade(intel: ItemIntel[], lang: Idioma3): GrupoReceita[] { return agruparPorCampo(intel, lang, "cidade"); }
+export function receitaPorEstado(intel: ItemIntel[], lang: Idioma3): GrupoReceita[] { return agruparPorCampo(intel, lang, "estado"); }
+
+// ============================================================================
+// SUGESTÃO DE AÇÃO POR COBRANÇA — regra determinística por faixa de atraso,
+// mesmo padrão dos cards de especialista (relabela dado real, não é IA generativa).
+// ============================================================================
+
+export function sugestaoAcaoCobranca(lang: Idioma3, diasAtraso: number): string {
+  if (diasAtraso <= 0) return "";
+  if (diasAtraso <= 15) return lang === "en" ? "Friendly reminder — still early, low risk." : lang === "es" ? "Recordatorio amistoso — atraso reciente, bajo riesgo." : "Lembrete amigável — atraso recente, baixo risco.";
+  if (diasAtraso <= 60) return lang === "en" ? "Active collection — call/WhatsApp and consider a payment plan." : lang === "es" ? "Cobro activo — llamar/WhatsApp y considerar acuerdo de pago." : "Cobrança ativa — ligar/WhatsApp e considerar acordo de pagamento.";
+  return lang === "en" ? "Escalate — negotiation or legal collection, risk of loss rising." : lang === "es" ? "Escalar — negociación o cobro jurídico, riesgo de pérdida en aumento." : "Escalar — negociação ou cobrança jurídica, risco de perda crescente.";
+}
+
+// ============================================================================
+// PARECER EXECUTIVO — versão enriquecida do Conselho Executivo, mesmo padrão
+// de transparência de Precificação/Simulações: 100% regra, citando dado real,
+// pronto pra virar texto de IA real (Claude) no dia em que a chave for ativada.
+// ============================================================================
+
+export type ParecerExecutivo = {
+  resumo: string; pontosFortes: string[]; pontosFracos: string[];
+  riscos: string[]; oportunidades: string[]; sugestao: string; proximoPasso: string;
+};
+
+export function montarParecerExecutivo(lang: Idioma3, s: ClienteSnapshot, ivca: IVCA, sinais: SinalCliente[]): ParecerExecutivo {
+  const fBRLLocal = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const sub = (chave: string) => ivca.subscores.find((x) => x.chave === chave)?.valor ?? 50;
+  const positivos = sinais.filter((x) => x.severidade === "positivo");
+  const riscos = sinais.filter((x) => x.severidade === "risco");
+  const atencoes = sinais.filter((x) => x.severidade === "atencao");
+
+  const pontosFortes: string[] = [];
+  const pontosFracos: string[] = [];
+  if (sub("pontualidade") >= 70) pontosFortes.push(lang === "en" ? `On-time payment: ${Math.round(sub("pontualidade"))}/100.` : lang === "es" ? `Pago puntual: ${Math.round(sub("pontualidade"))}/100.` : `Pontualidade: ${Math.round(sub("pontualidade"))}/100.`);
+  else pontosFracos.push(lang === "en" ? `On-time payment below par: ${Math.round(sub("pontualidade"))}/100.` : lang === "es" ? `Puntualidad por debajo del promedio: ${Math.round(sub("pontualidade"))}/100.` : `Pontualidade abaixo do ideal: ${Math.round(sub("pontualidade"))}/100.`);
+  if (sub("tendencia") >= 60) pontosFortes.push(lang === "en" ? "Revenue trend rising over the last 3 months." : lang === "es" ? "Tendencia de ingresos al alza en los últimos 3 meses." : "Tendência de receita em alta nos últimos 3 meses.");
+  else if (sub("tendencia") < 40) pontosFracos.push(lang === "en" ? "Revenue trend falling over the last 3 months." : lang === "es" ? "Tendencia de ingresos a la baja en los últimos 3 meses." : "Tendência de receita em queda nos últimos 3 meses.");
+  if (sub("recorrencia") >= 60) pontosFortes.push(lang === "en" ? "Frequent, recurring billing." : lang === "es" ? "Cobros frecuentes y recurrentes." : "Cobrança frequente e recorrente.");
+  if (sub("risco") < 50) pontosFracos.push(lang === "en" ? `Default risk elevated (${Math.round(sub("risco"))}/100 safety).` : lang === "es" ? `Riesgo de impago elevado (seguridad ${Math.round(sub("risco"))}/100).` : `Risco de inadimplência elevado (segurança ${Math.round(sub("risco"))}/100).`);
+
+  const resumo = lang === "en"
+    ? `${s.cliente.nome} scores ${ivca.total}/1000 (${ivca.nivel}). ${fBRLLocal(s.valorTotalCobrado)} billed total, ${fBRLLocal(s.valorTotalRecebido)} received, ${fBRLLocal(s.valorVencido)} overdue.`
+    : lang === "es" ? `${s.cliente.nome} tiene ${ivca.total}/1000 (${ivca.nivel}). ${fBRLLocal(s.valorTotalCobrado)} cobrado total, ${fBRLLocal(s.valorTotalRecebido)} recibido, ${fBRLLocal(s.valorVencido)} vencido.`
+    : `${s.cliente.nome} tem nota ${ivca.total}/1000 (${ivca.nivel}). ${fBRLLocal(s.valorTotalCobrado)} cobrado no total, ${fBRLLocal(s.valorTotalRecebido)} recebido, ${fBRLLocal(s.valorVencido)} vencido.`;
+
+  const sugestao = riscos.length > 0
+    ? montarNarrativaSinal(lang, riscos[0])
+    : positivos.length > 0 ? montarNarrativaSinal(lang, positivos[0]) : montarNarrativaIVCA(lang, ivca);
+
+  const proximoPasso = riscos.length > 0
+    ? sugestaoAcaoCobranca(lang, s.diasAtrasoAtual)
+    : sinais.some((x) => x.tipo === "prontoParaUpsell")
+      ? (lang === "en" ? "Reach out with an upsell offer — data supports it." : lang === "es" ? "Contactar con oferta de upsell — los datos lo respaldan." : "Fazer contato com oferta de upsell — o dado sustenta.")
+      : atencoes.length > 0 ? montarNarrativaSinal(lang, atencoes[0])
+      : (lang === "en" ? "Keep current relationship cadence — no urgent action." : lang === "es" ? "Mantener la cadencia actual — sin acción urgente." : "Manter a cadência atual de relacionamento — sem ação urgente.");
+
+  return {
+    resumo,
+    pontosFortes: pontosFortes.length > 0 ? pontosFortes : [lang === "en" ? "No standout strength yet — still building history." : lang === "es" ? "Sin fortaleza destacada aún — historial en construcción." : "Nenhum ponto forte de destaque ainda — histórico em construção."],
+    pontosFracos: pontosFracos.length > 0 ? pontosFracos : [lang === "en" ? "No weak point detected." : lang === "es" ? "Ningún punto débil detectado." : "Nenhum ponto fraco detectado."],
+    riscos: riscos.map((r) => montarNarrativaSinal(lang, r)),
+    oportunidades: positivos.map((p) => montarNarrativaSinal(lang, p)),
+    sugestao, proximoPasso,
+  };
 }
 
 // ============================================================================

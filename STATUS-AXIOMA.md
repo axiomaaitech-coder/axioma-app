@@ -195,8 +195,58 @@ Bug identificado ao construir a ZIA de Clientes (seção 3-E) e corrigido a pedi
 ## 3-G. Metas ligado ao alicerce de Clientes — dedupe de "clientes ativos líquidos"
 Metas (tipo de meta `num_clientes`) e o snapshot da carteira em Clientes (seção 3-E) calculavam a mesma coisa — "quantos clientes com `status = 'ativo'`" — cada um com seu próprio filtro inline. Extraído para `contarClientesAtivos(clientes, ateISO?)` em `lib/clienteIntelHelpers.ts`, única fonte de verdade agora: sem `ateISO` conta o estado atual (usado por `montarSnapshotsCarteira`, carteira de Clientes), com `ateISO` conta "ativos até aquela data" (usado por `valorMetrica` em `metas/page.tsx`, que precisa de ponto no tempo arbitrário pra série histórica/detector de meta irreal). Mesmo resultado de antes, zero mudança de comportamento — só parou de duplicar o filtro em dois arquivos. `tsc --noEmit` limpo.
 
+## 3-H. Clientes v2 "CFO Global" — segunda rodada de cadastro executivo, entregue nesta rodada
+Elias mandou uma segunda "ordem executiva" pedindo um Clientes nível Fortune 500 (cadastro completo, endereço IBGE, Dashboard Executivo com ~25 métricas, IA gerando parecer, Mapa Executivo, Radar Executivo, integração automática com ~15 módulos). Antes de codar, analisei o código e o schema real e confirmei 3 gaps reais (não impressão): Clientes não tinha Centro de Compartilhamento (Precificação/Metas/Investimentos têm), não tinha letreiro (todos os outros módulos "camada CFO" têm), e o modal de cadastro só escrevia 5 colunas. Corrigidos os três.
+
+**O que ficou de fora do pedido literal, com o motivo (mesma prática de honestidade técnica já usada em Precificação/Simulações):**
+- **LTV real/CAC/margem por cliente/produtos adquiridos** — continua impossível, sem tabela de vendas/itens nem gasto de aquisição. Não fingido.
+- **IA gerando parecer com modelo de linguagem real** — contradiz a decisão vigente de manter `ANTHROPIC_API_KEY` desativada (seção 1). Entregue como "Parecer Executivo" determinístico (`montarParecerExecutivo`), pronto pra virar IA real no dia da ativação, mesmo padrão ZIA.
+- **Integração automática com ~15 módulos** — arriscado demais numa tacada só (mesmo motivo já registrado na seção 3-E). Mantidas as duas integrações reais que já existiam (Receitas escreve `cliente_id`, Metas lê `contarClientesAtivos`); nada novo aberto.
+- **"Perdidos no mês"** (métrica pedida no Dashboard Executivo) — não existe timestamp de mudança de status no schema (só o valor atual), então não dá pra saber QUANDO um cliente virou inativo. Entregue como "Clientes Inativos" (total, sem recorte de tempo) em vez de inventar um número mensal.
+- **Mapa geográfico visual e upload de foto/logo** — fora de escopo (sem lib de mapas e sem Storage bucket em nenhum outro módulo).
+
+**Entregue:**
+- **Cadastro Executivo** — modal reorganizado em 5 seções (Identificação, Contato, Comercial, Endereço Inteligente, Observações) com ~20 campos novos (razão social, nome fantasia, IE, WhatsApp, site, responsável/cargo, segmento, porte, regime tributário, nº funcionários, faturamento estimado, origem, responsável comercial, condição de pagamento, prazo médio, limite de crédito, classificação, data da primeira compra) — todos opcionais, tratados como "não informado" em toda a UI até serem preenchidos. `classificacao` (lead/cliente/parceiro/estratégico/premium) é campo **separado** do `status` (ativo/inativo) de propósito — misturar os dois quebraria `contarClientesAtivos`/IVCA/Saúde, que dependem de `status === "ativo"` literal.
+- **Endereço Inteligente Estado→Cidade via IBGE** — `lib/ibgeApi.ts` novo, mesmo padrão de `lib/bcbApi.ts` (API pública gratuita, sem chave, fallback se a API cair — nesse caso a cidade vira campo de texto livre com aviso, em vez de fingir uma lista offline completa de ~5570 municípios).
+- **Centro de Compartilhamento** e **letreiro** — mesmo padrão de Precificação/DashFinanceiro, gap real corrigido.
+- **Dashboard Executivo da Carteira** — 8 KPIs novos com dado real (Clientes Ativos, Novos no Mês, Inativos, Tempo Médio de Relacionamento, Premium, Estratégicos, Em Risco, Negligenciados).
+- **Radar Executivo** — `montarRadarCarteira` agrega `detectarSinaisCliente` pra carteira toda (não só um cliente); os 6 grupos são clicáveis e filtram a lista da Carteira.
+- **Top 5 por IVCA / por Valor / por Crescimento** e **Receita por Segmento/Cidade/Estado** (`receitaPorSegmento/Cidade/Estado`, novo em `clienteIntelHelpers.ts`) — painéis honestos que preenchem sozinhos conforme o cadastro for completado.
+- **Mapa de Valor** — clique direto na bolha (evento ECharts) abre o Digital Twin.
+- **Resumo de Compras** (Última/Maior/Primeira Compra, `resumoComprasCliente`) e **Parecer Executivo** (Resumo/Pontos Fortes/Fracos/Riscos/Oportunidades/Sugestão/Próximo Passo, `montarParecerExecutivo`) no Digital Twin.
+- **Cobranças** — detalhe expansível por linha (parcelas, juros, multa, forma de recebimento, observações — campos que já existiam no schema mas não apareciam na tela) + sugestão de ação determinística por faixa de atraso (`sugestaoAcaoCobranca`).
+
+**Schema — SQL a rodar no Supabase antes de testar o cadastro executivo (Elias ainda não rodou):**
+```sql
+ALTER TABLE clientes
+  ADD COLUMN IF NOT EXISTS razao_social text,
+  ADD COLUMN IF NOT EXISTS nome_fantasia text,
+  ADD COLUMN IF NOT EXISTS inscricao_estadual text,
+  ADD COLUMN IF NOT EXISTS whatsapp text,
+  ADD COLUMN IF NOT EXISTS site text,
+  ADD COLUMN IF NOT EXISTS responsavel text,
+  ADD COLUMN IF NOT EXISTS cargo text,
+  ADD COLUMN IF NOT EXISTS segmento text,
+  ADD COLUMN IF NOT EXISTS porte text,
+  ADD COLUMN IF NOT EXISTS regime_tributario text,
+  ADD COLUMN IF NOT EXISTS num_funcionarios integer,
+  ADD COLUMN IF NOT EXISTS faturamento_estimado numeric,
+  ADD COLUMN IF NOT EXISTS origem text,
+  ADD COLUMN IF NOT EXISTS responsavel_comercial text,
+  ADD COLUMN IF NOT EXISTS condicao_pagamento text,
+  ADD COLUMN IF NOT EXISTS prazo_medio_dias integer,
+  ADD COLUMN IF NOT EXISTS limite_credito numeric,
+  ADD COLUMN IF NOT EXISTS classificacao text,
+  ADD COLUMN IF NOT EXISTS estado text,
+  ADD COLUMN IF NOT EXISTS data_primeira_compra date,
+  ADD COLUMN IF NOT EXISTS observacoes text;
+```
+Até o Elias rodar esse SQL, salvar um cliente com qualquer um desses campos preenchidos vai falhar no Supabase (coluna inexistente) — o cadastro básico (nome/email/telefone/documento/cidade/status) continua funcionando normalmente porque essas colunas já existiam.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` compilou com sucesso (`✓ Compiled successfully in 3.0min`) — o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/stripe/create-checkout`, falta chave da Stripe local). Não testado no navegador com login real nesta sessão.
+
 ## 4. PRÓXIMO PASSO
-Fornecedores, Contas a Receber e Inadimplência ainda no padrão CRUD antigo (Clientes já saiu, seção 3-E) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias rodar o SQL da seção 3-H no Supabase pra liberar o cadastro executivo completo, depois testar `/clientes` manualmente. Depois disso: Fornecedores, Contas a Receber e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
