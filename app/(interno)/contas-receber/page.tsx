@@ -7,7 +7,8 @@ import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Pencil, Trash2, CheckCircle2, X, Inbox, AlertTriangle, Share2, Crown,
-  Copy, Users, Filter, ChevronRight,
+  Copy, Users, Filter, ChevronRight, Bell, MessageSquare, HandCoins, ListChecks,
+  Brain, Mail, Send, Plus,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
@@ -20,6 +21,13 @@ import {
   type ScoreAxiomaCliente, calcularKpisRecebimento, agingCarteiraRecebiveis,
   nomeCriterioScoreCliente, type Idioma3,
 } from '../../../lib/clienteIntelHelpers'
+import {
+  type CobrancaInteracao, type CobrancaCompromisso, type EtapaRegua, CANAIS_REGUA,
+  listarInteracoes, criarInteracao, listarCompromissos, criarCompromisso, atualizarStatusCompromisso,
+  listarEtapasRegua, salvarEtapaRegua, excluirEtapaRegua, etapasReguaPadrao, etapaAplicavelHoje,
+  probabilidadeRecebimentoConta, detectarAlertasCobranca, type AlertaCobranca,
+  filaCobrancaPriorizada, gerarParecerCobranca,
+} from '../../../lib/cobrancaHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -128,29 +136,56 @@ export default function ContasReceber() {
   const [drillKpi, setDrillKpi] = useState<string | null>(null)
   const [clienteScoreDrill, setClienteScoreDrill] = useState<string | null>(null)
 
+  // ========== FASE 2 — COBRANÇA INTELIGENTE ==========
+  const [compromissos, setCompromissos] = useState<CobrancaCompromisso[]>([])
+  const [etapasRegua, setEtapasRegua] = useState<EtapaRegua[]>([])
+  const [avisoTabelasCobranca, setAvisoTabelasCobranca] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+
+  const [contaCobranca, setContaCobranca] = useState<Conta | null>(null)
+  const [interacoesConta, setInteracoesConta] = useState<CobrancaInteracao[]>([])
+  const [carregandoInteracoes, setCarregandoInteracoes] = useState(false)
+  const [novoContato, setNovoContato] = useState({ tipo: 'contato' as CobrancaInteracao['tipo'], canal: 'telefone', descricao: '' })
+  const [novoCompromisso, setNovoCompromisso] = useState({ tipo: 'promessa' as CobrancaCompromisso['tipo'], valor_compromissado: '', data_compromissada: '', condicoes: '' })
+  const [salvandoCobranca, setSalvandoCobranca] = useState(false)
+
+  const [editandoEtapa, setEditandoEtapa] = useState<Partial<EtapaRegua> | null>(null)
+
   useEffect(() => { carregar() }, [])
 
   async function carregar() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
+    setUserId(user.id)
     const { data: empresa } = await supabase.from('empresas').select('id').eq('user_id', user.id).maybeSingle()
     setEmpresaId(empresa?.id || null)
-    const [{ data: cli }, { data: cc }, { data: ct }] = await Promise.all([
+    const [{ data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData] = await Promise.all([
       supabase.from('clientes').select('*').eq('user_id', user.id).order('nome'),
       supabase.from('centros_custo').select('id, nome').eq('user_id', user.id).order('nome'),
       supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
+      listarCompromissos(),
+      listarEtapasRegua(user.id),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setCentrosCusto(cc || [])
     setContas((ct as Conta[]) || [])
+    // As 3 tabelas novas da Fase 2 (cobranca_interacoes/compromissos/regua_etapas) só
+    // existem depois do Elias rodar o SQL do relatório de entrega — checamos com uma
+    // consulta direta (em vez de confiar só no retorno gracioso dos helpers) pra saber
+    // se mostramos o aviso, sem quebrar nada do resto da tela enquanto isso.
+    const { error: erroTabela } = await supabase.from('cobranca_interacoes').select('id').limit(1)
+    setAvisoTabelasCobranca(!!erroTabela && erroTabela.code === '42P01')
+    setCompromissos(compromissosData)
+    setEtapasRegua(etapasData)
     setLoading(false)
   }
 
   // ========== MOTOR DE INTELIGÊNCIA — reaproveita 100% clienteIntelHelpers.ts ==========
-  // Sem inadimplência aqui de propósito: esse é o módulo Contas a Receber, a régua de
-  // cobrança fica em Inadimplência (módulo separado); montarSnapshotsCarteira aceita
-  // [] normalmente e ainda deriva o estágio "aberto" a partir das contas vencidas.
+  // montarSnapshotsCarteira aceita [] normalmente e ainda deriva o estágio "aberto" a
+  // partir das contas vencidas. A régua/histórico/promessas de cobrança da Fase 2 vivem
+  // aqui mesmo (por conta), diferente da Inadimplência (módulo separado, à parte,
+  // registro manual em nível de cliente) — os dois não se sobrepõem.
   const carteira: SnapshotCarteira = useMemo(() => montarSnapshotsCarteira(clientes, contas as ContaRow[], []), [clientes, contas])
   const ranking = useMemo(() => rankingScoreAxiomaCliente(carteira), [carteira])
   const scoreCarteira = scoreMedioCarteiraAxiomaCliente(ranking)
@@ -417,6 +452,77 @@ export default function ContasReceber() {
   const rankingTop = ranking.slice(0, 8)
   const scoreDrill = ranking.find((r) => r.s.cliente.id === clienteScoreDrill) || null
 
+  // ========== FASE 2 — COBRANÇA INTELIGENTE ==========
+  const alertas = useMemo(() => detectarAlertasCobranca(lang, carteira, contas as ContaRow[], ranking, compromissos), [lang, carteira, contas, ranking, compromissos])
+  const alertasCriticos = alertas.filter((a) => a.severidade === 'critico').length
+  const alertasAtencao = alertas.filter((a) => a.severidade === 'atencao').length
+  const filaCobranca = useMemo(() => filaCobrancaPriorizada(ranking), [ranking])
+  const pareceresCobranca = useMemo(() => gerarParecerCobranca(lang, carteira, contas as ContaRow[], ranking), [lang, carteira, contas, ranking])
+
+  function severidadeCor(s: AlertaCobranca['severidade']) {
+    return s === 'critico' ? VERMELHO : s === 'atencao' ? AMBAR : VERDE
+  }
+
+  async function abrirCobranca(c: Conta) {
+    setContaCobranca(c)
+    setNovoContato({ tipo: 'contato', canal: 'telefone', descricao: '' })
+    setNovoCompromisso({ tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
+    setCarregandoInteracoes(true)
+    setInteracoesConta(await listarInteracoes(c.id))
+    setCarregandoInteracoes(false)
+  }
+  function fecharCobranca() { setContaCobranca(null); setInteracoesConta([]) }
+
+  async function salvarContato() {
+    if (!contaCobranca || !userId || !novoContato.descricao.trim()) return
+    setSalvandoCobranca(true)
+    await criarInteracao(userId, {
+      conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
+      tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao, data: hoje,
+    })
+    setInteracoesConta(await listarInteracoes(contaCobranca.id))
+    setNovoContato({ tipo: 'contato', canal: 'telefone', descricao: '' })
+    setSalvandoCobranca(false)
+  }
+
+  async function salvarCompromisso() {
+    if (!contaCobranca || !userId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
+    setSalvandoCobranca(true)
+    await criarCompromisso(userId, {
+      conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
+      tipo: novoCompromisso.tipo, valor_original: contaCobranca.valor,
+      valor_compromissado: parseFloat(novoCompromisso.valor_compromissado), data_compromissada: novoCompromisso.data_compromissada,
+      condicoes: novoCompromisso.condicoes || null,
+    })
+    setCompromissos(await listarCompromissos())
+    setNovoCompromisso({ tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
+    setSalvandoCobranca(false)
+  }
+
+  async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
+    await atualizarStatusCompromisso(id, status)
+    setCompromissos(await listarCompromissos())
+  }
+
+  function compromissosDaConta(contaId: string) { return compromissos.filter((c) => c.conta_id === contaId) }
+
+  function abrirNovaEtapa() { setEditandoEtapa({ dias_relativos: 0, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasRegua.length }) }
+  async function salvarEtapa() {
+    if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
+    await salvarEtapaRegua(userId, editandoEtapa)
+    setEtapasRegua(await listarEtapasRegua(userId))
+    setEditandoEtapa(null)
+  }
+  async function excluirEtapa(id: string) {
+    await excluirEtapaRegua(id)
+    if (userId) setEtapasRegua(await listarEtapasRegua(userId))
+  }
+  async function usarReguaPadrao() {
+    if (!userId) return
+    for (const e of etapasReguaPadrao()) await salvarEtapaRegua(userId, e)
+    setEtapasRegua(await listarEtapasRegua(userId))
+  }
+
   const labelInput = 'text-xs font-semibold tracking-wider uppercase mb-2 block'
   const inputCls = 'w-full px-4 py-3 rounded-xl focus:outline-none text-sm'
   const inputStyle = { background: 'rgba(255,255,255,0.04)', border: `1px solid ${TEAL}40`, color: '#c8d8f0' }
@@ -451,6 +557,13 @@ export default function ContasReceber() {
           </div>
         )}
 
+        {avisoTabelasCobranca && (
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: `${AMBAR}12`, border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+            <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+            <span>{L('A Cobrança Inteligente (histórico de contato, promessas/acordos e régua) precisa das tabelas novas no Supabase — peça para rodar o SQL do relatório técnico. O resto do módulo continua funcionando normalmente.', 'Smart Collection (contact history, promises/agreements and the reminder ladder) needs the new Supabase tables — run the SQL from the technical report. The rest of the module keeps working normally.', 'La Cobranza Inteligente (historial de contacto, promesas/acuerdos y regla de cobro) necesita las tablas nuevas en Supabase — ejecute el SQL del informe técnico. El resto del módulo sigue funcionando normalmente.')}</span>
+          </div>
+        )}
+
         {/* ================= DASHBOARD EXECUTIVO ================= */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h3 className="text-sm font-black tracking-[0.2em] uppercase" style={{ ...FONTE_EXEC, color: TEAL }}>
@@ -476,6 +589,41 @@ export default function ContasReceber() {
               {k.drillable && !k.vazio && <ChevronRight size={13} className="absolute bottom-3 right-3" style={{ color: `${k.cor}80` }} />}
             </motion.button>
           ))}
+        </div>
+
+        {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : TEAL}30` }}>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: alertasCriticos > 0 ? VERMELHO : TEAL }}>
+              <Bell size={14} /> {L('Alertas Inteligentes', 'Smart Alerts', 'Alertas Inteligentes')}
+            </p>
+            <div className="flex items-center gap-2">
+              {alertasCriticos > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>{alertasCriticos} {L('críticos', 'critical', 'críticos')}</span>}
+              {alertasAtencao > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${AMBAR}20`, color: AMBAR }}>{alertasAtencao} {L('atenção', 'attention', 'atención')}</span>}
+            </div>
+          </div>
+          {alertas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10">
+              <CheckCircle2 size={32} style={{ color: VERDE }} className="mb-2" />
+              <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum alerta no momento.', 'No alerts right now.', 'Sin alertas por el momento.')}</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+              {alertas.map((a, i) => (
+                <motion.button key={i} whileHover={{ scale: 1.005 }}
+                  onClick={() => a.clienteId && setClienteScoreDrill(a.clienteId)}
+                  className="w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: `${severidadeCor(a.severidade)}0c`, border: `1px solid ${severidadeCor(a.severidade)}30`, cursor: a.clienteId ? 'pointer' : 'default' }}>
+                  <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: severidadeCor(a.severidade) }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold" style={{ color: severidadeCor(a.severidade) }}>{a.titulo}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#c8d8f0' }}>{a.descricao}</p>
+                    <p className="text-[10px] mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ================= AGING ================= */}
@@ -538,6 +686,110 @@ export default function ContasReceber() {
                   </motion.button>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* ================= IA FINANCEIRA EXPLICATIVA ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${TEAL}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: TEAL }}>
+            <Brain size={14} /> {L('IA Financeira Explicativa', 'Explanatory Financial AI', 'IA Financiera Explicativa')}
+          </p>
+          <p className="text-[10px] mb-4 italic" style={{ color: CINZA }}>
+            {L('Modo por regras — nenhum texto aqui foi gerado por um modelo de linguagem.', 'Rule-based mode — no text here was generated by a language model.', 'Modo por reglas — ningún texto aquí fue generado por un modelo de lenguaje.')}
+          </p>
+          {pareceresCobranca.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes para gerar análise ainda.', 'Not enough data to generate analysis yet.', 'Sin datos suficientes para generar análisis aún.')}</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {pareceresCobranca.map((c, i) => (
+                <div key={i} className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${TEAL}20` }}>
+                  <p className="text-xs font-black mb-2" style={{ color: TEAL }}>{c.tema}</p>
+                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
+                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
+                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}:</span> {c.impacto}</p>
+                  <p className="text-xs font-semibold" style={{ color: VERDE }}><span style={{ color: CINZA, fontWeight: 400 }}>{L('Ação', 'Action', 'Acción')}:</span> {c.acao}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ================= FILA DE COBRANÇA PRIORIZADA ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: VERMELHO }}>
+            <ListChecks size={14} /> {L('Fila de Cobrança Priorizada', 'Prioritized Collection Queue', 'Cola de Cobro Priorizada')}
+          </p>
+          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Ordenada pelo Score Axioma — pior nota e maior saldo vencido primeiro.', 'Ordered by Axioma Score — worst score and highest overdue balance first.', 'Ordenada por Score Axioma — peor nota y mayor saldo vencido primero.')}</p>
+          {filaCobranca.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <CheckCircle2 size={28} style={{ color: VERDE }} className="mb-2" />
+              <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum cliente com saldo vencido.', 'No clients with overdue balance.', 'Ningún cliente con saldo vencido.')}</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {filaCobranca.slice(0, 10).map((item, i) => {
+                const contaMaisAntiga = [...item.s.contas].filter((c) => c.status !== 'recebido' && c.data_vencimento < hoje).sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))[0]
+                return (
+                  <motion.button key={item.s.cliente.id} whileHover={{ scale: 1.005 }}
+                    onClick={() => contaMaisAntiga && abrirCobranca(contas.find((c) => c.id === contaMaisAntiga.id) as Conta)}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${nivelScoreCor(item.score.nivel)}25` }}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-bold w-5 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{item.s.cliente.nome}</p>
+                        <p className="text-[10px]" style={{ color: CINZA }}>{L('Score', 'Score', 'Score')} {item.score.total} · {item.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-black flex-shrink-0" style={{ color: VERMELHO }}>{fBRL(item.s.valorVencido)}</span>
+                  </motion.button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ================= RÉGUA DE COBRANÇA CONFIGURÁVEL ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${OURO}30` }}>
+          <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+            <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: OURO }}>
+              <MessageSquare size={14} /> {L('Régua de Cobrança', 'Collection Ladder', 'Regla de Cobro')}
+            </p>
+            <div className="flex items-center gap-2">
+              {etapasRegua.length === 0 && (
+                <button onClick={usarReguaPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${OURO}15`, color: OURO, border: `1px solid ${OURO}30` }}>
+                  {L('Usar régua padrão', 'Use default ladder', 'Usar regla predeterminada')}
+                </button>
+              )}
+              <button onClick={abrirNovaEtapa} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${ESMERALDA}20`, color: ESMERALDA, border: `1px solid ${ESMERALDA}30` }}>
+                <Plus size={12} /> {L('Nova Etapa', 'New Step', 'Nueva Etapa')}
+              </button>
+            </div>
+          </div>
+          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Só organiza os passos e mensagens — nenhum envio real acontece nesta fase.', 'Only organizes the steps and messages — no real sending happens in this phase.', 'Solo organiza los pasos y mensajes — ningún envío real ocurre en esta fase.')}</p>
+          {etapasRegua.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Nenhuma etapa configurada ainda.', 'No steps configured yet.', 'Ninguna etapa configurada aún.')}</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {[...etapasRegua].sort((a, b) => a.dias_relativos - b.dias_relativos).map((e) => (
+                <div key={e.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${e.ativo ? OURO + '35' : 'rgba(255,255,255,0.08)'}` }}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black" style={{ color: e.ativo ? OURO : CINZA }}>
+                      {e.dias_relativos === 0 ? L('No vencimento', 'On due date', 'En el vencimiento') : e.dias_relativos < 0 ? `D${e.dias_relativos}` : `D+${e.dias_relativos}`}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => setEditandoEtapa(e)}><Pencil size={11} style={{ color: AZUL }} /></button>
+                      <button onClick={() => excluirEtapa(e.id)}><Trash2 size={11} style={{ color: VERMELHO }} /></button>
+                    </div>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                    {e.canal === 'email' ? <Mail size={9} className="inline mr-1" /> : e.canal === 'whatsapp' ? <MessageSquare size={9} className="inline mr-1" /> : <Send size={9} className="inline mr-1" />}
+                    {e.canal}
+                  </span>
+                  <p className="text-[10px] line-clamp-2" style={{ color: '#c8d8f0' }}>{e.mensagem_modelo}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -626,6 +878,7 @@ export default function ContasReceber() {
                                 <CheckCircle2 size={14} style={{ color: VERDE }} />
                               </motion.button>
                             )}
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirCobranca(c)} title={L('Cobrança', 'Collection', 'Cobranza')}><HandCoins size={14} style={{ color: OURO }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)}><Pencil size={14} style={{ color: AZUL }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)}><Trash2 size={14} style={{ color: VERMELHO }} /></motion.button>
                           </div>
@@ -883,6 +1136,164 @@ export default function ContasReceber() {
                         <span className="font-bold" style={{ color: c.semDados ? CINZA : '#c8d8f0' }}>{c.semDados ? L('sem dados', 'no data', 'sin datos') : `${Math.round(c.valor as number)}/100`}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: CENTRAL DE COBRANÇA DA CONTA ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {contaCobranca && (() => {
+            const s = carteira.clientesSnapshot.find((x) => x.cliente.id === contaCobranca.cliente_id) || null
+            const prob = probabilidadeRecebimentoConta(contaCobranca as ContaRow, s)
+            const proximaEtapa = etapaAplicavelHoje(etapasRegua, contaCobranca.data_vencimento)
+            const compsConta = compromissosDaConta(contaCobranca.id)
+            return (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+                style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={fecharCobranca}>
+                <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+                  <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35` }}>
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>{L('Central de Cobrança', 'Collection Center', 'Centro de Cobranza')}</p>
+                        <h3 className="text-base font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{cliente(contaCobranca.cliente_id)?.nome || contaCobranca.descricao}</h3>
+                        <p className="text-xs" style={{ color: CINZA }}>{contaCobranca.descricao} · {L('Saldo', 'Balance', 'Saldo')}: <span style={{ color: VERMELHO, fontWeight: 700 }}>{fBRL(calcularLinha(contaCobranca).saldo)}</span></p>
+                      </div>
+                      <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharCobranca} style={{ color: CINZA }}><X size={20} /></motion.button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Chance de receber no prazo', 'Chance of on-time payment', 'Probabilidad de cobro a tiempo')}</p>
+                        <p className="text-xl font-black" style={{ color: prob == null ? CINZA : prob >= 70 ? VERDE : prob >= 40 ? AMBAR : VERMELHO }}>{prob != null ? `${prob}%` : L('sem dados', 'no data', 'sin datos')}</p>
+                      </div>
+                      <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Próxima ação da régua', 'Next ladder step', 'Próxima acción de la regla')}</p>
+                        <p className="text-xs font-bold" style={{ color: proximaEtapa ? OURO : CINZA }}>{proximaEtapa ? `${proximaEtapa.canal} — ${proximaEtapa.dias_relativos === 0 ? L('hoje', 'today', 'hoy') : proximaEtapa.dias_relativos < 0 ? `D${proximaEtapa.dias_relativos}` : `D+${proximaEtapa.dias_relativos}`}` : L('nenhuma configurada', 'none configured', 'ninguna configurada')}</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-5">
+                      <p className="text-xs font-bold tracking-wider uppercase mb-2" style={{ color: TEAL }}>{L('Registrar Contato', 'Log Contact', 'Registrar Contacto')}</p>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <select value={novoContato.tipo} onChange={(e) => setNovoContato({ ...novoContato, tipo: e.target.value as CobrancaInteracao['tipo'] })} className="px-2 py-1.5 rounded-lg text-xs" style={selectStyle}>
+                          <option value="contato">{L('Contato', 'Contact', 'Contacto')}</option>
+                          <option value="negociacao">{L('Negociação', 'Negotiation', 'Negociación')}</option>
+                          <option value="nota">{L('Nota', 'Note', 'Nota')}</option>
+                        </select>
+                        <select value={novoContato.canal} onChange={(e) => setNovoContato({ ...novoContato, canal: e.target.value })} className="px-2 py-1.5 rounded-lg text-xs" style={selectStyle}>
+                          <option value="telefone">{L('Telefone', 'Phone', 'Teléfono')}</option>
+                          <option value="email">E-mail</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="presencial">{L('Presencial', 'In person', 'Presencial')}</option>
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <input value={novoContato.descricao} onChange={(e) => setNovoContato({ ...novoContato, descricao: e.target.value })} placeholder={L('O que foi conversado...', 'What was discussed...', 'Qué se conversó...')} className="flex-1 px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                        <button onClick={salvarContato} disabled={salvandoCobranca || !novoContato.descricao.trim()} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: TEAL, color: '#fff' }}>{L('Salvar', 'Save', 'Guardar')}</button>
+                      </div>
+                      <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">
+                        {carregandoInteracoes ? <p className="text-xs" style={{ color: CINZA }}>...</p> : interacoesConta.length === 0 ? (
+                          <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhum contato registrado ainda.', 'No contact logged yet.', 'Ningún contacto registrado aún.')}</p>
+                        ) : interacoesConta.map((it) => (
+                          <div key={it.id} className="text-xs px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', color: '#c8d8f0' }}>
+                            <span style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {it.canal}</span> — {it.descricao}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold tracking-wider uppercase mb-2" style={{ color: OURO }}>{L('Promessas e Acordos', 'Promises & Agreements', 'Promesas y Acuerdos')}</p>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        <select value={novoCompromisso.tipo} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, tipo: e.target.value as CobrancaCompromisso['tipo'] })} className="px-2 py-1.5 rounded-lg text-xs" style={selectStyle}>
+                          <option value="promessa">{L('Promessa', 'Promise', 'Promesa')}</option>
+                          <option value="acordo">{L('Acordo', 'Agreement', 'Acuerdo')}</option>
+                        </select>
+                        <input type="number" value={novoCompromisso.valor_compromissado} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, valor_compromissado: e.target.value })} placeholder={L('Valor', 'Amount', 'Monto')} className="px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                        <input type="date" value={novoCompromisso.data_compromissada} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, data_compromissada: e.target.value })} className="px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                      </div>
+                      <div className="flex gap-2">
+                        <input value={novoCompromisso.condicoes} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, condicoes: e.target.value })} placeholder={L('Condições (opcional)', 'Conditions (optional)', 'Condiciones (opcional)')} className="flex-1 px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                        <button onClick={salvarCompromisso} disabled={salvandoCobranca || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: OURO, color: '#1a1400' }}>{L('Salvar', 'Save', 'Guardar')}</button>
+                      </div>
+                      <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">
+                        {compsConta.length === 0 ? (
+                          <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhuma promessa ou acordo ainda.', 'No promise or agreement yet.', 'Ninguna promesa o acuerdo aún.')}</p>
+                        ) : compsConta.map((c) => {
+                          const quebrado = c.status === 'pendente' && c.data_compromissada < hoje
+                          const cor = c.status === 'cumprido' ? VERDE : quebrado || c.status === 'quebrado' ? VERMELHO : AMBAR
+                          return (
+                            <div key={c.id} className="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded-lg" style={{ background: `${cor}0c`, border: `1px solid ${cor}25` }}>
+                              <span style={{ color: '#c8d8f0' }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')}: {fBRL(c.valor_compromissado)} até {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                              {c.status === 'pendente' ? (
+                                <div className="flex gap-1.5 flex-shrink-0">
+                                  <button onClick={() => marcarCompromisso(c.id, 'cumprido')} title={L('Cumprido', 'Fulfilled', 'Cumplido')}><CheckCircle2 size={13} style={{ color: VERDE }} /></button>
+                                  <button onClick={() => marcarCompromisso(c.id, 'quebrado')} title={L('Quebrado', 'Broken', 'Incumplido')}><X size={13} style={{ color: VERMELHO }} /></button>
+                                </div>
+                              ) : <span className="font-bold flex-shrink-0" style={{ color: cor }}>{c.status === 'cumprido' ? L('Cumprido', 'Fulfilled', 'Cumplido') : L('Quebrado', 'Broken', 'Incumplido')}</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )
+          })()}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: EDITOR DE ETAPA DA RÉGUA ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {editandoEtapa && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setEditandoEtapa(null)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Etapa da Régua', 'Ladder Step', 'Etapa de la Regla')}</h3>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoEtapa(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className={labelInput} style={{ color: OURO }}>{L('Dias em relação ao vencimento (negativo = antes)', 'Days relative to due date (negative = before)', 'Días respecto al vencimiento (negativo = antes)')}</label>
+                      <input type="number" value={editandoEtapa.dias_relativos ?? 0} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, dias_relativos: parseInt(e.target.value || '0') })} className={inputCls} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label className={labelInput} style={{ color: OURO }}>{L('Canal', 'Channel', 'Canal')}</label>
+                      <select value={editandoEtapa.canal || 'email'} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, canal: e.target.value as EtapaRegua['canal'] })} className={inputCls} style={selectStyle}>
+                        {CANAIS_REGUA.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelInput} style={{ color: OURO }}>{L('Mensagem-modelo', 'Message template', 'Mensaje-modelo')}</label>
+                      <textarea value={editandoEtapa.mensagem_modelo || ''} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, mensagem_modelo: e.target.value })} rows={3} placeholder="{cliente} {documento} {valor}" className={inputCls} style={inputStyle} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="etapaAtiva" checked={editandoEtapa.ativo ?? true} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, ativo: e.target.checked })} className="w-4 h-4" />
+                      <label htmlFor="etapaAtiva" className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{L('Etapa ativa', 'Step active', 'Etapa activa')}</label>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarEtapa}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold"
+                      style={{ background: `linear-gradient(135deg, ${OURO}, #b8942c)`, color: '#1a1400' }}>
+                      {L('Salvar Etapa', 'Save Step', 'Guardar Etapa')}
+                    </motion.button>
                   </div>
                 </div>
               </motion.div>

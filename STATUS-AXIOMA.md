@@ -304,8 +304,81 @@ Até rodar, a Central de Recebimentos funciona normalmente (grade, KPIs, aging, 
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` compilou com sucesso (`✓ Compiled successfully in 6.4min`) — o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/pluggy/webhook`, falta chave local, Pluggy em modo teste). Não testado no navegador com login real nesta sessão.
 
+## 3-K. Contas a Receber — Fase 2 de 3 (Cobrança Inteligente + IA Explicativa + Alertas), entregue nesta rodada
+**Régua de cobrança configurável, histórico de contato/negociação, promessas e acordos, painel de alertas preditivos e conselho explicativo por regra.** Tudo novo vive em `lib/cobrancaHelpers.ts` (arquivo próprio, não amontoado em cima de `clienteIntelHelpers.ts`) — reaproveita 100% o motor da Fase 1 (`montarSnapshotsCarteira`, `ranking` de Score Axioma) sem recalcular nada do zero.
+
+**Decisão de schema (evita duplicar tabela por causa de rótulo):** "promessa de pagamento" e "acordo" são estruturalmente idênticos (valor combinado, data combinada, condições, status) — viram uma única tabela `cobranca_compromissos` discriminada por `tipo`, em vez de duas tabelas quase-gêmeas.
+
+**Achado importante antes de codar (via graphify + leitura do módulo real):** já existe um módulo `Inadimplência` separado com sua própria régua (`estagio`: aberto/aviso/negociação/acordo/jurídico/perda) e histórico de contato — mas ele é um registro manual em nível de CLIENTE, sem `conta_id`, sem vínculo com `contas_receber`. A Cobrança Inteligente desta fase é em nível de CONTA (cada fatura tem seu próprio histórico/promessas), então não duplica o que a Inadimplência já faz — são grãos diferentes. Registrado aqui pra não confundir os dois no futuro.
+
+**Escopo A — Cobrança Inteligente:** histórico de contato/negociação por conta (`cobranca_interacoes`), promessas e acordos com marcação manual de cumprido/quebrado (`cobranca_compromissos`), fila de cobrança priorizada automaticamente pelo Score Axioma da Fase 1 (pior nota + maior saldo vencido primeiro, `filaCobrancaPriorizada`).
+
+**Escopo B — Régua de cobrança configurável:** etapas por dias relativos ao vencimento (ex: D-3/D0/D+1/D+7/D+15), canal (e-mail/SMS/WhatsApp) e mensagem-modelo com variáveis `{cliente}/{documento}/{valor}` (`cobranca_regua_etapas`, `etapaAplicavelHoje`, `preencherModeloMensagem`). **Nenhum envio real acontece nesta fase** — só monta e organiza, por instrução explícita do Elias. Arquitetura de disparo futuro (cron + provedor de WhatsApp/e-mail/SMS) deixada comentada no fim do arquivo.
+
+**Escopo C — Alertas inteligentes:** 10 tipos (`detectarAlertasCobranca`) — recebimentos próximos, cliente reincidente, alto risco (score crítico), concentração de receita, receita em queda, fluxo comprometido, promessa/acordo quebrado, receita crítica, valor de cobrança fora do padrão, e o destaque preditivo **"começando a atrasar"** (`detectarMudancaComportamento`): compara o atraso médio dos recebimentos mais recentes de um cliente com o histórico anterior DELE MESMO — se um cliente que sempre pagou rápido começa a demorar mais (mas ainda não é uma inadimplência grave), avisa antes de virar problema. Painel central com contador de críticos/atenção, severidade verde/âmbar/vermelho.
+
+**Escopo D — IA Financeira Explicativa (modo por regras, API real seguindo desativada — seção 1):** `gerarParecerCobranca` gera cartões O que aconteceu / Por quê / Impacto / Ação cobrindo risco de inadimplência, tendência de comportamento (quem piorou/melhorou), concentração de receita, impacto no fluxo de caixa/capital de giro, clientes estratégicos e padrão de pagamento da carteira. **Destaque: probabilidade de recebimento por conta** (`probabilidadeRecebimentoConta`) — reaproveita a função `scoreRecebimento` já criada na Fase 1 (pontualidade histórica do cliente + proximidade do vencimento), exibida como "% de chance de receber no prazo" na Central de Cobrança de cada conta. Exige pelo menos 1 recebimento no histórico do cliente — sem isso, "sem dados".
+
+**Schema — SQL a rodar no Supabase antes de testar (Elias ainda não rodou):**
+```sql
+CREATE TABLE IF NOT EXISTS cobranca_interacoes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  conta_id uuid not null references contas_receber(id) on delete cascade,
+  cliente_id uuid references clientes(id),
+  tipo text not null default 'contato',
+  canal text,
+  descricao text not null,
+  data date not null default current_date,
+  created_at timestamptz default now()
+);
+alter table cobranca_interacoes enable row level security;
+create policy "cobranca_interacoes_select" on cobranca_interacoes for select using (auth.uid() = user_id);
+create policy "cobranca_interacoes_insert" on cobranca_interacoes for insert with check (auth.uid() = user_id);
+create policy "cobranca_interacoes_update" on cobranca_interacoes for update using (auth.uid() = user_id);
+create policy "cobranca_interacoes_delete" on cobranca_interacoes for delete using (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS cobranca_compromissos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  conta_id uuid not null references contas_receber(id) on delete cascade,
+  cliente_id uuid references clientes(id),
+  tipo text not null default 'promessa',
+  valor_original numeric,
+  valor_compromissado numeric not null,
+  data_compromissada date not null,
+  condicoes text,
+  status text not null default 'pendente',
+  created_at timestamptz default now()
+);
+alter table cobranca_compromissos enable row level security;
+create policy "cobranca_compromissos_select" on cobranca_compromissos for select using (auth.uid() = user_id);
+create policy "cobranca_compromissos_insert" on cobranca_compromissos for insert with check (auth.uid() = user_id);
+create policy "cobranca_compromissos_update" on cobranca_compromissos for update using (auth.uid() = user_id);
+create policy "cobranca_compromissos_delete" on cobranca_compromissos for delete using (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS cobranca_regua_etapas (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  dias_relativos integer not null,
+  canal text not null default 'email',
+  mensagem_modelo text,
+  ativo boolean not null default true,
+  ordem integer not null default 0,
+  created_at timestamptz default now()
+);
+alter table cobranca_regua_etapas enable row level security;
+create policy "cobranca_regua_etapas_select" on cobranca_regua_etapas for select using (auth.uid() = user_id);
+create policy "cobranca_regua_etapas_insert" on cobranca_regua_etapas for insert with check (auth.uid() = user_id);
+create policy "cobranca_regua_etapas_update" on cobranca_regua_etapas for update using (auth.uid() = user_id);
+create policy "cobranca_regua_etapas_delete" on cobranca_regua_etapas for delete using (auth.uid() = user_id);
+```
+Até rodar, a tela detecta a ausência das tabelas (erro Postgres `42P01`) e mostra um aviso elegante — todo o resto do módulo (Fase 1 inteira: grade, dashboard, aging, score) continua funcionando normalmente.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — ver nota de rodada.
+
 ## 4. PRÓXIMO PASSO
-Elias testar `/contas-receber` no navegador (Dashboard, aging, score, cadastro, e rodar o SQL acima antes de testar Responsável/Prioridade/Projeto). Aguardando aprovação da Fase 1 antes de iniciar a Fase 2 do módulo (Elias não detalhou o escopo da Fase 2/3 ainda). Depois: Fornecedores (já em padrão CFO) e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias rodar o SQL da Fase 2 no Supabase e testar `/contas-receber` no navegador (alertas, régua, registrar contato, promessas/acordos, IA explicativa). Aguardando aprovação da Fase 2 antes de iniciar a Fase 3 do módulo (Elias ainda não detalhou o escopo da Fase 3). Depois: Fornecedores (já em padrão CFO) e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
