@@ -377,8 +377,55 @@ Até rodar, a tela detecta a ausência das tabelas (erro Postgres `42P01`) e mos
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — ver nota de rodada.
 
+## 3-L. Contas a Receber — Fase 3 de 3 (Previsão de Caixa + Simulador + Analytics + Integração), ENTREGA FINAL DO MÓDULO
+**Módulo completo (Fases 1, 2 e 3) entregue nesta rodada.** Fase 3 vive em `lib/previsaoRecebimentoHelpers.ts` (arquivo próprio, terceiro da família — `clienteIntelHelpers.ts` → `cobrancaHelpers.ts` → `previsaoRecebimentoHelpers.ts`), reaproveitando o motor de DRE (`montarDRE`) e série rolante (`serieRolling`) de `cfoCore.ts`, mais o Score Axioma e a probabilidade de recebimento das Fases 1 e 2. **Nenhuma tabela nova** — tudo derivado do que já existe.
+
+**Achado antes de codar:** o pedido era "reaproveitar a lógica de Reforma Tributária do módulo MEI" pro impacto do split payment — investiguei e a tela `mei/reforma` é só conteúdo educativo (linha do tempo, comparação MEI×ME), sem nenhum cálculo de impacto no recebimento pra reaproveitar. Construído do zero (`estimarImpactoSplitPayment`), mesmo espírito de transparência (estimativa pública de transição, aviso "consulte um contador"), registrado aqui pra não parecer que existia algo que não existia.
+
+**Escopo A — Previsão de Caixa multi-horizonte** (`previsaoCaixaMultiHorizonte`, 7/30/60/90/180/365 dias): cada real a receber é classificado em previsto/provável/em risco/perdido usando o Score Axioma + probabilidade de recebimento (`classificarEntrada`) — diferente do Fluxo de Caixa (que usa o valor bruto de `contas_receber` sem classificar confiança, ver seção 3-K). Puramente derivado de `contas`, atualiza sozinho a cada mudança.
+
+**Escopo B — Simulador Executivo** (`simularCenariosRecebimento`): reaproveita `montarDRE` (não `simularCenariosExecutivos`/`ChoqueSimulador` diretamente — aquele vetor de choque não tem alavanca de inadimplência/DSO/antecipação), com 5 alavancas (Δ inadimplência, redução de DSO, % antecipado, deságio de antecipação, desconto oferecido) e 4 cenários nomeados (conservador/base/otimista/adverso), mostrando impacto em lucro líquido/EBITDA/caixa. Ponto de Partida automático lê Receitas/Custos Fixos/Custos Variáveis/Dívidas/Empresa (regime tributário) — leitura, nunca escreve, mesmo padrão de Investimentos/Simulações. **Card de Antecipação de Recebíveis** (`calcularAntecipacaoRecebiveis`) e **card de Impacto do Split Payment** (`estimarImpactoSplitPayment`) como destaques.
+
+**Escopo C — Painéis Analíticos**: Heatmap de Inadimplência (cliente × faixa de aging, `heatmapInadimplencia`), Evolução da Carteira 12 meses (cobrado vs recebido, reaproveitando `serieRolling`), Curva ABC de Clientes (`curvaABCClientes`, mesmo algoritmo 80/95% já usado em Fornecedores), Receita Recorrente vs Não Recorrente, Concentração Top 5, e agrupamento por Segmento/Estado/Cidade (`agruparCarteiraPorCampo`, campos reais já existentes em `clientes`). **"Mapa geográfico" implementado como gráfico por estado** (mesma decisão já registrada em Fornecedores/Clientes — sem lib de mapas no Axioma). **"Receita por vendedor/produto" deixada de fora** — não existe vínculo vendedor/produto no schema hoje, não fingido. **Benchmark anônimo de inadimplência da rede**: arquitetura comentada no fim do arquivo, não implementada (exigiria agregação server-side sem vazar dado de outro `user_id`, volume de base ainda não justifica).
+
+**Escopo D — Integração (somente leitura):** Clientes (ativo desde a Fase 1), DRE/Investimentos/Simulações (núcleo `montarDRE` reaproveitado no simulador desta fase). **Duas decisões conscientes, aprovadas com o Elias antes de codar:**
+- **Dashboard Principal**: deferido — trocar os números DEMO do painel geral por reais é uma tarefa que toca todos os módulos, não só este; registrada como iniciativa própria (ver seção 5/📋 do CONTEXTO-AXIOMA.md).
+- **Precificação**: gancho comentado (`sugestaoCondicaoPagamento` no fim de `previsaoRecebimentoHelpers.ts`), não ativado — grande demais pra esta fase, por decisão consciente do Elias.
+- Fluxo de Caixa/Metas/Relatórios/IA Financeira: nenhuma mudança necessária — já expõem/leem o que precisavam, ou (caso do Fluxo de Caixa) a Previsão de Caixa desta fase é um produto complementar, não uma duplicata.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — ver nota de rodada.
+
+---
+
+## RELATÓRIO FINAL — MÓDULO CONTAS A RECEBER COMPLETO (Fases 1-3)
+
+**Funcionalidades entregues:**
+- Central de Recebimentos: grade de 22 colunas, cálculo automático de dias em atraso/valor atualizado/saldo, busca/filtro/período
+- Dashboard Executivo: 17 KPIs com drill-down real e estado vazio honesto
+- Aging (4 faixas) + Score Axioma do Cliente (0-1000, 12 critérios, 5 níveis)
+- Cobrança Inteligente: histórico de contato/negociação, promessas/acordos, fila priorizada, régua de cobrança configurável (sem disparo real)
+- Alertas preditivos (10 tipos, destaque "cliente começando a atrasar")
+- IA Financeira Explicativa por regra + probabilidade de recebimento % por conta
+- Previsão de Caixa multi-horizonte (7 a 365 dias, classificada por confiança)
+- Simulador Executivo (5 alavancas, 4 cenários, DRE real) + Antecipação de Recebíveis + Impacto do Split Payment
+- Painéis Analíticos: heatmap, evolução, curva ABC, recorrência, concentração, segmento/estado/cidade
+
+**Arquivos criados:** `lib/cobrancaHelpers.ts`, `lib/previsaoRecebimentoHelpers.ts`
+**Arquivos alterados:** `app/(interno)/contas-receber/page.tsx` (reescrita completa + 2 rodadas de expansão), `lib/clienteIntelHelpers.ts` (Score Axioma do Cliente + KPIs + aging adicionados)
+**Tabelas novas:** `cobranca_interacoes`, `cobranca_compromissos`, `cobranca_regua_etapas` (SQL seção 3-K, já rodado pelo Elias)
+**Colunas novas:** `contas_receber.responsavel/prioridade/projeto` (SQL seção 3-J, já rodado pelo Elias)
+
+**Integrações ativas:** Clientes (leitura completa, todas as fases), Receitas/Custos Fixos/Custos Variáveis/Dívidas/Empresa (leitura, só no Simulador da Fase 3), núcleo de DRE reaproveitado de Investimentos/Simulações.
+
+**Sugestões de evolução futura (registradas, não implementadas):**
+- Disparo real da régua de cobrança (cron + provedor de WhatsApp/e-mail/SMS) quando o Elias escolher o provedor
+- Conciliação automática via Open Finance/Pluggy (`of_transacoes` × `contas_receber`) quando o Pluggy sair do modo teste
+- Ativar o gancho de Precificação (`sugestaoCondicaoPagamento`) quando fizer sentido priorizar
+- Conectar o Dashboard Principal aos dados reais de todos os módulos (iniciativa própria, não só deste módulo)
+- Benchmark anônimo de inadimplência da rede, quando a base de usuários tiver volume suficiente
+
 ## 4. PRÓXIMO PASSO
-Elias rodar o SQL da Fase 2 no Supabase e testar `/contas-receber` no navegador (alertas, régua, registrar contato, promessas/acordos, IA explicativa). Aguardando aprovação da Fase 2 antes de iniciar a Fase 3 do módulo (Elias ainda não detalhou o escopo da Fase 3). Depois: Fornecedores (já em padrão CFO) e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias testar `/contas-receber` completo (Previsão de Caixa, Simulador, Analytics). Módulo Contas a Receber encerrado (3/3 fases). Próximo: Fornecedores (já em padrão CFO) e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 

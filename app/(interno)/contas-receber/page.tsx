@@ -8,13 +8,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Pencil, Trash2, CheckCircle2, X, Inbox, AlertTriangle, Share2, Crown,
   Copy, Users, Filter, ChevronRight, Bell, MessageSquare, HandCoins, ListChecks,
-  Brain, Mail, Send, Plus,
+  Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
-import { fBRL, FONTE_EXEC, optBarrasV, optVelocimetro, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { fBRL, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
+import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
   rankingScoreAxiomaCliente, scoreMedioCarteiraAxiomaCliente,
@@ -28,6 +29,13 @@ import {
   probabilidadeRecebimentoConta, detectarAlertasCobranca, type AlertaCobranca,
   filaCobrancaPriorizada, gerarParecerCobranca,
 } from '../../../lib/cobrancaHelpers'
+import {
+  HORIZONTES_PADRAO, previsaoCaixaMultiHorizonte,
+  simularCenariosRecebimento, type AlavancasRecebimento,
+  calcularAntecipacaoRecebiveis, estimarImpactoSplitPayment,
+  heatmapInadimplencia, curvaABCClientes, evolucaoCarteira,
+  agruparCarteiraPorCampo, concentracaoTopClientes,
+} from '../../../lib/previsaoRecebimentoHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -151,6 +159,26 @@ export default function ContasReceber() {
 
   const [editandoEtapa, setEditandoEtapa] = useState<Partial<EtapaRegua> | null>(null)
 
+  // ========== FASE 3 — PREVISÃO, SIMULADOR E ANALYTICS ==========
+  // Leitura só (SELECT) de outros módulos pra alimentar o simulador — mesmo padrão
+  // já usado em Investimentos/Simulações ("Ponto de Partida automático"), nunca escreve.
+  const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([])
+  const [custosFixosRows, setCustosFixosRows] = useState<{ valor_mensal: number }[]>([])
+  const [custosVarRows, setCustosVarRows] = useState<{ valor: number }[]>([])
+  const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([])
+  const [caixaDisponivel, setCaixaDisponivel] = useState(0)
+  const [regimeTributario, setRegimeTributario] = useState('')
+
+  const [deltaInadimplenciaPct, setDeltaInadimplenciaPct] = useState('2')
+  const [reducaoDsoDias, setReducaoDsoDias] = useState('5')
+  const [pctAntecipado, setPctAntecipado] = useState('20')
+  const [taxaDesagioAntecipacaoPct, setTaxaDesagioAntecipacaoPct] = useState('2')
+  const [descontoOferecidoPct, setDescontoOferecidoPct] = useState('3')
+
+  const [diasAntecipacaoCard, setDiasAntecipacaoCard] = useState('30')
+  const [taxaAntecipacaoCard, setTaxaAntecipacaoCard] = useState('2')
+  const [aliquotaSplitPayment, setAliquotaSplitPayment] = useState('12')
+
   useEffect(() => { carregar() }, [])
 
   async function carregar() {
@@ -158,18 +186,32 @@ export default function ContasReceber() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     setUserId(user.id)
-    const { data: empresa } = await supabase.from('empresas').select('id').eq('user_id', user.id).maybeSingle()
+    const { data: empresa } = await supabase.from('empresas').select('id, regime_tributario').eq('user_id', user.id).maybeSingle()
     setEmpresaId(empresa?.id || null)
-    const [{ data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData] = await Promise.all([
+    setRegimeTributario(empresa?.regime_tributario || '')
+    const [
+      { data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData,
+      { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: fc },
+    ] = await Promise.all([
       supabase.from('clientes').select('*').eq('user_id', user.id).order('nome'),
       supabase.from('centros_custo').select('id, nome').eq('user_id', user.id).order('nome'),
       supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
       listarCompromissos(),
       listarEtapasRegua(user.id),
+      supabase.from('receitas').select('valor, data').eq('user_id', user.id),
+      supabase.from('custos_fixos').select('valor_mensal').eq('user_id', user.id),
+      supabase.from('custos_variaveis').select('valor').eq('user_id', user.id),
+      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('user_id', user.id),
+      supabase.from('fluxo_caixa').select('valor, tipo, status').eq('user_id', user.id),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setCentrosCusto(cc || [])
     setContas((ct as Conta[]) || [])
+    setReceitasRows(rec || [])
+    setCustosFixosRows(cf || [])
+    setCustosVarRows(cv || [])
+    setDividasRows(div || [])
+    setCaixaDisponivel((fc || []).filter((l: any) => l.status === 'realizado').reduce((s: number, l: any) => s + (l.tipo === 'entrada' ? Number(l.valor || 0) : -Number(l.valor || 0)), 0))
     // As 3 tabelas novas da Fase 2 (cobranca_interacoes/compromissos/regua_etapas) só
     // existem depois do Elias rodar o SQL do relatório de entrega — checamos com uma
     // consulta direta (em vez de confiar só no retorno gracioso dos helpers) pra saber
@@ -523,6 +565,74 @@ export default function ContasReceber() {
     setEtapasRegua(await listarEtapasRegua(userId))
   }
 
+  // ========== FASE 3 — PREVISÃO DE CAIXA MULTI-HORIZONTE ==========
+  const previsaoHorizontes = useMemo(() => previsaoCaixaMultiHorizonte(contas as ContaRow[], ranking, HORIZONTES_PADRAO), [contas, ranking])
+
+  // ========== FASE 3 — SIMULADOR EXECUTIVO (Ponto de Partida automático, mesmo padrão de Investimentos/Simulações) ==========
+  const anoAtual = new Date().getFullYear()
+  const receitaBrutaAno = receitasRows.filter((r) => r.data && new Date(r.data).getFullYear() === anoAtual).reduce((s, r) => s + (Number(r.valor) || 0), 0)
+  const receitaMensalAtual = receitaBrutaAno > 0 ? receitaBrutaAno / 12 : receitasRows.reduce((s, r) => s + (Number(r.valor) || 0), 0) / 12
+  const custoFixoMensalAtual = custosFixosRows.reduce((s, c) => s + (Number(c.valor_mensal) || 0), 0)
+  const custoVariavelMensalAtual = custosVarRows.reduce((s, c) => s + (Number(c.valor) || 0), 0) / 12
+  const despesasFinanceirasMensalAtual = dividasRows.reduce((s, d) => s + Math.max(0, (Number(d.valor_total) || 0) - (Number(d.valor_pago) || 0)) * ((Number(d.taxa_juros) || 0) / 100), 0)
+  const impostoMensalEstimado = calcularImpostoRegime(regimeTributario, receitaBrutaAno, receitaMensalAtual)
+  const aliquotaEfetivaPct = receitaMensalAtual > 0 ? (impostoMensalEstimado / receitaMensalAtual) * 100 : 0
+  const temDadosSimulador = receitaMensalAtual > 0
+
+  const alavancasRecebimento: AlavancasRecebimento = {
+    deltaInadimplenciaPct: parseFloat(deltaInadimplenciaPct || '0'),
+    reducaoDsoDias: parseFloat(reducaoDsoDias || '0'),
+    pctAntecipado: parseFloat(pctAntecipado || '0'),
+    taxaDesagioAntecipacaoPct: parseFloat(taxaDesagioAntecipacaoPct || '0'),
+    descontoOferecidoPct: parseFloat(descontoOferecidoPct || '0'),
+  }
+  const resultadoCenarios = temDadosSimulador ? simularCenariosRecebimento({
+    receitaMensalAtual, custoFixoMensalAtual, custoVariavelMensalAtual, despesasFinanceirasMensalAtual,
+    aliquotaEfetivaPct, saldoCaixaAtual: caixaDisponivel, valorAReceberTotal: kpis.valorTotalAReceber,
+  }, alavancasRecebimento) : []
+
+  function valorAReceberEmDias(dias: number): number {
+    const limite = new Date(); limite.setDate(limite.getDate() + dias)
+    const limiteStr = limite.toISOString().slice(0, 10)
+    return contas.filter((c) => c.status !== 'recebido' && c.data_vencimento <= limiteStr)
+      .reduce((s, c) => s + Math.max(0, (c.valor || 0) - (c.valor_recebido || 0)), 0)
+  }
+  const antecipacaoResultado = calcularAntecipacaoRecebiveis(valorAReceberEmDias(parseInt(diasAntecipacaoCard || '0')), parseFloat(taxaAntecipacaoCard || '0'))
+  const splitPaymentResultado = estimarImpactoSplitPayment(kpis.valorTotalAReceber, parseFloat(aliquotaSplitPayment || '12'))
+
+  // ========== FASE 3 — PAINÉIS ANALÍTICOS ==========
+  const heatmapData = useMemo(() => heatmapInadimplencia(carteira), [carteira])
+  const curvaABC = useMemo(() => curvaABCClientes(carteira), [carteira])
+  const evolucaoCarteiraData = useMemo(() => evolucaoCarteira(contas as ContaRow[]), [contas])
+  const gruposSegmento = useMemo(() => agruparCarteiraPorCampo(carteira, lang, 'segmento'), [carteira, lang])
+  const gruposEstado = useMemo(() => agruparCarteiraPorCampo(carteira, lang, 'estado'), [carteira, lang])
+  const gruposCidade = useMemo(() => agruparCarteiraPorCampo(carteira, lang, 'cidade'), [carteira, lang])
+  const concentracaoTop = useMemo(() => concentracaoTopClientes(carteira), [carteira])
+
+  const PALETA_GRUPOS = [ESMERALDA, OURO, AZUL, VERDE, AMBAR, '#a78bfa', VERMELHO, TEAL]
+  const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
+    grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
+    ESMERALDA, L('Total', 'Total', 'Total'),
+  ) : null
+
+  const heatmapOption = heatmapData.length > 0 ? {
+    backgroundColor: 'transparent',
+    tooltip: { position: 'top', backgroundColor: 'rgba(10,8,30,0.97)', borderColor: VERMELHO, textStyle: { color: '#e2e8f0', fontSize: 12 }, formatter: (p: any) => `<b>${p.name}</b><br/>${fBRL(p.value[2])}` },
+    grid: { left: 100, right: 20, top: 10, bottom: 30 },
+    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
+    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
+    visualMap: { min: 0, max: Math.max(1, ...heatmapData.map((c) => c.valor)), calculable: false, show: false, inRange: { color: ['rgba(248,113,113,0.06)', AMBAR, VERMELHO] } },
+    series: [{ type: 'heatmap', data: heatmapData.map((c) => [c.faixa, c.clienteNome, c.valor]).map((d) => [['0-30', '31-60', '61-90', '90+'].indexOf(d[0] as string), [...new Set(heatmapData.map((x) => x.clienteNome))].indexOf(d[1] as string), d[2]]), label: { show: false }, itemStyle: { borderColor: '#020810', borderWidth: 2, borderRadius: 4 } }],
+  } : null
+
+  const evolucaoOption = evolucaoCarteiraData.cobrado.some((s) => s.value > 0) ? optLinhaMulti(
+    [
+      { nome: L('Cobrado', 'Billed', 'Cobrado'), dados: evolucaoCarteiraData.cobrado.map((s) => s.value), cor: TEAL },
+      { nome: L('Recebido', 'Received', 'Recibido'), dados: evolucaoCarteiraData.recebido.map((s) => s.value), cor: VERDE },
+    ],
+    evolucaoCarteiraData.cobrado.map((s) => s.label), TEAL,
+  ) : null
+
   const labelInput = 'text-xs font-semibold tracking-wider uppercase mb-2 block'
   const inputCls = 'w-full px-4 py-3 rounded-xl focus:outline-none text-sm'
   const inputStyle = { background: 'rgba(255,255,255,0.04)', border: `1px solid ${TEAL}40`, color: '#c8d8f0' }
@@ -792,6 +902,211 @@ export default function ContasReceber() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* ================= PREVISÃO DE CAIXA MULTI-HORIZONTE ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${TEAL}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: TEAL }}>
+            <TrendingUp size={14} /> {L('Previsão de Caixa', 'Cash Forecast', 'Previsión de Caja')}
+          </p>
+          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Classificado por confiança (Score Axioma + probabilidade de recebimento) — não é só o valor bruto.', 'Classified by confidence (Axioma Score + payment probability) — not just the raw amount.', 'Clasificado por confianza (Score Axioma + probabilidad de cobro) — no solo el monto bruto.')}</p>
+          {contas.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Sem contas suficientes para projetar.', 'Not enough accounts to project.', 'Sin cuentas suficientes para proyectar.')}</p>
+          ) : (
+            <div className="overflow-x-auto -mx-1">
+              <table className="w-full text-xs border-separate" style={{ borderSpacing: '0 6px', minWidth: 640 }}>
+                <thead>
+                  <tr>
+                    <th className="text-left px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L('Horizonte', 'Horizon', 'Horizonte')}</th>
+                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: VERDE }}>{L('Previsto', 'Forecast', 'Previsto')}</th>
+                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: AZUL }}>{L('Provável', 'Likely', 'Probable')}</th>
+                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: AMBAR }}>{L('Em Risco', 'At Risk', 'En Riesgo')}</th>
+                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: VERMELHO }}>{L('Perdido', 'Lost', 'Perdido')}</th>
+                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#c8d8f0' }}>{L('Total', 'Total', 'Total')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previsaoHorizontes.map((h) => {
+                    const total = h.previsto + h.provavel + h.emRisco + h.perdido
+                    return (
+                      <tr key={h.horizonteDias} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                        <td className="px-2 py-2 rounded-l-xl font-bold whitespace-nowrap" style={{ color: '#c8d8f0' }}>{h.horizonteDias} {L('dias', 'days', 'días')}</td>
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: VERDE }}>{fBRL(h.previsto)}</td>
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: AZUL }}>{fBRL(h.provavel)}</td>
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: AMBAR }}>{fBRL(h.emRisco)}</td>
+                        <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: VERMELHO }}>{fBRL(h.perdido)}</td>
+                        <td className="px-2 py-2 rounded-r-xl text-right font-black whitespace-nowrap" style={{ color: '#c8d8f0' }}>{fBRL(total)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ================= SIMULADOR EXECUTIVO ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${OURO}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: OURO }}>
+            <Landmark size={14} /> {L('Simulador Executivo', 'Executive Simulator', 'Simulador Ejecutivo')}
+          </p>
+          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Mesmo motor de DRE do módulo Investimentos — impacto em margem, caixa e lucro antes de decidir.', 'Same DRE engine as the Investments module — margin, cash and profit impact before deciding.', 'Mismo motor de DRE del módulo Inversiones — impacto en margen, caja y ganancia antes de decidir.')}</p>
+
+          {!temDadosSimulador ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Cadastre receitas para habilitar o simulador.', 'Register revenue to enable the simulator.', 'Registre ingresos para habilitar el simulador.')}</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                <div>
+                  <label className={labelInput} style={{ color: OURO, marginBottom: 4 }}>{L('Δ Inadimplência (%)', 'Δ Default (%)', 'Δ Impago (%)')}</label>
+                  <input type="number" value={deltaInadimplenciaPct} onChange={(e) => setDeltaInadimplenciaPct(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelInput} style={{ color: OURO, marginBottom: 4 }}>{L('Redução DSO (dias)', 'DSO Reduction (days)', 'Reducción DSO (días)')}</label>
+                  <input type="number" value={reducaoDsoDias} onChange={(e) => setReducaoDsoDias(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelInput} style={{ color: OURO, marginBottom: 4 }}>{L('% Antecipado', '% Anticipated', '% Anticipado')}</label>
+                  <input type="number" value={pctAntecipado} onChange={(e) => setPctAntecipado(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelInput} style={{ color: OURO, marginBottom: 4 }}>{L('Deságio Antecipação (%)', 'Anticipation Discount (%)', 'Descuento Anticipación (%)')}</label>
+                  <input type="number" value={taxaDesagioAntecipacaoPct} onChange={(e) => setTaxaDesagioAntecipacaoPct(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+                <div>
+                  <label className={labelInput} style={{ color: OURO, marginBottom: 4 }}>{L('Desconto Oferecido (%)', 'Discount Offered (%)', 'Descuento Ofrecido (%)')}</label>
+                  <input type="number" value={descontoOferecidoPct} onChange={(e) => setDescontoOferecidoPct(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
+                {resultadoCenarios.map((c) => {
+                  const cor = c.nome === 'otimista' ? VERDE : c.nome === 'adverso' ? VERMELHO : c.nome === 'conservador' ? AMBAR : AZUL
+                  const nomeLabel = { conservador: L('Conservador', 'Conservative', 'Conservador'), base: L('Base', 'Base', 'Base'), otimista: L('Otimista', 'Optimistic', 'Optimista'), adverso: L('Adverso', 'Adverse', 'Adverso') }[c.nome]
+                  return (
+                    <div key={c.nome} className="rounded-xl p-3" style={{ background: `${cor}0c`, border: `1px solid ${cor}30` }}>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: cor }}>{nomeLabel}</p>
+                      <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Lucro líquido', 'Net profit', 'Ganancia neta')}</p>
+                      <p className="text-sm font-black mb-1.5" style={{ color: '#c8d8f0' }}>{fBRL(c.lucroLiquidoMensal)}</p>
+                      <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('EBITDA', 'EBITDA', 'EBITDA')}</p>
+                      <p className="text-xs font-bold mb-1.5" style={{ color: '#c8d8f0' }}>{fBRL(c.ebitdaMensal)}</p>
+                      <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Caixa projetado', 'Projected cash', 'Caja proyectada')}</p>
+                      <p className="text-xs font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? VERDE : VERMELHO }}>{fBRL(c.saldoCaixaProjetado)}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-3">
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${AZUL}25` }}>
+              <p className="text-xs font-black mb-2" style={{ color: AZUL }}>{L('Antecipação de Recebíveis', 'Receivables Anticipation', 'Anticipación de Cobros')}</p>
+              <div className="flex gap-2 mb-3">
+                <div className="flex-1">
+                  <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Em quantos dias', 'Within how many days', 'En cuántos días')}</label>
+                  <input type="number" value={diasAntecipacaoCard} onChange={(e) => setDiasAntecipacaoCard(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Taxa de deságio (%)', 'Discount rate (%)', 'Tasa de descuento (%)')}</label>
+                  <input type="number" value={taxaAntecipacaoCard} onChange={(e) => setTaxaAntecipacaoCard(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+                </div>
+              </div>
+              <p className="text-xs" style={{ color: '#c8d8f0' }}>
+                {L('Você tem', 'You have', 'Tiene')} <b style={{ color: AZUL }}>{fBRL(antecipacaoResultado.valorBruto)}</b> {L('a receber nesse prazo. Antecipando, custa', 'receivable in that period. Anticipating costs', 'por cobrar en ese plazo. Al anticipar, cuesta')} <b style={{ color: VERMELHO }}>{fBRL(antecipacaoResultado.custo)}</b> {L('e sobra', 'and you keep', 'y le queda')} <b style={{ color: VERDE }}>{fBRL(antecipacaoResultado.valorLiquido)}</b>.
+              </p>
+            </div>
+
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${OURO}25` }}>
+              <p className="text-xs font-black mb-2" style={{ color: OURO }}>{L('Impacto do Split Payment (Reforma 2026/2027)', 'Split Payment Impact (2026/2027 Reform)', 'Impacto del Split Payment (Reforma 2026/2027)')}</p>
+              <div className="mb-3">
+                <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Alíquota estimada IBS+CBS (%)', 'Estimated IBS+CBS rate (%)', 'Alícuota estimada IBS+CBS (%)')}</label>
+                <input type="number" value={aliquotaSplitPayment} onChange={(e) => setAliquotaSplitPayment(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
+              </div>
+              <p className="text-xs mb-2" style={{ color: '#c8d8f0' }}>
+                {L('Do total a receber', 'Of the total receivable', 'Del total por cobrar')} (<b>{fBRL(kpis.valorTotalAReceber)}</b>), {L('uma estimativa de', 'an estimated', 'una estimación de')} <b style={{ color: VERMELHO }}>{fBRL(splitPaymentResultado.valorRetidoEstimado)}</b> {L('iria direto ao governo na liquidação, restando', 'would go directly to the government at settlement, leaving', 'iría directo al gobierno en la liquidación, quedando')} <b style={{ color: VERDE }}>{fBRL(splitPaymentResultado.valorLiquidoEstimado)}</b> {L('em caixa.', 'in cash.', 'en caja.')}
+              </p>
+              <p className="text-[10px] italic" style={{ color: CINZA }}>{L('* Estimativa pública de transição, não é aconselhamento tributário. Consulte um contador.', '* Public transition estimate, not tax advice. Consult an accountant.', '* Estimación pública de transición, no es asesoría tributaria. Consulte un contador.')}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= PAINÉIS ANALÍTICOS ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${TEAL}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: TEAL }}>
+            <Layers size={14} /> {L('Painéis Analíticos', 'Analytics', 'Paneles Analíticos')}
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3" style={{ color: VERMELHO }}>{L('Heatmap de Inadimplência', 'Delinquency Heatmap', 'Heatmap de Morosidad')}</p>
+              {heatmapOption ? <ReactECharts option={heatmapOption} style={{ height: Math.max(160, new Set(heatmapData.map((c) => c.clienteNome)).size * 26) }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem contas vencidas.', 'No overdue accounts.', 'Sin cuentas vencidas.')}</p>}
+            </div>
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3" style={{ color: TEAL }}>{L('Evolução da Carteira (12 meses)', 'Portfolio Evolution (12 months)', 'Evolución de Cartera (12 meses)')}</p>
+              {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem histórico suficiente.', 'Not enough history.', 'Sin historial suficiente.')}</p>}
+            </div>
+          </div>
+
+          <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <p className="text-xs font-bold mb-3" style={{ color: OURO }}>{L('Curva ABC de Clientes', 'Client ABC Curve', 'Curva ABC de Clientes')}</p>
+            {curvaABC.length === 0 ? <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p> : (
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                {(['A', 'B', 'C'] as const).map((classe) => {
+                  const itens = curvaABC.filter((i) => i.classe === classe)
+                  const valor = itens.reduce((s, i) => s + i.valor, 0)
+                  const cor = classe === 'A' ? VERDE : classe === 'B' ? AMBAR : VERMELHO
+                  return (
+                    <div key={classe} className="rounded-lg p-2.5 text-center" style={{ background: `${cor}10`, border: `1px solid ${cor}30` }}>
+                      <p className="text-sm font-black" style={{ color: cor }}>{L('Classe', 'Class', 'Clase')} {classe}</p>
+                      <p className="text-[10px]" style={{ color: CINZA }}>{itens.length} {L('clientes', 'clients', 'clientes')} · {fBRL(valor)}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {curvaABC.length > 0 && (
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {curvaABC.slice(0, 15).map((i) => (
+                  <div key={i.clienteId} className="flex justify-between items-center text-xs px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <span style={{ color: '#c8d8f0' }}>{i.nome} <span className="px-1.5 py-0.5 rounded ml-1 text-[9px] font-bold" style={{ background: `${i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO}20`, color: i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO }}>{i.classe}</span></span>
+                    <span style={{ color: CINZA }}>{fBRL(i.valor)} · {i.percentual}%</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3" style={{ color: ESMERALDA }}>{L('Receita Recorrente vs Não Recorrente', 'Recurring vs Non-recurring Revenue', 'Ingreso Recurrente vs No Recurrente')}</p>
+              {kpis.receitaRecorrente + kpis.receitaNaoRecorrente > 0 ? (
+                <ReactECharts option={optRosca([
+                  { name: L('Recorrente', 'Recurring', 'Recurrente'), value: kpis.receitaRecorrente, color: ESMERALDA },
+                  { name: L('Não Recorrente', 'Non-recurring', 'No Recurrente'), value: kpis.receitaNaoRecorrente, color: CINZA },
+                ], ESMERALDA, L('Total', 'Total', 'Total'))} style={{ height: 200 }} notMerge lazyUpdate />
+              ) : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
+            </div>
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3 flex items-center gap-1.5" style={{ color: AZUL }}><MapIcon size={12} /> {L('Concentração — Top 5 Clientes', 'Concentration — Top 5 Clients', 'Concentración — Top 5 Clientes')}</p>
+              {concentracaoTop.length > 0 ? <ReactECharts option={donutGrupos(concentracaoTop) as object} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3" style={{ color: TEAL }}>{L('Por Segmento', 'By Segment', 'Por Segmento')}</p>
+              {donutGrupos(gruposSegmento) ? <ReactECharts option={donutGrupos(gruposSegmento) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
+            </div>
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3" style={{ color: OURO }}>{L('Por Estado', 'By State', 'Por Estado')}</p>
+              {donutGrupos(gruposEstado) ? <ReactECharts option={donutGrupos(gruposEstado) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
+            </div>
+            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <p className="text-xs font-bold mb-3" style={{ color: VERDE }}>{L('Por Cidade', 'By City', 'Por Ciudad')}</p>
+              {donutGrupos(gruposCidade) ? <ReactECharts option={donutGrupos(gruposCidade) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
+            </div>
+          </div>
         </div>
 
         {/* ================= CENTRAL DE RECEBIMENTOS ================= */}
