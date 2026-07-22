@@ -446,8 +446,40 @@ Reescrita completa de `/inadimplencia`, saindo do padrão CRUD antigo (tabela pr
 
 **Fase 2 e 3 aguardando aprovação do Elias** (regra explícita: não adiantar).
 
+## 3-N. Inadimplência — Fase 2 de 3 (Central de Negociação + Régua Escalonada + IA de Prevenção + Alertas), entregue nesta rodada
+
+**Decisão técnica central (não duplicar dado, extensão da Fase 1):** em vez de tabelas novas próprias da Inadimplência, a Central de Negociação e a Régua de Recuperação Escalonada reaproveitam as mesmas tabelas já criadas na Fase 2 do Contas a Receber (`cobranca_compromissos`, `cobranca_interacoes`, `cobranca_regua_etapas`) e as funções de `lib/cobrancaHelpers.ts` (`detectarAlertasCobranca`, `gerarParecerCobranca`, CRUD de compromissos/interações/etapas). Só colunas novas **opcionais** foram adicionadas, mesmo padrão de degradação graciosa já usado no projeto (funciona sem elas, só não persiste até o SQL rodar).
+
+**Entregue:**
+- Central de Negociação: timeline unificada por cliente (contatos de `cobranca_interacoes` + promessas/acordos de `cobranca_compromissos`), formulário de negociação com parcelas/desconto/multa/juros/responsável, lápis para editar compromisso pendente carregando os dados de volta (sem duplicar), alerta automático de quebra de acordo (promessa vencida sem pagamento)
+- Régua de Recuperação Escalonada: 5 estágios configuráveis (Cobrança Amigável → Formal → Protesto → Jurídico → Negativação), cada um com gatilho em dias de atraso, canal e mensagem/ação-modelo — reaproveita a mesma tabela `cobranca_regua_etapas` do Contas a Receber (os lembretes de vencimento de lá e os degraus de escalonamento daqui convivem na mesma tabela, filtrados pela coluna nova `estagio`). Nenhum disparo real acontece nesta fase (arquitetura futura já documentada em `cobrancaHelpers.ts`)
+- IA de Prevenção (modo por regras, sem LLM real): reaproveita `gerarParecerCobranca` e soma 3 cards exclusivos — provável atraso futuro, alta probabilidade de renegociação, risco de perda definitiva. **Destaque:** recomendação de estratégia por cliente (desconto à vista vs. parcelamento vs. jurídico) com probabilidade estimada a partir do próprio Score Axioma do cliente — regra determinística, nunca ML
+- Painel de Alertas Inteligentes: reaproveita os 10 alertas já existentes do Contas a Receber (tirando "próximos vencimentos", que é preventivo, não inadimplência instalada) e soma 2 exclusivos — grande aumento da inadimplência (proxy honesto via aging, sem precisar de série histórica) e prazo excessivo (>120 dias)
+
+**Schema — SQL a rodar no Supabase antes de testar os campos novos (Elias ainda não rodou):**
+```sql
+ALTER TABLE cobranca_compromissos
+  ADD COLUMN IF NOT EXISTS parcelas integer,
+  ADD COLUMN IF NOT EXISTS desconto_pct numeric,
+  ADD COLUMN IF NOT EXISTS juros_pct numeric,
+  ADD COLUMN IF NOT EXISTS multa_pct numeric,
+  ADD COLUMN IF NOT EXISTS responsavel text;
+
+ALTER TABLE cobranca_regua_etapas
+  ADD COLUMN IF NOT EXISTS estagio text;
+```
+Até rodar, a Central de Negociação funciona normalmente (timeline, histórico, cumprido/quebrado) — só parcelas/desconto/juros/multa/responsável e a Régua de Escalonamento não persistem, sem quebrar o resto da tela.
+
+**Arquivos criados:** nenhum
+**Arquivos alterados:** `lib/cobrancaHelpers.ts` (tipos `CobrancaCompromisso`/`EtapaRegua` estendidos, `listarInteracoes` aceita "todas do usuário", `atualizarCompromisso` novo), `lib/inadimplenciaHelpers.ts` (régua de escalonamento, alertas, IA de prevenção, recomendação de estratégia), `app/(interno)/inadimplencia/page.tsx` (Central de Negociação, Régua, Alertas, IA de Prevenção)
+**Tabelas novas:** nenhuma — só colunas opcionais nas tabelas já existentes do Contas a Receber
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — `✓ Compiled successfully` (2.9min); o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (dessa vez `/api/stripe/create-checkout`, falta chave local — mesma família de falha já registrada em rodadas anteriores). Não testado no navegador com login real nesta sessão.
+
+**Fase 3 aguardando aprovação do Elias** (regra explícita: não adiantar).
+
 ## 4. PRÓXIMO PASSO
-Elias testar `/inadimplencia` Fase 1 (Mapa de Risco, Dashboard, Aging, Score) e aprovar a Fase 2 antes de eu continuar. Contas a Receber encerrado (3/3 fases). Depois de Inadimplência: Fornecedores (já em padrão CFO) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias testar `/inadimplencia` Fase 2 (Central de Negociação, Régua Escalonada, IA de Prevenção, Alertas) e aprovar a Fase 3 antes de eu continuar. Contas a Receber encerrado (3/3 fases). Depois de Inadimplência: Fornecedores (já em padrão CFO) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
