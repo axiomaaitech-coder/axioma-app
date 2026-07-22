@@ -14,24 +14,28 @@ import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
+import { consultarCEP, validarCPF, formatarCPF } from "../../../lib/enderecoHelpers";
+import { validarCNPJ, formatarCNPJ, formatarTelefone } from "../../../lib/empresaHelpers";
 import {
   resolverPeriodo, periodoAnterior, optRadar, optBarrasV, optRosca, optVelocimetro, radarRenovacoes,
-  serieRolling, detectarAnomaliasHistoricas, detectarDesperdicio, FONTE_EXEC,
-  type Periodo, type PeriodoPreset, type ItemRenovavel, type Lancamento, type ItemDespesa,
+  serieRolling, detectarAnomaliasHistoricas, detectarDesperdicio, montarDRE, simularCenariosExecutivos, FONTE_EXEC,
+  type Periodo, type PeriodoPreset, type ItemRenovavel, type Lancamento, type ItemDespesa, type ChoqueSimulador,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import {
   TIPOS_DOCUMENTO_FORNECEDOR,
-  listarContatos, criarContato, excluirContato,
-  uploadDocumentoFornecedor, listarDocumentos, criarDocumentoFornecedor, excluirDocumentoFornecedor, gerarUrlDocumentoFornecedor,
-  listarContratos, criarContrato, excluirContrato,
-  listarProdutos, criarProduto, excluirProduto,
-  listarInteracoes, criarInteracao, excluirInteracao,
+  listarContatos, criarContato, atualizarContato, excluirContato,
+  uploadDocumentoFornecedor, listarDocumentos, criarDocumentoFornecedor, atualizarDocumentoFornecedor, excluirDocumentoFornecedor, gerarUrlDocumentoFornecedor,
+  listarContratos, criarContrato, atualizarContrato, excluirContrato,
+  listarProdutos, criarProduto, atualizarProduto, excluirProduto,
+  listarInteracoes, criarInteracao, atualizarInteracao, excluirInteracao,
   documentosVencendo, contratosVencendo,
   comprasNoPeriodo, concentracaoFornecedores, diversificacaoFornecedores, curvaABC, distribuicaoGeografica,
   riscoMedioCarteira, qualidadeMediaCarteira, pontualidadePagamento, tempoMedioRelacionamentoDias,
   rankingScoreAxioma, scoreMedioCarteiraAxioma,
   inflacaoFornecedor, oportunidadesConsolidacao, fornecedoresParados, precoAcimaMediaInterna,
+  pctChoqueDoFornecedor, estimativaCaixaPrazo, avaliarCreditoReforma, sugerirDadosContaPorFornecedor,
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
 
@@ -55,12 +59,13 @@ const selectStyle = { background: "rgba(10,22,40,0.95)", border: "1px solid rgba
 const labelCls = "text-xs font-semibold mb-1 block";
 const labelStyle = { color: "#d4a017" };
 
-function Campo({ label, value, onChange, tipo = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; tipo?: string; placeholder?: string }) {
+function Campo({ label, value, onChange, onBlur, tipo = "text", placeholder, erro }: { label: string; value: string; onChange: (v: string) => void; onBlur?: () => void; tipo?: string; placeholder?: string; erro?: string }) {
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
-      <input type={tipo} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+      <input type={tipo} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} placeholder={placeholder}
         className={inputCls} style={inputStyle} />
+      {erro && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{erro}</p>}
     </div>
   );
 }
@@ -93,6 +98,42 @@ function CampoCheckbox({ label, checked, onChange }: { label: string; checked: b
   );
 }
 
+// Códigos ISO-3166 alpha-2 — os nomes vêm de Intl.DisplayNames no idioma ativo,
+// então não precisa manter ~195 nomes traduzidos à mão.
+const CODIGOS_PAISES = [
+  "BR", "US", "CA", "MX", "AR", "CL", "CO", "PE", "UY", "PY", "BO", "EC", "VE",
+  "PT", "ES", "FR", "DE", "IT", "NL", "BE", "CH", "AT", "SE", "NO", "DK", "FI",
+  "IE", "GB", "PL", "CZ", "GR", "RO", "HU", "RU", "UA",
+  "CN", "JP", "KR", "IN", "SG", "AE", "SA", "IL", "TR",
+  "AU", "NZ", "ZA", "EG", "NG",
+] as const;
+
+function nomesPaises(locale: string): { value: string; label: string }[] {
+  let dn: Intl.DisplayNames | null = null;
+  try { dn = new Intl.DisplayNames([locale], { type: "region" }); } catch { dn = null; }
+  return CODIGOS_PAISES
+    .map((c) => ({ value: c, label: dn?.of(c) || c }))
+    .sort((a, b) => a.label.localeCompare(b.label, locale));
+}
+
+function CampoPaisAutocomplete({ label, value, onChange, opcoes }: { label: string; value: string; onChange: (v: string) => void; opcoes: { value: string; label: string }[] }) {
+  const atual = opcoes.find((o) => o.value === value);
+  return (
+    <div>
+      <label className={labelCls} style={labelStyle}>{label}</label>
+      <input key={value} list="axioma-paises" defaultValue={atual?.label || value}
+        onChange={(e) => {
+          const escolhido = opcoes.find((o) => o.label === e.target.value || o.value === e.target.value.toUpperCase());
+          if (escolhido) onChange(escolhido.value);
+        }}
+        className={inputCls} style={inputStyle} />
+      <datalist id="axioma-paises">
+        {opcoes.map((o) => <option key={o.value} value={o.label} />)}
+      </datalist>
+    </div>
+  );
+}
+
 type Fornecedor = {
   id: string;
   nome: string;
@@ -108,6 +149,7 @@ type Fornecedor = {
   email?: string;
   telefone?: string;
   responsavel?: string;
+  pais?: string | null;
   cep?: string;
   endereco?: string;
   numero?: string;
@@ -159,7 +201,7 @@ type ContaPagar = {
 const fornVazio = {
   nome: "", categoria: categorias[0], produto_servico: "", contato: "", valor_mensal: "",
   tipo_pessoa: "PJ", documento: "", razao_social: "", nome_fantasia: "", inscricao_estadual: "",
-  email: "", telefone: "", responsavel: "", cep: "", endereco: "", numero: "", complemento: "",
+  email: "", telefone: "", responsavel: "", pais: "BR", cep: "", endereco: "", numero: "", complemento: "",
   bairro: "", cidade: "", uf: "", banco: "", agencia: "", conta: "", chave_pix: "",
   condicao_pagamento: "", status: "ativo", observacoes: "",
   porte: "", inscricao_municipal: "", regime_tributario: "", contribuinte_icms: "",
@@ -189,8 +231,13 @@ const T = {
     contatoPrincipalTitulo: "Contato Principal", lblResponsavel: "Responsável", lblTelefone: "Telefone", lblEmail: "E-mail",
     outrosContatosTitulo: "Outros Contatos", outrosContatosVazio: "Nenhum contato adicional cadastrado.",
     adicionarContato: "Adicionar Contato", lblNomeContato: "Nome", lblCargoContato: "Cargo", lblWhatsapp: "WhatsApp",
-    contatoPrincipalCheck: "Contato principal",
+    contatoPrincipalCheck: "Marcar como contato principal da lista",
     salveFornecedorPrimeiro: "Preencha o nome na etapa Identificação e clique em Próximo para liberar esta etapa.",
+    erroNomeObrigatorio: "Falta o nome na etapa Identificação — preencha para concluir o cadastro.",
+    salvarAlteracoes: "Salvar Alterações", cancelarEdicao: "Cancelar",
+    erroCnpjInvalido: "CNPJ inválido — confira os dígitos.", erroCpfInvalido: "CPF inválido — confira os dígitos.",
+    erroEmailInvalido: "E-mail inválido.", erroTelefoneInvalido: "Telefone inválido — use DDD + número.",
+    erroCepInvalido: "CEP inválido — use 8 dígitos.",
     paisLabel: "País", paisValor: "Brasil", lblCep: "CEP", buscandoCep: "buscando...",
     lblEnderecoRua: "Endereço", lblNumero: "Nº", lblBairro: "Bairro", lblComplemento: "Compl.",
     lblEstado: "Estado", lblCidade: "Cidade", selecioneEstado: "Selecione o estado", selecioneCidade: "Selecione a cidade",
@@ -284,6 +331,30 @@ const T = {
     alertaAumentoTitulo: "Aumento recorrente de preço", alertaAumentoDesc: "Subiu em 3 compras seguidas:", alertaAumentoAcao: "Questionar o motivo do aumento com o fornecedor.",
     alertaQuedaQualidadeLegenda: "Queda de Qualidade — reservado, precisa de histórico de avaliação ao longo do tempo (ainda não existe).",
     doTotalComprado: "do total comprado",
+    simuladorTitulo: "Simulador Executivo", simuladorSub: "Simule o impacto de uma decisão sobre um fornecedor antes de decidir — caixa, margem, EBITDA e capital de giro.",
+    lblTipoCenario: "Tipo de Cenário", cenarioTroca: "Troca de Fornecedor", cenarioPreco: "Mudança de Preço", cenarioPrazo: "Mudança de Prazo", cenarioCambio: "Mudança Cambial", cenarioPerda: "Perda de Fornecedor Estratégico", cenarioNovo: "Novo Fornecedor",
+    lblFornecedorSimulado: "Fornecedor", lblTipoCusto: "Esse gasto conta como", tipoCustoFixo: "Custo Fixo", tipoCustoVariavel: "Custo Variável",
+    lblNovoValor: "Novo Valor Mensal (R$)", lblDeltaPreco: "Variação de Preço (%)", lblDeltaDias: "Variação no Prazo (dias)",
+    lblChoqueCambio: "Variação Cambial (%)", lblExposicaoCambial: "% Indexado a Dólar", lblValorSubstituto: "Valor do Substituto (R$, 0 se não substituir)", lblHorizonte: "Horizonte (meses)",
+    simuladorVazio: "Selecione um fornecedor e preencha os dados do cenário para simular. Precisa de Receitas/Custos cadastrados para calcular o impacto.",
+    colCenario: "Cenário", colReceita: "Receita", colEbitda: "EBITDA", colLucro: "Lucro Líquido", colCaixa: "Caixa Projetado", colMargem: "Margem",
+    nomeConservador: "Conservador", nomeBase: "Base", nomeOtimista: "Otimista", nomeAdverso: "Adverso",
+    notaCapitalGiro: "Capital de giro aproximado pelo impacto no caixa disponível — o Axioma não tem balanço patrimonial completo (ativo/passivo circulante) ainda.",
+    reformaTitulo: "Reforma Tributária 2026 por Fornecedor", reformaSub: "Potencial de cada fornecedor gerar crédito tributário no IVA dual (CBS/IBS), com base no cadastro.",
+    reformaAviso: "As alíquotas finais do IBS/CBS ainda não estão regulamentadas — por isso não calculamos R$ de impacto, só o potencial estrutural de crédito. Atualiza automaticamente quando a legislação fechar.",
+    nivelPleno: "Crédito Pleno", nivelParcial: "Crédito Parcial", nivelBaixo: "Crédito Baixo", nivelIndefinido: "Indefinido",
+    reformaVazio: "Nenhum fornecedor ativo cadastrado ainda.",
+    iaExecutivaTitulo: "IA Executiva", iaExecutivaSub: "Recomendações em linguagem de CFO — motor por regras, com o fio pronto pra IA real quando a chave for ativada.",
+    iaExecutivaAviso: "Este parecer é gerado por regras determinísticas sobre dado real, não por um modelo de linguagem — mesma transparência do resto do Axioma.",
+    iaResumo1: "Carteira com", iaResumo2: "fornecedores ativos monitorados. Score médio Axioma:", iaSemDados: "Cadastre fornecedores para a IA Executiva começar a gerar recomendações.",
+    iaInterrupcao1: "Risco de interrupção de fornecimento:", iaInterrupcao2: "fornecedor(es) parado(s) ou classificado(s) como risco alto.",
+    iaAumento1: "Detectado aumento anormal de preço em", iaAumento2: "item(ns) recorrente(s) — investigar antes que vire hábito.",
+    iaRenegociacao1: "fornecedor(es) com ticket médio acima da média interna da categoria — oportunidade de renegociação.",
+    iaEconomia1: "Economia potencial de", iaEconomia2: "identificada ao consolidar fornecedores redundantes.",
+    iaNovosFornecedores: "Carteira pouco diversificada — considerar buscar novos fornecedores pra reduzir dependência.",
+    iaContratos1: "contrato(s) vencendo em breve — iniciar renegociação agora.",
+    iaConcentracao1: "Dependência elevada de", iaConcentracao2: "— concentra", iaOperacional: "Risco operacional médio da carteira está elevado — priorizar plano de contingência para os fornecedores de risco alto.",
+    iaImpacto1: "Impacto financeiro em jogo: até", iaImpacto2: "em economia potencial e",
     explicacoes: {
       total: "Contagem simples de todos os fornecedores cadastrados, ativos e inativos.",
       ativos: "Fornecedores com status Ativo no cadastro.",
@@ -315,8 +386,13 @@ const T = {
     contatoPrincipalTitulo: "Main Contact", lblResponsavel: "Contact Person", lblTelefone: "Phone", lblEmail: "Email",
     outrosContatosTitulo: "Other Contacts", outrosContatosVazio: "No additional contacts yet.",
     adicionarContato: "Add Contact", lblNomeContato: "Name", lblCargoContato: "Role", lblWhatsapp: "WhatsApp",
-    contatoPrincipalCheck: "Main contact",
+    contatoPrincipalCheck: "Mark as the list's primary contact",
     salveFornecedorPrimeiro: "Fill the name in Identification and click Next to unlock this step.",
+    erroNomeObrigatorio: "Name is missing in the Identification step — fill it in to finish the registration.",
+    salvarAlteracoes: "Save Changes", cancelarEdicao: "Cancel",
+    erroCnpjInvalido: "Invalid CNPJ — check the digits.", erroCpfInvalido: "Invalid CPF — check the digits.",
+    erroEmailInvalido: "Invalid e-mail.", erroTelefoneInvalido: "Invalid phone — use area code + number.",
+    erroCepInvalido: "Invalid ZIP code — use 8 digits.",
     paisLabel: "Country", paisValor: "Brazil", lblCep: "ZIP Code", buscandoCep: "searching...",
     lblEnderecoRua: "Street", lblNumero: "No.", lblBairro: "District", lblComplemento: "Compl.",
     lblEstado: "State", lblCidade: "City", selecioneEstado: "Select state", selecioneCidade: "Select city",
@@ -410,6 +486,30 @@ const T = {
     alertaAumentoTitulo: "Recurring price increase", alertaAumentoDesc: "Rose across 3 consecutive purchases:", alertaAumentoAcao: "Ask the supplier about the reason for the increase.",
     alertaQuedaQualidadeLegenda: "Quality Decline — reserved, needs a rating history over time (doesn't exist yet).",
     doTotalComprado: "of total purchases",
+    simuladorTitulo: "Executive Simulator", simuladorSub: "Simulate the impact of a supplier decision before deciding — cash, margin, EBITDA and working capital.",
+    lblTipoCenario: "Scenario Type", cenarioTroca: "Supplier Swap", cenarioPreco: "Price Change", cenarioPrazo: "Payment Term Change", cenarioCambio: "FX Change", cenarioPerda: "Loss of Strategic Supplier", cenarioNovo: "New Supplier",
+    lblFornecedorSimulado: "Supplier", lblTipoCusto: "This spend counts as", tipoCustoFixo: "Fixed Cost", tipoCustoVariavel: "Variable Cost",
+    lblNovoValor: "New Monthly Value (R$)", lblDeltaPreco: "Price Change (%)", lblDeltaDias: "Term Change (days)",
+    lblChoqueCambio: "FX Change (%)", lblExposicaoCambial: "% Indexed to USD", lblValorSubstituto: "Replacement Value (R$, 0 if not replacing)", lblHorizonte: "Horizon (months)",
+    simuladorVazio: "Select a supplier and fill in the scenario data to simulate. Needs registered Revenue/Costs to calculate the impact.",
+    colCenario: "Scenario", colReceita: "Revenue", colEbitda: "EBITDA", colLucro: "Net Profit", colCaixa: "Projected Cash", colMargem: "Margin",
+    nomeConservador: "Conservative", nomeBase: "Base", nomeOtimista: "Optimistic", nomeAdverso: "Adverse",
+    notaCapitalGiro: "Working capital approximated by the impact on available cash — Axioma doesn't have a full balance sheet (current assets/liabilities) yet.",
+    reformaTitulo: "2026 Tax Reform by Supplier", reformaSub: "Each supplier's potential to generate tax credit under the dual VAT (CBS/IBS), based on registration data.",
+    reformaAviso: "Final IBS/CBS rates aren't regulated yet — so we don't compute a R$ impact, only the structural credit potential. Updates automatically once legislation is finalized.",
+    nivelPleno: "Full Credit", nivelParcial: "Partial Credit", nivelBaixo: "Low Credit", nivelIndefinido: "Undefined",
+    reformaVazio: "No active supplier registered yet.",
+    iaExecutivaTitulo: "Executive AI", iaExecutivaSub: "CFO-voice recommendations — rules engine, wired for real AI once the key is activated.",
+    iaExecutivaAviso: "This assessment is generated by deterministic rules over real data, not a language model — same transparency as the rest of Axioma.",
+    iaResumo1: "Portfolio with", iaResumo2: "active suppliers monitored. Average Axioma Score:", iaSemDados: "Register suppliers for Executive AI to start generating recommendations.",
+    iaInterrupcao1: "Supply interruption risk:", iaInterrupcao2: "supplier(s) inactive or rated high risk.",
+    iaAumento1: "Abnormal price increase detected in", iaAumento2: "recurring item(s) — investigate before it becomes a habit.",
+    iaRenegociacao1: "supplier(s) with average ticket above the category's internal average — renegotiation opportunity.",
+    iaEconomia1: "Potential savings of", iaEconomia2: "identified by consolidating redundant suppliers.",
+    iaNovosFornecedores: "Portfolio poorly diversified — consider looking for new suppliers to reduce dependency.",
+    iaContratos1: "contract(s) expiring soon — start renegotiation now.",
+    iaConcentracao1: "High dependency on", iaConcentracao2: "— accounts for", iaOperacional: "Average portfolio operational risk is elevated — prioritize a contingency plan for high-risk suppliers.",
+    iaImpacto1: "Financial impact at stake: up to", iaImpacto2: "in potential savings and",
     explicacoes: {
       total: "Simple count of all registered suppliers, active and inactive.",
       ativos: "Suppliers with Active status in the registration.",
@@ -441,8 +541,13 @@ const T = {
     contatoPrincipalTitulo: "Contacto Principal", lblResponsavel: "Responsable", lblTelefone: "Teléfono", lblEmail: "Correo",
     outrosContatosTitulo: "Otros Contactos", outrosContatosVazio: "Ningún contacto adicional registrado.",
     adicionarContato: "Agregar Contacto", lblNomeContato: "Nombre", lblCargoContato: "Cargo", lblWhatsapp: "WhatsApp",
-    contatoPrincipalCheck: "Contacto principal",
+    contatoPrincipalCheck: "Marcar como contacto principal de la lista",
     salveFornecedorPrimeiro: "Complete el nombre en Identificación y haga clic en Siguiente para desbloquear esta etapa.",
+    erroNomeObrigatorio: "Falta el nombre en la etapa Identificación — complételo para finalizar el registro.",
+    salvarAlteracoes: "Guardar Cambios", cancelarEdicao: "Cancelar",
+    erroCnpjInvalido: "CNPJ inválido — revise los dígitos.", erroCpfInvalido: "CPF inválido — revise los dígitos.",
+    erroEmailInvalido: "E-mail inválido.", erroTelefoneInvalido: "Teléfono inválido — use código de área + número.",
+    erroCepInvalido: "Código postal inválido — use 8 dígitos.",
     paisLabel: "País", paisValor: "Brasil", lblCep: "Código Postal", buscandoCep: "buscando...",
     lblEnderecoRua: "Dirección", lblNumero: "Nº", lblBairro: "Barrio", lblComplemento: "Compl.",
     lblEstado: "Estado", lblCidade: "Ciudad", selecioneEstado: "Seleccione el estado", selecioneCidade: "Seleccione la ciudad",
@@ -536,6 +641,30 @@ const T = {
     alertaAumentoTitulo: "Aumento recurrente de precio", alertaAumentoDesc: "Subió en 3 compras seguidas:", alertaAumentoAcao: "Preguntar al proveedor el motivo del aumento.",
     alertaQuedaQualidadeLegenda: "Caída de Calidad — reservado, necesita un historial de evaluación en el tiempo (aún no existe).",
     doTotalComprado: "del total comprado",
+    simuladorTitulo: "Simulador Ejecutivo", simuladorSub: "Simule el impacto de una decisión sobre un proveedor antes de decidir — caja, margen, EBITDA y capital de trabajo.",
+    lblTipoCenario: "Tipo de Escenario", cenarioTroca: "Cambio de Proveedor", cenarioPreco: "Cambio de Precio", cenarioPrazo: "Cambio de Plazo", cenarioCambio: "Cambio Cambiario", cenarioPerda: "Pérdida de Proveedor Estratégico", cenarioNovo: "Nuevo Proveedor",
+    lblFornecedorSimulado: "Proveedor", lblTipoCusto: "Este gasto cuenta como", tipoCustoFixo: "Costo Fijo", tipoCustoVariavel: "Costo Variable",
+    lblNovoValor: "Nuevo Valor Mensual (R$)", lblDeltaPreco: "Variación de Precio (%)", lblDeltaDias: "Variación en el Plazo (días)",
+    lblChoqueCambio: "Variación Cambiaria (%)", lblExposicaoCambial: "% Indexado al Dólar", lblValorSubstituto: "Valor del Sustituto (R$, 0 si no sustituye)", lblHorizonte: "Horizonte (meses)",
+    simuladorVazio: "Seleccione un proveedor y complete los datos del escenario para simular. Necesita Ingresos/Costos registrados para calcular el impacto.",
+    colCenario: "Escenario", colReceita: "Ingresos", colEbitda: "EBITDA", colLucro: "Utilidad Neta", colCaixa: "Caja Proyectada", colMargem: "Margen",
+    nomeConservador: "Conservador", nomeBase: "Base", nomeOtimista: "Optimista", nomeAdverso: "Adverso",
+    notaCapitalGiro: "Capital de trabajo aproximado por el impacto en la caja disponible — Axioma aún no tiene un balance completo (activo/pasivo circulante).",
+    reformaTitulo: "Reforma Tributaria 2026 por Proveedor", reformaSub: "Potencial de cada proveedor de generar crédito tributario en el IVA dual (CBS/IBS), según el registro.",
+    reformaAviso: "Las alícuotas finales del IBS/CBS aún no están reglamentadas — por eso no calculamos impacto en R$, solo el potencial estructural de crédito. Se actualiza automáticamente cuando la legislación se cierre.",
+    nivelPleno: "Crédito Pleno", nivelParcial: "Crédito Parcial", nivelBaixo: "Crédito Bajo", nivelIndefinido: "Indefinido",
+    reformaVazio: "Ningún proveedor activo registrado aún.",
+    iaExecutivaTitulo: "IA Ejecutiva", iaExecutivaSub: "Recomendaciones en lenguaje de CFO — motor por reglas, con el cable listo para IA real cuando se active la clave.",
+    iaExecutivaAviso: "Este dictamen es generado por reglas determinísticas sobre datos reales, no por un modelo de lenguaje — misma transparencia del resto de Axioma.",
+    iaResumo1: "Cartera con", iaResumo2: "proveedores activos monitoreados. Score promedio Axioma:", iaSemDados: "Registre proveedores para que la IA Ejecutiva empiece a generar recomendaciones.",
+    iaInterrupcao1: "Riesgo de interrupción de suministro:", iaInterrupcao2: "proveedor(es) detenido(s) o clasificado(s) como riesgo alto.",
+    iaAumento1: "Aumento anormal de precio detectado en", iaAumento2: "ítem(s) recurrente(s) — investigar antes de que se vuelva hábito.",
+    iaRenegociacao1: "proveedor(es) con ticket promedio por encima del promedio interno de la categoría — oportunidad de renegociación.",
+    iaEconomia1: "Ahorro potencial de", iaEconomia2: "identificado al consolidar proveedores redundantes.",
+    iaNovosFornecedores: "Cartera poco diversificada — considerar buscar nuevos proveedores para reducir la dependencia.",
+    iaContratos1: "contrato(s) por vencer pronto — iniciar renegociación ahora.",
+    iaConcentracao1: "Dependencia elevada de", iaConcentracao2: "— representa", iaOperacional: "El riesgo operacional promedio de la cartera está elevado — priorizar un plan de contingencia para los proveedores de riesgo alto.",
+    iaImpacto1: "Impacto financiero en juego: hasta", iaImpacto2: "en ahorro potencial y",
     explicacoes: {
       total: "Conteo simple de todos los proveedores registrados, activos e inactivos.",
       ativos: "Proveedores con estado Activo en el registro.",
@@ -571,6 +700,25 @@ export default function Fornecedores() {
   const [todasInteracoes, setTodasInteracoes] = useState<FornecedorInteracao[]>([]);
   const [scoreDrillId, setScoreDrillId] = useState<string | null>(null);
   const [fornecedorEvolucaoId, setFornecedorEvolucaoId] = useState<string | null>(null);
+
+  // Simulador Executivo (Fase 5) — ponto de partida real da empresa (leitura, nunca escreve)
+  const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([]);
+  const [custosFixosRows, setCustosFixosRows] = useState<{ valor_mensal: number }[]>([]);
+  const [custosVarRows, setCustosVarRows] = useState<{ valor: number; data: string }[]>([]);
+  const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([]);
+  const [fluxoCaixaRows, setFluxoCaixaRows] = useState<{ tipo: string; valor: number; status: string }[]>([]);
+  const [regimeTributario, setRegimeTributario] = useState("");
+
+  const [tipoCenario, setTipoCenario] = useState<"troca" | "preco" | "prazo" | "cambio" | "perda" | "novo">("preco");
+  const [fornecedorSimuladoId, setFornecedorSimuladoId] = useState<string | null>(null);
+  const [tipoCustoSimulado, setTipoCustoSimulado] = useState<"fixo" | "variavel">("variavel");
+  const [novoValorMensal, setNovoValorMensal] = useState("");
+  const [deltaPrecoPct, setDeltaPrecoPct] = useState("0");
+  const [deltaDiasPrazo, setDeltaDiasPrazo] = useState("0");
+  const [choqueCambioPct, setChoqueCambioPct] = useState("0");
+  const [exposicaoCambialFornPct, setExposicaoCambialFornPct] = useState("0");
+  const [valorSubstituto, setValorSubstituto] = useState("");
+  const [horizonteSimulacao, setHorizonteSimulacao] = useState("12");
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState("");
   const [buscaContas, setBuscaContas] = useState("");
@@ -597,13 +745,20 @@ export default function Fornecedores() {
   const [interacoesForn, setInteracoesForn] = useState<FornecedorInteracao[]>([]);
 
   const [novoContato, setNovoContato] = useState({ nome: "", cargo: "", email: "", telefone: "", whatsapp: "", principal: false });
+  const [editandoContatoId, setEditandoContatoId] = useState<string | null>(null);
   const [novoDocumento, setNovoDocumento] = useState({ tipo: TIPOS_DOCUMENTO_FORNECEDOR[0].key, nome: "", numero_documento: "", data_emissao: "", data_validade: "" });
   const [arquivoDocumento, setArquivoDocumento] = useState<File | null>(null);
   const [enviandoDocumento, setEnviandoDocumento] = useState(false);
+  const [editandoDocumentoId, setEditandoDocumentoId] = useState<string | null>(null);
   const [novoContrato, setNovoContrato] = useState({ descricao: "", data_inicio: "", data_fim: "", renovacao_automatica: false, indice_reajuste: "", valor_contratado: "", valor_utilizado: "" });
+  const [editandoContratoId, setEditandoContratoId] = useState<string | null>(null);
   const [novoProduto, setNovoProduto] = useState({ descricao: "", categoria: "", valor_unitario: "", unidade: "" });
+  const [editandoProdutoId, setEditandoProdutoId] = useState<string | null>(null);
   const hoje0 = new Date().toISOString().split("T")[0];
   const [novaInteracao, setNovaInteracao] = useState({ data: hoje0, tipo: "", descricao: "" });
+  const [editandoInteracaoId, setEditandoInteracaoId] = useState<string | null>(null);
+  const [erroCadastro, setErroCadastro] = useState<string | null>(null);
+  const [errosForm, setErrosForm] = useState<Record<string, string>>({});
 
   // Modal Conta
   const [modalConta, setModalConta] = useState(false);
@@ -628,10 +783,10 @@ export default function Fornecedores() {
   }, []);
 
   useEffect(() => {
-    if (!modalForn || !nf.uf) { setMunicipios([]); return; }
+    if (!modalForn || nf.pais !== "BR" || !nf.uf) { setMunicipios([]); return; }
     buscarMunicipios(nf.uf).then((r) => setMunicipios(r.dados));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nf.uf, modalForn]);
+  }, [nf.uf, nf.pais, modalForn]);
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -644,18 +799,61 @@ export default function Fornecedores() {
     const { data: docs } = await supabase.from("fornecedor_documentos").select("*").eq("user_id", user.id);
     const { data: contratos } = await supabase.from("fornecedor_contratos").select("*").eq("user_id", user.id);
     const { data: interacoes } = await supabase.from("fornecedor_interacoes").select("*").eq("user_id", user.id);
+
+    // Ponto de partida real da empresa pro Simulador Executivo (Fase 5) — leitura, nunca escreve.
+    // Mesmo padrão de fetch já usado em Simulações/Investimentos.
+    const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return d.toISOString().slice(0, 10); })();
+    const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp2 }] = await Promise.all([
+      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioJanela),
+      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
+      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioJanela),
+      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("user_id", user.id),
+      supabase.from("fluxo_caixa").select("tipo, valor, status").eq("user_id", user.id),
+      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+    ]);
+
     setFornecedores(forn || []);
     setContas(cp || []);
     setTodosDocumentos(docs || []);
     setTodosContratos(contratos || []);
     setTodasInteracoes(interacoes || []);
+    setReceitasRows(rec || []);
+    setCustosFixosRows(cf || []);
+    setCustosVarRows(cv || []);
+    setDividasRows(dv || []);
+    setFluxoCaixaRows(fc || []);
+    setRegimeTributario(emp2?.regime_tributario || "");
     setCarregando(false);
   };
 
   // ---------- FORNECEDOR ----------
+  // Validação leve (onBlur) — aviso amigável, nunca bloqueia o fluxo (mesmo princípio
+  // de "nunca quebra o modal" já usado no resto do módulo).
+  const validarCampoForm = (campo: string, valor: string) => {
+    if (!valor.trim()) { setErrosForm((prev) => ({ ...prev, [campo]: "" })); return; }
+    let erro = "";
+    if (campo === "documento") {
+      const ok = nf.tipo_pessoa === "PF" ? validarCPF(valor) : validarCNPJ(valor);
+      if (!ok) erro = nf.tipo_pessoa === "PF" ? tt.erroCpfInvalido : tt.erroCnpjInvalido;
+    } else if (campo === "email") {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor)) erro = tt.erroEmailInvalido;
+    } else if (campo === "telefone") {
+      if (valor.replace(/\D/g, "").length < 10) erro = tt.erroTelefoneInvalido;
+    } else if (campo === "cep") {
+      if (valor.replace(/\D/g, "").length !== 8) erro = tt.erroCepInvalido;
+    }
+    setErrosForm((prev) => ({ ...prev, [campo]: erro }));
+  };
+
+  const limparEdicaoItens = () => {
+    setEditandoContatoId(null); setEditandoDocumentoId(null); setEditandoContratoId(null);
+    setEditandoProdutoId(null); setEditandoInteracaoId(null); setErroCadastro(null); setErrosForm({});
+  };
+
   const abrirNovoForn = () => {
     setEditandoForn(null); setFornecedorAtualId(null); setNf({ ...fornVazio }); setEtapaCadastro(0);
     setContatosForn([]); setDocumentosForn([]); setContratosForn([]); setProdutosForn([]); setInteracoesForn([]);
+    limparEdicaoItens();
     setModalForn(true);
   };
 
@@ -668,7 +866,7 @@ export default function Fornecedores() {
       tipo_pessoa: f.tipo_pessoa || "PJ", documento: f.documento || "", razao_social: f.razao_social || "",
       nome_fantasia: f.nome_fantasia || "", inscricao_estadual: f.inscricao_estadual || "",
       email: f.email || "", telefone: f.telefone || "", responsavel: f.responsavel || "",
-      cep: f.cep || "", endereco: f.endereco || "", numero: f.numero || "", complemento: f.complemento || "",
+      pais: f.pais || "BR", cep: f.cep || "", endereco: f.endereco || "", numero: f.numero || "", complemento: f.complemento || "",
       bairro: f.bairro || "", cidade: f.cidade || "", uf: f.uf || "", banco: f.banco || "",
       agencia: f.agencia || "", conta: f.conta || "", chave_pix: f.chave_pix || "",
       condicao_pagamento: f.condicao_pagamento || "", status: f.status || "ativo", observacoes: f.observacoes || "",
@@ -679,6 +877,7 @@ export default function Fornecedores() {
       classificacao_risco: f.classificacao_risco || "", nivel_dependencia: f.nivel_dependencia || "",
     });
     setEtapaCadastro(0);
+    limparEdicaoItens();
     setModalForn(true);
     const [ct, dc, cr, pr, it] = await Promise.all([
       listarContatos(f.id), listarDocumentos(f.id), listarContratos(f.id), listarProdutos(f.id), listarInteracoes(f.id),
@@ -689,26 +888,26 @@ export default function Fornecedores() {
   const fecharModalForn = () => {
     setModalForn(false); setEditandoForn(null); setFornecedorAtualId(null); setNf({ ...fornVazio }); setEtapaCadastro(0);
     setContatosForn([]); setDocumentosForn([]); setContratosForn([]); setProdutosForn([]); setInteracoesForn([]);
+    limparEdicaoItens();
   };
 
-  // Busca endereço automático pelo CEP (ViaCEP — gratuito, sem chave)
+  // Busca endereço automático pelo CEP — regra global do projeto (helper compartilhado
+  // em lib/enderecoHelpers.ts, mesmo usado em Empresa). Só se aplica pra Brasil (ViaCEP).
   const buscarCep = async (cepDigitado: string) => {
+    if (nf.pais !== "BR") return;
     const cepLimpo = cepDigitado.replace(/\D/g, "");
     if (cepLimpo.length !== 8) return;
     setBuscandoCep(true);
-    try {
-      const resp = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
-      const data = await resp.json();
-      if (!data.erro) {
-        setNf((prev) => ({
-          ...prev,
-          endereco: data.logradouro || prev.endereco,
-          bairro: data.bairro || prev.bairro,
-          cidade: data.localidade || prev.cidade,
-          uf: data.uf || prev.uf,
-        }));
-      }
-    } catch (err) { console.error("Erro ao buscar CEP:", err); }
+    const r = await consultarCEP(cepLimpo);
+    if (!("erro" in r)) {
+      setNf((prev) => ({
+        ...prev,
+        endereco: r.logradouro || prev.endereco,
+        bairro: r.bairro || prev.bairro,
+        cidade: r.cidade || prev.cidade,
+        uf: r.uf || prev.uf,
+      }));
+    }
     setBuscandoCep(false);
   };
 
@@ -726,7 +925,7 @@ export default function Fornecedores() {
       tipo_pessoa: nf.tipo_pessoa, documento: nf.documento, razao_social: nf.razao_social,
       nome_fantasia: nf.nome_fantasia, inscricao_estadual: nf.inscricao_estadual,
       email: nf.email, telefone: nf.telefone, responsavel: nf.responsavel,
-      cep: nf.cep, endereco: nf.endereco, numero: nf.numero, complemento: nf.complemento,
+      pais: nf.pais || "BR", cep: nf.cep, endereco: nf.endereco, numero: nf.numero, complemento: nf.complemento,
       bairro: nf.bairro, cidade: nf.cidade, uf: nf.uf, banco: nf.banco, agencia: nf.agencia,
       conta: nf.conta, chave_pix: nf.chave_pix, condicao_pagamento: nf.condicao_pagamento,
       status: nf.status, observacoes: nf.observacoes,
@@ -752,13 +951,27 @@ export default function Fornecedores() {
     return id;
   };
 
+  // Único campo hoje tratado como obrigatório de fato (persistirBase recusa sem ele).
+  // Se faltar, aponta a etapa Identificação em vez de falhar silenciosamente.
+  const validarCadastroCompleto = (): boolean => {
+    if (!nf.nome.trim()) {
+      setEtapaCadastro(0);
+      setErroCadastro(tt.erroNomeObrigatorio);
+      return false;
+    }
+    setErroCadastro(null);
+    return true;
+  };
+
   const avancarEtapa = async () => {
+    if (!validarCadastroCompleto()) return;
     const id = await persistirBase();
     if (!id) return;
     setEtapaCadastro((e) => e + 1);
   };
 
   const concluirCadastro = async () => {
+    if (!validarCadastroCompleto()) return;
     const id = await persistirBase();
     if (!id) return;
     fecharModalForn();
@@ -777,12 +990,23 @@ export default function Fornecedores() {
     if (!fornecedorAtualId || !novoContato.nome.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await criarContato(fornecedorAtualId, user.id, novoContato);
+    if (editandoContatoId) await atualizarContato(editandoContatoId, novoContato);
+    else await criarContato(fornecedorAtualId, user.id, novoContato);
     setNovoContato({ nome: "", cargo: "", email: "", telefone: "", whatsapp: "", principal: false });
+    setEditandoContatoId(null);
     setContatosForn(await listarContatos(fornecedorAtualId));
+  };
+  const editarContato = (c: FornecedorContato) => {
+    setNovoContato({ nome: c.nome || "", cargo: c.cargo || "", email: c.email || "", telefone: c.telefone || "", whatsapp: c.whatsapp || "", principal: !!c.principal });
+    setEditandoContatoId(c.id);
+  };
+  const cancelarEdicaoContato = () => {
+    setNovoContato({ nome: "", cargo: "", email: "", telefone: "", whatsapp: "", principal: false });
+    setEditandoContatoId(null);
   };
   const removerContato = async (id: string) => {
     await excluirContato(id);
+    if (editandoContatoId === id) cancelarEdicaoContato();
     if (fornecedorAtualId) setContatosForn(await listarContatos(fornecedorAtualId));
   };
 
@@ -798,14 +1022,33 @@ export default function Fornecedores() {
       if (up.erro) { setEnviandoDocumento(false); return; }
       storage_path = up.path; mime_type = arquivoDocumento.type; tamanho_bytes = arquivoDocumento.size;
     }
-    await criarDocumentoFornecedor(fornecedorAtualId, user.id, { ...novoDocumento, storage_path, mime_type, tamanho_bytes });
+    if (editandoDocumentoId) {
+      // Só troca o arquivo se um novo foi escolhido — corrigir nome/validade não exige reupload.
+      const dados: Partial<FornecedorDocumento> = { ...novoDocumento };
+      if (storage_path) { dados.storage_path = storage_path; dados.mime_type = mime_type; dados.tamanho_bytes = tamanho_bytes; }
+      await atualizarDocumentoFornecedor(editandoDocumentoId, dados);
+    } else {
+      await criarDocumentoFornecedor(fornecedorAtualId, user.id, { ...novoDocumento, storage_path, mime_type, tamanho_bytes });
+    }
     setNovoDocumento({ tipo: TIPOS_DOCUMENTO_FORNECEDOR[0].key, nome: "", numero_documento: "", data_emissao: "", data_validade: "" });
     setArquivoDocumento(null);
+    setEditandoDocumentoId(null);
     setDocumentosForn(await listarDocumentos(fornecedorAtualId));
     setEnviandoDocumento(false);
   };
+  const editarDocumento = (d: FornecedorDocumento) => {
+    setNovoDocumento({ tipo: d.tipo || TIPOS_DOCUMENTO_FORNECEDOR[0].key, nome: d.nome || "", numero_documento: d.numero_documento || "", data_emissao: d.data_emissao || "", data_validade: d.data_validade || "" });
+    setArquivoDocumento(null);
+    setEditandoDocumentoId(d.id);
+  };
+  const cancelarEdicaoDocumento = () => {
+    setNovoDocumento({ tipo: TIPOS_DOCUMENTO_FORNECEDOR[0].key, nome: "", numero_documento: "", data_emissao: "", data_validade: "" });
+    setArquivoDocumento(null);
+    setEditandoDocumentoId(null);
+  };
   const removerDocumento = async (doc: FornecedorDocumento) => {
     await excluirDocumentoFornecedor(doc);
+    if (editandoDocumentoId === doc.id) cancelarEdicaoDocumento();
     if (fornecedorAtualId) setDocumentosForn(await listarDocumentos(fornecedorAtualId));
   };
   const baixarDocumento = async (doc: FornecedorDocumento) => {
@@ -819,18 +1062,34 @@ export default function Fornecedores() {
     if (!fornecedorAtualId || !novoContrato.descricao.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await criarContrato(fornecedorAtualId, user.id, {
+    const dados = {
       descricao: novoContrato.descricao, data_inicio: novoContrato.data_inicio || null, data_fim: novoContrato.data_fim || null,
       renovacao_automatica: novoContrato.renovacao_automatica, indice_reajuste: novoContrato.indice_reajuste || null,
       valor_contratado: novoContrato.valor_contratado ? parseFloat(novoContrato.valor_contratado) : null,
       valor_utilizado: novoContrato.valor_utilizado ? parseFloat(novoContrato.valor_utilizado) : 0,
-    });
+    };
+    if (editandoContratoId) await atualizarContrato(editandoContratoId, dados);
+    else await criarContrato(fornecedorAtualId, user.id, dados);
     setNovoContrato({ descricao: "", data_inicio: "", data_fim: "", renovacao_automatica: false, indice_reajuste: "", valor_contratado: "", valor_utilizado: "" });
+    setEditandoContratoId(null);
     setContratosForn(await listarContratos(fornecedorAtualId));
     carregarDados();
   };
+  const editarContrato = (c: FornecedorContrato) => {
+    setNovoContrato({
+      descricao: c.descricao || "", data_inicio: c.data_inicio || "", data_fim: c.data_fim || "",
+      renovacao_automatica: !!c.renovacao_automatica, indice_reajuste: c.indice_reajuste || "",
+      valor_contratado: c.valor_contratado != null ? String(c.valor_contratado) : "", valor_utilizado: c.valor_utilizado != null ? String(c.valor_utilizado) : "",
+    });
+    setEditandoContratoId(c.id);
+  };
+  const cancelarEdicaoContrato = () => {
+    setNovoContrato({ descricao: "", data_inicio: "", data_fim: "", renovacao_automatica: false, indice_reajuste: "", valor_contratado: "", valor_utilizado: "" });
+    setEditandoContratoId(null);
+  };
   const removerContrato = async (id: string) => {
     await excluirContrato(id);
+    if (editandoContratoId === id) cancelarEdicaoContrato();
     if (fornecedorAtualId) setContratosForn(await listarContratos(fornecedorAtualId));
     carregarDados();
   };
@@ -840,16 +1099,28 @@ export default function Fornecedores() {
     if (!fornecedorAtualId || !novoProduto.descricao.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await criarProduto(fornecedorAtualId, user.id, {
+    const dados = {
       descricao: novoProduto.descricao, categoria: novoProduto.categoria || null,
       valor_unitario: novoProduto.valor_unitario ? parseFloat(novoProduto.valor_unitario) : null,
       unidade: novoProduto.unidade || null,
-    });
+    };
+    if (editandoProdutoId) await atualizarProduto(editandoProdutoId, dados);
+    else await criarProduto(fornecedorAtualId, user.id, dados);
     setNovoProduto({ descricao: "", categoria: "", valor_unitario: "", unidade: "" });
+    setEditandoProdutoId(null);
     setProdutosForn(await listarProdutos(fornecedorAtualId));
+  };
+  const editarProduto = (p: FornecedorProduto) => {
+    setNovoProduto({ descricao: p.descricao || "", categoria: p.categoria || "", valor_unitario: p.valor_unitario != null ? String(p.valor_unitario) : "", unidade: p.unidade || "" });
+    setEditandoProdutoId(p.id);
+  };
+  const cancelarEdicaoProduto = () => {
+    setNovoProduto({ descricao: "", categoria: "", valor_unitario: "", unidade: "" });
+    setEditandoProdutoId(null);
   };
   const removerProduto = async (id: string) => {
     await excluirProduto(id);
+    if (editandoProdutoId === id) cancelarEdicaoProduto();
     if (fornecedorAtualId) setProdutosForn(await listarProdutos(fornecedorAtualId));
   };
 
@@ -858,12 +1129,23 @@ export default function Fornecedores() {
     if (!fornecedorAtualId || !novaInteracao.descricao.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await criarInteracao(fornecedorAtualId, user.id, novaInteracao);
+    if (editandoInteracaoId) await atualizarInteracao(editandoInteracaoId, novaInteracao);
+    else await criarInteracao(fornecedorAtualId, user.id, novaInteracao);
     setNovaInteracao({ data: hoje0, tipo: "", descricao: "" });
+    setEditandoInteracaoId(null);
     setInteracoesForn(await listarInteracoes(fornecedorAtualId));
+  };
+  const editarInteracao = (it: FornecedorInteracao) => {
+    setNovaInteracao({ data: it.data || hoje0, tipo: it.tipo || "", descricao: it.descricao || "" });
+    setEditandoInteracaoId(it.id);
+  };
+  const cancelarEdicaoInteracao = () => {
+    setNovaInteracao({ data: hoje0, tipo: "", descricao: "" });
+    setEditandoInteracaoId(null);
   };
   const removerInteracao = async (id: string) => {
     await excluirInteracao(id);
+    if (editandoInteracaoId === id) cancelarEdicaoInteracao();
     if (fornecedorAtualId) setInteracoesForn(await listarInteracoes(fornecedorAtualId));
   };
 
@@ -1223,6 +1505,83 @@ export default function Fornecedores() {
   const alertasCriticos = alertas.filter(a => a.severidade === "critico").length;
   const alertasAtencao = alertas.filter(a => a.severidade === "atencao").length;
 
+  // ========== SIMULADOR EXECUTIVO (Fase 5A) — ponto de partida real da empresa ==========
+  const receitaBruta12m = receitasRows.reduce((s, r) => s + (r.valor || 0), 0);
+  const receitaMensalMedia = receitaBruta12m / 12;
+  const custoVar12m = custosVarRows.reduce((s, c) => s + Number(c.valor || 0), 0);
+  const custoVariavelMensalMedia = custoVar12m / 12;
+  const custoFixoMensalTotal = custosFixosRows.reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
+  const dividaTotalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago), 0);
+  const despesasFinanceirasMensalSim = dividasRows.reduce((s, d) => s + Math.max(0, d.valor_total - d.valor_pago) * (d.taxa_juros / 100), 0);
+  const impostoMensalEstimadoSim = calcularImpostoRegime(regimeTributario, receitaBruta12m, receitaMensalMedia);
+  const aliquotaEfetivaPctSim = receitaMensalMedia > 0 ? (impostoMensalEstimadoSim / receitaMensalMedia) * 100 : 0;
+  const caixaDisponivelSim = fluxoCaixaRows.filter(l => l.status === "realizado")
+    .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
+  const temDadosSimulador = receitaMensalMedia > 0 || custoFixoMensalTotal > 0 || custoVariavelMensalMedia > 0;
+
+  const dreHojeSim = montarDRE({
+    receitaBruta: receitaMensalMedia, deducoes: receitaMensalMedia * (aliquotaEfetivaPctSim / 100),
+    custoVariavel: custoVariavelMensalMedia, custoFixo: custoFixoMensalTotal, despesasFinanceiras: despesasFinanceirasMensalSim,
+  });
+
+  const fornecedorSimulado = fornecedores.find(f => f.id === fornecedorSimuladoId) || null;
+  const contasFornSimulado = fornecedorSimulado ? contas.filter(c => c.fornecedor_id === fornecedorSimulado.id) : [];
+  const valorAtualFornSimulado = fornecedorSimulado
+    ? (contasFornSimulado.length > 0 ? contasFornSimulado.reduce((s, c) => s + (c.valor_total || 0), 0) / 12 : (fornecedorSimulado.valor_mensal || 0))
+    : 0;
+
+  const baseMensalRelevante = tipoCustoSimulado === "fixo" ? custoFixoMensalTotal : custoVariavelMensalMedia;
+  let deltaValorMensalSim = 0;
+  let deltaCaixaPrazoSim = 0;
+  if (tipoCenario === "troca") deltaValorMensalSim = parseFloat(novoValorMensal || "0") - valorAtualFornSimulado;
+  else if (tipoCenario === "preco") deltaValorMensalSim = valorAtualFornSimulado * (parseFloat(deltaPrecoPct || "0") / 100);
+  else if (tipoCenario === "prazo") deltaCaixaPrazoSim = estimativaCaixaPrazo(valorAtualFornSimulado, parseFloat(deltaDiasPrazo || "0"));
+  else if (tipoCenario === "cambio") deltaValorMensalSim = valorAtualFornSimulado * ((parseFloat(choqueCambioPct || "0") * (parseFloat(exposicaoCambialFornPct || "0") / 100)) / 100);
+  else if (tipoCenario === "perda") deltaValorMensalSim = parseFloat(valorSubstituto || "0") - valorAtualFornSimulado;
+  else if (tipoCenario === "novo") deltaValorMensalSim = parseFloat(novoValorMensal || "0");
+
+  const choquePctSim = pctChoqueDoFornecedor(deltaValorMensalSim, baseMensalRelevante);
+  const choqueSimulador: ChoqueSimulador = {
+    receitaPct: 0, custoFixoPct: tipoCustoSimulado === "fixo" ? choquePctSim : 0, custoVariavelPct: tipoCustoSimulado === "variavel" ? choquePctSim : 0,
+    jurosDividaPontos: 0, aporteCapital: 0, retornoMensalAporte: 0,
+  };
+  const podeSimular = temDadosSimulador && fornecedorSimulado != null && (tipoCenario === "prazo" || baseMensalRelevante > 0);
+  const cenariosSimulados = podeSimular ? simularCenariosExecutivos({
+    receitaMensalAtual: receitaMensalMedia, custoFixoMensalAtual: custoFixoMensalTotal,
+    custoVariavelMensalAtual: custoVariavelMensalMedia, despesasFinanceirasMensalAtual: despesasFinanceirasMensalSim,
+    dividaTotalAtual: dividaTotalSim, aliquotaEfetivaPct: aliquotaEfetivaPctSim,
+    saldoCaixaAtual: caixaDisponivelSim + deltaCaixaPrazoSim, choque: choqueSimulador, horizonteMeses: parseInt(horizonteSimulacao || "12") || 12,
+  }) : [];
+  const NOME_CENARIO_LABEL: Record<string, string> = { conservador: tt.nomeConservador, base: tt.nomeBase, otimista: tt.nomeOtimista, adverso: tt.nomeAdverso };
+
+  // ========== REFORMA TRIBUTÁRIA 2026 POR FORNECEDOR (Fase 5B) ==========
+  const creditoReforma = avaliarCreditoReforma(fornecedores);
+  const contagemCredito = { pleno: 0, parcial: 0, baixo: 0, indefinido: 0 };
+  creditoReforma.forEach(c => { contagemCredito[c.nivel]++; });
+  const NIVEL_CREDITO_COR: Record<string, string> = { pleno: "#34d399", parcial: AMBAR, baixo: "#f87171", indefinido: "#5a7a9a" };
+  const NIVEL_CREDITO_LABEL: Record<string, string> = { pleno: tt.nivelPleno, parcial: tt.nivelParcial, baixo: tt.nivelBaixo, indefinido: tt.nivelIndefinido };
+
+  // ========== IA EXECUTIVA — modo por regras (Fase 5C) ==========
+  // Fase futura: tentar POST /api/ia-chat ({mensagem, historico, contexto}, mesmo padrão de
+  // enviarPerguntaZIA em Clientes) antes de cair aqui. Nenhuma chamada de rede nesta fase —
+  // ANTHROPIC_API_KEY segue desativada por decisão do Elias.
+  type InsightExecutivo = { severidade: "positivo" | "atencao" | "critico"; texto: string };
+  const insightsExecutivos: InsightExecutivo[] = [];
+  const qtdRiscoAlto = fornecedores.filter(f => f.classificacao_risco === "alto" && (f.status || "ativo") === "ativo").length;
+  if (parados.length > 0 || qtdRiscoAlto > 0) insightsExecutivos.push({ severidade: "critico", texto: `${tt.iaInterrupcao1} ${parados.length + qtdRiscoAlto} ${tt.iaInterrupcao2}` });
+  if (anomaliasCarteira.length > 0) insightsExecutivos.push({ severidade: "atencao", texto: `${tt.iaAumento1} ${anomaliasCarteira.length} ${tt.iaAumento2}` });
+  if (precosAltos.length > 0) insightsExecutivos.push({ severidade: "atencao", texto: `${precosAltos.length} ${tt.iaRenegociacao1}` });
+  const economiaTotalConsolidacao = consolidacao.reduce((s, g) => s + g.economiaEstimada, 0);
+  if (economiaTotalConsolidacao > 0) insightsExecutivos.push({ severidade: "positivo", texto: `${tt.iaEconomia1} ${fmt(economiaTotalConsolidacao)} ${tt.iaEconomia2}` });
+  if (diversificacao.amostraSuficiente && diversificacao.indice < 40) insightsExecutivos.push({ severidade: "atencao", texto: tt.iaNovosFornecedores });
+  const contratosCriticosIA = escadaVencimentos.filter(r => r.categoria === tt.contratosTitulo && (r.urgencia === "vencido" || r.urgencia === "critico")).length;
+  if (contratosCriticosIA > 0) insightsExecutivos.push({ severidade: "critico", texto: `${contratosCriticosIA} ${tt.iaContratos1}` });
+  if (concentracao.amostraSuficiente && concentracao.percentualMaior > 40) insightsExecutivos.push({ severidade: concentracao.percentualMaior > 50 ? "critico" : "atencao", texto: `${tt.iaConcentracao1} ${concentracao.nomeMaior} ${tt.iaConcentracao2} ${concentracao.percentualMaior}%.` });
+  if (riscoCarteira.amostraSuficiente && riscoCarteira.media >= 2) insightsExecutivos.push({ severidade: "atencao", texto: tt.iaOperacional });
+  const valorEmRiscoContratos = escadaVencimentos.filter(r => r.categoria === tt.contratosTitulo && r.urgencia !== "futuro").reduce((s, r) => s + r.valor, 0);
+  if (economiaTotalConsolidacao > 0 || valorEmRiscoContratos > 0) insightsExecutivos.push({ severidade: "positivo", texto: `${tt.iaImpacto1} ${fmt(economiaTotalConsolidacao)} ${tt.iaImpacto2} ${fmt(valorEmRiscoContratos)}.` });
+  const resumoExecutivoIA = fornecedores.length === 0 ? tt.iaSemDados : `${tt.iaResumo1} ${fornecedores.length} ${tt.iaResumo2} ${scoreCarteira.amostraSuficiente ? `${scoreCarteira.media}/1000` : tt.semDados}.`;
+
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${tt.dashboardTitulo}`,
     `🏭 ${tt.kpiTotal}: ${fornecedores.length}`,
@@ -1505,6 +1864,149 @@ export default function Fornecedores() {
           <p className="text-[10px] mt-4 pt-3" style={{ color: "#5a7a9a", borderTop: "1px solid rgba(255,255,255,0.06)" }}>{tt.alertaQuedaQualidadeLegenda}</p>
         </CanvasBox>
 
+        {/* ====== SIMULADOR EXECUTIVO (Fase 5A) ====== */}
+        <CanvasBox cor={AMBAR}>
+          <div className="mb-4">
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+            <h3 className="text-lg font-bold" style={{ color: "#c8d8f0", ...FONTE_EXEC }}>{tt.simuladorTitulo}</h3>
+            <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{tt.simuladorSub}</p>
+          </div>
+
+          {!temDadosSimulador ? (
+            <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.simuladorVazio}</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <CampoSelect label={tt.lblTipoCenario} value={tipoCenario} onChange={(v) => setTipoCenario(v as typeof tipoCenario)}
+                  opcoes={[{ value: "troca", label: tt.cenarioTroca }, { value: "preco", label: tt.cenarioPreco }, { value: "prazo", label: tt.cenarioPrazo }, { value: "cambio", label: tt.cenarioCambio }, { value: "perda", label: tt.cenarioPerda }, { value: "novo", label: tt.cenarioNovo }]} />
+                <CampoSelect label={tt.lblFornecedorSimulado} value={fornecedorSimuladoId || ""} onChange={setFornecedorSimuladoId}
+                  opcoes={fornecedores.filter(f => (f.status || "ativo") === "ativo").map(f => ({ value: f.id, label: f.nome }))} />
+                <CampoSelect label={tt.lblTipoCusto} value={tipoCustoSimulado} onChange={(v) => setTipoCustoSimulado(v as typeof tipoCustoSimulado)}
+                  opcoes={[{ value: "fixo", label: tt.tipoCustoFixo }, { value: "variavel", label: tt.tipoCustoVariavel }]} />
+                <Campo label={tt.lblHorizonte} value={horizonteSimulacao} onChange={setHorizonteSimulacao} tipo="number" />
+
+                {(tipoCenario === "troca" || tipoCenario === "novo") && <Campo label={tt.lblNovoValor} value={novoValorMensal} onChange={setNovoValorMensal} tipo="number" />}
+                {tipoCenario === "preco" && <Campo label={tt.lblDeltaPreco} value={deltaPrecoPct} onChange={setDeltaPrecoPct} tipo="number" />}
+                {tipoCenario === "prazo" && <Campo label={tt.lblDeltaDias} value={deltaDiasPrazo} onChange={setDeltaDiasPrazo} tipo="number" />}
+                {tipoCenario === "cambio" && (<>
+                  <Campo label={tt.lblChoqueCambio} value={choqueCambioPct} onChange={setChoqueCambioPct} tipo="number" />
+                  <Campo label={tt.lblExposicaoCambial} value={exposicaoCambialFornPct} onChange={setExposicaoCambialFornPct} tipo="number" />
+                </>)}
+                {tipoCenario === "perda" && <Campo label={tt.lblValorSubstituto} value={valorSubstituto} onChange={setValorSubstituto} tipo="number" />}
+              </div>
+
+              {!podeSimular ? (
+                <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.simuladorVazio}</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ color: "#5a7a9a" }}>
+                        <th className="text-left py-2 font-semibold">{tt.colCenario}</th>
+                        <th className="text-right py-2 font-semibold">{tt.colReceita}</th>
+                        <th className="text-right py-2 font-semibold">{tt.colEbitda}</th>
+                        <th className="text-right py-2 font-semibold">{tt.colLucro}</th>
+                        <th className="text-right py-2 font-semibold">{tt.colMargem}</th>
+                        <th className="text-right py-2 font-semibold">{tt.colCaixa}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                        <td className="py-2 font-bold" style={{ color: "#94a3b8" }}>{cx.hoje}</td>
+                        <td className="text-right py-2" style={{ color: "#94a3b8" }}>{fmt(dreHojeSim.receitaBruta.valor)}</td>
+                        <td className="text-right py-2" style={{ color: "#94a3b8" }}>{fmt(dreHojeSim.ebitda.valor)}</td>
+                        <td className="text-right py-2 font-bold" style={{ color: "#94a3b8" }}>{fmt(dreHojeSim.lucroLiquido.valor)}</td>
+                        <td className="text-right py-2" style={{ color: "#94a3b8" }}>{receitaMensalMedia > 0 ? ((dreHojeSim.lucroLiquido.valor / receitaMensalMedia) * 100).toFixed(1) : "0.0"}%</td>
+                        <td className="text-right py-2 font-bold" style={{ color: "#94a3b8" }}>{fmt(caixaDisponivelSim)}</td>
+                      </tr>
+                      {cenariosSimulados.map((c) => {
+                        const margem = c.receitaMensal > 0 ? (c.lucroLiquidoMensal / c.receitaMensal) * 100 : 0;
+                        const cor = c.nome === "adverso" ? "#f87171" : c.nome === "otimista" ? "#34d399" : c.nome === "conservador" ? AMBAR : "#6ab0ff";
+                        return (
+                          <tr key={c.nome} style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                            <td className="py-2 font-bold" style={{ color: cor }}>{NOME_CENARIO_LABEL[c.nome]}</td>
+                            <td className="text-right py-2" style={{ color: "#c8d8f0" }}>{fmt(c.receitaMensal)}</td>
+                            <td className="text-right py-2" style={{ color: "#c8d8f0" }}>{fmt(c.ebitdaMensal)}</td>
+                            <td className="text-right py-2 font-bold" style={{ color: c.lucroLiquidoMensal >= 0 ? "#34d399" : "#f87171" }}>{fmt(c.lucroLiquidoMensal)}</td>
+                            <td className="text-right py-2" style={{ color: "#c8d8f0" }}>{margem.toFixed(1)}%</td>
+                            <td className="text-right py-2 font-bold" style={{ color: c.saldoCaixaProjetado >= caixaDisponivelSim ? "#34d399" : "#f87171" }}>{fmt(c.saldoCaixaProjetado)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <p className="text-[10px] mt-3" style={{ color: "#5a7a9a" }}>{tt.notaCapitalGiro}</p>
+                </div>
+              )}
+            </>
+          )}
+        </CanvasBox>
+
+        {/* ====== REFORMA TRIBUTÁRIA 2026 (Fase 5B) ====== */}
+        <CanvasBox cor={AMBAR}>
+          <div className="mb-4">
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+            <h3 className="text-lg font-bold" style={{ color: "#c8d8f0", ...FONTE_EXEC }}>{tt.reformaTitulo}</h3>
+            <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{tt.reformaSub}</p>
+          </div>
+          <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ background: "rgba(245,158,11,0.08)", border: `1px solid ${AMBAR}30` }}>
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: AMBAR }} />
+            <p className="text-xs" style={{ color: "#e2e8f0" }}>{tt.reformaAviso}</p>
+          </div>
+
+          {creditoReforma.length === 0 ? (
+            <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.reformaVazio}</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {(["pleno", "parcial", "baixo", "indefinido"] as const).map((nivel) => (
+                  <div key={nivel} className="rounded-xl p-3 text-center" style={{ background: `${NIVEL_CREDITO_COR[nivel]}0e`, border: `1px solid ${NIVEL_CREDITO_COR[nivel]}30` }}>
+                    <p className="text-xl font-black" style={{ color: NIVEL_CREDITO_COR[nivel], ...FONTE_EXEC }}>{contagemCredito[nivel]}</p>
+                    <p className="text-[10px] mt-1" style={{ color: NIVEL_CREDITO_COR[nivel] }}>{NIVEL_CREDITO_LABEL[nivel]}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                {creditoReforma.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <p className="text-xs truncate" style={{ color: "#e2e8f0" }}>{c.nome}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: `${NIVEL_CREDITO_COR[c.nivel]}18`, color: NIVEL_CREDITO_COR[c.nivel] }}>{NIVEL_CREDITO_LABEL[c.nivel]}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </CanvasBox>
+
+        {/* ====== IA EXECUTIVA (Fase 5C) ====== */}
+        <CanvasBox cor={AMBAR}>
+          <div className="mb-4">
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0", ...FONTE_EXEC }}><Sparkles size={16} style={{ color: AMBAR }} /> {tt.iaExecutivaTitulo}</h3>
+            <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{tt.iaExecutivaSub}</p>
+          </div>
+          <div className="rounded-xl p-3 mb-4" style={{ background: "rgba(245,158,11,0.06)", border: `1px solid ${AMBAR}20` }}>
+            <p className="text-xs" style={{ color: "#94a3b8" }}>{tt.iaExecutivaAviso}</p>
+          </div>
+          <p className="text-sm font-semibold mb-4" style={{ color: "#e2e8f0" }}>{resumoExecutivoIA}</p>
+
+          {insightsExecutivos.length === 0 ? (
+            <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.alertasVazio}</p>
+          ) : (
+            <div className="space-y-2">
+              {insightsExecutivos.map((ins, i) => {
+                const cor = ins.severidade === "critico" ? "#f87171" : ins.severidade === "atencao" ? AMBAR : "#34d399";
+                return (
+                  <div key={i} className="rounded-xl p-3 flex items-start gap-3" style={{ background: `${cor}0e`, border: `1px solid ${cor}30` }}>
+                    {ins.severidade === "positivo" ? <Sparkles size={14} className="flex-shrink-0 mt-0.5" style={{ color: cor }} /> : <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: cor }} />}
+                    <p className="text-xs" style={{ color: "#e2e8f0" }}>{ins.texto}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CanvasBox>
+
         {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
@@ -1723,6 +2225,10 @@ export default function Fornecedores() {
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalForn} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
                   </div>
 
+                  {erroCadastro && (
+                    <div className="mb-4 px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(248,113,113,0.12)", color: "#f87171" }}>{erroCadastro}</div>
+                  )}
+
                   {/* Stepper */}
                   <div className="flex items-start gap-0.5 mb-5 overflow-x-auto pb-1">
                     {ETAPAS_CADASTRO.map((et, idx) => (
@@ -1740,7 +2246,9 @@ export default function Fornecedores() {
                     {ETAPAS_CADASTRO[etapaCadastro] === "identificacao" && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <CampoSelect label={tt.lblTipoPessoa} value={nf.tipo_pessoa} onChange={(v) => setNf({ ...nf, tipo_pessoa: v })} opcoes={[{ value: "PJ", label: tt.pessoaJuridica }, { value: "PF", label: tt.pessoaFisica }]} />
-                        <Campo label={nf.tipo_pessoa === "PF" ? "CPF" : "CNPJ"} value={nf.documento} onChange={(v) => setNf({ ...nf, documento: v })} />
+                        <Campo label={nf.tipo_pessoa === "PF" ? "CPF" : "CNPJ"} value={nf.documento}
+                          onChange={(v) => setNf({ ...nf, documento: nf.tipo_pessoa === "PF" ? formatarCPF(v) : formatarCNPJ(v) })}
+                          onBlur={() => validarCampoForm("documento", nf.documento)} erro={errosForm.documento} />
                         <Campo label={`${idioma === "pt" ? "Nome / Apelido" : "Name"} *`} value={nf.nome} onChange={(v) => setNf({ ...nf, nome: v })} />
                         <Campo label={tt.lblRazaoSocial} value={nf.razao_social} onChange={(v) => setNf({ ...nf, razao_social: v })} />
                         <Campo label={tt.lblNomeFantasia} value={nf.nome_fantasia} onChange={(v) => setNf({ ...nf, nome_fantasia: v })} />
@@ -1758,8 +2266,10 @@ export default function Fornecedores() {
                           <p className="text-xs font-black mb-2" style={{ color: AMBAR }}>{tt.contatoPrincipalTitulo}</p>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <Campo label={tt.lblResponsavel} value={nf.responsavel} onChange={(v) => setNf({ ...nf, responsavel: v })} />
-                            <Campo label={tt.lblTelefone} value={nf.telefone} onChange={(v) => setNf({ ...nf, telefone: v })} />
-                            <div className="md:col-span-2"><Campo label={tt.lblEmail} value={nf.email} onChange={(v) => setNf({ ...nf, email: v })} tipo="email" /></div>
+                            <Campo label={tt.lblTelefone} value={nf.telefone} onChange={(v) => setNf({ ...nf, telefone: formatarTelefone(v) })}
+                              onBlur={() => validarCampoForm("telefone", nf.telefone)} erro={errosForm.telefone} />
+                            <div className="md:col-span-2"><Campo label={tt.lblEmail} value={nf.email} onChange={(v) => setNf({ ...nf, email: v })} tipo="email"
+                              onBlur={() => validarCampoForm("email", nf.email)} erro={errosForm.email} /></div>
                           </div>
                         </div>
                         <div>
@@ -1778,7 +2288,10 @@ export default function Fornecedores() {
                                         <p className="text-xs font-semibold truncate" style={{ color: "#c8d8f0" }}>{c.nome} {c.principal && <span style={{ color: AMBAR }}>★</span>}</p>
                                         <p className="text-[10px] truncate" style={{ color: "#5a7a9a" }}>{[c.cargo, c.telefone, c.email].filter(Boolean).join(" · ")}</p>
                                       </div>
-                                      <button onClick={() => removerContato(c.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => editarContato(c)} style={{ color: AMBAR }}><Pencil size={13} /></button>
+                                        <button onClick={() => removerContato(c.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -1787,10 +2300,13 @@ export default function Fornecedores() {
                                 <Campo label={tt.lblNomeContato} value={novoContato.nome} onChange={(v) => setNovoContato({ ...novoContato, nome: v })} />
                                 <Campo label={tt.lblCargoContato} value={novoContato.cargo} onChange={(v) => setNovoContato({ ...novoContato, cargo: v })} />
                                 <Campo label={tt.lblEmail} value={novoContato.email} onChange={(v) => setNovoContato({ ...novoContato, email: v })} />
-                                <Campo label={tt.lblTelefone} value={novoContato.telefone} onChange={(v) => setNovoContato({ ...novoContato, telefone: v })} />
+                                <Campo label={tt.lblTelefone} value={novoContato.telefone} onChange={(v) => setNovoContato({ ...novoContato, telefone: formatarTelefone(v) })} />
                                 <Campo label={tt.lblWhatsapp} value={novoContato.whatsapp} onChange={(v) => setNovoContato({ ...novoContato, whatsapp: v })} />
                                 <div className="flex items-end"><CampoCheckbox label={tt.contatoPrincipalCheck} checked={novoContato.principal} onChange={(v) => setNovoContato({ ...novoContato, principal: v })} /></div>
-                                <button onClick={adicionarContato} className="col-span-2 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>+ {tt.adicionarContato}</button>
+                                <div className="col-span-2 flex gap-2">
+                                  <button onClick={adicionarContato} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoContatoId ? tt.salvarAlteracoes : `+ ${tt.adicionarContato}`}</button>
+                                  {editandoContatoId && <button onClick={cancelarEdicaoContato} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,158,11,0.1)", color: "#5a7a9a" }}>{tt.cancelarEdicao}</button>}
+                                </div>
                               </div>
                             </>
                           )}
@@ -1800,20 +2316,30 @@ export default function Fornecedores() {
 
                     {ETAPAS_CADASTRO[etapaCadastro] === "endereco" && (
                       <div className="space-y-3">
-                        <div className="max-w-[220px]">
-                          <label className={labelCls} style={labelStyle}>{tt.paisLabel}</label>
-                          <input value={tt.paisValor} disabled className={inputCls} style={{ ...inputStyle, opacity: 0.6 }} />
+                        <div className="max-w-[280px]">
+                          <CampoPaisAutocomplete label={tt.paisLabel} value={nf.pais} onChange={(v) => setNf({ ...nf, pais: v, uf: "", cidade: "" })} opcoes={nomesPaises(idioma === "pt" ? "pt-BR" : idioma === "es" ? "es-ES" : "en-US")} />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           <div>
                             <label className={labelCls} style={labelStyle}>{tt.lblCep} {buscandoCep && <span style={{ color: "#34d399", fontWeight: 400 }}>· {tt.buscandoCep}</span>}</label>
-                            <input value={nf.cep} onChange={(e) => { const v = e.target.value; setNf({ ...nf, cep: v }); if (v.replace(/\D/g, "").length === 8) buscarCep(v); }} placeholder="00000-000" className={inputCls} style={inputStyle} />
+                            <input value={nf.cep} onChange={(e) => { const v = e.target.value; setNf({ ...nf, cep: v }); if (v.replace(/\D/g, "").length === 8) buscarCep(v); }}
+                              onBlur={() => validarCampoForm("cep", nf.cep)} placeholder="00000-000" className={inputCls} style={inputStyle} />
+                            {errosForm.cep && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{errosForm.cep}</p>}
                           </div>
-                          <CampoSelect label={tt.lblEstado} value={nf.uf} onChange={(v) => setNf({ ...nf, uf: v, cidade: "" })} opcoes={estados.map((e) => ({ value: e.sigla, label: `${e.sigla} — ${e.nome}` }))} placeholder={tt.selecioneEstado} />
-                          {municipios.length > 0 ? (
-                            <CampoSelect label={tt.lblCidade} value={nf.cidade} onChange={(v) => setNf({ ...nf, cidade: v })} opcoes={municipios.map((m) => ({ value: m.nome, label: m.nome }))} placeholder={tt.selecioneCidade} />
+                          {nf.pais === "BR" ? (
+                            <>
+                              <CampoSelect label={tt.lblEstado} value={nf.uf} onChange={(v) => setNf({ ...nf, uf: v, cidade: "" })} opcoes={estados.map((e) => ({ value: e.sigla, label: `${e.sigla} — ${e.nome}` }))} placeholder={tt.selecioneEstado} />
+                              {municipios.length > 0 ? (
+                                <CampoSelect label={tt.lblCidade} value={nf.cidade} onChange={(v) => setNf({ ...nf, cidade: v })} opcoes={municipios.map((m) => ({ value: m.nome, label: m.nome }))} placeholder={tt.selecioneCidade} />
+                              ) : (
+                                <Campo label={tt.lblCidade} value={nf.cidade} onChange={(v) => setNf({ ...nf, cidade: v })} placeholder={nf.uf ? tt.digiteCidadeManual : tt.selecioneEstadoPrimeiro} />
+                              )}
+                            </>
                           ) : (
-                            <Campo label={tt.lblCidade} value={nf.cidade} onChange={(v) => setNf({ ...nf, cidade: v })} placeholder={nf.uf ? tt.digiteCidadeManual : tt.selecioneEstadoPrimeiro} />
+                            <>
+                              <Campo label={tt.lblEstado} value={nf.uf} onChange={(v) => setNf({ ...nf, uf: v })} />
+                              <Campo label={tt.lblCidade} value={nf.cidade} onChange={(v) => setNf({ ...nf, cidade: v })} />
+                            </>
                           )}
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1848,6 +2374,7 @@ export default function Fornecedores() {
                                       </div>
                                       <div className="flex items-center gap-2 flex-shrink-0">
                                         {d.storage_path && <button onClick={() => baixarDocumento(d)} style={{ color: AMBAR }}><Download size={13} /></button>}
+                                        <button onClick={() => editarDocumento(d)} style={{ color: AMBAR }}><Pencil size={13} /></button>
                                         <button onClick={() => removerDocumento(d)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
                                       </div>
                                     </div>
@@ -1865,7 +2392,10 @@ export default function Fornecedores() {
                                 <label className={labelCls} style={labelStyle}>{tt.lblArquivo}</label>
                                 <input type="file" onChange={(e) => setArquivoDocumento(e.target.files?.[0] || null)} className={inputCls} style={inputStyle} />
                               </div>
-                              <button onClick={adicionarDocumento} disabled={enviandoDocumento} className="col-span-2 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{enviandoDocumento ? tt.enviando : `+ ${tt.adicionarDocumento}`}</button>
+                              <div className="col-span-2 flex gap-2">
+                                <button onClick={adicionarDocumento} disabled={enviandoDocumento} className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{enviandoDocumento ? tt.enviando : (editandoDocumentoId ? tt.salvarAlteracoes : `+ ${tt.adicionarDocumento}`)}</button>
+                                {editandoDocumentoId && <button onClick={cancelarEdicaoDocumento} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,158,11,0.1)", color: "#5a7a9a" }}>{tt.cancelarEdicao}</button>}
+                              </div>
                             </div>
                           </>
                         )}
@@ -1919,7 +2449,10 @@ export default function Fornecedores() {
                                           {vencido ? ` · ${tt.statusVencido}` : ""}
                                         </p>
                                       </div>
-                                      <button onClick={() => removerContrato(c.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => editarContrato(c)} style={{ color: AMBAR }}><Pencil size={13} /></button>
+                                        <button onClick={() => removerContrato(c.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                      </div>
                                     </div>
                                   );
                                 })}
@@ -1933,7 +2466,10 @@ export default function Fornecedores() {
                               <div className="flex items-end"><CampoCheckbox label={tt.lblRenovacaoAutomatica} checked={novoContrato.renovacao_automatica} onChange={(v) => setNovoContrato({ ...novoContrato, renovacao_automatica: v })} /></div>
                               <Campo label={tt.lblValorContratado} value={novoContrato.valor_contratado} onChange={(v) => setNovoContrato({ ...novoContrato, valor_contratado: v })} tipo="number" />
                               <Campo label={tt.lblValorUtilizado} value={novoContrato.valor_utilizado} onChange={(v) => setNovoContrato({ ...novoContrato, valor_utilizado: v })} tipo="number" />
-                              <button onClick={adicionarContrato} className="col-span-2 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>+ {tt.adicionarContrato}</button>
+                              <div className="col-span-2 flex gap-2">
+                                <button onClick={adicionarContrato} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoContratoId ? tt.salvarAlteracoes : `+ ${tt.adicionarContrato}`}</button>
+                                {editandoContratoId && <button onClick={cancelarEdicaoContrato} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,158,11,0.1)", color: "#5a7a9a" }}>{tt.cancelarEdicao}</button>}
+                              </div>
                             </div>
                           </>
                         )}
@@ -1957,7 +2493,10 @@ export default function Fornecedores() {
                                       <p className="text-xs font-semibold truncate" style={{ color: "#c8d8f0" }}>{p.descricao}</p>
                                       <p className="text-[10px] truncate" style={{ color: "#5a7a9a" }}>{[p.categoria, p.unidade, p.valor_unitario ? fmt(p.valor_unitario) : null].filter(Boolean).join(" · ")}</p>
                                     </div>
-                                    <button onClick={() => removerProduto(p.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      <button onClick={() => editarProduto(p)} style={{ color: AMBAR }}><Pencil size={13} /></button>
+                                      <button onClick={() => removerProduto(p.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1967,7 +2506,10 @@ export default function Fornecedores() {
                               <Campo label={tt.lblCategoriaProduto} value={novoProduto.categoria} onChange={(v) => setNovoProduto({ ...novoProduto, categoria: v })} />
                               <Campo label={tt.lblUnidade} value={novoProduto.unidade} onChange={(v) => setNovoProduto({ ...novoProduto, unidade: v })} placeholder="un, kg, hora..." />
                               <Campo label={tt.lblValorUnitario} value={novoProduto.valor_unitario} onChange={(v) => setNovoProduto({ ...novoProduto, valor_unitario: v })} tipo="number" />
-                              <div className="flex items-end"><button onClick={adicionarProduto} className="w-full py-3 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>+ {tt.adicionarProduto}</button></div>
+                              <div className="flex items-end gap-2">
+                                <button onClick={adicionarProduto} className="flex-1 py-3 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoProdutoId ? tt.salvarAlteracoes : `+ ${tt.adicionarProduto}`}</button>
+                                {editandoProdutoId && <button onClick={cancelarEdicaoProduto} className="px-3 py-3 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,158,11,0.1)", color: "#5a7a9a" }}>{tt.cancelarEdicao}</button>}
+                              </div>
                             </div>
                           </>
                         )}
@@ -2022,7 +2564,10 @@ export default function Fornecedores() {
                                           <p className="text-xs truncate" style={{ color: "#c8d8f0" }}>{it.descricao}</p>
                                         </div>
                                       </div>
-                                      <button onClick={() => removerInteracao(it.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button onClick={() => editarInteracao(it)} style={{ color: AMBAR }}><Pencil size={13} /></button>
+                                        <button onClick={() => removerInteracao(it.id)} style={{ color: "#f87171" }}><Trash2 size={13} /></button>
+                                      </div>
                                     </div>
                                   ))}
                                 </div>
@@ -2031,7 +2576,10 @@ export default function Fornecedores() {
                                 <Campo label={tt.lblDataInteracao} value={novaInteracao.data} onChange={(v) => setNovaInteracao({ ...novaInteracao, data: v })} tipo="date" />
                                 <Campo label={tt.lblTipoInteracao} value={novaInteracao.tipo} onChange={(v) => setNovaInteracao({ ...novaInteracao, tipo: v })} placeholder="Reunião, e-mail..." />
                                 <div className="col-span-2"><Campo label={tt.lblDescricaoInteracao} value={novaInteracao.descricao} onChange={(v) => setNovaInteracao({ ...novaInteracao, descricao: v })} /></div>
-                                <button onClick={adicionarInteracao} className="col-span-2 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>+ {tt.adicionarInteracao}</button>
+                                <div className="col-span-2 flex gap-2">
+                                  <button onClick={adicionarInteracao} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoInteracaoId ? tt.salvarAlteracoes : `+ ${tt.adicionarInteracao}`}</button>
+                                  {editandoInteracaoId && <button onClick={cancelarEdicaoInteracao} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,158,11,0.1)", color: "#5a7a9a" }}>{tt.cancelarEdicao}</button>}
+                                </div>
                               </div>
                             </>
                           )}
@@ -2083,7 +2631,11 @@ export default function Fornecedores() {
                   <div className="space-y-3">
                     <div>
                       <label className={labelCls} style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Fornecedor" : "Supplier"}</label>
-                      <select value={nc.fornecedor_id} onChange={(e) => setNc({ ...nc, fornecedor_id: e.target.value })} className={inputCls} style={selectStyle}>
+                      <select value={nc.fornecedor_id} onChange={(e) => {
+                          const fid = e.target.value;
+                          const f = fornecedores.find((x) => x.id === fid);
+                          setNc((prev) => ({ ...prev, fornecedor_id: fid, ...(f ? sugerirDadosContaPorFornecedor(f, prev.data_emissao) : {}) }));
+                        }} className={inputCls} style={selectStyle}>
                         <option value="">-- {idioma === "pt" ? "Selecione" : "Select"} --</option>
                         {fornecedores.map(f => <option key={f.id} value={f.id}>{f.nome}</option>)}
                       </select>

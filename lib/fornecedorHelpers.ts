@@ -73,6 +73,11 @@ export async function criarContato(fornecedorId: string, userId: string, dados: 
   return { id: data.id };
 }
 
+export async function atualizarContato(id: string, dados: Partial<FornecedorContato>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("fornecedor_contatos").update(dados).eq("id", id);
+  return error ? { erro: error.message } : {};
+}
+
 export async function excluirContato(id: string): Promise<{ erro?: string }> {
   const { error } = await supabase.from("fornecedor_contatos").delete().eq("id", id);
   return error ? { erro: error.message } : {};
@@ -105,6 +110,11 @@ export async function criarDocumentoFornecedor(fornecedorId: string, userId: str
   return { id: data.id };
 }
 
+export async function atualizarDocumentoFornecedor(id: string, dados: Partial<FornecedorDocumento>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("fornecedor_documentos").update(dados).eq("id", id);
+  return error ? { erro: error.message } : {};
+}
+
 export async function excluirDocumentoFornecedor(doc: FornecedorDocumento): Promise<{ erro?: string }> {
   if (doc.storage_path) await supabase.storage.from("fornecedor-documentos").remove([doc.storage_path]);
   const { error } = await supabase.from("fornecedor_documentos").delete().eq("id", doc.id);
@@ -133,6 +143,11 @@ export async function criarContrato(fornecedorId: string, userId: string, dados:
   return { id: data.id };
 }
 
+export async function atualizarContrato(id: string, dados: Partial<FornecedorContrato>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("fornecedor_contratos").update(dados).eq("id", id);
+  return error ? { erro: error.message } : {};
+}
+
 export async function excluirContrato(id: string): Promise<{ erro?: string }> {
   const { error } = await supabase.from("fornecedor_contratos").delete().eq("id", id);
   return error ? { erro: error.message } : {};
@@ -155,6 +170,11 @@ export async function criarProduto(fornecedorId: string, userId: string, dados: 
   return { id: data.id };
 }
 
+export async function atualizarProduto(id: string, dados: Partial<FornecedorProduto>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("fornecedor_produtos").update(dados).eq("id", id);
+  return error ? { erro: error.message } : {};
+}
+
 export async function excluirProduto(id: string): Promise<{ erro?: string }> {
   const { error } = await supabase.from("fornecedor_produtos").delete().eq("id", id);
   return error ? { erro: error.message } : {};
@@ -175,6 +195,11 @@ export async function criarInteracao(fornecedorId: string, userId: string, dados
     .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId }).select("id").single();
   if (error) return { erro: error.message };
   return { id: data.id };
+}
+
+export async function atualizarInteracao(id: string, dados: Partial<FornecedorInteracao>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("fornecedor_interacoes").update(dados).eq("id", id);
+  return error ? { erro: error.message } : {};
 }
 
 export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
@@ -219,6 +244,8 @@ export type FornecedorRow = {
   id: string; nome: string; status?: string | null; categoria?: string | null;
   nivel_qualidade?: string | null; classificacao_risco?: string | null;
   uf?: string | null; cidade?: string | null; created_at?: string | null;
+  tipo_pessoa?: string | null; regime_tributario?: string | null; contribuinte_icms?: string | null;
+  valor_mensal?: number | null;
 };
 
 export type ContaPagarRow = {
@@ -227,6 +254,25 @@ export type ContaPagarRow = {
   data_emissao?: string | null; data_vencimento?: string | null; data_pagamento?: string | null;
   status?: string | null;
 };
+
+// Transferência de dados Fornecedor → Conta a Pagar: só sugere o que o cadastro
+// realmente tem (nunca sobrescreve com undefined). Vencimento só entra se o
+// fornecedor tiver prazo_medio_dias — condicao_pagamento é texto livre, não dá
+// pra calcular data a partir dele.
+export function sugerirDadosContaPorFornecedor(
+  f: FornecedorRow & { prazo_medio_dias?: number | null; forma_pagamento_preferencial?: string | null },
+  dataEmissaoAtual?: string,
+): Partial<{ categoria: string; forma_pagamento: string; data_vencimento: string }> {
+  const sugestao: Partial<{ categoria: string; forma_pagamento: string; data_vencimento: string }> = {};
+  if (f.categoria) sugestao.categoria = f.categoria;
+  if (f.forma_pagamento_preferencial) sugestao.forma_pagamento = f.forma_pagamento_preferencial;
+  if (f.prazo_medio_dias) {
+    const base = dataEmissaoAtual ? new Date(dataEmissaoAtual + "T00:00:00") : new Date();
+    base.setDate(base.getDate() + f.prazo_medio_dias);
+    sugestao.data_vencimento = base.toISOString().slice(0, 10);
+  }
+  return sugestao;
+}
 
 export function comprasNoPeriodo(contas: ContaPagarRow[], periodo: { inicio: string; fim: string }): number {
   return contas
@@ -549,6 +595,50 @@ export function precoAcimaMediaInterna(fornecedores: FornecedorRow[], contas: Co
 }
 
 // ============================================================================
+// FASE 5A — SIMULADOR EXECUTIVO POR FORNECEDOR.
+// A simulação em si reaproveita 100% simularCenariosExecutivos (cfoCore.ts) —
+// aqui só ficam as duas conversões pequenas e específicas de fornecedor que
+// alimentam esse motor.
+// ============================================================================
+
+// Converte a variação em R$ de UM fornecedor num choque percentual sobre a base
+// de custo relevante da empresa toda (a mesma unidade que simularCenariosExecutivos espera).
+export function pctChoqueDoFornecedor(deltaValorMensal: number, baseMensalRelevante: number): number {
+  if (baseMensalRelevante <= 0) return 0;
+  return (deltaValorMensal / baseMensalRelevante) * 100;
+}
+
+// "Aumento/redução de prazo" não é custo — é caixa. Estimativa simplificada:
+// mudar o prazo em X dias equivale a antecipar/adiar ~1/30 do valor mensal por dia.
+// Não é um fluxo de caixa dia a dia real, é uma aproximação — deixado claro na tela.
+export function estimativaCaixaPrazo(valorMensalFornecedor: number, deltaDiasPrazo: number): number {
+  return (valorMensalFornecedor / 30) * deltaDiasPrazo;
+}
+
+// ============================================================================
+// FASE 5B — REFORMA TRIBUTÁRIA 2026 POR FORNECEDOR (IVA dual — CBS/IBS).
+// Axioma não inventa alíquota — as alíquotas finais do IBS/CBS ainda não estão
+// regulamentadas. O que É real e calculável hoje: o potencial de cada fornecedor
+// gerar crédito tributário no modelo de IVA (não-cumulativo), a partir do que já
+// está no cadastro (Fase 1): tipo de pessoa, regime tributário, contribuinte de ICMS.
+// ============================================================================
+
+export type NivelCreditoReforma = "pleno" | "parcial" | "baixo" | "indefinido";
+export type CreditoReformaFornecedor = { id: string; nome: string; categoria?: string | null; nivel: NivelCreditoReforma; motivo: string };
+
+export function avaliarCreditoReforma(fornecedores: FornecedorRow[]): CreditoReformaFornecedor[] {
+  return fornecedores.filter((f) => (f.status || "ativo") === "ativo").map((f) => {
+    if (f.tipo_pessoa === "PF") return { id: f.id, nome: f.nome, categoria: f.categoria, nivel: "baixo" as const, motivo: "pessoa_fisica" };
+    if (!f.tipo_pessoa || !f.regime_tributario) return { id: f.id, nome: f.nome, categoria: f.categoria, nivel: "indefinido" as const, motivo: "cadastro_incompleto" };
+    if (f.regime_tributario === "simples" || f.regime_tributario === "mei") return { id: f.id, nome: f.nome, categoria: f.categoria, nivel: "parcial" as const, motivo: "simples_ou_mei" };
+    if (f.regime_tributario === "presumido" || f.regime_tributario === "real") {
+      return { id: f.id, nome: f.nome, categoria: f.categoria, nivel: f.contribuinte_icms === "sim" ? "pleno" as const : "parcial" as const, motivo: f.contribuinte_icms === "sim" ? "pj_contribuinte" : "pj_nao_contribuinte" };
+    }
+    return { id: f.id, nome: f.nome, categoria: f.categoria, nivel: "indefinido" as const, motivo: "cadastro_incompleto" };
+  });
+}
+
+// ============================================================================
 // ARQUITETURA PREPARADA (comentário only — não implementar antes de aprovação)
 // ============================================================================
 // Fase futura — Portal do Fornecedor: login próprio do fornecedor (tabela de convites +
@@ -561,3 +651,11 @@ export function precoAcimaMediaInterna(fornecedores: FornecedorRow[], contas: Co
 //   atual, sem linha do tempo. O alerta "Queda de Qualidade" (Fase 4) fica reservado sem
 //   instância até existir uma tabela fornecedor_qualidade_historico (data + nota), pra
 //   dar de fato pra medir tendência em vez de comparar um ponto só contra ele mesmo.
+// Fase futura — IA Executiva real: quando ANTHROPIC_API_KEY for ativada, o mesmo padrão
+//   já usado em Clientes (enviarPerguntaZIA) entra aqui — tenta POST /api/ia-chat com
+//   {mensagem, historico, contexto}, cai no conselho por regras se falhar. Nenhuma chamada
+//   de rede é feita na Fase 5, só o texto por regras.
+// Fase futura — Reforma Tributária com valor em R$: quando o IBS/CBS estiver regulamentado
+//   com alíquotas oficiais, avaliarCreditoReforma pode evoluir de nível (pleno/parcial/baixo)
+//   para um cálculo de crédito em R$ de verdade, cruzando com o valor efetivo pago a cada
+//   fornecedor (contas_pagar).

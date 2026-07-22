@@ -773,8 +773,8 @@ export default function EmpresaPage() {
     setResultadoCNPJ(null);
   }
 
-  async function preencherPorCEP() {
-    const cep = (empresaForm.cep || "").replace(/\D/g, "");
+  async function preencherPorCEP(cepDigitado?: string) {
+    const cep = (cepDigitado ?? empresaForm.cep ?? "").replace(/\D/g, "");
     if (cep.length !== 8) { showToast(tt.toastCepInvalido, "erro"); return; }
     setConsultandoCEP(true);
     const r = await consultarCEP(cep);
@@ -1231,9 +1231,13 @@ export default function EmpresaPage() {
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.endereco}</p>
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                   <div className="md:col-span-2 flex gap-2">
-                    <input value={empresaForm.cep || ""} onChange={(e) => setCampo("cep", formatarCEP(e.target.value))}
+                    <input value={empresaForm.cep || ""} onChange={(e) => {
+                        const v = formatarCEP(e.target.value);
+                        setCampo("cep", v);
+                        if (v.replace(/\D/g, "").length === 8) preencherPorCEP(v);
+                      }}
                       placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                    <button onClick={preencherPorCEP} disabled={consultandoCEP}
+                    <button onClick={() => preencherPorCEP()} disabled={consultandoCEP}
                       className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
                       style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>{consultandoCEP ? "..." : "🔍"}</button>
                   </div>

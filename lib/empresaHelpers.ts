@@ -3,6 +3,8 @@
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
 
 import { createBrowserClient } from "@supabase/ssr";
+import { formatarCEP, consultarCEP, type DadosCEP } from "./enderecoHelpers";
+export { formatarCEP, consultarCEP, type DadosCEP };
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,12 +45,6 @@ export function validarCNPJ(cnpj: string): boolean {
   resto = soma % 11;
   const d2 = resto < 2 ? 0 : 11 - resto;
   return d2 === parseInt(c[13]);
-}
-
-export function formatarCEP(cep: string): string {
-  const limpo = (cep || "").replace(/\D/g, "");
-  if (limpo.length !== 8) return cep || "";
-  return limpo.replace(/^(\d{5})(\d{3})$/, "$1-$2");
 }
 
 export function formatarTelefone(tel: string): string {
@@ -132,40 +128,6 @@ export async function consultarCNPJ(cnpj: string): Promise<DadosCNPJ | { erro: s
       telefone_principal: data.ddd_telefone_1 ? formatarTelefone(String(data.ddd_telefone_1)) : null,
       email_principal: data.email,
       socios: data.qsa || [],
-    };
-  } catch (err: any) {
-    return { erro: `Erro de conexão: ${err.message}` };
-  }
-}
-
-// ============================================================================
-// CONSULTA ViaCEP
-// ============================================================================
-
-export type DadosCEP = {
-  cep?: string;
-  logradouro?: string;
-  bairro?: string;
-  cidade?: string;
-  uf?: string;
-};
-
-export async function consultarCEP(cep: string): Promise<DadosCEP | { erro: string }> {
-  const c = (cep || "").replace(/\D/g, "");
-  if (c.length !== 8) return { erro: "CEP deve ter 8 dígitos" };
-
-  try {
-    const resp = await fetch(`https://viacep.com.br/ws/${c}/json/`);
-    if (!resp.ok) return { erro: "Erro ao consultar CEP" };
-    const data = await resp.json();
-    if (data.erro) return { erro: "CEP não encontrado" };
-
-    return {
-      cep: formatarCEP(data.cep),
-      logradouro: data.logradouro,
-      bairro: data.bairro,
-      cidade: data.localidade,
-      uf: data.uf,
     };
   } catch (err: any) {
     return { erro: `Erro de conexão: ${err.message}` };
