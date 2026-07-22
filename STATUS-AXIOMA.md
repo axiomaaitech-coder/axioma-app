@@ -279,8 +279,33 @@ ALTER TABLE contas_receber
 
 **Sugestões de evolução futura (registradas, não implementadas):** mover "conta contábil"/"banco recebedor" pra tabelas reais se o Axioma ganhar um plano de contas ou Open Finance com contas bancárias cadastradas; sistema de lembretes automáticos como módulo próprio com cron/e-mail; investigar e corrigir o mesmo bug de modal-atrás-do-Header nos demais módulos que usam `ModuloLayout`.
 
+## 3-J. Contas a Receber — Fase 1 de 3 (Central de Recebimentos + Dashboard + Aging + Score), entregue nesta rodada
+**Centro de Inteligência Financeira de Recebimentos, padrão CFO — antes era um CRUD simples (527 linhas, tema azul, sem camada CFO, aging básico, modal sem o fix de portal).** Pesquisa no schema real (via probing da API PostgREST com a anon key, sem precisar da service_role) confirmou que todas as colunas já usadas hoje existem — nenhum `ALTER TABLE` foi necessário pras funcionalidades centrais. 3 colunas pedidas na grade (`responsavel`, `prioridade`, `projeto`) não existem ainda — ver SQL abaixo.
+
+**Decisão técnica central (evita duplicar lógica):** em vez de recalcular tudo do zero, o módulo reaproveita 100% o motor de `lib/clienteIntelHelpers.ts` (criado em Clientes) — `montarSnapshotsCarteira` já dá pontualidade/atraso médio/valor pendente/vencido por cliente. Por cima disso, **3 blocos novos foram adicionados ao mesmo arquivo** (não duplicados no módulo):
+- **Score Axioma do Cliente (0-1000)** — `PESOS_SCORE_AXIOMA_CLIENTE` + `calcularScoreAxiomaCliente`, mesmo motor de `calcularScoreAxiomaFornecedor` (Fornecedores Fase 3): pesos num objeto central, critério sem dado real não penaliza (peso redistribuído só entre os que têm dado). 12 critérios pedidos: pontualidade, risco, volume, recorrência, histórico, concentração, confiabilidade, tempo de relacionamento, tempo médio de atraso têm dado real hoje; **disputas, cancelamentos e renegociações ficam "sem dados"** — não existe tabela pra isso no Axioma. 5 níveis (Crítico/Atenção/Bom/Excelente/Elite, dourado champagne só no Elite).
+- **KPIs executivos de recebimento** — `calcularKpisRecebimento`: DSO real (média de dias emissão→recebimento das contas já recebidas, nunca uma fórmula genérica chutada), índices de inadimplência/pontualidade, receita prevista/confirmada/em risco, recorrente vs não recorrente (usa o flag `recorrente` que já existia). KPI sem dado suficiente mostra "sem dados suficientes", nunca zero fabricado.
+- **Aging de carteira** — `agingCarteiraRecebiveis`: 4 faixas (0-30/31-60/61-90/90+), gráfico ECharts (`optBarrasV`, mesmo padrão Power BI dos outros módulos).
+
+**Entregue na tela:** Dashboard Executivo (17 KPIs, com drill-down real — clicar abre a lista das contas/clientes por trás do número, não só um modal decorativo), Aging com stat cards + gráfico, Score Axioma (velocímetro da média da carteira + ranking clicável com breakdown por critério), e Central de Recebimentos (grade com as 22 colunas pedidas — cálculo automático de dias em atraso, valor atualizado = valor − desconto + juros + multa, e saldo). Modal de cadastro/edição corrigido com `createPortal` pro `document.body` — é a correção real do bug de modal-atrás-do-Header já documentado na seção 3-I (Clientes), não a solução paliativa antiga. Seletor de período filtra a grade por vencimento; KPIs/aging/score refletem sempre o estado atual da carteira (vencido é vencido hoje, independente do período escolhido) — decisão consciente pra não mentir sobre o que está vencido. Centro de Compartilhamento + exportação PDF. Tema esmeralda/teal executivo com acabamento dourado champagne só em detalhes finos (borda do modal, ícone de coroa no cliente Elite) — nunca compete com o vermelho de vencido/inadimplência.
+
+**Robustez do salvamento:** como 3 colunas da grade ainda não existem no Supabase, `salvar()` tenta o payload completo primeiro; se o Postgres devolver `42703` (coluna inexistente), remove só essas 3 chaves e tenta de novo, avisando na tela que esses campos específicos não foram salvos — não é gambiarra, é degradação graciosa documentada até o SQL rodar. O resto do cadastro nunca fica bloqueado por causa de 3 campos novos (evita repetir o efeito colateral já visto em outros módulos onde qualquer ALTER TABLE pendente quebrava o save inteiro).
+
+**Excluído conscientemente desta fase, arquitetura deixada comentada no fim do arquivo:** conciliação bancária via Open Finance/Pluggy (`of_transacoes` × `contas_receber`) e baixa automática — Pluggy segue em modo de teste (seção 1), e baixa automática sem revisão humana tem risco real de casar pagamento errado com conta errada. Fases 2 e 3 do módulo (ainda não escopadas em detalhe — aguardando pedido do Elias) ficam de fora por instrução explícita dele.
+
+**Schema — SQL a rodar no Supabase antes de testar cadastro completo (Elias ainda não rodou):**
+```sql
+ALTER TABLE contas_receber
+  ADD COLUMN IF NOT EXISTS responsavel text,
+  ADD COLUMN IF NOT EXISTS prioridade text,
+  ADD COLUMN IF NOT EXISTS projeto text;
+```
+Até rodar, a Central de Recebimentos funciona normalmente (grade, KPIs, aging, score, CRUD) — só os campos Responsável/Prioridade/Projeto não persistem, com aviso claro na tela.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` compilou com sucesso (`✓ Compiled successfully in 6.4min`) — o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/pluggy/webhook`, falta chave local, Pluggy em modo teste). Não testado no navegador com login real nesta sessão.
+
 ## 4. PRÓXIMO PASSO
-Elias testar `/clientes` no navegador (modal em telas pequenas/grandes, wizard de cadastro, cobrança Enterprise). Depois: Fornecedores, Contas a Receber e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias testar `/contas-receber` no navegador (Dashboard, aging, score, cadastro, e rodar o SQL acima antes de testar Responsável/Prioridade/Projeto). Aguardando aprovação da Fase 1 antes de iniciar a Fase 2 do módulo (Elias não detalhou o escopo da Fase 2/3 ainda). Depois: Fornecedores (já em padrão CFO) e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 

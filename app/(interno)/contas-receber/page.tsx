@@ -1,88 +1,132 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
-import { Inbox, Trash2, CheckCircle2, Pencil, X, Search, AlertTriangle } from 'lucide-react'
-import ModuloLayout from '../../../components/ModuloLayout'
-import { CanvasBox } from '../../../components/CanvasBox'
-import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Search, Pencil, Trash2, CheckCircle2, X, Inbox, AlertTriangle, Share2, Crown,
+  Copy, Users, Filter, ChevronRight,
+} from 'lucide-react'
+import ModuloLayout from '../../../components/ModuloLayout'
+import SeletorPeriodo from '../../../components/SeletorPeriodo'
+import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { fBRL, FONTE_EXEC, optBarrasV, optVelocimetro, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { canaisCompartilhamento } from '../../../lib/cfoTextos'
+import {
+  type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
+  rankingScoreAxiomaCliente, scoreMedioCarteiraAxiomaCliente,
+  type ScoreAxiomaCliente, calcularKpisRecebimento, agingCarteiraRecebiveis,
+  nomeCriterioScoreCliente, type Idioma3,
+} from '../../../lib/clienteIntelHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const formasRecebimento = ['PIX', 'Crédito', 'Débito', 'Boleto', 'Dinheiro', 'Transferência']
-const categorias = ['Vendas', 'Serviços', 'Mensalidade', 'Consultoria', 'Outros']
+// ============================================================================
+// TEMA — Esmeralda/Teal Executivo + acabamento dourado champagne (só em
+// destaques finos: borda de card premium, ícone de score Elite). Verde/vermelho/
+// azul/âmbar continuam com o significado padrão do Axioma (positivo/negativo/
+// neutro/atenção) — o tema nunca substitui essas cores de significado.
+// ============================================================================
+const ESMERALDA = '#059669'
+const TEAL = '#0d9488'
+const OURO = '#d4af37'
+const VERDE = '#34d399'
+const VERMELHO = '#f87171'
+const AZUL = '#6ab0ff'
+const AMBAR = '#f59e0b'
+const CINZA = '#5a7a9a'
+const BG_CARD = 'rgba(10,22,40,0.8)'
 
-type Cliente = { id: string; nome: string }
+type CentroCusto = { id: string; nome: string }
+
+const FORMAS_RECEBIMENTO = ['PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Boleto', 'Dinheiro', 'Transferência']
+const CATEGORIAS = ['Vendas', 'Serviços', 'Mensalidade', 'Consultoria', 'Outros']
+const PRIORIDADES = ['baixa', 'normal', 'alta', 'urgente'] as const
 
 type Conta = {
   id: string
   descricao: string
   valor: number
-  valor_recebido?: number
+  valor_recebido?: number | null
+  valor_desconto?: number | null
   data_vencimento: string
-  data_emissao?: string
+  data_emissao?: string | null
   data_recebimento?: string | null
-  status?: string
+  competencia?: string | null
+  status?: string | null
   cliente_id?: string | null
-  forma_recebimento?: string
-  numero_documento?: string
-  categoria?: string
-  parcelas?: number
-  taxa_juros?: number
-  taxa_multa?: number
-  observacoes?: string
+  forma_recebimento?: string | null
+  numero_documento?: string | null
+  categoria?: string | null
+  parcelas?: number | null
+  taxa_juros?: number | null
+  taxa_multa?: number | null
+  observacoes?: string | null
+  centro_custo_id?: string | null
+  responsavel?: string | null
+  projeto?: string | null
+  prioridade?: string | null
+  recorrente?: boolean | null
+  frequencia_recorrencia?: string | null
+  user_id: string
+  empresa_id?: string | null
+  created_at: string
 }
 
 const contaVazia = {
-  descricao: '', valor: '', valor_recebido: '', data_vencimento: '', data_emissao: '',
-  cliente_id: '', forma_recebimento: formasRecebimento[0], numero_documento: '',
-  categoria: categorias[0], parcelas: '1', taxa_juros: '', taxa_multa: '', observacoes: '',
+  descricao: '', valor: '', valor_recebido: '', valor_desconto: '',
+  data_vencimento: '', data_emissao: '', competencia: '',
+  cliente_id: '', forma_recebimento: FORMAS_RECEBIMENTO[0], numero_documento: '',
+  categoria: CATEGORIAS[0], parcelas: '1', taxa_juros: '', taxa_multa: '',
+  centro_custo_id: '', responsavel: '', projeto: '', prioridade: 'normal',
+  recorrente: false, frequencia_recorrencia: 'mensal', observacoes: '',
 }
+
+// Colunas novas que ainda podem não existir no Supabase (ver aviso ao Elias no
+// relatório de entrega). Se o INSERT/UPDATE falhar com 42703 (coluna inexistente),
+// removemos essas 3 chaves e tentamos salvar de novo — não é gambiarra, é
+// degradação graciosa documentada até o ALTER TABLE rodar. O resto do cadastro
+// nunca fica bloqueado por causa de 3 campos novos.
+const COLUNAS_PENDENTES_SQL = ['responsavel', 'prioridade', 'projeto']
 
 export default function ContasReceber() {
   const { idioma } = useLanguage()
+  const lang = idioma as Idioma3
+  const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
+
   const [contas, setContas] = useState<Conta[]>([])
-  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [clientes, setClientes] = useState<ClienteRow[]>([])
+  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState('todos')
   const [empresaId, setEmpresaId] = useState<string | null>(null)
+  const [exportando, setExportando] = useState(false)
+  const [avisoSchema, setAvisoSchema] = useState(false)
+
+  const [preset, setPreset] = useState<PeriodoPreset>('ultimos_12_meses')
+  const [personalizado, setPersonalizado] = useState<Periodo>(resolverPeriodo('mes_atual'))
+  const periodo = resolverPeriodo(preset, personalizado)
+
   const [modalAberto, setModalAberto] = useState(false)
   const [editando, setEditando] = useState<Conta | null>(null)
   const [nc, setNc] = useState({ ...contaVazia })
   const [salvando, setSalvando] = useState(false)
-  const [exportando, setExportando] = useState(false)
+  const [erroSalvar, setErroSalvar] = useState('')
 
   const [modalReceber, setModalReceber] = useState(false)
   const [contaReceber, setContaReceber] = useState<Conta | null>(null)
   const [valorReceber, setValorReceber] = useState('')
   const [recebendo, setRecebendo] = useState(false)
 
-  const txt = {
-    titulo: idioma === 'pt' ? 'Contas a Receber' : idioma === 'en' ? 'Accounts Receivable' : 'Cuentas por Cobrar',
-    subtitulo: idioma === 'pt' ? 'Gerencie os valores que seus clientes devem pagar' : idioma === 'en' ? 'Manage amounts your clients owe' : 'Gestiona los montos que deben pagar',
-    novo: idioma === 'pt' ? 'Nova Conta' : idioma === 'en' ? 'New Account' : 'Nueva Cuenta',
-    editar: idioma === 'pt' ? 'Editar Conta' : idioma === 'en' ? 'Edit Account' : 'Editar Cuenta',
-    cancelar: idioma === 'pt' ? 'Cancelar' : idioma === 'en' ? 'Cancel' : 'Cancelar',
-    semContas: idioma === 'pt' ? 'Nenhuma conta cadastrada.' : idioma === 'en' ? 'No accounts yet.' : 'Sin cuentas aún.',
-    vence: idioma === 'pt' ? 'Vence' : idioma === 'en' ? 'Due' : 'Vence',
-  }
-
-  function statusLabel(s?: string) {
-    if (s === 'recebido') return idioma === 'pt' ? 'Recebido' : 'Received'
-    if (s === 'parcial') return idioma === 'pt' ? 'Parcial' : 'Partial'
-    if (s === 'vencido') return idioma === 'pt' ? 'Vencido' : 'Overdue'
-    return idioma === 'pt' ? 'A Receber' : 'Pending'
-  }
-  function statusCor(s?: string) {
-    if (s === 'recebido') return '#34d399'
-    if (s === 'parcial') return '#6ab0ff'
-    if (s === 'vencido') return '#f87171'
-    return '#fbbf24'
-  }
+  const [shareAberto, setShareAberto] = useState(false)
+  const [drillKpi, setDrillKpi] = useState<string | null>(null)
+  const [clienteScoreDrill, setClienteScoreDrill] = useState<string | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -92,12 +136,28 @@ export default function ContasReceber() {
     if (!user) { setLoading(false); return }
     const { data: empresa } = await supabase.from('empresas').select('id').eq('user_id', user.id).maybeSingle()
     setEmpresaId(empresa?.id || null)
-    const { data: cli } = await supabase.from('clientes').select('id, nome').eq('user_id', user.id).order('nome')
-    const { data } = await supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true })
-    setClientes(cli || [])
-    setContas(data || [])
+    const [{ data: cli }, { data: cc }, { data: ct }] = await Promise.all([
+      supabase.from('clientes').select('*').eq('user_id', user.id).order('nome'),
+      supabase.from('centros_custo').select('id, nome').eq('user_id', user.id).order('nome'),
+      supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
+    ])
+    setClientes((cli as ClienteRow[]) || [])
+    setCentrosCusto(cc || [])
+    setContas((ct as Conta[]) || [])
     setLoading(false)
   }
+
+  // ========== MOTOR DE INTELIGÊNCIA — reaproveita 100% clienteIntelHelpers.ts ==========
+  // Sem inadimplência aqui de propósito: esse é o módulo Contas a Receber, a régua de
+  // cobrança fica em Inadimplência (módulo separado); montarSnapshotsCarteira aceita
+  // [] normalmente e ainda deriva o estágio "aberto" a partir das contas vencidas.
+  const carteira: SnapshotCarteira = useMemo(() => montarSnapshotsCarteira(clientes, contas as ContaRow[], []), [clientes, contas])
+  const ranking = useMemo(() => rankingScoreAxiomaCliente(carteira), [carteira])
+  const scoreCarteira = scoreMedioCarteiraAxiomaCliente(ranking)
+  // KPIs/aging/score refletem o estado ATUAL da carteira (vencido é vencido hoje,
+  // independente do período escolhido) — só a grade abaixo é filtrada por período.
+  const kpis = useMemo(() => calcularKpisRecebimento(contas as ContaRow[], carteira, ranking), [contas, carteira, ranking])
+  const aging = useMemo(() => agingCarteiraRecebiveis(contas as ContaRow[]), [contas])
 
   const hoje = new Date().toISOString().split('T')[0]
 
@@ -108,125 +168,178 @@ export default function ContasReceber() {
     return 'pendente'
   }
 
-  function diasAtraso(venc?: string) {
-    if (!venc || venc >= hoje) return 0
-    const d1 = new Date(venc + 'T00:00:00').getTime()
-    const d2 = new Date(hoje + 'T00:00:00').getTime()
-    return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24))
+  function diasAtraso(venc?: string, status?: string | null) {
+    if (!venc || status === 'recebido' || venc >= hoje) return 0
+    return Math.floor((new Date(hoje + 'T00:00:00').getTime() - new Date(venc + 'T00:00:00').getTime()) / 86400000)
   }
 
-  function encargos(conta: Conta) {
-    const saldo = Math.max(0, (conta.valor || 0) - (conta.valor_recebido || 0))
-    const dias = diasAtraso(conta.data_vencimento)
-    if (dias <= 0 || saldo <= 0) return { multa: 0, juros: 0, total: 0 }
-    const multa = saldo * ((conta.taxa_multa || 0) / 100)
-    const juros = saldo * ((conta.taxa_juros || 0) / 100) * (dias / 30)
-    return { multa, juros, total: multa + juros }
+  function calcularLinha(c: Conta) {
+    const dias = diasAtraso(c.data_vencimento, c.status)
+    const desconto = Number(c.valor_desconto) || 0
+    const saldoBase = Math.max(0, (c.valor || 0) - (c.valor_recebido || 0))
+    const multa = dias > 0 && saldoBase > 0 ? saldoBase * ((c.taxa_multa || 0) / 100) : 0
+    const juros = dias > 0 && saldoBase > 0 ? saldoBase * ((c.taxa_juros || 0) / 100) * (dias / 30) : 0
+    const valorAtualizado = Math.max(0, (c.valor || 0) - desconto + juros + multa)
+    const saldo = Math.max(0, valorAtualizado - (c.valor_recebido || 0))
+    return { dias, desconto, multa, juros, valorAtualizado, saldo }
   }
 
-  function abrirNovo() {
-    setEditando(null); setNc({ ...contaVazia }); setModalAberto(true)
+  function statusLabel(s?: string | null) {
+    if (s === 'recebido') return L('Recebido', 'Received', 'Recibido')
+    if (s === 'parcial') return L('Parcial', 'Partial', 'Parcial')
+    if (s === 'vencido') return L('Vencido', 'Overdue', 'Vencido')
+    return L('A Receber', 'Pending', 'Por Cobrar')
+  }
+  function statusCor(s?: string | null) {
+    if (s === 'recebido') return VERDE
+    if (s === 'parcial') return AZUL
+    if (s === 'vencido') return VERMELHO
+    return AMBAR
+  }
+  function prioridadeLabel(p?: string | null) {
+    return { baixa: L('Baixa', 'Low', 'Baja'), normal: L('Normal', 'Normal', 'Normal'), alta: L('Alta', 'High', 'Alta'), urgente: L('Urgente', 'Urgent', 'Urgente') }[p || 'normal'] || '—'
+  }
+  function prioridadeCor(p?: string | null) {
+    return { baixa: AZUL, normal: CINZA, alta: AMBAR, urgente: VERMELHO }[p || 'normal'] || CINZA
+  }
+  function nivelScoreLabel(n: ScoreAxiomaCliente['nivel']) {
+    return {
+      critico: L('Crítico', 'Critical', 'Crítico'), atencao: L('Atenção', 'Attention', 'Atención'),
+      bom: L('Bom', 'Good', 'Bueno'), excelente: L('Excelente', 'Excellent', 'Excelente'), elite: 'Elite',
+    }[n]
+  }
+  function nivelScoreCor(n: ScoreAxiomaCliente['nivel']) {
+    return { critico: VERMELHO, atencao: AMBAR, bom: VERDE, excelente: VERDE, elite: OURO }[n]
+  }
+  function nivelPorTotal(total: number): ScoreAxiomaCliente['nivel'] {
+    return total < 400 ? 'critico' : total < 600 ? 'atencao' : total < 750 ? 'bom' : total < 900 ? 'excelente' : 'elite'
   }
 
+  const cliente = (id?: string | null) => clientes.find((c) => c.id === id) || null
+  const scoreDe = (clienteId?: string | null) => ranking.find((r) => r.s.cliente.id === clienteId)?.score || null
+
+  // ========== CRUD ==========
+  function abrirNovo() { setEditando(null); setNc({ ...contaVazia }); setErroSalvar(''); setModalAberto(true) }
   function abrirEdicao(c: Conta) {
     setEditando(c)
     setNc({
       descricao: c.descricao || '', valor: String(c.valor || ''), valor_recebido: String(c.valor_recebido || ''),
-      data_vencimento: c.data_vencimento || '', data_emissao: c.data_emissao || '',
-      cliente_id: c.cliente_id || '', forma_recebimento: c.forma_recebimento || formasRecebimento[0],
-      numero_documento: c.numero_documento || '', categoria: c.categoria || categorias[0],
-      parcelas: String(c.parcelas || '1'), taxa_juros: String(c.taxa_juros || ''),
-      taxa_multa: String(c.taxa_multa || ''), observacoes: c.observacoes || '',
+      valor_desconto: String(c.valor_desconto || ''), data_vencimento: c.data_vencimento || '',
+      data_emissao: c.data_emissao || '', competencia: c.competencia || '',
+      cliente_id: c.cliente_id || '', forma_recebimento: c.forma_recebimento || FORMAS_RECEBIMENTO[0],
+      numero_documento: c.numero_documento || '', categoria: c.categoria || CATEGORIAS[0],
+      parcelas: String(c.parcelas || '1'), taxa_juros: String(c.taxa_juros || ''), taxa_multa: String(c.taxa_multa || ''),
+      centro_custo_id: c.centro_custo_id || '', responsavel: c.responsavel || '', projeto: c.projeto || '',
+      prioridade: c.prioridade || 'normal', recorrente: !!c.recorrente, frequencia_recorrencia: c.frequencia_recorrencia || 'mensal',
+      observacoes: c.observacoes || '',
     })
-    setModalAberto(true)
+    setErroSalvar(''); setModalAberto(true)
   }
-
-  function fecharModal() {
-    setModalAberto(false); setEditando(null); setNc({ ...contaVazia })
-  }
+  function fecharModal() { setModalAberto(false); setEditando(null); setNc({ ...contaVazia }); setErroSalvar('') }
 
   async function salvar() {
     if (!nc.descricao || !nc.valor || !nc.data_vencimento) return
-    setSalvando(true)
+    setSalvando(true); setErroSalvar('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
+    const userId = user.id
     const total = parseFloat(nc.valor || '0')
     const recebido = parseFloat(nc.valor_recebido || '0')
     const status = calcStatus(total, recebido, nc.data_vencimento)
-    const payload: any = {
-      descricao: nc.descricao, valor: total, valor_recebido: recebido,
-      data_vencimento: nc.data_vencimento, data_emissao: nc.data_emissao || null,
-      cliente_id: nc.cliente_id || null, forma_recebimento: nc.forma_recebimento,
-      numero_documento: nc.numero_documento, categoria: nc.categoria,
-      parcelas: parseInt(nc.parcelas || '1'), taxa_juros: parseFloat(nc.taxa_juros || '0'),
-      taxa_multa: parseFloat(nc.taxa_multa || '0'), observacoes: nc.observacoes,
-      data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : null,
+    const payloadCompleto: any = {
+      descricao: nc.descricao, valor: total, valor_recebido: recebido, valor_desconto: parseFloat(nc.valor_desconto || '0'),
+      data_vencimento: nc.data_vencimento, data_emissao: nc.data_emissao || null, competencia: nc.competencia || null,
+      cliente_id: nc.cliente_id || null, forma_recebimento: nc.forma_recebimento, numero_documento: nc.numero_documento,
+      categoria: nc.categoria, parcelas: parseInt(nc.parcelas || '1'), taxa_juros: parseFloat(nc.taxa_juros || '0'),
+      taxa_multa: parseFloat(nc.taxa_multa || '0'), centro_custo_id: nc.centro_custo_id || null,
+      responsavel: nc.responsavel || null, projeto: nc.projeto || null, prioridade: nc.prioridade,
+      recorrente: nc.recorrente, frequencia_recorrencia: nc.recorrente ? nc.frequencia_recorrencia : null,
+      observacoes: nc.observacoes, data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : null,
       status, empresa_id: empresaId,
     }
-    if (editando) {
-      await supabase.from('contas_receber').update(payload).eq('id', editando.id)
-    } else {
-      await supabase.from('contas_receber').insert({ ...payload, user_id: user.id })
+
+    async function tentarSalvar(payload: any): Promise<{ error: any }> {
+      if (editando) return supabase.from('contas_receber').update(payload).eq('id', editando.id)
+      return supabase.from('contas_receber').insert({ ...payload, user_id: userId })
     }
+
+    let { error } = await tentarSalvar(payloadCompleto)
+    if (error && error.code === '42703') {
+      const payloadReduzido = { ...payloadCompleto }
+      COLUNAS_PENDENTES_SQL.forEach((k) => delete payloadReduzido[k])
+      const retry = await tentarSalvar(payloadReduzido)
+      error = retry.error
+      if (!error) setAvisoSchema(true)
+    }
+
+    if (error) { setErroSalvar(error.message); setSalvando(false); return }
     fecharModal(); setSalvando(false); carregar()
   }
 
   async function excluir(id: string) {
     await supabase.from('contas_receber').delete().eq('id', id)
-    setContas(contas.filter(c => c.id !== id))
+    setContas(contas.filter((c) => c.id !== id))
   }
 
   function abrirReceber(c: Conta) {
     setContaReceber(c)
-    const saldo = Math.max(0, (c.valor || 0) - (c.valor_recebido || 0))
-    setValorReceber(String(saldo.toFixed(2)))
+    const { saldo } = calcularLinha(c)
+    setValorReceber(saldo.toFixed(2))
     setModalReceber(true)
   }
-
   async function confirmarRecebimento() {
     if (!contaReceber) return
     setRecebendo(true)
     const novoRecebido = (contaReceber.valor_recebido || 0) + parseFloat(valorReceber || '0')
     const status = calcStatus(contaReceber.valor, novoRecebido, contaReceber.data_vencimento)
     await supabase.from('contas_receber').update({
-      valor_recebido: novoRecebido,
-      status,
+      valor_recebido: novoRecebido, status,
       data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : contaReceber.data_recebimento || null,
     }).eq('id', contaReceber.id)
-    setModalReceber(false); setContaReceber(null); setValorReceber('')
-    setRecebendo(false); carregar()
+    setModalReceber(false); setContaReceber(null); setValorReceber(''); setRecebendo(false); carregar()
   }
 
+  // ========== FILTROS DA GRADE (busca + status + período por vencimento) ==========
+  const contasFiltradas = useMemo(() => {
+    return contas.filter((c) => {
+      if (c.data_vencimento < periodo.inicio || c.data_vencimento > periodo.fim) return false
+      if (filtroStatus !== 'todos' && (c.status || 'pendente') !== filtroStatus) return false
+      if (!busca) return true
+      const cliNome = cliente(c.cliente_id)?.nome || ''
+      const alvo = `${c.descricao} ${cliNome} ${c.numero_documento || ''} ${c.responsavel || ''} ${c.projeto || ''}`.toLowerCase()
+      return alvo.includes(busca.toLowerCase())
+    }).sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
+  }, [contas, busca, filtroStatus, periodo, clientes])
+
+  // ========== PDF ==========
   const exportarPDF = async () => {
     setExportando(true)
     try {
-      const fmtN = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       gerarPdfTabela({
-        titulo: txt.titulo,
-        subtitulo: txt.subtitulo,
+        titulo: L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar'),
+        subtitulo: L('Central de Recebimentos', 'Receivables Center', 'Centro de Cobros'),
         colunas: [
-          { header: 'Descrição', key: 'desc', width: 3 },
-          { header: 'Cliente', key: 'cli', width: 3 },
-          { header: 'Vencimento', key: 'venc', width: 2 },
-          { header: 'Status', key: 'status', width: 2 },
-          { header: 'Total (R$)', key: 'total', width: 2, align: 'right' },
-          { header: 'Recebido (R$)', key: 'rec', width: 2, align: 'right' },
-          { header: 'Saldo (R$)', key: 'saldo', width: 2, align: 'right' },
+          { header: L('Cliente', 'Client', 'Cliente'), key: 'cli', width: 3 },
+          { header: L('Documento', 'Document', 'Documento'), key: 'doc', width: 2 },
+          { header: L('Vencimento', 'Due', 'Vencimiento'), key: 'venc', width: 2 },
+          { header: L('Status', 'Status', 'Estado'), key: 'status', width: 2 },
+          { header: L('Valor Atualizado', 'Updated Value', 'Valor Actualizado'), key: 'atual', width: 2, align: 'right' },
+          { header: L('Recebido', 'Received', 'Recibido'), key: 'rec', width: 2, align: 'right' },
+          { header: L('Saldo', 'Balance', 'Saldo'), key: 'saldo', width: 2, align: 'right' },
         ],
-        linhas: contasFiltradas.map((c) => ({
-          desc: c.descricao,
-          cli: clientes.find(x => x.id === c.cliente_id)?.nome || '-',
-          venc: c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-',
-          status: statusLabel(c.status),
-          total: fmtN(c.valor || 0),
-          rec: fmtN(c.valor_recebido || 0),
-          saldo: fmtN(Math.max(0, (c.valor || 0) - (c.valor_recebido || 0))),
-        })),
+        linhas: contasFiltradas.map((c) => {
+          const { valorAtualizado, saldo } = calcularLinha(c)
+          return {
+            cli: cliente(c.cliente_id)?.nome || '-', doc: c.numero_documento || '-',
+            venc: c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-',
+            status: statusLabel(c.status), atual: fBRL(valorAtualizado), rec: fBRL(c.valor_recebido || 0), saldo: fBRL(saldo),
+          }
+        }),
         resumo: [
-          { label: 'Total a Receber', valor: `R$ ${fmtN(totalAReceber)}` },
-          { label: 'Total Recebido', valor: `R$ ${fmtN(totalRecebido)}` },
-          { label: 'Vencido', valor: `R$ ${fmtN(totalVencido)}` },
-          { label: 'Juros + Multa (estim.)', valor: `R$ ${fmtN(totalEncargos)}` },
+          { label: L('Total a Receber', 'Total Receivable', 'Total por Cobrar'), valor: fBRL(kpis.valorTotalAReceber) },
+          { label: L('Vencido', 'Overdue', 'Vencido'), valor: fBRL(kpis.valorVencido) },
+          { label: L('Recebido no Mês', 'Received this Month', 'Recibido este Mes'), valor: fBRL(kpis.recebidoNoMes) },
+          { label: L('Score Médio da Carteira', 'Avg. Portfolio Score', 'Score Promedio de Cartera'), valor: kpis.scoreMedioCarteira != null ? `${kpis.scoreMedioCarteira}/1000` : '—' },
         ],
         nomeArquivo: `axioma-contas-receber-${new Date().toISOString().slice(0, 10)}.pdf`,
       })
@@ -234,295 +347,605 @@ export default function ContasReceber() {
     setExportando(false)
   }
 
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const textoCompartilhar = `${L('Central de Recebimentos Axioma', 'Axioma Receivables Center', 'Centro de Cobros Axioma')}: ${L('a receber', 'receivable', 'por cobrar')} ${fBRL(kpis.valorTotalAReceber)}, ${L('vencido', 'overdue', 'vencido')} ${fBRL(kpis.valorVencido)}.`
+  const canais = canaisCompartilhamento(textoCompartilhar, L('Contas a Receber — Axioma', 'Accounts Receivable — Axioma', 'Cuentas por Cobrar — Axioma'))
 
-  const contasFiltradas = contas.filter(c => {
-    const cliNome = clientes.find(x => x.id === c.cliente_id)?.nome || ''
-    return c.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-      cliNome.toLowerCase().includes(busca.toLowerCase())
-  })
+  // ========== KPIs (17, com estado vazio honesto) ==========
+  type KpiTile = { key: string; label: string; valor: string; cor: string; vazio: boolean; drillable: boolean }
+  const semContas = contas.length === 0
+  const kpiTiles: KpiTile[] = [
+    { key: 'totalAReceber', label: L('Valor Total a Receber', 'Total Receivable', 'Total por Cobrar'), valor: fBRL(kpis.valorTotalAReceber), cor: ESMERALDA, vazio: semContas, drillable: true },
+    { key: 'recebidoMes', label: L('Recebido no Mês', 'Received this Month', 'Recibido este Mes'), valor: fBRL(kpis.recebidoNoMes), cor: VERDE, vazio: semContas, drillable: true },
+    { key: 'recebidoAno', label: L('Recebido no Ano', 'Received this Year', 'Recibido este Año'), valor: fBRL(kpis.recebidoNoAno), cor: VERDE, vazio: semContas, drillable: true },
+    { key: 'vencido', label: L('Vencido', 'Overdue', 'Vencido'), valor: fBRL(kpis.valorVencido), cor: VERMELHO, vazio: semContas, drillable: true },
+    { key: 'aVencer', label: L('A Vencer', 'Not Due Yet', 'Por Vencer'), valor: fBRL(kpis.valorAVencer), cor: AZUL, vazio: semContas, drillable: true },
+    { key: 'indiceInadimplencia', label: L('Índice de Inadimplência', 'Default Rate', 'Índice de Morosidad'), valor: kpis.indiceInadimplencia != null ? `${kpis.indiceInadimplencia}%` : '—', cor: kpis.indiceInadimplencia == null ? CINZA : kpis.indiceInadimplencia > 15 ? VERMELHO : kpis.indiceInadimplencia > 5 ? AMBAR : VERDE, vazio: kpis.indiceInadimplencia == null, drillable: false },
+    { key: 'indicePontualidade', label: L('Índice de Pontualidade', 'On-time Rate', 'Índice de Puntualidad'), valor: kpis.indicePontualidade != null ? `${kpis.indicePontualidade}%` : '—', cor: kpis.indicePontualidade == null ? CINZA : kpis.indicePontualidade >= 80 ? VERDE : kpis.indicePontualidade >= 50 ? AMBAR : VERMELHO, vazio: kpis.indicePontualidade == null, drillable: false },
+    { key: 'dso', label: L('Prazo Médio de Recebimento (DSO)', 'Days Sales Outstanding (DSO)', 'Plazo Promedio de Cobro (DSO)'), valor: kpis.dso != null ? `${kpis.dso} ${L('dias', 'days', 'días')}` : '—', cor: TEAL, vazio: kpis.dso == null, drillable: false },
+    { key: 'receitaPrevista', label: L('Receita Prevista', 'Forecast Revenue', 'Ingreso Previsto'), valor: fBRL(kpis.receitaPrevista), cor: AZUL, vazio: semContas, drillable: false },
+    { key: 'receitaConfirmada', label: L('Receita Confirmada', 'Confirmed Revenue', 'Ingreso Confirmado'), valor: fBRL(kpis.receitaConfirmada), cor: VERDE, vazio: semContas, drillable: false },
+    { key: 'receitaRisco', label: L('Receita em Risco', 'Revenue at Risk', 'Ingreso en Riesgo'), valor: fBRL(kpis.receitaEmRisco), cor: VERMELHO, vazio: semContas, drillable: false },
+    { key: 'clientesAtraso', label: L('Clientes em Atraso', 'Overdue Clients', 'Clientes en Atraso'), valor: `${kpis.clientesEmAtraso}`, cor: kpis.clientesEmAtraso > 0 ? VERMELHO : VERDE, vazio: clientes.length === 0, drillable: true },
+    { key: 'clientesCriticos', label: L('Clientes Críticos', 'Critical Clients', 'Clientes Críticos'), valor: `${kpis.clientesCriticos}`, cor: kpis.clientesCriticos > 0 ? VERMELHO : VERDE, vazio: clientes.length === 0, drillable: true },
+    { key: 'ticketMedio', label: L('Ticket Médio', 'Avg. Ticket', 'Ticket Promedio'), valor: kpis.ticketMedio != null ? fBRL(kpis.ticketMedio) : '—', cor: TEAL, vazio: kpis.ticketMedio == null, drillable: false },
+    { key: 'receitaRecorrente', label: L('Receita Recorrente', 'Recurring Revenue', 'Ingreso Recurrente'), valor: fBRL(kpis.receitaRecorrente), cor: ESMERALDA, vazio: semContas, drillable: false },
+    { key: 'receitaNaoRecorrente', label: L('Receita Não Recorrente', 'Non-recurring Revenue', 'Ingreso No Recurrente'), valor: fBRL(kpis.receitaNaoRecorrente), cor: CINZA, vazio: semContas, drillable: false },
+    { key: 'scoreMedio', label: L('Score Médio da Carteira', 'Avg. Portfolio Score', 'Score Promedio de Cartera'), valor: kpis.scoreMedioCarteira != null ? `${kpis.scoreMedioCarteira}/1000` : '—', cor: kpis.scoreMedioCarteira == null ? CINZA : OURO, vazio: kpis.scoreMedioCarteira == null, drillable: false },
+  ]
 
-  const totalAReceber = contas.reduce((s, c) => s + Math.max(0, (c.valor || 0) - (c.valor_recebido || 0)), 0)
-  const totalRecebido = contas.reduce((s, c) => s + (c.valor_recebido || 0), 0)
-  const totalVencido = contas.filter(c => c.status !== 'recebido' && c.data_vencimento < hoje)
-    .reduce((s, c) => s + Math.max(0, (c.valor || 0) - (c.valor_recebido || 0)), 0)
-  const totalEncargos = contas.reduce((s, c) => s + encargos(c).total, 0)
+  function drillLinhas(key: string): { label: string; valor: string }[] {
+    if (key === 'vencido' || key === 'totalAReceber' || key === 'aVencer') {
+      const filtro = key === 'vencido' ? (c: Conta) => (c.status || '') !== 'recebido' && c.data_vencimento < hoje
+        : key === 'aVencer' ? (c: Conta) => (c.status || '') !== 'recebido' && c.data_vencimento >= hoje
+        : (c: Conta) => (c.status || '') !== 'recebido'
+      return contas.filter(filtro).sort((a, b) => calcularLinha(b).saldo - calcularLinha(a).saldo).slice(0, 10)
+        .map((c) => ({ label: `${cliente(c.cliente_id)?.nome || c.descricao} · ${new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}`, valor: fBRL(calcularLinha(c).saldo) }))
+    }
+    if (key === 'recebidoMes' || key === 'recebidoAno') {
+      const inicio = key === 'recebidoMes' ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10) : new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10)
+      return contas.filter((c) => c.status === 'recebido' && c.data_recebimento && c.data_recebimento >= inicio)
+        .sort((a, b) => (b.valor_recebido || 0) - (a.valor_recebido || 0)).slice(0, 10)
+        .map((c) => ({ label: `${cliente(c.cliente_id)?.nome || c.descricao} · ${new Date((c.data_recebimento as string) + 'T00:00:00').toLocaleDateString('pt-BR')}`, valor: fBRL(c.valor_recebido || 0) }))
+    }
+    if (key === 'clientesAtraso') {
+      return carteira.clientesSnapshot.filter((s) => s.diasAtrasoAtual > 0).sort((a, b) => b.valorEmAtrasoAtual - a.valorEmAtrasoAtual).slice(0, 10)
+        .map((s) => ({ label: `${s.cliente.nome} · ${s.diasAtrasoAtual} ${L('dias', 'days', 'días')}`, valor: fBRL(s.valorEmAtrasoAtual) }))
+    }
+    if (key === 'clientesCriticos') {
+      return ranking.filter((r) => r.score.nivel === 'critico').slice(0, 10)
+        .map((r) => ({ label: r.s.cliente.nome, valor: `${r.score.total}/1000` }))
+    }
+    return []
+  }
 
-  const aging = { aVencer: 0, d30: 0, d60: 0, mais60: 0 }
-  contas.forEach(c => {
-    if (c.status === 'recebido') return
-    const saldo = Math.max(0, (c.valor || 0) - (c.valor_recebido || 0))
-    const dias = diasAtraso(c.data_vencimento)
-    if (dias <= 0) aging.aVencer += saldo
-    else if (dias <= 30) aging.d30 += saldo
-    else if (dias <= 60) aging.d60 += saldo
-    else aging.mais60 += saldo
-  })
+  const kpiAtivo = kpiTiles.find((k) => k.key === drillKpi) || null
+
+  // ========== AGING (ECharts) ==========
+  const agingLabels = [
+    L('0-30 dias', '0-30 days', '0-30 días'), L('31-60 dias', '31-60 days', '31-60 días'),
+    L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días'),
+  ]
+  const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(
+    aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5',
+    aging.map((f) => f.chave === 'd30' ? AMBAR : f.chave === 'd60' ? '#f59e0b' : f.chave === 'd90' ? '#ef4444' : '#dc2626'),
+  ) : null
+
+  // ========== SCORE AXIOMA — gauge da carteira + ranking ==========
+  const gaugeOption = optVelocimetro(scoreCarteira.amostraSuficiente ? scoreCarteira.media : 0, 1000, [
+    { ate: 400, cor: VERMELHO }, { ate: 600, cor: AMBAR }, { ate: 750, cor: VERDE }, { ate: 900, cor: VERDE }, { ate: 1000, cor: OURO },
+  ])
+  const rankingTop = ranking.slice(0, 8)
+  const scoreDrill = ranking.find((r) => r.s.cliente.id === clienteScoreDrill) || null
 
   const labelInput = 'text-xs font-semibold tracking-wider uppercase mb-2 block'
   const inputCls = 'w-full px-4 py-3 rounded-xl focus:outline-none text-sm'
-  const inputStyle = { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0' }
-  const selectStyle = { background: 'rgba(10,22,40,0.9)', border: '1px solid rgba(59,111,212,0.2)', color: '#c8d8f0' }
+  const inputStyle = { background: 'rgba(255,255,255,0.04)', border: `1px solid ${TEAL}40`, color: '#c8d8f0' }
+  const selectStyle = { background: 'rgba(10,22,40,0.95)', border: `1px solid ${TEAL}40`, color: '#c8d8f0' }
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: '#020810' }}>
-      <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: ESMERALDA, borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
-    <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
-      <div className="space-y-4">
+    <ModuloLayout
+      titulo={L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')}
+      subtitulo={L('Central de Inteligência Financeira de Recebimentos', 'Receivables Financial Intelligence Center', 'Centro de Inteligencia Financiera de Cobros')}
+      onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo}
+      labelBotao={L('Nova Conta', 'New Account', 'Nueva Cuenta')}
+      botaoExtra={
+        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+          style={{ background: `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
+          <Share2 size={16} /> {L('Compartilhar', 'Share', 'Compartir')}
+        </motion.button>
+      }
+    >
+      <div className="space-y-6">
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: idioma === 'pt' ? 'A Receber' : 'Receivable', value: fmt(totalAReceber), cor: '#fbbf24' },
-            { label: idioma === 'pt' ? 'Recebido' : 'Received', value: fmt(totalRecebido), cor: '#34d399' },
-            { label: idioma === 'pt' ? 'Vencido' : 'Overdue', value: fmt(totalVencido), cor: '#f87171' },
-            { label: idioma === 'pt' ? 'Juros + Multa' : 'Interest + Fine', value: fmt(totalEncargos), cor: '#a78bfa' },
-          ].map((card) => (
-            <CanvasBox key={card.label} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
-              <p className="text-lg md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
-            </CanvasBox>
+        {avisoSchema && (
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: `${AMBAR}12`, border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+            <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+            <span>{L('Responsável, Prioridade e Projeto ainda não foram salvos — peça para rodar o SQL de atualização no Supabase (ver relatório técnico). O resto da conta foi salvo normalmente.', 'Responsible, Priority and Project were not saved yet — run the Supabase schema update SQL first (see technical report). The rest of the record saved normally.', 'Responsable, Prioridad y Proyecto aún no se guardaron — ejecute el SQL de actualización en Supabase (ver informe técnico). El resto del registro se guardó normalmente.')}</span>
+          </div>
+        )}
+
+        {/* ================= DASHBOARD EXECUTIVO ================= */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h3 className="text-sm font-black tracking-[0.2em] uppercase" style={{ ...FONTE_EXEC, color: TEAL }}>
+            {L('Dashboard Executivo', 'Executive Dashboard', 'Panel Ejecutivo')}
+          </h3>
+          <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ESMERALDA} lang={lang} />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {kpiTiles.map((k) => (
+            <motion.button key={k.key} whileHover={k.drillable ? { scale: 1.02 } : undefined}
+              onClick={() => k.drillable && setDrillKpi(k.key)}
+              disabled={!k.drillable}
+              className="text-left rounded-2xl p-4 relative overflow-hidden"
+              style={{ background: BG_CARD, border: `1px solid ${k.cor}30`, cursor: k.drillable ? 'pointer' : 'default' }}>
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
+              <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
+              {k.vazio ? (
+                <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
+              ) : (
+                <p className="text-lg md:text-xl font-black" style={{ ...FONTE_EXEC, color: k.cor }}>{k.valor}</p>
+              )}
+              {k.drillable && !k.vazio && <ChevronRight size={13} className="absolute bottom-3 right-3" style={{ color: `${k.cor}80` }} />}
+            </motion.button>
           ))}
         </div>
 
-        <CanvasBox cor="#6ab0ff">
-          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-3" style={{ color: '#6ab0ff' }}>
-            {idioma === 'pt' ? 'Envelhecimento (Aging)' : 'Aging'}
+        {/* ================= AGING ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: VERMELHO }}>
+            {L('Envelhecimento da Carteira (Aging)', 'Portfolio Aging', 'Envejecimiento de Cartera')}
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: idioma === 'pt' ? 'A vencer' : 'Not due', val: aging.aVencer, cor: '#34d399' },
-              { label: idioma === 'pt' ? 'Vencido 1-30d' : 'Overdue 1-30d', val: aging.d30, cor: '#fbbf24' },
-              { label: idioma === 'pt' ? 'Vencido 31-60d' : 'Overdue 31-60d', val: aging.d60, cor: '#f59e0b' },
-              { label: idioma === 'pt' ? 'Vencido +60d' : 'Overdue +60d', val: aging.mais60, cor: '#f87171' },
-            ].map((b) => (
-              <div key={b.label} className="rounded-xl p-3 text-center" style={{ background: `${b.cor}10`, border: `1px solid ${b.cor}30` }}>
-                <p className="text-sm font-black" style={{ color: b.cor }}>{fmt(b.val)}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#5a7a9a' }}>{b.label}</p>
+          {aging.every((f) => f.valor === 0) ? (
+            <div className="flex flex-col items-center justify-center py-10">
+              <CheckCircle2 size={36} style={{ color: VERDE }} className="mb-2" />
+              <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma conta vencida — carteira em dia.', 'No overdue accounts — portfolio on time.', 'Sin cuentas vencidas — cartera al día.')}</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4 items-center">
+              <div className="grid grid-cols-2 gap-3">
+                {aging.map((f, i) => (
+                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${[AMBAR, '#f59e0b', '#ef4444', '#dc2626'][i]}12`, border: `1px solid ${[AMBAR, '#f59e0b', '#ef4444', '#dc2626'][i]}35` }}>
+                    <p className="text-base font-black" style={{ color: [AMBAR, '#f59e0b', '#ef4444', '#dc2626'][i] }}>{fBRL(f.valor)}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('contas', 'accounts', 'cuentas')}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </CanvasBox>
+              {agingOption && <ReactECharts option={agingOption} style={{ height: 220 }} notMerge lazyUpdate />}
+            </div>
+          )}
+        </div>
 
-        <CanvasBox cor="#3b6fd4">
-          <div className="flex items-center gap-2">
-            <Search size={16} style={{ color: '#5a7a9a' }} />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={idioma === 'pt' ? 'Buscar por descrição ou cliente...' : 'Search...'} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: '#c8d8f0' }} />
-          </div>
-        </CanvasBox>
+        {/* ================= SCORE AXIOMA DO CLIENTE ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${OURO}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: OURO }}>
+            <Crown size={14} /> {L('Score Axioma do Cliente', 'Axioma Client Score', 'Score Axioma del Cliente')}
+          </p>
+          {ranking.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10">
+              <Users size={36} style={{ color: '#1a3a5a' }} className="mb-2" />
+              <p className="text-sm" style={{ color: CINZA }}>{L('Sem clientes com cobranças ainda.', 'No clients with billing yet.', 'Sin clientes con cobros aún.')}</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-5">
+              <div className="flex flex-col items-center justify-center">
+                <ReactECharts option={gaugeOption} style={{ height: 200, width: '100%' }} notMerge lazyUpdate />
+                <p className="text-sm font-black" style={{ ...FONTE_EXEC, color: scoreCarteira.amostraSuficiente ? nivelScoreCor(nivelPorTotal(scoreCarteira.media)) : CINZA }}>
+                  {L('Média da Carteira', 'Portfolio Average', 'Promedio de Cartera')}
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                {rankingTop.map((r, i) => (
+                  <motion.button key={r.s.cliente.id} whileHover={{ scale: 1.01 }} onClick={() => setClienteScoreDrill(r.s.cliente.id)}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${nivelScoreCor(r.score.nivel)}25` }}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-bold w-4 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
+                      {r.score.nivel === 'elite' && <Crown size={12} style={{ color: OURO }} className="flex-shrink-0" />}
+                      <span className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{r.s.cliente.nome}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(r.score.nivel) }}>{nivelScoreLabel(r.score.nivel)}</span>
+                      <span className="text-xs font-black w-10 text-right" style={{ color: nivelScoreCor(r.score.nivel) }}>{r.score.total}</span>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
-        {contasFiltradas.length === 0 ? (
-          <CanvasBox cor="#6ab0ff">
+        {/* ================= CENTRAL DE RECEBIMENTOS ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${ESMERALDA}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: ESMERALDA }}>
+            {L('Central de Recebimentos', 'Receivables Center', 'Centro de Cobros')}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${ESMERALDA}25` }}>
+              <Search size={15} style={{ color: CINZA }} />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar por cliente, documento, responsável...', 'Search by client, document, owner...', 'Buscar por cliente, documento, responsable...')} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: '#c8d8f0' }} />
+            </div>
+            <div className="flex items-center gap-1.5 px-2" style={{ color: CINZA }}><Filter size={14} /></div>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-xs font-bold focus:outline-none cursor-pointer" style={{ background: 'rgba(10,22,40,0.9)', border: `1px solid ${ESMERALDA}40`, color: ESMERALDA }}>
+              <option value="todos">{L('Todos os Status', 'All Statuses', 'Todos los Estados')}</option>
+              <option value="pendente">{statusLabel('pendente')}</option>
+              <option value="parcial">{statusLabel('parcial')}</option>
+              <option value="vencido">{statusLabel('vencido')}</option>
+              <option value="recebido">{statusLabel('recebido')}</option>
+            </select>
+          </div>
+
+          {contasFiltradas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <Inbox size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
-              <p className="text-sm" style={{ color: '#3a6090' }}>{txt.semContas}</p>
+              <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma conta encontrada para o período/filtro atual.', 'No accounts found for the current period/filter.', 'Ninguna cuenta encontrada para el período/filtro actual.')}</p>
             </div>
-          </CanvasBox>
-        ) : (
-          <div className="space-y-3">
-            {contasFiltradas.map((conta, i) => {
-              const cliNome = clientes.find(x => x.id === conta.cliente_id)?.nome
-              const saldo = Math.max(0, (conta.valor || 0) - (conta.valor_recebido || 0))
-              const prog = conta.valor > 0 ? ((conta.valor_recebido || 0) / conta.valor) * 100 : 0
-              const cor = statusCor(conta.status)
-              const dias = diasAtraso(conta.data_vencimento)
-              const enc = encargos(conta)
-              return (
-                <motion.div key={conta.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={cor}>
-                    <div className="flex items-start justify-between gap-3 mb-3 flex-wrap" style={{ opacity: conta.status === 'recebido' ? 0.8 : 1 }}>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold text-sm" style={{ color: '#c8d8f0' }}>{conta.descricao}</p>
-                        <div className="flex items-center gap-2 flex-wrap mt-1">
-                          {cliNome && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(106,176,255,0.1)', color: '#6ab0ff' }}>👤 {cliNome}</span>}
-                          {conta.forma_recebimento && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(167,139,250,0.1)', color: '#a78bfa' }}>{conta.forma_recebimento}</span>}
-                          {conta.numero_documento && <span className="text-xs" style={{ color: '#5a7a9a' }}>Doc: {conta.numero_documento}</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="px-2 py-1 rounded-lg text-xs font-semibold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(conta.status)}</span>
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(conta)}><Pencil size={15} style={{ color: '#6ab0ff' }} /></motion.button>
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(conta.id)}><Trash2 size={15} style={{ color: '#f87171' }} /></motion.button>
-                      </div>
-                    </div>
+          ) : (
+            <div className="overflow-x-auto -mx-1">
+              <table className="w-full text-xs border-separate" style={{ borderSpacing: '0 6px', minWidth: 1600 }}>
+                <thead>
+                  <tr>
+                    {[
+                      L('Cliente', 'Client', 'Cliente'), L('Documento', 'Document', 'Documento'), L('Competência', 'Period', 'Competencia'),
+                      L('Emissão', 'Issue', 'Emisión'), L('Vencimento', 'Due', 'Vencimiento'), L('Dias Atraso', 'Days Late', 'Días Atraso'),
+                      L('Vlr. Original', 'Original', 'Vlr. Original'), L('Desconto', 'Discount', 'Descuento'), L('Juros', 'Interest', 'Interés'),
+                      L('Multa', 'Fine', 'Multa'), L('Vlr. Atualizado', 'Updated', 'Vlr. Actualizado'), L('Recebido', 'Received', 'Recibido'),
+                      L('Saldo', 'Balance', 'Saldo'), L('Status', 'Status', 'Estado'), L('Responsável', 'Owner', 'Responsable'),
+                      L('Centro Custo', 'Cost Center', 'Centro Costo'), L('Projeto', 'Project', 'Proyecto'), L('Categoria', 'Category', 'Categoría'),
+                      L('Forma Receb.', 'Payment', 'Forma Pago'), L('Prioridade', 'Priority', 'Prioridad'), L('Score Cliente', 'Client Score', 'Score Cliente'),
+                      L('Risco', 'Risk', 'Riesgo'), '',
+                    ].map((h) => (
+                      <th key={h} className="text-left px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap" style={{ color: CINZA }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {contasFiltradas.map((c, i) => {
+                    const { dias, desconto, multa, juros, valorAtualizado, saldo } = calcularLinha(c)
+                    const cli = cliente(c.cliente_id)
+                    const cc = centrosCusto.find((x) => x.id === c.centro_custo_id)
+                    const score = scoreDe(c.cliente_id)
+                    const cor = statusCor(c.status)
+                    return (
+                      <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
+                        style={{ background: 'rgba(255,255,255,0.02)' }}>
+                        <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: '#c8d8f0' }}>{cli?.nome || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.numero_documento || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.competencia ? new Date(c.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.data_emissao ? new Date(c.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: '#c8d8f0' }}>{new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: dias > 0 ? VERMELHO : CINZA }}>{dias > 0 ? dias : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: '#c8d8f0' }}>{fBRL(c.valor || 0)}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: desconto > 0 ? AZUL : CINZA }}>{desconto > 0 ? fBRL(desconto) : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: juros > 0 ? AMBAR : CINZA }}>{juros > 0 ? fBRL(juros) : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: multa > 0 ? VERMELHO : CINZA }}>{multa > 0 ? fBRL(multa) : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: '#c8d8f0' }}>{fBRL(valorAtualizado)}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: VERDE }}>{fBRL(c.valor_recebido || 0)}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: cor }}>{fBRL(saldo)}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span></td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.responsavel || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{cc?.nome || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.projeto || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.categoria || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.forma_recebimento || '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-[10px] font-bold" style={{ color: prioridadeCor(c.prioridade) }}>{prioridadeLabel(c.prioridade)}</span></td>
+                        <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: score ? nivelScoreCor(score.nivel) : CINZA }}>{score ? score.total : '—'}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="text-[10px] font-bold" style={{ color: score ? nivelScoreCor(score.nivel) : CINZA }}>{score ? nivelScoreLabel(score.nivel) : '—'}</span></td>
+                        <td className="px-2 py-2.5 rounded-r-xl whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {c.status !== 'recebido' && (
+                              <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirReceber(c)} title={L('Receber', 'Receive', 'Cobrar')}>
+                                <CheckCircle2 size={14} style={{ color: VERDE }} />
+                              </motion.button>
+                            )}
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)}><Pencil size={14} style={{ color: AZUL }} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)}><Trash2 size={14} style={{ color: VERMELHO }} /></motion.button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      {[
-                        { label: idioma === 'pt' ? 'Total' : 'Total', val: fmt(conta.valor), cor: '#c8d8f0' },
-                        { label: idioma === 'pt' ? 'Recebido' : 'Received', val: fmt(conta.valor_recebido || 0), cor: '#34d399' },
-                        { label: idioma === 'pt' ? 'Saldo' : 'Balance', val: fmt(saldo), cor: '#fbbf24' },
-                      ].map((s) => (
-                        <div key={s.label}>
-                          <p className="text-xs mb-0.5" style={{ color: '#5a7a9a' }}>{s.label}</p>
-                          <p className="text-sm font-black" style={{ color: s.cor }}>{s.val}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="w-full h-2 rounded-full mb-2" style={{ background: 'rgba(59,111,212,0.1)' }}>
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(prog, 100)}%` }} transition={{ duration: 0.8, ease: 'easeOut' }}
-                        className="h-2 rounded-full" style={{ background: `linear-gradient(90deg, #1a3a8f, ${cor})` }} />
-                    </div>
-
-                    {dias > 0 && conta.status !== 'recebido' && (
-                      <div className="flex items-center gap-2 mb-2 text-xs px-3 py-2 rounded-xl" style={{ background: 'rgba(248,113,113,0.08)', color: '#f87171' }}>
-                        <AlertTriangle size={13} />
-                        <span>
-                          {idioma === 'pt' ? `Vencido há ${dias} dia(s)` : `${dias} day(s) overdue`}
-                          {enc.total > 0 && ` · ${idioma === 'pt' ? 'Juros+Multa' : 'Interest+Fine'}: ${fmt(enc.total)}`}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center flex-wrap gap-2">
-                      <span className="text-xs" style={{ color: '#5a7a9a' }}>
-                        {txt.vence}: {new Date((conta.data_vencimento || '') + 'T00:00:00').toLocaleDateString('pt-BR')}
-                        {conta.parcelas && conta.parcelas > 1 ? ` · ${conta.parcelas}x` : ''}
-                      </span>
-                      {conta.status !== 'recebido' && (
-                        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => abrirReceber(conta)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1"
-                          style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
-                          <CheckCircle2 size={13} /> {idioma === 'pt' ? 'Receber' : 'Receive'}
-                        </motion.button>
-                      )}
-                    </div>
-                  </CanvasBox>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
       </div>
 
-      <AnimatePresence>
-        {modalAberto && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="w-full max-w-lg">
-              <CanvasBox cor="#6ab0ff">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: '#6ab0ff' }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: '#c8d8f0' }}>{editando ? txt.editar : txt.novo}</h3>
+      {/* ================= MODAL: NOVA/EDITAR CONTA ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {modalAberto && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={fecharModal}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35`, boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}>
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{editando ? L('Editar Conta', 'Edit Account', 'Editar Cuenta') : L('Nova Conta', 'New Account', 'Nueva Cuenta')}</h3>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: '#5a7a9a' }}><X size={20} /></motion.button>
-                </div>
-                <div className="space-y-3">
-                  <div>
-                    <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Descrição' : 'Description'} *</label>
-                    <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} className={inputCls} style={inputStyle} />
+
+                  {erroSalvar && <div className="mb-4 px-3 py-2 rounded-lg text-xs" style={{ background: `${VERMELHO}15`, color: VERMELHO }}>{erroSalvar}</div>}
+
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                    <div>
+                      <label className={labelInput} style={{ color: TEAL }}>{L('Descrição', 'Description', 'Descripción')} *</label>
+                      <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} className={inputCls} style={inputStyle} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Cliente', 'Client', 'Cliente')}</label>
+                        <select value={nc.cliente_id} onChange={(e) => setNc({ ...nc, cliente_id: e.target.value })} className={inputCls} style={selectStyle}>
+                          <option value="">-- {L('Selecione', 'Select', 'Seleccione')} --</option>
+                          {clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Nº Documento', 'Doc No.', 'Nº Documento')}</label>
+                        <input value={nc.numero_documento} onChange={(e) => setNc({ ...nc, numero_documento: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Valor Total (R$)', 'Total (R$)', 'Total (R$)')} *</label>
+                        <input type="number" value={nc.valor} onChange={(e) => setNc({ ...nc, valor: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Já Recebido (R$)', 'Received (R$)', 'Recibido (R$)')}</label>
+                        <input type="number" value={nc.valor_recebido} onChange={(e) => setNc({ ...nc, valor_recebido: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Desconto (R$)', 'Discount (R$)', 'Descuento (R$)')}</label>
+                        <input type="number" value={nc.valor_desconto} onChange={(e) => setNc({ ...nc, valor_desconto: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Competência', 'Period', 'Competencia')}</label>
+                        <input type="date" value={nc.competencia} onChange={(e) => setNc({ ...nc, competencia: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Emissão', 'Issue Date', 'Emisión')}</label>
+                        <input type="date" value={nc.data_emissao} onChange={(e) => setNc({ ...nc, data_emissao: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Vencimento', 'Due Date', 'Vencimiento')} *</label>
+                        <input type="date" value={nc.data_vencimento} onChange={(e) => setNc({ ...nc, data_vencimento: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Juros % a.m.', 'Interest % /mo', 'Interés % /mes')}</label>
+                        <input type="number" value={nc.taxa_juros} onChange={(e) => setNc({ ...nc, taxa_juros: e.target.value })} placeholder="ex: 2" className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Multa %', 'Fine %', 'Multa %')}</label>
+                        <input type="number" value={nc.taxa_multa} onChange={(e) => setNc({ ...nc, taxa_multa: e.target.value })} placeholder="ex: 10" className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Forma de Recebimento', 'Payment Method', 'Forma de Pago')}</label>
+                        <select value={nc.forma_recebimento} onChange={(e) => setNc({ ...nc, forma_recebimento: e.target.value })} className={inputCls} style={selectStyle}>
+                          {FORMAS_RECEBIMENTO.map((f) => <option key={f}>{f}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Categoria', 'Category', 'Categoría')}</label>
+                        <select value={nc.categoria} onChange={(e) => setNc({ ...nc, categoria: e.target.value })} className={inputCls} style={selectStyle}>
+                          {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Parcelas', 'Installments', 'Cuotas')}</label>
+                        <input type="number" value={nc.parcelas} onChange={(e) => setNc({ ...nc, parcelas: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Centro de Custo', 'Cost Center', 'Centro de Costo')}</label>
+                        <select value={nc.centro_custo_id} onChange={(e) => setNc({ ...nc, centro_custo_id: e.target.value })} className={inputCls} style={selectStyle}>
+                          <option value="">-- {L('Nenhum', 'None', 'Ninguno')} --</option>
+                          {centrosCusto.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Prioridade', 'Priority', 'Prioridad')}</label>
+                        <select value={nc.prioridade} onChange={(e) => setNc({ ...nc, prioridade: e.target.value })} className={inputCls} style={selectStyle}>
+                          {PRIORIDADES.map((p) => <option key={p} value={p}>{prioridadeLabel(p)}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Responsável', 'Owner', 'Responsable')}</label>
+                        <input value={nc.responsavel} onChange={(e) => setNc({ ...nc, responsavel: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                      <div>
+                        <label className={labelInput} style={{ color: TEAL }}>{L('Projeto', 'Project', 'Proyecto')}</label>
+                        <input value={nc.projeto} onChange={(e) => setNc({ ...nc, projeto: e.target.value })} className={inputCls} style={inputStyle} />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 px-1">
+                      <input type="checkbox" id="recorrente" checked={nc.recorrente} onChange={(e) => setNc({ ...nc, recorrente: e.target.checked })} className="w-4 h-4" />
+                      <label htmlFor="recorrente" className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{L('Cobrança recorrente', 'Recurring billing', 'Cobro recurrente')}</label>
+                      {nc.recorrente && (
+                        <select value={nc.frequencia_recorrencia} onChange={(e) => setNc({ ...nc, frequencia_recorrencia: e.target.value })} className="px-3 py-1.5 rounded-lg text-xs" style={selectStyle}>
+                          <option value="mensal">{L('Mensal', 'Monthly', 'Mensual')}</option>
+                          <option value="trimestral">{L('Trimestral', 'Quarterly', 'Trimestral')}</option>
+                          <option value="anual">{L('Anual', 'Yearly', 'Anual')}</option>
+                        </select>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className={labelInput} style={{ color: TEAL }}>{L('Observações', 'Notes', 'Observaciones')}</label>
+                      <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2} className={inputCls} style={inputStyle} />
+                    </div>
                   </div>
-                  <div>
-                    <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Cliente' : 'Client'}</label>
-                    <select value={nc.cliente_id} onChange={(e) => setNc({ ...nc, cliente_id: e.target.value })} className={inputCls} style={selectStyle}>
-                      <option value="">-- {idioma === 'pt' ? 'Selecione' : 'Select'} --</option>
-                      {clientes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Valor Total (R$)' : 'Total (R$)'} *</label>
-                      <input type="number" value={nc.valor} onChange={(e) => setNc({ ...nc, valor: e.target.value })} className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Já Recebido (R$)' : 'Received (R$)'}</label>
-                      <input type="number" value={nc.valor_recebido} onChange={(e) => setNc({ ...nc, valor_recebido: e.target.value })} className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Emissão' : 'Issue Date'}</label>
-                      <input type="date" value={nc.data_emissao} onChange={(e) => setNc({ ...nc, data_emissao: e.target.value })} className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Vencimento' : 'Due Date'} *</label>
-                      <input type="date" value={nc.data_vencimento} onChange={(e) => setNc({ ...nc, data_vencimento: e.target.value })} className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Forma de Recebimento' : 'Payment Method'}</label>
-                      <select value={nc.forma_recebimento} onChange={(e) => setNc({ ...nc, forma_recebimento: e.target.value })} className={inputCls} style={selectStyle}>
-                        {formasRecebimento.map(f => <option key={f}>{f}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Categoria' : 'Category'}</label>
-                      <select value={nc.categoria} onChange={(e) => setNc({ ...nc, categoria: e.target.value })} className={inputCls} style={selectStyle}>
-                        {categorias.map(c => <option key={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Nº Documento' : 'Doc No.'}</label>
-                      <input value={nc.numero_documento} onChange={(e) => setNc({ ...nc, numero_documento: e.target.value })} className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Parcelas' : 'Installments'}</label>
-                      <input type="number" value={nc.parcelas} onChange={(e) => setNc({ ...nc, parcelas: e.target.value })} className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Juros % ao mês' : 'Interest % /mo'}</label>
-                      <input type="number" value={nc.taxa_juros} onChange={(e) => setNc({ ...nc, taxa_juros: e.target.value })} placeholder="ex: 2" className={inputCls} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Multa %' : 'Fine %'}</label>
-                      <input type="number" value={nc.taxa_multa} onChange={(e) => setNc({ ...nc, taxa_multa: e.target.value })} placeholder="ex: 10" className={inputCls} style={inputStyle} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Observações' : 'Notes'}</label>
-                    <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2} className={inputCls} style={inputStyle} />
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(59,111,212,0.1)', color: '#5a7a9a' }}>{txt.cancelar}</button>
+
+                  <div className="flex gap-3 pt-4">
+                    <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                      style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
-                      {salvando ? '...' : (idioma === 'pt' ? 'Salvar Conta' : 'Save')}
+                      style={{ background: `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
+                      {salvando ? '...' : L('Salvar Conta', 'Save', 'Guardar')}
                     </motion.button>
                   </div>
                 </div>
-              </CanvasBox>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>, document.body,
+      )}
 
-      <AnimatePresence>
-        {modalReceber && contaReceber && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
-              className="w-full max-w-sm">
-              <CanvasBox cor="#34d399">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold" style={{ color: '#c8d8f0' }}>{idioma === 'pt' ? 'Registrar Recebimento' : 'Register Payment'}</h3>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalReceber(false)} style={{ color: '#5a7a9a' }}><X size={20} /></motion.button>
+      {/* ================= MODAL: RECEBER ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {modalReceber && contaReceber && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setModalReceber(false)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERDE}35` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Registrar Recebimento', 'Register Payment', 'Registrar Cobro')}</h3>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalReceber(false)} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>{contaReceber.descricao}</p>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>
+                    {L('Saldo em aberto', 'Open balance', 'Saldo abierto')}: <span style={{ color: AMBAR, fontWeight: 700 }}>{fBRL(calcularLinha(contaReceber).saldo)}</span>
+                  </p>
+                  <label className={labelInput} style={{ color: TEAL }}>{L('Valor a receber agora (R$)', 'Amount to receive (R$)', 'Monto a cobrar ahora (R$)')}</label>
+                  <input type="number" value={valorReceber} onChange={(e) => setValorReceber(e.target.value)} className={inputCls} style={inputStyle} />
+                  <div className="flex gap-3 pt-4">
+                    <button onClick={() => setModalReceber(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRecebimento} disabled={recebendo}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                      style={{ background: `linear-gradient(135deg, ${VERDE}, #059669)`, color: '#fff' }}>
+                      {recebendo ? '...' : L('Confirmar', 'Confirm', 'Confirmar')}
+                    </motion.button>
+                  </div>
                 </div>
-                <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>{contaReceber.descricao}</p>
-                <p className="text-xs mb-4" style={{ color: '#5a7a9a' }}>
-                  {idioma === 'pt' ? 'Saldo em aberto' : 'Open balance'}: <span style={{ color: '#fbbf24', fontWeight: 700 }}>{fmt(Math.max(0, contaReceber.valor - (contaReceber.valor_recebido || 0)))}</span>
-                </p>
-                <label className={labelInput} style={{ color: '#5a8fd4' }}>{idioma === 'pt' ? 'Valor a receber agora (R$)' : 'Amount to receive (R$)'}</label>
-                <input type="number" value={valorReceber} onChange={(e) => setValorReceber(e.target.value)} className={inputCls} style={inputStyle} />
-                <div className="flex gap-3 pt-4">
-                  <button onClick={() => setModalReceber(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(59,111,212,0.1)', color: '#5a7a9a' }}>{txt.cancelar}</button>
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRecebimento} disabled={recebendo}
-                    className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg, #064e3b, #059669)', color: '#fff' }}>
-                    {recebendo ? '...' : (idioma === 'pt' ? 'Confirmar' : 'Confirm')}
-                  </motion.button>
-                </div>
-              </CanvasBox>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: DRILL-DOWN DE KPI ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {kpiAtivo && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setDrillKpi(null)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${kpiAtivo.cor}40` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <p className="text-[10px] font-bold tracking-wider uppercase" style={{ color: CINZA }}>{kpiAtivo.label}</p>
+                      <h3 className="text-2xl font-black" style={{ ...FONTE_EXEC, color: kpiAtivo.cor }}>{kpiAtivo.valor}</h3>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setDrillKpi(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {drillLinhas(kpiAtivo.key).length === 0 ? (
+                      <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem itens para detalhar.', 'No items to break down.', 'Sin elementos para detallar.')}</p>
+                    ) : drillLinhas(kpiAtivo.key).map((l, i) => (
+                      <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <span style={{ color: '#c8d8f0' }}>{l.label}</span>
+                        <span className="font-bold" style={{ color: kpiAtivo.cor }}>{l.valor}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: DETALHE DO SCORE DO CLIENTE ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {scoreDrill && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setClienteScoreDrill(null)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${nivelScoreCor(scoreDrill.score.nivel)}40` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-2">
+                      {scoreDrill.score.nivel === 'elite' && <Crown size={16} style={{ color: OURO }} />}
+                      <div>
+                        <h3 className="text-base font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{scoreDrill.s.cliente.nome}</h3>
+                        <p className="text-xl font-black" style={{ color: nivelScoreCor(scoreDrill.score.nivel) }}>{scoreDrill.score.total}/1000 · {nivelScoreLabel(scoreDrill.score.nivel)}</p>
+                      </div>
+                    </div>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setClienteScoreDrill(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
+                    {[...scoreDrill.score.criterios].sort((a, b) => b.peso - a.peso).map((c) => (
+                      <div key={c.chave} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                        <span style={{ color: '#c8d8f0' }}>{nomeCriterioScoreCliente(lang, c.chave)} <span style={{ color: CINZA }}>({c.peso}%)</span></span>
+                        <span className="font-bold" style={{ color: c.semDados ? CINZA : '#c8d8f0' }}>{c.semDados ? L('sem dados', 'no data', 'sin datos') : `${Math.round(c.valor as number)}/100`}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= CENTRO DE COMPARTILHAMENTO ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {shareAberto && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setShareAberto(false)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${ESMERALDA}35` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Compartilhar', 'Share', 'Compartir')}</h3>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <div className="space-y-2">
+                    {canais.map((c) => (
+                      <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
+                        style={{ background: `${c.cor}15`, color: c.cor, border: `1px solid ${c.cor}30` }}>
+                        {c.nome}
+                      </a>
+                    ))}
+                    <button onClick={() => { navigator.clipboard.writeText(textoCompartilhar); setShareAberto(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <Copy size={16} /> {L('Copiar texto', 'Copy text', 'Copiar texto')}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
     </ModuloLayout>
   )
 }
+
+// ============================================================================
+// ARQUITETURA FUTURA — CONCILIAÇÃO OPEN FINANCE/PLUGGY (não implementado agora,
+// Fase 1 é só leitura de clientes + CRUD de contas_receber. Deixado comentado
+// como referência de próxima fase, a pedido do Elias):
+//
+// 1. Pluggy já persiste transações bancárias reais em `of_transacoes` (usado hoje
+//    só como leitura em Fluxo de Caixa). Uma Fase futura de conciliação cruzaria
+//    `of_transacoes` (entradas de PIX/TED/boleto) com `contas_receber` pendentes,
+//    por valor aproximado + janela de data + nome do pagador, sugerindo "baixa
+//    automática" (nunca automática de verdade sem confirmação do usuário — risco
+//    de casar pagamento errado com conta errada é alto demais pra fazer sem revisão).
+// 2. Tela de conciliação mostraria pares sugeridos (transação bancária × conta em
+//    aberto) com um score de confiança (mesmo princípio do Score Axioma: nunca
+//    inventa certeza que não tem), usuário aprova ou rejeita cada par.
+// 3. Ao aprovar, roda o mesmo fluxo de `confirmarRecebimento()` já existente nesta
+//    página — não duplica lógica de baixa, só automatiza a origem do valor.
+// 4. Prioridade real: baixa. Pluggy segue em modo de teste por decisão do Elias
+//    (ver STATUS-AXIOMA.md seção 1) — só faz sentido depois de produção real.
+// ============================================================================

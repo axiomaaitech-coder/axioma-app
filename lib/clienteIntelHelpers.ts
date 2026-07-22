@@ -45,6 +45,10 @@ export type ContaRow = {
   contrato_ref?: string | null; centro_custo_id?: string | null; conta_contabil?: string | null;
   banco_recebedor?: string | null; competencia?: string | null; valor_desconto?: number | null;
   recorrente?: boolean | null; frequencia_recorrencia?: string | null; anexo_url?: string | null;
+  // Central de Recebimentos (Contas a Receber, Fase 1) — colunas novas, opcionais até
+  // o Elias rodar o ALTER TABLE (ver STATUS-AXIOMA.md). Sem tabela de projetos no
+  // Axioma hoje, então "projeto" é texto livre, não FK fingida.
+  responsavel?: string | null; prioridade?: string | null; projeto?: string | null;
 };
 
 export type EstagioInadimplencia = "aberto" | "aviso" | "negociacao" | "acordo" | "juridico" | "perda";
@@ -771,4 +775,205 @@ export async function enviarPerguntaZIA(
     }
   } catch {}
   return { resposta: respostaZIAPorRegras(lang, s, ivca, sinais, pergunta), modelo: "regras" };
+}
+
+// ============================================================================
+// SCORE AXIOMA DO CLIENTE (0-1000) — Contas a Receber, Fase 1.
+// Mesmo motor de calcularScoreAxiomaFornecedor (lib/fornecedorHelpers.ts, Fase 3):
+// pesos num objeto central, critério sem dado real não penaliza (peso redistribuído
+// só entre os que têm dado). Não substitui o IVCA (que fica em Clientes, mede "valor
+// do cliente" de forma mais ampla) — este é o score de risco/qualidade de recebimento
+// específico da carteira de contas a receber, com os 12 critérios pedidos.
+// 3 reservados (disputas/cancelamentos/renegociações) não têm tabela no Axioma hoje —
+// aparecem como "sem dados" até existir infraestrutura pra medir, nunca inventados.
+// ============================================================================
+
+export const PESOS_SCORE_AXIOMA_CLIENTE: Record<string, number> = {
+  pontualidade: 16, risco: 14, volume: 12, recorrencia: 10, historico: 10,
+  concentracao: 8, confiabilidade: 8, tempoRelacionamento: 8, atrasoMedio: 6,
+  disputas: 3, cancelamentos: 3, renegociacoes: 2,
+};
+
+export type CriterioScoreAxiomaCliente = { chave: string; valor: number | null; peso: number; contribuicao: number; semDados: boolean };
+export type NivelScoreCliente = "critico" | "atencao" | "bom" | "excelente" | "elite";
+export type ScoreAxiomaCliente = { total: number; nivel: NivelScoreCliente; criterios: CriterioScoreAxiomaCliente[] };
+
+export function calcularScoreAxiomaCliente(s: ClienteSnapshot, carteira: SnapshotCarteira): ScoreAxiomaCliente {
+  const valores: Record<string, number | null> = {
+    disputas: null, cancelamentos: null, renegociacoes: null,
+  };
+
+  valores.pontualidade = s.pctPagoEmDia >= 0 ? clamp(s.pctPagoEmDia, 0, 100) : null;
+
+  valores.risco = s.valorTotalCobrado > 0
+    ? clamp(100 - (s.valorEmAtrasoAtual / s.valorTotalCobrado) * 100 - (s.estagioAtual ? PENALIDADE_ESTAGIO[s.estagioAtual] : 0), 0, 100)
+    : null;
+
+  const ticketBase = carteira.ticketMedioCarteira > 0 ? carteira.ticketMedioCarteira : s.ticketMedio || 1;
+  valores.volume = s.qtdContas > 0 ? clamp((s.ticketMedio / ticketBase) * 50, 0, 100) : null;
+
+  const mesesComoCliente = Math.max(1, s.tempoComoClienteDias / 30);
+  valores.recorrencia = s.qtdContas > 0 ? clamp((s.qtdContas / mesesComoCliente) * 40, 0, 100) : null;
+
+  valores.historico = s.qtdContas > 0 ? clamp(s.qtdContas * 8, 0, 100) : null;
+
+  valores.concentracao = carteira.valorTotalCarteira > 0 && s.valorTotalCobrado > 0
+    ? clamp(100 - (s.valorTotalCobrado / carteira.valorTotalCarteira) * 100, 0, 100)
+    : null;
+
+  valores.confiabilidade = s.qtdContasRecebidas > 0 ? clamp(100 - s.diasAtrasoMedio * 2, 0, 100) : null;
+
+  valores.tempoRelacionamento = s.cliente.created_at ? clamp((s.tempoComoClienteDias / 730) * 100, 0, 100) : null;
+
+  valores.atrasoMedio = s.qtdContasRecebidas > 0 ? clamp(100 - s.diasAtrasoMedio * 4, 0, 100) : null;
+
+  const criterios: CriterioScoreAxiomaCliente[] = Object.keys(PESOS_SCORE_AXIOMA_CLIENTE).map((chave) => ({
+    chave, valor: valores[chave], peso: PESOS_SCORE_AXIOMA_CLIENTE[chave], contribuicao: 0, semDados: valores[chave] == null,
+  }));
+
+  const comDado = criterios.filter((c) => !c.semDados);
+  const pesoTotal = comDado.reduce((sum, c) => sum + c.peso, 0);
+  if (pesoTotal > 0) {
+    comDado.forEach((c) => { c.contribuicao = Math.round(((c.valor as number) * c.peso) / pesoTotal * 10); });
+  }
+  const total = comDado.reduce((sum, c) => sum + c.contribuicao, 0);
+  const nivel: NivelScoreCliente = total < 400 ? "critico" : total < 600 ? "atencao" : total < 750 ? "bom" : total < 900 ? "excelente" : "elite";
+  return { total, nivel, criterios };
+}
+
+export function rankingScoreAxiomaCliente(carteira: SnapshotCarteira): { s: ClienteSnapshot; score: ScoreAxiomaCliente }[] {
+  return carteira.clientesSnapshot
+    .map((s) => ({ s, score: calcularScoreAxiomaCliente(s, carteira) }))
+    .sort((a, b) => b.score.total - a.score.total);
+}
+
+export function scoreMedioCarteiraAxiomaCliente(ranking: { score: ScoreAxiomaCliente }[]): { media: number; amostraSuficiente: boolean } {
+  if (ranking.length === 0) return { media: 0, amostraSuficiente: false };
+  return { media: Math.round(ranking.reduce((sum, r) => sum + r.score.total, 0) / ranking.length), amostraSuficiente: true };
+}
+
+const NOME_CRITERIO_SCORE_CLIENTE: Record<Idioma3, Record<string, string>> = {
+  pt: {
+    pontualidade: "Pontualidade", risco: "Risco de Inadimplência", volume: "Volume Financeiro", recorrencia: "Recorrência",
+    historico: "Histórico de Cobranças", concentracao: "Concentração na Carteira", confiabilidade: "Confiabilidade",
+    tempoRelacionamento: "Tempo de Relacionamento", atrasoMedio: "Tempo Médio de Atraso",
+    disputas: "Disputas", cancelamentos: "Cancelamentos", renegociacoes: "Renegociações",
+  },
+  en: {
+    pontualidade: "On-time Payment", risco: "Default Risk", volume: "Financial Volume", recorrencia: "Recurrence",
+    historico: "Billing History", concentracao: "Portfolio Concentration", confiabilidade: "Reliability",
+    tempoRelacionamento: "Relationship Time", atrasoMedio: "Average Delay",
+    disputas: "Disputes", cancelamentos: "Cancellations", renegociacoes: "Renegotiations",
+  },
+  es: {
+    pontualidade: "Puntualidad", risco: "Riesgo de Impago", volume: "Volumen Financiero", recorrencia: "Recurrencia",
+    historico: "Historial de Cobros", concentracao: "Concentración en la Cartera", confiabilidade: "Confiabilidad",
+    tempoRelacionamento: "Tiempo de Relación", atrasoMedio: "Atraso Promedio",
+    disputas: "Disputas", cancelamentos: "Cancelaciones", renegociacoes: "Renegociaciones",
+  },
+};
+export function nomeCriterioScoreCliente(lang: Idioma3, chave: string): string {
+  return NOME_CRITERIO_SCORE_CLIENTE[lang][chave] || chave;
+}
+
+// ============================================================================
+// KPIs EXECUTIVOS DE RECEBIMENTO — Dashboard da Central de Recebimentos.
+// Cada indicador sem dado suficiente vem null — a tela decide como mostrar
+// "sem dados suficientes", nunca um número fabricado.
+// ============================================================================
+
+export type KpisRecebimentoExecutivo = {
+  valorTotalAReceber: number;
+  recebidoNoMes: number;
+  recebidoNoAno: number;
+  valorVencido: number;
+  valorAVencer: number;
+  indiceInadimplencia: number | null;
+  indicePontualidade: number | null;
+  dso: number | null;
+  receitaPrevista: number;
+  receitaConfirmada: number;
+  receitaEmRisco: number;
+  clientesEmAtraso: number;
+  clientesCriticos: number;
+  ticketMedio: number | null;
+  receitaRecorrente: number;
+  receitaNaoRecorrente: number;
+  scoreMedioCarteira: number | null;
+};
+
+export function calcularKpisRecebimento(
+  contas: ContaRow[],
+  carteira: SnapshotCarteira,
+  ranking: { score: ScoreAxiomaCliente }[],
+): KpisRecebimentoExecutivo {
+  const hoje = new Date();
+  const hojeStr = hoje.toISOString().slice(0, 10);
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+  const inicioAno = new Date(hoje.getFullYear(), 0, 1).toISOString().slice(0, 10);
+
+  const pendentes = contas.filter((c) => c.status !== "recebido");
+  const vencidas = pendentes.filter((c) => c.data_vencimento < hojeStr);
+  const aVencer = pendentes.filter((c) => c.data_vencimento >= hojeStr);
+  const recebidas = contas.filter((c) => c.status === "recebido");
+
+  const valorTotalAReceber = pendentes.reduce((s, c) => s + Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)), 0);
+  const valorVencido = vencidas.reduce((s, c) => s + Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)), 0);
+  const valorAVencer = aVencer.reduce((s, c) => s + Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)), 0);
+
+  const recebidoNoMes = recebidas.filter((c) => c.data_recebimento && c.data_recebimento >= inicioMes).reduce((s, c) => s + (Number(c.valor_recebido ?? c.valor) || 0), 0);
+  const recebidoNoAno = recebidas.filter((c) => c.data_recebimento && c.data_recebimento >= inicioAno).reduce((s, c) => s + (Number(c.valor_recebido ?? c.valor) || 0), 0);
+
+  const valorTotalCobrado = contas.reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  const indiceInadimplencia = valorTotalCobrado > 0 ? Math.round((valorVencido / valorTotalCobrado) * 1000) / 10 : null;
+
+  const noPrazo = recebidas.filter((c) => !c.data_recebimento || c.data_recebimento <= c.data_vencimento);
+  const indicePontualidade = recebidas.length > 0 ? Math.round((noPrazo.length / recebidas.length) * 1000) / 10 : null;
+
+  const comPrazoReal = recebidas.filter((c) => c.data_emissao && c.data_recebimento);
+  const dso = comPrazoReal.length > 0
+    ? Math.round(comPrazoReal.reduce((s, c) => s + diffDias(new Date(c.data_recebimento! + "T00:00:00"), new Date(c.data_emissao! + "T00:00:00")), 0) / comPrazoReal.length)
+    : null;
+
+  const clientesEmAtraso = carteira.clientesSnapshot.filter((s) => s.diasAtrasoAtual > 0).length;
+  const clientesCriticos = ranking.filter((r) => r.score.nivel === "critico").length;
+
+  const receitaRecorrente = contas.filter((c) => c.recorrente).reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  const receitaNaoRecorrente = valorTotalCobrado - receitaRecorrente;
+
+  const scoreMedio = scoreMedioCarteiraAxiomaCliente(ranking);
+
+  return {
+    valorTotalAReceber, recebidoNoMes, recebidoNoAno, valorVencido, valorAVencer,
+    indiceInadimplencia, indicePontualidade, dso,
+    receitaPrevista: valorAVencer, receitaConfirmada: recebidoNoMes, receitaEmRisco: valorVencido,
+    clientesEmAtraso, clientesCriticos,
+    ticketMedio: carteira.clientesSnapshot.length > 0 ? carteira.ticketMedioCarteira : null,
+    receitaRecorrente, receitaNaoRecorrente,
+    scoreMedioCarteira: scoreMedio.amostraSuficiente ? scoreMedio.media : null,
+  };
+}
+
+// ============================================================================
+// AGING DA CARTEIRA — 4 faixas (0-30/31-60/61-90/90+), saldo em aberto por faixa.
+// Mesma regra de diasAtraso já usada por conta individual, agregada pra carteira.
+// ============================================================================
+
+export type FaixaAging = { chave: "d30" | "d60" | "d90" | "d90mais"; label: string; valor: number; qtdContas: number };
+
+export function agingCarteiraRecebiveis(contas: ContaRow[]): FaixaAging[] {
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const faixas: FaixaAging[] = [
+    { chave: "d30", label: "0-30", valor: 0, qtdContas: 0 },
+    { chave: "d60", label: "31-60", valor: 0, qtdContas: 0 },
+    { chave: "d90", label: "61-90", valor: 0, qtdContas: 0 },
+    { chave: "d90mais", label: "90+", valor: 0, qtdContas: 0 },
+  ];
+  contas.filter((c) => c.status !== "recebido" && c.data_vencimento < hojeStr).forEach((c) => {
+    const dias = diffDias(new Date(), new Date(c.data_vencimento + "T00:00:00"));
+    const saldo = Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0));
+    const faixa = dias <= 30 ? faixas[0] : dias <= 60 ? faixas[1] : dias <= 90 ? faixas[2] : faixas[3];
+    faixa.valor += saldo; faixa.qtdContas += 1;
+  });
+  return faixas;
 }
