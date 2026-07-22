@@ -33,12 +33,20 @@ export type CobrancaCompromisso = {
   tipo: "promessa" | "acordo";
   valor_original?: number | null; valor_compromissado: number; data_compromissada: string;
   condicoes?: string | null; status: "pendente" | "cumprido" | "quebrado"; created_at: string;
+  // Central de Negociação (Inadimplência, Fase 2) — colunas novas, opcionais até o Elias
+  // rodar o ALTER TABLE. Undefined/null tratado como "não informado", nunca erro.
+  parcelas?: number | null; desconto_pct?: number | null; juros_pct?: number | null;
+  multa_pct?: number | null; responsavel?: string | null;
 };
 
 export type EtapaRegua = {
   id: string; user_id: string;
   dias_relativos: number; canal: "email" | "sms" | "whatsapp";
   mensagem_modelo: string; ativo: boolean; ordem: number; created_at?: string;
+  // Régua de Recuperação Escalonada (Inadimplência, Fase 2) — coluna nova opcional.
+  // null/undefined = etapa de lembrete do Contas a Receber (comportamento inalterado);
+  // preenchida = etapa de escalonamento da Inadimplência (não duplica a tabela).
+  estagio?: "amigavel" | "formal" | "protesto" | "juridico" | "negativacao" | null;
 };
 
 export const CANAIS_REGUA = ["email", "sms", "whatsapp"] as const;
@@ -47,9 +55,10 @@ export const CANAIS_REGUA = ["email", "sms", "whatsapp"] as const;
 // CRUD — histórico de contato/negociação
 // ============================================================================
 
-export async function listarInteracoes(contaId: string): Promise<CobrancaInteracao[]> {
-  const { data } = await supabase.from("cobranca_interacoes").select("*")
-    .eq("conta_id", contaId).order("data", { ascending: false });
+export async function listarInteracoes(contaId?: string): Promise<CobrancaInteracao[]> {
+  let q = supabase.from("cobranca_interacoes").select("*").order("data", { ascending: false });
+  if (contaId) q = q.eq("conta_id", contaId);
+  const { data } = await q;
   return data || [];
 }
 
@@ -84,6 +93,11 @@ export async function criarCompromisso(userId: string, dados: Partial<CobrancaCo
 
 export async function atualizarStatusCompromisso(id: string, status: CobrancaCompromisso["status"]): Promise<{ erro?: string }> {
   const { error } = await supabase.from("cobranca_compromissos").update({ status }).eq("id", id);
+  return error ? { erro: error.message } : {};
+}
+
+export async function atualizarCompromisso(id: string, dados: Partial<CobrancaCompromisso>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("cobranca_compromissos").update(dados).eq("id", id);
   return error ? { erro: error.message } : {};
 }
 

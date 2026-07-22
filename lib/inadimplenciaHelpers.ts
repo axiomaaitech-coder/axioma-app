@@ -4,8 +4,9 @@
 // cobranca_compromissos (via cobrancaHelpers.ts, já a fonte real de "status de
 // negociação"). Nenhuma tabela nova nesta fase.
 
-import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
-import type { CobrancaCompromisso } from "./cobrancaHelpers";
+import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3, FaixaAging } from "./clienteIntelHelpers";
+import type { CobrancaCompromisso, EtapaRegua, AlertaCobranca, CardExplicativo } from "./cobrancaHelpers";
+import { detectarAlertasCobranca, gerarParecerCobranca } from "./cobrancaHelpers";
 
 function diffDias(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
@@ -228,4 +229,191 @@ export function valorRecuperadoNoPeriodo(contas: ContaRow[], inicio: string, fim
   return contas
     .filter((c) => c.status === "recebido" && c.data_recebimento && c.data_recebimento > c.data_vencimento && c.data_recebimento >= inicio && c.data_recebimento <= fim)
     .reduce((s, c) => s + (Number(c.valor_recebido ?? c.valor) || 0), 0);
+}
+
+// ============================================================================
+// RÉGUA DE RECUPERAÇÃO ESCALONADA (Fase 2) — reaproveita 100% a tabela/CRUD de
+// cobranca_regua_etapas (Contas a Receber, Fase 2), só com a coluna nova
+// `estagio` marcando os degraus de escalonamento. Etapas sem `estagio` continuam
+// sendo os lembretes do Contas a Receber — as duas réguas convivem na mesma
+// tabela sem se misturar (o filtro é feito na tela, por `estagio` presente/ausente).
+// Nesta fase só monta a régua — nenhum disparo real acontece (mesma decisão já
+// tomada no Contas a Receber, ver arquitetura futura no fim de cobrancaHelpers.ts).
+// ============================================================================
+
+export type EstagioEscalonamento = "amigavel" | "formal" | "protesto" | "juridico" | "negativacao";
+
+export const ORDEM_ESTAGIO_ESCALONAMENTO: EstagioEscalonamento[] = ["amigavel", "formal", "protesto", "juridico", "negativacao"];
+
+export const COR_ESTAGIO_ESCALONAMENTO: Record<EstagioEscalonamento, string> = {
+  amigavel: "#f59e0b", formal: "#fb923c", protesto: "#f87171", juridico: "#ef4444", negativacao: "#dc2626",
+};
+
+const NOME_ESTAGIO_ESCALONAMENTO: Record<Idioma3, Record<EstagioEscalonamento, string>> = {
+  pt: { amigavel: "Cobrança Amigável", formal: "Cobrança Formal", protesto: "Protesto", juridico: "Jurídico", negativacao: "Negativação" },
+  en: { amigavel: "Friendly Collection", formal: "Formal Collection", protesto: "Protest", juridico: "Legal", negativacao: "Credit Blacklist" },
+  es: { amigavel: "Cobro Amistoso", formal: "Cobro Formal", protesto: "Protesto", juridico: "Jurídico", negativacao: "Negativación" },
+};
+export function nomeEstagioEscalonamento(lang: Idioma3, e: EstagioEscalonamento): string {
+  return NOME_ESTAGIO_ESCALONAMENTO[lang][e];
+}
+
+export function etapasEscalonamentoPadrao(): Omit<EtapaRegua, "id" | "user_id">[] {
+  return [
+    { dias_relativos: 1, canal: "whatsapp", mensagem_modelo: "Olá {cliente}, identificamos que a fatura {documento} de {valor} está em atraso. Podemos ajudar a regularizar?", ativo: true, ordem: 0, estagio: "amigavel" },
+    { dias_relativos: 15, canal: "email", mensagem_modelo: "Prezado(a) {cliente}, a fatura {documento} de {valor} segue em aberto há 15 dias. Solicitamos regularização ou contato com nosso time financeiro.", ativo: true, ordem: 1, estagio: "formal" },
+    { dias_relativos: 45, canal: "email", mensagem_modelo: "Aviso: a fatura {documento} de {valor}, em aberto há 45 dias, está sujeita a protesto em cartório caso não seja regularizada.", ativo: true, ordem: 2, estagio: "protesto" },
+    { dias_relativos: 75, canal: "email", mensagem_modelo: "Aviso final: a fatura {documento} de {valor} será encaminhada para cobrança jurídica caso não seja regularizada em até 5 dias úteis.", ativo: true, ordem: 3, estagio: "juridico" },
+    { dias_relativos: 120, canal: "email", mensagem_modelo: "A fatura {documento} de {valor}, em aberto há mais de 120 dias, será registrada em órgãos de proteção ao crédito.", ativo: true, ordem: 4, estagio: "negativacao" },
+  ];
+}
+
+// ============================================================================
+// ALERTAS INTELIGENTES DA INADIMPLÊNCIA (Fase 2) — reaproveita 100%
+// detectarAlertasCobranca (Contas a Receber, Fase 2): mesmos 10 tipos, só tira
+// "próximos vencimentos" (é preventivo, pertence ao Contas a Receber, não é
+// inadimplência já instalada) e soma 2 alertas exclusivos daqui: aumento
+// abrupto da inadimplência (proxy honesto via aging, sem precisar de série
+// histórica que o Axioma não guarda) e prazo excessivo (>120 dias).
+// ============================================================================
+
+export function detectarAlertasInadimplencia(
+  lang: Idioma3,
+  carteira: SnapshotCarteira,
+  contas: ContaRow[],
+  ranking: { s: ClienteSnapshot; score: ScoreAxiomaCliente }[],
+  compromissos: CobrancaCompromisso[],
+  aging: FaixaAging[],
+): AlertaCobranca[] {
+  const base = detectarAlertasCobranca(lang, carteira, contas, ranking, compromissos).filter((a) => a.tipo !== "proximos");
+  const extras: AlertaCobranca[] = [];
+  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+
+  const totalVencido = aging.reduce((s, f) => s + f.valor, 0);
+  const faixaRecente = aging.find((f) => f.chave === "d30");
+  if (totalVencido > 0 && faixaRecente && faixaRecente.valor / totalVencido > 0.4) {
+    const pct = Math.round((faixaRecente.valor / totalVencido) * 100);
+    extras.push({
+      tipo: "aumento_inadimplencia", severidade: "critico",
+      titulo: lang === "en" ? "Sharp rise in new delinquency" : lang === "es" ? "Fuerte aumento de morosidad nueva" : "Grande aumento da inadimplência",
+      descricao: lang === "en" ? `${pct}% of the overdue balance became delinquent in the last 30 days.` : lang === "es" ? `${pct}% del saldo vencido se volvió moroso en los últimos 30 días.` : `${pct}% do saldo vencido virou inadimplente nos últimos 30 dias.`,
+      acao: lang === "en" ? "Investigate what changed — new client cohort, process failure, or market shift." : lang === "es" ? "Investigar qué cambió — nueva cohorte, falla de proceso o cambio de mercado." : "Investigar o que mudou — nova safra de clientes, falha de processo ou mercado.",
+    });
+  }
+
+  ranking.forEach(({ s }) => {
+    if (s.diasAtrasoAtual > 120) {
+      extras.push({
+        tipo: "prazo_excessivo", severidade: "critico", clienteId: s.cliente.id, clienteNome: s.cliente.nome,
+        titulo: `${lang === "en" ? "Excessive delay" : lang === "es" ? "Plazo excesivo" : "Prazo excessivo"}: ${s.cliente.nome}`,
+        descricao: lang === "en" ? `${s.diasAtrasoAtual} days overdue, ${fmtBRL(s.valorVencido)} exposed.` : lang === "es" ? `${s.diasAtrasoAtual} días de atraso, ${fmtBRL(s.valorVencido)} expuesto.` : `${s.diasAtrasoAtual} dias de atraso, ${fmtBRL(s.valorVencido)} exposto.`,
+        acao: lang === "en" ? "Evaluate legal collection or write-off." : lang === "es" ? "Evaluar cobro jurídico o pérdida." : "Avaliar cobrança jurídica ou baixa como perda.",
+      });
+    }
+  });
+
+  const ORDEM: Record<AlertaCobranca["severidade"], number> = { critico: 0, atencao: 1, positivo: 2 };
+  return [...base, ...extras].sort((a, b) => ORDEM[a.severidade] - ORDEM[b.severidade]);
+}
+
+// ============================================================================
+// IA DE PREVENÇÃO (modo por regras, Fase 2) — reaproveita 100% gerarParecerCobranca
+// (Contas a Receber, Fase 2: mesmo formato tema/oQueAconteceu/porQue/impacto/ação)
+// e soma 3 cards exclusivos de prevenção. Sem chamada a LLM real — mesmo padrão
+// de fallback determinístico da IA Financeira/Tributária, fio pronto pra Claude
+// no dia em que a ANTHROPIC_API_KEY for ativada (decisão do Elias).
+// ============================================================================
+
+export function gerarSinaisPrevencao(
+  lang: Idioma3,
+  carteira: SnapshotCarteira,
+  contas: ContaRow[],
+  ranking: { s: ClienteSnapshot; score: ScoreAxiomaCliente }[],
+  linhasRisco: LinhaRiscoInadimplencia[],
+  compromissos: CobrancaCompromisso[],
+): CardExplicativo[] {
+  const base = gerarParecerCobranca(lang, carteira, contas, ranking);
+  const extras: CardExplicativo[] = [];
+  const fmtBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  const em15dias = new Date(); em15dias.setDate(em15dias.getDate() + 15);
+  const em15diasStr = em15dias.toISOString().slice(0, 10);
+
+  const aVencerEmBreve = (s: ClienteSnapshot) => s.contas.filter((c) => c.status !== "recebido" && c.data_vencimento >= hojeStr && c.data_vencimento <= em15diasStr);
+  const emRiscoFuturo = ranking.filter(({ s, score }) => (score.nivel === "critico" || score.nivel === "atencao") && aVencerEmBreve(s).length > 0);
+  if (emRiscoFuturo.length > 0) {
+    const valor = emRiscoFuturo.reduce((sum, { s }) => sum + aVencerEmBreve(s).reduce((x, c) => x + (Number(c.valor) || 0), 0), 0);
+    extras.push({
+      tema: lang === "en" ? "Likely future delay" : lang === "es" ? "Probable atraso futuro" : "Provável atraso futuro",
+      oQueAconteceu: lang === "en" ? `${emRiscoFuturo.length} client(s) with weak score have invoices due in the next 15 days.` : lang === "es" ? `${emRiscoFuturo.length} cliente(s) con score débil tienen facturas por vencer en 15 días.` : `${emRiscoFuturo.length} cliente(s) com score fraco têm cobranças vencendo nos próximos 15 dias.`,
+      porQue: lang === "en" ? "Historical payment behavior of these clients suggests low on-time probability." : lang === "es" ? "El comportamiento histórico de pago sugiere baja probabilidad de pago a tiempo." : "O comportamento histórico de pagamento desses clientes sugere baixa chance de pagar em dia.",
+      impacto: lang === "en" ? `${fmtBRL(valor)} at risk of becoming overdue.` : lang === "es" ? `${fmtBRL(valor)} en riesgo de volverse vencido.` : `${fmtBRL(valor)} em risco de virar vencido.`,
+      acao: lang === "en" ? "Reach out before the due date, not after." : lang === "es" ? "Contactar antes del vencimiento, no después." : "Fazer contato antes do vencimento, não depois.",
+    });
+  }
+
+  const porCliente = new Map<string, number>();
+  compromissos.forEach((c) => { if (c.cliente_id) porCliente.set(c.cliente_id, (porCliente.get(c.cliente_id) || 0) + 1); });
+  const reincidentesNegociacao = [...porCliente.entries()].filter(([, n]) => n >= 2);
+  if (reincidentesNegociacao.length > 0) {
+    extras.push({
+      tema: lang === "en" ? "High renegotiation likelihood" : lang === "es" ? "Alta probabilidad de renegociación" : "Alta probabilidade de renegociação",
+      oQueAconteceu: lang === "en" ? `${reincidentesNegociacao.length} client(s) have negotiated 2+ times before.` : lang === "es" ? `${reincidentesNegociacao.length} cliente(s) ya negociaron 2+ veces.` : `${reincidentesNegociacao.length} cliente(s) já negociaram 2 ou mais vezes.`,
+      porQue: lang === "en" ? "Repeated negotiation is a pattern, not a one-off." : lang === "es" ? "La negociación repetida es un patrón, no un hecho aislado." : "Negociação repetida é um padrão, não um evento isolado.",
+      impacto: lang === "en" ? "Expect another renegotiation request before full payment." : lang === "es" ? "Es probable otra solicitud de renegociación antes del pago total." : "Espere outro pedido de renegociação antes do pagamento total.",
+      acao: lang === "en" ? "Consider tighter terms or upfront collateral on the next agreement." : lang === "es" ? "Considere condiciones más estrictas o garantía anticipada en el próximo acuerdo." : "Considerar condições mais rígidas ou garantia antecipada no próximo acordo.",
+    });
+  }
+
+  const riscoPerda = linhasRisco.filter((l) => l.probabilidadePerda != null && l.probabilidadePerda >= 60);
+  if (riscoPerda.length > 0) {
+    const valor = riscoPerda.reduce((s, l) => s + l.s.valorVencido, 0);
+    extras.push({
+      tema: lang === "en" ? "Risk of definitive loss" : lang === "es" ? "Riesgo de pérdida definitiva" : "Risco de perda definitiva",
+      oQueAconteceu: lang === "en" ? `${riscoPerda.length} client(s) with 60%+ estimated loss probability.` : lang === "es" ? `${riscoPerda.length} cliente(s) con 60%+ de probabilidad estimada de pérdida.` : `${riscoPerda.length} cliente(s) com 60%+ de probabilidade estimada de perda.`,
+      porQue: lang === "en" ? "Low reliability subscore combined with active overdue balance." : lang === "es" ? "Bajo subíndice de confiabilidad combinado con saldo vencido activo." : "Subcritério de risco baixo combinado com saldo vencido ativo.",
+      impacto: lang === "en" ? `${fmtBRL(valor)} at high risk of write-off.` : lang === "es" ? `${fmtBRL(valor)} en alto riesgo de pérdida.` : `${fmtBRL(valor)} em alto risco de virar perda.`,
+      acao: lang === "en" ? "Escalate to legal collection or negotiate an immediate settlement." : lang === "es" ? "Escalar a cobro jurídico o negociar un acuerdo inmediato." : "Escalar para cobrança jurídica ou negociar acordo imediato.",
+    });
+  }
+
+  return [...base, ...extras];
+}
+
+// ============================================================================
+// RECOMENDAÇÃO DE ESTRATÉGIA POR CLIENTE (destaque da Fase 2) — regra
+// determinística sobre a probabilidade de recuperação já calculada pelo Score
+// Axioma do próprio cliente (nunca modelo de ML). Sem dado real de base
+// (probabilidadeRecuperacao == null), não sugere nada — mesmo princípio de
+// nunca inventar número do resto do Axioma.
+// ============================================================================
+
+export type EstrategiaRecuperacao = { tipo: "desconto" | "parcelamento" | "juridico"; label: string; probabilidadeEstimada: number };
+
+export function recomendarEstrategiasRecuperacao(lang: Idioma3, linha: LinhaRiscoInadimplencia, valorVencidoMedio: number): EstrategiaRecuperacao[] {
+  const base = linha.probabilidadeRecuperacao;
+  if (base == null) return [];
+  const descontoPct = linha.s.diasAtrasoAtual > 60 ? 15 : 10;
+  const parcelas = valorVencidoMedio > 0 && linha.s.valorVencido > valorVencidoMedio * 1.5 ? 6 : 3;
+
+  const estrategias: EstrategiaRecuperacao[] = [
+    {
+      tipo: "desconto",
+      label: lang === "en" ? `${descontoPct}% cash discount` : lang === "es" ? `${descontoPct}% de descuento al contado` : `Desconto à vista de ${descontoPct}%`,
+      probabilidadeEstimada: clamp(base + 15, 0, 95),
+    },
+    {
+      tipo: "parcelamento",
+      label: lang === "en" ? `${parcelas}x installment plan` : lang === "es" ? `Plan en ${parcelas}x` : `Parcelamento em ${parcelas}x`,
+      probabilidadeEstimada: clamp(base + 25, 0, 95),
+    },
+  ];
+  if (linha.score.nivel === "critico") {
+    estrategias.push({
+      tipo: "juridico",
+      label: lang === "en" ? "Legal collection" : lang === "es" ? "Cobro jurídico" : "Cobrança jurídica",
+      probabilidadeEstimada: clamp(base - 20, 5, 60),
+    });
+  }
+  return estrategias.sort((a, b) => b.probabilidadeEstimada - a.probabilidadeEstimada);
 }

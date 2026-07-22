@@ -7,7 +7,8 @@ import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, X, AlertTriangle, Share2, Crown, Copy, Users,
-  HandCoins, CheckCircle2, Shield, Inbox,
+  HandCoins, CheckCircle2, Shield, Inbox, Bell, Brain, MessageSquare,
+  Plus, Trash2, Pencil, Phone, Sparkles,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
@@ -19,10 +20,16 @@ import {
   rankingScoreAxiomaCliente, type ScoreAxiomaCliente, calcularKpisRecebimento,
   agingCarteiraRecebiveis, type Idioma3,
 } from '../../../lib/clienteIntelHelpers'
-import { type CobrancaCompromisso, listarCompromissos, criarCompromisso, atualizarStatusCompromisso } from '../../../lib/cobrancaHelpers'
+import {
+  type CobrancaCompromisso, type CobrancaInteracao, type EtapaRegua, CANAIS_REGUA,
+  listarCompromissos, criarCompromisso, atualizarStatusCompromisso, atualizarCompromisso,
+  listarInteracoes, criarInteracao, listarEtapasRegua, salvarEtapaRegua, excluirEtapaRegua,
+} from '../../../lib/cobrancaHelpers'
 import {
   montarLinhasRisco, calcularKpisInadimplencia, valorRecuperadoNoPeriodo,
-  type LinhaRiscoInadimplencia, type NivelPrioridade,
+  detectarAlertasInadimplencia, gerarSinaisPrevencao, recomendarEstrategiasRecuperacao,
+  etapasEscalonamentoPadrao, nomeEstagioEscalonamento, ORDEM_ESTAGIO_ESCALONAMENTO, COR_ESTAGIO_ESCALONAMENTO,
+  type LinhaRiscoInadimplencia, type NivelPrioridade, type EstagioEscalonamento,
 } from '../../../lib/inadimplenciaHelpers'
 
 const supabase = createBrowserClient(
@@ -54,6 +61,8 @@ export default function Inadimplencia() {
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [contas, setContas] = useState<ContaRow[]>([])
   const [compromissos, setCompromissos] = useState<CobrancaCompromisso[]>([])
+  const [interacoes, setInteracoes] = useState<CobrancaInteracao[]>([])
+  const [etapasRegua, setEtapasRegua] = useState<EtapaRegua[]>([])
   const [caixaDisponivel, setCaixaDisponivel] = useState(0)
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -68,8 +77,16 @@ export default function Inadimplencia() {
   const periodo = resolverPeriodo(preset, personalizado)
 
   const [clienteAbertoId, setClienteAbertoId] = useState<string | null>(null)
-  const [novoCompromisso, setNovoCompromisso] = useState({ conta_id: '', tipo: 'promessa' as CobrancaCompromisso['tipo'], valor_compromissado: '', data_compromissada: '', condicoes: '' })
+  const compromissoVazio = { conta_id: '', tipo: 'promessa' as CobrancaCompromisso['tipo'], valor_compromissado: '', data_compromissada: '', condicoes: '', parcelas: '', desconto_pct: '', juros_pct: '', multa_pct: '', responsavel: '' }
+  const [novoCompromisso, setNovoCompromisso] = useState({ ...compromissoVazio })
+  const [editandoCompromissoId, setEditandoCompromissoId] = useState<string | null>(null)
   const [salvandoCompromisso, setSalvandoCompromisso] = useState(false)
+
+  const contatoVazio = { conta_id: '', tipo: 'contato' as CobrancaInteracao['tipo'], canal: 'telefone', descricao: '' }
+  const [novoContato, setNovoContato] = useState({ ...contatoVazio })
+  const [salvandoContato, setSalvandoContato] = useState(false)
+
+  const [editandoEtapa, setEditandoEtapa] = useState<Partial<EtapaRegua> | null>(null)
 
   useEffect(() => { carregar() }, [])
 
@@ -78,15 +95,19 @@ export default function Inadimplencia() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     setUserId(user.id)
-    const [{ data: cli }, { data: ct }, comps, { data: fc }] = await Promise.all([
+    const [{ data: cli }, { data: ct }, comps, interacoesData, etapasData, { data: fc }] = await Promise.all([
       supabase.from('clientes').select('*').eq('user_id', user.id).order('nome'),
       supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
       listarCompromissos(),
+      listarInteracoes(),
+      listarEtapasRegua(user.id),
       supabase.from('fluxo_caixa').select('valor, tipo, status').eq('user_id', user.id),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setContas((ct as ContaRow[]) || [])
     setCompromissos(comps)
+    setInteracoes(interacoesData)
+    setEtapasRegua(etapasData)
     setCaixaDisponivel((fc || []).filter((l: any) => l.status === 'realizado').reduce((s: number, l: any) => s + (l.tipo === 'entrada' ? Number(l.valor || 0) : -Number(l.valor || 0)), 0))
     setLoading(false)
   }
@@ -103,6 +124,10 @@ export default function Inadimplencia() {
     [contas, carteira, ranking, compromissos, kpisRecebimento.dso, caixaDisponivel]
   )
   const recuperadoPeriodo = useMemo(() => valorRecuperadoNoPeriodo(contas, periodo.inicio, periodo.fim), [contas, periodo])
+  const alertas = useMemo(() => detectarAlertasInadimplencia(lang, carteira, contas, ranking, compromissos, aging), [lang, carteira, contas, ranking, compromissos, aging])
+  const sinaisPrevencao = useMemo(() => gerarSinaisPrevencao(lang, carteira, contas, ranking, linhasRisco, compromissos), [lang, carteira, contas, ranking, linhasRisco, compromissos])
+  const valorVencidoMedio = linhasRisco.length > 0 ? linhasRisco.reduce((s, l) => s + l.s.valorVencido, 0) / linhasRisco.length : 0
+  const etapasEscalonamento = useMemo(() => [...etapasRegua].filter((e) => !!e.estagio).sort((a, b) => a.dias_relativos - b.dias_relativos), [etapasRegua])
 
   const hoje = new Date().toISOString().slice(0, 10)
 
@@ -121,6 +146,11 @@ export default function Inadimplencia() {
   function corCompromisso(status: CobrancaCompromisso['status']) {
     return status === 'cumprido' ? VERDE : status === 'quebrado' ? VERMELHO : AMBAR
   }
+  function severidadeCor(s: 'positivo' | 'atencao' | 'critico') {
+    return s === 'critico' ? VERMELHO : s === 'atencao' ? AMBAR : VERDE
+  }
+  const alertasCriticos = alertas.filter((a) => a.severidade === 'critico').length
+  const alertasAtencao = alertas.filter((a) => a.severidade === 'atencao').length
 
   const linhasFiltradas = linhasRisco.filter((l) =>
     (filtroPrioridade === 'todas' || l.prioridade === filtroPrioridade) &&
@@ -132,14 +162,25 @@ export default function Inadimplencia() {
   const compromissosCliente = linhaAberta ? compromissos.filter((c) => c.cliente_id === linhaAberta.s.cliente.id).sort((a, b) => b.data_compromissada.localeCompare(a.data_compromissada)) : []
   const titulosVencidosCliente = linhaAberta ? linhaAberta.s.contas.filter((c) => c.status !== 'recebido' && c.data_vencimento < hoje) : []
 
+  const interacoesCliente = linhaAberta ? interacoes.filter((i) => i.cliente_id === linhaAberta.s.cliente.id).sort((a, b) => b.data.localeCompare(a.data)) : []
+  const estrategiasCliente = linhaAberta ? recomendarEstrategiasRecuperacao(lang, linhaAberta, valorVencidoMedio) : []
+  type ItemTimeline = { data: string; tipo: 'compromisso' | 'interacao'; item: CobrancaCompromisso | CobrancaInteracao }
+  const timelineCliente: ItemTimeline[] = linhaAberta ? [
+    ...compromissosCliente.map((c) => ({ data: c.data_compromissada, tipo: 'compromisso' as const, item: c })),
+    ...interacoesCliente.map((i) => ({ data: i.data, tipo: 'interacao' as const, item: i })),
+  ].sort((a, b) => b.data.localeCompare(a.data)) : []
+
   function abrirNegociacao(l: LinhaRiscoInadimplencia) {
     setClienteAbertoId(l.s.cliente.id)
+    setEditandoCompromissoId(null)
     const primeiraVencida = l.s.contas.filter((c) => c.status !== 'recebido' && c.data_vencimento < hoje)[0]
     setNovoCompromisso({
-      conta_id: primeiraVencida?.id || '', tipo: 'promessa',
+      ...compromissoVazio,
+      conta_id: primeiraVencida?.id || '',
       valor_compromissado: primeiraVencida ? String(Math.max(0, (Number(primeiraVencida.valor) || 0) - (Number(primeiraVencida.valor_recebido) || 0)).toFixed(2)) : '',
-      data_compromissada: '', condicoes: '',
+      responsavel: primeiraVencida?.responsavel || '',
     })
+    setNovoContato({ ...contatoVazio, conta_id: primeiraVencida?.id || '' })
   }
   function fecharNegociacao() { setClienteAbertoId(null) }
 
@@ -147,20 +188,76 @@ export default function Inadimplencia() {
     if (!linhaAberta || !userId || !novoCompromisso.conta_id || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
     setSalvandoCompromisso(true)
     const contaSel = linhaAberta.s.contas.find((c) => c.id === novoCompromisso.conta_id)
-    await criarCompromisso(userId, {
+    const payload = {
       conta_id: novoCompromisso.conta_id, cliente_id: linhaAberta.s.cliente.id,
       tipo: novoCompromisso.tipo, valor_original: contaSel?.valor ?? null,
       valor_compromissado: parseFloat(novoCompromisso.valor_compromissado), data_compromissada: novoCompromisso.data_compromissada,
       condicoes: novoCompromisso.condicoes || null,
-    })
+      parcelas: novoCompromisso.parcelas ? parseInt(novoCompromisso.parcelas, 10) : null,
+      desconto_pct: novoCompromisso.desconto_pct ? parseFloat(novoCompromisso.desconto_pct) : null,
+      juros_pct: novoCompromisso.juros_pct ? parseFloat(novoCompromisso.juros_pct) : null,
+      multa_pct: novoCompromisso.multa_pct ? parseFloat(novoCompromisso.multa_pct) : null,
+      responsavel: novoCompromisso.responsavel || null,
+    }
+    if (editandoCompromissoId) {
+      await atualizarCompromisso(editandoCompromissoId, payload)
+    } else {
+      await criarCompromisso(userId, payload)
+    }
     setCompromissos(await listarCompromissos())
-    setNovoCompromisso({ conta_id: '', tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
+    setNovoCompromisso({ ...compromissoVazio })
+    setEditandoCompromissoId(null)
     setSalvandoCompromisso(false)
   }
+
+  function editarCompromisso(c: CobrancaCompromisso) {
+    setEditandoCompromissoId(c.id)
+    setNovoCompromisso({
+      conta_id: c.conta_id, tipo: c.tipo, valor_compromissado: String(c.valor_compromissado ?? ''),
+      data_compromissada: c.data_compromissada, condicoes: c.condicoes || '',
+      parcelas: c.parcelas != null ? String(c.parcelas) : '', desconto_pct: c.desconto_pct != null ? String(c.desconto_pct) : '',
+      juros_pct: c.juros_pct != null ? String(c.juros_pct) : '', multa_pct: c.multa_pct != null ? String(c.multa_pct) : '',
+      responsavel: c.responsavel || '',
+    })
+  }
+  function cancelarEdicaoCompromisso() { setEditandoCompromissoId(null); setNovoCompromisso({ ...compromissoVazio }) }
 
   async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
     await atualizarStatusCompromisso(id, status)
     setCompromissos(await listarCompromissos())
+  }
+
+  async function registrarContato() {
+    if (!linhaAberta || !userId || !novoContato.conta_id || !novoContato.descricao.trim()) return
+    setSalvandoContato(true)
+    await criarInteracao(userId, {
+      conta_id: novoContato.conta_id, cliente_id: linhaAberta.s.cliente.id,
+      tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao,
+      data: new Date().toISOString().slice(0, 10),
+    })
+    setInteracoes(await listarInteracoes())
+    setNovoContato({ ...contatoVazio, conta_id: novoContato.conta_id })
+    setSalvandoContato(false)
+  }
+
+  // ========== RÉGUA DE RECUPERAÇÃO ESCALONADA ==========
+  function abrirNovaEtapa(estagio?: EstagioEscalonamento) {
+    setEditandoEtapa({ dias_relativos: 1, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasEscalonamento.length, estagio: estagio || 'amigavel' })
+  }
+  async function salvarEtapa() {
+    if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
+    await salvarEtapaRegua(userId, editandoEtapa)
+    setEtapasRegua(await listarEtapasRegua(userId))
+    setEditandoEtapa(null)
+  }
+  async function excluirEtapa(id: string) {
+    await excluirEtapaRegua(id)
+    setEtapasRegua(etapasRegua.filter((e) => e.id !== id))
+  }
+  async function usarEscalonamentoPadrao() {
+    if (!userId) return
+    for (const etapa of etapasEscalonamentoPadrao()) await salvarEtapaRegua(userId, etapa)
+    setEtapasRegua(await listarEtapasRegua(userId))
   }
 
   // ========== KPIs (15, drill honesto — sem dado vira "sem dados suficientes") ==========
@@ -292,6 +389,41 @@ export default function Inadimplencia() {
           ))}
         </div>
 
+        {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : VERDE}30` }}>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: alertasCriticos > 0 ? VERMELHO : VERDE }}>
+              <Bell size={14} /> {L('Alertas Inteligentes', 'Smart Alerts', 'Alertas Inteligentes')}
+            </p>
+            <div className="flex items-center gap-2">
+              {alertasCriticos > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>{alertasCriticos} {L('críticos', 'critical', 'críticos')}</span>}
+              {alertasAtencao > 0 && <span className="px-2.5 py-1 rounded-lg text-[10px] font-black" style={{ background: `${AMBAR}20`, color: AMBAR }}>{alertasAtencao} {L('atenção', 'attention', 'atención')}</span>}
+            </div>
+          </div>
+          {alertas.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10">
+              <CheckCircle2 size={32} style={{ color: VERDE }} className="mb-2" />
+              <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum alerta no momento.', 'No alerts right now.', 'Sin alertas por el momento.')}</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+              {alertas.map((a, i) => (
+                <motion.button key={i} whileHover={{ scale: 1.005 }}
+                  onClick={() => a.clienteId && setClienteAbertoId(a.clienteId)}
+                  className="w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: `${severidadeCor(a.severidade)}0c`, border: `1px solid ${severidadeCor(a.severidade)}30`, cursor: a.clienteId ? 'pointer' : 'default' }}>
+                  <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: severidadeCor(a.severidade) }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold" style={{ color: severidadeCor(a.severidade) }}>{a.titulo}</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#c8d8f0' }}>{a.descricao}</p>
+                    <p className="text-[10px] mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* ================= AGING DA INADIMPLÊNCIA ================= */}
         <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: VERMELHO }}>
@@ -359,6 +491,77 @@ export default function Inadimplencia() {
           )}
         </div>
 
+        {/* ================= IA DE PREVENÇÃO ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${INDIGO}30` }}>
+          <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
+            <Brain size={14} /> {L('IA de Prevenção', 'Prevention AI', 'IA de Prevención')}
+          </p>
+          <p className="text-[10px] mb-4 italic" style={{ color: CINZA }}>
+            {L('Modo por regras — nenhum texto aqui foi gerado por um modelo de linguagem.', 'Rule-based mode — no text here was generated by a language model.', 'Modo por reglas — ningún texto aquí fue generado por un modelo de lenguaje.')}
+          </p>
+          {sinaisPrevencao.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes para gerar análise ainda.', 'Not enough data to generate analysis yet.', 'Sin datos suficientes para generar análisis aún.')}</p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3">
+              {sinaisPrevencao.map((c, i) => (
+                <div key={i} className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${INDIGO}20` }}>
+                  <p className="text-xs font-black mb-2" style={{ color: INDIGO }}>{c.tema}</p>
+                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
+                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
+                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}:</span> {c.impacto}</p>
+                  <p className="text-xs font-semibold" style={{ color: VERDE }}><span style={{ color: CINZA, fontWeight: 400 }}>{L('Melhor estratégia', 'Best strategy', 'Mejor estrategia')}:</span> {c.acao}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* ================= RÉGUA DE RECUPERAÇÃO ESCALONADA ================= */}
+        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${PLATINA}30` }}>
+          <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+            <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: PLATINA }}>
+              <MessageSquare size={14} /> {L('Régua de Recuperação Escalonada', 'Escalated Recovery Ladder', 'Regla de Recuperación Escalonada')}
+            </p>
+            <div className="flex items-center gap-2">
+              {etapasEscalonamento.length === 0 && (
+                <button onClick={usarEscalonamentoPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${PLATINA}15`, color: PLATINA, border: `1px solid ${PLATINA}30` }}>
+                  {L('Usar escalonamento padrão', 'Use default ladder', 'Usar escalonamiento predeterminado')}
+                </button>
+              )}
+              <button onClick={() => abrirNovaEtapa()} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${INDIGO}20`, color: INDIGO, border: `1px solid ${INDIGO}30` }}>
+                <Plus size={12} /> {L('Nova Etapa', 'New Step', 'Nueva Etapa')}
+              </button>
+            </div>
+          </div>
+          <p className="text-[10px] mb-4" style={{ color: CINZA }}>{L('Cobrança amigável → formal → protesto → jurídico → negativação. Só organiza os degraus — nenhuma ação real dispara nesta fase.', 'Friendly → formal → protest → legal → credit blacklist. Only organizes the steps — no real action fires in this phase.', 'Amistoso → formal → protesto → jurídico → negativación. Solo organiza los pasos — ninguna acción real dispara en esta fase.')}</p>
+          {etapasEscalonamento.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L('Nenhuma etapa configurada ainda.', 'No steps configured yet.', 'Ninguna etapa configurada aún.')}</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {ORDEM_ESTAGIO_ESCALONAMENTO.map((estagio) => {
+                const etapa = etapasEscalonamento.find((e) => e.estagio === estagio)
+                if (!etapa) return null
+                const cor = COR_ESTAGIO_ESCALONAMENTO[estagio]
+                return (
+                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${etapa.ativo ? cor + '40' : 'rgba(255,255,255,0.08)'}` }}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-black" style={{ color: etapa.ativo ? cor : CINZA }}>{nomeEstagioEscalonamento(lang, estagio)}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => setEditandoEtapa(etapa)}><Pencil size={11} style={{ color: AZUL }} /></button>
+                        <button onClick={() => excluirEtapa(etapa.id)}><Trash2 size={11} style={{ color: VERMELHO }} /></button>
+                      </div>
+                    </div>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                      D+{etapa.dias_relativos} · {etapa.canal}
+                    </span>
+                    <p className="text-[10px] line-clamp-2" style={{ color: '#c8d8f0' }}>{etapa.mensagem_modelo}</p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {/* ================= MAPA EXECUTIVO DE RISCO ================= */}
         <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${INDIGO}30` }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
@@ -420,7 +623,7 @@ export default function Inadimplencia() {
         </div>
       </div>
 
-      {/* ================= MODAL: NEGOCIAÇÃO DO CLIENTE ================= */}
+      {/* ================= MODAL: CENTRAL DE NEGOCIAÇÃO DO CLIENTE ================= */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {linhaAberta && (
@@ -429,63 +632,188 @@ export default function Inadimplencia() {
               style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={fecharNegociacao}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+                className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
                 <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: INDIGO }}>AXIOMA AI.TECH</p>
+                      <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: INDIGO }}>AXIOMA AI.TECH — {L('Central de Negociação', 'Negotiation Center', 'Central de Negociación')}</p>
                       <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{linhaAberta.s.cliente.nome}</h3>
                       <p className="text-xs mt-1" style={{ color: VERMELHO }}>{fBRL(linhaAberta.s.valorVencido)} · {linhaAberta.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')} · {L('Score', 'Score', 'Score')} <span style={{ color: nivelScoreCor(linhaAberta.score.nivel) }}>{linhaAberta.score.total}</span></p>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharNegociacao} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
 
-                  <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Histórico de Negociação', 'Negotiation History', 'Historial de Negociación')}</p>
-                  <div className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-1">
-                    {compromissosCliente.length === 0 ? (
-                      <p className="text-xs italic py-3" style={{ color: CINZA }}>{L('Nenhuma negociação registrada ainda.', 'No negotiation recorded yet.', 'Ninguna negociación registrada aún.')}</p>
-                    ) : compromissosCliente.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${corCompromisso(c.status)}25` }}>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold" style={{ color: corCompromisso(c.status) }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')} · {fBRL(c.valor_compromissado)}</p>
-                          <p className="text-[10px]" style={{ color: CINZA }}>{L('Combinado para', 'Committed for', 'Comprometido para')} {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}{c.condicoes ? ` · ${c.condicoes}` : ''}</p>
-                        </div>
-                        {c.status === 'pendente' ? (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <button onClick={() => marcarCompromisso(c.id, 'cumprido')} title={L('Cumprido', 'Fulfilled', 'Cumplido')}><CheckCircle2 size={14} style={{ color: VERDE }} /></button>
-                            <button onClick={() => marcarCompromisso(c.id, 'quebrado')} title={L('Quebrado', 'Broken', 'Incumplido')}><X size={14} style={{ color: VERMELHO }} /></button>
+                  {/* Estratégia recomendada — destaque da Fase 2 */}
+                  {estrategiasCliente.length > 0 && (
+                    <div className="mb-4 rounded-xl p-3" style={{ background: `${INDIGO}0c`, border: `1px solid ${INDIGO}30` }}>
+                      <p className="text-[10px] font-bold uppercase mb-2 flex items-center gap-1.5" style={{ color: INDIGO }}><Sparkles size={12} /> {L('Estratégia Recomendada', 'Recommended Strategy', 'Estrategia Recomendada')}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {estrategiasCliente.map((e) => (
+                          <div key={e.tipo} className="rounded-lg px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                            <p className="text-[11px] font-semibold" style={{ color: '#c8d8f0' }}>{e.label}</p>
+                            <p className="text-xs font-black" style={{ color: VERDE }}>~{e.probabilidadeEstimada}% {L('de recuperar', 'to recover', 'de recuperar')}</p>
                           </div>
-                        ) : <span className="text-[10px] font-bold flex-shrink-0" style={{ color: corCompromisso(c.status) }}>{c.status === 'cumprido' ? L('Cumprido', 'Fulfilled', 'Cumplido') : L('Quebrado', 'Broken', 'Incumplido')}</span>}
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  )}
+
+                  <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Timeline de Interações', 'Interaction Timeline', 'Cronología de Interacciones')}</p>
+                  <div className="space-y-2 mb-4 max-h-48 overflow-y-auto pr-1">
+                    {timelineCliente.length === 0 ? (
+                      <p className="text-xs italic py-3" style={{ color: CINZA }}>{L('Nenhuma interação registrada ainda.', 'No interaction recorded yet.', 'Ninguna interacción registrada aún.')}</p>
+                    ) : timelineCliente.map((t) => t.tipo === 'compromisso' ? (() => {
+                      const c = t.item as CobrancaCompromisso
+                      return (
+                        <div key={`c-${c.id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${corCompromisso(c.status)}25` }}>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold" style={{ color: corCompromisso(c.status) }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')} · {fBRL(c.valor_compromissado)}{c.parcelas ? ` · ${c.parcelas}x` : ''}</p>
+                            <p className="text-[10px]" style={{ color: CINZA }}>{L('Combinado para', 'Committed for', 'Comprometido para')} {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}{c.condicoes ? ` · ${c.condicoes}` : ''}{c.responsavel ? ` · ${c.responsavel}` : ''}</p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {c.status === 'pendente' ? (
+                              <>
+                                <button onClick={() => editarCompromisso(c)} title={L('Editar', 'Edit', 'Editar')}><Pencil size={13} style={{ color: AZUL }} /></button>
+                                <button onClick={() => marcarCompromisso(c.id, 'cumprido')} title={L('Cumprido', 'Fulfilled', 'Cumplido')}><CheckCircle2 size={14} style={{ color: VERDE }} /></button>
+                                <button onClick={() => marcarCompromisso(c.id, 'quebrado')} title={L('Quebrado', 'Broken', 'Incumplido')}><X size={14} style={{ color: VERMELHO }} /></button>
+                              </>
+                            ) : <span className="text-[10px] font-bold" style={{ color: corCompromisso(c.status) }}>{c.status === 'cumprido' ? L('Cumprido', 'Fulfilled', 'Cumplido') : L('Quebrado', 'Broken', 'Incumplido')}</span>}
+                          </div>
+                        </div>
+                      )
+                    })() : (() => {
+                      const it = t.item as CobrancaInteracao
+                      return (
+                        <div key={`i-${it.id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${AZUL}20` }}>
+                          <Phone size={12} style={{ color: AZUL }} className="flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{it.descricao}</p>
+                            <p className="text-[10px]" style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')}{it.canal ? ` · ${it.canal}` : ''}</p>
+                          </div>
+                        </div>
+                      )
+                    })())}
                   </div>
 
                   {titulosVencidosCliente.length === 0 ? (
                     <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhum título vencido em aberto para negociar.', 'No open overdue invoice to negotiate.', 'Ningún título vencido abierto para negociar.')}</p>
                   ) : (
-                    <div className="space-y-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                      <p className="text-[10px] font-bold uppercase" style={{ color: INDIGO }}>{L('Registrar Negociação', 'Register Negotiation', 'Registrar Negociación')}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        <select value={novoCompromisso.conta_id} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, conta_id: e.target.value })} className={inputCls + ' col-span-2'} style={selectStyle}>
+                    <div className="grid sm:grid-cols-2 gap-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      {/* Registrar contato */}
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold uppercase" style={{ color: AZUL }}>{L('Registrar Contato', 'Log Contact', 'Registrar Contacto')}</p>
+                        <select value={novoContato.conta_id} onChange={(e) => setNovoContato({ ...novoContato, conta_id: e.target.value })} className={inputCls} style={selectStyle}>
+                          {titulosVencidosCliente.map((c) => <option key={c.id} value={c.id}>{c.numero_documento || c.descricao}</option>)}
+                        </select>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={novoContato.tipo} onChange={(e) => setNovoContato({ ...novoContato, tipo: e.target.value as CobrancaInteracao['tipo'] })} className={inputCls} style={selectStyle}>
+                            <option value="contato">{L('Contato', 'Contact', 'Contacto')}</option>
+                            <option value="negociacao">{L('Negociação', 'Negotiation', 'Negociación')}</option>
+                            <option value="nota">{L('Nota', 'Note', 'Nota')}</option>
+                          </select>
+                          <select value={novoContato.canal} onChange={(e) => setNovoContato({ ...novoContato, canal: e.target.value })} className={inputCls} style={selectStyle}>
+                            {['telefone', 'email', 'whatsapp', 'presencial', 'carta'].map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <textarea placeholder={L('O que foi tratado...', 'What was discussed...', 'Qué se trató...')} value={novoContato.descricao} onChange={(e) => setNovoContato({ ...novoContato, descricao: e.target.value })} rows={2} className={inputCls} style={inputStyle} />
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={registrarContato} disabled={salvandoContato}
+                          className="w-full py-2 rounded-xl text-xs font-bold disabled:opacity-60"
+                          style={{ background: `${AZUL}20`, color: AZUL, border: `1px solid ${AZUL}30` }}>
+                          {salvandoContato ? '...' : L('Registrar', 'Log', 'Registrar')}
+                        </motion.button>
+                      </div>
+
+                      {/* Registrar / editar negociação */}
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-bold uppercase" style={{ color: INDIGO }}>{editandoCompromissoId ? L('Editar Negociação', 'Edit Negotiation', 'Editar Negociación') : L('Registrar Negociação', 'Register Negotiation', 'Registrar Negociación')}</p>
+                        <select value={novoCompromisso.conta_id} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, conta_id: e.target.value })} className={inputCls} style={selectStyle}>
                           {titulosVencidosCliente.map((c) => (
                             <option key={c.id} value={c.id}>{c.numero_documento || c.descricao} · {fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))}</option>
                           ))}
                         </select>
-                        <select value={novoCompromisso.tipo} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, tipo: e.target.value as CobrancaCompromisso['tipo'] })} className={inputCls} style={selectStyle}>
-                          <option value="promessa">{L('Promessa', 'Promise', 'Promesa')}</option>
-                          <option value="acordo">{L('Acordo', 'Agreement', 'Acuerdo')}</option>
-                        </select>
-                        <input type="date" value={novoCompromisso.data_compromissada} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, data_compromissada: e.target.value })} className={inputCls} style={inputStyle} />
-                        <input type="number" placeholder={L('Valor combinado (R$)', 'Committed amount (R$)', 'Monto acordado (R$)')} value={novoCompromisso.valor_compromissado} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, valor_compromissado: e.target.value })} className={inputCls + ' col-span-2'} style={inputStyle} />
-                        <input placeholder={L('Condições (opcional)', 'Conditions (optional)', 'Condiciones (opcional)')} value={novoCompromisso.condicoes} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, condicoes: e.target.value })} className={inputCls + ' col-span-2'} style={inputStyle} />
+                        <div className="grid grid-cols-2 gap-2">
+                          <select value={novoCompromisso.tipo} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, tipo: e.target.value as CobrancaCompromisso['tipo'] })} className={inputCls} style={selectStyle}>
+                            <option value="promessa">{L('Promessa', 'Promise', 'Promesa')}</option>
+                            <option value="acordo">{L('Acordo', 'Agreement', 'Acuerdo')}</option>
+                          </select>
+                          <input type="date" value={novoCompromisso.data_compromissada} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, data_compromissada: e.target.value })} className={inputCls} style={inputStyle} />
+                          <input type="number" placeholder={L('Valor (R$)', 'Amount (R$)', 'Monto (R$)')} value={novoCompromisso.valor_compromissado} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, valor_compromissado: e.target.value })} className={inputCls} style={inputStyle} />
+                          <input type="number" placeholder={L('Parcelas', 'Installments', 'Cuotas')} value={novoCompromisso.parcelas} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, parcelas: e.target.value })} className={inputCls} style={inputStyle} />
+                          <input type="number" placeholder={L('Desconto %', 'Discount %', 'Descuento %')} value={novoCompromisso.desconto_pct} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, desconto_pct: e.target.value })} className={inputCls} style={inputStyle} />
+                          <input type="number" placeholder={L('Juros %', 'Interest %', 'Interés %')} value={novoCompromisso.juros_pct} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, juros_pct: e.target.value })} className={inputCls} style={inputStyle} />
+                          <input type="number" placeholder={L('Multa %', 'Fine %', 'Multa %')} value={novoCompromisso.multa_pct} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, multa_pct: e.target.value })} className={inputCls} style={inputStyle} />
+                          <input placeholder={L('Responsável', 'Owner', 'Responsable')} value={novoCompromisso.responsavel} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, responsavel: e.target.value })} className={inputCls} style={inputStyle} />
+                        </div>
+                        <input placeholder={L('Condições (opcional)', 'Conditions (optional)', 'Condiciones (opcional)')} value={novoCompromisso.condicoes} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, condicoes: e.target.value })} className={inputCls} style={inputStyle} />
+                        <div className="flex gap-2">
+                          {editandoCompromissoId && (
+                            <button onClick={cancelarEdicaoCompromisso} className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                          )}
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCompromisso} disabled={salvandoCompromisso}
+                            className="flex-1 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
+                            style={{ background: `linear-gradient(135deg, ${SAFIRA}, ${INDIGO})`, color: '#fff' }}>
+                            {salvandoCompromisso ? '...' : editandoCompromissoId ? L('Salvar Alterações', 'Save Changes', 'Guardar Cambios') : L('Salvar Negociação', 'Save Negotiation', 'Guardar Negociación')}
+                          </motion.button>
+                        </div>
                       </div>
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCompromisso} disabled={salvandoCompromisso}
-                        className="w-full py-2.5 rounded-xl text-xs font-bold disabled:opacity-60"
-                        style={{ background: `linear-gradient(135deg, ${SAFIRA}, ${INDIGO})`, color: '#fff' }}>
-                        {salvandoCompromisso ? '...' : L('Salvar Negociação', 'Save Negotiation', 'Guardar Negociación')}
-                      </motion.button>
                     </div>
                   )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: ETAPA DA RÉGUA DE ESCALONAMENTO ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {editandoEtapa && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setEditandoEtapa(null)}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${PLATINA}35` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Etapa de Escalonamento', 'Escalation Step', 'Etapa de Escalonamiento')}</h3>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoEtapa(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: PLATINA }}>{L('Estágio', 'Stage', 'Etapa')}</label>
+                      <select value={editandoEtapa.estagio || 'amigavel'} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, estagio: e.target.value as EstagioEscalonamento })} className={inputCls} style={selectStyle}>
+                        {ORDEM_ESTAGIO_ESCALONAMENTO.map((e) => <option key={e} value={e}>{nomeEstagioEscalonamento(lang, e)}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: PLATINA }}>{L('Gatilho (dias de atraso)', 'Trigger (days overdue)', 'Disparador (días de atraso)')}</label>
+                      <input type="number" value={editandoEtapa.dias_relativos ?? 1} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, dias_relativos: parseInt(e.target.value, 10) || 0 })} className={inputCls} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: PLATINA }}>{L('Canal', 'Channel', 'Canal')}</label>
+                      <select value={editandoEtapa.canal || 'email'} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, canal: e.target.value as EtapaRegua['canal'] })} className={inputCls} style={selectStyle}>
+                        {CANAIS_REGUA.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: PLATINA }}>{L('Mensagem/ação-modelo', 'Message/action template', 'Mensaje/acción-modelo')}</label>
+                      <textarea value={editandoEtapa.mensagem_modelo || ''} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, mensagem_modelo: e.target.value })} rows={3} placeholder="{cliente} {documento} {valor}" className={inputCls} style={inputStyle} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="etapaAtiva" checked={editandoEtapa.ativo ?? true} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, ativo: e.target.checked })} className="w-4 h-4" />
+                      <label htmlFor="etapaAtiva" className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{L('Etapa ativa', 'Step active', 'Etapa activa')}</label>
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarEtapa}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold"
+                      style={{ background: `linear-gradient(135deg, ${SAFIRA}, ${INDIGO})`, color: '#fff' }}>
+                      {L('Salvar Etapa', 'Save Step', 'Guardar Etapa')}
+                    </motion.button>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
