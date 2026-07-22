@@ -424,8 +424,30 @@ Até rodar, a tela detecta a ausência das tabelas (erro Postgres `42P01`) e mos
 - Conectar o Dashboard Principal aos dados reais de todos os módulos (iniciativa própria, não só deste módulo)
 - Benchmark anônimo de inadimplência da rede, quando a base de usuários tiver volume suficiente
 
+## 3-M. Inadimplência — Fase 1 de 3 (Mapa de Risco + Dashboard + Aging + Score), entregue nesta rodada
+
+Reescrita completa de `/inadimplencia`, saindo do padrão CRUD antigo (tabela própria `inadimplencia` que duplicava cliente/valor/vencimento) para o padrão CFO — Centro de Inteligência de Recuperação Financeira.
+
+**Decisão técnica central (não duplicar dado):** o módulo NÃO recadastra contas nem clientes. Lê direto `contas_receber` e `clientes` (mesmo motor de `lib/clienteIntelHelpers.ts` já usado pelo Contas a Receber: `montarSnapshotsCarteira`, `calcularScoreAxiomaCliente`/`rankingScoreAxiomaCliente`, `agingCarteiraRecebiveis`, `calcularKpisRecebimento`) e `cobranca_compromissos` (já criada na Fase 2 do Contas a Receber, via `lib/cobrancaHelpers.ts`) para o "status da negociação". **Nenhuma tabela nova, nenhuma coluna nova nesta fase** — a antiga tabela `inadimplencia` fica no banco sem uso, não foi apagada.
+
+**Entregue:**
+- Mapa Executivo de Risco: uma linha por cliente inadimplente (cliente, valor devido, dias em atraso, nº de títulos, último pagamento, histórico de atrasos, probabilidade de recuperação/perda, Score Axioma, prioridade, impacto financeiro, responsável, status da negociação)
+- Dashboard com 15 KPIs (estado vazio honesto quando falta dado): total inadimplente, clientes inadimplentes, % inadimplência, recuperado no mês/ano, em negociação, perda provável, DSO ajustado, índice de recuperação, tempo médio de recuperação, receita em risco, fluxo comprometido, impacto na liquidez/capital de giro, score médio da carteira inadimplente
+- Aging (0-30/31-60/61-90/90+) com gráfico ECharts — bate com o aging do Contas a Receber, mesma função
+- Score de Risco Axioma: reaproveita o Score Axioma do Cliente já existente (0-1000, Crítico/Atenção/Bom/Excelente/Elite), gauge + ranking dos maiores riscos
+- Modal de negociação por cliente: histórico de promessas/acordos + registrar novo compromisso (grava em `cobranca_compromissos`, referenciando `conta_id`/`cliente_id`, sem copiar valor/cliente) + marcar cumprido/quebrado
+- Tema índigo/safira + acabamento platina, PDF, Centro de Compartilhamento, Seletor de Período (filtra "recuperado no período")
+
+**Arquivos criados:** `lib/inadimplenciaHelpers.ts` (KPIs de recuperação, prioridade de cobrança, status de negociação, montagem do Mapa de Risco)
+**Arquivos alterados:** `app/(interno)/inadimplencia/page.tsx` (reescrita completa)
+**Tabelas/colunas novas:** nenhuma
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — `✓ Compiled successfully` (3.2min); o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/pluggy/webhook`, falta chave local, Pluggy em modo teste — mesma causa já registrada nas seções 3-J/3-K/3-L). Não testado no navegador com login real nesta sessão.
+
+**Fase 2 e 3 aguardando aprovação do Elias** (regra explícita: não adiantar).
+
 ## 4. PRÓXIMO PASSO
-Elias testar `/contas-receber` completo (Previsão de Caixa, Simulador, Analytics). Módulo Contas a Receber encerrado (3/3 fases). Próximo: Fornecedores (já em padrão CFO) e Inadimplência ainda no padrão CRUD antigo → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+Elias testar `/inadimplencia` Fase 1 (Mapa de Risco, Dashboard, Aging, Score) e aprovar a Fase 2 antes de eu continuar. Contas a Receber encerrado (3/3 fases). Depois de Inadimplência: Fornecedores (já em padrão CFO) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
 
 ---
 
