@@ -7,6 +7,13 @@
 import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3, FaixaAging } from "./clienteIntelHelpers";
 import type { CobrancaCompromisso, EtapaRegua, AlertaCobranca, CardExplicativo } from "./cobrancaHelpers";
 import { detectarAlertasCobranca, gerarParecerCobranca } from "./cobrancaHelpers";
+import { montarDRE, serieRolling, type DRE, type Lancamento } from "./cfoCore";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 function diffDias(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
@@ -417,3 +424,260 @@ export function recomendarEstrategiasRecuperacao(lang: Idioma3, linha: LinhaRisc
   }
   return estrategias.sort((a, b) => b.probabilidadeEstimada - a.probabilidadeEstimada);
 }
+
+// ============================================================================
+// SIMULADOR EXECUTIVO DE RECUPERAÇÃO (Fase 3) — reaproveita montarDRE (mesmo
+// núcleo de Investimentos/Simulações/Contas a Receber), com alavancas próprias
+// de recuperação de inadimplência — mesma decisão já tomada em
+// previsaoRecebimentoHelpers.ts (simularCenariosRecebimento): o vetor de choque
+// genérico de simularCenariosExecutivos não tem alavanca de desconto/parcela/
+// juros/prazo/recuperação parcial, então a peça reaproveitada de verdade é o
+// motor de DRE em si, não o simulador genérico.
+// ============================================================================
+
+export type NomeCenarioRecuperacao = "conservador" | "base" | "otimista" | "adverso";
+
+export type AlavancasRecuperacao = {
+  descontoAVistaPct: number;      // desconto oferecido pra quitação imediata
+  pctAceitaParcelamento: number;  // % da carteira vencida que aceita parcelar
+  reducaoJurosPct: number;        // redução nos juros/multa cobrados, facilita o acordo
+  aumentoPrazoDias: number;       // dias a mais concedidos pra pagar
+  pctRecuperacaoParcial: number;  // % da carteira vencida recuperada só parcialmente
+  pctPerdaTotal: number;          // % da carteira vencida considerada perda definitiva
+  pctAntecipado: number;          // % do valor recuperável antecipado
+  taxaDesagioAntecipacaoPct: number;
+};
+
+export type BaseSimuladorRecuperacao = {
+  receitaMensalAtual: number; custoFixoMensalAtual: number; custoVariavelMensalAtual: number;
+  despesasFinanceirasMensalAtual: number; aliquotaEfetivaPct: number; saldoCaixaAtual: number;
+  valorTotalInadimplente: number;
+};
+
+export type ResultadoCenarioRecuperacao = {
+  nome: NomeCenarioRecuperacao; valorRecuperado: number; perdaAssumida: number;
+  ebitdaMensal: number; lucroLiquidoMensal: number; saldoCaixaProjetado: number;
+};
+
+const FATOR_CENARIO_RECUPERACAO: Record<NomeCenarioRecuperacao, number> = { conservador: 0.5, base: 1, otimista: 1.3, adverso: 0 };
+
+export function simularCenariosRecuperacao(base: BaseSimuladorRecuperacao, alav: AlavancasRecuperacao): ResultadoCenarioRecuperacao[] {
+  const nomes: NomeCenarioRecuperacao[] = ["conservador", "base", "otimista", "adverso"];
+  return nomes.map((nome) => {
+    const f = FATOR_CENARIO_RECUPERACAO[nome];
+    // Mais prazo concedido reduz a perda total esperada (até 10 p.p.) — cenário adverso não
+    // se beneficia, mesma lógica de "alavancas favoráveis não se realizam" do Contas a Receber.
+    const alivioPrazo = nome === "adverso" ? 0 : clamp((alav.aumentoPrazoDias / 30) * 2, 0, 10) * f;
+    const pctPerdaTotal = clamp((nome === "adverso" ? alav.pctPerdaTotal * 1.5 : alav.pctPerdaTotal * f) - alivioPrazo, 0, 100);
+    const pctRecParcial = alav.pctRecuperacaoParcial * (nome === "adverso" ? 0.5 : f);
+    const pctParcelamento = alav.pctAceitaParcelamento * (nome === "adverso" ? 0.5 : f);
+    const desconto = nome === "adverso" ? alav.descontoAVistaPct : alav.descontoAVistaPct * f;
+    const pctAntecipado = alav.pctAntecipado * f;
+
+    const perdaAssumida = base.valorTotalInadimplente * (pctPerdaTotal / 100);
+    const baseRecuperavel = Math.max(0, base.valorTotalInadimplente - perdaAssumida);
+    const valorComParcelamento = baseRecuperavel * (pctParcelamento / 100);
+    const valorComRecuperacaoParcial = baseRecuperavel * (pctRecParcial / 100) * 0.6; // parcial = fração do valor original
+    const valorAVista = baseRecuperavel * Math.max(0, 1 - pctParcelamento / 100 - pctRecParcial / 100);
+    const custoDesconto = valorAVista * (desconto / 100);
+    const valorRecuperado = Math.max(0, valorAVista - custoDesconto + valorComParcelamento + valorComRecuperacaoParcial);
+
+    const custoAntecipacao = valorRecuperado * (pctAntecipado / 100) * (alav.taxaDesagioAntecipacaoPct / 100);
+    const alivioJuros = base.despesasFinanceirasMensalAtual * (alav.reducaoJurosPct / 100) * f;
+
+    const dre = montarDRE({
+      receitaBruta: base.receitaMensalAtual, deducoes: base.receitaMensalAtual * (base.aliquotaEfetivaPct / 100),
+      custoVariavel: base.custoVariavelMensalAtual, custoFixo: base.custoFixoMensalAtual,
+      despesasFinanceiras: Math.max(0, base.despesasFinanceirasMensalAtual - alivioJuros) + custoAntecipacao,
+    });
+
+    return {
+      nome, valorRecuperado, perdaAssumida,
+      ebitdaMensal: dre.ebitda.valor, lucroLiquidoMensal: dre.lucroLiquido.valor,
+      saldoCaixaProjetado: base.saldoCaixaAtual + valorRecuperado - custoAntecipacao,
+    };
+  });
+}
+
+// ============================================================================
+// PREVISÃO DE RECUPERAÇÃO MULTI-HORIZONTE (Fase 3) — mesmo espírito de
+// previsaoCaixaMultiHorizonte (Contas a Receber, Fase 3), mas aplicado só ao
+// saldo já vencido, usando a probabilidade de recuperação por cliente (Fases
+// 1/2). "Quando" o valor tende a ser recuperado é uma regra determinística
+// sobre o nível do Score Axioma e o atraso atual — nunca uma previsão de ML.
+// ============================================================================
+
+export type ClassificacaoRecuperacao = "provavel" | "otimista" | "conservador" | "improvavel";
+export const HORIZONTES_RECUPERACAO = [7, 30, 60, 90, 180, 365];
+
+export type PrevisaoRecuperacaoHorizonte = { horizonteDias: number; provavel: number; otimista: number; conservador: number; improvavel: number };
+
+const HORIZONTE_BASE_POR_NIVEL: Record<ScoreAxiomaCliente["nivel"], number> = { elite: 15, excelente: 20, bom: 30, atencao: 60, critico: 120 };
+
+function classificarRecuperacao(diasAtraso: number, probRecuperacao: number | null): ClassificacaoRecuperacao {
+  if (probRecuperacao == null) return "conservador"; // sem dado = nunca otimista sem base real
+  if (diasAtraso > 180 || probRecuperacao < 20) return "improvavel";
+  if (probRecuperacao >= 70) return "otimista";
+  if (probRecuperacao >= 40) return "provavel";
+  return "conservador";
+}
+
+export function previsaoRecuperacaoMultiHorizonte(linhasRisco: LinhaRiscoInadimplencia[], horizontes: number[] = HORIZONTES_RECUPERACAO): PrevisaoRecuperacaoHorizonte[] {
+  return horizontes.map((h) => {
+    const bucket: PrevisaoRecuperacaoHorizonte = { horizonteDias: h, provavel: 0, otimista: 0, conservador: 0, improvavel: 0 };
+    linhasRisco.forEach((l) => {
+      const horizonteEsperado = HORIZONTE_BASE_POR_NIVEL[l.score.nivel] + Math.min(90, l.s.diasAtrasoAtual / 2);
+      if (horizonteEsperado > h) return;
+      const classe = classificarRecuperacao(l.s.diasAtrasoAtual, l.probabilidadeRecuperacao);
+      bucket[classe] += l.s.valorVencido;
+    });
+    return bucket;
+  });
+}
+
+// ============================================================================
+// PERDA ESPERADA / PROVISÃO PCLD (Fase 3, destaque) — por faixa de aging,
+// ponderando o saldo vencido pela probabilidade de perda já calculada (Fases
+// 1/2). Faixa sem nenhum cliente com dado real de risco vem null ("sem dados
+// suficientes"), nunca um número fabricado.
+// ============================================================================
+
+export type PerdaEsperadaFaixa = { faixa: string; valorVencido: number; perdaEsperada: number | null };
+
+export function perdaEsperadaPorFaixaAging(linhasRisco: LinhaRiscoInadimplencia[]): PerdaEsperadaFaixa[] {
+  const faixas: { chave: string; min: number; max: number }[] = [
+    { chave: "0-30", min: 0, max: 30 }, { chave: "31-60", min: 31, max: 60 },
+    { chave: "61-90", min: 61, max: 90 }, { chave: "90+", min: 91, max: Infinity },
+  ];
+  return faixas.map(({ chave, min, max }) => {
+    const doGrupo = linhasRisco.filter((l) => l.s.diasAtrasoAtual >= min && l.s.diasAtrasoAtual <= max);
+    const valorVencido = doGrupo.reduce((s, l) => s + l.s.valorVencido, 0);
+    const comDado = doGrupo.filter((l) => l.probabilidadePerda != null);
+    const perdaEsperada = comDado.length > 0
+      ? comDado.reduce((s, l) => s + l.s.valorVencido * ((l.probabilidadePerda as number) / 100), 0)
+      : null;
+    return { faixa: chave, valorVencido, perdaEsperada };
+  });
+}
+
+// ============================================================================
+// CUSTO DE COBRANÇA × VALOR RECUPERÁVEL — o Axioma não tem tabela de custo real
+// de cobrança (tempo do time, taxas de cartório etc.), então o custo médio por
+// título é uma PREMISSA que o usuário informa (input editável na tela, nunca
+// fingido como dado real do Supabase) — mesmo princípio de transparência das
+// alavancas do Simulador.
+// ============================================================================
+
+export type AvaliacaoCustoBeneficio = { linha: LinhaRiscoInadimplencia; custoEstimado: number; valorRecuperavelEstimado: number; valeAPena: boolean };
+
+export function avaliarCustoBeneficioCobranca(linhasRisco: LinhaRiscoInadimplencia[], custoMedioPorTitulo: number): AvaliacaoCustoBeneficio[] {
+  return linhasRisco.map((l) => {
+    const custoEstimado = l.qtdTitulos * custoMedioPorTitulo;
+    const prob = l.probabilidadeRecuperacao ?? 50; // sem dado = neutro, mesmo princípio do Score Axioma
+    const valorRecuperavelEstimado = l.s.valorVencido * (prob / 100);
+    return { linha: l, custoEstimado, valorRecuperavelEstimado, valeAPena: valorRecuperavelEstimado > custoEstimado };
+  }).sort((a, b) => (a.valorRecuperavelEstimado - a.custoEstimado) - (b.valorRecuperavelEstimado - b.custoEstimado));
+}
+
+// ============================================================================
+// INTEGRAÇÃO COM A DRE (Fase 3, destaque) — leitura + escrita controlada,
+// decisão tomada com o Elias: nunca cria uma linha nova em dre_historico
+// (isso é responsabilidade exclusiva da tela DRE), só ENRIQUECE uma linha do
+// período atual que já exista com a coluna opcional `provisao_pcld`. Se a DRE
+// ainda não salvou o período, a tela de Inadimplência só mostra o impacto
+// simulado (via montarDRE) sem gravar nada — nunca falha, nunca inventa linha.
+// ============================================================================
+
+export function simularImpactoProvisaoNaDRE(
+  dreBase: { receitaBruta: number; deducoes: number; custoVariavel: number; custoFixo: number; despesasFinanceiras: number },
+  perdaEsperadaTotal: number,
+): { dreAtual: DRE; dreComProvisao: DRE } {
+  const dreAtual = montarDRE(dreBase);
+  const dreComProvisao = montarDRE({ ...dreBase, despesasFinanceiras: dreBase.despesasFinanceiras + perdaEsperadaTotal });
+  return { dreAtual, dreComProvisao };
+}
+
+export async function atualizarProvisaoNaDRE(userId: string, periodoInicio: string, periodoFim: string, provisaoPcld: number): Promise<{ atualizado: boolean; erro?: string }> {
+  const { data: existente } = await supabase.from("dre_historico").select("id")
+    .eq("user_id", userId).eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
+  if (!existente) return { atualizado: false };
+  const { error } = await supabase.from("dre_historico").update({ provisao_pcld: provisaoPcld }).eq("id", existente.id);
+  return error ? { atualizado: false, erro: error.message } : { atualizado: true };
+}
+
+// ============================================================================
+// ANÁLISES EXECUTIVAS (Fase 3) — variantes escopadas só à carteira inadimplente
+// dos painéis análogos já existentes pra carteira toda inteira em
+// previsaoRecebimentoHelpers.ts (curvaABCClientes/evolucaoCarteira/
+// agruparCarteiraPorCampo) — mesmo padrão de "gêmeo escopado" que o próprio
+// código já usa entre clienteIntelHelpers.ts e previsaoRecebimentoHelpers.ts.
+// heatmapInadimplencia (a única que já nasceu escopada à inadimplência) é
+// reaproveitada direto da Fase 3 do Contas a Receber, sem cópia nenhuma.
+// ============================================================================
+
+export type ItemCurvaABCInadimplencia = { clienteId: string; nome: string; valor: number; percentual: number; percentualAcumulado: number; classe: "A" | "B" | "C" };
+
+export function curvaABCInadimplencia(linhasRisco: LinhaRiscoInadimplencia[]): ItemCurvaABCInadimplencia[] {
+  const total = linhasRisco.reduce((s, l) => s + l.s.valorVencido, 0);
+  if (total <= 0) return [];
+  let acumulado = 0;
+  return [...linhasRisco].sort((a, b) => b.s.valorVencido - a.s.valorVencido).map((l) => {
+    const percentual = (l.s.valorVencido / total) * 100;
+    acumulado += percentual;
+    const classe: ItemCurvaABCInadimplencia["classe"] = acumulado <= 80 ? "A" : acumulado <= 95 ? "B" : "C";
+    return { clienteId: l.s.cliente.id, nome: l.s.cliente.nome, valor: l.s.valorVencido, percentual: Math.round(percentual * 10) / 10, percentualAcumulado: Math.round(acumulado * 10) / 10, classe };
+  });
+}
+
+export function evolucaoInadimplencia(contas: ContaRow[]): { label: string; value: number }[] {
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  // "Ficou inadimplente": venceu e (ainda não foi pago OU foi pago com atraso). Data-base é o
+  // vencimento, pra responder "quanto do que venceu em cada mês virou inadimplência" — nunca
+  // inventa um snapshot histórico de aging que o Axioma não guarda dia a dia.
+  const lanc: Lancamento[] = contas
+    .filter((c) => (c.status !== "recebido" ? c.data_vencimento < hojeStr : !!(c.data_recebimento && c.data_recebimento > c.data_vencimento)))
+    .map((c) => ({ valor: Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)) || Number(c.valor) || 0, data: c.data_vencimento }));
+  return serieRolling(lanc, 12);
+}
+
+type GrupoValorInad = { chave: string; valor: number };
+
+function rotuloNaoInformadoInad(lang: Idioma3): string {
+  return lang === "en" ? "Not informed" : lang === "es" ? "No informado" : "Não informado";
+}
+
+export function agruparInadimplenciaPorCampo(linhasRisco: LinhaRiscoInadimplencia[], lang: Idioma3, campo: "segmento" | "cidade" | "estado"): GrupoValorInad[] {
+  const mapa = new Map<string, number>();
+  linhasRisco.forEach((l) => {
+    const chave = (l.s.cliente[campo] as string | null | undefined)?.trim() || rotuloNaoInformadoInad(lang);
+    mapa.set(chave, (mapa.get(chave) || 0) + l.s.valorVencido);
+  });
+  return [...mapa.entries()].map(([chave, valor]) => ({ chave, valor })).sort((a, b) => b.valor - a.valor);
+}
+
+export function rankingMaiorRecuperacao(carteira: SnapshotCarteira, topN = 8): GrupoValorInad[] {
+  return carteira.clientesSnapshot.map((s) => {
+    const valorRecuperado = s.contas
+      .filter((c) => c.status === "recebido" && c.data_recebimento && c.data_recebimento > c.data_vencimento)
+      .reduce((sum, c) => sum + (Number(c.valor_recebido ?? c.valor) || 0), 0);
+    return { chave: s.cliente.nome, valor: valorRecuperado };
+  }).filter((x) => x.valor > 0).sort((a, b) => b.valor - a.valor).slice(0, topN);
+}
+
+// ============================================================================
+// GANCHO FUTURO — IMPACTO DA REFORMA TRIBUTÁRIA 2026/2027 NA RECUPERAÇÃO — não
+// implementado agora. Quando fizer sentido, reaproveitar estimarImpactoSplitPayment
+// (lib/previsaoRecebimentoHelpers.ts) aplicado só sobre o valor recuperável
+// estimado da carteira inadimplente, mesmo princípio de não duplicar cálculo:
+//
+// import { estimarImpactoSplitPayment } from "./previsaoRecebimentoHelpers";
+// const impacto = estimarImpactoSplitPayment(valorRecuperavelEstimadoTotal);
+// ============================================================================
+
+// ============================================================================
+// GANCHO FUTURO — OPEN FINANCE — não implementado agora (Pluggy segue em modo
+// de teste por decisão do Elias, ver STATUS-AXIOMA.md seção 1). Quando ativo,
+// a mesma ideia de conciliação já documentada em contas-receber/page.tsx
+// (cruzar of_transacoes × contas_receber pendentes por valor/data/pagador,
+// sempre com aprovação manual) se aplicaria também aqui, sem lógica nova.
+// ============================================================================
