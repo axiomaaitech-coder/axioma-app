@@ -22,20 +22,23 @@ export type LancamentoOrigem = {
   id: string;
   descricao: string;
   valor: number;
+  data: string;            // "" quando a origem não tem data própria (Custos Fixos = recorrente)
+  categoria?: string;
+  fornecedor_id?: string | null;
   centro_custo_id: string | null;
 };
 
 export async function carregarLancamentosOrigem(userId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, centro_custo_id").eq("user_id", userId).order("descricao");
-    return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), centro_custo_id: d.centro_custo_id }));
+    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id").eq("user_id", userId).order("descricao");
+    return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
   if (tabela === "custos_variaveis") {
-    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, centro_custo_id").eq("user_id", userId).order("data", { ascending: false }).limit(200);
-    return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), centro_custo_id: d.centro_custo_id }));
+    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("user_id", userId).order("data", { ascending: false }).limit(300);
+    return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
-  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, centro_custo_id").eq("user_id", userId).order("data_vencimento", { ascending: false }).limit(200);
-  return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), centro_custo_id: d.centro_custo_id }));
+  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, categoria, data_vencimento, fornecedor_id, centro_custo_id").eq("user_id", userId).order("data_vencimento", { ascending: false }).limit(300);
+  return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id }));
 }
 
 export async function carregarTodosLancamentosOrigem(userId: string): Promise<LancamentoOrigem[]> {
@@ -45,6 +48,21 @@ export async function carregarTodosLancamentosOrigem(userId: string): Promise<La
     carregarLancamentosOrigem(userId, "contas_pagar"),
   ]);
   return [...cf, ...cv, ...cp];
+}
+
+export type ReceitaOrigem = { id: string; descricao: string; valor: number; data: string; categoria?: string; centro_custo_id: string | null };
+
+export async function carregarReceitasOrigem(userId: string): Promise<ReceitaOrigem[]> {
+  const { data } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("user_id", userId).order("data", { ascending: false }).limit(300);
+  return (data || []).map((d: any) => ({ id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
+}
+
+export function receitasPorCentroReal(receitas: ReceitaOrigem[]): Record<string, number> {
+  const totais: Record<string, number> = {};
+  for (const r of receitas) {
+    if (r.centro_custo_id) totais[r.centro_custo_id] = (totais[r.centro_custo_id] || 0) + r.valor;
+  }
+  return totais;
 }
 
 export type RateioRow = {
@@ -134,4 +152,23 @@ export async function registrarAuditoriaCentro(params: {
     registro_id: params.registroId, acao: params.acao, descricao: params.descricao,
     valor_antes: params.valorAntes, valor_depois: params.valorDepois,
   });
+}
+
+export type AuditoriaRow = {
+  id: string; centro_custo_id: string | null; tabela: string; registro_id: string | null;
+  acao: string; descricao: string | null; created_at: string;
+};
+
+export async function carregarAuditoriaCentro(userId: string, limit = 500): Promise<AuditoriaRow[]> {
+  const { data } = await supabase.from("centro_custo_auditoria").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit);
+  return data || [];
+}
+
+// "Quem lançou" só existe pra registros criados DEPOIS que a auditoria passou a existir nos
+// 4 módulos de origem — lançamentos antigos não têm essa informação e isso é dito explicitamente,
+// nunca inferido.
+export function primeiroRegistroAuditoria(auditoria: AuditoriaRow[], tabela: OrigemTabela, registroId: string): AuditoriaRow | null {
+  const doRegistro = auditoria.filter(a => a.tabela === tabela && a.registro_id === registroId);
+  if (doRegistro.length === 0) return null;
+  return doRegistro.reduce((mais_antigo, a) => a.created_at < mais_antigo.created_at ? a : mais_antigo, doRegistro[0]);
 }

@@ -551,8 +551,70 @@ Até rodar, a tela mostra o impacto simulado normalmente — só o botão "Salva
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado no navegador com login real nesta sessão.
 
+## 3-Q. Centro de Custos — Fase 2 de 2 (Inteligência Executiva + Automação), ENTREGA FINAL DO MÓDULO
+
+**Plano aprovado pelo Elias antes de codar**, com estes ajustes ao pedido original: planilha estilo Excel adiada para uma Fase 3 dedicada (pedido dele — quer testar isolada); Score do módulo e Mapa de Impacto incluídos (pedido dele — leves e o Mapa de Impacto dá sentido ao Simulador); "quem lançou" só vale a partir de agora, lançamentos antigos mostram "Autor não registrado (lançamento anterior à auditoria)" explicitamente; estoques parados fora de escopo (Axioma não tem módulo de estoque); "projeto pouco rentável" = centro com margem negativa (não existe entidade "projeto" separada de centro).
+
+**Decisão técnica central:** quase todo motor pedido já existia pronto no alicerce (`cfoCore.ts`/`fornecedorHelpers.ts`) — a Fase 2 foi essencialmente ligar motores que já existem, não inventar do zero:
+- Causa Raiz reaproveita `detectarAnomaliasHistoricas` (o mesmo detector que Custos Variáveis já usa)
+- Oportunidades reaproveita `oportunidadesConsolidacao`/`precoAcimaMediaInterna`/`contratosVencendo` (já existiam em Fornecedores) + `detectarDesperdicio` (Custos Fixos)
+- Simulador reaproveita `simularCenariosExecutivos`/`montarDRE` — mesmo motor que Investimentos/Simulações/Inadimplência Fase 3 já usam, com uma camada de tradução por cima pras 9 alavancas específicas do Centro de Custos
+- Orçamento Vivo reaproveita o mesmo princípio de projeção linear pelo ritmo de gasto
+- Mapa de Impacto reaproveita `optCascata` (o waterfall que a tela DRE já usa)
+- Copiloto segue o mesmo padrão try-API-then-fallback-por-regras que IA Financeira já usa
+
+**Entregue:**
+- **Motor de Causa Raiz:** detecta aumentos fora do padrão em Custos Variáveis/Contas a Pagar, mostra onde (centro), quando, fornecedor, e explica em linguagem de CFO. "Quem lançou" vem da auditoria da Fase 1 (agora estendida para os 4 módulos de origem também registrarem criação/edição/exclusão) — lançamentos de antes disso mostram claramente que não há essa informação
+- **Motor de Oportunidades:** consolidação de fornecedores, preço acima da média interna, contratos vencidos/a vencer, lançamentos duplicados, assinaturas esquecidas (heurística: Custos Fixos de "Sistemas e assinaturas"), centros ociosos, centros com margem negativa
+- **Priorizador Executivo:** ordena tudo por impacto × urgência ÷ complexidade, alimenta as "Prioridades da Semana/Mês" da Central de Insights
+- **Simulador com efeito cascata:** 9 alavancas (reduzir custos, expandir equipe, abrir filial, encerrar centro/projeto, trocar fornecedor, alterar preços, renegociar contratos, variar inflação, variar câmbio), 4 cenários (conservador/base/otimista/adverso), atualiza Receita/EBITDA/Lucro Líquido/Margem/Caixa Projetado/Capital de Giro com dados reais de Receitas/Custos Fixos/Custos Variáveis do período
+- **Mapa de Impacto:** waterfall do cenário base (Receita → Custo Variável → Custo Fixo → EBITDA → Lucro)
+- **Orçamento Vivo:** projeta o fechamento do mês pelo ritmo de gasto atual e sinaliza tendência de estouro, sem esperar o mês fechar
+- **Score do Módulo:** 0-100, sempre explicável (cada uma das 4 dimensões mostra o número que a gerou) — disciplina orçamentária, causa raiz/anomalias, oportunidades capturadas, cobertura de atribuição
+- **Central de Insights:** 5 maiores riscos/oportunidades/desperdícios/melhores resultados, economia potencial total, prioridades da semana/do mês
+- **Copiloto CFO:** responde "qual centro consome mais caixa", "como reduzir despesas", "qual centro destrói margem", "está dentro do orçamento" — tenta a Claude API (fio pronto, hoje sempre cai no fallback porque a chave não está ativa) e sempre com dado real, citando o período
+- **Planejador de Ações:** todo item de causa raiz/oportunidade vira plano de ação com um clique (objetivo, tarefas, responsável, prazo, impacto, economia, status) — nunca executa nada sozinho, lápis de editar e lixeira em toda a lista
+- **Correção encontrada nesta rodada:** a Visão Geral da Fase 1 nunca lia a receita real do módulo Receitas (só a lista manual do próprio Centro de Custos) — corrigido, agora soma as duas fontes como já acontecia com custo
+
+**Divergências do pedido original que estou avisando (mesmo princípio de honestidade técnica):**
+- **Paleta de cores:** o pedido descreve "mesmo tema da Fase 1 — vinho/bordô/cobre" — mas a Fase 1 que entreguei usa a paleta azul (`#6ab0ff`) que é o padrão do resto do Axioma, não vinho/bordô. Mantive a paleta azul da Fase 1 real (não a descrita) pra não deixar a tela com uma mistura de cores. Trocar pra vinho/bordô é uma mudança de estilo visual — aviso antes de fazer, se você quiser.
+- **Idioma:** todos os textos novos têm PT e EN completos; em ES, alguns rótulos novos (não os da Fase 1) caem no texto em inglês — funciona, só não está 100% traduzido pro espanhol ainda.
+
+**Schema — 1 tabela nova, script pronto, Elias ainda precisa rodar:** arquivo `CENTRO-CUSTO-FASE2-SQL.sql` na raiz do projeto. Só `centro_custo_plano_acao` — nada existente é alterado.
+
+**Arquivos criados:** `CENTRO-CUSTO-FASE2-SQL.sql`, `lib/centroCustoInteligenciaHelpers.ts`
+**Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (6 abas novas: Insights, Causa Raiz, Oportunidades, Simulador, Copiloto, Ações + Score no topo), `lib/centroCustoHelpers.ts` (leitura de receitas reais + trilha de auditoria consultável), `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/fornecedores/page.tsx`, `app/(interno)/receitas/page.tsx` (as 4 telas agora registram auditoria ao criar/editar/excluir)
+**Tabelas novas:** `centro_custo_plano_acao` (só existe quando Elias aplicar o SQL)
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado no navegador com login real nesta sessão.
+
+---
+
+## RELATÓRIO FINAL — MÓDULO CENTRO DE CUSTOS COMPLETO (Fases 1-2)
+
+**Funcionalidades entregues:**
+- Cadastro enterprise do centro (tipo pessoa, CPF/CNPJ validado, endereço com CEP autopreenchido, headcount, área)
+- Integração com os 4 módulos reais de custo/receita (Fornecedores, Custos Fixos, Custos Variáveis, Receitas) via campo opcional de centro de custo
+- Rateio real: divide um lançamento já existente entre centros por %, com sugestão automática por headcount ou área
+- Orçamento com histórico por mês + re-forecast contínuo (projeção de fechamento pelo ritmo de gasto)
+- Trilha de auditoria (centro + os 4 módulos de origem)
+- Motor de Causa Raiz, Motor de Oportunidades, Priorizador Executivo, Simulador com efeito cascata (9 alavancas × 4 cenários) + Mapa de Impacto, Score do Módulo, Central de Insights, Copiloto CFO por regras (fio pronto pra API real), Planejador de Ações
+
+**Princípio arquitetural mantido nas 2 fases:** zero duplicação de dado. A fonte da verdade dos custos continua sendo Custos Fixos/Custos Variáveis/Fornecedores/Contas a Pagar/Receitas — o módulo só lê e cruza. Nenhuma tabela nova duplica valor; as 4 tabelas novas (rateio, orçamento, auditoria, plano de ação) guardam só metadado sobre os lançamentos que já existem.
+
+**Arquivos criados:** `lib/centroCustoHelpers.ts`, `lib/centroCustoInteligenciaHelpers.ts`
+**Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (reescrita completa em 2 rodadas), `app/(interno)/fornecedores/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/receitas/page.tsx`, `lib/fornecedorHelpers.ts`
+**Tabelas novas:** `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria`, `centro_custo_plano_acao` (SQL nas seções 3-P/3-Q)
+
+**Sugestões de evolução futura (registradas, não implementadas):**
+- Planilha estilo Excel (Fase 3, adiada a pedido do Elias pra testar isolada)
+- Migrar a paleta visual pra vinho/bordô/cobre se o Elias confirmar que quer esse visual (hoje segue azul, padrão do resto do Axioma)
+- Completar tradução ES dos textos novos da Fase 2 (hoje cai no inglês)
+- Ativar a Claude API real no Copiloto CFO quando o Elias ligar o billing (o fio já está pronto)
+- Granularidade por mês nos totais integrados de Custos Variáveis/Contas a Pagar/Receitas dentro do Centro de Custos (hoje somam tudo, sem filtrar período, mesmo comportamento documentado desde a Fase 1)
+
 ## 4. PRÓXIMO PASSO
-**SQL da Fase 1 já rodado pelo Elias no Supabase (confirmado).** Falta ele testar `/centros-custo` (cadastro com endereço/CPF-CNPJ, rateio escolhendo um lançamento existente, orçamento por mês) e os 4 módulos reais com o campo "Centro de Custo" persistindo de verdade agora. Módulo Centro de Custos com a integração da Fase 1 encerrada. Perguntar ao Elias se quer alguma Fase 2 (ex: mostrar rateio/orçamento também nas telas de origem) ou seguir para o próximo item da fila.
+Elias testar o módulo Centro de Custos completo (Fases 1-2) — mas antes precisa rodar `CENTRO-CUSTO-FASE2-SQL.sql` no Supabase (só 1 tabela nova, planos de ação). Módulo Centro de Custos encerrado (2/2 fases). Decidir com o Elias: ajustar a paleta de cores, avançar pra Fase 3 (planilha), ou seguir para o próximo item da fila.
 
 ---
 

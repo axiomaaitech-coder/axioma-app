@@ -9,11 +9,25 @@ import { Pencil, Trash2, X, Split } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { consultarCEP, validarCPF, formatarCPF, formatarCEP } from "../../../lib/enderecoHelpers";
 import { validarCNPJ, formatarCNPJ } from "../../../lib/empresaHelpers";
+import { optCascata } from "../../../lib/cfoCore";
+import ReactECharts from "echarts-for-react";
 import {
   type OrigemTabela, LABEL_ORIGEM, type LancamentoOrigem, carregarTodosLancamentosOrigem,
   type RateioRow, carregarRateios, aplicarRateio, removerRateio, custosPorCentroReal, sugerirPercentuaisPorBase,
   type OrcamentoRow, carregarOrcamentos, definirOrcamento, orcamentoDoPeriodo, registrarAuditoriaCentro,
+  type ReceitaOrigem, carregarReceitasOrigem, receitasPorCentroReal,
+  type AuditoriaRow, carregarAuditoriaCentro,
 } from "../../../lib/centroCustoHelpers";
+import {
+  analisarCausaRaiz, type CausaRaizItem, identificarOportunidades, type Oportunidade,
+  priorizar, type ItemPriorizado, montarChoqueExecutivo, simularCenarioCascata, mapaDeImpacto,
+  type TipoCenarioExecutivo, type BaselineSimulacao, reforecastOrcamento, calcularScoreCentroCusto,
+  montarCentralInsights, respostaPorRegrasCentro, carregarPlanosAcao, criarPlanoAcao, atualizarPlanoAcao,
+  excluirPlanoAcao, type PlanoAcao,
+} from "../../../lib/centroCustoInteligenciaHelpers";
+import {
+  type FornecedorRow, type ContaPagarRow, type FornecedorContrato,
+} from "../../../lib/fornecedorHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,7 +87,7 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#6ab0ff", children }: {
 export default function CentrosCustoPage() {
   const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
-  const [aba, setAba] = useState<"visao" | "centros" | "lancamentos">("visao");
+  const [aba, setAba] = useState<"visao" | "centros" | "lancamentos" | "insights" | "causaRaiz" | "oportunidades" | "simulador" | "copiloto" | "acoes">("visao");
   const [centros, setCentros] = useState<Centro[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +129,40 @@ export default function CentrosCustoPage() {
   const [orcamentoEditValor, setOrcamentoEditValor] = useState("");
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false);
 
+  // Fase 2 — Inteligência Executiva: dados cruzados dos módulos de origem (só leitura)
+  const [receitasOrigem, setReceitasOrigem] = useState<ReceitaOrigem[]>([]);
+  const [fornecedoresF2, setFornecedoresF2] = useState<FornecedorRow[]>([]);
+  const [contasPagarF2, setContasPagarF2] = useState<ContaPagarRow[]>([]);
+  const [contratosF2, setContratosF2] = useState<FornecedorContrato[]>([]);
+  const [auditoria, setAuditoria] = useState<AuditoriaRow[]>([]);
+  const [planosAcao, setPlanosAcao] = useState<PlanoAcao[]>([]);
+
+  // Simulador (Escopo D)
+  const [simTipo, setSimTipo] = useState<TipoCenarioExecutivo>("reduzir_custos");
+  const [simValorPct, setSimValorPct] = useState("10");
+  const [simCentroId, setSimCentroId] = useState("");
+  const [simHorizonte, setSimHorizonte] = useState("12");
+
+  // Copiloto (Escopo G)
+  const [chatMensagens, setChatMensagens] = useState<{ role: "user" | "assistant"; texto: string }[]>([
+    { role: "assistant", texto: "Olá! Sou o copiloto do Centro de Custos. Pergunte sobre qual centro mais consome caixa, como reduzir despesas, qual centro destrói margem, ou se está dentro do orçamento." },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatCarregando, setChatCarregando] = useState(false);
+
+  // Planejador de Ações (Escopo H)
+  const [modalPlano, setModalPlano] = useState(false);
+  const [editandoPlanoId, setEditandoPlanoId] = useState<string | null>(null);
+  const [planoOrigem, setPlanoOrigem] = useState<{ tipo: "causa_raiz" | "oportunidade" | "manual"; id?: string; centroId?: string | null } | null>(null);
+  const [planoTitulo, setPlanoTitulo] = useState("");
+  const [planoObjetivo, setPlanoObjetivo] = useState("");
+  const [planoTarefas, setPlanoTarefas] = useState("");
+  const [planoResponsavel, setPlanoResponsavel] = useState("");
+  const [planoPrazo, setPlanoPrazo] = useState("");
+  const [planoImpacto, setPlanoImpacto] = useState("");
+  const [planoEconomia, setPlanoEconomia] = useState("");
+  const [salvandoPlano, setSalvandoPlano] = useState(false);
+
   const [modalLancamento, setModalLancamento] = useState(false);
   const [editandoLanc, setEditandoLanc] = useState<Lancamento | null>(null);
   const [descricaoLanc, setDescricaoLanc] = useState("");
@@ -140,18 +188,34 @@ export default function CentrosCustoPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     setUserId(user.id);
-    const [{ data: centrosData }, { data: lancamentosData }, origensData, rateiosData, orcamentosData] = await Promise.all([
+    const [
+      { data: centrosData }, { data: lancamentosData }, origensData, rateiosData, orcamentosData,
+      receitasData, { data: fornecedoresData }, { data: contasPagarData }, { data: contratosData },
+      auditoriaData, planosData,
+    ] = await Promise.all([
       supabase.from("centros_custo").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
       supabase.from("lancamentos_centro").select("*").eq("user_id", user.id).order("data", { ascending: false }),
       carregarTodosLancamentosOrigem(user.id),
       carregarRateios(user.id),
       carregarOrcamentos(user.id),
+      carregarReceitasOrigem(user.id),
+      supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("user_id", user.id),
+      supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("user_id", user.id),
+      supabase.from("fornecedor_contratos").select("*").eq("user_id", user.id),
+      carregarAuditoriaCentro(user.id),
+      carregarPlanosAcao(user.id),
     ]);
     setCentros(centrosData || []);
     setLancamentos(lancamentosData || []);
     setLancamentosOrigem(origensData);
     setRateios(rateiosData);
     setOrcamentos(orcamentosData);
+    setReceitasOrigem(receitasData);
+    setFornecedoresF2(fornecedoresData || []);
+    setContasPagarF2(contasPagarData || []);
+    setContratosF2(contratosData || []);
+    setAuditoria(auditoriaData);
+    setPlanosAcao(planosData);
     setLoading(false);
   }
 
@@ -338,26 +402,164 @@ export default function CentrosCustoPage() {
   }
 
   const custosPorCentroIntegrados = custosPorCentroReal(lancamentosOrigem, rateios);
+  const receitasPorCentroIntegradas = receitasPorCentroReal(receitasOrigem);
 
   // ---------- CÁLCULOS (período selecionado) ----------
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const noPeriodo = (l: Lancamento) => (l.data || "").slice(0, 7) === periodo;
   const lancPeriodo = lancamentos.filter(noPeriodo);
 
-  // ponytail: totais integrados (Custos Fixos/Variáveis/Contas a Pagar) não filtram por período —
-  // Custos Fixos já é sempre recorrente mensal em todo o Axioma; refinar por data se precisar granularidade.
+  // ponytail: totais integrados (Custos Fixos/Variáveis/Contas a Pagar/Receitas) não filtram por
+  // período — Custos Fixos já é sempre recorrente mensal em todo o Axioma; refinar por data se
+  // precisar granularidade por mês nos demais.
   const getOrcamento = (c: Centro) => orcamentoDoPeriodo(orcamentos, c.id, periodo, c.orcamento_mensal || 0);
   const getCustos = (id: string) =>
     lancPeriodo.filter(l => l.centro_custo_id === id && l.tipo === "custo").reduce((s, l) => s + l.valor, 0)
     + (custosPorCentroIntegrados[id] || 0);
-  const getReceitas = (id: string) => lancPeriodo.filter(l => l.centro_custo_id === id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+  const getReceitas = (id: string) =>
+    lancPeriodo.filter(l => l.centro_custo_id === id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0)
+    + (receitasPorCentroIntegradas[id] || 0);
 
   const totalCustos = centros.reduce((s, c) => s + getCustos(c.id), 0) + lancPeriodo.filter(l => !l.centro_custo_id && l.tipo === "custo").reduce((s, l) => s + l.valor, 0);
-  const totalReceitas = lancPeriodo.filter(l => l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
+  const totalReceitas = centros.reduce((s, c) => s + getReceitas(c.id), 0) + lancPeriodo.filter(l => !l.centro_custo_id && l.tipo === "receita").reduce((s, l) => s + l.valor, 0);
   const totalOrcado = centros.reduce((s, c) => s + getOrcamento(c), 0);
   const resultadoGeral = totalReceitas - totalCustos;
 
   const lancFiltrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(busca.toLowerCase()));
+
+  // ========================================================================
+  // FASE 2 — INTELIGÊNCIA EXECUTIVA (tudo derivado do que já foi carregado, nenhuma escrita)
+  // ========================================================================
+  const centrosLeves = centros.map(c => ({ id: c.id, nome: c.nome }));
+  const fornecedoresLeves = fornecedoresF2.map(f => ({ id: f.id, nome: f.nome }));
+
+  const causaRaiz: CausaRaizItem[] = analisarCausaRaiz(lancamentosOrigem, auditoria, centrosLeves, fornecedoresLeves);
+
+  const oportunidades: Oportunidade[] = identificarOportunidades({
+    fornecedores: fornecedoresF2, contasPagar: contasPagarF2, contratos: contratosF2,
+    custosFixos: lancamentosOrigem.filter(o => o.tabela === "custos_fixos"),
+    custosVariaveis: lancamentosOrigem.filter(o => o.tabela === "custos_variaveis"),
+    centros: centrosLeves,
+    custosPorCentro: Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])),
+    receitasPorCentro: Object.fromEntries(centros.map(c => [c.id, getReceitas(c.id)])),
+  });
+
+  const priorizados: ItemPriorizado[] = priorizar(causaRaiz, oportunidades);
+
+  const idsComPlanoAcao = new Set(planosAcao.filter(p => p.status !== "cancelado").map(p => p.origem_id).filter(Boolean) as string[]);
+  const origensSemCentro = lancamentosOrigem.filter(o => !o.centro_custo_id).length;
+  const scoreModulo = calcularScoreCentroCusto({
+    centros: centrosLeves, custosPorCentro: Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])),
+    orcamentoPorCentro: (id) => getOrcamento(centros.find(c => c.id === id)!),
+    causaRaiz, totalCustos, oportunidades, idsComPlanoAcao,
+    origensSemCentro, origensTotais: lancamentosOrigem.length,
+  });
+
+  const insights = montarCentralInsights({
+    priorizados, oportunidades, centros: centrosLeves,
+    custosPorCentro: Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])),
+    receitasPorCentro: Object.fromEntries(centros.map(c => [c.id, getReceitas(c.id)])),
+  });
+
+  const hoje = new Date();
+  const periodoEhMesAtual = periodo === hoje.toISOString().slice(0, 7);
+  const dataRefReforecast = periodoEhMesAtual ? hoje : new Date(Number(periodo.slice(0, 4)), Number(periodo.slice(5, 7)), 0);
+  const reforecast = reforecastOrcamento(centrosLeves, Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])), (id) => getOrcamento(centros.find(c => c.id === id)!), dataRefReforecast);
+
+  // ---------- Simulador (Escopo D) ----------
+  const contasPagarEmAberto = contasPagarF2.filter(c => c.status !== "pago").reduce((s, c) => s + (c.valor_total - (c.valor_pago || 0)), 0);
+  const custoFixoShareCentro = simCentroId ? lancamentosOrigem.filter(o => o.tabela === "custos_fixos" && o.centro_custo_id === simCentroId).reduce((s, o) => s + o.valor, 0) : 0;
+  const custoVariavelShareCentro = simCentroId ? lancamentosOrigem.filter(o => o.tabela === "custos_variaveis" && o.centro_custo_id === simCentroId && o.data.slice(0, 7) === periodo).reduce((s, o) => s + o.valor, 0) : 0;
+  const baselineSimulacao: BaselineSimulacao = {
+    receitaMensal: totalReceitas,
+    custoFixoMensal: lancamentosOrigem.filter(o => o.tabela === "custos_fixos").reduce((s, o) => s + o.valor, 0),
+    custoVariavelMensal: lancamentosOrigem.filter(o => o.tabela === "custos_variaveis" && o.data.slice(0, 7) === periodo).reduce((s, o) => s + o.valor, 0),
+    caixaAtual: 0,
+    capitalGiroAtual: -contasPagarEmAberto,
+  };
+  const choqueSim = montarChoqueExecutivo(simTipo, parseFloat(simValorPct || "0"), baselineSimulacao, simTipo === "encerrar_centro" ? { custoFixoShare: custoFixoShareCentro, custoVariavelShare: custoVariavelShareCentro } : undefined);
+  const resultadosSim = simularCenarioCascata(baselineSimulacao, choqueSim, parseInt(simHorizonte || "12"));
+  const resultadoBaseSim = resultadosSim.find(r => r.nome === "base") || resultadosSim[0];
+  const itensCascataSim = mapaDeImpacto(baselineSimulacao, choqueSim, resultadoBaseSim);
+  const optMapaImpacto = optCascata(itensCascataSim, "#34d399", "#f87171", "#a78bfa");
+
+  // ---------- Copiloto (Escopo G) ----------
+  async function enviarMensagemCopiloto(texto: string) {
+    if (!texto.trim() || chatCarregando) return;
+    const novas: typeof chatMensagens = [...chatMensagens, { role: "user", texto }];
+    setChatMensagens(novas);
+    setChatInput("");
+    setChatCarregando(true);
+    const ctx = {
+      centros: centrosLeves, custosPorCentro: Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])),
+      receitasPorCentro: Object.fromEntries(centros.map(c => [c.id, getReceitas(c.id)])),
+      orcamentoPorCentro: (id: string) => getOrcamento(centros.find(c => c.id === id)!),
+      oportunidades, score: scoreModulo, periodo,
+    };
+    let resposta = "";
+    try {
+      const res = await fetch("/api/ia-chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mensagem: `Você é o copiloto do módulo Centro de Custos da Axioma AI.Tech. Responda só com base nestes dados reais: ${JSON.stringify(ctx)}. Pergunta: ${texto}`,
+          historico: novas.slice(-8).map(m => ({ role: m.role, content: m.texto })),
+        }),
+      });
+      if (res.ok) { const data = await res.json(); resposta = data.resposta || ""; }
+    } catch {}
+    if (!resposta) resposta = respostaPorRegrasCentro(texto, ctx);
+    setChatMensagens([...novas, { role: "assistant", texto: resposta }]);
+    setChatCarregando(false);
+  }
+
+  // ---------- Planejador de Ações (Escopo H) ----------
+  function abrirPlanoDeAcao(origemTipo: "causa_raiz" | "oportunidade" | "manual", origemId?: string, centroId?: string | null, tituloSugerido?: string, economiaSugerida?: number, impactoSugerido?: string) {
+    setEditandoPlanoId(null);
+    setPlanoOrigem({ tipo: origemTipo, id: origemId, centroId });
+    setPlanoTitulo(tituloSugerido || "");
+    setPlanoObjetivo(""); setPlanoTarefas(""); setPlanoResponsavel(""); setPlanoPrazo("");
+    setPlanoImpacto(impactoSugerido || ""); setPlanoEconomia(economiaSugerida != null ? String(economiaSugerida) : "");
+    setModalPlano(true);
+  }
+
+  function abrirEdicaoPlano(plano: PlanoAcao) {
+    setEditandoPlanoId(plano.id);
+    setPlanoOrigem({ tipo: plano.origem_tipo, id: plano.origem_id || undefined, centroId: plano.centro_custo_id });
+    setPlanoTitulo(plano.titulo); setPlanoObjetivo(plano.objetivo || "");
+    setPlanoTarefas((plano.tarefas || []).join("\n")); setPlanoResponsavel(plano.responsavel || "");
+    setPlanoPrazo(plano.prazo || ""); setPlanoImpacto(plano.impacto_esperado || "");
+    setPlanoEconomia(plano.economia_estimada != null ? String(plano.economia_estimada) : "");
+    setModalPlano(true);
+  }
+
+  async function salvarPlano() {
+    if (!userId || !planoTitulo.trim() || !planoOrigem) return;
+    setSalvandoPlano(true);
+    const tarefas = planoTarefas ? planoTarefas.split("\n").map(t => t.trim()).filter(Boolean) : undefined;
+    const { erro } = editandoPlanoId
+      ? await atualizarPlanoAcao(editandoPlanoId, {
+          titulo: planoTitulo, objetivo: planoObjetivo, tarefas, responsavel: planoResponsavel, prazo: planoPrazo,
+          impactoEsperado: planoImpacto, economiaEstimada: planoEconomia ? parseFloat(planoEconomia) : undefined,
+        })
+      : await criarPlanoAcao(userId, {
+          centroId: planoOrigem.centroId, origemTipo: planoOrigem.tipo, origemId: planoOrigem.id,
+          titulo: planoTitulo, objetivo: planoObjetivo || undefined, tarefas,
+          responsavel: planoResponsavel || undefined, prazo: planoPrazo || undefined,
+          impactoEsperado: planoImpacto || undefined, economiaEstimada: planoEconomia ? parseFloat(planoEconomia) : undefined,
+        });
+    if (erro) { alert("Erro ao salvar plano: " + erro); setSalvandoPlano(false); return; }
+    setModalPlano(false); setSalvandoPlano(false); carregarDados();
+  }
+
+  async function mudarStatusPlano(id: string, status: PlanoAcao["status"]) {
+    await atualizarPlanoAcao(id, { status });
+    carregarDados();
+  }
+
+  async function removerPlano(id: string) {
+    await excluirPlanoAcao(id);
+    carregarDados();
+  }
 
   const L = {
     orcado: idioma === "pt" ? "Orçado" : idioma === "en" ? "Budget" : "Presupuesto",
@@ -425,12 +627,39 @@ export default function CentrosCustoPage() {
           ))}
         </div>
 
+        {/* Score do módulo (Fase 2) — sempre explicável, cada dimensão mostra o número que a gerou */}
+        <CanvasBox cor={scoreModulo.cor}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl md:text-3xl font-black" style={{ color: scoreModulo.cor }}>{scoreModulo.total}<span className="text-sm" style={{ color: "#5a7a9a" }}>/100</span></div>
+              <div>
+                <p className="text-sm font-bold capitalize" style={{ color: "#c8d8f0" }}>{idioma === "pt" ? "Score do Módulo" : "Module Score"} — {scoreModulo.nivel}</p>
+                <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Disciplina orçamentária, anomalias, oportunidades capturadas e cobertura de atribuição." : "Budget discipline, anomalies, captured opportunities and tagging coverage."}</p>
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              {scoreModulo.dimensoes.map(d => (
+                <div key={d.nome} className="text-center px-2">
+                  <p className="text-sm font-black" style={{ color: d.cor }}>{d.score}</p>
+                  <p className="text-[9px] max-w-[90px]" style={{ color: "#5a7a9a" }} title={d.detalhe}>{d.nome}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CanvasBox>
+
         {/* Abas */}
         <div className="flex gap-2 flex-wrap">
           {[
             { key: "visao", label: cc.abaVisaoGeral },
             { key: "centros", label: cc.abaCentros },
             { key: "lancamentos", label: cc.abaLancamentos },
+            { key: "insights", label: idioma === "pt" ? "Insights" : "Insights" },
+            { key: "causaRaiz", label: idioma === "pt" ? "Causa Raiz" : "Root Cause" },
+            { key: "oportunidades", label: idioma === "pt" ? "Oportunidades" : "Opportunities" },
+            { key: "simulador", label: idioma === "pt" ? "Simulador" : "Simulator" },
+            { key: "copiloto", label: idioma === "pt" ? "Copiloto" : "Copilot" },
+            { key: "acoes", label: idioma === "pt" ? "Ações" : "Actions" },
           ].map((a) => (
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setAba(a.key as typeof aba)}
@@ -650,6 +879,267 @@ export default function CentrosCustoPage() {
                     </div>
                   </CanvasBox>
                 </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ===== INSIGHTS (Escopo F — Central de Insights) ===== */}
+        {aba === "insights" && (
+          <div className="space-y-4">
+            <CanvasBox cor="#34d399">
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Economia Potencial Total" : "Total Potential Savings"}</p>
+              <p className="text-2xl font-black" style={{ color: "#34d399" }}>{fmt(insights.economiaPotencialTotal)}</p>
+            </CanvasBox>
+            {[
+              { titulo: idioma === "pt" ? "5 Maiores Riscos" : "Top 5 Risks", cor: "#f87171", itens: insights.maioresRiscos.map(i => ({ id: i.id, titulo: i.titulo, sub: `${i.urgencia} · ${fmt(i.impacto)}` })) },
+              { titulo: idioma === "pt" ? "5 Maiores Oportunidades" : "Top 5 Opportunities", cor: "#34d399", itens: insights.maioresOportunidades.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
+              { titulo: idioma === "pt" ? "5 Maiores Desperdícios" : "Top 5 Waste", cor: "#fbbf24", itens: insights.maioresDesperdicios.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
+              { titulo: idioma === "pt" ? "5 Melhores Resultados" : "Top 5 Results", cor: "#6ab0ff", itens: insights.melhoresResultados.map(r => ({ id: r.centroId, titulo: r.centroNome, sub: fmt(r.resultado) })) },
+            ].map(bloco => (
+              <CanvasBox key={bloco.titulo} cor={bloco.cor}>
+                <p className="text-sm font-bold mb-2" style={{ color: bloco.cor }}>{bloco.titulo}</p>
+                {bloco.itens.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nada encontrado nos dados atuais." : "Nothing found in the current data."}</p> : (
+                  <div className="space-y-1.5">
+                    {bloco.itens.map((it, i) => (
+                      <div key={it.id + i} className="flex justify-between text-xs gap-2">
+                        <span className="truncate" style={{ color: "#c8d8f0" }}>{it.titulo}</span>
+                        <span className="flex-shrink-0" style={{ color: bloco.cor }}>{it.sub}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CanvasBox>
+            ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { titulo: idioma === "pt" ? "Prioridades da Semana" : "This Week", itens: insights.prioridadesSemana },
+                { titulo: idioma === "pt" ? "Prioridades do Mês" : "This Month", itens: insights.prioridadesMes },
+              ].map(bloco => (
+                <CanvasBox key={bloco.titulo} cor="#a78bfa">
+                  <p className="text-sm font-bold mb-2" style={{ color: "#a78bfa" }}>{bloco.titulo}</p>
+                  {bloco.itens.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhuma prioridade urgente agora." : "No urgent priority now."}</p> : (
+                    <div className="space-y-1.5">
+                      {bloco.itens.map((it, i) => <p key={it.id + i} className="text-xs truncate" style={{ color: "#c8d8f0" }}>• {it.titulo}</p>)}
+                    </div>
+                  )}
+                </CanvasBox>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ===== CAUSA RAIZ (Escopo A) ===== */}
+        {aba === "causaRaiz" && (
+          <div className="space-y-3">
+            {causaRaiz.length === 0 ? (
+              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhum aumento fora do padrão detectado nos dados atuais." : "No out-of-pattern increase detected."}</p></div></CanvasBox>
+            ) : causaRaiz.map((c) => (
+              <CanvasBox key={c.id} cor="#f87171">
+                <div className="flex justify-between items-start gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{c.tipo === "acima_media" ? (idioma === "pt" ? "Acima da média" : "Above average") : (idioma === "pt" ? "Aumento recorrente" : "Recurring increase")}</span>
+                      <span className="text-xs" style={{ color: "#5a7a9a" }}>{c.centroNome}{c.fornecedorNome ? ` · ${c.fornecedorNome}` : ""}</span>
+                    </div>
+                    <p className="text-sm" style={{ color: "#c8d8f0" }}>{c.explicacao}</p>
+                    <p className="text-[11px] mt-1" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Quando" : "When"}: {c.quando ? new Date(c.quando + "T00:00:00").toLocaleDateString("pt-BR") : "-"} · {c.autor}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    <span className="text-sm font-black" style={{ color: "#f87171" }}>{fmt(c.impacto)}</span>
+                    <button onClick={() => abrirPlanoDeAcao("causa_raiz", c.id, c.centroId, `Investigar: ${c.descricao}`, c.impacto, c.explicacao)}
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                      {idioma === "pt" ? "Gerar plano de ação" : "Create action plan"}
+                    </button>
+                  </div>
+                </div>
+              </CanvasBox>
+            ))}
+          </div>
+        )}
+
+        {/* ===== OPORTUNIDADES (Escopo B + C + E) ===== */}
+        {aba === "oportunidades" && (
+          <div className="space-y-3">
+            {reforecast.length > 0 && (
+              <CanvasBox cor="#fbbf24">
+                <p className="text-sm font-bold mb-2" style={{ color: "#fbbf24" }}>{idioma === "pt" ? "Orçamento Vivo — Projeção de Fechamento" : "Live Budget — Closing Projection"}</p>
+                <div className="space-y-1.5">
+                  {reforecast.map(r => (
+                    <div key={r.centroId} className="flex justify-between text-xs gap-2">
+                      <span style={{ color: "#c8d8f0" }}>{r.centroNome}</span>
+                      <span style={{ color: r.status === "estouro" ? "#f87171" : r.status === "atencao" ? "#fbbf24" : "#34d399" }}>
+                        {idioma === "pt" ? "projeta" : "projects"} {fmt(r.projecaoFechamento)} {idioma === "pt" ? "vs orçado" : "vs budget"} {fmt(r.orcado)} ({r.desvioPct >= 0 ? "+" : ""}{r.desvioPct.toFixed(0)}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {!periodoEhMesAtual && <p className="text-[10px] mt-2" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Período selecionado não é o mês corrente — mostrando o realizado do mês, não uma projeção." : "Selected period isn't the current month — showing the actual, not a projection."}</p>}
+              </CanvasBox>
+            )}
+            {oportunidades.length === 0 ? (
+              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhuma oportunidade identificada nos dados atuais." : "No opportunity identified."}</p></div></CanvasBox>
+            ) : oportunidades.map((o) => (
+              <CanvasBox key={o.id} cor="#34d399">
+                <div className="flex justify-between items-start gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{o.titulo}</p>
+                    <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{o.descricao}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    {o.economiaEstimada > 0 && <span className="text-sm font-black" style={{ color: "#34d399" }}>{fmt(o.economiaEstimada)}</span>}
+                    <button onClick={() => abrirPlanoDeAcao("oportunidade", o.id, o.centroId, o.titulo, o.economiaEstimada, o.descricao)}
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                      {idioma === "pt" ? "Gerar plano de ação" : "Create action plan"}
+                    </button>
+                  </div>
+                </div>
+              </CanvasBox>
+            ))}
+          </div>
+        )}
+
+        {/* ===== SIMULADOR (Escopo D — cenários com efeito cascata + Mapa de Impacto) ===== */}
+        {aba === "simulador" && (
+          <div className="space-y-4">
+            <CanvasBox cor="#a78bfa">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Cenário" : "Scenario"}</label>
+                  <select value={simTipo} onChange={(e) => setSimTipo(e.target.value as TipoCenarioExecutivo)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={selectStyle}>
+                    <option value="reduzir_custos">{idioma === "pt" ? "Reduzir custos" : "Reduce costs"}</option>
+                    <option value="expandir_equipe">{idioma === "pt" ? "Expandir equipe" : "Expand team"}</option>
+                    <option value="abrir_filial">{idioma === "pt" ? "Abrir filial" : "Open branch"}</option>
+                    <option value="encerrar_centro">{idioma === "pt" ? "Encerrar centro/projeto" : "Close center/project"}</option>
+                    <option value="trocar_fornecedor">{idioma === "pt" ? "Trocar fornecedor" : "Switch supplier"}</option>
+                    <option value="alterar_precos">{idioma === "pt" ? "Alterar preços" : "Change prices"}</option>
+                    <option value="renegociar_contratos">{idioma === "pt" ? "Renegociar contratos" : "Renegotiate contracts"}</option>
+                    <option value="variar_inflacao">{idioma === "pt" ? "Variar inflação" : "Inflation shift"}</option>
+                    <option value="variar_cambio">{idioma === "pt" ? "Variar câmbio" : "FX shift"}</option>
+                  </select>
+                </div>
+                {simTipo === "encerrar_centro" ? (
+                  <div>
+                    <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Centro" : "Center"}</label>
+                    <select value={simCentroId} onChange={(e) => setSimCentroId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={selectStyle}>
+                      <option value="">-- {idioma === "pt" ? "Selecione" : "Select"} --</option>
+                      {centros.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Percentual (%)" : "Percent (%)"}</label>
+                    <input type="number" value={simValorPct} onChange={(e) => setSimValorPct(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Horizonte (meses)" : "Horizon (months)"}</label>
+                  <input type="number" value={simHorizonte} onChange={(e) => setSimHorizonte(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                </div>
+                <div className="flex items-end">
+                  <p className="text-[10px]" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Recalcula automaticamente com base nos dados reais de Receitas, Custos Fixos e Custos Variáveis do período." : "Recalculates automatically from real Revenue, Fixed and Variable Costs of the period."}</p>
+                </div>
+              </div>
+            </CanvasBox>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {resultadosSim.map(r => (
+                <CanvasBox key={r.nome} cor={r.nome === "base" ? "#a78bfa" : r.nome === "otimista" ? "#34d399" : r.nome === "adverso" ? "#f87171" : "#6ab0ff"}>
+                  <p className="text-xs font-black uppercase tracking-wider mb-2 capitalize" style={{ color: r.nome === "base" ? "#a78bfa" : r.nome === "otimista" ? "#34d399" : r.nome === "adverso" ? "#f87171" : "#6ab0ff" }}>{r.nome}</p>
+                  {[
+                    { l: idioma === "pt" ? "Receita" : "Revenue", v: fmt(r.receitaMensal) },
+                    { l: "EBITDA", v: fmt(r.ebitdaMensal) },
+                    { l: idioma === "pt" ? "Lucro Líquido" : "Net Profit", v: fmt(r.lucroLiquidoMensal) },
+                    { l: idioma === "pt" ? "Margem" : "Margin", v: `${r.margemPct.toFixed(1)}%` },
+                    { l: idioma === "pt" ? "Capital de Giro" : "Working Capital", v: fmt(r.capitalGiroProjetado) },
+                    { l: idioma === "pt" ? "Caixa Projetado" : "Projected Cash", v: fmt(r.saldoCaixaProjetado) },
+                  ].map(m => (
+                    <div key={m.l} className="flex justify-between text-xs mb-1">
+                      <span style={{ color: "#5a7a9a" }}>{m.l}</span>
+                      <span style={{ color: "#c8d8f0" }}>{m.v}</span>
+                    </div>
+                  ))}
+                </CanvasBox>
+              ))}
+            </div>
+
+            <CanvasBox cor="#6ab0ff">
+              <p className="text-sm font-bold mb-2" style={{ color: "#6ab0ff" }}>{idioma === "pt" ? "Mapa de Impacto (cenário base)" : "Impact Map (base scenario)"}</p>
+              <ReactECharts option={optMapaImpacto} style={{ height: 280, width: "100%" }} notMerge lazyUpdate />
+            </CanvasBox>
+          </div>
+        )}
+
+        {/* ===== COPILOTO (Escopo G) ===== */}
+        {aba === "copiloto" && (
+          <CanvasBox cor="#a78bfa">
+            <div className="space-y-3 mb-4 max-h-[420px] overflow-y-auto">
+              {chatMensagens.map((m, i) => (
+                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm" style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : "rgba(167,139,250,0.1)", color: "#c8d8f0" }}>
+                    {m.texto}
+                  </div>
+                </div>
+              ))}
+              {chatCarregando && <p className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Pensando..." : "Thinking..."}</p>}
+            </div>
+            <div className="flex gap-2">
+              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") enviarMensagemCopiloto(chatInput); }}
+                placeholder={idioma === "pt" ? "Pergunte sobre seus centros de custo..." : "Ask about your cost centers..."}
+                className="flex-1 px-4 py-3 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+              <button onClick={() => enviarMensagemCopiloto(chatInput)} disabled={chatCarregando}
+                className="px-4 py-3 rounded-xl text-sm font-bold disabled:opacity-50" style={{ background: "linear-gradient(135deg, #5b21b6, #8b5cf6)", color: "#fff" }}>
+                {idioma === "pt" ? "Enviar" : "Send"}
+              </button>
+            </div>
+          </CanvasBox>
+        )}
+
+        {/* ===== PLANOS DE AÇÃO (Escopo H) ===== */}
+        {aba === "acoes" && (
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <button onClick={() => abrirPlanoDeAcao("manual")} className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>
+                + {idioma === "pt" ? "Novo Plano" : "New Plan"}
+              </button>
+            </div>
+            {planosAcao.length === 0 ? (
+              <CanvasBox cor="#6ab0ff"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhum plano de ação criado ainda." : "No action plan yet."}</p></div></CanvasBox>
+            ) : planosAcao.map(p => {
+              const corStatus = p.status === "concluido" ? "#34d399" : p.status === "cancelado" ? "#5a7a9a" : p.status === "em_andamento" ? "#6ab0ff" : "#fbbf24";
+              return (
+                <CanvasBox key={p.id} cor={corStatus}>
+                  <div className="flex justify-between items-start gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="text-xs px-2 py-0.5 rounded-full font-bold capitalize" style={{ background: `${corStatus}20`, color: corStatus }}>{p.status.replace("_", " ")}</span>
+                        <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{p.titulo}</p>
+                      </div>
+                      {p.objetivo && <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{p.objetivo}</p>}
+                      {p.tarefas && p.tarefas.length > 0 && (
+                        <ul className="text-xs mt-1 list-disc list-inside" style={{ color: "#5a7a9a" }}>
+                          {p.tarefas.map((tf, i) => <li key={i}>{tf}</li>)}
+                        </ul>
+                      )}
+                      <p className="text-[11px] mt-1" style={{ color: "#5a7a9a" }}>
+                        {p.responsavel ? `${idioma === "pt" ? "Responsável" : "Owner"}: ${p.responsavel} · ` : ""}
+                        {p.prazo ? `${idioma === "pt" ? "Prazo" : "Due"}: ${new Date(p.prazo + "T00:00:00").toLocaleDateString("pt-BR")} · ` : ""}
+                        {p.economia_estimada ? `${idioma === "pt" ? "Economia" : "Savings"}: ${fmt(p.economia_estimada)}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <select value={p.status} onChange={(e) => mudarStatusPlano(p.id, e.target.value as PlanoAcao["status"])} className="text-xs px-2 py-1.5 rounded-lg focus:outline-none" style={selectStyle}>
+                        <option value="pendente">{idioma === "pt" ? "Pendente" : "Pending"}</option>
+                        <option value="em_andamento">{idioma === "pt" ? "Em andamento" : "In progress"}</option>
+                        <option value="concluido">{idioma === "pt" ? "Concluído" : "Done"}</option>
+                        <option value="cancelado">{idioma === "pt" ? "Cancelado" : "Cancelled"}</option>
+                      </select>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoPlano(p)}><Pencil size={15} style={{ color: "#6ab0ff" }} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerPlano(p.id)}><Trash2 size={15} style={{ color: "#f87171" }} /></motion.button>
+                    </div>
+                  </div>
+                </CanvasBox>
               );
             })}
           </div>
@@ -893,6 +1383,50 @@ export default function CentrosCustoPage() {
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #5b21b6, #8b5cf6)", color: "#fff" }}>
               {processandoRateio ? "..." : (idioma === "pt" ? "Aplicar Rateio" : "Apply")}
+            </motion.button>
+          </div>
+        </div>
+      </ModalPremium>
+
+      {/* Modal Plano de Ação (Escopo H) */}
+      <ModalPremium aberto={modalPlano} onFechar={() => setModalPlano(false)} titulo={editandoPlanoId ? (idioma === "pt" ? "Editar Plano de Ação" : "Edit Action Plan") : (idioma === "pt" ? "Novo Plano de Ação" : "New Action Plan")} cor="#a78bfa">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Título / Objetivo" : "Title / Goal"}</label>
+            <input value={planoTitulo} onChange={(e) => setPlanoTitulo(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Objetivo detalhado" : "Detailed goal"}</label>
+            <textarea value={planoObjetivo} onChange={(e) => setPlanoObjetivo(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Tarefas (uma por linha)" : "Tasks (one per line)"}</label>
+            <textarea value={planoTarefas} onChange={(e) => setPlanoTarefas(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Responsável" : "Owner"}</label>
+              <input value={planoResponsavel} onChange={(e) => setPlanoResponsavel(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Prazo" : "Due date"}</label>
+              <input type="date" value={planoPrazo} onChange={(e) => setPlanoPrazo(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Impacto esperado" : "Expected impact"}</label>
+            <input value={planoImpacto} onChange={(e) => setPlanoImpacto(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Economia estimada (R$)" : "Estimated savings (R$)"}</label>
+            <input type="number" value={planoEconomia} onChange={(e) => setPlanoEconomia(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setModalPlano(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarPlano} disabled={salvandoPlano || !planoTitulo.trim()}
+              className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
+              style={{ background: "linear-gradient(135deg, #5b21b6, #8b5cf6)", color: "#fff" }}>
+              {salvandoPlano ? "..." : (idioma === "pt" ? "Salvar Plano" : "Save Plan")}
             </motion.button>
           </div>
         </div>

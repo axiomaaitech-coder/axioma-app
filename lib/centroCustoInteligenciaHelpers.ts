@@ -1,0 +1,462 @@
+// 🦅 AXIOMA AI.TECH - Centro de Custos Fase 2: Inteligência Executiva + Automação
+// Regra de arquitetura: tudo aqui é LEITURA + CRUZAMENTO dos módulos de origem
+// (Custos Fixos, Custos Variáveis, Contas a Pagar/Fornecedores, Receitas). Nenhuma
+// função aqui recalcula ou sobrescreve números desses módulos — só interpreta.
+// Escrita nova: só auditoria (Fase 1) e planos de ação (Fase 2).
+
+import { createBrowserClient } from "@supabase/ssr";
+import {
+  detectarAnomaliasHistoricas, type AnomaliaHistorica, type Lancamento,
+  detectarDesperdicio, type ItemDespesa,
+  fBRL, normalizarTexto,
+  type ItemCascata,
+  simularCenariosExecutivos, type ChoqueSimulador, type ResultadoCenario,
+} from "./cfoCore";
+import {
+  oportunidadesConsolidacao, precoAcimaMediaInterna, contratosVencendo,
+  type FornecedorRow, type ContaPagarRow, type FornecedorContrato,
+} from "./fornecedorHelpers";
+import { type LancamentoOrigem, type OrigemTabela, type AuditoriaRow, primeiroRegistroAuditoria } from "./centroCustoHelpers";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export type CentroLeve = { id: string; nome: string };
+
+const fmtData = (iso: string) => iso ? new Date(iso).toLocaleDateString("pt-BR") : "";
+
+// ============================================================================
+// ESCOPO A — MOTOR DE CAUSA RAIZ
+// ============================================================================
+
+export type CausaRaizItem = {
+  id: string; tabela: OrigemTabela; origemId: string;
+  descricao: string; categoria?: string; centroId: string | null; centroNome: string;
+  fornecedorNome?: string; tipo: AnomaliaHistorica["tipo"];
+  valorAtual: number; valorReferencia: number; impacto: number;
+  quando: string; autor: string; explicacao: string;
+};
+
+function montarExplicacaoCausaRaiz(a: AnomaliaHistorica, centroNome?: string, fornecedorNome?: string): string {
+  const onde = centroNome ? ` no centro ${centroNome}` : "";
+  const quem = fornecedorNome ? `, fornecedor ${fornecedorNome}` : "";
+  if (a.tipo === "acima_media") {
+    const pct = a.valorReferencia > 0 ? (((a.valorAtual / a.valorReferencia) - 1) * 100).toFixed(0) : "0";
+    return `"${a.descricao}"${onde}${quem} veio ${fBRL(a.valorAtual)} — ${pct}% acima da média histórica (${fBRL(a.valorReferencia)}). Impacto: ${fBRL(a.impacto)}.`;
+  }
+  return `"${a.descricao}"${onde}${quem} subiu em 3 lançamentos seguidos, de ${fBRL(a.valorReferencia)} para ${fBRL(a.valorAtual)}. Impacto acumulado: ${fBRL(a.impacto)}.`;
+}
+
+// Só Custos Variáveis e Contas a Pagar têm série temporal própria (Custos Fixos é
+// 1 linha recorrente, sem histórico de variação a comparar).
+export function analisarCausaRaiz(
+  origens: LancamentoOrigem[], auditoria: AuditoriaRow[], centros: CentroLeve[], fornecedores: CentroLeve[],
+): CausaRaizItem[] {
+  const elegiveis = origens.filter(o => o.tabela !== "custos_fixos" && o.data);
+  const itens: Lancamento[] = elegiveis.map(o => ({ valor: o.valor, data: o.data, categoria: o.categoria, descricao: o.descricao }));
+  const anomalias = detectarAnomaliasHistoricas(itens);
+
+  return anomalias.map(a => {
+    const grupo = elegiveis.filter(o => normalizarTexto(o.descricao) === normalizarTexto(a.descricao)).sort((x, y) => y.data.localeCompare(x.data));
+    const recente = grupo[0];
+    const centro = centros.find(c => c.id === recente?.centro_custo_id);
+    const fornecedor = recente?.fornecedor_id ? fornecedores.find(f => f.id === recente.fornecedor_id) : undefined;
+    const registro = recente ? primeiroRegistroAuditoria(auditoria, recente.tabela, recente.id) : null;
+    const autor = registro ? `Registrado em ${fmtData(registro.created_at)}` : "Autor não registrado (lançamento anterior à auditoria)";
+    return {
+      id: `${recente?.tabela || "custos_variaveis"}:${recente?.id || ""}`, tabela: recente?.tabela || "custos_variaveis", origemId: recente?.id || "",
+      descricao: a.descricao, categoria: a.categoria, centroId: centro?.id || null, centroNome: centro?.nome || "Sem centro atribuído",
+      fornecedorNome: fornecedor?.nome, tipo: a.tipo, valorAtual: a.valorAtual, valorReferencia: a.valorReferencia, impacto: a.impacto,
+      quando: recente?.data || "", autor, explicacao: montarExplicacaoCausaRaiz(a, centro?.nome, fornecedor?.nome),
+    };
+  }).sort((x, y) => y.impacto - x.impacto);
+}
+
+// ============================================================================
+// ESCOPO B — MOTOR DE OPORTUNIDADES
+// ============================================================================
+
+export type TipoOportunidade = "consolidacao" | "preco_alto" | "contrato_vencido" | "duplicado" | "assinatura_esquecida" | "centro_ocioso" | "margem_negativa";
+
+export type Oportunidade = {
+  id: string; tipo: TipoOportunidade; titulo: string; descricao: string;
+  economiaEstimada: number; centroId?: string | null; centroNome?: string; fornecedorNome?: string;
+};
+
+export function identificarOportunidades(p: {
+  fornecedores: FornecedorRow[]; contasPagar: ContaPagarRow[]; contratos: FornecedorContrato[];
+  custosFixos: LancamentoOrigem[]; custosVariaveis: LancamentoOrigem[];
+  centros: CentroLeve[]; custosPorCentro: Record<string, number>; receitasPorCentro: Record<string, number>;
+}): Oportunidade[] {
+  const out: Oportunidade[] = [];
+
+  oportunidadesConsolidacao(p.fornecedores, p.contasPagar).forEach(g => {
+    if (g.economiaEstimada > 0) out.push({
+      id: `consolidacao:${g.categoria}`, tipo: "consolidacao", titulo: `Consolidar fornecedores de ${g.categoria}`,
+      descricao: `${g.fornecedores.length} fornecedores ativos em ${g.categoria}. Concentrando no de menor ticket médio, a economia estimada é ${fBRL(g.economiaEstimada)}.`,
+      economiaEstimada: g.economiaEstimada,
+    });
+  });
+
+  precoAcimaMediaInterna(p.fornecedores, p.contasPagar, 20).forEach(f => {
+    out.push({
+      id: `preco_alto:${f.id}`, tipo: "preco_alto", titulo: `${f.nome} está ${f.percentualAcima.toFixed(0)}% acima da média de ${f.categoria}`,
+      descricao: `Ticket médio de ${fBRL(f.ticketMedio)} contra ${fBRL(f.mediaGrupo)} dos demais fornecedores da mesma categoria.`,
+      economiaEstimada: Math.max(0, f.ticketMedio - f.mediaGrupo), fornecedorNome: f.nome,
+    });
+  });
+
+  const { vencidos, aVencer } = contratosVencendo(p.contratos, 30);
+  vencidos.forEach(c => {
+    const fornecedor = p.fornecedores.find(f => f.id === c.fornecedor_id);
+    out.push({ id: `contrato:${c.id}`, tipo: "contrato_vencido", titulo: `Contrato vencido${fornecedor ? ` — ${fornecedor.nome}` : ""}`,
+      descricao: c.descricao || "Contrato sem descrição cadastrada.", economiaEstimada: 0, fornecedorNome: fornecedor?.nome });
+  });
+  aVencer.forEach(c => {
+    const fornecedor = p.fornecedores.find(f => f.id === c.fornecedor_id);
+    out.push({ id: `contrato:${c.id}`, tipo: "contrato_vencido", titulo: `Contrato vence em até 30 dias${fornecedor ? ` — ${fornecedor.nome}` : ""}`,
+      descricao: c.descricao || "Contrato sem descrição cadastrada.", economiaEstimada: 0, fornecedorNome: fornecedor?.nome });
+  });
+
+  const itensDespesa: ItemDespesa[] = [...p.custosFixos, ...p.custosVariaveis].map(o => ({ descricao: o.descricao, valor: o.valor, categoria: o.categoria }));
+  const { alertas } = detectarDesperdicio(itensDespesa);
+  alertas.filter(a => a.tipo === "duplicado").forEach((a, i) => {
+    out.push({ id: `duplicado:${i}:${normalizarTexto(a.descricao)}`, tipo: "duplicado", titulo: `Possível lançamento duplicado: ${a.descricao}`,
+      descricao: `Dois lançamentos parecidos foram encontrados — confirme se não é o mesmo custo lançado duas vezes.`, economiaEstimada: a.valorPotencial });
+  });
+
+  p.custosFixos.filter(o => o.categoria === "Sistemas e assinaturas").forEach(o => {
+    out.push({ id: `assinatura:${o.id}`, tipo: "assinatura_esquecida", titulo: `Revisar assinatura: ${o.descricao}`,
+      descricao: `Custo recorrente em Sistemas e Assinaturas — vale confirmar se ainda está em uso.`, economiaEstimada: o.valor,
+      centroId: o.centro_custo_id, centroNome: p.centros.find(c => c.id === o.centro_custo_id)?.nome });
+  });
+
+  p.centros.forEach(c => {
+    const custo = p.custosPorCentro[c.id] || 0;
+    const receita = p.receitasPorCentro[c.id] || 0;
+    if (custo < 50 && receita < 50) {
+      out.push({ id: `ocioso:${c.id}`, tipo: "centro_ocioso", titulo: `Centro "${c.nome}" sem atividade no período`,
+        descricao: `Nenhum custo ou receita relevante etiquetado neste centro no período selecionado.`, economiaEstimada: 0, centroId: c.id, centroNome: c.nome });
+    }
+    if (receita > 0 && receita - custo < 0) {
+      out.push({ id: `margem_neg:${c.id}`, tipo: "margem_negativa", titulo: `Centro "${c.nome}" com margem negativa`,
+        descricao: `Custos (${fBRL(custo)}) maiores que a receita (${fBRL(receita)}) no período.`, economiaEstimada: custo - receita, centroId: c.id, centroNome: c.nome });
+    }
+  });
+
+  return out.sort((a, b) => b.economiaEstimada - a.economiaEstimada);
+}
+
+// ============================================================================
+// ESCOPO C — PRIORIZADOR EXECUTIVO
+// ============================================================================
+
+export type Urgencia = "alta" | "media" | "baixa";
+export type Complexidade = "baixa" | "media" | "alta";
+
+export type ItemPriorizado = {
+  id: string; titulo: string; descricao: string; tipo: string;
+  impacto: number; urgencia: Urgencia; complexidade: Complexidade;
+  tempoEstimado: string; retornoEsperado: number; score: number;
+  origem: "causa_raiz" | "oportunidade";
+};
+
+const URGENCIA_TIPO: Record<string, Urgencia> = {
+  contrato_vencido: "alta", aumento_recorrente: "alta", acima_media: "media",
+  preco_alto: "media", duplicado: "alta", consolidacao: "baixa",
+  assinatura_esquecida: "baixa", centro_ocioso: "media", margem_negativa: "alta",
+};
+const COMPLEXIDADE_TIPO: Record<string, Complexidade> = {
+  contrato_vencido: "media", aumento_recorrente: "media", acima_media: "baixa",
+  preco_alto: "alta", duplicado: "baixa", consolidacao: "alta",
+  assinatura_esquecida: "baixa", centro_ocioso: "media", margem_negativa: "alta",
+};
+const PESO_URGENCIA: Record<Urgencia, number> = { alta: 3, media: 2, baixa: 1 };
+const PESO_COMPLEXIDADE: Record<Complexidade, number> = { baixa: 3, media: 2, alta: 1 };
+const TEMPO_ESTIMADO: Record<Complexidade, string> = { baixa: "alguns dias", media: "2 a 4 semanas", alta: "1 a 3 meses" };
+
+export function priorizar(causas: CausaRaizItem[], oportunidades: Oportunidade[]): ItemPriorizado[] {
+  const deCausas: ItemPriorizado[] = causas.map(c => {
+    const urgencia = URGENCIA_TIPO[c.tipo] || "media";
+    const complexidade = COMPLEXIDADE_TIPO[c.tipo] || "media";
+    return {
+      id: c.id, titulo: `Investigar aumento: ${c.descricao}`, descricao: c.explicacao, tipo: c.tipo,
+      impacto: c.impacto, urgencia, complexidade, tempoEstimado: TEMPO_ESTIMADO[complexidade],
+      retornoEsperado: c.impacto, score: Math.max(1, c.impacto) * PESO_URGENCIA[urgencia] * PESO_COMPLEXIDADE[complexidade],
+      origem: "causa_raiz",
+    };
+  });
+  const deOportunidades: ItemPriorizado[] = oportunidades.map(o => {
+    const urgencia = URGENCIA_TIPO[o.tipo] || "media";
+    const complexidade = COMPLEXIDADE_TIPO[o.tipo] || "media";
+    return {
+      id: o.id, titulo: o.titulo, descricao: o.descricao, tipo: o.tipo,
+      impacto: o.economiaEstimada, urgencia, complexidade, tempoEstimado: TEMPO_ESTIMADO[complexidade],
+      retornoEsperado: o.economiaEstimada, score: Math.max(1, o.economiaEstimada) * PESO_URGENCIA[urgencia] * PESO_COMPLEXIDADE[complexidade],
+      origem: "oportunidade",
+    };
+  });
+  return [...deCausas, ...deOportunidades].sort((a, b) => b.score - a.score);
+}
+
+// ============================================================================
+// ESCOPO D — SIMULAÇÕES EXECUTIVAS COM EFEITO CASCATA
+// ============================================================================
+
+export type TipoCenarioExecutivo =
+  | "reduzir_custos" | "expandir_equipe" | "abrir_filial" | "encerrar_centro"
+  | "trocar_fornecedor" | "alterar_precos" | "renegociar_contratos" | "variar_inflacao" | "variar_cambio";
+
+export type BaselineSimulacao = { receitaMensal: number; custoFixoMensal: number; custoVariavelMensal: number; caixaAtual: number; capitalGiroAtual: number };
+
+export function montarChoqueExecutivo(
+  tipo: TipoCenarioExecutivo, valorPct: number, baseline: BaselineSimulacao,
+  centroSelecionado?: { custoFixoShare: number; custoVariavelShare: number },
+): ChoqueSimulador {
+  const zero: ChoqueSimulador = { receitaPct: 0, custoFixoPct: 0, custoVariavelPct: 0, jurosDividaPontos: 0, aporteCapital: 0, retornoMensalAporte: 0 };
+  switch (tipo) {
+    case "reduzir_custos": return { ...zero, custoFixoPct: -Math.abs(valorPct), custoVariavelPct: -Math.abs(valorPct) };
+    case "expandir_equipe": return { ...zero, custoFixoPct: Math.abs(valorPct) };
+    case "abrir_filial": return { ...zero, custoFixoPct: Math.abs(valorPct), receitaPct: Math.abs(valorPct) * 0.5 };
+    case "encerrar_centro": {
+      const cfPct = baseline.custoFixoMensal > 0 ? -((centroSelecionado?.custoFixoShare || 0) / baseline.custoFixoMensal) * 100 : 0;
+      const cvPct = baseline.custoVariavelMensal > 0 ? -((centroSelecionado?.custoVariavelShare || 0) / baseline.custoVariavelMensal) * 100 : 0;
+      return { ...zero, custoFixoPct: cfPct, custoVariavelPct: cvPct };
+    }
+    case "trocar_fornecedor": return { ...zero, custoVariavelPct: valorPct };
+    case "alterar_precos": return { ...zero, receitaPct: valorPct };
+    case "renegociar_contratos": return { ...zero, custoFixoPct: -Math.abs(valorPct) };
+    case "variar_inflacao": return { ...zero, custoVariavelPct: Math.abs(valorPct), custoFixoPct: Math.abs(valorPct) };
+    case "variar_cambio": return { ...zero, custoVariavelPct: valorPct };
+    default: return zero;
+  }
+}
+
+export type ResultadoCenarioExecutivo = ResultadoCenario & { margemPct: number; capitalGiroProjetado: number };
+
+export function simularCenarioCascata(baseline: BaselineSimulacao, choque: ChoqueSimulador, horizonteMeses = 12): ResultadoCenarioExecutivo[] {
+  const cenarios = simularCenariosExecutivos({
+    receitaMensalAtual: baseline.receitaMensal, custoFixoMensalAtual: baseline.custoFixoMensal,
+    custoVariavelMensalAtual: baseline.custoVariavelMensal, despesasFinanceirasMensalAtual: 0,
+    dividaTotalAtual: 0, aliquotaEfetivaPct: 0, saldoCaixaAtual: baseline.caixaAtual, choque, horizonteMeses,
+  });
+  return cenarios.map(c => ({
+    ...c,
+    margemPct: c.receitaMensal > 0 ? (c.lucroLiquidoMensal / c.receitaMensal) * 100 : 0,
+    capitalGiroProjetado: baseline.capitalGiroAtual + (c.saldoCaixaProjetado - baseline.caixaAtual),
+  }));
+}
+
+// Mapa de Impacto (waterfall) — usa optCascata (mesmo motor da DRE) pra visualizar
+// o efeito cascata do cenário "base" (o que o usuário configurou, sem o ajuste
+// automático de otimismo/pessimismo que os outros 3 cenários recebem).
+export function mapaDeImpacto(baseline: BaselineSimulacao, choque: ChoqueSimulador, resultadoBase: ResultadoCenarioExecutivo): ItemCascata[] {
+  const custoVariavelSimulado = baseline.custoVariavelMensal * (1 + choque.custoVariavelPct / 100);
+  const custoFixoSimulado = baseline.custoFixoMensal * (1 + choque.custoFixoPct / 100);
+  return [
+    { label: "Receita", valor: resultadoBase.receitaMensal, tipo: "subtotal" },
+    { label: "Custo Variável", valor: -custoVariavelSimulado, tipo: "variacao" },
+    { label: "Custo Fixo", valor: -custoFixoSimulado, tipo: "variacao" },
+    { label: "EBITDA", valor: resultadoBase.ebitdaMensal, tipo: "subtotal" },
+    { label: "Lucro Líquido", valor: resultadoBase.lucroLiquidoMensal, tipo: "subtotal" },
+  ];
+}
+
+// ============================================================================
+// ESCOPO E — ORÇAMENTO VIVO COM RE-FORECAST CONTÍNUO
+// ============================================================================
+
+export type ReforecastCentro = {
+  centroId: string; centroNome: string; orcado: number; gastoAteAgora: number;
+  projecaoFechamento: number; desvioProjetado: number; desvioPct: number;
+  status: "dentro" | "atencao" | "estouro";
+};
+
+// dataReferencia deve ser "hoje" se o período selecionado é o mês corrente (projeta o
+// resto do mês pelo ritmo até agora), ou o último dia do mês se o período já fechou
+// (aí não é projeção, é o realizado).
+export function reforecastOrcamento(
+  centros: CentroLeve[], custosPorCentro: Record<string, number>, orcamentoPorCentro: (centroId: string) => number, dataReferencia: Date,
+): ReforecastCentro[] {
+  const diaAtual = Math.max(1, dataReferencia.getDate());
+  const diasNoMes = new Date(dataReferencia.getFullYear(), dataReferencia.getMonth() + 1, 0).getDate();
+  return centros.map(c => {
+    const orcado = orcamentoPorCentro(c.id);
+    const gastoAteAgora = custosPorCentro[c.id] || 0;
+    const projecaoFechamento = (gastoAteAgora / diaAtual) * diasNoMes;
+    const desvioProjetado = projecaoFechamento - orcado;
+    const desvioPct = orcado > 0 ? (desvioProjetado / orcado) * 100 : 0;
+    const status: ReforecastCentro["status"] = orcado <= 0 ? "dentro" : desvioPct > 10 ? "estouro" : desvioPct > 0 ? "atencao" : "dentro";
+    return { centroId: c.id, centroNome: c.nome, orcado, gastoAteAgora, projecaoFechamento, desvioProjetado, desvioPct, status };
+  }).filter(r => r.orcado > 0);
+}
+
+// ============================================================================
+// SCORE DO MÓDULO — sempre explicável (cada dimensão vem com o número que a gerou)
+// ============================================================================
+
+export type DimensaoScoreCentro = { nome: string; score: number; peso: number; cor: string; detalhe: string };
+export type ScoreCentroCusto = { total: number; nivel: "excelente" | "bom" | "atencao" | "critico"; cor: string; dimensoes: DimensaoScoreCentro[] };
+
+export function calcularScoreCentroCusto(p: {
+  centros: CentroLeve[]; custosPorCentro: Record<string, number>; orcamentoPorCentro: (centroId: string) => number;
+  causaRaiz: CausaRaizItem[]; totalCustos: number; oportunidades: Oportunidade[]; idsComPlanoAcao: Set<string>;
+  origensSemCentro: number; origensTotais: number;
+}): ScoreCentroCusto {
+  const comOrcamento = p.centros.filter(c => p.orcamentoPorCentro(c.id) > 0);
+  const dentroDoOrcamento = comOrcamento.filter(c => (p.custosPorCentro[c.id] || 0) <= p.orcamentoPorCentro(c.id));
+  const scoreOrcamento = comOrcamento.length > 0 ? (dentroDoOrcamento.length / comOrcamento.length) * 100 : 100;
+
+  const impactoTotal = p.causaRaiz.reduce((s, c) => s + Math.abs(c.impacto), 0);
+  const scoreAnomalias = p.totalCustos > 0 ? Math.max(0, 100 - (impactoTotal / p.totalCustos) * 500) : 100;
+
+  const capturadas = p.oportunidades.filter(o => p.idsComPlanoAcao.has(o.id)).length;
+  const scoreOportunidades = p.oportunidades.length > 0 ? (capturadas / p.oportunidades.length) * 100 : 100;
+
+  const scoreCobertura = p.origensTotais > 0 ? ((p.origensTotais - p.origensSemCentro) / p.origensTotais) * 100 : 100;
+
+  const total = Math.round(scoreOrcamento * 0.30 + scoreAnomalias * 0.25 + scoreOportunidades * 0.25 + scoreCobertura * 0.20);
+  const nivel: ScoreCentroCusto["nivel"] = total >= 80 ? "excelente" : total >= 60 ? "bom" : total >= 40 ? "atencao" : "critico";
+  const cor = total >= 80 ? "#34d399" : total >= 60 ? "#6ab0ff" : total >= 40 ? "#f59e0b" : "#f87171";
+
+  return {
+    total, nivel, cor,
+    dimensoes: [
+      { nome: "Disciplina Orçamentária", score: Math.round(scoreOrcamento), peso: 30, cor: "#a78bfa", detalhe: `${dentroDoOrcamento.length}/${comOrcamento.length} centros dentro do orçamento` },
+      { nome: "Causa Raiz / Anomalias", score: Math.round(scoreAnomalias), peso: 25, cor: "#f87171", detalhe: `${p.causaRaiz.length} aumento(s) fora do padrão detectado(s)` },
+      { nome: "Oportunidades Capturadas", score: Math.round(scoreOportunidades), peso: 25, cor: "#34d399", detalhe: `${capturadas}/${p.oportunidades.length} oportunidades com plano de ação` },
+      { nome: "Cobertura de Atribuição", score: Math.round(scoreCobertura), peso: 20, cor: "#6ab0ff", detalhe: `${p.origensTotais - p.origensSemCentro}/${p.origensTotais} lançamentos com centro atribuído` },
+    ],
+  };
+}
+
+// ============================================================================
+// ESCOPO F — CENTRAL DE INSIGHTS
+// ============================================================================
+
+export type CentralInsights = {
+  maioresRiscos: ItemPriorizado[]; maioresOportunidades: Oportunidade[]; maioresDesperdicios: Oportunidade[];
+  melhoresResultados: { centroId: string; centroNome: string; resultado: number }[];
+  economiaPotencialTotal: number; prioridadesSemana: ItemPriorizado[]; prioridadesMes: ItemPriorizado[];
+};
+
+export function montarCentralInsights(p: {
+  priorizados: ItemPriorizado[]; oportunidades: Oportunidade[];
+  centros: CentroLeve[]; custosPorCentro: Record<string, number>; receitasPorCentro: Record<string, number>;
+}): CentralInsights {
+  const resultados = p.centros
+    .map(c => ({ centroId: c.id, centroNome: c.nome, resultado: (p.receitasPorCentro[c.id] || 0) - (p.custosPorCentro[c.id] || 0) }))
+    .sort((a, b) => b.resultado - a.resultado);
+
+  const altaUrgencia = p.priorizados.filter(i => i.urgencia === "alta");
+  const mediaUrgencia = p.priorizados.filter(i => i.urgencia === "media");
+
+  return {
+    maioresRiscos: p.priorizados.filter(i => i.origem === "causa_raiz").slice(0, 5),
+    maioresOportunidades: [...p.oportunidades].sort((a, b) => b.economiaEstimada - a.economiaEstimada).slice(0, 5),
+    maioresDesperdicios: p.oportunidades.filter(o => o.tipo === "duplicado" || o.tipo === "assinatura_esquecida").slice(0, 5),
+    melhoresResultados: resultados.slice(0, 5),
+    economiaPotencialTotal: p.oportunidades.reduce((s, o) => s + o.economiaEstimada, 0),
+    prioridadesSemana: altaUrgencia.slice(0, 5),
+    prioridadesMes: [...altaUrgencia, ...mediaUrgencia].slice(0, 5),
+  };
+}
+
+// ============================================================================
+// ESCOPO G — COPILOTO CFO (por regras — mesmo padrão de respostaPorRegras da IA Financeira)
+// ============================================================================
+
+export type ContextoCopiloto = {
+  centros: CentroLeve[]; custosPorCentro: Record<string, number>; receitasPorCentro: Record<string, number>;
+  orcamentoPorCentro: (centroId: string) => number; oportunidades: Oportunidade[]; score: ScoreCentroCusto; periodo: string;
+};
+
+export function respostaPorRegrasCentro(pergunta: string, ctx: ContextoCopiloto): string {
+  const q = normalizarTexto(pergunta);
+  const fonte = ` (dados de ${ctx.periodo})`;
+
+  if (q.includes("consome mais caixa") || q.includes("maior custo") || q.includes("mais caro")) {
+    const ranking = ctx.centros.map(c => ({ nome: c.nome, custo: ctx.custosPorCentro[c.id] || 0 })).sort((a, b) => b.custo - a.custo);
+    if (ranking.length === 0 || ranking[0].custo === 0) return `Nenhum centro com custo registrado no período${fonte}.`;
+    return `O centro que mais consome caixa é "${ranking[0].nome}", com ${fBRL(ranking[0].custo)}${fonte}.`;
+  }
+  if (q.includes("reduzir despesa") || q.includes("reduzir custo") || q.includes("cortar")) {
+    if (ctx.oportunidades.length === 0) return `Não encontrei oportunidades de redução de custo nos dados${fonte}.`;
+    const top3 = [...ctx.oportunidades].sort((a, b) => b.economiaEstimada - a.economiaEstimada).slice(0, 3);
+    return `As 3 maiores oportunidades identificadas: ${top3.map(o => `${o.titulo} (${fBRL(o.economiaEstimada)})`).join("; ")}${fonte}.`;
+  }
+  if (q.includes("destroi margem") || q.includes("margem negativa") || q.includes("menos rentavel") || q.includes("projeto")) {
+    const negativos = ctx.centros
+      .map(c => ({ nome: c.nome, resultado: (ctx.receitasPorCentro[c.id] || 0) - (ctx.custosPorCentro[c.id] || 0) }))
+      .filter(c => c.resultado < 0).sort((a, b) => a.resultado - b.resultado);
+    if (negativos.length === 0) return `Nenhum centro com margem negativa no período${fonte}.`;
+    return `"${negativos[0].nome}" é o que mais destrói margem, com resultado de ${fBRL(negativos[0].resultado)}${fonte}.`;
+  }
+  if (q.includes("dentro do orcamento") || q.includes("orcamento")) {
+    const comOrc = ctx.centros.filter(c => ctx.orcamentoPorCentro(c.id) > 0);
+    const estourados = comOrc.filter(c => (ctx.custosPorCentro[c.id] || 0) > ctx.orcamentoPorCentro(c.id));
+    if (comOrc.length === 0) return `Nenhum centro tem orçamento definido ainda.`;
+    return estourados.length === 0
+      ? `Todos os ${comOrc.length} centros com orçamento estão dentro do previsto${fonte}.`
+      : `${estourados.length} de ${comOrc.length} centros estouraram o orçamento: ${estourados.map(c => c.nome).join(", ")}${fonte}.`;
+  }
+  if (q.includes("score") || q.includes("saude") || q.includes("nota")) {
+    const pior = [...ctx.score.dimensoes].sort((a, b) => a.score - b.score)[0];
+    return `O Score do módulo é ${ctx.score.total}/100 (${ctx.score.nivel}). Maior ponto de atenção: ${pior.nome} (${pior.detalhe}).`;
+  }
+  return `Ainda não sei responder essa pergunta com regras. Posso responder sobre: qual centro consome mais caixa, como reduzir despesas, qual centro destrói margem, e se as despesas estão dentro do orçamento.`;
+}
+
+// ============================================================================
+// ESCOPO H — PLANEJADOR DE AÇÕES (nunca executa nada sozinho — só registra o plano)
+// ============================================================================
+
+export type PlanoAcao = {
+  id: string; user_id: string; centro_custo_id: string | null;
+  origem_tipo: "causa_raiz" | "oportunidade" | "manual"; origem_id: string | null;
+  titulo: string; objetivo: string | null; tarefas: string[] | null; responsavel: string | null; prazo: string | null;
+  impacto_esperado: string | null; economia_estimada: number | null;
+  status: "pendente" | "em_andamento" | "concluido" | "cancelado";
+  created_at: string; updated_at: string;
+};
+
+export async function carregarPlanosAcao(userId: string): Promise<PlanoAcao[]> {
+  const { data } = await supabase.from("centro_custo_plano_acao").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+  return data || [];
+}
+
+export async function criarPlanoAcao(userId: string, plano: {
+  centroId?: string | null; origemTipo: "causa_raiz" | "oportunidade" | "manual"; origemId?: string;
+  titulo: string; objetivo?: string; tarefas?: string[]; responsavel?: string; prazo?: string;
+  impactoEsperado?: string; economiaEstimada?: number;
+}): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("centro_custo_plano_acao").insert({
+    user_id: userId, centro_custo_id: plano.centroId || null, origem_tipo: plano.origemTipo, origem_id: plano.origemId || null,
+    titulo: plano.titulo, objetivo: plano.objetivo || null, tarefas: plano.tarefas || null, responsavel: plano.responsavel || null,
+    prazo: plano.prazo || null, impacto_esperado: plano.impactoEsperado || null, economia_estimada: plano.economiaEstimada ?? null,
+  });
+  return error ? { erro: error.message } : {};
+}
+
+export async function atualizarPlanoAcao(id: string, dados: Partial<{
+  titulo: string; objetivo: string; tarefas: string[]; responsavel: string; prazo: string;
+  impactoEsperado: string; economiaEstimada: number; status: PlanoAcao["status"];
+}>): Promise<{ erro?: string }> {
+  const payload: any = { updated_at: new Date().toISOString() };
+  if (dados.titulo !== undefined) payload.titulo = dados.titulo;
+  if (dados.objetivo !== undefined) payload.objetivo = dados.objetivo;
+  if (dados.tarefas !== undefined) payload.tarefas = dados.tarefas;
+  if (dados.responsavel !== undefined) payload.responsavel = dados.responsavel;
+  if (dados.prazo !== undefined) payload.prazo = dados.prazo;
+  if (dados.impactoEsperado !== undefined) payload.impacto_esperado = dados.impactoEsperado;
+  if (dados.economiaEstimada !== undefined) payload.economia_estimada = dados.economiaEstimada;
+  if (dados.status !== undefined) payload.status = dados.status;
+  const { error } = await supabase.from("centro_custo_plano_acao").update(payload).eq("id", id);
+  return error ? { erro: error.message } : {};
+}
+
+export async function excluirPlanoAcao(id: string): Promise<void> {
+  await supabase.from("centro_custo_plano_acao").delete().eq("id", id);
+}

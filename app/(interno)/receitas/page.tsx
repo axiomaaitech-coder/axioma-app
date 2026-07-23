@@ -14,6 +14,7 @@ import {
   gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento,
 } from "../../../lib/cfoCore";
 import { cfoT, textoInsight, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,13 +76,28 @@ export default function Receitas() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
-    const { error } = editando
-      ? await supabase.from("receitas").update(payload).eq("id", editando.id)
-      : await supabase.from("receitas").insert({ ...payload, user_id: user.id });
-    if (!error) { fecharModal(); await carregarReceitas(); }
+    if (editando) {
+      const { error } = await supabase.from("receitas").update(payload).eq("id", editando.id);
+      if (!error) {
+        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: editando.id, acao: "editar", descricao: `Receita editada: ${novo.descricao}` });
+        fecharModal(); await carregarReceitas();
+      }
+    } else {
+      const { data, error } = await supabase.from("receitas").insert({ ...payload, user_id: user.id }).select("id").single();
+      if (!error && data) {
+        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: data.id, acao: "criar", descricao: `Receita criada: ${novo.descricao}` });
+        fecharModal(); await carregarReceitas();
+      }
+    }
     setSalvando(false);
   };
-  const excluir = async (id: string) => { await supabase.from("receitas").delete().eq("id", id); setReceitas(receitas.filter(r => r.id !== id)); };
+  const excluir = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const receita = receitas.find(r => r.id === id);
+    await supabase.from("receitas").delete().eq("id", id);
+    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: receita?.centro_custo_id || null, tabela: "receitas", registroId: id, acao: "excluir", descricao: `Receita excluída: ${receita?.descricao || id}` });
+    setReceitas(receitas.filter(r => r.id !== id));
+  };
 
   const receitasFiltradas = receitas.filter(r =>
     r.descricao.toLowerCase().includes(busca.toLowerCase()) &&

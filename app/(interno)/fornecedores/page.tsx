@@ -38,6 +38,7 @@ import {
   pctChoqueDoFornecedor, estimativaCaixaPrazo, avaliarCreditoReforma, sugerirDadosContaPorFornecedor,
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
+import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1195,14 +1196,19 @@ export default function Fornecedores() {
     };
     if (editandoConta) {
       await supabase.from("contas_pagar").update(payload).eq("id", editandoConta.id);
+      await registrarAuditoriaCentro({ userId: user.id, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
     } else {
-      await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id });
+      const { data } = await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id }).select("id").single();
+      if (data) await registrarAuditoriaCentro({ userId: user.id, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
     }
     fecharModalConta(); await carregarDados(); setSalvandoConta(false);
   };
 
   const excluirConta = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const conta = contas.find(c => c.id === id);
     await supabase.from("contas_pagar").delete().eq("id", id);
+    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: conta?.centro_custo_id || null, tabela: "contas_pagar", registroId: id, acao: "excluir", descricao: `Conta a pagar excluída: ${conta?.descricao || id}` });
     setContas(contas.filter(c => c.id !== id));
   };
 

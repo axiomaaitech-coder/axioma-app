@@ -13,6 +13,7 @@ import {
   radarRenovacoes, detectarDesperdicio, FONTE_EXEC, type ItemRenovavel, type ItemDespesa,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,14 +70,29 @@ export default function CustosFixos() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
-    const { error } = editando
-      ? await supabase.from("custos_fixos").update(payload).eq("id", editando.id)
-      : await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id });
-    if (!error) { fecharModal(); await carregarCustos(); }
+    if (editando) {
+      const { error } = await supabase.from("custos_fixos").update(payload).eq("id", editando.id);
+      if (!error) {
+        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
+        fecharModal(); await carregarCustos();
+      }
+    } else {
+      const { data, error } = await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id }).select("id").single();
+      if (!error && data) {
+        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
+        fecharModal(); await carregarCustos();
+      }
+    }
     setSalvando(false);
   };
 
-  const excluir = async (id: string) => { await supabase.from("custos_fixos").delete().eq("id", id); setCustos(custos.filter(c => c.id !== id)); };
+  const excluir = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const custo = custos.find(c => c.id === id);
+    await supabase.from("custos_fixos").delete().eq("id", id);
+    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: custo?.centro_custo_id || null, tabela: "custos_fixos", registroId: id, acao: "excluir", descricao: `Custo fixo excluído: ${custo?.descricao || id}` });
+    setCustos(custos.filter(c => c.id !== id));
+  };
 
   const custosFiltrados = custos.filter(c => c.descricao.toLowerCase().includes(busca.toLowerCase()));
   const totalMensal = custos.reduce((acc, c) => acc + c.valor_mensal, 0);

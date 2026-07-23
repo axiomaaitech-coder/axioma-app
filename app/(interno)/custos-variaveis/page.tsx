@@ -17,6 +17,7 @@ import {
   type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento, montarNarrativaVariacao, montarNarrativaMargem, montarSugestao } from "../../../lib/cfoTextos";
+import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,15 +113,27 @@ export default function CustosVariaveis() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, centro_custo_id: novo.centro_custo_id || null };
-    const { error } = editando
-      ? await supabase.from("custos_variaveis").update(payload).eq("id", editando.id)
-      : await supabase.from("custos_variaveis").insert({ ...payload, user_id: user.id });
-    if (!error) { fecharModal(); await carregarTudo(); }
+    if (editando) {
+      const { error } = await supabase.from("custos_variaveis").update(payload).eq("id", editando.id);
+      if (!error) {
+        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
+        fecharModal(); await carregarTudo();
+      }
+    } else {
+      const { data, error } = await supabase.from("custos_variaveis").insert({ ...payload, user_id: user.id }).select("id").single();
+      if (!error && data) {
+        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
+        fecharModal(); await carregarTudo();
+      }
+    }
     setSalvando(false);
   };
 
   const excluir = async (id: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const custo = custos.find(c => c.id === id);
     await supabase.from("custos_variaveis").delete().eq("id", id);
+    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: custo?.centro_custo_id || null, tabela: "custos_variaveis", registroId: id, acao: "excluir", descricao: `Custo variável excluído: ${custo?.descricao || id}` });
     setCustos(custos.filter(c => c.id !== id));
   };
 
