@@ -24,6 +24,7 @@ const supabase = createBrowserClient(
 );
 
 export type CentroLeve = { id: string; nome: string };
+export type Lang = "pt" | "en" | "es";
 
 const fmtData = (iso: string) => iso ? new Date(iso).toLocaleDateString("pt-BR") : "";
 
@@ -39,20 +40,50 @@ export type CausaRaizItem = {
   quando: string; autor: string; explicacao: string;
 };
 
-function montarExplicacaoCausaRaiz(a: AnomaliaHistorica, centroNome?: string, fornecedorNome?: string): string {
-  const onde = centroNome ? ` no centro ${centroNome}` : "";
-  const quem = fornecedorNome ? `, fornecedor ${fornecedorNome}` : "";
+function montarExplicacaoCausaRaiz(a: AnomaliaHistorica, lang: Lang, centroNome?: string, fornecedorNome?: string): string {
   if (a.tipo === "acima_media") {
     const pct = a.valorReferencia > 0 ? (((a.valorAtual / a.valorReferencia) - 1) * 100).toFixed(0) : "0";
+    if (lang === "en") {
+      const where = centroNome ? ` in center ${centroNome}` : "";
+      const who = fornecedorNome ? `, supplier ${fornecedorNome}` : "";
+      return `"${a.descricao}"${where}${who} came in at ${fBRL(a.valorAtual)} — ${pct}% above its historical average (${fBRL(a.valorReferencia)}). Impact: ${fBRL(a.impacto)}.`;
+    }
+    if (lang === "es") {
+      const donde = centroNome ? ` en el centro ${centroNome}` : "";
+      const quien = fornecedorNome ? `, proveedor ${fornecedorNome}` : "";
+      return `"${a.descricao}"${donde}${quien} llegó a ${fBRL(a.valorAtual)} — ${pct}% por encima del promedio histórico (${fBRL(a.valorReferencia)}). Impacto: ${fBRL(a.impacto)}.`;
+    }
+    const onde = centroNome ? ` no centro ${centroNome}` : "";
+    const quem = fornecedorNome ? `, fornecedor ${fornecedorNome}` : "";
     return `"${a.descricao}"${onde}${quem} veio ${fBRL(a.valorAtual)} — ${pct}% acima da média histórica (${fBRL(a.valorReferencia)}). Impacto: ${fBRL(a.impacto)}.`;
   }
+  if (lang === "en") {
+    const where = centroNome ? ` in center ${centroNome}` : "";
+    const who = fornecedorNome ? `, supplier ${fornecedorNome}` : "";
+    return `"${a.descricao}"${where}${who} rose in 3 consecutive entries, from ${fBRL(a.valorReferencia)} to ${fBRL(a.valorAtual)}. Accumulated impact: ${fBRL(a.impacto)}.`;
+  }
+  if (lang === "es") {
+    const donde = centroNome ? ` en el centro ${centroNome}` : "";
+    const quien = fornecedorNome ? `, proveedor ${fornecedorNome}` : "";
+    return `"${a.descricao}"${donde}${quien} subió en 3 movimientos seguidos, de ${fBRL(a.valorReferencia)} a ${fBRL(a.valorAtual)}. Impacto acumulado: ${fBRL(a.impacto)}.`;
+  }
+  const onde = centroNome ? ` no centro ${centroNome}` : "";
+  const quem = fornecedorNome ? `, fornecedor ${fornecedorNome}` : "";
   return `"${a.descricao}"${onde}${quem} subiu em 3 lançamentos seguidos, de ${fBRL(a.valorReferencia)} para ${fBRL(a.valorAtual)}. Impacto acumulado: ${fBRL(a.impacto)}.`;
 }
+
+const SEM_CENTRO: Record<Lang, string> = { pt: "Sem centro atribuído", en: "No center assigned", es: "Sin centro asignado" };
+const AUTOR_NAO_REGISTRADO: Record<Lang, string> = {
+  pt: "Autor não registrado (lançamento anterior à auditoria)",
+  en: "Author not recorded (entry predates the audit trail)",
+  es: "Autor no registrado (movimiento anterior a la auditoría)",
+};
+const REGISTRADO_EM: Record<Lang, string> = { pt: "Registrado em", en: "Recorded on", es: "Registrado el" };
 
 // Só Custos Variáveis e Contas a Pagar têm série temporal própria (Custos Fixos é
 // 1 linha recorrente, sem histórico de variação a comparar).
 export function analisarCausaRaiz(
-  origens: LancamentoOrigem[], auditoria: AuditoriaRow[], centros: CentroLeve[], fornecedores: CentroLeve[],
+  origens: LancamentoOrigem[], auditoria: AuditoriaRow[], centros: CentroLeve[], fornecedores: CentroLeve[], lang: Lang = "pt",
 ): CausaRaizItem[] {
   const elegiveis = origens.filter(o => o.tabela !== "custos_fixos" && o.data);
   const itens: Lancamento[] = elegiveis.map(o => ({ valor: o.valor, data: o.data, categoria: o.categoria, descricao: o.descricao }));
@@ -64,12 +95,12 @@ export function analisarCausaRaiz(
     const centro = centros.find(c => c.id === recente?.centro_custo_id);
     const fornecedor = recente?.fornecedor_id ? fornecedores.find(f => f.id === recente.fornecedor_id) : undefined;
     const registro = recente ? primeiroRegistroAuditoria(auditoria, recente.tabela, recente.id) : null;
-    const autor = registro ? `Registrado em ${fmtData(registro.created_at)}` : "Autor não registrado (lançamento anterior à auditoria)";
+    const autor = registro ? `${REGISTRADO_EM[lang]} ${fmtData(registro.created_at)}` : AUTOR_NAO_REGISTRADO[lang];
     return {
       id: `${recente?.tabela || "custos_variaveis"}:${recente?.id || ""}`, tabela: recente?.tabela || "custos_variaveis", origemId: recente?.id || "",
-      descricao: a.descricao, categoria: a.categoria, centroId: centro?.id || null, centroNome: centro?.nome || "Sem centro atribuído",
+      descricao: a.descricao, categoria: a.categoria, centroId: centro?.id || null, centroNome: centro?.nome || SEM_CENTRO[lang],
       fornecedorNome: fornecedor?.nome, tipo: a.tipo, valorAtual: a.valorAtual, valorReferencia: a.valorReferencia, impacto: a.impacto,
-      quando: recente?.data || "", autor, explicacao: montarExplicacaoCausaRaiz(a, centro?.nome, fornecedor?.nome),
+      quando: recente?.data || "", autor, explicacao: montarExplicacaoCausaRaiz(a, lang, centro?.nome, fornecedor?.nome),
     };
   }).sort((x, y) => y.impacto - x.impacto);
 }
@@ -89,60 +120,94 @@ export function identificarOportunidades(p: {
   fornecedores: FornecedorRow[]; contasPagar: ContaPagarRow[]; contratos: FornecedorContrato[];
   custosFixos: LancamentoOrigem[]; custosVariaveis: LancamentoOrigem[];
   centros: CentroLeve[]; custosPorCentro: Record<string, number>; receitasPorCentro: Record<string, number>;
+  lang?: Lang;
 }): Oportunidade[] {
+  const lang = p.lang || "pt";
   const out: Oportunidade[] = [];
 
   oportunidadesConsolidacao(p.fornecedores, p.contasPagar).forEach(g => {
     if (g.economiaEstimada > 0) out.push({
-      id: `consolidacao:${g.categoria}`, tipo: "consolidacao", titulo: `Consolidar fornecedores de ${g.categoria}`,
-      descricao: `${g.fornecedores.length} fornecedores ativos em ${g.categoria}. Concentrando no de menor ticket médio, a economia estimada é ${fBRL(g.economiaEstimada)}.`,
+      id: `consolidacao:${g.categoria}`, tipo: "consolidacao",
+      titulo: lang === "en" ? `Consolidate ${g.categoria} suppliers` : lang === "es" ? `Consolidar proveedores de ${g.categoria}` : `Consolidar fornecedores de ${g.categoria}`,
+      descricao: lang === "en"
+        ? `${g.fornecedores.length} active suppliers in ${g.categoria}. Concentrating on the one with the lowest average ticket, the estimated savings is ${fBRL(g.economiaEstimada)}.`
+        : lang === "es"
+        ? `${g.fornecedores.length} proveedores activos en ${g.categoria}. Concentrando en el de menor ticket promedio, el ahorro estimado es ${fBRL(g.economiaEstimada)}.`
+        : `${g.fornecedores.length} fornecedores ativos em ${g.categoria}. Concentrando no de menor ticket médio, a economia estimada é ${fBRL(g.economiaEstimada)}.`,
       economiaEstimada: g.economiaEstimada,
     });
   });
 
   precoAcimaMediaInterna(p.fornecedores, p.contasPagar, 20).forEach(f => {
     out.push({
-      id: `preco_alto:${f.id}`, tipo: "preco_alto", titulo: `${f.nome} está ${f.percentualAcima.toFixed(0)}% acima da média de ${f.categoria}`,
-      descricao: `Ticket médio de ${fBRL(f.ticketMedio)} contra ${fBRL(f.mediaGrupo)} dos demais fornecedores da mesma categoria.`,
+      id: `preco_alto:${f.id}`, tipo: "preco_alto",
+      titulo: lang === "en" ? `${f.nome} is ${f.percentualAcima.toFixed(0)}% above the ${f.categoria} average` : lang === "es" ? `${f.nome} está ${f.percentualAcima.toFixed(0)}% por encima del promedio de ${f.categoria}` : `${f.nome} está ${f.percentualAcima.toFixed(0)}% acima da média de ${f.categoria}`,
+      descricao: lang === "en"
+        ? `Average ticket of ${fBRL(f.ticketMedio)} versus ${fBRL(f.mediaGrupo)} from other suppliers in the same category.`
+        : lang === "es"
+        ? `Ticket promedio de ${fBRL(f.ticketMedio)} frente a ${fBRL(f.mediaGrupo)} de los demás proveedores de la misma categoría.`
+        : `Ticket médio de ${fBRL(f.ticketMedio)} contra ${fBRL(f.mediaGrupo)} dos demais fornecedores da mesma categoria.`,
       economiaEstimada: Math.max(0, f.ticketMedio - f.mediaGrupo), fornecedorNome: f.nome,
     });
   });
 
+  const semDescricao = lang === "en" ? "Contract with no description on file." : lang === "es" ? "Contrato sin descripción registrada." : "Contrato sem descrição cadastrada.";
   const { vencidos, aVencer } = contratosVencendo(p.contratos, 30);
   vencidos.forEach(c => {
     const fornecedor = p.fornecedores.find(f => f.id === c.fornecedor_id);
-    out.push({ id: `contrato:${c.id}`, tipo: "contrato_vencido", titulo: `Contrato vencido${fornecedor ? ` — ${fornecedor.nome}` : ""}`,
-      descricao: c.descricao || "Contrato sem descrição cadastrada.", economiaEstimada: 0, fornecedorNome: fornecedor?.nome });
+    out.push({
+      id: `contrato:${c.id}`, tipo: "contrato_vencido",
+      titulo: (lang === "en" ? "Expired contract" : lang === "es" ? "Contrato vencido" : "Contrato vencido") + (fornecedor ? ` — ${fornecedor.nome}` : ""),
+      descricao: c.descricao || semDescricao, economiaEstimada: 0, fornecedorNome: fornecedor?.nome,
+    });
   });
   aVencer.forEach(c => {
     const fornecedor = p.fornecedores.find(f => f.id === c.fornecedor_id);
-    out.push({ id: `contrato:${c.id}`, tipo: "contrato_vencido", titulo: `Contrato vence em até 30 dias${fornecedor ? ` — ${fornecedor.nome}` : ""}`,
-      descricao: c.descricao || "Contrato sem descrição cadastrada.", economiaEstimada: 0, fornecedorNome: fornecedor?.nome });
+    out.push({
+      id: `contrato:${c.id}`, tipo: "contrato_vencido",
+      titulo: (lang === "en" ? "Contract expires within 30 days" : lang === "es" ? "Contrato vence en hasta 30 días" : "Contrato vence em até 30 dias") + (fornecedor ? ` — ${fornecedor.nome}` : ""),
+      descricao: c.descricao || semDescricao, economiaEstimada: 0, fornecedorNome: fornecedor?.nome,
+    });
   });
 
   const itensDespesa: ItemDespesa[] = [...p.custosFixos, ...p.custosVariaveis].map(o => ({ descricao: o.descricao, valor: o.valor, categoria: o.categoria }));
   const { alertas } = detectarDesperdicio(itensDespesa);
   alertas.filter(a => a.tipo === "duplicado").forEach((a, i) => {
-    out.push({ id: `duplicado:${i}:${normalizarTexto(a.descricao)}`, tipo: "duplicado", titulo: `Possível lançamento duplicado: ${a.descricao}`,
-      descricao: `Dois lançamentos parecidos foram encontrados — confirme se não é o mesmo custo lançado duas vezes.`, economiaEstimada: a.valorPotencial });
+    out.push({
+      id: `duplicado:${i}:${normalizarTexto(a.descricao)}`, tipo: "duplicado",
+      titulo: (lang === "en" ? "Possible duplicate entry: " : lang === "es" ? "Posible movimiento duplicado: " : "Possível lançamento duplicado: ") + a.descricao,
+      descricao: lang === "en" ? "Two similar entries were found — confirm it isn't the same cost entered twice." : lang === "es" ? "Se encontraron dos movimientos parecidos — confirme si no es el mismo costo registrado dos veces." : "Dois lançamentos parecidos foram encontrados — confirme se não é o mesmo custo lançado duas vezes.",
+      economiaEstimada: a.valorPotencial,
+    });
   });
 
   p.custosFixos.filter(o => o.categoria === "Sistemas e assinaturas").forEach(o => {
-    out.push({ id: `assinatura:${o.id}`, tipo: "assinatura_esquecida", titulo: `Revisar assinatura: ${o.descricao}`,
-      descricao: `Custo recorrente em Sistemas e Assinaturas — vale confirmar se ainda está em uso.`, economiaEstimada: o.valor,
-      centroId: o.centro_custo_id, centroNome: p.centros.find(c => c.id === o.centro_custo_id)?.nome });
+    out.push({
+      id: `assinatura:${o.id}`, tipo: "assinatura_esquecida",
+      titulo: (lang === "en" ? "Review subscription: " : lang === "es" ? "Revisar suscripción: " : "Revisar assinatura: ") + o.descricao,
+      descricao: lang === "en" ? "Recurring cost under Systems & Subscriptions — worth confirming it's still in use." : lang === "es" ? "Costo recurrente en Sistemas y Suscripciones — vale la pena confirmar si todavía se usa." : "Custo recorrente em Sistemas e Assinaturas — vale confirmar se ainda está em uso.",
+      economiaEstimada: o.valor, centroId: o.centro_custo_id, centroNome: p.centros.find(c => c.id === o.centro_custo_id)?.nome,
+    });
   });
 
   p.centros.forEach(c => {
     const custo = p.custosPorCentro[c.id] || 0;
     const receita = p.receitasPorCentro[c.id] || 0;
     if (custo < 50 && receita < 50) {
-      out.push({ id: `ocioso:${c.id}`, tipo: "centro_ocioso", titulo: `Centro "${c.nome}" sem atividade no período`,
-        descricao: `Nenhum custo ou receita relevante etiquetado neste centro no período selecionado.`, economiaEstimada: 0, centroId: c.id, centroNome: c.nome });
+      out.push({
+        id: `ocioso:${c.id}`, tipo: "centro_ocioso",
+        titulo: lang === "en" ? `Center "${c.nome}" has no activity in the period` : lang === "es" ? `Centro "${c.nome}" sin actividad en el período` : `Centro "${c.nome}" sem atividade no período`,
+        descricao: lang === "en" ? "No relevant cost or revenue tagged to this center in the selected period." : lang === "es" ? "Ningún costo o ingreso relevante asignado a este centro en el período seleccionado." : "Nenhum custo ou receita relevante etiquetado neste centro no período selecionado.",
+        economiaEstimada: 0, centroId: c.id, centroNome: c.nome,
+      });
     }
     if (receita > 0 && receita - custo < 0) {
-      out.push({ id: `margem_neg:${c.id}`, tipo: "margem_negativa", titulo: `Centro "${c.nome}" com margem negativa`,
-        descricao: `Custos (${fBRL(custo)}) maiores que a receita (${fBRL(receita)}) no período.`, economiaEstimada: custo - receita, centroId: c.id, centroNome: c.nome });
+      out.push({
+        id: `margem_neg:${c.id}`, tipo: "margem_negativa",
+        titulo: lang === "en" ? `Center "${c.nome}" has negative margin` : lang === "es" ? `Centro "${c.nome}" con margen negativo` : `Centro "${c.nome}" com margem negativa`,
+        descricao: lang === "en" ? `Costs (${fBRL(custo)}) exceed revenue (${fBRL(receita)}) in the period.` : lang === "es" ? `Los costos (${fBRL(custo)}) superan el ingreso (${fBRL(receita)}) en el período.` : `Custos (${fBRL(custo)}) maiores que a receita (${fBRL(receita)}) no período.`,
+        economiaEstimada: custo - receita, centroId: c.id, centroNome: c.nome,
+      });
     }
   });
 
@@ -175,15 +240,20 @@ const COMPLEXIDADE_TIPO: Record<string, Complexidade> = {
 };
 const PESO_URGENCIA: Record<Urgencia, number> = { alta: 3, media: 2, baixa: 1 };
 const PESO_COMPLEXIDADE: Record<Complexidade, number> = { baixa: 3, media: 2, alta: 1 };
-const TEMPO_ESTIMADO: Record<Complexidade, string> = { baixa: "alguns dias", media: "2 a 4 semanas", alta: "1 a 3 meses" };
+const TEMPO_ESTIMADO: Record<Lang, Record<Complexidade, string>> = {
+  pt: { baixa: "alguns dias", media: "2 a 4 semanas", alta: "1 a 3 meses" },
+  en: { baixa: "a few days", media: "2 to 4 weeks", alta: "1 to 3 months" },
+  es: { baixa: "unos días", media: "2 a 4 semanas", alta: "1 a 3 meses" },
+};
+const INVESTIGAR_AUMENTO: Record<Lang, string> = { pt: "Investigar aumento: ", en: "Investigate increase: ", es: "Investigar aumento: " };
 
-export function priorizar(causas: CausaRaizItem[], oportunidades: Oportunidade[]): ItemPriorizado[] {
+export function priorizar(causas: CausaRaizItem[], oportunidades: Oportunidade[], lang: Lang = "pt"): ItemPriorizado[] {
   const deCausas: ItemPriorizado[] = causas.map(c => {
     const urgencia = URGENCIA_TIPO[c.tipo] || "media";
     const complexidade = COMPLEXIDADE_TIPO[c.tipo] || "media";
     return {
-      id: c.id, titulo: `Investigar aumento: ${c.descricao}`, descricao: c.explicacao, tipo: c.tipo,
-      impacto: c.impacto, urgencia, complexidade, tempoEstimado: TEMPO_ESTIMADO[complexidade],
+      id: c.id, titulo: INVESTIGAR_AUMENTO[lang] + c.descricao, descricao: c.explicacao, tipo: c.tipo,
+      impacto: c.impacto, urgencia, complexidade, tempoEstimado: TEMPO_ESTIMADO[lang][complexidade],
       retornoEsperado: c.impacto, score: Math.max(1, c.impacto) * PESO_URGENCIA[urgencia] * PESO_COMPLEXIDADE[complexidade],
       origem: "causa_raiz",
     };
@@ -193,7 +263,7 @@ export function priorizar(causas: CausaRaizItem[], oportunidades: Oportunidade[]
     const complexidade = COMPLEXIDADE_TIPO[o.tipo] || "media";
     return {
       id: o.id, titulo: o.titulo, descricao: o.descricao, tipo: o.tipo,
-      impacto: o.economiaEstimada, urgencia, complexidade, tempoEstimado: TEMPO_ESTIMADO[complexidade],
+      impacto: o.economiaEstimada, urgencia, complexidade, tempoEstimado: TEMPO_ESTIMADO[lang][complexidade],
       retornoEsperado: o.economiaEstimada, score: Math.max(1, o.economiaEstimada) * PESO_URGENCIA[urgencia] * PESO_COMPLEXIDADE[complexidade],
       origem: "oportunidade",
     };
@@ -252,15 +322,20 @@ export function simularCenarioCascata(baseline: BaselineSimulacao, choque: Choqu
 // Mapa de Impacto (waterfall) — usa optCascata (mesmo motor da DRE) pra visualizar
 // o efeito cascata do cenário "base" (o que o usuário configurou, sem o ajuste
 // automático de otimismo/pessimismo que os outros 3 cenários recebem).
-export function mapaDeImpacto(baseline: BaselineSimulacao, choque: ChoqueSimulador, resultadoBase: ResultadoCenarioExecutivo): ItemCascata[] {
+export function mapaDeImpacto(baseline: BaselineSimulacao, choque: ChoqueSimulador, resultadoBase: ResultadoCenarioExecutivo, lang: Lang = "pt"): ItemCascata[] {
   const custoVariavelSimulado = baseline.custoVariavelMensal * (1 + choque.custoVariavelPct / 100);
   const custoFixoSimulado = baseline.custoFixoMensal * (1 + choque.custoFixoPct / 100);
+  const labels = lang === "en"
+    ? { receita: "Revenue", custoVar: "Variable Cost", custoFixo: "Fixed Cost", lucro: "Net Profit" }
+    : lang === "es"
+    ? { receita: "Ingreso", custoVar: "Costo Variable", custoFixo: "Costo Fijo", lucro: "Utilidad Neta" }
+    : { receita: "Receita", custoVar: "Custo Variável", custoFixo: "Custo Fixo", lucro: "Lucro Líquido" };
   return [
-    { label: "Receita", valor: resultadoBase.receitaMensal, tipo: "subtotal" },
-    { label: "Custo Variável", valor: -custoVariavelSimulado, tipo: "variacao" },
-    { label: "Custo Fixo", valor: -custoFixoSimulado, tipo: "variacao" },
+    { label: labels.receita, valor: resultadoBase.receitaMensal, tipo: "subtotal" },
+    { label: labels.custoVar, valor: -custoVariavelSimulado, tipo: "variacao" },
+    { label: labels.custoFixo, valor: -custoFixoSimulado, tipo: "variacao" },
     { label: "EBITDA", valor: resultadoBase.ebitdaMensal, tipo: "subtotal" },
-    { label: "Lucro Líquido", valor: resultadoBase.lucroLiquidoMensal, tipo: "subtotal" },
+    { label: labels.lucro, valor: resultadoBase.lucroLiquidoMensal, tipo: "subtotal" },
   ];
 }
 
@@ -303,8 +378,9 @@ export type ScoreCentroCusto = { total: number; nivel: "excelente" | "bom" | "at
 export function calcularScoreCentroCusto(p: {
   centros: CentroLeve[]; custosPorCentro: Record<string, number>; orcamentoPorCentro: (centroId: string) => number;
   causaRaiz: CausaRaizItem[]; totalCustos: number; oportunidades: Oportunidade[]; idsComPlanoAcao: Set<string>;
-  origensSemCentro: number; origensTotais: number;
+  origensSemCentro: number; origensTotais: number; lang?: Lang;
 }): ScoreCentroCusto {
+  const lang = p.lang || "pt";
   const comOrcamento = p.centros.filter(c => p.orcamentoPorCentro(c.id) > 0);
   const dentroDoOrcamento = comOrcamento.filter(c => (p.custosPorCentro[c.id] || 0) <= p.orcamentoPorCentro(c.id));
   const scoreOrcamento = comOrcamento.length > 0 ? (dentroDoOrcamento.length / comOrcamento.length) * 100 : 100;
@@ -321,13 +397,24 @@ export function calcularScoreCentroCusto(p: {
   const nivel: ScoreCentroCusto["nivel"] = total >= 80 ? "excelente" : total >= 60 ? "bom" : total >= 40 ? "atencao" : "critico";
   const cor = total >= 80 ? "#34d399" : total >= 60 ? "#6ab0ff" : total >= 40 ? "#f59e0b" : "#f87171";
 
+  const nomes = {
+    orcamentaria: { pt: "Disciplina Orçamentária", en: "Budget Discipline", es: "Disciplina Presupuestaria" },
+    anomalias: { pt: "Causa Raiz / Anomalias", en: "Root Cause / Anomalies", es: "Causa Raíz / Anomalías" },
+    oportunidades: { pt: "Oportunidades Capturadas", en: "Captured Opportunities", es: "Oportunidades Capturadas" },
+    cobertura: { pt: "Cobertura de Atribuição", en: "Tagging Coverage", es: "Cobertura de Asignación" },
+  };
+  const dentroDoOrcTxt = lang === "en" ? `${dentroDoOrcamento.length}/${comOrcamento.length} centers within budget` : lang === "es" ? `${dentroDoOrcamento.length}/${comOrcamento.length} centros dentro del presupuesto` : `${dentroDoOrcamento.length}/${comOrcamento.length} centros dentro do orçamento`;
+  const anomaliasTxt = lang === "en" ? `${p.causaRaiz.length} out-of-pattern increase(s) detected` : lang === "es" ? `${p.causaRaiz.length} aumento(s) fuera de lo normal detectado(s)` : `${p.causaRaiz.length} aumento(s) fora do padrão detectado(s)`;
+  const oportunidadesTxt = lang === "en" ? `${capturadas}/${p.oportunidades.length} opportunities with an action plan` : lang === "es" ? `${capturadas}/${p.oportunidades.length} oportunidades con plan de acción` : `${capturadas}/${p.oportunidades.length} oportunidades com plano de ação`;
+  const coberturaTxt = lang === "en" ? `${p.origensTotais - p.origensSemCentro}/${p.origensTotais} entries with a center assigned` : lang === "es" ? `${p.origensTotais - p.origensSemCentro}/${p.origensTotais} movimientos con centro asignado` : `${p.origensTotais - p.origensSemCentro}/${p.origensTotais} lançamentos com centro atribuído`;
+
   return {
     total, nivel, cor,
     dimensoes: [
-      { nome: "Disciplina Orçamentária", score: Math.round(scoreOrcamento), peso: 30, cor: "#a78bfa", detalhe: `${dentroDoOrcamento.length}/${comOrcamento.length} centros dentro do orçamento` },
-      { nome: "Causa Raiz / Anomalias", score: Math.round(scoreAnomalias), peso: 25, cor: "#f87171", detalhe: `${p.causaRaiz.length} aumento(s) fora do padrão detectado(s)` },
-      { nome: "Oportunidades Capturadas", score: Math.round(scoreOportunidades), peso: 25, cor: "#34d399", detalhe: `${capturadas}/${p.oportunidades.length} oportunidades com plano de ação` },
-      { nome: "Cobertura de Atribuição", score: Math.round(scoreCobertura), peso: 20, cor: "#6ab0ff", detalhe: `${p.origensTotais - p.origensSemCentro}/${p.origensTotais} lançamentos com centro atribuído` },
+      { nome: nomes.orcamentaria[lang], score: Math.round(scoreOrcamento), peso: 30, cor: "#a78bfa", detalhe: dentroDoOrcTxt },
+      { nome: nomes.anomalias[lang], score: Math.round(scoreAnomalias), peso: 25, cor: "#f87171", detalhe: anomaliasTxt },
+      { nome: nomes.oportunidades[lang], score: Math.round(scoreOportunidades), peso: 25, cor: "#34d399", detalhe: oportunidadesTxt },
+      { nome: nomes.cobertura[lang], score: Math.round(scoreCobertura), peso: 20, cor: "#6ab0ff", detalhe: coberturaTxt },
     ],
   };
 }
@@ -370,43 +457,57 @@ export function montarCentralInsights(p: {
 
 export type ContextoCopiloto = {
   centros: CentroLeve[]; custosPorCentro: Record<string, number>; receitasPorCentro: Record<string, number>;
-  orcamentoPorCentro: (centroId: string) => number; oportunidades: Oportunidade[]; score: ScoreCentroCusto; periodo: string;
+  orcamentoPorCentro: (centroId: string) => number; oportunidades: Oportunidade[]; score: ScoreCentroCusto; periodo: string; lang?: Lang;
 };
 
 export function respostaPorRegrasCentro(pergunta: string, ctx: ContextoCopiloto): string {
+  const lang = ctx.lang || "pt";
   const q = normalizarTexto(pergunta);
-  const fonte = ` (dados de ${ctx.periodo})`;
+  const fonte = lang === "en" ? ` (data from ${ctx.periodo})` : lang === "es" ? ` (datos de ${ctx.periodo})` : ` (dados de ${ctx.periodo})`;
 
-  if (q.includes("consome mais caixa") || q.includes("maior custo") || q.includes("mais caro")) {
+  if (q.includes("consome mais caixa") || q.includes("maior custo") || q.includes("mais caro")
+    || q.includes("consumes most cash") || q.includes("highest cost") || q.includes("most expensive")
+    || q.includes("consume mas caja") || q.includes("mayor costo") || q.includes("mas caro")) {
     const ranking = ctx.centros.map(c => ({ nome: c.nome, custo: ctx.custosPorCentro[c.id] || 0 })).sort((a, b) => b.custo - a.custo);
-    if (ranking.length === 0 || ranking[0].custo === 0) return `Nenhum centro com custo registrado no período${fonte}.`;
-    return `O centro que mais consome caixa é "${ranking[0].nome}", com ${fBRL(ranking[0].custo)}${fonte}.`;
+    if (ranking.length === 0 || ranking[0].custo === 0) return lang === "en" ? `No center with cost recorded in the period${fonte}.` : lang === "es" ? `Ningún centro con costo registrado en el período${fonte}.` : `Nenhum centro com custo registrado no período${fonte}.`;
+    return lang === "en" ? `The center that consumes the most cash is "${ranking[0].nome}", with ${fBRL(ranking[0].custo)}${fonte}.` : lang === "es" ? `El centro que más consume caja es "${ranking[0].nome}", con ${fBRL(ranking[0].custo)}${fonte}.` : `O centro que mais consome caixa é "${ranking[0].nome}", com ${fBRL(ranking[0].custo)}${fonte}.`;
   }
-  if (q.includes("reduzir despesa") || q.includes("reduzir custo") || q.includes("cortar")) {
-    if (ctx.oportunidades.length === 0) return `Não encontrei oportunidades de redução de custo nos dados${fonte}.`;
+  if (q.includes("reduzir despesa") || q.includes("reduzir custo") || q.includes("cortar")
+    || q.includes("reduce expense") || q.includes("reduce cost") || q.includes("cut cost")
+    || q.includes("reducir gasto") || q.includes("reducir costo") || q.includes("recortar")) {
+    if (ctx.oportunidades.length === 0) return lang === "en" ? `I didn't find any cost-reduction opportunities in the data${fonte}.` : lang === "es" ? `No encontré oportunidades de reducción de costo en los datos${fonte}.` : `Não encontrei oportunidades de redução de custo nos dados${fonte}.`;
     const top3 = [...ctx.oportunidades].sort((a, b) => b.economiaEstimada - a.economiaEstimada).slice(0, 3);
-    return `As 3 maiores oportunidades identificadas: ${top3.map(o => `${o.titulo} (${fBRL(o.economiaEstimada)})`).join("; ")}${fonte}.`;
+    const lista = top3.map(o => `${o.titulo} (${fBRL(o.economiaEstimada)})`).join("; ");
+    return lang === "en" ? `The 3 biggest opportunities found: ${lista}${fonte}.` : lang === "es" ? `Las 3 mayores oportunidades identificadas: ${lista}${fonte}.` : `As 3 maiores oportunidades identificadas: ${lista}${fonte}.`;
   }
-  if (q.includes("destroi margem") || q.includes("margem negativa") || q.includes("menos rentavel") || q.includes("projeto")) {
+  if (q.includes("destroi margem") || q.includes("margem negativa") || q.includes("menos rentavel") || q.includes("projeto")
+    || q.includes("destroys margin") || q.includes("negative margin") || q.includes("least profitable") || q.includes("project")
+    || q.includes("destruye margen") || q.includes("margen negativo") || q.includes("menos rentable") || q.includes("proyecto")) {
     const negativos = ctx.centros
       .map(c => ({ nome: c.nome, resultado: (ctx.receitasPorCentro[c.id] || 0) - (ctx.custosPorCentro[c.id] || 0) }))
       .filter(c => c.resultado < 0).sort((a, b) => a.resultado - b.resultado);
-    if (negativos.length === 0) return `Nenhum centro com margem negativa no período${fonte}.`;
-    return `"${negativos[0].nome}" é o que mais destrói margem, com resultado de ${fBRL(negativos[0].resultado)}${fonte}.`;
+    if (negativos.length === 0) return lang === "en" ? `No center with negative margin in the period${fonte}.` : lang === "es" ? `Ningún centro con margen negativo en el período${fonte}.` : `Nenhum centro com margem negativa no período${fonte}.`;
+    return lang === "en" ? `"${negativos[0].nome}" destroys margin the most, with a result of ${fBRL(negativos[0].resultado)}${fonte}.` : lang === "es" ? `"${negativos[0].nome}" es el que más destruye margen, con un resultado de ${fBRL(negativos[0].resultado)}${fonte}.` : `"${negativos[0].nome}" é o que mais destrói margem, com resultado de ${fBRL(negativos[0].resultado)}${fonte}.`;
   }
-  if (q.includes("dentro do orcamento") || q.includes("orcamento")) {
+  if (q.includes("dentro do orcamento") || q.includes("orcamento")
+    || q.includes("within budget") || q.includes("budget")
+    || q.includes("dentro del presupuesto") || q.includes("presupuesto")) {
     const comOrc = ctx.centros.filter(c => ctx.orcamentoPorCentro(c.id) > 0);
     const estourados = comOrc.filter(c => (ctx.custosPorCentro[c.id] || 0) > ctx.orcamentoPorCentro(c.id));
-    if (comOrc.length === 0) return `Nenhum centro tem orçamento definido ainda.`;
-    return estourados.length === 0
-      ? `Todos os ${comOrc.length} centros com orçamento estão dentro do previsto${fonte}.`
-      : `${estourados.length} de ${comOrc.length} centros estouraram o orçamento: ${estourados.map(c => c.nome).join(", ")}${fonte}.`;
+    if (comOrc.length === 0) return lang === "en" ? `No center has a budget defined yet.` : lang === "es" ? `Ningún centro tiene presupuesto definido todavía.` : `Nenhum centro tem orçamento definido ainda.`;
+    if (estourados.length === 0) return lang === "en" ? `All ${comOrc.length} centers with a budget are within plan${fonte}.` : lang === "es" ? `Los ${comOrc.length} centros con presupuesto están dentro de lo previsto${fonte}.` : `Todos os ${comOrc.length} centros com orçamento estão dentro do previsto${fonte}.`;
+    const nomes = estourados.map(c => c.nome).join(", ");
+    return lang === "en" ? `${estourados.length} of ${comOrc.length} centers went over budget: ${nomes}${fonte}.` : lang === "es" ? `${estourados.length} de ${comOrc.length} centros superaron el presupuesto: ${nomes}${fonte}.` : `${estourados.length} de ${comOrc.length} centros estouraram o orçamento: ${nomes}${fonte}.`;
   }
-  if (q.includes("score") || q.includes("saude") || q.includes("nota")) {
+  if (q.includes("score") || q.includes("saude") || q.includes("nota") || q.includes("health")) {
     const pior = [...ctx.score.dimensoes].sort((a, b) => a.score - b.score)[0];
-    return `O Score do módulo é ${ctx.score.total}/100 (${ctx.score.nivel}). Maior ponto de atenção: ${pior.nome} (${pior.detalhe}).`;
+    return lang === "en" ? `The module Score is ${ctx.score.total}/100 (${ctx.score.nivel}). Biggest attention point: ${pior.nome} (${pior.detalhe}).` : lang === "es" ? `El Score del módulo es ${ctx.score.total}/100 (${ctx.score.nivel}). Mayor punto de atención: ${pior.nome} (${pior.detalhe}).` : `O Score do módulo é ${ctx.score.total}/100 (${ctx.score.nivel}). Maior ponto de atenção: ${pior.nome} (${pior.detalhe}).`;
   }
-  return `Ainda não sei responder essa pergunta com regras. Posso responder sobre: qual centro consome mais caixa, como reduzir despesas, qual centro destrói margem, e se as despesas estão dentro do orçamento.`;
+  return lang === "en"
+    ? `I can't answer that with rules yet. I can help with: which center consumes the most cash, how to reduce expenses, which center destroys margin, and whether spending is within budget.`
+    : lang === "es"
+    ? `Todavía no sé responder eso con reglas. Puedo ayudar con: qué centro consume más caja, cómo reducir gastos, qué centro destruye margen, y si los gastos están dentro del presupuesto.`
+    : `Ainda não sei responder essa pergunta com regras. Posso responder sobre: qual centro consome mais caixa, como reduzir despesas, qual centro destrói margem, e se as despesas estão dentro do orçamento.`;
 }
 
 // ============================================================================

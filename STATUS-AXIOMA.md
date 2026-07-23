@@ -608,13 +608,23 @@ Até rodar, a tela mostra o impacto simulado normalmente — só o botão "Salva
 
 **Sugestões de evolução futura (registradas, não implementadas):**
 - Planilha estilo Excel (Fase 3, adiada a pedido do Elias pra testar isolada)
-- Migrar a paleta visual pra vinho/bordô/cobre se o Elias confirmar que quer esse visual (hoje segue azul, padrão do resto do Axioma)
-- Completar tradução ES dos textos novos da Fase 2 (hoje cai no inglês)
 - Ativar a Claude API real no Copiloto CFO quando o Elias ligar o billing (o fio já está pronto)
 - Granularidade por mês nos totais integrados de Custos Variáveis/Contas a Pagar/Receitas dentro do Centro de Custos (hoje somam tudo, sem filtrar período, mesmo comportamento documentado desde a Fase 1)
 
+## 3-R. Centro de Custos — 3 ajustes pós-Fase 2 (paleta, tradução ES, SQL entregue)
+
+Pedido do Elias depois de testar o plano da Fase 2: (1) mandar o SQL da Fase 2 pronto pra colar, (2) migrar a paleta do módulo de azul para vinho/bordô/cobre — mesmo padrão de identidade visual por módulo do resto do Axioma (Receitas roxo, Fornecedores âmbar, Contas a Receber esmeralda, Inadimplência índigo) —, (3) completar a tradução ES de tudo que caía em inglês nas Fases 1 e 2.
+
+**Paleta:** vinho `#9f1239` virou a cor de identidade do módulo (bordas de card, aba ativa, ícones de editar, modal de cadastro do centro) — trocando o azul `#6ab0ff` que era só herdado do template genérico. Bordô `#881337` aplicado no rótulo "AXIOMA AI.TECH" dentro dos modais (o "cabeçalho" de cada modal). Cobre `#b87333` aplicado com parcimônia no código do centro (badge "CC-001"). **Mantidas intactas** as cores de significado: vermelho (estouro/prejuízo), âmbar (atenção/desvio), verde (economia/dentro do orçamento) — e o azul `#6ab0ff` permanece exatamente nos 3 lugares onde já era usado como "neutro" (cenário conservador do simulador, uma das 4 categorias da Central de Insights, nível intermediário da barra de meta de receita), não como identidade do módulo.
+
+**Tradução ES:** o problema não estava só nos rótulos da tela — os **motores da Fase 2 geravam texto em português direto no código** (`lib/centroCustoInteligenciaHelpers.ts`): a explicação da Causa Raiz, os títulos/descrições das Oportunidades, os nomes/detalhes das dimensões do Score, os rótulos do Mapa de Impacto e as respostas do Copiloto nunca olhavam pro idioma escolhido — sempre saíam em português não importa o que o Elias tivesse selecionado. Corrigido: todas essas funções agora recebem o idioma e têm PT/EN/ES completos, incluindo o Copiloto reconhecendo perguntas digitadas em inglês ou espanhol (antes só reconhecia palavras-chave em português). Também variados rótulos binários (só PT/EN) da Fase 1 nos 3 módulos de origem (Custos Fixos, Custos Variáveis, Receitas) ganharam a terceira opção ES.
+
+**Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (paleta + ~90 rótulos), `lib/centroCustoInteligenciaHelpers.ts` (idioma nos motores que geram texto), `lib/centroCustoHelpers.ts` (`LABEL_ORIGEM` traduzido), `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/receitas/page.tsx` (rótulo "(opcional)" trinário)
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
+
 ## 4. PRÓXIMO PASSO
-Elias testar o módulo Centro de Custos completo (Fases 1-2) — mas antes precisa rodar `CENTRO-CUSTO-FASE2-SQL.sql` no Supabase (só 1 tabela nova, planos de ação). Módulo Centro de Custos encerrado (2/2 fases). Decidir com o Elias: ajustar a paleta de cores, avançar pra Fase 3 (planilha), ou seguir para o próximo item da fila.
+Elias rodar `CENTRO-CUSTO-FASE2-SQL.sql` no Supabase (só 1 tabela nova, planos de ação) e testar o módulo Centro de Custos completo (Fases 1-2) já com a paleta vinho/bordô/cobre e ES completo. Módulo Centro de Custos encerrado (2/2 fases + ajustes). Próximo: decidir com o Elias se avança pra Fase 3 (planilha estilo Excel) ou segue para o próximo item da fila.
 
 ---
 

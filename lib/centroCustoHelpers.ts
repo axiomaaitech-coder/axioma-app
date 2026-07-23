@@ -11,10 +11,10 @@ const supabase = createBrowserClient(
 
 export type OrigemTabela = "custos_fixos" | "custos_variaveis" | "contas_pagar";
 
-export const LABEL_ORIGEM: Record<OrigemTabela, string> = {
-  custos_fixos: "Custos Fixos",
-  custos_variaveis: "Custos Variáveis",
-  contas_pagar: "Contas a Pagar (Fornecedores)",
+export const LABEL_ORIGEM: Record<OrigemTabela, { pt: string; en: string; es: string }> = {
+  custos_fixos: { pt: "Custos Fixos", en: "Fixed Costs", es: "Costos Fijos" },
+  custos_variaveis: { pt: "Custos Variáveis", en: "Variable Costs", es: "Costos Variables" },
+  contas_pagar: { pt: "Contas a Pagar (Fornecedores)", en: "Accounts Payable (Suppliers)", es: "Cuentas por Pagar (Proveedores)" },
 };
 
 export type LancamentoOrigem = {
