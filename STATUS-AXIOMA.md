@@ -624,7 +624,7 @@ Pedido do Elias depois de testar o plano da Fase 2: (1) mandar o SQL da Fase 2 p
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
 
 ## 4. PRÓXIMO PASSO
-Elias rodar `CENTRO-CUSTO-FASE2-SQL.sql` no Supabase (só 1 tabela nova, planos de ação) e testar o módulo Centro de Custos completo (Fases 1-2) já com a paleta vinho/bordô/cobre e ES completo. Módulo Centro de Custos encerrado (2/2 fases + ajustes). Próximo: decidir com o Elias se avança pra Fase 3 (planilha estilo Excel) ou segue para o próximo item da fila.
+**SQL da Fase 2 já rodado pelo Elias no Supabase (confirmado).** Falta ele testar o módulo Centro de Custos completo (Fases 1-2) já com a paleta vinho/bordô/cobre e ES completo. Módulo Centro de Custos encerrado (2/2 fases + ajustes). Próximo: decidir com o Elias se avança pra Fase 3 (planilha estilo Excel) ou segue para o próximo item da fila.
 
 ---
 
