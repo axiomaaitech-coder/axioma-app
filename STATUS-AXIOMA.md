@@ -532,22 +532,27 @@ Até rodar, a tela mostra o impacto simulado normalmente — só o botão "Salva
 
 **Decisão técnica:** cada tela já tinha seu próprio formulário de lançamento — só acrescentei um campo opcional "Centro de Custo" (dropdown carregado de `centros_custo`) em cada um, seguindo o mesmo padrão que Receitas já usava para vincular Cliente. Em Fornecedores, o vínculo do fornecedor com seu centro de custo (campo que já existia no cadastro) agora é sugerido automaticamente ao lançar uma nova conta a pagar desse fornecedor (mesma função `sugerirDadosContaPorFornecedor` que já sugeria categoria/forma de pagamento/vencimento).
 
-**Entregue:**
+**Entregue (fase completa, nada adiado para depois):**
 - Campo opcional "Centro de Custo" nos lançamentos de Fornecedores (Contas a Pagar), Custos Fixos, Custos Variáveis e Receitas
 - Fornecedores: nova conta a pagar já vem com o centro de custo sugerido a partir do fornecedor selecionado (pode trocar)
+- Cadastro do centro agora tem os campos enterprise do schema: tipo pessoa (PJ/PF) + CPF/CNPJ validado, endereço completo com autopreenchimento por CEP (mesmo padrão de Empresa/Fornecedores), headcount e área (m²)
+- **Rateio de verdade:** em vez de criar um lançamento novo numa lista solta, agora escolhe um lançamento que já existe em Custos Fixos/Custos Variáveis/Contas a Pagar e divide o mesmo valor entre centros por % — com botões de "distribuir igualmente", "por headcount" e "por área" (usa os campos novos de cadastro). Mostra o rateio já aplicado a um lançamento e deixa remover.
+- Orçamento agora tem histórico por mês: cada centro pode ter um valor diferente por período (editável direto na Visão Geral), com o valor cadastrado no centro servindo de padrão quando não há override do mês
+- Trilha de auditoria: toda criação/edição/exclusão de centro de custo fica registrada (quem, quando, valor antes/depois)
+- Visão Geral agora soma automaticamente os lançamentos etiquetados/rateados nos 4 módulos reais junto com os lançamentos manuais da lista própria do módulo (que continua existindo para custos que não vêm de nenhum desses módulos)
 
-**Ainda não feito nesta fase (fica para a próxima):** a tela de Centros de Custo em si ainda não lê esses 4 módulos — ela segue mostrando só a lista própria (`lancamentos_centro`). Cadastro "enterprise" do centro (endereço, documento, headcount/m² para base de rateio), rateio automático sobre lançamentos reais (hoje o rateio só cria linhas na lista própria) e trilha de auditoria também ficam para depois.
+**Schema — script pronto, Elias ainda precisa rodar no Supabase antes de testar:** arquivo `CENTRO-CUSTO-FASE1-SQL.sql` na raiz do projeto. Acrescenta a coluna `centro_custo_id` em `custos_fixos`, `custos_variaveis`, `contas_pagar` e `receitas`, os campos de cadastro enterprise em `centros_custo`, e 3 tabelas novas (rateio, orçamento por centro, auditoria) — nada existente é alterado ou apagado. **Achei e corrigi um erro de sintaxe no rascunho** (`CREATE POLICY IF NOT EXISTS` não existe em PostgreSQL puro) antes de repassar — trocado pelo padrão seguro `DROP POLICY IF EXISTS` + `CREATE POLICY`. Até rodar, as telas funcionam normalmente, só não persistem os campos/tabelas novas (mesmo comportamento já documentado em fases anteriores quando falta coluna).
 
-**Schema — script pronto, Elias ainda não confirmou ter rodado no Supabase:** arquivo `CENTRO-CUSTO-FASE1-SQL.sql` na raiz do projeto. Acrescenta a coluna `centro_custo_id` em `custos_fixos`, `custos_variaveis`, `contas_pagar` e `receitas`, mais campos de cadastro enterprise em `centros_custo` e 3 tabelas novas (rateio, orçamento por centro, auditoria) — nada existente é alterado ou apagado. **Achei e corrigi um erro de sintaxe no rascunho** (`CREATE POLICY IF NOT EXISTS` não existe em PostgreSQL puro) antes de repassar — trocado pelo padrão seguro `DROP POLICY IF EXISTS` + `CREATE POLICY`. Até rodar, os 4 campos novos aparecem nas telas normalmente, só não persistem no Supabase (mesmo comportamento já documentado em fases anteriores quando falta coluna).
+**Arquivos criados:** `CENTRO-CUSTO-FASE1-SQL.sql`, `lib/centroCustoHelpers.ts`
+**Arquivos alterados:** `app/(interno)/fornecedores/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/receitas/page.tsx`, `app/(interno)/centros-custo/page.tsx` (reescrita das seções de cadastro, rateio e orçamento), `lib/fornecedorHelpers.ts` (sugestão de centro de custo)
+**Tabelas novas:** `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria` (só existem quando Elias aplicar o SQL)
 
-**Arquivos criados:** `CENTRO-CUSTO-FASE1-SQL.sql`
-**Arquivos alterados:** `app/(interno)/fornecedores/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/receitas/page.tsx`, `lib/fornecedorHelpers.ts` (sugestão de centro de custo)
-**Tabelas novas:** `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria` (só rodam quando Elias aplicar o SQL)
+**Simplificação consciente:** os totais integrados dos 4 módulos reais não filtram por período (Custos Fixos já é sempre recorrente mensal em todo o Axioma — nunca teve filtro por mês em lugar nenhum do sistema). Se um dia precisar granularidade por mês pra Custos Variáveis/Contas a Pagar dentro do Centro de Custos, é um ajuste pequeno (adicionar a data na consulta e filtrar pelo período selecionado).
 
-**Verificação feita:** `tsc --noEmit` limpo nos 5 arquivos alterados e no projeto inteiro. Não testado no navegador com login real nesta sessão.
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado no navegador com login real nesta sessão.
 
 ## 4. PRÓXIMO PASSO
-**Elias precisa rodar `CENTRO-CUSTO-FASE1-SQL.sql` no Supabase** antes de testar a integração de Centro de Custo. Depois testar Fornecedores/Custos Fixos/Custos Variáveis/Receitas com o novo campo "Centro de Custo" no formulário. Próxima etapa do módulo: fazer a própria tela de Centros de Custo enxergar esses 4 módulos (hoje ainda usa só a lista própria).
+**Elias precisa rodar `CENTRO-CUSTO-FASE1-SQL.sql` no Supabase** antes de testar. Depois testar `/centros-custo` (cadastro com endereço/CPF-CNPJ, rateio escolhendo um lançamento existente, orçamento por mês) e os 4 módulos reais com o campo "Centro de Custo". Módulo Centro de Custos com a integração da Fase 1 encerrada. Perguntar ao Elias se quer alguma Fase 2 (ex: mostrar rateio/orçamento também nas telas de origem) ou seguir para o próximo item da fila.
 
 ---
 
