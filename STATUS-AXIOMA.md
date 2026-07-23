@@ -552,7 +552,7 @@ Até rodar, a tela mostra o impacto simulado normalmente — só o botão "Salva
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado no navegador com login real nesta sessão.
 
 ## 4. PRÓXIMO PASSO
-**Elias precisa rodar `CENTRO-CUSTO-FASE1-SQL.sql` no Supabase** antes de testar. Depois testar `/centros-custo` (cadastro com endereço/CPF-CNPJ, rateio escolhendo um lançamento existente, orçamento por mês) e os 4 módulos reais com o campo "Centro de Custo". Módulo Centro de Custos com a integração da Fase 1 encerrada. Perguntar ao Elias se quer alguma Fase 2 (ex: mostrar rateio/orçamento também nas telas de origem) ou seguir para o próximo item da fila.
+**SQL da Fase 1 já rodado pelo Elias no Supabase (confirmado).** Falta ele testar `/centros-custo` (cadastro com endereço/CPF-CNPJ, rateio escolhendo um lançamento existente, orçamento por mês) e os 4 módulos reais com o campo "Centro de Custo" persistindo de verdade agora. Módulo Centro de Custos com a integração da Fase 1 encerrada. Perguntar ao Elias se quer alguma Fase 2 (ex: mostrar rateio/orçamento também nas telas de origem) ou seguir para o próximo item da fila.
 
 ---
 
