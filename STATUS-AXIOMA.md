@@ -476,10 +476,78 @@ Até rodar, a Central de Negociação funciona normalmente (timeline, histórico
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — `✓ Compiled successfully` (2.9min); o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (dessa vez `/api/stripe/create-checkout`, falta chave local — mesma família de falha já registrada em rodadas anteriores). Não testado no navegador com login real nesta sessão.
 
-**Fase 3 aguardando aprovação do Elias** (regra explícita: não adiantar).
+## 3-O. Inadimplência — Fase 3 de 3 (Simulador + Previsão de Recuperação + PCLD + Analytics), ENTREGA FINAL DO MÓDULO
+
+**Decisão técnica central (extensão do padrão das Fases 1/2):** o Simulador reaproveita `montarDRE` (mesmo núcleo de Investimentos/Simulações/Contas a Receber) com alavancas próprias de recuperação — mesma decisão já tomada em `simularCenariosRecebimento` (Contas a Receber Fase 3): o vetor de choque genérico não tem alavanca de desconto/parcela/juros/prazo/recuperação parcial, então a peça reaproveitada de verdade é o motor de DRE. O heatmap é literalmente reaproveitado (`heatmapInadimplencia`, já existia em `previsaoRecebimentoHelpers.ts`); curva ABC/evolução/distribuição por campo são variantes pequenas escopadas só à carteira inadimplente, mesmo padrão de "gêmeo" que já existe entre `clienteIntelHelpers.ts` e `previsaoRecebimentoHelpers.ts`.
+
+**Entregue:**
+- **Simulador Executivo de Recuperação:** 7 alavancas (desconto à vista, % aceita parcelamento, redução de juros, aumento de prazo, % recuperação parcial, % perda total, antecipação de recebíveis), 4 cenários (conservador/base/otimista/adverso), efeito em caixa/EBITDA/lucro líquido — Ponto de Partida automático lendo Receitas/Custos Fixos/Custos Variáveis/Dívidas/Empresa (só leitura)
+- **Previsão de Recuperação Multi-Horizonte:** 7/30/60/90/180/365 dias, saldo vencido classificado em provável/otimista/conservador/improvável a partir do Score Axioma e da probabilidade de recuperação (Fases 1/2) — regra determinística, nunca ML
+- **Perda Esperada / Provisão PCLD** (destaque): por faixa de aging, ponderando o saldo vencido pela probabilidade de perda. **Integração com a DRE:** mostra o impacto simulado na margem líquida (com/sem provisão) e, se aprovado, só ATUALIZA uma linha de `dre_historico` do período atual que já exista (nunca cria linha nova — isso continua sendo responsabilidade exclusiva da tela DRE). Card de "Custo de Cobrança × Valor Recuperável" sinalizando títulos que não valem a pena perseguir (custo médio por título é premissa editável do usuário, nunca fingido como dado real)
+- **Análises Executivas:** heatmap da inadimplência (reaproveitado), curva ABC, evolução mensal, distribuição por estado/segmento (donut), ranking de maior recuperação. "Mapa geográfico" implementado como distribuição por estado (gráfico), não GeoJSON do Brasil — decisão tomada com o Elias (nenhum módulo do Axioma usa mapa de verdade hoje)
+- **Botão "Novo Caso"** (ao lado de PDF/Compartilhar, igual aos outros módulos): registra um título vencido direto em `contas_receber` — cliente sempre escolhido do cadastro existente (nunca redigitado), nunca uma tabela paralela. Lápis de editar/excluir nos títulos em aberto dentro da Central de Negociação, mesmo padrão "carrega os dados de volta, salva por cima" do resto do Axioma
+- Gancho comentado (não implementado) para impacto da Reforma Tributária 2026/2027 na recuperação, reaproveitando `estimarImpactoSplitPayment` quando fizer sentido
+
+**Schema — SQL a rodar no Supabase antes de testar a integração com a DRE (Elias ainda não rodou):**
+```sql
+ALTER TABLE dre_historico
+  ADD COLUMN IF NOT EXISTS provisao_pcld numeric;
+```
+Até rodar, a tela mostra o impacto simulado normalmente — só o botão "Salvar provisão na DRE" não persiste (funciona quando existir uma linha de `dre_historico` do período atual, salva pela própria tela DRE; nunca falha, nunca cria linha).
+
+**Arquivos criados:** nenhum
+**Arquivos alterados:** `lib/inadimplenciaHelpers.ts` (Simulador, Previsão Multi-Horizonte, Perda Esperada/PCLD, integração DRE, Analytics), `app/(interno)/inadimplencia/page.tsx` (todas as seções da Fase 3 + Novo Caso)
+**Tabelas novas:** nenhuma — só 1 coluna opcional em `dre_historico`
+
+**Integrações ativas (Escopo E):** Clientes/Contas a Receber (leitura completa, todas as fases), Fluxo de Caixa (caixa disponível, leitura desde a Fase 1), DRE (leitura do período atual + escrita controlada da provisão), Receitas/Custos Fixos/Custos Variáveis/Dívidas/Empresa (leitura, só no Simulador). Metas, Relatórios, IA Financeira, Simulações: nenhuma mudança necessária (mesma decisão do Contas a Receber Fase 3 — já leem/agregam o que cada módulo expõe). Dashboard Principal: deferido conscientemente (iniciativa cross-módulo, não específica deste). Open Finance: só gancho comentado, Pluggy segue em modo teste.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro (exit 0). `next build` — `✓ Compiled successfully` (11.1min); o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/pluggy/webhook`, falta chave local — mesma causa já registrada em todas as rodadas anteriores). Não testado no navegador com login real nesta sessão.
+
+---
+
+## RELATÓRIO FINAL — MÓDULO INADIMPLÊNCIA COMPLETO (Fases 1-3)
+
+**Funcionalidades entregues:**
+- Mapa Executivo de Risco (13 colunas por cliente), Dashboard com 15 KPIs, Aging (4 faixas), Score de Risco Axioma (reaproveitado do Contas a Receber)
+- Central de Negociação (timeline unificada, parcelas/desconto/juros/multa/responsável), Régua de Recuperação Escalonada (5 estágios), IA de Prevenção com recomendação de estratégia por cliente, Painel de Alertas (12 tipos)
+- Simulador Executivo (7 alavancas, 4 cenários), Previsão de Recuperação multi-horizonte, Perda Esperada/PCLD com integração controlada na DRE, Custo de Cobrança × Valor Recuperável, Analytics (heatmap, curva ABC, evolução, distribuição, ranking)
+- "Novo Caso" + edição/exclusão de títulos, sempre referenciando o cadastro existente de Clientes
+
+**Princípio arquitetural mantido nas 3 fases:** zero recadastro de clientes ou contas. Tudo lê `contas_receber`/`clientes` (Contas a Receber) e reaproveita `cobranca_compromissos`/`cobranca_interacoes`/`cobranca_regua_etapas` (Contas a Receber Fase 2) e `dre_historico` (DRE) — nenhuma tabela nova nas 3 fases, só colunas opcionais nas tabelas já existentes.
+
+**Arquivos criados:** `lib/inadimplenciaHelpers.ts`
+**Arquivos alterados:** `app/(interno)/inadimplencia/page.tsx` (reescrita completa + 2 rodadas de expansão), `lib/cobrancaHelpers.ts` (tipos estendidos + 2 funções novas)
+**Colunas novas:** `cobranca_compromissos.parcelas/desconto_pct/juros_pct/multa_pct/responsavel`, `cobranca_regua_etapas.estagio`, `dre_historico.provisao_pcld` (SQL nas seções 3-N/3-O)
+
+**Sugestões de evolução futura (registradas, não implementadas):**
+- Disparo real da Régua de Recuperação Escalonada quando o Elias escolher provedor (mesma arquitetura já documentada em `cobrancaHelpers.ts` pro Contas a Receber)
+- Mapa geográfico de verdade (GeoJSON do Brasil) se um dia fizer sentido investir nisso — hoje é distribuição por estado em gráfico
+- Impacto da Reforma Tributária 2026/2027 na recuperação (gancho comentado, pronto pra ativar)
+- Migrar/arquivar a tabela antiga `inadimplencia` (não usada desde a Fase 1, segue no banco sem uso)
+- Mostrar `dre_historico.provisao_pcld` na própria tela DRE (hoje só a Inadimplência escreve/lê essa coluna)
+
+## 3-P. Centro de Custos — Fase 1 de N (upgrade do módulo antigo, integração com os módulos reais)
+
+**Contexto:** Centro de Custos (`/centros-custo`) é um módulo antigo (visual azul, fora do padrão CFO) com cadastro de centros, lançamentos e rateio funcionando numa lista própria (`lancamentos_centro`), sem ligação com o resto do sistema. Esta fase começa a puxar esse módulo pro padrão real: os lançamentos que já existem em Fornecedores, Custos Fixos, Custos Variáveis e Receitas passam a poder ser etiquetados com um centro de custo — sem duplicar cadastro, sem tabela paralela nova para eles.
+
+**Decisão técnica:** cada tela já tinha seu próprio formulário de lançamento — só acrescentei um campo opcional "Centro de Custo" (dropdown carregado de `centros_custo`) em cada um, seguindo o mesmo padrão que Receitas já usava para vincular Cliente. Em Fornecedores, o vínculo do fornecedor com seu centro de custo (campo que já existia no cadastro) agora é sugerido automaticamente ao lançar uma nova conta a pagar desse fornecedor (mesma função `sugerirDadosContaPorFornecedor` que já sugeria categoria/forma de pagamento/vencimento).
+
+**Entregue:**
+- Campo opcional "Centro de Custo" nos lançamentos de Fornecedores (Contas a Pagar), Custos Fixos, Custos Variáveis e Receitas
+- Fornecedores: nova conta a pagar já vem com o centro de custo sugerido a partir do fornecedor selecionado (pode trocar)
+
+**Ainda não feito nesta fase (fica para a próxima):** a tela de Centros de Custo em si ainda não lê esses 4 módulos — ela segue mostrando só a lista própria (`lancamentos_centro`). Cadastro "enterprise" do centro (endereço, documento, headcount/m² para base de rateio), rateio automático sobre lançamentos reais (hoje o rateio só cria linhas na lista própria) e trilha de auditoria também ficam para depois.
+
+**Schema — script pronto, Elias ainda não confirmou ter rodado no Supabase:** arquivo `CENTRO-CUSTO-FASE1-SQL.sql` na raiz do projeto. Acrescenta a coluna `centro_custo_id` em `custos_fixos`, `custos_variaveis`, `contas_pagar` e `receitas`, mais campos de cadastro enterprise em `centros_custo` e 3 tabelas novas (rateio, orçamento por centro, auditoria) — nada existente é alterado ou apagado. **Achei e corrigi um erro de sintaxe no rascunho** (`CREATE POLICY IF NOT EXISTS` não existe em PostgreSQL puro) antes de repassar — trocado pelo padrão seguro `DROP POLICY IF EXISTS` + `CREATE POLICY`. Até rodar, os 4 campos novos aparecem nas telas normalmente, só não persistem no Supabase (mesmo comportamento já documentado em fases anteriores quando falta coluna).
+
+**Arquivos criados:** `CENTRO-CUSTO-FASE1-SQL.sql`
+**Arquivos alterados:** `app/(interno)/fornecedores/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/receitas/page.tsx`, `lib/fornecedorHelpers.ts` (sugestão de centro de custo)
+**Tabelas novas:** `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria` (só rodam quando Elias aplicar o SQL)
+
+**Verificação feita:** `tsc --noEmit` limpo nos 5 arquivos alterados e no projeto inteiro. Não testado no navegador com login real nesta sessão.
 
 ## 4. PRÓXIMO PASSO
-Elias testar `/inadimplencia` Fase 2 (Central de Negociação, Régua Escalonada, IA de Prevenção, Alertas) e aprovar a Fase 3 antes de eu continuar. Contas a Receber encerrado (3/3 fases). Depois de Inadimplência: Fornecedores (já em padrão CFO) → E-commerce/PDV (alta prioridade — 2 clientes esperando). Perguntar ao Elias a ordem antes de começar.
+**Elias precisa rodar `CENTRO-CUSTO-FASE1-SQL.sql` no Supabase** antes de testar a integração de Centro de Custo. Depois testar Fornecedores/Custos Fixos/Custos Variáveis/Receitas com o novo campo "Centro de Custo" no formulário. Próxima etapa do módulo: fazer a própria tela de Centros de Custo enxergar esses 4 módulos (hoje ainda usa só a lista própria).
 
 ---
 

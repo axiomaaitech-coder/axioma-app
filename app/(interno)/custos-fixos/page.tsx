@@ -28,6 +28,7 @@ const CAT_COR: Record<string, string> = {
 type CustoFixo = {
   id: string; descricao: string; valor_mensal: number;
   dia_vencimento: number; categoria: string; data_renovacao?: string | null;
+  centro_custo_id?: string | null;
 };
 
 export default function CustosFixos() {
@@ -40,11 +41,12 @@ export default function CustosFixos() {
   const [busca, setBusca] = useState("");
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<CustoFixo | null>(null);
-  const [novo, setNovo] = useState({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "" });
+  const [novo, setNovo] = useState({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => { carregarCustos(); }, []);
 
@@ -54,18 +56,19 @@ export default function CustosFixos() {
     if (!user) { setCarregando(false); return; }
     const { data } = await supabase.from("custos_fixos").select("*").eq("user_id", user.id).order("dia_vencimento", { ascending: true });
     setCustos(data || []);
+    supabase.from("centros_custo").select("id, nome").eq("user_id", user.id).then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
   };
 
-  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "" }); };
-  const abrirEdicao = (c: CustoFixo) => { setEditando(c); setNovo({ descricao: c.descricao, valor: String(c.valor_mensal), vencimento: String(c.dia_vencimento), categoria: c.categoria, renovacao: c.data_renovacao || "" }); setModalAberto(true); };
+  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" }); };
+  const abrirEdicao = (c: CustoFixo) => { setEditando(c); setNovo({ descricao: c.descricao, valor: String(c.valor_mensal), vencimento: String(c.dia_vencimento), categoria: c.categoria, renovacao: c.data_renovacao || "", centro_custo_id: c.centro_custo_id || "" }); setModalAberto(true); };
 
   const salvar = async () => {
     if (!novo.descricao || !novo.valor) return;
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
-    const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null };
+    const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
     const { error } = editando
       ? await supabase.from("custos_fixos").update(payload).eq("id", editando.id)
       : await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id });
@@ -181,7 +184,7 @@ export default function CustosFixos() {
   return (
     <ModuloLayout titulo={t.custosFixos.titulo} subtitulo={t.custosFixos.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.custosFixos.novoCusto}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "" }); setModalAberto(true); }}>
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" }); setModalAberto(true); }}>
       <div className="space-y-4">
 
         <div className="flex justify-end">
@@ -380,6 +383,16 @@ export default function CustosFixos() {
                     <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
+                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "#5a7a9a", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : "opcional"})</span>
+                    </label>
+                    <select value={novo.centro_custo_id} onChange={(e) => setNovo({ ...novo, centro_custo_id: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      <option value="">-- {lang === "en" ? "No cost center" : lang === "es" ? "Sin centro de costo" : "Sem centro de custo"} --</option>
+                      {centrosCusto.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
                   {/* NOVO: data de renovação (radar) */}

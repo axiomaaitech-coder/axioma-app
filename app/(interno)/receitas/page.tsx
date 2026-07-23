@@ -27,7 +27,7 @@ const CAT_COR: Record<string, string> = {
   "Recorrentes": CORES.cyan, "Eventuais": CORES.laranja, "Outras": CORES.teal,
 };
 
-type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; cliente_id: string | null; };
+type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; cliente_id: string | null; centro_custo_id?: string | null; };
 type ClienteOpcao = { id: string; nome: string };
 
 export default function Receitas() {
@@ -43,35 +43,38 @@ export default function Receitas() {
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<Receita | null>(null);
-  const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "" });
+  const [novo, setNovo] = useState({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" });
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
 
   const carregarReceitas = async () => {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const [{ data }, { data: clientesData }] = await Promise.all([
+    const [{ data }, { data: clientesData }, { data: centrosData }] = await Promise.all([
       supabase.from("receitas").select("*").eq("user_id", user.id).order("data", { ascending: false }),
       supabase.from("clientes").select("id, nome").eq("user_id", user.id).order("nome", { ascending: true }),
+      supabase.from("centros_custo").select("id, nome").eq("user_id", user.id),
     ]);
     setReceitas(data || []);
     setClientesOpcoes(clientesData || []);
+    setCentrosCusto(centrosData || []);
     setCarregando(false);
   };
   useEffect(() => { carregarReceitas(); }, []);
 
-  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "" }); };
-  const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status, cliente_id: r.cliente_id || "" }); setModalAberto(true); };
+  const fecharModal = () => { setModalAberto(false); setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" }); };
+  const abrirEdicao = (r: Receita) => { setEditando(r); setNovo({ descricao: r.descricao, valor: String(r.valor), data: r.data, categoria: r.categoria, status: r.status, cliente_id: r.cliente_id || "", centro_custo_id: r.centro_custo_id || "" }); setModalAberto(true); };
 
   const salvar = async () => {
     if (!novo.descricao || !novo.valor) return;
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
-    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null };
+    const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
     const { error } = editando
       ? await supabase.from("receitas").update(payload).eq("id", editando.id)
       : await supabase.from("receitas").insert({ ...payload, user_id: user.id });
@@ -186,7 +189,7 @@ export default function Receitas() {
   return (
     <ModuloLayout titulo={t.receitas.titulo} subtitulo={t.receitas.subtitulo} onExportarPDF={exportarPDF}
       exportando={exportando}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "" }); setModalAberto(true); }}
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" }); setModalAberto(true); }}
       labelBotao={t.receitas.novaReceita}>
       <div className="space-y-4">
 
@@ -379,6 +382,15 @@ export default function Receitas() {
                     <select value={novo.cliente_id} onChange={(e) => setNovo({ ...novo, cliente_id: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
                       <option value="">-- {t.clientes.cliente} --</option>
                       {clientesOpcoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
+                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "#5a7a9a", textTransform: "none" }}>({lang === "en" ? "optional" : "opcional"})</span>
+                    </label>
+                    <select value={novo.centro_custo_id} onChange={(e) => setNovo({ ...novo, centro_custo_id: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      <option value="">-- {lang === "en" ? "No cost center" : lang === "es" ? "Sin centro de costo" : "Sem centro de custo"} --</option>
+                      {centrosCusto.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
                   </div>
                   <div>

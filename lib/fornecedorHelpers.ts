@@ -245,7 +245,7 @@ export type FornecedorRow = {
   nivel_qualidade?: string | null; classificacao_risco?: string | null;
   uf?: string | null; cidade?: string | null; created_at?: string | null;
   tipo_pessoa?: string | null; regime_tributario?: string | null; contribuinte_icms?: string | null;
-  valor_mensal?: number | null;
+  valor_mensal?: number | null; centro_custo_id?: string | null;
 };
 
 export type ContaPagarRow = {
@@ -262,10 +262,11 @@ export type ContaPagarRow = {
 export function sugerirDadosContaPorFornecedor(
   f: FornecedorRow & { prazo_medio_dias?: number | null; forma_pagamento_preferencial?: string | null },
   dataEmissaoAtual?: string,
-): Partial<{ categoria: string; forma_pagamento: string; data_vencimento: string }> {
-  const sugestao: Partial<{ categoria: string; forma_pagamento: string; data_vencimento: string }> = {};
+): Partial<{ categoria: string; forma_pagamento: string; data_vencimento: string; centro_custo_id: string }> {
+  const sugestao: Partial<{ categoria: string; forma_pagamento: string; data_vencimento: string; centro_custo_id: string }> = {};
   if (f.categoria) sugestao.categoria = f.categoria;
   if (f.forma_pagamento_preferencial) sugestao.forma_pagamento = f.forma_pagamento_preferencial;
+  if (f.centro_custo_id) sugestao.centro_custo_id = f.centro_custo_id;
   if (f.prazo_medio_dias) {
     const base = dataEmissaoAtual ? new Date(dataEmissaoAtual + "T00:00:00") : new Date();
     base.setDate(base.getDate() + f.prazo_medio_dias);

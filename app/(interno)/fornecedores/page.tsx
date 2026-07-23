@@ -196,6 +196,7 @@ type ContaPagar = {
   data_pagamento?: string;
   status?: string;
   observacoes?: string;
+  centro_custo_id?: string | null;
 };
 
 const fornVazio = {
@@ -213,7 +214,7 @@ const fornVazio = {
 const contaVazia = {
   fornecedor_id: "", descricao: "", numero_nota: "", categoria: categorias[0],
   valor_total: "", valor_pago: "", forma_pagamento: formasPagamento[0], parcelas: "1",
-  data_emissao: "", data_vencimento: "", observacoes: "",
+  data_emissao: "", data_vencimento: "", observacoes: "", centro_custo_id: "",
 };
 
 const ETAPAS_CADASTRO = ["identificacao", "contatos", "endereco", "documentacao", "fiscal", "financeiro", "contratos", "produtos", "qualidade", "risco", "ia", "observacoes"] as const;
@@ -1168,6 +1169,7 @@ export default function Fornecedores() {
       valor_pago: String(c.valor_pago || ""), forma_pagamento: c.forma_pagamento || formasPagamento[0],
       parcelas: String(c.parcelas || "1"), data_emissao: c.data_emissao || "",
       data_vencimento: c.data_vencimento || "", observacoes: c.observacoes || "",
+      centro_custo_id: c.centro_custo_id || "",
     });
     setModalConta(true);
   };
@@ -1189,6 +1191,7 @@ export default function Fornecedores() {
       data_vencimento: nc.data_vencimento || null,
       data_pagamento: status === "pago" ? new Date().toISOString().split("T")[0] : null,
       status, observacoes: nc.observacoes, empresa_id: empresaId,
+      centro_custo_id: nc.centro_custo_id || null,
     };
     if (editandoConta) {
       await supabase.from("contas_pagar").update(payload).eq("id", editandoConta.id);
@@ -2679,6 +2682,13 @@ export default function Fornecedores() {
                         <label className={labelCls} style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Categoria" : "Category"}</label>
                         <select value={nc.categoria} onChange={(e) => setNc({ ...nc, categoria: e.target.value })} className={inputCls} style={selectStyle}>
                           {categorias.map(c => <option key={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls} style={{ color: "#5a8fd4" }}>{tt.lblCentroCusto}</label>
+                        <select value={nc.centro_custo_id} onChange={(e) => setNc({ ...nc, centro_custo_id: e.target.value })} className={inputCls} style={selectStyle}>
+                          <option value="">-- {tt.selecioneCentroCusto} --</option>
+                          {centrosCusto.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
                       </div>
                     </div>
