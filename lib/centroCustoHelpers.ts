@@ -3,6 +3,7 @@
 // entre vários centros por % — nunca duplica o valor, só a fração de cada centro.
 
 import { createBrowserClient } from "@supabase/ssr";
+import { calcStatus } from "./fornecedorHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,19 +27,22 @@ export type LancamentoOrigem = {
   categoria?: string;
   fornecedor_id?: string | null;
   centro_custo_id: string | null;
+  dia_vencimento?: number;   // só custos_fixos
+  status?: string;           // só contas_pagar (calculado — nunca editar direto, ver calcStatus em fornecedorHelpers.ts)
+  valor_pago?: number;       // só contas_pagar
 };
 
 export async function carregarLancamentosOrigem(userId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id").eq("user_id", userId).order("descricao");
-    return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
+    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("user_id", userId).order("descricao");
+    return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id, dia_vencimento: d.dia_vencimento }));
   }
   if (tabela === "custos_variaveis") {
     const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("user_id", userId).order("data", { ascending: false }).limit(300);
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
-  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, categoria, data_vencimento, fornecedor_id, centro_custo_id").eq("user_id", userId).order("data_vencimento", { ascending: false }).limit(300);
-  return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id }));
+  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("user_id", userId).order("data_vencimento", { ascending: false }).limit(300);
+  return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id, status: d.status, valor_pago: Number(d.valor_pago || 0) }));
 }
 
 export async function carregarTodosLancamentosOrigem(userId: string): Promise<LancamentoOrigem[]> {
@@ -171,4 +175,36 @@ export function primeiroRegistroAuditoria(auditoria: AuditoriaRow[], tabela: Ori
   const doRegistro = auditoria.filter(a => a.tabela === tabela && a.registro_id === registroId);
   if (doRegistro.length === 0) return null;
   return doRegistro.reduce((mais_antigo, a) => a.created_at < mais_antigo.created_at ? a : mais_antigo, doRegistro[0]);
+}
+
+export type CampoEditavel = "descricao" | "valor" | "categoria" | "data" | "centro_custo_id" | "fornecedor_id" | "dia_vencimento";
+
+const COLUNA_POR_CAMPO: Partial<Record<CampoEditavel, Partial<Record<OrigemTabela, string>>>> = {
+  valor: { custos_fixos: "valor_mensal", custos_variaveis: "valor", contas_pagar: "valor_total" },
+  data: { custos_variaveis: "data", contas_pagar: "data_vencimento" },
+};
+
+// Fase 3 — Planilha: grava a edição de UMA célula direto na tabela de origem do
+// lançamento (nunca cria número paralelo) e registra na mesma auditoria da Fase 2.
+// Editar o valor de uma conta a pagar recalcula o status com a MESMA regra que a tela
+// de Fornecedores usa (calcStatus) — nunca deixa status e valor divergirem.
+export async function atualizarCampoOrigem(
+  userId: string, tabela: OrigemTabela, id: string, campo: CampoEditavel, valor: any,
+  contexto?: { centroId?: string | null; valorPagoAtual?: number; dataVencimentoAtual?: string | null },
+): Promise<{ erro?: string }> {
+  const coluna = COLUNA_POR_CAMPO[campo]?.[tabela] || campo;
+  const payload: any = { [coluna]: valor };
+
+  if (tabela === "contas_pagar" && campo === "valor") {
+    payload.status = calcStatus(Number(valor) || 0, contexto?.valorPagoAtual ?? 0, contexto?.dataVencimentoAtual);
+  }
+
+  const { error } = await supabase.from(tabela).update(payload).eq("id", id);
+  if (error) return { erro: error.message };
+
+  await registrarAuditoriaCentro({
+    userId, centroId: contexto?.centroId, tabela, registroId: id, acao: "editar",
+    descricao: `Editado via Planilha: ${campo} = ${valor}`,
+  });
+  return {};
 }

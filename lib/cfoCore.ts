@@ -351,6 +351,59 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
   };
 }
 
+// Barras horizontais — mesmo motor visual do optBarrasV, com categoria e valor trocados
+// de eixo. Pra rankings onde o nome (centro, fornecedor...) precisa ficar legível na
+// lateral em vez de espremido embaixo de uma barra vertical.
+export function optBarrasH(dados: number[], labels: string[], cor: string, corC: string, coresIndividuais?: (string | null)[]) {
+  const gradientePadrao = { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] };
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    grid: { left: 8, right: 56, top: 12, bottom: 12, containLabel: true },
+    tooltip: { ...tipBase, trigger: "item", borderColor: cor,
+      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
+    yAxis: { type: "category", data: labels, inverse: true,
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
+      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+    xAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
+      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+    series: [{
+      type: "bar", barWidth: "58%",
+      itemStyle: { borderRadius: [0, 8, 8, 0],
+        color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
+        shadowColor: cor + "55", shadowBlur: 12 },
+      label: { show: true, position: "right", distance: 6, color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
+      emphasis: { itemStyle: { shadowBlur: 24 } }, data: dados,
+    }],
+  };
+}
+
+// Duas séries lado a lado por categoria (ex: Orçado × Realizado por mês, ou
+// comparativo entre dois períodos). Mesmas categorias no eixo, uma barra de cada
+// cor por categoria.
+export function optBarrasComparativo(
+  dadosA: number[], dadosB: number[], labels: string[],
+  corA: string, corB: string, nomeA: string, nomeB: string,
+) {
+  return {
+    backgroundColor: "transparent", animationDuration: 900,
+    grid: { left: 52, right: 16, top: 40, bottom: 28, containLabel: false },
+    legend: { top: 0, right: 0, itemWidth: 11, itemHeight: 11, icon: "circle", textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 600 } },
+    tooltip: { ...tipBase, trigger: "axis", borderColor: corA, axisPointer: { type: "shadow" },
+      formatter: (ps: any[]) => `<b>${ps[0].name}</b><br/>` + ps.map((p) => `<span style="color:${p.color}">${p.seriesName}</span>: <b>${fBRL(p.value)}</b>`).join("<br/>") },
+    xAxis: { type: "category", data: labels,
+      axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
+      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
+      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
+      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+    series: [
+      { name: nomeA, type: "bar", barGap: "10%", itemStyle: { color: corA, borderRadius: [6, 6, 0, 0] }, data: dadosA },
+      { name: nomeB, type: "bar", itemStyle: { color: corB, borderRadius: [6, 6, 0, 0] }, data: dadosB },
+    ],
+  };
+}
+
 // Rosca com total no centro
 export function optRosca(dados: { name: string; value: number; color: string }[], cor: string, centro: string) {
   const total = dados.reduce((a, b) => a + b.value, 0);

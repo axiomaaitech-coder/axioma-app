@@ -255,6 +255,17 @@ export type ContaPagarRow = {
   status?: string | null;
 };
 
+// Mesma regra usada pela tela de Fornecedores pra decidir o status de uma conta a pagar —
+// centralizada aqui pra qualquer tela que precise recalcular o status ao editar valor/pagamento
+// (ex: a Planilha do Centro de Custos) usar exatamente a mesma lógica, nunca duplicada.
+export function calcStatus(total: number, pago: number, venc?: string | null): string {
+  if (pago >= total && total > 0) return "pago";
+  if (pago > 0 && pago < total) return "parcial";
+  const hj = new Date().toISOString().split("T")[0];
+  if (venc && venc < hj) return "vencido";
+  return "pendente";
+}
+
 // Transferência de dados Fornecedor → Conta a Pagar: só sugere o que o cadastro
 // realmente tem (nunca sobrescreve com undefined). Vencimento só entra se o
 // fornecedor tiver prazo_medio_dias — condicao_pagamento é texto livre, não dá

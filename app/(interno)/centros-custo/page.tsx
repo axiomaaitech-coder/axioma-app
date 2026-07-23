@@ -28,6 +28,11 @@ import {
 import {
   type FornecedorRow, type ContaPagarRow, type FornecedorContrato,
 } from "../../../lib/fornecedorHelpers";
+import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/PlanilhaCentroCusto";
+
+const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
+const CATEGORIAS_CUSTOS_VARIAVEIS = ["Marketing", "Logística", "Matéria-prima", "Comissões", "Embalagens", "Outros"];
+const CATEGORIAS_CONTAS_PAGAR = ["Produtos", "Marketing", "Logística", "Tecnologia", "Serviços", "Outros"];
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -87,7 +92,7 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
 export default function CentrosCustoPage() {
   const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
-  const [aba, setAba] = useState<"visao" | "centros" | "lancamentos" | "insights" | "causaRaiz" | "oportunidades" | "simulador" | "copiloto" | "acoes">("visao");
+  const [aba, setAba] = useState<"visao" | "centros" | "lancamentos" | "insights" | "causaRaiz" | "oportunidades" | "simulador" | "copiloto" | "acoes" | "planilha">("visao");
   const [centros, setCentros] = useState<Centro[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -437,6 +442,17 @@ export default function CentrosCustoPage() {
   const centrosLeves = centros.map(c => ({ id: c.id, nome: c.nome }));
   const fornecedoresLeves = fornecedoresF2.map(f => ({ id: f.id, nome: f.nome }));
 
+  // Fase 3 — Planilha: mesma origem de dados da Fase 2 (lancamentosOrigem), só remontada
+  // num formato de linha de planilha (nome do centro/fornecedor já resolvido pra exibição).
+  const linhasPlanilha: LinhaPlanilha[] = lancamentosOrigem.map(o => ({
+    id: o.id, tabela: o.tabela, descricao: o.descricao, categoria: o.categoria || "", valor: o.valor,
+    data: o.data, diaVencimento: o.dia_vencimento, centroId: o.centro_custo_id,
+    centroNome: centros.find(c => c.id === o.centro_custo_id)?.nome || (idioma === "pt" ? "Sem centro" : idioma === "es" ? "Sin centro" : "No center"),
+    fornecedorId: o.fornecedor_id, fornecedorNome: fornecedoresF2.find(f => f.id === o.fornecedor_id)?.nome,
+    status: o.status, valorPago: o.valor_pago,
+  }));
+  const categoriasPorTabelaPlanilha = { custos_fixos: CATEGORIAS_CUSTOS_FIXOS, custos_variaveis: CATEGORIAS_CUSTOS_VARIAVEIS, contas_pagar: CATEGORIAS_CONTAS_PAGAR };
+
   const langF2 = (idioma === "en" ? "en" : idioma === "es" ? "es" : "pt") as "pt" | "en" | "es";
   const causaRaiz: CausaRaizItem[] = analisarCausaRaiz(lancamentosOrigem, auditoria, centrosLeves, fornecedoresLeves, langF2);
 
@@ -668,6 +684,7 @@ export default function CentrosCustoPage() {
             { key: "simulador", label: idioma === "pt" ? "Simulador" : idioma === "es" ? "Simulador" : "Simulator" },
             { key: "copiloto", label: idioma === "pt" ? "Copiloto" : idioma === "es" ? "Copiloto" : "Copilot" },
             { key: "acoes", label: idioma === "pt" ? "Ações" : idioma === "es" ? "Acciones" : "Actions" },
+            { key: "planilha", label: idioma === "pt" ? "Planilha" : idioma === "es" ? "Planilla" : "Spreadsheet" },
           ].map((a) => (
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setAba(a.key as typeof aba)}
@@ -1153,6 +1170,14 @@ export default function CentrosCustoPage() {
               );
             })}
           </div>
+        )}
+
+        {/* ===== PLANILHA INTELIGENTE (Fase 3) ===== */}
+        {aba === "planilha" && (
+          <PlanilhaCentroCusto
+            linhas={linhasPlanilha} centros={centros} orcamentos={orcamentos} fornecedores={fornecedoresLeves}
+            categoriasPorTabela={categoriasPorTabelaPlanilha} userId={userId} idioma={langF2} onSalvo={carregarDados}
+          />
         )}
       </div>
 

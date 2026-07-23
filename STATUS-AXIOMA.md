@@ -623,8 +623,62 @@ Pedido do Elias depois de testar o plano da Fase 2: (1) mandar o SQL da Fase 2 p
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
 
+## 3-S. Centro de Custos — Fase 3 de 3 (Planilha Inteligente estilo Excel/Power BI), ENTREGA FINAL DO MÓDULO
+
+**Plano aprovado pelo Elias antes de codar**, com uma decisão importante sobre fórmula: dado gravado na tabela de origem CONGELA no valor calculado no momento da edição (nunca recalcula sozinho depois — decisão dele, pra não invalidar a trilha de auditoria); só a camada de análise (subtotal, total, % do total, desvio vs orçamento) é viva/reativa, porque não grava em tabela nenhuma.
+
+**Decisão técnica central:** grade própria, sem trazer nenhuma biblioteca de terceiros (ag-grid/handsontable são pagos ou pesados demais pro problema). Reaproveitado o que já existia: `xlsx` (já instalado, só usado antes pra importar) agora também exporta; `gerarPdfTabela` (padrão do projeto inteiro) faz o PDF; cabeçalho e primeira coluna fixos são `position: sticky` puro (CSS nativo, zero JS); "virtualização" é uma janela simples calculada pela posição do scroll (sem lib). Fórmula é um parser aritmético pequeno e escopado (nunca `eval()`/`Function()` — string de fórmula nunca vira código executado).
+
+**Entregue:**
+- **Grade editável célula a célula:** clique/duplo-clique edita, Enter confirma e desce uma linha, Esc cancela. Cada edição grava direto na tabela de origem do lançamento (Custos Fixos/Variáveis/Contas a Pagar) e fica registrada na mesma auditoria da Fase 2
+- **Fórmula na célula:** `+ - * / %`, referência a célula (`D3`) e `SOMA(A1:A9)` — calculada uma vez, o número é o que persiste (aviso visual — ícone de lápis + tooltip — deixa claro que não é fórmula viva)
+- **Somente-leitura sinalizado:** Status e Valor Pago de Contas a Pagar têm cadeado + tooltip apontando pra tela de Fornecedores — proteção de integridade, não editável na planilha
+- **Barra de status estilo Excel:** selecionar linhas (clique/Ctrl/Shift) mostra soma, média e contagem
+- **Filtros por coluna** (funil com checklist), ordenação por cabeçalho, busca por descrição
+- **Agrupamento** por Centro/Categoria/Período com colapsar/expandir, linha de subtotal (viva) por grupo e total geral
+- **Formatação condicional:** subtotal do grupo em vermelho (estourou orçamento), âmbar (perto do limite) ou verde (dentro), mesma paleta de significado do resto do Axioma
+- **Exportar CSV, Excel (XLSX) e PDF** (botão vermelho `#dc2626` padrão, automático via `ModuloLayout`)
+- **4 gráficos interativos** (Apache ECharts): Ranking de Centros por Custo, Maiores Desvios vs Orçamento e Curva ABC (todos horizontais, nome do centro legível na lateral — motor novo `optBarrasH` no alicerce) + Orçado × Realizado por Mês (motor novo `optBarrasComparativo`). **Interação cruzada:** clicar numa barra de centro filtra a planilha pro centro clicado
+- **Refatoração pedida:** `calcStatus` (decide pago/parcial/vencido/pendente) saiu de dentro da tela de Fornecedores e virou função exportada em `lib/fornecedorHelpers.ts` — mesma lógica, char por char, agora reaproveitada pela Planilha quando o Valor de uma conta a pagar é editado (recalcula o status igual a tela de Fornecedores faria)
+
+**Simplificação avisada (não escondida):** seleção múltipla é por LINHA (clique/Ctrl/Shift), não célula-a-célula livre feito o Excel de verdade — pra uma grade onde cada linha é um lançamento, somar linhas cobre o caso de uso real, e selecionar células de colunas de texto (categoria, status) não teria leitura numérica de qualquer jeito. Virtualização aguenta bem centenas de linhas; se um dia passar de milhares, é o momento de trazer uma lib de virtualização de verdade.
+
+**Arquivos criados:** `components/PlanilhaCentroCusto.tsx` (a grade), `lib/formulaHelpers.ts` (o avaliador de fórmula)
+**Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (nova aba "Planilha"), `lib/cfoCore.ts` (`optBarrasH`, `optBarrasComparativo`), `lib/centroCustoHelpers.ts` (`atualizarCampoOrigem` — grava a edição de volta na origem — e mais 2 campos carregados: `status`/`dia_vencimento`), `lib/fornecedorHelpers.ts` (`calcStatus` exportado), `app/(interno)/fornecedores/page.tsx` (importa `calcStatus` em vez de repetir)
+**Tabelas novas:** nenhuma — a planilha só lê/escreve nas tabelas que já existem
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — **`✓ Compiled successfully` em 5min**, confirmando que Fornecedores (pós-refatoração do `calcStatus`) e a nova Planilha compilam sem erro; a falha depois disso é a mesma de sempre, pré-existente e sem relação (`/api/pluggy/webhook`, falta chave local). **Não consegui testar clicando na tela** — a extensão do Chrome não conectou nesta sessão, sem acesso de login pra navegar até `/fornecedores` e `/centros-custo` manualmente. O que dá pra afirmar com confiança: a refatoração do `calcStatus` é idêntica linha por linha à função original, só mudou de arquivo; e a compilação de produção (que já pega erro de módulo/import/render que o `tsc` sozinho não pegaria) passou limpo nas duas telas.
+
+---
+
+## RELATÓRIO FINAL — MÓDULO CENTRO DE CUSTOS COMPLETO (Fases 1-3)
+
+**Funcionalidades entregues:**
+- Cadastro enterprise do centro (tipo pessoa, CPF/CNPJ validado, endereço com CEP autopreenchido, headcount, área)
+- Integração com os 4 módulos reais de custo/receita via campo opcional de centro de custo, com auditoria de quem editou o quê
+- Rateio real (divide um lançamento existente entre centros), orçamento com histórico por mês e re-forecast contínuo
+- Motor de Causa Raiz, Motor de Oportunidades, Priorizador Executivo, Simulador com efeito cascata (9 alavancas × 4 cenários) + Mapa de Impacto, Score do Módulo, Central de Insights, Copiloto CFO por regras, Planejador de Ações
+- **Planilha Inteligente estilo Excel/Power BI:** grade editável com fórmula, filtros, agrupamento, formatação condicional, exportação CSV/XLSX/PDF, 4 gráficos horizontais/comparativos com interação cruzada planilha↔gráfico
+- Paleta vinho/bordô/cobre (identidade do módulo, mesmo padrão do resto do Axioma) e i18n PT/EN/ES completo em texto novo, inclusive nos motores que geram texto (não só nos rótulos da tela)
+
+**O que é editável × somente-leitura na Planilha:** Descrição, Valor (aceita fórmula), Categoria, Data/Dia de Vencimento, Centro de Custo e Fornecedor (Contas a Pagar) são editáveis e gravam na origem. Status e Valor Pago de Contas a Pagar são somente-leitura (calculados) — mudar isso continua sendo trabalho da tela de Fornecedores.
+
+**Princípio arquitetural mantido nas 3 fases:** zero duplicação de dado. A fonte da verdade continua sendo Custos Fixos/Custos Variáveis/Fornecedores/Contas a Pagar/Receitas — o módulo só lê, cruza e (na Fase 3) escreve de volta na origem quando editado. Nenhuma tabela nova duplica valor.
+
+**Arquivos criados:** `lib/centroCustoHelpers.ts`, `lib/centroCustoInteligenciaHelpers.ts`, `components/PlanilhaCentroCusto.tsx`, `lib/formulaHelpers.ts`
+**Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (reescrita completa em 3 rodadas), `app/(interno)/fornecedores/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/receitas/page.tsx`, `lib/fornecedorHelpers.ts`, `lib/cfoCore.ts`
+**Tabelas novas:** `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria`, `centro_custo_plano_acao` (SQL nas seções 3-P/3-Q — nada novo na Fase 3)
+
+**Testes executados:** `tsc --noEmit` limpo em todas as 3 fases. `next build` completo (produção) confirmando compilação de todas as telas tocadas, incluindo a refatoração do `calcStatus` em Fornecedores. **Não testado clicando na tela** em nenhuma das 3 fases nesta sessão — sem acesso de login ao navegador. Recomendo esse ser o primeiro teste do Elias antes de considerar o módulo pronto pra uso real.
+
+**Sugestões de evolução futura (registradas, não implementadas):**
+- Ativar a Claude API real no Copiloto CFO quando o Elias ligar o billing (o fio já está pronto)
+- Granularidade por mês nos totais integrados de Custos Variáveis/Contas a Pagar/Receitas (hoje somam tudo, sem filtrar período)
+- Seleção retangular de células (não só linha) na Planilha, se algum dia for pedido especificamente
+- Virtualização de verdade (lib dedicada) se o volume de lançamentos passar de milhares de linhas
+
 ## 4. PRÓXIMO PASSO
-**SQL da Fase 2 já rodado pelo Elias no Supabase (confirmado).** Falta ele testar o módulo Centro de Custos completo (Fases 1-2) já com a paleta vinho/bordô/cobre e ES completo. Módulo Centro de Custos encerrado (2/2 fases + ajustes). Próximo: decidir com o Elias se avança pra Fase 3 (planilha estilo Excel) ou segue para o próximo item da fila.
+Elias testar o módulo Centro de Custos completo (3/3 fases) — sobretudo a Planilha (Fase 3), que nunca foi testada clicando na tela por falta de acesso ao navegador nesta sessão. Módulo Centro de Custos encerrado. Próximo: seguir para o próximo item da fila (ver seção 5).
 
 ---
 

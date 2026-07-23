@@ -35,7 +35,7 @@ import {
   riscoMedioCarteira, qualidadeMediaCarteira, pontualidadePagamento, tempoMedioRelacionamentoDias,
   rankingScoreAxioma, scoreMedioCarteiraAxioma,
   inflacaoFornecedor, oportunidadesConsolidacao, fornecedoresParados, precoAcimaMediaInterna,
-  pctChoqueDoFornecedor, estimativaCaixaPrazo, avaliarCreditoReforma, sugerirDadosContaPorFornecedor,
+  pctChoqueDoFornecedor, estimativaCaixaPrazo, avaliarCreditoReforma, sugerirDadosContaPorFornecedor, calcStatus,
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
@@ -1152,14 +1152,6 @@ export default function Fornecedores() {
   };
 
   // ---------- CONTA A PAGAR ----------
-  const calcStatus = (total: number, pago: number, venc?: string) => {
-    if (pago >= total && total > 0) return "pago";
-    if (pago > 0 && pago < total) return "parcial";
-    const hj = new Date().toISOString().split("T")[0];
-    if (venc && venc < hj) return "vencido";
-    return "pendente";
-  };
-
   const abrirNovaConta = () => { setEditandoConta(null); setNc({ ...contaVazia }); setModalConta(true); };
 
   const abrirEdicaoConta = (c: ContaPagar) => {
