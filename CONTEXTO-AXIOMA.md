@@ -73,7 +73,7 @@ Meta: suportar 5.000 empresas com folga. A partir de agora, escala entra em toda
 8. **MEI será elevado a padrão CFO** — hoje isolado (`mei_dados`, `mei_declaracoes`, `mei_obrigacoes`). Quando virar CFO, o faturamento do MEI precisa cruzar com Receitas/DRE/Fluxo de Caixa como fonte única da verdade — nunca recalcular por conta própria. Nada que dificulte essa integração futura.
 9. **Sem mock data, sempre** — sem dado suficiente = estado vazio elegante (reforça a regra 2 já existente).
 
-**Migração CONCLUÍDA (2026-07-23):** SQL rodado pelo Elias (`MIGRACAO-MULTITENANT.sql`) + ajuste de código completo em todo módulo (`obterEmpresaAtiva()`, `empresa_id` gravado em toda escrita, RLS decidindo a leitura). Detalhe técnico completo em `STATUS-AXIOMA.md` seção 13. Falta rodar `SQL-EMPRESA-PADRAO.sql` (empresa automática pro usuário novo) e testar clicando na tela antes de considerar pronto pra uso real — **Fase 1 do Importar Documentos retoma depois desse teste.**
+**Migração CONCLUÍDA (2026-07-23):** SQL rodado pelo Elias (`MIGRACAO-MULTITENANT.sql` + `SQL-EMPRESA-PADRAO.sql`) + ajuste de código completo em todo módulo (`obterEmpresaAtiva()`, `empresa_id` gravado em toda escrita, RLS decidindo a leitura). Detalhe técnico completo em `STATUS-AXIOMA.md` seção 13. **Elias testou na tela em 2026-07-24 — funcionando**, achou 2 bugs de UX (modal cortado + CEP sem autopreencher), corrigidos (`STATUS-AXIOMA.md` seção 3-T). Próximo: tela de "aceitar convite", depois RPC do Centro de Custos, **e só então Fase 1 do Importar Documentos retoma.**
 
 ## 🎨 IDENTIDADE VISUAL
 - Fundo módulos antigos: CanvasBox azul `#6ab0ff`, fundo `#020810` (MANTER — não refazer cores dos módulos antigos)

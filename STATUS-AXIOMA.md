@@ -677,14 +677,26 @@ Pedido do Elias depois de testar o plano da Fase 2: (1) mandar o SQL da Fase 2 p
 - Seleção retangular de células (não só linha) na Planilha, se algum dia for pedido especificamente
 - Virtualização de verdade (lib dedicada) se o volume de lançamentos passar de milhares de linhas
 
+## 3-T. Correção de UX pós-teste do multi-tenant — modal cortado + CEP sem autopreencher (2026-07-24)
+
+Elias testou a Parte 6 na tela (item 1 da fila anterior) — confirmado: dados antigos aparecem, multi-tenant funcionando. Achou 2 bugs de UX, sem relação com a migração multi-tenant (não mexi em `empresa_id`/RLS).
+
+**Modal cortado no topo:** overlay de modal com `items-center` (centraliza verticalmente) some com o cabeçalho quando o conteúdo é mais alto que a tela — sem `overflow-y-auto` no overlay, não tem como rolar até o topo. O padrão certo já existia em Precificação/Investimentos/Contas a Receber (`items-start justify-center pt-20 pb-8 overflow-y-auto` no overlay, sem `max-h-screen` no card interno). Varredura em todo o projeto achou o mesmo bug em **6 modais de cadastro**: Receitas, Custos Fixos, Fluxo de Caixa, Endividamento, Custos Variáveis e MEI — todos corrigidos para o padrão correto.
+
+**CEP não autopreenchia (Fornecedores e qualquer outro módulo com endereço):** não era bug de código — Empresa, Fornecedores e Centro de Custos já usam o mesmo helper único (`consultarCEP`, `lib/enderecoHelpers.ts`). A causa real: a política de segurança do navegador (CSP, adicionada numa rodada de segurança anterior) nunca liberou os domínios do ViaCEP nem do IBGE — o navegador bloqueava a chamada antes de sair, silenciosamente. Corrigido num único lugar (`middleware.ts`, `connect-src`), liberando `viacep.com.br` e `servicodados.ibge.gov.br` — conserta os 3 módulos de uma vez, nenhuma tela precisou mudar.
+
+**Achado à parte, não corrigido (fora do pedido):** a mesma CSP também bloqueia a consulta de CNPJ via BrasilAPI (`brasilapi.com.br`, usada em `consultarCNPJ`) — mesmo sintoma, módulo diferente. Registrado aqui pra decisão futura do Elias.
+
+**Arquivos alterados:** `middleware.ts`, `app/(interno)/receitas/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/fluxo-caixa/page.tsx`, `app/(interno)/endividamento/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/mei/page.tsx`
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela nesta sessão.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
-**Parte 6 (ajuste de código) COMPLETA em 2026-07-23 — ver seção 13 pro relatório completo.** `tsc --noEmit` e `next build` limpos no projeto inteiro. **Elias rodou `SQL-EMPRESA-PADRAO.sql` em 2026-07-23** — empresa automática pronta ponta a ponta (função no banco + código já ligado nela). Próximos passos, nessa ordem:
-1. **Testar na tela**: criar/editar um registro em pelo menos 3-4 módulos diferentes (ex: Receitas, Metas, Fornecedores) e confirmar que aparece — ninguém testou clicando ainda, só compilação. Ver seção 13, "o que não foi verificado".
-2. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios`) — obrigatória antes do primeiro cliente pagante. A base pra ela (ordem dono→convidado→criar) já está pronta desde a Parte 6.
-3. **RPC `centro_custo_totais` de verdade** — descoberta na Parte 6: não é só mover uma soma pro banco, a Causa Raiz e o Radar de Oportunidades do Centro de Custos precisam de dado linha-a-linha, não de total agregado. Redesenho maior, ver seção 13. Por ora o teto de 300 lançamentos virou 5000 (resolve a perda de dado real, não resolve a arquitetura).
-4. Depois disso: retomar Fase 1 do Importar Documentos → próximo item da fila (seção 5). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
+**Parte 6 (ajuste de código) COMPLETA em 2026-07-23 — ver seção 13 pro relatório completo.** `tsc --noEmit` e `next build` limpos no projeto inteiro. **Elias rodou `SQL-EMPRESA-PADRAO.sql` em 2026-07-23** — empresa automática pronta ponta a ponta (função no banco + código já ligado nela). **Elias testou na tela em 2026-07-24 (item 1) — confirmado funcionando**, e reportou 2 bugs de UX corrigidos na seção 3-T. Próximos passos, nessa ordem:
+1. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios`) — obrigatória antes do primeiro cliente pagante. A base pra ela (ordem dono→convidado→criar) já está pronta desde a Parte 6.
+2. **RPC `centro_custo_totais` de verdade** — descoberta na Parte 6: não é só mover uma soma pro banco, a Causa Raiz e o Radar de Oportunidades do Centro de Custos precisam de dado linha-a-linha, não de total agregado. Redesenho maior, ver seção 13. Por ora o teto de 300 lançamentos virou 5000 (resolve a perda de dado real, não resolve a arquitetura).
+3. Depois disso: retomar Fase 1 do Importar Documentos → próximo item da fila (seção 5). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
 
 ## 12. EMPRESA PADRÃO AUTOMÁTICA — pré-requisito da tela de aceitar convite (decidido 2026-07-23)
 
