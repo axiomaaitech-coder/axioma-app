@@ -531,7 +531,7 @@ RULES:
 3. Compare regimes when relevant (MEI, Simples, Presumido, Real).
 4. Suggest 2-3 concrete tax optimization actions.
 5. Keep response under 300 words.
-6. Always remind: "Consulte um contador para validar antes de implementar."`;
+6. When citing a rate, deadline or estimate, state it reflects the rules in effect today and note honestly that the Tax Reform (EC 132/2023) is still transitioning and may change. Never tell the user to "consult an accountant."`;
 }
 
 // ============================================================================
@@ -551,8 +551,8 @@ export function respostaTributariaPorRegras(dados: DadosFiscais, scoreFiscal: Sc
   if (p.includes("regime") || p.includes("régimen") || p.includes("melhor") || p.includes("best")) {
     const sims = simularRegimes(dados);
     const melhor = sims.filter(s => s.elegivel)[0];
-    if (idioma === "en") return `Based on your revenue of ${formatBRL(dados.receita_bruta_12m)}/year, the most advantageous regime is ${melhor?.regime_label || "Simples Nacional"} with effective rate of ${melhor?.aliquota_efetiva.toFixed(2)}%. ${melhor && melhor.regime !== dados.regime_atual?.toLowerCase() ? `Migrating would save approximately ${formatBRL(melhor.economia_vs_atual)}/year.` : "You're already in the optimal regime."} Consult your accountant to validate.`;
-    return `Com base na sua receita de ${formatBRL(dados.receita_bruta_12m)}/ano, o regime mais vantajoso é ${melhor?.regime_label || "Simples Nacional"} com alíquota efetiva de ${melhor?.aliquota_efetiva.toFixed(2)}%. ${melhor && melhor.regime !== dados.regime_atual?.toLowerCase() ? `Migrar economizaria aproximadamente ${formatBRL(melhor.economia_vs_atual)}/ano.` : "Você já está no regime otimizado."} Consulte seu contador para validar.`;
+    if (idioma === "en") return `Based on your revenue of ${formatBRL(dados.receita_bruta_12m)}/year, the most advantageous regime is ${melhor?.regime_label || "Simples Nacional"} with effective rate of ${melhor?.aliquota_efetiva.toFixed(2)}%. ${melhor && melhor.regime !== dados.regime_atual?.toLowerCase() ? `Migrating would save approximately ${formatBRL(melhor.economia_vs_atual)}/year.` : "You're already in the optimal regime."} Estimate based on the rules in effect as of ${new Date().toLocaleDateString("en-US")}.`;
+    return `Com base na sua receita de ${formatBRL(dados.receita_bruta_12m)}/ano, o regime mais vantajoso é ${melhor?.regime_label || "Simples Nacional"} com alíquota efetiva de ${melhor?.aliquota_efetiva.toFixed(2)}%. ${melhor && melhor.regime !== dados.regime_atual?.toLowerCase() ? `Migrar economizaria aproximadamente ${formatBRL(melhor.economia_vs_atual)}/ano.` : "Você já está no regime otimizado."} Estimativa com base nas regras vigentes até ${new Date().toLocaleDateString("pt-BR")}.`;
   }
 
   if (p.includes("carga") || p.includes("imposto") || p.includes("tax") || p.includes("quanto")) {

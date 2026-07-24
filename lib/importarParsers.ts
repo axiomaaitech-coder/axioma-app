@@ -4,6 +4,7 @@
 
 import * as XLSX from "xlsx";
 import { XMLParser } from "fast-xml-parser";
+import { estimarImpactoSplitPayment } from "./previsaoRecebimentoHelpers";
 
 // ============================================================================
 // TIPOS
@@ -17,7 +18,7 @@ export type DestinoTabela =
   | "fornecedores"
   | "contas_pagar"
   | "contas_receber"
-  | "endividamento";
+  | "dividas";
 
 export type LinhaImportada = {
   data?: string; // ISO YYYY-MM-DD
@@ -75,12 +76,16 @@ function parseDataBR(texto: string): string | undefined {
   m = limpo.match(/^(\d{4})(\d{2})(\d{2})/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
 
-  // Excel serial number (dias desde 1899-12-30)
-  const num = Number(limpo);
-  if (!isNaN(num) && num > 25569 && num < 100000) {
-    const ms = (num - 25569) * 86400 * 1000;
-    const d = new Date(ms);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  // Excel serial number (dias desde 1899-12-30) — só aceita string 100% numérica
+  // (sem separador nenhum) e numa faixa de datas plausível (~1970-2100). Faixa
+  // ampla demais adivinharia data em cima de qualquer número solto na coluna.
+  if (/^\d+$/.test(limpo)) {
+    const num = Number(limpo);
+    if (num > 25569 && num < 73050) {
+      const ms = (num - 25569) * 86400 * 1000;
+      const d = new Date(ms);
+      if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    }
   }
 
   return undefined;
@@ -91,8 +96,13 @@ function parseValorBR(texto: any): number | undefined {
   if (typeof texto === "number") return texto;
   let s = String(texto).trim();
 
-  // Remove R$, espaços, caracteres não numéricos exceto vírgula/ponto/sinal
-  s = s.replace(/R\$/gi, "").replace(/\s/g, "").replace(/[^\d,.\-+]/g, "");
+  // Remove só "R$" (moeda) e espaços primeiro — se sobrar QUALQUER letra depois
+  // disso, o texto não é um valor confiável (ex: "R$ a receber"): recusa em vez
+  // de tentar extrair um número escondido no meio de texto sujo.
+  s = s.replace(/R\$/gi, "").trim();
+  if (/[a-zA-Z]/.test(s)) return undefined;
+
+  s = s.replace(/\s/g, "").replace(/[^\d,.\-+]/g, "");
   if (!s) return undefined;
 
   // Formato brasileiro: 1.234,56 → 1234.56
@@ -201,6 +211,67 @@ export async function parseOFX(texto: string): Promise<ResultadoParse> {
 }
 
 // ============================================================================
+// VALIDAÇÃO DE FORMATO — REFORMA TRIBUTÁRIA (CFOP/CST/NCM + grupo IBS/CBS)
+// Só confere se o FORMATO/FAIXA dos campos está correto e se o grupo IBS/CBS
+// (quando presente no XML) está coerente — NÃO é validação fiscal de alíquota.
+// Layout do IBS/CBS ainda está em transição (EC 132/2023), por isso a busca é
+// por nome de campo em qualquer nível (coletarPorChave), não por um caminho
+// fixo que pode mudar de versão pra versão do layout da NF-e.
+// ============================================================================
+
+function coletarPorChave(obj: any, regexNome: RegExp, acc: { chave: string; valor: any }[] = []): { chave: string; valor: any }[] {
+  if (obj === null || obj === undefined || typeof obj !== "object") return acc;
+  if (Array.isArray(obj)) {
+    obj.forEach((item) => coletarPorChave(item, regexNome, acc));
+    return acc;
+  }
+  for (const chave of Object.keys(obj)) {
+    if (regexNome.test(chave)) acc.push({ chave, valor: obj[chave] });
+    coletarPorChave(obj[chave], regexNome, acc);
+  }
+  return acc;
+}
+
+function validarFormatoReforma(dets: any[]): string[] {
+  const problemas: string[] = [];
+
+  dets.forEach((det, idx) => {
+    const n = idx + 1;
+    const ncm = det?.prod?.NCM;
+    if (ncm !== undefined && ncm !== null && !/^\d{8}$/.test(String(ncm))) {
+      problemas.push(`Item ${n}: NCM "${ncm}" fora do formato (8 dígitos)`);
+    }
+
+    const cfop = det?.prod?.CFOP;
+    if (cfop !== undefined && cfop !== null && !/^[123567]\d{3}$/.test(String(cfop))) {
+      problemas.push(`Item ${n}: CFOP "${cfop}" fora do formato válido`);
+    }
+
+    coletarPorChave(det?.imposto, /^(CST|CSOSN)$/i).forEach(({ chave, valor }) => {
+      if (!/^\d{2,3}$/.test(String(valor))) {
+        problemas.push(`Item ${n}: ${chave} "${valor}" fora do formato (2 ou 3 dígitos)`);
+      }
+    });
+
+    // Grupo IBS/CBS (Reforma) — quando existe no XML, os dois vêm juntos por
+    // item; um presente sem o outro é layout incoerente, não decisão de negócio.
+    const temIBS = coletarPorChave(det?.imposto, /IBS/i).length > 0;
+    const temCBS = coletarPorChave(det?.imposto, /CBS/i).length > 0;
+    if (temIBS !== temCBS) {
+      problemas.push(`Item ${n}: grupo IBS/CBS incompleto no layout (só um dos dois presente)`);
+    }
+    coletarPorChave(det?.imposto, /^p(IBS|CBS)$/i).forEach(({ chave, valor }) => {
+      const pct = Number(valor);
+      if (isNaN(pct) || pct < 0 || pct > 100) {
+        problemas.push(`Item ${n}: ${chave} "${valor}" fora da faixa 0-100%`);
+      }
+    });
+  });
+
+  return problemas;
+}
+
+// ============================================================================
 // PARSER: XML NF-e
 // ============================================================================
 
@@ -248,6 +319,22 @@ export async function parseXMLNFe(texto: string): Promise<ResultadoParse> {
   metadados.valor_cofins = parseValorBR(total.vCOFINS);
   metadados.uf_emitente = emit.enderEmit?.UF;
   metadados.municipio_emitente = emit.enderEmit?.xMun;
+
+  // Validação de FORMATO da Reforma Tributária (CFOP/CST/NCM + coerência do
+  // grupo IBS/CBS quando presente) — não é validação fiscal de alíquota.
+  // Linha vai pra revisão em vez de ser importada às cegas se o layout
+  // estiver incoerente.
+  const dets = Array.isArray(nfe.det) ? nfe.det : nfe.det ? [nfe.det] : [];
+  const problemasFormato = validarFormatoReforma(dets);
+  if (problemasFormato.length > 0) metadados.problemas_formato_reforma = problemasFormato;
+
+  // Estimativa honesta do impacto do Split Payment (reaproveita o mesmo
+  // cálculo já usado em Contas a Receber — nenhuma fórmula nova) — só
+  // informativa, não altera o valor importado.
+  if (metadados.valor_total !== undefined) {
+    metadados.impacto_reforma_estimado = estimarImpactoSplitPayment(metadados.valor_total);
+    metadados.aviso_reforma = `Estimativa com base nas regras vigentes até ${new Date().toLocaleDateString("pt-BR")}. A Reforma Tributária ainda está em andamento e pode sofrer alterações — este número reflete o melhor entendimento atual.`;
+  }
 
   // Cria uma linha-resumo da NF (vai virar conta a pagar)
   linhas.push({

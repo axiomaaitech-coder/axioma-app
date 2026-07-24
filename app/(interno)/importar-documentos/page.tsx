@@ -30,7 +30,15 @@ import {
   editarLinhaImportada,
   deletarLinhaImportada,
   excluirRegistroImportacao,
+  listarExcecoes,
+  resolverExcecao,
+  listarTimeline,
+  abrirExcecaoFormatoReforma,
+  sugerirClassificacoes,
+  normalizarPadraoChave,
   type StatsMes,
+  type ResultadoGravacao,
+  type SugestaoClassificacao,
 } from "../../../lib/importarHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
@@ -108,6 +116,18 @@ const T = {
     categoria: "Categoria",
     documento: "Documento",
     naoMapeado: "Não mapeado",
+    simular: "Simular",
+    simulando: "Simulando...",
+    resultadoSimulacao: "Resultado da simulação (nada foi gravado ainda)",
+    excecoes: "Fila de Exceções",
+    excecaoPendente: "Pendente",
+    excecaoResolvida: "Resolvida",
+    resolver: "Marcar como resolvida",
+    resolvendo: "Resolvendo...",
+    semExcecoes: "Nenhuma exceção nesta importação.",
+    timeline: "Linha do Tempo",
+    semTimeline: "Sem eventos registrados.",
+    motivo: "Motivo",
   },
   en: {
     dashboard: "Import Panel - This Month",
@@ -174,6 +194,18 @@ const T = {
     categoria: "Category",
     documento: "Document",
     naoMapeado: "Not mapped",
+    simular: "Simulate",
+    simulando: "Simulating...",
+    resultadoSimulacao: "Simulation result (nothing saved yet)",
+    excecoes: "Exception Queue",
+    excecaoPendente: "Pending",
+    excecaoResolvida: "Resolved",
+    resolver: "Mark as resolved",
+    resolvendo: "Resolving...",
+    semExcecoes: "No exceptions on this import.",
+    timeline: "Timeline",
+    semTimeline: "No events recorded.",
+    motivo: "Reason",
   },
   es: {
     dashboard: "Panel de Importaciones - Este Mes",
@@ -240,6 +272,18 @@ const T = {
     categoria: "Categoría",
     documento: "Documento",
     naoMapeado: "Sin mapear",
+    simular: "Simular",
+    simulando: "Simulando...",
+    resultadoSimulacao: "Resultado de la simulación (nada se guardó todavía)",
+    excecoes: "Cola de Excepciones",
+    excecaoPendente: "Pendiente",
+    excecaoResolvida: "Resuelta",
+    resolver: "Marcar como resuelta",
+    resolvendo: "Resolviendo...",
+    semExcecoes: "Sin excepciones en esta importación.",
+    timeline: "Línea de Tiempo",
+    semTimeline: "Sin eventos registrados.",
+    motivo: "Motivo",
   },
 };
 
@@ -252,7 +296,7 @@ const DESTINOS: Array<{ key: DestinoTabela; label: string; icon: string; cor: st
   { key: "contas_pagar", label: "Contas a Pagar", icon: "🧾", cor: "#f87171" },
   { key: "contas_receber", label: "Contas a Receber", icon: "💵", cor: "#10b981" },
   { key: "fornecedores", label: "Fornecedores", icon: "🏢", cor: "#fb923c" },
-  { key: "endividamento", label: "Endividamento", icon: "📋", cor: "#ef4444" },
+  { key: "dividas", label: "Endividamento", icon: "📋", cor: "#ef4444" },
 ];
 
 const STATUS_INFO: Record<string, { label: string; cor: string }> = {
@@ -315,6 +359,10 @@ export default function ImportarDocumentosPage() {
   const [mapeamento, setMapeamento] = useState<MapeamentoColunas>({});
   const [confirmando, setConfirmando] = useState(false);
   const [sucesso, setSucesso] = useState<any>(null);
+  const [simulando, setSimulando] = useState(false);
+  const [simulacao, setSimulacao] = useState<ResultadoGravacao | null>(null);
+  // Motor de aprendizado (Fase 1): sugestão por descrição normalizada — só sugere, nunca decide sozinho
+  const [sugestoes, setSugestoes] = useState<Map<string, SugestaoClassificacao>>(new Map());
 
   // Templates
   const [templates, setTemplates] = useState<any[]>([]);
@@ -332,6 +380,11 @@ export default function ImportarDocumentosPage() {
   // Linhas de cada importação (carregadas sob demanda quando expande)
   const [linhasPorImportacao, setLinhasPorImportacao] = useState<Record<string, any[]>>({});
   const [carregandoLinhas, setCarregandoLinhas] = useState<string | null>(null);
+
+  // Fila de exceções + linha do tempo de cada importação (Fase 1, carregadas junto com as linhas)
+  const [excecoesPorImportacao, setExcecoesPorImportacao] = useState<Record<string, any[]>>({});
+  const [timelinePorImportacao, setTimelinePorImportacao] = useState<Record<string, any[]>>({});
+  const [resolvendoExcecao, setResolvendoExcecao] = useState<string | null>(null);
 
   // Modal de edição de linha
   const [linhaEditando, setLinhaEditando] = useState<any | null>(null);
@@ -440,6 +493,7 @@ export default function ImportarDocumentosPage() {
     setSelecionadas(res.linhas.map((l) => Boolean(l.data && l.valor !== undefined)));
     setDestino(res.destinoSugerido);
     setMapeamento(res.mapeamentoAuto || {});
+    setSugestoes(new Map());
 
     // 3) Dedup por linha
     setEtapa("dedup");
@@ -448,6 +502,12 @@ export default function ImportarDocumentosPage() {
     // Linhas duplicadas começam desmarcadas
     setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
     setEtapa("");
+
+    // 4) Motor de aprendizado: sugere categoria/destino com base em importações
+    // anteriores parecidas — só sugere, nunca preenche sozinho.
+    if (empresaId) {
+      sugerirClassificacoes(empresaId, res.linhas.map((l) => l.descricao || "")).then(setSugestoes);
+    }
   }
 
   function continuarMesmoComDuplicata() {
@@ -558,6 +618,37 @@ export default function ImportarDocumentosPage() {
   // CONFIRMAR IMPORTAÇÃO
   // =========================================================================
 
+  // Simulador: MESMO caminho de confirmarImportacao (mesmos builders, mesma
+  // validação de linha), só que com dryRun=true — sem upload, sem cabeçalho,
+  // sem gravar nada real. É por isso que não existe uma função de simulação
+  // paralela: se um dia o caminho real mudar, o simulador muda junto.
+  async function simularImportacao() {
+    if (!userId || !resultado) return;
+    const totalSel = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
+    if (totalSel === 0) {
+      showToast(tt.nenhumaSelecionada, "erro");
+      return;
+    }
+    setSimulando(true);
+    setSimulacao(null);
+    try {
+      const result = await gravarLinhas({
+        userId,
+        empresaId,
+        importacaoId: "simulacao",
+        linhas,
+        selecionadas,
+        duplicadas,
+        destino,
+        dryRun: true,
+      });
+      setSimulacao(result);
+    } catch (err: any) {
+      showToast(err.message || "Erro ao simular", "erro");
+    }
+    setSimulando(false);
+  }
+
   async function confirmarImportacao() {
     if (!userId || !arquivoSelecionado || !resultado) return;
     const totalSel = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
@@ -590,6 +681,10 @@ export default function ImportarDocumentosPage() {
         mapeamentoUsado: mapeamento,
       });
 
+      // 2b) Layout da Reforma Tributária incoerente (CFOP/CST/NCM/IBS-CBS) →
+      // abre exceção pra revisão, não bloqueia a importação em si.
+      await abrirExcecaoFormatoReforma({ empresaId, userId, importacaoId, resultado });
+
       // 3) Grava linhas
       const result = await gravarLinhas({
         userId,
@@ -608,6 +703,7 @@ export default function ImportarDocumentosPage() {
         .eq("id", importacaoId);
 
       setSucesso({ ...result, importacaoId });
+      setSimulacao(null);
       setEtapa("");
 
       // Refresh
@@ -635,13 +731,36 @@ export default function ImportarDocumentosPage() {
     if (!linhasPorImportacao[id] && userId) {
       setCarregandoLinhas(id);
       try {
-        const lns = await listarLinhasImportacao(id, userId);
+        const [lns, excs, tml] = await Promise.all([
+          listarLinhasImportacao(id, userId),
+          listarExcecoes(id),
+          listarTimeline(id),
+        ]);
         setLinhasPorImportacao((prev) => ({ ...prev, [id]: lns }));
+        setExcecoesPorImportacao((prev) => ({ ...prev, [id]: excs }));
+        setTimelinePorImportacao((prev) => ({ ...prev, [id]: tml }));
       } catch (err: any) {
         showToast(err.message || "Erro ao carregar linhas", "erro");
       }
       setCarregandoLinhas(null);
     }
+  }
+
+  async function resolverExcecaoUI(excecaoId: string, importacaoId: string) {
+    setResolvendoExcecao(excecaoId);
+    try {
+      const r = await resolverExcecao(excecaoId, `Resolvida em ${new Date().toLocaleString("pt-BR")}`);
+      if (r.erro) {
+        showToast(r.erro, "erro");
+      } else {
+        const excs = await listarExcecoes(importacaoId);
+        setExcecoesPorImportacao((prev) => ({ ...prev, [importacaoId]: excs }));
+        showToast(tt.excecaoResolvida, "ok");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Erro ao resolver", "erro");
+    }
+    setResolvendoExcecao(null);
   }
 
   function abrirEdicao(linha: any) {
@@ -1176,6 +1295,10 @@ export default function ImportarDocumentosPage() {
               cancelarUpload={cancelarUpload}
               confirmarImportacao={confirmarImportacao}
               confirmando={confirmando}
+              simularImportacao={simularImportacao}
+              simulando={simulando}
+              simulacao={simulacao}
+              sugestoes={sugestoes}
               totalSelecionadas={totalSelecionadas}
               totalDuplicadas={totalDuplicadas}
               valorTotalPreview={valorTotalPreview}
@@ -1244,6 +1367,10 @@ export default function ImportarDocumentosPage() {
           deletandoLinha={deletandoLinha}
           excluirRegistro={excluirRegistro}
           excluindoRegistro={excluindoRegistro}
+          excecoesPorImportacao={excecoesPorImportacao}
+          timelinePorImportacao={timelinePorImportacao}
+          resolverExcecaoUI={resolverExcecaoUI}
+          resolvendoExcecao={resolvendoExcecao}
         />
       )}
 
@@ -1450,6 +1577,7 @@ function PreviewBlock(props: any) {
     templates, mapeamento, aplicarMapeamento, aplicarTemplate,
     toggleLinha, selecionarTodas, editarLinha,
     cancelarUpload, confirmarImportacao, confirmando,
+    simularImportacao, simulando, simulacao, sugestoes,
     totalSelecionadas, totalDuplicadas, valorTotalPreview,
     mostrarSalvarTemplate, setMostrarSalvarTemplate,
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
@@ -1660,6 +1788,17 @@ function PreviewBlock(props: any) {
                             className="bg-transparent text-xs w-full focus:outline-none"
                             style={{ color: "#a78bfa" }}
                           />
+                          {!l.categoria && sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria && (
+                            <button
+                              type="button"
+                              title={`${tt.motivo}: ${sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}`}
+                              onClick={() => editarLinha(i, "categoria", sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria || "")}
+                              className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0"
+                              style={{ background: "rgba(212,175,55,0.15)", color: "#d4af37" }}
+                            >
+                              💡 {sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}
+                            </button>
+                          )}
                           {isDup && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap"
                               style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
@@ -1723,6 +1862,26 @@ function PreviewBlock(props: any) {
           )}
         </div>
 
+        {/* Simulador — mesmo caminho da importação real, nada é gravado */}
+        {simulacao && (
+          <div className="rounded-xl p-3" style={{ background: "rgba(106,176,255,0.06)", border: "1px solid rgba(106,176,255,0.25)" }}>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>🔍 {tt.resultadoSimulacao}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { label: tt.importadas, valor: simulacao.importadas, cor: "#34d399" },
+                { label: tt.duplicadas, valor: simulacao.duplicadas, cor: "#fbbf24" },
+                { label: tt.ignoradas, valor: simulacao.ignoradas, cor: "#5a7a9a" },
+                { label: tt.erros, valor: simulacao.erro, cor: "#f87171" },
+              ].map((s: any, i: number) => (
+                <div key={i} className="rounded-lg p-2 text-center" style={{ background: "rgba(2,8,16,0.5)" }}>
+                  <p className="text-lg font-bold" style={{ color: s.cor }}>{s.valor}</p>
+                  <p className="text-[10px]" style={{ color: "#5a7a9a" }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Resumo + Ações */}
         <div className="rounded-xl p-3" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -1735,6 +1894,11 @@ function PreviewBlock(props: any) {
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold"
                 style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
                 {tt.cancelar}
+              </button>
+              <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
+                style={{ background: "rgba(106,176,255,0.12)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
+                {simulando ? `⏳ ${tt.simulando}` : `🔍 ${tt.simular}`}
               </button>
               <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0}
                 className="px-6 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
@@ -1760,6 +1924,7 @@ function HistoricoBlock(props: any) {
     filtroStatus, setFiltroStatus, filtroDestino, setFiltroDestino,
     linhasPorImportacao, carregandoLinhas, abrirEdicao, deletarLinha, deletandoLinha,
     excluirRegistro, excluindoRegistro,
+    excecoesPorImportacao, timelinePorImportacao, resolverExcecaoUI, resolvendoExcecao,
   } = props;
 
   return (
@@ -1855,6 +2020,59 @@ function HistoricoBlock(props: any) {
                       {item.tempo_processamento_ms > 0 && <p style={{ color: "#5a7a9a" }}>Tempo: <span style={{ color: "#c8d8f0" }}>{(item.tempo_processamento_ms / 1000).toFixed(1)}s</span></p>}
                       {item.mensagem_erro && <p style={{ color: "#f87171" }}>⚠️ {item.mensagem_erro}</p>}
                       {item.revertido_em && <p style={{ color: "#fbbf24" }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
+                    </div>
+
+                    {/* Fila de Exceções — o que o sistema não decidiu sozinho */}
+                    <div className="rounded-lg p-3" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.15)" }}>
+                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#f87171" }}>⚠️ {tt.excecoes}</p>
+                      {(excecoesPorImportacao[item.id] || []).length === 0 ? (
+                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semExcecoes}</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {excecoesPorImportacao[item.id].map((exc: any) => (
+                            <div key={exc.id} className="flex items-start justify-between gap-2 rounded-lg p-2" style={{ background: "rgba(248,113,113,0.06)" }}>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold" style={{ color: "#f87171" }}>
+                                  {exc.tipo} {exc.linha_numero ? `— linha ${exc.linha_numero}` : ""}
+                                </p>
+                                <p className="text-[11px] mt-0.5" style={{ color: "#c8d8f0" }}>{tt.motivo}: {exc.motivo}</p>
+                                <p className="text-[10px] mt-0.5" style={{ color: exc.status === "pendente" ? "#fbbf24" : "#34d399" }}>
+                                  {exc.status === "pendente" ? tt.excecaoPendente : tt.excecaoResolvida}
+                                </p>
+                              </div>
+                              {exc.status === "pendente" && (
+                                <button
+                                  onClick={() => resolverExcecaoUI(exc.id, item.id)}
+                                  disabled={resolvendoExcecao === exc.id}
+                                  className="px-2 py-1 rounded-lg text-[10px] font-semibold flex-shrink-0 disabled:opacity-50"
+                                  style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}
+                                >
+                                  {resolvendoExcecao === exc.id ? tt.resolvendo : tt.resolver}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Linha do Tempo */}
+                    <div className="rounded-lg p-3" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
+                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>🕒 {tt.timeline}</p>
+                      {(timelinePorImportacao[item.id] || []).length === 0 ? (
+                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semTimeline}</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {timelinePorImportacao[item.id].map((ev: any) => (
+                            <div key={ev.id} className="flex items-start gap-2 text-xs">
+                              <span style={{ color: "#5a7a9a" }} className="flex-shrink-0">{formatDataHora(ev.created_at)}</span>
+                              <span style={{ color: "#c8d8f0" }}>
+                                <strong style={{ color: "#6ab0ff" }}>{ev.evento}</strong>{ev.descricao ? ` — ${ev.descricao}` : ""}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Lista de linhas importadas com lápis/lixeira */}

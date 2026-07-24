@@ -149,7 +149,7 @@ export function calcularAntecipacaoRecebiveis(valorBruto: number, taxaDesagioPct
 // conta da empresa — o caixa efetivamente recebido fica menor que o valor
 // bruto da fatura. Alíquota-teste é uma estimativa pública de transição
 // (Emenda Constitucional 132/2023 + LC 214/2025), não assessoria tributária —
-// mesmo aviso "consulte um contador" já usado na tela de Reforma do MEI.
+// mesmo aviso honesto (premissa + data, sem "consulte um contador") usado em toda tela de Reforma.
 // ============================================================================
 
 export type ImpactoSplitPayment = { valorRetidoEstimado: number; valorLiquidoEstimado: number; aliquotaUsadaPct: number };

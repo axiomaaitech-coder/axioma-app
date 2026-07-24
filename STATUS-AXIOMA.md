@@ -690,13 +690,41 @@ Elias testou a Parte 6 na tela (item 1 da fila anterior) — confirmado: dados a
 **Arquivos alterados:** `middleware.ts`, `app/(interno)/receitas/page.tsx`, `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/fluxo-caixa/page.tsx`, `app/(interno)/endividamento/page.tsx`, `app/(interno)/custos-variaveis/page.tsx`, `app/(interno)/mei/page.tsx`
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela nesta sessão.
 
+## 3-U. Importar Documentos — Fase 1 (fila de exceções, timeline, motor de aprendizado, simulador), entregue 2026-07-24
+
+**Plano aprovado com 6 condições, todas atendidas.** Retomado depois da migração multi-tenant (seção 4/13) — as 3 tabelas novas já nascem no padrão definitivo (seção 9): `empresa_id NOT NULL`, RLS via `empresas_do_usuario()`, índice composto `(empresa_id, data)`. SQL entregue em `IMPORTAR-DOCUMENTOS-FASE1.sql` (raiz, `BEGIN`/`COMMIT` único, idempotente) — **aguardando Elias rodar no Supabase**.
+
+**Tabelas novas:**
+- `importacao_timeline` — histórico de eventos por importação (criada, linhas gravadas, linha editada/excluída, exceção aberta, revertida).
+- `importacao_excecoes` — fila do que o sistema não decidiu sozinho (linha com formato inválido, layout da Reforma incoerente, falha ao reverter) — status pendente/resolvida, botão de resolver na tela.
+- `importacao_padroes_classificacao` — motor de aprendizado: guarda como uma descrição normalizada já foi classificada (destino + categoria); da próxima vez, a tela mostra um botão "💡 sugestão" — nunca preenche sozinho.
+
+**As 6 condições:**
+1. **Reforma Tributária como validação de formato** — `validarFormatoReforma` (novo em `lib/importarParsers.ts`) confere formato/faixa de CFOP (4 dígitos, 1º dígito válido), CST/CSOSN (2-3 dígitos) e NCM (8 dígitos) em NF-e importada, e coerência do grupo IBS/CBS quando presente no XML (os dois vêm juntos, percentuais 0-100%) — busca por nome de campo em qualquer nível da árvore (`coletarPorChave`), não um caminho fixo, porque o layout ainda está em transição. **Não é validação fiscal de alíquota.** Reaproveita `estimarImpactoSplitPayment()` (já existente, Contas a Receber) pra mostrar uma estimativa honesta do impacto no caixa, com a frase-modelo (premissa + data + ressalva de que pode mudar — ver [[feedback_tom_reforma_tributaria]]). Layout incoerente abre 1 exceção pra revisão, não bloqueia a importação.
+2. **Sem `ALTER TABLE` em campo inexistente** — as 3 tabelas novas cobrem tudo; nenhuma coluna nova em tabela existente.
+3. **Índices nas tabelas novas** — compostos `(empresa_id, data)` + índice em toda FK, no SQL da seção acima.
+4. **Simulador = mesmo caminho da importação real, com `dryRun`** — `gravarLinhas()` (`lib/importarHelpers.ts`) ganhou o parâmetro `dryRun`: roda os mesmos builders e validação linha a linha, mas não grava no destino nem em auditoria/timeline/exceções/padrões. Botão "🔍 Simular" na tela mostra o resultado antes do "Confirmar Importação" de verdade — zero lógica duplicada.
+5. **Parsers de risco recusando em vez de chutar** — `parseValorBR` recusa (devolve "não sei") se sobrar qualquer letra depois de tirar "R$"; `parseDataBR` só aceita o fallback de número de série do Excel se a string for 100% numérica e a data cair numa faixa plausível (~1970-2100, era 1970-2173 antes — faixa absurda que podia confundir qualquer número solto com data). Linha que não fecha vira erro, e todo erro real (não `dryRun`) agora também abre 1 item na fila de exceções.
+6. **Reversão funcionando pra todos os destinos** — achado real corrigido: o destino "Endividamento" gravava numa tabela órfã chamada `endividamento` (nunca lida pela tela de Endividamento, que usa `dividas` — ver seção 8/armadilha conhecida). Corrigido pra gravar em `dividas` com as colunas reais (`descricao, tipo, valor_total, valor_pago, parcelas, vencimento, taxa_juros`), sem `ALTER TABLE`. Como `reverterImportacao()` já é genérica por `destino_tabela`, a reversão desse destino passou a funcionar de verdade (antes "funcionava" desfazendo um dado que já era inútil). Se algum destino falhar ao reverter, abre exceção em vez de sumir silenciosamente.
+
+**Tom da Reforma Tributária corrigido em todo o projeto (achado à parte, feito antes do plano):** removido "consulte um contador" em 4 lugares (`lib/iaTributariaHelpers.ts` — prompt da IA + resposta por regras —, `app/(interno)/mei/reforma/page.tsx`, `app/(interno)/contas-receber/page.tsx`) — agora sempre premissa + data + ressalva honesta de que a Reforma pode mudar. Ver [[feedback_tom_reforma_tributaria]].
+
+**Excluído conscientemente desta fase:** validação fiscal de alíquota (fora do escopo combinado — é só formato); OCR de PDF (já era Fase 2, não mudou); auto-aplicar sugestão do motor de aprendizado sem confirmação do usuário (contradiria a condição 5 de nunca adivinhar).
+
+**Arquivos criados:** `IMPORTAR-DOCUMENTOS-FASE1.sql`
+**Arquivos alterados:** `lib/importarParsers.ts`, `lib/importarHelpers.ts`, `app/(interno)/importar-documentos/page.tsx`
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro, a cada um dos 3 passos (parsers → helpers → tela). Não testado clicando na tela nesta sessão — e a fila de exceções/timeline/motor de aprendizado só funcionam de ponta a ponta depois do Elias rodar `IMPORTAR-DOCUMENTOS-FASE1.sql`.
+
+**Aguardando:** Elias rodar o SQL no Supabase, depois testar a Fase 1 na tela — Fase 2 (planejada como "OCR de PDF com Claude Vision" no comentário do código) só entra depois de aprovado.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
 **Parte 6 (ajuste de código) COMPLETA em 2026-07-23 — ver seção 13 pro relatório completo.** `tsc --noEmit` e `next build` limpos no projeto inteiro. **Elias rodou `SQL-EMPRESA-PADRAO.sql` em 2026-07-23** — empresa automática pronta ponta a ponta (função no banco + código já ligado nela). **Elias testou na tela em 2026-07-24 (item 1) — confirmado funcionando**, e reportou 2 bugs de UX corrigidos na seção 3-T. Próximos passos, nessa ordem:
 1. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios`) — obrigatória antes do primeiro cliente pagante. A base pra ela (ordem dono→convidado→criar) já está pronta desde a Parte 6.
 2. **RPC `centro_custo_totais` de verdade** — descoberta na Parte 6: não é só mover uma soma pro banco, a Causa Raiz e o Radar de Oportunidades do Centro de Custos precisam de dado linha-a-linha, não de total agregado. Redesenho maior, ver seção 13. Por ora o teto de 300 lançamentos virou 5000 (resolve a perda de dado real, não resolve a arquitetura).
-3. Depois disso: retomar Fase 1 do Importar Documentos → próximo item da fila (seção 5). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
+3. **Fase 1 do Importar Documentos entregue em 2026-07-24 (seção 3-U)** — aguardando Elias rodar `IMPORTAR-DOCUMENTOS-FASE1.sql` e testar na tela. Depois disso: próximo item da fila (seção 5). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
 
 ## 12. EMPRESA PADRÃO AUTOMÁTICA — pré-requisito da tela de aceitar convite (decidido 2026-07-23)
 

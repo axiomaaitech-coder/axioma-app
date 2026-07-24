@@ -109,6 +109,8 @@ export default function ReformaTributaria() {
   const [exportando, setExportando] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
+  const dataHojeStr = new Date().toLocaleDateString(idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR')
+
   const txt = {
     titulo: { pt: 'MEI — Reforma Tributária', en: 'MEI — Tax Reform', es: 'MEI — Reforma Tributaria' },
     subtitulo: { pt: 'Entenda o impacto da Reforma Tributária 2026 no seu MEI', en: 'Understand the impact of the 2026 Tax Reform on your MEI', es: 'Entienda el impacto de la Reforma Tributaria 2026 en su MEI' },
@@ -116,7 +118,11 @@ export default function ReformaTributaria() {
     simulador: { pt: 'Simulador: MEI vs ME Simples Nacional', en: 'Simulator: MEI vs ME Simples Nacional', es: 'Simulador: MEI vs ME Simples Nacional' },
     porMes: { pt: 'por mês (DAS fixo)', en: 'per month (fixed DAS)', es: 'por mes (DAS fijo)' },
     estimado: { pt: 'estimado/mês (~6%)', en: 'estimated/month (~6%)', es: 'estimado/mes (~6%)' },
-    aviso: { pt: '* Estimativa baseada no seu faturamento atual. Consulte um contador.', en: '* Estimate based on your current revenue. Consult an accountant.', es: '* Estimación basada en su facturación actual. Consulte un contador.' },
+    aviso: {
+      pt: `* Estimativa com base nas regras vigentes até ${dataHojeStr}, calculada sobre o seu faturamento atual. A Reforma Tributária ainda está em andamento e pode sofrer alterações — este número reflete o melhor entendimento atual.`,
+      en: `* Estimate based on the rules in effect as of ${dataHojeStr}, calculated from your current revenue. The Tax Reform is still in progress and may change — this figure reflects the best current understanding.`,
+      es: `* Estimación con base en las reglas vigentes hasta ${dataHojeStr}, calculada sobre su facturación actual. La Reforma Tributaria sigue en curso y puede sufrir cambios — este número refleja el mejor entendimiento actual.`,
+    },
     timeline: { pt: 'Linha do Tempo — Transição até 2033', en: 'Timeline — Transition until 2033', es: 'Línea de Tiempo — Transición hasta 2033' },
   }
 

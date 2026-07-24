@@ -196,29 +196,225 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
   },
 
   // -------------------------------------------------------------------------
-  // ENDIVIDAMENTO
-  // Schema (criado pelo SQL de schema-fix): descricao*, valor_original*,
-  //              credor, valor_atual, taxa_juros, parcelas, data_contratacao,
-  //              status, categoria, user_id, empresa_id
+  // DÍVIDAS (tabela real usada pelo módulo Endividamento — "endividamento" é
+  // órfã, nunca lida pela UI, ver CONTEXTO-AXIOMA.md seção "armadilha conhecida")
+  // Schema real: descricao*, tipo, valor_total*, valor_pago, parcelas,
+  //              vencimento, taxa_juros, user_id, empresa_id
   // -------------------------------------------------------------------------
-  endividamento: (linha, userId, empresaId) => {
+  dividas: (linha, userId, empresaId) => {
     if (linha.valor === undefined || linha.valor === null || isNaN(linha.valor))
-      return { erro: "Valor original obrigatorio" };
+      return { erro: "Valor obrigatorio" };
     return {
       payload: {
         user_id: userId,
         empresa_id: empresaId,
-        descricao: linha.descricao || "Endividamento importado",
-        credor: linha.descricao || null,
-        valor_original: linha.valor,
-        valor_atual: linha.valor,
-        data_contratacao: linha.data || null,
-        status: "ativo",
-        categoria: linha.categoria || null,
+        descricao: linha.descricao || "Dívida importada",
+        tipo: linha.categoria || "Outros",
+        valor_total: linha.valor,
+        valor_pago: 0,
+        parcelas: 1,
+        vencimento: linha.data || null,
+        taxa_juros: 0,
       },
     };
   },
 };
+
+// ============================================================================
+// TIMELINE — histórico de eventos por importação (Fase 1)
+// ============================================================================
+
+export async function registrarEventoTimeline(params: {
+  empresaId: string | null;
+  userId: string;
+  importacaoId: string;
+  evento: string;
+  descricao?: string;
+  dados?: any;
+}): Promise<void> {
+  if (!params.empresaId) return;
+  await supabase.from("importacao_timeline").insert({
+    empresa_id: params.empresaId,
+    user_id: params.userId,
+    importacao_id: params.importacaoId,
+    evento: params.evento,
+    descricao: params.descricao || null,
+    dados: params.dados || null,
+  });
+}
+
+export async function listarTimeline(importacaoId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("importacao_timeline")
+    .select("*")
+    .eq("importacao_id", importacaoId)
+    .order("created_at", { ascending: true });
+  return data || [];
+}
+
+// ============================================================================
+// FILA DE EXCEÇÕES — o que o sistema não decidiu sozinho (Fase 1)
+// ============================================================================
+
+async function abrirExcecoes(params: {
+  empresaId: string | null;
+  userId: string;
+  importacaoId: string;
+  itens: { linhaNumero: number; tipo: string; motivo: string; dadosOriginais?: any }[];
+}): Promise<void> {
+  if (!params.empresaId || params.itens.length === 0) return;
+  const rows = params.itens.map((it) => ({
+    empresa_id: params.empresaId,
+    user_id: params.userId,
+    importacao_id: params.importacaoId,
+    linha_numero: it.linhaNumero,
+    tipo: it.tipo,
+    motivo: it.motivo,
+    dados_originais: it.dadosOriginais || null,
+    status: "pendente",
+  }));
+  for (let i = 0; i < rows.length; i += 500) {
+    await supabase.from("importacao_excecoes").insert(rows.slice(i, i + 500));
+  }
+}
+
+// Chamar depois de parseArquivo() quando o layout da Reforma Tributária vier
+// incoerente (ver validarFormatoReforma em importarParsers.ts) — abre 1
+// exceção pro documento inteiro pra revisão humana, não bloqueia a importação.
+export async function abrirExcecaoFormatoReforma(params: {
+  empresaId: string | null;
+  userId: string;
+  importacaoId: string;
+  resultado: ResultadoParse;
+}): Promise<void> {
+  const problemas = params.resultado.metadados?.problemas_formato_reforma as string[] | undefined;
+  if (!problemas || problemas.length === 0) return;
+  await abrirExcecoes({
+    empresaId: params.empresaId,
+    userId: params.userId,
+    importacaoId: params.importacaoId,
+    itens: [{ linhaNumero: 1, tipo: "formato_reforma_incoerente", motivo: problemas.join("; "), dadosOriginais: params.resultado.metadados }],
+  });
+  await registrarEventoTimeline({
+    empresaId: params.empresaId,
+    userId: params.userId,
+    importacaoId: params.importacaoId,
+    evento: "excecao_aberta",
+    descricao: "Layout da Reforma Tributária (CFOP/CST/NCM/IBS-CBS) com formato incoerente — revisar antes de confirmar",
+  });
+}
+
+export async function listarExcecoes(importacaoId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from("importacao_excecoes")
+    .select("*")
+    .eq("importacao_id", importacaoId)
+    .order("created_at", { ascending: true });
+  return data || [];
+}
+
+export async function resolverExcecao(excecaoId: string, resolucao: string): Promise<{ erro: string | null }> {
+  const { error } = await supabase
+    .from("importacao_excecoes")
+    .update({ status: "resolvida", resolucao, resolvido_em: new Date().toISOString() })
+    .eq("id", excecaoId);
+  return { erro: error?.message || null };
+}
+
+// ============================================================================
+// MOTOR DE APRENDIZADO — lembra como uma descrição parecida já foi
+// classificada, pra SUGERIR (nunca decidir sozinho) da próxima vez (Fase 1).
+// Números/datas somem da chave porque mudam a cada lançamento; o que
+// identifica o padrão é o texto (ex: "UBER *TRIP 04/02" e "UBER *TRIP 05/03"
+// viram a mesma chave "uber trip").
+// ============================================================================
+
+export function normalizarPadraoChave(descricao: string): string {
+  return (descricao || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\d+/g, "")
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
+// Lote único (1 select + 1 upsert) por gravação — nunca 1 consulta por linha.
+async function atualizarPadroesClassificacao(
+  empresaId: string,
+  destino: DestinoTabela,
+  linhas: { descricao?: string; categoria?: string }[]
+): Promise<void> {
+  if (!empresaId || linhas.length === 0) return;
+
+  const contagem = new Map<string, { categoria: string | null; qtd: number }>();
+  linhas.forEach((l) => {
+    const chave = normalizarPadraoChave(l.descricao || "");
+    if (!chave) return;
+    const atual = contagem.get(chave);
+    if (atual) atual.qtd++;
+    else contagem.set(chave, { categoria: l.categoria || null, qtd: 1 });
+  });
+  if (contagem.size === 0) return;
+
+  const chaves = Array.from(contagem.keys());
+  const { data: existentes } = await supabase
+    .from("importacao_padroes_classificacao")
+    .select("padrao_chave, ocorrencias")
+    .eq("empresa_id", empresaId)
+    .eq("destino_tabela", destino)
+    .in("padrao_chave", chaves);
+
+  const ocorrenciasExistentes = new Map((existentes || []).map((e: any) => [e.padrao_chave, e.ocorrencias]));
+
+  const linhasUpsert = chaves.map((chave) => {
+    const info = contagem.get(chave)!;
+    return {
+      empresa_id: empresaId,
+      padrao_chave: chave,
+      destino_tabela: destino,
+      categoria: info.categoria,
+      ocorrencias: (ocorrenciasExistentes.get(chave) || 0) + info.qtd,
+      ultima_vez_usado: new Date().toISOString(),
+    };
+  });
+
+  await supabase
+    .from("importacao_padroes_classificacao")
+    .upsert(linhasUpsert, { onConflict: "empresa_id,padrao_chave,destino_tabela" });
+}
+
+export type SugestaoClassificacao = { destino: DestinoTabela; categoria: string | null; confianca: number };
+
+// 1 consulta só, pra todas as descrições novas de um arquivo de uma vez —
+// a UI usa pra pré-sugerir categoria/destino, sem decidir por conta própria.
+export async function sugerirClassificacoes(
+  empresaId: string | null,
+  descricoes: string[]
+): Promise<Map<string, SugestaoClassificacao>> {
+  const mapa = new Map<string, SugestaoClassificacao>();
+  if (!empresaId) return mapa;
+
+  const chaves = Array.from(new Set(descricoes.map(normalizarPadraoChave).filter(Boolean)));
+  if (chaves.length === 0) return mapa;
+
+  const { data } = await supabase
+    .from("importacao_padroes_classificacao")
+    .select("padrao_chave, destino_tabela, categoria, ocorrencias")
+    .eq("empresa_id", empresaId)
+    .in("padrao_chave", chaves);
+
+  (data || []).forEach((p: any) => {
+    const atual = mapa.get(p.padrao_chave);
+    if (!atual || p.ocorrencias > atual.confianca) {
+      mapa.set(p.padrao_chave, { destino: p.destino_tabela, categoria: p.categoria, confianca: p.ocorrencias });
+    }
+  });
+
+  return mapa;
+}
 
 // ============================================================================
 // HASH
@@ -390,6 +586,15 @@ export async function criarImportacao(params: {
     .single();
 
   if (error) throw new Error(`Erro ao criar importacao: ${error.message}`);
+
+  await registrarEventoTimeline({
+    empresaId: params.empresaId,
+    userId: params.userId,
+    importacaoId: data.id,
+    evento: "criada",
+    descricao: `Arquivo "${params.nomeArquivo}" enviado (${params.totalLinhas} linhas, destino ${params.destino})`,
+  });
+
   return data.id;
 }
 
@@ -415,8 +620,13 @@ export async function gravarLinhas(params: {
   selecionadas: boolean[];
   duplicadas: boolean[];
   destino: DestinoTabela;
+  // Simulador (Fase 1): roda o MESMO caminho — mesmos builders, mesma
+  // validação — mas nunca grava no destino real nem em auditoria/timeline/
+  // exceções/padrões. É por isso que não existe uma função de simulação
+  // separada: o risco de simular e importar de verdade divergirem é zero.
+  dryRun?: boolean;
 }): Promise<ResultadoGravacao> {
-  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destino } = params;
+  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destino, dryRun } = params;
 
   const builder = BUILDERS[destino];
   if (!builder) {
@@ -484,7 +694,16 @@ export async function gravarLinhas(params: {
       continue;
     }
 
-    // 4) Inserir no destino (uma tentativa, sem retry)
+    // 4) dryRun (Simulador): mesma validação acima, mas não toca no banco —
+    // conta como se tivesse dado certo, sem gravar nada real.
+    if (dryRun) {
+      resultado.importadas++;
+      resultado.valor_total += linha.valor || 0;
+      auditoriaRows.push({ ...auditoriaBase, status: "importada" });
+      continue;
+    }
+
+    // 4b) Inserir no destino de verdade (uma tentativa, sem retry)
     const { data: inserido, error } = await supabase
       .from(destino)
       .insert(build.payload)
@@ -513,6 +732,8 @@ export async function gravarLinhas(params: {
     });
   }
 
+  if (dryRun) return resultado;
+
   // Insere auditoria em lote (chunks de 500)
   for (let i = 0; i < auditoriaRows.length; i += 500) {
     const chunk = auditoriaRows.slice(i, i + 500);
@@ -537,6 +758,42 @@ export async function gravarLinhas(params: {
       updated_at: new Date().toISOString(),
     })
     .eq("id", importacaoId);
+
+  // Fila de exceções: toda linha que deu erro (parser recusou ou builder
+  // rejeitou) vira 1 item pra revisão humana, em vez de só uma mensagem
+  // perdida no cabeçalho.
+  const itensExcecao = auditoriaRows
+    .map((row, idx) => ({ row, idx }))
+    .filter(({ row }) => row.status === "erro")
+    .map(({ row, idx }) => ({
+      linhaNumero: idx + 1,
+      tipo: "linha_invalida",
+      motivo: row.mensagem || "Erro ao processar linha",
+      dadosOriginais: row.dados_brutos,
+    }));
+  await abrirExcecoes({ empresaId, userId, importacaoId, itens: itensExcecao });
+
+  // Motor de aprendizado: só aprende com o que realmente foi gravado.
+  if (empresaId) {
+    const linhasGravadas = linhas.filter(
+      (_, i) => selecionadas[i] && !duplicadas[i] && auditoriaRows[i]?.status === "importada"
+    );
+    await atualizarPadroesClassificacao(empresaId, destino, linhasGravadas);
+  }
+
+  await registrarEventoTimeline({
+    empresaId,
+    userId,
+    importacaoId,
+    evento: "linhas_gravadas",
+    descricao: `${resultado.importadas} importadas, ${resultado.duplicadas} duplicadas, ${resultado.ignoradas} ignoradas, ${resultado.erro} com erro`,
+    dados: {
+      importadas: resultado.importadas,
+      duplicadas: resultado.duplicadas,
+      ignoradas: resultado.ignoradas,
+      erro: resultado.erro,
+    },
+  });
 
   return resultado;
 }
@@ -574,7 +831,7 @@ export async function editarLinhaImportada(
   // 1) Busca auditoria
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
-    .select("destino_tabela, destino_id, importacao_id")
+    .select("destino_tabela, destino_id, importacao_id, empresa_id")
     .eq("id", linhaAuditoriaId)
     .maybeSingle();
 
@@ -613,11 +870,11 @@ export async function editarLinhaImportada(
     if (novosDados.valor !== undefined) payload.valor_mensal = novosDados.valor;
     if (novosDados.descricao !== undefined) payload.nome = novosDados.descricao;
     if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
-  } else if (destino === "endividamento") {
-    if (novosDados.data !== undefined) payload.data_contratacao = novosDados.data;
-    if (novosDados.valor !== undefined) payload.valor_atual = novosDados.valor;
+  } else if (destino === "dividas") {
+    if (novosDados.data !== undefined) payload.vencimento = novosDados.data;
+    if (novosDados.valor !== undefined) payload.valor_total = novosDados.valor;
     if (novosDados.descricao !== undefined) payload.descricao = novosDados.descricao;
-    if (novosDados.categoria !== undefined) payload.categoria = novosDados.categoria;
+    if (novosDados.categoria !== undefined) payload.tipo = novosDados.categoria;
   }
 
   if (Object.keys(payload).length === 0) {
@@ -649,6 +906,14 @@ export async function editarLinhaImportada(
   // 5) Recalcula totais da importação
   await recalcularTotaisImportacao(aud.importacao_id);
 
+  await registrarEventoTimeline({
+    empresaId: aud.empresa_id,
+    userId,
+    importacaoId: aud.importacao_id,
+    evento: "linha_editada",
+    descricao: `Linha ${linhaAuditoriaId} editada`,
+  });
+
   return { erro: null };
 }
 
@@ -663,7 +928,7 @@ export async function deletarLinhaImportada(
   // 1) Busca auditoria
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
-    .select("destino_tabela, destino_id, importacao_id")
+    .select("destino_tabela, destino_id, importacao_id, empresa_id")
     .eq("id", linhaAuditoriaId)
     .maybeSingle();
 
@@ -689,6 +954,14 @@ export async function deletarLinhaImportada(
 
   // 4) Recalcula totais da importação
   await recalcularTotaisImportacao(aud.importacao_id);
+
+  await registrarEventoTimeline({
+    empresaId: aud.empresa_id,
+    userId,
+    importacaoId: aud.importacao_id,
+    evento: "linha_excluida",
+    descricao: `Linha ${linhaAuditoriaId} removida do destino`,
+  });
 
   return { erro: null };
 }
@@ -735,10 +1008,11 @@ export async function reverterImportacao(
 ): Promise<{ removidas: number; erros: string[] }> {
   const { data: linhas } = await supabase
     .from("importacao_linhas")
-    .select("id, destino_tabela, destino_id")
+    .select("id, destino_tabela, destino_id, empresa_id")
     .eq("importacao_id", importacaoId)
     .eq("status", "importada");
 
+  const empresaId: string | null = linhas?.[0]?.empresa_id ?? null;
   const erros: string[] = [];
   let removidas = 0;
 
@@ -780,6 +1054,30 @@ export async function reverterImportacao(
       updated_at: new Date().toISOString(),
     })
     .eq("id", importacaoId);
+
+  await registrarEventoTimeline({
+    empresaId,
+    userId,
+    importacaoId,
+    evento: "revertida",
+    descricao: `${removidas} lançamento(s) removidos do(s) destino(s)${erros.length > 0 ? `, ${erros.length} com falha` : ""}`,
+    dados: { removidas, erros },
+  });
+
+  // Se algum destino falhou ao reverter, abre exceção — não deixa o usuário
+  // achar que reverteu tudo quando sobrou lançamento pra trás.
+  if (erros.length > 0) {
+    await abrirExcecoes({
+      empresaId,
+      userId,
+      importacaoId,
+      itens: erros.map((msg, idx) => ({
+        linhaNumero: idx + 1,
+        tipo: "falha_reversao",
+        motivo: msg,
+      })),
+    });
+  }
 
   return { removidas, erros };
 }
