@@ -23,6 +23,7 @@ import {
   cfoT, canaisCompartilhamento, montarNarrativaCausaRaiz, montarNarrativaPonte,
   montarNarrativaRunway, montarConselhoCFO,
 } from "../../../lib/cfoTextos";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 
@@ -93,6 +94,7 @@ export default function DREPage() {
 
   const [carregando, setCarregando] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -122,20 +124,22 @@ export default function DREPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
     setUserId(user.id);
+    const empId = await obterEmpresaAtiva();
+    setEmpresaId(empId);
 
     const inicioHist = inicioJanelaHistorica(periodo.fim);
 
     const [{ data: rec }, { data: cv }, { data: cf }, { data: dv }, { data: fc }, { data: cr }, { data: emp }] = await Promise.all([
-      supabase.from("receitas").select("valor, data, categoria").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_variaveis").select("descricao, valor, data, categoria").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("descricao, valor_mensal, categoria").eq("user_id", user.id),
+      supabase.from("receitas").select("valor, data, categoria").gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("custos_variaveis").select("descricao, valor, data, categoria").gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("custos_fixos").select("descricao, valor_mensal, categoria"),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
-      supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("user_id", user.id),
+      supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros"),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base da Ponte Lucro x Caixa.
-      supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("user_id", user.id).gte("data", periodo.inicio).lte("data", periodo.fim),
+      supabase.from("fluxo_caixa").select("tipo, valor, data, status").gte("data", periodo.inicio).lte("data", periodo.fim),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
-      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("user_id", user.id).neq("status", "recebido"),
-      supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("user_id", user.id).limit(1).maybeSingle(),
+      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
+      empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setReceitasRows(rec || []);
@@ -152,7 +156,7 @@ export default function DREPage() {
   }
 
   async function carregarHistorico(uid: string) {
-    const { data } = await supabase.from("dre_historico").select("*").eq("user_id", uid).order("periodo_fim", { ascending: false }).limit(24);
+    const { data } = await supabase.from("dre_historico").select("*").order("periodo_fim", { ascending: false }).limit(24);
     setHistorico((data as HistoricoRow[]) || []);
   }
 
@@ -300,10 +304,10 @@ export default function DREPage() {
   }, [carregando, userId, presetPeriodo, periodo.inicio, periodo.fim]);
 
   async function salvarSnapshotHistorico() {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     const periodoJaFechado = periodo.fim < isoHoje();
     const { data: existente } = await supabase.from("dre_historico").select("id")
-      .eq("user_id", userId).eq("periodo_inicio", periodo.inicio).eq("periodo_fim", periodo.fim).maybeSingle();
+      .eq("periodo_inicio", periodo.inicio).eq("periodo_fim", periodo.fim).maybeSingle();
     if (existente && periodoJaFechado) return; // período fechado — nunca sobrescreve, fica congelado
 
     const labelPeriodo = presetPeriodo === "mes_atual" ? cx.periodoMesAtual
@@ -311,7 +315,7 @@ export default function DREPage() {
       : presetPeriodo === "trimestre_atual" ? cx.periodoTrimestreAtual : cx.periodoAnoAtual;
 
     const payload = {
-      user_id: userId, periodo_inicio: periodo.inicio, periodo_fim: periodo.fim, periodo_label: labelPeriodo,
+      user_id: userId, empresa_id: empresaId, periodo_inicio: periodo.inicio, periodo_fim: periodo.fim, periodo_label: labelPeriodo,
       receita_bruta: dreAtual.receitaBruta.valor, deducoes: dreAtual.deducoes.valor, receita_liquida: dreAtual.receitaLiquida.valor,
       custo_variavel: dreAtual.custoVariavel.valor, margem_contribuicao: dreAtual.margemContribuicao.valor, custo_fixo: dreAtual.custoFixo.valor,
       ebitda: dreAtual.ebitda.valor, despesas_financeiras: dreAtual.despesasFinanceiras.valor, lucro_liquido: dreAtual.lucroLiquido.valor,

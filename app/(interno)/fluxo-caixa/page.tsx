@@ -17,6 +17,7 @@ import {
   type Lancamento, type Periodo, type PeriodoPreset, type ComparativoPeriodo, type EventoCaixa,
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento, montarNarrativaVariacao, montarNarrativaRuptura } from "../../../lib/cfoTextos";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,14 +105,14 @@ export default function FluxoCaixa() {
     if (!user) { setCarregando(false); return; }
 
     const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: dv }] = await Promise.all([
-      supabase.from("fluxo_caixa").select("*").eq("user_id", user.id)
+      supabase.from("fluxo_caixa").select("*")
         .gte("data", inicioJanelaHistorica(periodo.fim)).lte("data", fimJanelaFutura(periodo.fim))
         .order("data", { ascending: false }),
       // Leitura só (SELECT) — base dos previstos automáticos. Nunca escreve nessas tabelas.
-      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("user_id", user.id).neq("status", "recebido"),
-      supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("user_id", user.id).neq("status", "pago"),
-      supabase.from("custos_fixos").select("valor_mensal, dia_vencimento").eq("user_id", user.id),
-      supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento").eq("user_id", user.id),
+      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
+      supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").neq("status", "pago"),
+      supabase.from("custos_fixos").select("valor_mensal, dia_vencimento"),
+      supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento"),
     ]);
 
     setLancamentos(fc || []);
@@ -139,9 +140,13 @@ export default function FluxoCaixa() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, tipo: novo.tipo, valor: parseFloat(novo.valor), data: novo.data, status: novo.status };
-    editando
-      ? await supabase.from("fluxo_caixa").update(payload).eq("id", editando.id)
-      : await supabase.from("fluxo_caixa").insert({ ...payload, user_id: user.id });
+    if (editando) {
+      await supabase.from("fluxo_caixa").update(payload).eq("id", editando.id);
+    } else {
+      const empresaId = await obterEmpresaAtiva();
+      if (!empresaId) { setSalvando(false); return; }
+      await supabase.from("fluxo_caixa").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+    }
     fecharModal(); await carregarTudo(); setSalvando(false);
   };
 

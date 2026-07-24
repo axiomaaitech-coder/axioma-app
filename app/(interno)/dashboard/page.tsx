@@ -16,6 +16,7 @@ import {
   carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias, gerarPlanoAcao,
   type SnapshotFinanceiro, type Score360, type Anomalia, type AcaoSugerida,
 } from "../../../lib/iaFinanceiraHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -385,11 +386,12 @@ export default function DashboardPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
     setNomeUsuario((user.user_metadata?.nome || user.user_metadata?.full_name || user.email?.split("@")[0] || "").split(" ")[0]);
-    const { data: emp } = await supabase.from("empresas").select("nome_fantasia, razao_social, nome").eq("user_id", user.id).limit(1).maybeSingle();
+    const empresaId = await obterEmpresaAtiva();
+    const { data: emp } = empresaId ? await supabase.from("empresas").select("nome_fantasia, razao_social, nome").eq("id", empresaId).maybeSingle() : { data: null };
     if (emp) setEmpresaNome(emp.nome_fantasia || emp.razao_social || emp.nome || "");
 
     try {
-      const s = await carregarSnapshot(user.id);
+      const s = await carregarSnapshot(user.id, empresaId);
       const b = await carregarBenchmark(s.setor);
       const sc = calcularScore360(s, b);
       setSnap(s); setScore360(sc); setAnomalias(detectarAnomalias(s, b)); setAcoes(gerarPlanoAcao(s, sc, detectarAnomalias(s, b)));

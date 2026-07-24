@@ -7,7 +7,8 @@ import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import {
   consultarCNPJ, consultarCEP, validarCNPJ, limparCNPJ, formatarCNPJ, formatarCEP, formatarTelefone,
-  carregarEmpresa, criarEmpresa, atualizarEmpresa,
+  atualizarEmpresa,
+  obterEmpresaAtiva, carregarEmpresaPorId,
   carregarSocios, criarSocio, atualizarSocio, excluirSocio, importarSociosDoQSA,
   carregarDocumentos, uploadDocumento, criarDocumento, gerarUrlDocumento, excluirDocumento,
   uploadLogo,
@@ -693,11 +694,10 @@ export default function EmpresaPage() {
   async function carregarTudo(uid: string) {
     setCarregando(true);
     try {
-      let emp = await carregarEmpresa(uid);
-      if (!emp) {
-        const r = await criarEmpresa(uid, { nome: "Minha Empresa" });
-        if (r.id) emp = await carregarEmpresa(uid);
-      }
+      // obterEmpresaAtiva() já garante a criação (dono/convidado/"Minha Empresa" automática) —
+      // não repetir a criação aqui evita duas empresas por corrida (ver SQL-EMPRESA-PADRAO.sql).
+      const empresaAtivaId = await obterEmpresaAtiva();
+      const emp = empresaAtivaId ? await carregarEmpresaPorId(empresaAtivaId) : null;
       if (emp) {
         setEmpresa(emp);
         setEmpresaForm(emp);

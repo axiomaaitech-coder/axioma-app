@@ -34,14 +34,14 @@ export type LancamentoOrigem = {
 
 export async function carregarLancamentosOrigem(userId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("user_id", userId).order("descricao");
+    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").order("descricao");
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id, dia_vencimento: d.dia_vencimento }));
   }
   if (tabela === "custos_variaveis") {
-    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("user_id", userId).order("data", { ascending: false }).limit(300);
+    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").order("data", { ascending: false }).limit(5000);
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
-  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("user_id", userId).order("data_vencimento", { ascending: false }).limit(300);
+  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").order("data_vencimento", { ascending: false }).limit(5000);
   return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id, status: d.status, valor_pago: Number(d.valor_pago || 0) }));
 }
 
@@ -57,7 +57,7 @@ export async function carregarTodosLancamentosOrigem(userId: string): Promise<La
 export type ReceitaOrigem = { id: string; descricao: string; valor: number; data: string; categoria?: string; centro_custo_id: string | null };
 
 export async function carregarReceitasOrigem(userId: string): Promise<ReceitaOrigem[]> {
-  const { data } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("user_id", userId).order("data", { ascending: false }).limit(300);
+  const { data } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").order("data", { ascending: false }).limit(5000);
   return (data || []).map((d: any) => ({ id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
 }
 
@@ -75,17 +75,17 @@ export type RateioRow = {
 };
 
 export async function carregarRateios(userId: string): Promise<RateioRow[]> {
-  const { data } = await supabase.from("centro_custo_rateio").select("*").eq("user_id", userId);
+  const { data } = await supabase.from("centro_custo_rateio").select("*");
   return data || [];
 }
 
 export async function aplicarRateio(
-  userId: string, origemTabela: OrigemTabela, origemId: string, descricao: string, baseTipo: string,
+  userId: string, empresaId: string | null, origemTabela: OrigemTabela, origemId: string, descricao: string, baseTipo: string,
   splits: { centroId: string; percentual: number }[],
 ): Promise<{ erro?: string }> {
-  await supabase.from("centro_custo_rateio").delete().eq("user_id", userId).eq("origem_tabela", origemTabela).eq("origem_id", origemId);
+  await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId);
   const linhas = splits.filter(s => s.percentual > 0).map(s => ({
-    user_id: userId, origem_tabela: origemTabela, origem_id: origemId,
+    user_id: userId, empresa_id: empresaId, origem_tabela: origemTabela, origem_id: origemId,
     centro_custo_id: s.centroId, percentual: s.percentual, base_tipo: baseTipo, descricao,
   }));
   if (linhas.length === 0) return {};
@@ -94,7 +94,7 @@ export async function aplicarRateio(
 }
 
 export async function removerRateio(userId: string, origemTabela: OrigemTabela, origemId: string): Promise<void> {
-  await supabase.from("centro_custo_rateio").delete().eq("user_id", userId).eq("origem_tabela", origemTabela).eq("origem_id", origemId);
+  await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId);
 }
 
 // Junta o que já está etiquetado direto (centro_custo_id nos 3 módulos) com o que foi
@@ -132,13 +132,13 @@ export function sugerirPercentuaisPorBase(
 export type OrcamentoRow = { id: string; centro_custo_id: string; periodo: string; valor_orcado: number };
 
 export async function carregarOrcamentos(userId: string): Promise<OrcamentoRow[]> {
-  const { data } = await supabase.from("centro_custo_orcamento").select("*").eq("user_id", userId);
+  const { data } = await supabase.from("centro_custo_orcamento").select("*");
   return data || [];
 }
 
-export async function definirOrcamento(userId: string, centroId: string, periodo: string, valor: number): Promise<{ erro?: string }> {
+export async function definirOrcamento(userId: string, empresaId: string | null, centroId: string, periodo: string, valor: number): Promise<{ erro?: string }> {
   const { error } = await supabase.from("centro_custo_orcamento")
-    .upsert({ user_id: userId, centro_custo_id: centroId, periodo, valor_orcado: valor }, { onConflict: "centro_custo_id,periodo" });
+    .upsert({ user_id: userId, empresa_id: empresaId, centro_custo_id: centroId, periodo, valor_orcado: valor }, { onConflict: "centro_custo_id,periodo" });
   return error ? { erro: error.message } : {};
 }
 
@@ -148,11 +148,11 @@ export function orcamentoDoPeriodo(orcamentos: OrcamentoRow[], centroId: string,
 }
 
 export async function registrarAuditoriaCentro(params: {
-  userId: string; centroId?: string | null; tabela: string; registroId?: string;
+  userId: string; empresaId: string | null; centroId?: string | null; tabela: string; registroId?: string;
   acao: "criar" | "editar" | "excluir"; descricao?: string; valorAntes?: any; valorDepois?: any;
 }): Promise<void> {
   await supabase.from("centro_custo_auditoria").insert({
-    user_id: params.userId, centro_custo_id: params.centroId, tabela: params.tabela,
+    user_id: params.userId, empresa_id: params.empresaId, centro_custo_id: params.centroId, tabela: params.tabela,
     registro_id: params.registroId, acao: params.acao, descricao: params.descricao,
     valor_antes: params.valorAntes, valor_depois: params.valorDepois,
   });
@@ -164,7 +164,7 @@ export type AuditoriaRow = {
 };
 
 export async function carregarAuditoriaCentro(userId: string, limit = 500): Promise<AuditoriaRow[]> {
-  const { data } = await supabase.from("centro_custo_auditoria").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit);
+  const { data } = await supabase.from("centro_custo_auditoria").select("*").order("created_at", { ascending: false }).limit(limit);
   return data || [];
 }
 
@@ -189,7 +189,7 @@ const COLUNA_POR_CAMPO: Partial<Record<CampoEditavel, Partial<Record<OrigemTabel
 // Editar o valor de uma conta a pagar recalcula o status com a MESMA regra que a tela
 // de Fornecedores usa (calcStatus) — nunca deixa status e valor divergirem.
 export async function atualizarCampoOrigem(
-  userId: string, tabela: OrigemTabela, id: string, campo: CampoEditavel, valor: any,
+  userId: string, empresaId: string | null, tabela: OrigemTabela, id: string, campo: CampoEditavel, valor: any,
   contexto?: { centroId?: string | null; valorPagoAtual?: number; dataVencimentoAtual?: string | null },
 ): Promise<{ erro?: string }> {
   const coluna = COLUNA_POR_CAMPO[campo]?.[tabela] || campo;
@@ -203,7 +203,7 @@ export async function atualizarCampoOrigem(
   if (error) return { erro: error.message };
 
   await registrarAuditoriaCentro({
-    userId, centroId: contexto?.centroId, tabela, registroId: id, acao: "editar",
+    userId, empresaId, centroId: contexto?.centroId, tabela, registroId: id, acao: "editar",
     descricao: `Editado via Planilha: ${campo} = ${valor}`,
   });
   return {};

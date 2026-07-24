@@ -66,9 +66,9 @@ export async function listarContatos(fornecedorId: string): Promise<FornecedorCo
   return data || [];
 }
 
-export async function criarContato(fornecedorId: string, userId: string, dados: Partial<FornecedorContato>): Promise<{ id?: string; erro?: string }> {
+export async function criarContato(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorContato>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_contatos")
-    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId }).select("id").single();
+    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
   if (error) return { erro: error.message };
   return { id: data.id };
 }
@@ -103,9 +103,9 @@ export async function listarDocumentos(fornecedorId: string): Promise<Fornecedor
   return data || [];
 }
 
-export async function criarDocumentoFornecedor(fornecedorId: string, userId: string, dados: Partial<FornecedorDocumento>): Promise<{ id?: string; erro?: string }> {
+export async function criarDocumentoFornecedor(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorDocumento>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_documentos")
-    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId }).select("id").single();
+    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
   if (error) return { erro: error.message };
   return { id: data.id };
 }
@@ -136,9 +136,9 @@ export async function listarContratos(fornecedorId: string): Promise<FornecedorC
   return data || [];
 }
 
-export async function criarContrato(fornecedorId: string, userId: string, dados: Partial<FornecedorContrato>): Promise<{ id?: string; erro?: string }> {
+export async function criarContrato(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorContrato>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_contratos")
-    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId }).select("id").single();
+    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
   if (error) return { erro: error.message };
   return { id: data.id };
 }
@@ -163,9 +163,9 @@ export async function listarProdutos(fornecedorId: string): Promise<FornecedorPr
   return data || [];
 }
 
-export async function criarProduto(fornecedorId: string, userId: string, dados: Partial<FornecedorProduto>): Promise<{ id?: string; erro?: string }> {
+export async function criarProduto(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorProduto>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_produtos")
-    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId }).select("id").single();
+    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
   if (error) return { erro: error.message };
   return { id: data.id };
 }
@@ -190,9 +190,9 @@ export async function listarInteracoes(fornecedorId: string): Promise<Fornecedor
   return data || [];
 }
 
-export async function criarInteracao(fornecedorId: string, userId: string, dados: Partial<FornecedorInteracao>): Promise<{ id?: string; erro?: string }> {
+export async function criarInteracao(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorInteracao>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_interacoes")
-    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId }).select("id").single();
+    .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
   if (error) return { erro: error.message };
   return { id: data.id };
 }

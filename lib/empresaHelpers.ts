@@ -150,6 +150,78 @@ export async function carregarEmpresa(userId: string): Promise<any | null> {
   return data;
 }
 
+// Carrega a empresa pelo id (funciona pro dono E pro convidado — RLS decide
+// quem enxerga, não o filtro). Usar junto de obterEmpresaAtiva().
+export async function carregarEmpresaPorId(empresaId: string): Promise<any | null> {
+  const { data } = await supabase
+    .from("empresas")
+    .select("*")
+    .eq("id", empresaId)
+    .maybeSingle();
+  return data;
+}
+
+// ============================================================================
+// EMPRESA ATIVA — multi-tenant (dono OU convidado, via RPC empresas_do_usuario())
+// Fonte única pra todo módulo obter o empresa_id antes de gravar/ler.
+// Cache em sessionStorage (por aba) pra não bater no banco a cada gravação.
+// ============================================================================
+let cacheEmpresaAtiva: { userId: string; empresaId: string | null } | null = null;
+
+export async function obterEmpresaAtiva(): Promise<string | null> {
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id;
+  if (!userId) return null;
+
+  if (cacheEmpresaAtiva?.userId === userId) return cacheEmpresaAtiva.empresaId;
+
+  const salvar = (empresaId: string | null) => {
+    cacheEmpresaAtiva = { userId, empresaId };
+    if (typeof window !== "undefined") {
+      const chave = `axioma_empresa_ativa_${userId}`;
+      if (empresaId) sessionStorage.setItem(chave, empresaId);
+      else sessionStorage.removeItem(chave);
+    }
+    return empresaId;
+  };
+
+  if (typeof window !== "undefined") {
+    const salvo = sessionStorage.getItem(`axioma_empresa_ativa_${userId}`);
+    if (salvo) return salvar(salvo);
+  }
+
+  // (a) empresa própria (dono)
+  const { data: propria } = await supabase
+    .from("empresas")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("ativo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (propria?.id) return salvar(propria.id);
+
+  // (b) vínculo existente (convidado — nunca cria empresa nova pra quem já foi convidado)
+  const { data: vinculo } = await supabase
+    .from("empresa_usuarios")
+    .select("empresa_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  if (vinculo?.empresa_id) return salvar(vinculo.empresa_id);
+
+  // (c) rede de segurança: nem dono nem convidado — cria "Minha Empresa" vazia
+  // (idempotente/atômica no banco, ver obter_ou_criar_empresa_padrao() em SQL-EMPRESA-PADRAO.sql).
+  // O caminho principal de criação é o /auth/callback (login/cadastro), isto é só o fallback.
+  const { data: empresaId } = await supabase.rpc("obter_ou_criar_empresa_padrao");
+  return salvar(typeof empresaId === "string" ? empresaId : null);
+}
+
+// Chamar no logout, ou depois de trocar/criar empresa, pra forçar nova consulta.
+export function limparCacheEmpresaAtiva() {
+  cacheEmpresaAtiva = null;
+}
+
 export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
   const payload = {
     ...dados,
@@ -195,12 +267,12 @@ export async function atualizarEmpresa(
 
   if (camposAlterados.length === 0) return {};
 
-  const payload = { ...dadosNovos, updated_at: new Date().toISOString() };
+  // Qualquer edição do cadastro conta como "usuário preencheu" — some o aviso.
+  const payload = { ...dadosNovos, cadastro_completo: true, updated_at: new Date().toISOString() };
   const { error } = await supabase
     .from("empresas")
     .update(payload)
-    .eq("id", empresaId)
-    .eq("user_id", userId);
+    .eq("id", empresaId);
   if (error) return { erro: error.message };
 
   // Auditoria: 1 registro por campo alterado
@@ -229,7 +301,6 @@ export async function carregarSocios(empresaId: string, userId: string): Promise
     .from("empresa_socios")
     .select("*")
     .eq("empresa_id", empresaId)
-    .eq("user_id", userId)
     .eq("ativo", true)
     .order("participacao_pct", { ascending: false });
   return data || [];
@@ -256,7 +327,7 @@ export async function atualizarSocio(socioId: string, empresaId: string, userId:
     .from("empresa_socios")
     .update({ ...dados, updated_at: new Date().toISOString() })
     .eq("id", socioId)
-    .eq("user_id", userId);
+    .eq("empresa_id", empresaId);
   if (error) return { erro: error.message };
   await registrarAuditoria({
     empresaId,
@@ -275,7 +346,7 @@ export async function excluirSocio(socioId: string, empresaId: string, userId: s
     .from("empresa_socios")
     .delete()
     .eq("id", socioId)
-    .eq("user_id", userId);
+    .eq("empresa_id", empresaId);
   if (error) return { erro: error.message };
   await registrarAuditoria({
     empresaId,
@@ -333,7 +404,6 @@ export async function carregarDocumentos(empresaId: string, userId: string): Pro
     .from("empresa_documentos")
     .select("*")
     .eq("empresa_id", empresaId)
-    .eq("user_id", userId)
     .order("created_at", { ascending: false });
   return data || [];
 }
@@ -390,7 +460,7 @@ export async function excluirDocumento(
     .from("empresa_documentos")
     .delete()
     .eq("id", docId)
-    .eq("user_id", userId);
+    .eq("empresa_id", empresaId);
   if (error) return { erro: error.message };
   await registrarAuditoria({
     empresaId,
@@ -451,7 +521,6 @@ export async function carregarAuditoria(empresaId: string, userId: string, limit
     .from("empresa_auditoria")
     .select("*")
     .eq("empresa_id", empresaId)
-    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
   return data || [];
@@ -466,7 +535,6 @@ export async function carregarObrigacoes(empresaId: string, userId: string): Pro
     .from("empresa_obrigacoes")
     .select("*")
     .eq("empresa_id", empresaId)
-    .eq("user_id", userId)
     .order("data_vencimento", { ascending: true });
   return data || [];
 }
@@ -491,7 +559,7 @@ export async function atualizarObrigacao(id: string, empresaId: string, userId: 
     .from("empresa_obrigacoes")
     .update({ ...dados, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("user_id", userId);
+    .eq("empresa_id", empresaId);
   if (error) return { erro: error.message };
   await registrarAuditoria({
     empresaId, userId,
@@ -505,7 +573,7 @@ export async function atualizarObrigacao(id: string, empresaId: string, userId: 
 }
 
 export async function excluirObrigacao(id: string, empresaId: string, userId: string, nome: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("empresa_obrigacoes").delete().eq("id", id).eq("user_id", userId);
+  const { error } = await supabase.from("empresa_obrigacoes").delete().eq("id", id).eq("empresa_id", empresaId);
   if (error) return { erro: error.message };
   await registrarAuditoria({
     empresaId, userId,
@@ -626,7 +694,6 @@ export async function carregarEquipe(empresaId: string, userId: string): Promise
     .from("empresa_equipe")
     .select("*")
     .eq("empresa_id", empresaId)
-    .eq("user_id", userId)
     .order("created_at", { ascending: false });
   return data || [];
 }
@@ -648,7 +715,7 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
 }
 
 export async function excluirMembro(id: string, empresaId: string, userId: string, email: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("empresa_equipe").delete().eq("id", id).eq("user_id", userId);
+  const { error } = await supabase.from("empresa_equipe").delete().eq("id", id).eq("empresa_id", empresaId);
   if (error) return { erro: error.message };
   await registrarAuditoria({
     empresaId, userId,

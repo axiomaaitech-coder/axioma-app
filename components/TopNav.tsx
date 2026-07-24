@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
+import { obterEmpresaAtiva, carregarEmpresaPorId } from "../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,7 +105,17 @@ export default function TopNav() {
   const [dropdown, setDropdown] = useState<string | null>(null);
   const [menuMobile, setMenuMobile] = useState(false);
   const [grupoMobile, setGrupoMobile] = useState<string | null>(null);
+  const [cadastroIncompleto, setCadastroIncompleto] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    (async () => {
+      const empresaId = await obterEmpresaAtiva();
+      if (!empresaId) { setCadastroIncompleto(false); return; }
+      const emp = await carregarEmpresaPorId(empresaId);
+      setCadastroIncompleto(emp?.cadastro_completo === false);
+    })();
+  }, [pathname]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -458,6 +469,24 @@ export default function TopNav() {
       </AnimatePresence>
 
       <div className="h-16 md:h-16" />
+
+      {cadastroIncompleto && (
+        <div
+          onClick={() => navegar("/empresa")}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold cursor-pointer text-center"
+          style={{ background: "rgba(251,191,36,0.08)", borderBottom: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24" }}
+        >
+          <span>🏢</span>
+          <span>
+            {lang === "pt" ? "Complete o cadastro da sua empresa para liberar todos os cálculos do Axioma." :
+             lang === "en" ? "Complete your company profile to unlock all of Axioma's calculations." :
+             "Completa el registro de tu empresa para habilitar todos los cálculos de Axioma."}
+          </span>
+          <span style={{ textDecoration: "underline" }}>
+            {lang === "pt" ? "Completar agora →" : lang === "en" ? "Complete now →" : "Completar ahora →"}
+          </span>
+        </div>
+      )}
     </>
   );
 }

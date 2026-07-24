@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import { consultarCEP, validarCPF, formatarCPF } from "../../../lib/enderecoHelpers";
-import { validarCNPJ, formatarCNPJ, formatarTelefone } from "../../../lib/empresaHelpers";
+import { validarCNPJ, formatarCNPJ, formatarTelefone, obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import {
   resolverPeriodo, periodoAnterior, optRadar, optBarrasV, optRosca, optVelocimetro, radarRenovacoes,
   serieRolling, detectarAnomaliasHistoricas, detectarDesperdicio, montarDRE, simularCenariosExecutivos, FONTE_EXEC,
@@ -780,7 +780,7 @@ export default function Fornecedores() {
     buscarEstados().then((r) => setEstados(r.dados));
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from("centros_custo").select("id, nome").eq("user_id", user.id).then(({ data }) => setCentrosCusto(data || []));
+      supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
     });
   }, []);
 
@@ -794,24 +794,24 @@ export default function Fornecedores() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const { data: empresa } = await supabase.from("empresas").select("id").eq("user_id", user.id).maybeSingle();
-    setEmpresaId(empresa?.id || null);
-    const { data: forn } = await supabase.from("fornecedores").select("*").eq("user_id", user.id).order("nome", { ascending: true });
-    const { data: cp } = await supabase.from("contas_pagar").select("*").eq("user_id", user.id).order("data_vencimento", { ascending: true });
-    const { data: docs } = await supabase.from("fornecedor_documentos").select("*").eq("user_id", user.id);
-    const { data: contratos } = await supabase.from("fornecedor_contratos").select("*").eq("user_id", user.id);
-    const { data: interacoes } = await supabase.from("fornecedor_interacoes").select("*").eq("user_id", user.id);
+    const empId = await obterEmpresaAtiva();
+    setEmpresaId(empId);
+    const { data: forn } = await supabase.from("fornecedores").select("*").order("nome", { ascending: true });
+    const { data: cp } = await supabase.from("contas_pagar").select("*").order("data_vencimento", { ascending: true });
+    const { data: docs } = await supabase.from("fornecedor_documentos").select("*");
+    const { data: contratos } = await supabase.from("fornecedor_contratos").select("*");
+    const { data: interacoes } = await supabase.from("fornecedor_interacoes").select("*");
 
     // Ponto de partida real da empresa pro Simulador Executivo (Fase 5) — leitura, nunca escreve.
     // Mesmo padrão de fetch já usado em Simulações/Investimentos.
     const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return d.toISOString().slice(0, 10); })();
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp2 }] = await Promise.all([
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioJanela),
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
-      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioJanela),
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("user_id", user.id),
-      supabase.from("fluxo_caixa").select("tipo, valor, status").eq("user_id", user.id),
-      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+      supabase.from("receitas").select("valor, data").gte("data", inicioJanela),
+      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioJanela),
+      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
+      supabase.from("fluxo_caixa").select("tipo, valor, status"),
+      empId ? supabase.from("empresas").select("regime_tributario").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setFornecedores(forn || []);
@@ -944,7 +944,7 @@ export default function Fornecedores() {
     if (id) {
       await supabase.from("fornecedores").update(payload).eq("id", id);
     } else {
-      const { data, error } = await supabase.from("fornecedores").insert({ ...payload, user_id: user.id }).select("id").single();
+      const { data, error } = await supabase.from("fornecedores").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
       if (error || !data) { setSalvandoForn(false); return null; }
       id = data.id;
       setFornecedorAtualId(id);
@@ -993,7 +993,7 @@ export default function Fornecedores() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     if (editandoContatoId) await atualizarContato(editandoContatoId, novoContato);
-    else await criarContato(fornecedorAtualId, user.id, novoContato);
+    else await criarContato(fornecedorAtualId, user.id, empresaId, novoContato);
     setNovoContato({ nome: "", cargo: "", email: "", telefone: "", whatsapp: "", principal: false });
     setEditandoContatoId(null);
     setContatosForn(await listarContatos(fornecedorAtualId));
@@ -1030,7 +1030,7 @@ export default function Fornecedores() {
       if (storage_path) { dados.storage_path = storage_path; dados.mime_type = mime_type; dados.tamanho_bytes = tamanho_bytes; }
       await atualizarDocumentoFornecedor(editandoDocumentoId, dados);
     } else {
-      await criarDocumentoFornecedor(fornecedorAtualId, user.id, { ...novoDocumento, storage_path, mime_type, tamanho_bytes });
+      await criarDocumentoFornecedor(fornecedorAtualId, user.id, empresaId, { ...novoDocumento, storage_path, mime_type, tamanho_bytes });
     }
     setNovoDocumento({ tipo: TIPOS_DOCUMENTO_FORNECEDOR[0].key, nome: "", numero_documento: "", data_emissao: "", data_validade: "" });
     setArquivoDocumento(null);
@@ -1071,7 +1071,7 @@ export default function Fornecedores() {
       valor_utilizado: novoContrato.valor_utilizado ? parseFloat(novoContrato.valor_utilizado) : 0,
     };
     if (editandoContratoId) await atualizarContrato(editandoContratoId, dados);
-    else await criarContrato(fornecedorAtualId, user.id, dados);
+    else await criarContrato(fornecedorAtualId, user.id, empresaId, dados);
     setNovoContrato({ descricao: "", data_inicio: "", data_fim: "", renovacao_automatica: false, indice_reajuste: "", valor_contratado: "", valor_utilizado: "" });
     setEditandoContratoId(null);
     setContratosForn(await listarContratos(fornecedorAtualId));
@@ -1107,7 +1107,7 @@ export default function Fornecedores() {
       unidade: novoProduto.unidade || null,
     };
     if (editandoProdutoId) await atualizarProduto(editandoProdutoId, dados);
-    else await criarProduto(fornecedorAtualId, user.id, dados);
+    else await criarProduto(fornecedorAtualId, user.id, empresaId, dados);
     setNovoProduto({ descricao: "", categoria: "", valor_unitario: "", unidade: "" });
     setEditandoProdutoId(null);
     setProdutosForn(await listarProdutos(fornecedorAtualId));
@@ -1132,7 +1132,7 @@ export default function Fornecedores() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     if (editandoInteracaoId) await atualizarInteracao(editandoInteracaoId, novaInteracao);
-    else await criarInteracao(fornecedorAtualId, user.id, novaInteracao);
+    else await criarInteracao(fornecedorAtualId, user.id, empresaId, novaInteracao);
     setNovaInteracao({ data: hoje0, tipo: "", descricao: "" });
     setEditandoInteracaoId(null);
     setInteracoesForn(await listarInteracoes(fornecedorAtualId));
@@ -1188,10 +1188,10 @@ export default function Fornecedores() {
     };
     if (editandoConta) {
       await supabase.from("contas_pagar").update(payload).eq("id", editandoConta.id);
-      await registrarAuditoriaCentro({ userId: user.id, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
     } else {
       const { data } = await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id }).select("id").single();
-      if (data) await registrarAuditoriaCentro({ userId: user.id, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
+      if (data) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
     }
     fecharModalConta(); await carregarDados(); setSalvandoConta(false);
   };
@@ -1200,7 +1200,7 @@ export default function Fornecedores() {
     const { data: { user } } = await supabase.auth.getUser();
     const conta = contas.find(c => c.id === id);
     await supabase.from("contas_pagar").delete().eq("id", id);
-    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: conta?.centro_custo_id || null, tabela: "contas_pagar", registroId: id, acao: "excluir", descricao: `Conta a pagar excluída: ${conta?.descricao || id}` });
+    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: conta?.centro_custo_id || null, tabela: "contas_pagar", registroId: id, acao: "excluir", descricao: `Conta a pagar excluída: ${conta?.descricao || id}` });
     setContas(contas.filter(c => c.id !== id));
   };
 

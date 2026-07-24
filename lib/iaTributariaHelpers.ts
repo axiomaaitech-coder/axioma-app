@@ -65,7 +65,7 @@ export type AlertaReforma = {
 // CARREGAR DADOS FISCAIS
 // ============================================================================
 
-export async function carregarDadosFiscais(userId: string): Promise<DadosFiscais> {
+export async function carregarDadosFiscais(userId: string, empresaId: string | null): Promise<DadosFiscais> {
   const hoje = new Date();
   const mesAtual = hoje.getMonth() + 1;
   const anoAtual = hoje.getFullYear();
@@ -83,12 +83,12 @@ export async function carregarDadosFiscais(userId: string): Promise<DadosFiscais
     { data: empresa },
     { data: obrigacoes },
   ] = await Promise.all([
-    supabase.from("receitas").select("valor").eq("user_id", userId).gte("data", inicio12m).lte("data", fim),
-    supabase.from("receitas").select("valor").eq("user_id", userId).gte("data", inicio).lte("data", fim),
-    supabase.from("custos_fixos").select("valor_mensal").eq("user_id", userId),
-    supabase.from("custos_variaveis").select("valor").eq("user_id", userId).gte("data", inicio).lte("data", fim),
-    supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("user_id", userId).limit(1).maybeSingle(),
-    Promise.resolve(supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("user_id", userId)).catch(() => ({ data: [] })),
+    supabase.from("receitas").select("valor").gte("data", inicio12m).lte("data", fim),
+    supabase.from("receitas").select("valor").gte("data", inicio).lte("data", fim),
+    supabase.from("custos_fixos").select("valor_mensal"),
+    supabase.from("custos_variaveis").select("valor").gte("data", inicio).lte("data", fim),
+    empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
+    Promise.resolve(supabase.from("empresa_obrigacoes").select("status, data_vencimento")).catch(() => ({ data: [] })),
   ]);
 
   const receita_bruta_12m = (rec12m || []).reduce((s, r) => s + Number(r.valor || 0), 0);
@@ -581,15 +581,15 @@ export function respostaTributariaPorRegras(dados: DadosFiscais, scoreFiscal: Sc
 // HISTÓRICO
 // ============================================================================
 
-export async function salvarMensagemTrib(userId: string, role: string, mensagem: string, contexto?: any, modelo?: string): Promise<void> {
-  await supabase.from("ia_tributaria_historico").insert({ user_id: userId, role, mensagem, contexto, modelo: modelo || "regras" });
+export async function salvarMensagemTrib(userId: string, empresaId: string | null, role: string, mensagem: string, contexto?: any, modelo?: string): Promise<void> {
+  await supabase.from("ia_tributaria_historico").insert({ user_id: userId, empresa_id: empresaId, role, mensagem, contexto, modelo: modelo || "regras" });
 }
 
 export async function carregarHistoricoTrib(userId: string, limit: number = 50): Promise<any[]> {
-  const { data } = await supabase.from("ia_tributaria_historico").select("*").eq("user_id", userId).order("created_at", { ascending: true }).limit(limit);
+  const { data } = await supabase.from("ia_tributaria_historico").select("*").order("created_at", { ascending: true }).limit(limit);
   return data || [];
 }
 
 export async function limparHistoricoTrib(userId: string): Promise<void> {
-  await supabase.from("ia_tributaria_historico").delete().eq("user_id", userId);
+  await supabase.from("ia_tributaria_historico").delete().not("id", "is", null);
 }

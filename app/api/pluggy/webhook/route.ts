@@ -58,10 +58,10 @@ export async function POST(request: NextRequest) {
         )
         const { results: transactions } = await txResponse.json()
 
-        // Busca user_id pelo item_id
+        // Busca user_id/empresa_id pelo item_id (conexão já criada no fluxo de connect)
         const { data: ofItem } = await supabase
           .from('open_finance')
-          .select('user_id')
+          .select('user_id, empresa_id')
           .eq('item_id', item.id)
           .maybeSingle()
 
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
         for (const tx of transactions || []) {
           await supabase.from('of_transacoes').upsert({
             user_id: ofItem.user_id,
+            empresa_id: ofItem.empresa_id,
             item_id: item.id,
             account_id: account.id,
             descricao: tx.description || tx.merchant?.name || '',

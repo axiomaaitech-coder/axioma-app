@@ -22,6 +22,7 @@ import {
   cfoT, canaisCompartilhamento, montarNarrativaMuro, montarNarrativaRunwayDivida, montarConselhoDivida,
 } from "../../../lib/cfoTextos";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,15 +92,16 @@ export default function Endividamento() {
     if (!user) { setCarregando(false); return; }
 
     const inicioHist = inicioJanelaHistorica(periodo.fim);
+    const empId = await obterEmpresaAtiva();
 
     const [{ data: dv }, { data: rec }, { data: cf }, { data: cv }, { data: fc }, { data: emp }] = await Promise.all([
-      supabase.from("dividas").select("*").eq("user_id", user.id).order("vencimento", { ascending: true }),
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
-      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("dividas").select("*").order("vencimento", { ascending: true }),
+      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
-      supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("user_id", user.id).gte("data", periodo.inicio).lte("data", periodo.fim),
-      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+      supabase.from("fluxo_caixa").select("tipo, valor, data, status").gte("data", periodo.inicio).lte("data", periodo.fim),
+      empId ? supabase.from("empresas").select("regime_tributario").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setDividas(dv || []);
@@ -135,9 +137,13 @@ export default function Endividamento() {
       vencimento: novo.vencimento,
       taxa_juros: parseFloat(novo.taxa_juros || "0"),
     };
-    editando
-      ? await supabase.from("dividas").update(payload).eq("id", editando.id)
-      : await supabase.from("dividas").insert({ ...payload, user_id: user.id });
+    if (editando) {
+      await supabase.from("dividas").update(payload).eq("id", editando.id);
+    } else {
+      const empresaId = await obterEmpresaAtiva();
+      if (!empresaId) { setSalvando(false); return; }
+      await supabase.from("dividas").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+    }
     fecharModal(); await carregarTudo(); setSalvando(false);
   };
 

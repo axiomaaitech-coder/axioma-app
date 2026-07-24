@@ -15,6 +15,7 @@ import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fPct, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
+import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -132,24 +133,25 @@ export default function Inadimplencia() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     setUserId(user.id)
+    const empId = await obterEmpresaAtiva()
     const [
       { data: empresa }, { data: cli }, { data: ct }, comps, interacoesData, etapasData, { data: fc },
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: dreRows },
     ] = await Promise.all([
-      supabase.from('empresas').select('id, regime_tributario').eq('user_id', user.id).maybeSingle(),
-      supabase.from('clientes').select('*').eq('user_id', user.id).order('nome'),
-      supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
+      empId ? supabase.from('empresas').select('regime_tributario').eq('id', empId).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from('clientes').select('*').order('nome'),
+      supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true }),
       listarCompromissos(),
       listarInteracoes(),
       listarEtapasRegua(user.id),
-      supabase.from('fluxo_caixa').select('valor, tipo, status').eq('user_id', user.id),
-      supabase.from('receitas').select('valor, data').eq('user_id', user.id),
-      supabase.from('custos_fixos').select('valor_mensal').eq('user_id', user.id),
-      supabase.from('custos_variaveis').select('valor').eq('user_id', user.id),
-      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('user_id', user.id),
-      supabase.from('dre_historico').select('*').eq('user_id', user.id).eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle(),
+      supabase.from('fluxo_caixa').select('valor, tipo, status'),
+      supabase.from('receitas').select('valor, data'),
+      supabase.from('custos_fixos').select('valor_mensal'),
+      supabase.from('custos_variaveis').select('valor'),
+      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros'),
+      supabase.from('dre_historico').select('*').eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle(),
     ])
-    setEmpresaId(empresa?.id || null)
+    setEmpresaId(empId)
     setRegimeTributario(empresa?.regime_tributario || '')
     setClientes((cli as ClienteRow[]) || [])
     setContas((ct as ContaRow[]) || [])
@@ -310,7 +312,7 @@ export default function Inadimplencia() {
     if (editandoCompromissoId) {
       await atualizarCompromisso(editandoCompromissoId, payload)
     } else {
-      await criarCompromisso(userId, payload)
+      await criarCompromisso(userId, empresaId, payload)
     }
     setCompromissos(await listarCompromissos())
     setNovoCompromisso({ ...compromissoVazio })
@@ -338,7 +340,7 @@ export default function Inadimplencia() {
   async function registrarContato() {
     if (!linhaAberta || !userId || !novoContato.conta_id || !novoContato.descricao.trim()) return
     setSalvandoContato(true)
-    await criarInteracao(userId, {
+    await criarInteracao(userId, empresaId, {
       conta_id: novoContato.conta_id, cliente_id: linhaAberta.s.cliente.id,
       tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao,
       data: new Date().toISOString().slice(0, 10),
@@ -354,7 +356,7 @@ export default function Inadimplencia() {
   }
   async function salvarEtapa() {
     if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
-    await salvarEtapaRegua(userId, editandoEtapa)
+    await salvarEtapaRegua(userId, empresaId, editandoEtapa)
     setEtapasRegua(await listarEtapasRegua(userId))
     setEditandoEtapa(null)
   }
@@ -364,7 +366,7 @@ export default function Inadimplencia() {
   }
   async function usarEscalonamentoPadrao() {
     if (!userId) return
-    for (const etapa of etapasEscalonamentoPadrao()) await salvarEtapaRegua(userId, etapa)
+    for (const etapa of etapasEscalonamentoPadrao()) await salvarEtapaRegua(userId, empresaId, etapa)
     setEtapasRegua(await listarEtapasRegua(userId))
   }
 

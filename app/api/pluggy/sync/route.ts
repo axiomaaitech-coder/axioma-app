@@ -25,6 +25,15 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
+    // Empresa ativa do usuário (dono ou convidado) — mesma ordem de obterEmpresaAtiva() em lib/empresaHelpers.ts.
+    let empresaId: string | null = null
+    const { data: propria } = await supabase.from('empresas').select('id').eq('user_id', user.id).eq('ativo', true).order('created_at', { ascending: true }).limit(1).maybeSingle()
+    if (propria?.id) empresaId = propria.id
+    else {
+      const { data: vinculo } = await supabase.from('empresa_usuarios').select('empresa_id').eq('user_id', user.id).limit(1).maybeSingle()
+      empresaId = vinculo?.empresa_id || null
+    }
+
     // itemId opcional no body — se vier, sincroniza só esse banco
     let itemIdFiltro: string | null = null
     try {
@@ -33,7 +42,7 @@ export async function POST(request: NextRequest) {
     } catch { /* sem body */ }
 
     // Busca os bancos conectados DESTE usuário
-    let q = supabase.from('open_finance').select('item_id').eq('user_id', user.id)
+    let q = supabase.from('open_finance').select('item_id')
     if (itemIdFiltro) q = q.eq('item_id', itemIdFiltro)
     const { data: itens } = await q
     if (!itens || itens.length === 0) {
@@ -79,6 +88,7 @@ export async function POST(request: NextRequest) {
         for (const tx of transactions) {
           novas.push({
             user_id: user.id,
+            empresa_id: empresaId,
             item_id: itemId,
             account_id: account.id,
             descricao: tx.description || tx.merchant?.name || 'Transação',
@@ -91,7 +101,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Substitui as transações desse banco (evita duplicar a cada sincronização)
-      await supabase.from('of_transacoes').delete().eq('user_id', user.id).eq('item_id', itemId)
+      await supabase.from('of_transacoes').delete().eq('item_id', itemId)
       if (novas.length > 0) {
         const { error: insErr } = await supabase.from('of_transacoes').insert(novas)
         if (!insErr) totalSalvas += novas.length
@@ -100,7 +110,7 @@ export async function POST(request: NextRequest) {
       // Marca a conexão como ativa
       await supabase.from('open_finance')
         .update({ status: 'UPDATED', updated_at: new Date().toISOString() })
-        .eq('user_id', user.id).eq('item_id', itemId)
+        .eq('item_id', itemId)
     }
 
     return NextResponse.json({ total: totalSalvas })

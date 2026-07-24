@@ -21,6 +21,7 @@ import {
   montarNarrativaRitmo, montarNarrativaProjecaoMeta, montarNarrativaMetaIrreal,
   montarConselhoMeta, montarNarrativaDependencia,
 } from "../../../lib/cfoTextos";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { contarClientesAtivos } from "../../../lib/clienteIntelHelpers";
 
@@ -260,15 +261,17 @@ export default function Metas() {
     const hoje = hojeISO();
     const inicioHist = inicioJanela24m(hoje);
 
+    const empresaId = await obterEmpresaAtiva();
+
     const [{ data: mt }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: cli }, { data: emp }] = await Promise.all([
-      supabase.from("metas").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", hoje),
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
-      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", hoje),
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("user_id", user.id),
-      supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("user_id", user.id).gte("data", inicioHist).lte("data", hoje),
-      supabase.from("clientes").select("status, created_at").eq("user_id", user.id),
-      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+      supabase.from("metas").select("*").order("created_at", { ascending: false }),
+      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", hoje),
+      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", hoje),
+      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
+      supabase.from("fluxo_caixa").select("tipo, valor, data, status").gte("data", inicioHist).lte("data", hoje),
+      supabase.from("clientes").select("status, created_at"),
+      empresaId ? supabase.from("empresas").select("regime_tributario").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     const custoFixoMensalTotal = (cf || []).reduce((s, c) => s + Number(c.valor_mensal || 0), 0);
@@ -397,9 +400,11 @@ export default function Metas() {
       ({ error } = await supabase.from("metas").update(payload).eq("id", editando.id));
     } else {
       const hoje = hojeISO();
+      const empresaId = await obterEmpresaAtiva();
+      if (!empresaId) { setSalvando(false); setErroModal("Nenhuma empresa ativa encontrada."); return; }
       ({ error } = await supabase.from("metas").insert({
         ...camposComuns, tipo_meta: tipoMetaSel, valor_inicial: parseFloat(valorInicialInput),
-        valor_atual: parseFloat(valorInicialInput), data_inicio: hoje, status: "ativa", user_id: user.id,
+        valor_atual: parseFloat(valorInicialInput), data_inicio: hoje, status: "ativa", user_id: user.id, empresa_id: empresaId,
       }));
     }
 

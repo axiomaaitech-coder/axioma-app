@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
+import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { createBrowserClient } from '@supabase/ssr'
 import { AlertTriangle, X } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
@@ -148,8 +149,8 @@ export default function PainelMEI() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     const [{ data: mei }, { data: rec }] = await Promise.all([
-      supabase.from('mei_dados').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('receitas').select('*').eq('user_id', user.id).order('data', { ascending: false }),
+      supabase.from('mei_dados').select('*').maybeSingle(),
+      supabase.from('receitas').select('*').order('data', { ascending: false }),
     ])
     setMeiDados(mei || null)
     setReceitas(rec || [])
@@ -165,15 +166,17 @@ export default function PainelMEI() {
     setSalvando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
+    const empresaId = await obterEmpresaAtiva()
     const { error } = await supabase.from('mei_dados').upsert({
       user_id: user.id,
+      empresa_id: empresaId,
       categoria_mei: categoriaMei,
       das_valor: parseFloat(dasValor),
       data_abertura: dataAbertura || null,
       limite_anual: LIMITE_ANUAL,
       regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    }, { onConflict: 'empresa_id' })
     if (error) console.error('Erro ao salvar MEI:', error)
     setModalConfig(false)
     setSalvando(false)

@@ -524,17 +524,17 @@ export type PlanoAcao = {
 };
 
 export async function carregarPlanosAcao(userId: string): Promise<PlanoAcao[]> {
-  const { data } = await supabase.from("centro_custo_plano_acao").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+  const { data } = await supabase.from("centro_custo_plano_acao").select("*").order("created_at", { ascending: false });
   return data || [];
 }
 
-export async function criarPlanoAcao(userId: string, plano: {
+export async function criarPlanoAcao(userId: string, empresaId: string | null, plano: {
   centroId?: string | null; origemTipo: "causa_raiz" | "oportunidade" | "manual"; origemId?: string;
   titulo: string; objetivo?: string; tarefas?: string[]; responsavel?: string; prazo?: string;
   impactoEsperado?: string; economiaEstimada?: number;
 }): Promise<{ erro?: string }> {
   const { error } = await supabase.from("centro_custo_plano_acao").insert({
-    user_id: userId, centro_custo_id: plano.centroId || null, origem_tipo: plano.origemTipo, origem_id: plano.origemId || null,
+    user_id: userId, empresa_id: empresaId, centro_custo_id: plano.centroId || null, origem_tipo: plano.origemTipo, origem_id: plano.origemId || null,
     titulo: plano.titulo, objetivo: plano.objetivo || null, tarefas: plano.tarefas || null, responsavel: plano.responsavel || null,
     prazo: plano.prazo || null, impacto_esperado: plano.impactoEsperado || null, economia_estimada: plano.economiaEstimada ?? null,
   });

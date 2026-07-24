@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { CORES, FONTE_EXEC, optDispersao, optBarrasV } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import {
   montarSnapshotsCarteira, calcularIVCA, calcularSaudeCliente, detectarSinaisCliente,
@@ -391,7 +392,7 @@ export default function ClientesPage() {
     buscarEstados().then((r) => setEstados(r.dados));
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from("centros_custo").select("id, nome").eq("user_id", user.id).then(({ data }) => setCentrosCusto(data || []));
+      supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
     });
   }, []);
 
@@ -405,12 +406,11 @@ export default function ClientesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data: empresa } = await supabase.from("empresas").select("id").eq("user_id", user.id).single();
-    setEmpresaId(empresa?.id || null);
+    setEmpresaId(await obterEmpresaAtiva());
     const [{ data: clientesData }, { data: contasData }, { data: inadData }] = await Promise.all([
-      supabase.from("clientes").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("contas_receber").select("*").eq("user_id", user.id).order("data_vencimento", { ascending: true }),
-      supabase.from("inadimplencia").select("*").eq("user_id", user.id),
+      supabase.from("clientes").select("*").order("created_at", { ascending: false }),
+      supabase.from("contas_receber").select("*").order("data_vencimento", { ascending: true }),
+      supabase.from("inadimplencia").select("*"),
     ]);
     setClientes(clientesData || []);
     setContas(contasData || []);

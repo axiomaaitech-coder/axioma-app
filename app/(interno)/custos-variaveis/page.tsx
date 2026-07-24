@@ -18,6 +18,7 @@ import {
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento, montarNarrativaVariacao, montarNarrativaMargem, montarSugestao } from "../../../lib/cfoTextos";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,20 +80,20 @@ export default function CustosVariaveis() {
     const inicioHistorico = inicioJanelaHistorica(periodo.fim);
 
     const [{ data: cv }, { data: cf }, { data: rec }] = await Promise.all([
-      supabase.from("custos_variaveis").select("*").eq("user_id", user.id)
+      supabase.from("custos_variaveis").select("*")
         .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }),
       // Leitura só (SELECT) de Custos Fixos — necessária pro Ponto de Equilíbrio. Nunca escreve nessa tabela.
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
+      supabase.from("custos_fixos").select("valor_mensal"),
       // Leitura só (SELECT) de Receitas — necessária pra Margem de Contribuição. Nunca escreve nessa tabela.
       // Limitada à mesma janela histórica — não traz o histórico inteiro da empresa de uma vez.
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id)
+      supabase.from("receitas").select("valor, data")
         .gte("data", inicioHistorico).lte("data", periodo.fim),
     ]);
 
     setCustos(cv || []);
     setCustoFixoTotal((cf || []).reduce((s, c: any) => s + Number(c.valor_mensal || 0), 0));
     setReceitas((rec || []).map((r: any) => ({ valor: Number(r.valor || 0), data: r.data })));
-    supabase.from("centros_custo").select("id, nome").eq("user_id", user.id).then(({ data }) => setCentrosCusto(data || []));
+    supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
   };
 
@@ -112,17 +113,19 @@ export default function CustosVariaveis() {
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
+    const empresaId = await obterEmpresaAtiva();
+    if (!empresaId) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
       const { error } = await supabase.from("custos_variaveis").update(payload).eq("id", editando.id);
       if (!error) {
-        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
+        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
         fecharModal(); await carregarTudo();
       }
     } else {
-      const { data, error } = await supabase.from("custos_variaveis").insert({ ...payload, user_id: user.id }).select("id").single();
+      const { data, error } = await supabase.from("custos_variaveis").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
       if (!error && data) {
-        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
+        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
         fecharModal(); await carregarTudo();
       }
     }
@@ -131,9 +134,10 @@ export default function CustosVariaveis() {
 
   const excluir = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
+    const empresaId = await obterEmpresaAtiva();
     const custo = custos.find(c => c.id === id);
     await supabase.from("custos_variaveis").delete().eq("id", id);
-    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: custo?.centro_custo_id || null, tabela: "custos_variaveis", registroId: id, acao: "excluir", descricao: `Custo variável excluído: ${custo?.descricao || id}` });
+    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_variaveis", registroId: id, acao: "excluir", descricao: `Custo variável excluído: ${custo?.descricao || id}` });
     setCustos(custos.filter(c => c.id !== id));
   };
 

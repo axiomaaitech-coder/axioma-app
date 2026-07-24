@@ -8,7 +8,7 @@ import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { Pencil, Trash2, X, Split } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { consultarCEP, validarCPF, formatarCPF, formatarCEP } from "../../../lib/enderecoHelpers";
-import { validarCNPJ, formatarCNPJ } from "../../../lib/empresaHelpers";
+import { validarCNPJ, formatarCNPJ, obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { optCascata } from "../../../lib/cfoCore";
 import ReactECharts from "echarts-for-react";
 import {
@@ -130,6 +130,7 @@ export default function CentrosCustoPage() {
   const [rateios, setRateios] = useState<RateioRow[]>([]);
   const [orcamentos, setOrcamentos] = useState<OrcamentoRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [orcamentoEditId, setOrcamentoEditId] = useState<string | null>(null);
   const [orcamentoEditValor, setOrcamentoEditValor] = useState("");
   const [salvandoOrcamento, setSalvandoOrcamento] = useState(false);
@@ -197,20 +198,21 @@ export default function CentrosCustoPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     setUserId(user.id);
+    setEmpresaId(await obterEmpresaAtiva());
     const [
       { data: centrosData }, { data: lancamentosData }, origensData, rateiosData, orcamentosData,
       receitasData, { data: fornecedoresData }, { data: contasPagarData }, { data: contratosData },
       auditoriaData, planosData,
     ] = await Promise.all([
-      supabase.from("centros_custo").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
-      supabase.from("lancamentos_centro").select("*").eq("user_id", user.id).order("data", { ascending: false }),
+      supabase.from("centros_custo").select("*").order("created_at", { ascending: true }),
+      supabase.from("lancamentos_centro").select("*").order("data", { ascending: false }),
       carregarTodosLancamentosOrigem(user.id),
       carregarRateios(user.id),
       carregarOrcamentos(user.id),
       carregarReceitasOrigem(user.id),
-      supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("user_id", user.id),
-      supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("user_id", user.id),
-      supabase.from("fornecedor_contratos").select("*").eq("user_id", user.id),
+      supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id"),
+      supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status"),
+      supabase.from("fornecedor_contratos").select("*"),
       carregarAuditoriaCentro(user.id),
       carregarPlanosAcao(user.id),
     ]);
@@ -250,10 +252,10 @@ export default function CentrosCustoPage() {
     };
     if (editandoCentro) {
       await supabase.from("centros_custo").update(payload).eq("id", editandoCentro.id);
-      await registrarAuditoriaCentro({ userId: user.id, centroId: editandoCentro.id, tabela: "centros_custo", registroId: editandoCentro.id, acao: "editar", descricao: `Centro editado: ${nomeCentro}`, valorAntes: editandoCentro, valorDepois: payload });
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: editandoCentro.id, tabela: "centros_custo", registroId: editandoCentro.id, acao: "editar", descricao: `Centro editado: ${nomeCentro}`, valorAntes: editandoCentro, valorDepois: payload });
     } else {
-      const { data } = await supabase.from("centros_custo").insert({ ...payload, user_id: user.id, ativo: true }).select("id").single();
-      await registrarAuditoriaCentro({ userId: user.id, centroId: data?.id, tabela: "centros_custo", registroId: data?.id, acao: "criar", descricao: `Centro criado: ${nomeCentro}`, valorDepois: payload });
+      const { data } = await supabase.from("centros_custo").insert({ ...payload, user_id: user.id, empresa_id: empresaId, ativo: true }).select("id").single();
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: data?.id, tabela: "centros_custo", registroId: data?.id, acao: "criar", descricao: `Centro criado: ${nomeCentro}`, valorDepois: payload });
     }
     fecharModalCentro(); setSalvandoCentro(false); carregarDados();
   }
@@ -262,7 +264,7 @@ export default function CentrosCustoPage() {
     if (!userId) return;
     const centro = centros.find(c => c.id === id);
     await supabase.from("centros_custo").delete().eq("id", id);
-    await registrarAuditoriaCentro({ userId, centroId: id, tabela: "centros_custo", registroId: id, acao: "excluir", descricao: `Centro excluído: ${centro?.nome || id}` });
+    await registrarAuditoriaCentro({ userId, empresaId, centroId: id, tabela: "centros_custo", registroId: id, acao: "excluir", descricao: `Centro excluído: ${centro?.nome || id}` });
     carregarDados();
   }
 
@@ -394,7 +396,7 @@ export default function CentrosCustoPage() {
     const splits = centros
       .filter(c => parseFloat(rateioPercentuais[c.id] || "0") > 0)
       .map(c => ({ centroId: c.id, percentual: parseFloat(rateioPercentuais[c.id]) }));
-    const { erro } = await aplicarRateio(userId, rateioTabela, origemSelecionada.id, origemSelecionada.descricao, "manual", splits);
+    const { erro } = await aplicarRateio(userId, empresaId, rateioTabela, origemSelecionada.id, origemSelecionada.descricao, "manual", splits);
     if (erro) {
       alert("Erro ao aplicar rateio: " + erro);
       setProcessandoRateio(false);
@@ -563,7 +565,7 @@ export default function CentrosCustoPage() {
           titulo: planoTitulo, objetivo: planoObjetivo, tarefas, responsavel: planoResponsavel, prazo: planoPrazo,
           impactoEsperado: planoImpacto, economiaEstimada: planoEconomia ? parseFloat(planoEconomia) : undefined,
         })
-      : await criarPlanoAcao(userId, {
+      : await criarPlanoAcao(userId, empresaId, {
           centroId: planoOrigem.centroId, origemTipo: planoOrigem.tipo, origemId: planoOrigem.id,
           titulo: planoTitulo, objetivo: planoObjetivo || undefined, tarefas,
           responsavel: planoResponsavel || undefined, prazo: planoPrazo || undefined,
@@ -746,7 +748,7 @@ export default function CentrosCustoPage() {
                           <button disabled={salvandoOrcamento} onClick={async () => {
                               if (!userId) return;
                               setSalvandoOrcamento(true);
-                              await definirOrcamento(userId, centro.id, periodo, parseFloat(orcamentoEditValor || "0"));
+                              await definirOrcamento(userId, empresaId, centro.id, periodo, parseFloat(orcamentoEditValor || "0"));
                               setSalvandoOrcamento(false); setOrcamentoEditId(null); carregarDados();
                             }} className="text-xs font-bold px-2 py-1.5 rounded-lg" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>
                             {idioma === "pt" ? "Salvar" : idioma === "es" ? "Guardar" : "Save"}
@@ -1176,7 +1178,7 @@ export default function CentrosCustoPage() {
         {aba === "planilha" && (
           <PlanilhaCentroCusto
             linhas={linhasPlanilha} centros={centros} orcamentos={orcamentos} fornecedores={fornecedoresLeves}
-            categoriasPorTabela={categoriasPorTabelaPlanilha} userId={userId} idioma={langF2} onSalvo={carregarDados}
+            categoriasPorTabela={categoriasPorTabelaPlanilha} userId={userId} empresaId={empresaId} idioma={langF2} onSalvo={carregarDados}
           />
         )}
       </div>

@@ -12,6 +12,7 @@ import {
   montarPromptCFO, respostaPorRegras, salvarMensagem, carregarHistorico, limparHistorico,
   type SnapshotFinanceiro, type Score360, type Anomalia, type Projecao, type AcaoSugerida, type BenchmarkSetor,
 } from "../../../lib/iaFinanceiraHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,6 +249,7 @@ export default function IAFinanceiraPage() {
   const chatRef = useRef<HTMLDivElement>(null);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [aba, setAba] = useState<"score" | "chat" | "anomalias" | "projecoes" | "whatif" | "plano" | "resumo" | "benchmark">("score");
@@ -297,7 +299,9 @@ export default function IAFinanceiraPage() {
   async function carregarTudo(uid: string) {
     setCarregando(true);
     try {
-      const snapshot = await carregarSnapshot(uid);
+      const empId = await obterEmpresaAtiva();
+      setEmpresaId(empId);
+      const snapshot = await carregarSnapshot(uid, empId);
       const benchmark = await carregarBenchmark(snapshot.setor);
       const score = calcularScore360(snapshot, benchmark);
       const anom = detectarAnomalias(snapshot, benchmark);
@@ -341,7 +345,7 @@ export default function IAFinanceiraPage() {
     setInputChat("");
     setChatCarregando(true);
 
-    await salvarMensagem(userId, "user", texto);
+    await salvarMensagem(userId, empresaId, "user", texto);
 
     // Tentar Claude API primeiro, fallback pra regras
     let resposta = "";
@@ -372,7 +376,7 @@ export default function IAFinanceiraPage() {
     }
 
     setMensagens([...novas, { role: "assistant", texto: resposta }]);
-    await salvarMensagem(userId, "assistant", resposta, { score: score360.total }, modelo);
+    await salvarMensagem(userId, empresaId, "assistant", resposta, { score: score360.total }, modelo);
     setChatCarregando(false);
   }
 

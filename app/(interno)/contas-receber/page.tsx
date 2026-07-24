@@ -15,6 +15,7 @@ import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
+import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -186,23 +187,26 @@ export default function ContasReceber() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
     setUserId(user.id)
-    const { data: empresa } = await supabase.from('empresas').select('id, regime_tributario').eq('user_id', user.id).maybeSingle()
-    setEmpresaId(empresa?.id || null)
-    setRegimeTributario(empresa?.regime_tributario || '')
+    const empId = await obterEmpresaAtiva()
+    setEmpresaId(empId)
+    if (empId) {
+      const { data: empresa } = await supabase.from('empresas').select('regime_tributario').eq('id', empId).maybeSingle()
+      setRegimeTributario(empresa?.regime_tributario || '')
+    }
     const [
       { data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData,
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: fc },
     ] = await Promise.all([
-      supabase.from('clientes').select('*').eq('user_id', user.id).order('nome'),
-      supabase.from('centros_custo').select('id, nome').eq('user_id', user.id).order('nome'),
-      supabase.from('contas_receber').select('*').eq('user_id', user.id).order('data_vencimento', { ascending: true }),
+      supabase.from('clientes').select('*').order('nome'),
+      supabase.from('centros_custo').select('id, nome').order('nome'),
+      supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true }),
       listarCompromissos(),
       listarEtapasRegua(user.id),
-      supabase.from('receitas').select('valor, data').eq('user_id', user.id),
-      supabase.from('custos_fixos').select('valor_mensal').eq('user_id', user.id),
-      supabase.from('custos_variaveis').select('valor').eq('user_id', user.id),
-      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('user_id', user.id),
-      supabase.from('fluxo_caixa').select('valor, tipo, status').eq('user_id', user.id),
+      supabase.from('receitas').select('valor, data'),
+      supabase.from('custos_fixos').select('valor_mensal'),
+      supabase.from('custos_variaveis').select('valor'),
+      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros'),
+      supabase.from('fluxo_caixa').select('valor, tipo, status'),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setCentrosCusto(cc || [])
@@ -337,7 +341,7 @@ export default function ContasReceber() {
 
     async function tentarSalvar(payload: any): Promise<{ error: any }> {
       if (editando) return supabase.from('contas_receber').update(payload).eq('id', editando.id)
-      return supabase.from('contas_receber').insert({ ...payload, user_id: userId })
+      return supabase.from('contas_receber').insert({ ...payload, user_id: userId, empresa_id: empresaId })
     }
 
     let { error } = await tentarSalvar(payloadCompleto)
@@ -518,7 +522,7 @@ export default function ContasReceber() {
   async function salvarContato() {
     if (!contaCobranca || !userId || !novoContato.descricao.trim()) return
     setSalvandoCobranca(true)
-    await criarInteracao(userId, {
+    await criarInteracao(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
       tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao, data: hoje,
     })
@@ -530,7 +534,7 @@ export default function ContasReceber() {
   async function salvarCompromisso() {
     if (!contaCobranca || !userId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
     setSalvandoCobranca(true)
-    await criarCompromisso(userId, {
+    await criarCompromisso(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
       tipo: novoCompromisso.tipo, valor_original: contaCobranca.valor,
       valor_compromissado: parseFloat(novoCompromisso.valor_compromissado), data_compromissada: novoCompromisso.data_compromissada,
@@ -551,7 +555,7 @@ export default function ContasReceber() {
   function abrirNovaEtapa() { setEditandoEtapa({ dias_relativos: 0, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasRegua.length }) }
   async function salvarEtapa() {
     if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
-    await salvarEtapaRegua(userId, editandoEtapa)
+    await salvarEtapaRegua(userId, empresaId, editandoEtapa)
     setEtapasRegua(await listarEtapasRegua(userId))
     setEditandoEtapa(null)
   }
@@ -561,7 +565,7 @@ export default function ContasReceber() {
   }
   async function usarReguaPadrao() {
     if (!userId) return
-    for (const e of etapasReguaPadrao()) await salvarEtapaRegua(userId, e)
+    for (const e of etapasReguaPadrao()) await salvarEtapaRegua(userId, empresaId, e)
     setEtapasRegua(await listarEtapasRegua(userId))
   }
 

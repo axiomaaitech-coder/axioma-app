@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
+import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { Pencil, Check, X, FileText, Bell } from 'lucide-react'
@@ -140,8 +141,8 @@ export default function DASObrigacoes() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const [{ data: mei }, { data: rec }] = await Promise.all([
-      supabase.from('mei_dados').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('receitas').select('*').eq('user_id', user.id),
+      supabase.from('mei_dados').select('*').maybeSingle(),
+      supabase.from('receitas').select('*'),
     ])
     setMeiDados(mei)
     setReceitas(rec || [])
@@ -154,12 +155,13 @@ export default function DASObrigacoes() {
     const novoValor = parseFloat(dasValorTemp)
     if (isNaN(novoValor)) return
     setDasValor(String(novoValor))
+    const empresaId = await obterEmpresaAtiva()
     await supabase.from('mei_dados').upsert({
-      user_id: user.id, das_valor: novoValor,
+      user_id: user.id, empresa_id: empresaId, das_valor: novoValor,
       categoria_mei: meiDados?.categoria_mei || 'Serviços',
       limite_anual: 81000, regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    }, { onConflict: 'empresa_id' })
     setEditandoDas(false)
     carregar()
   }

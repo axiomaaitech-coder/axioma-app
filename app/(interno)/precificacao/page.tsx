@@ -25,6 +25,7 @@ import {
   montarNarrativaImpactoPreco, montarNarrativaImpactoDesconto,
   montarNarrativaElasticidade, montarNarrativaIPPA,
 } from "../../../lib/cfoTextos";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 
 const supabase = createBrowserClient(
@@ -136,15 +137,17 @@ export default function Precificacao() {
     const inicioIso = inicio12m.toISOString().slice(0, 10);
     const hoje = new Date().toISOString().slice(0, 10);
 
+    const empresaIdAtiva = await obterEmpresaAtiva();
+
     const [{ data: prod }, { data: conc }, { data: dec }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: emp }] = await Promise.all([
-      supabase.from("precificacao").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("concorrentes").select("*").eq("user_id", user.id),
-      supabase.from("decisoes_precificacao").select("*").eq("user_id", user.id).order("created_at", { ascending: true }),
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioIso).lte("data", hoje),
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
-      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioIso).lte("data", hoje),
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("user_id", user.id),
-      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+      supabase.from("precificacao").select("*").order("created_at", { ascending: false }),
+      supabase.from("concorrentes").select("*"),
+      supabase.from("decisoes_precificacao").select("*").order("created_at", { ascending: true }),
+      supabase.from("receitas").select("valor, data").gte("data", inicioIso).lte("data", hoje),
+      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioIso).lte("data", hoje),
+      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
+      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setProdutos(prod || []); setConcorrentes(conc || []); setDecisoes(dec || []);
@@ -187,8 +190,13 @@ export default function Precificacao() {
       preco_sugerido: editando ? editando.preco_sugerido : calcularPreco(custoTotal, margemDesejada, impostos, despesas),
       categoria: categoria || null, unidades_vendidas_mes: unidadesVendidasMes ? parseFloat(unidadesVendidasMes) : null, status,
     };
-    if (editando) await supabase.from("precificacao").update(payload).eq("id", editando.id);
-    else await supabase.from("precificacao").insert({ ...payload, user_id: user.id });
+    if (editando) {
+      await supabase.from("precificacao").update(payload).eq("id", editando.id);
+    } else {
+      const empresaId = await obterEmpresaAtiva();
+      if (!empresaId) { setSalvando(false); return; }
+      await supabase.from("precificacao").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+    }
     fecharModal(); setSalvando(false); await carregarTudo();
   }
   async function excluirProduto(id: string) {
@@ -267,10 +275,11 @@ export default function Precificacao() {
     if (!produtoSelecionado || !precoCandidato) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const empresaId = await obterEmpresaAtiva();
     const precoNovo = parseFloat(precoCandidato);
     await supabase.from("precificacao").update({ preco_sugerido: precoNovo }).eq("id", produtoSelecionado.id);
     await supabase.from("decisoes_precificacao").insert({
-      user_id: user.id, produto_id: produtoSelecionado.id,
+      user_id: user.id, empresa_id: empresaId, produto_id: produtoSelecionado.id,
       preco_anterior: produtoSelecionado.preco_sugerido, preco_novo: precoNovo,
       motivo: "Motor de Precificação por Valor", unidades_no_momento: produtoSelecionado.unidades_vendidas_mes || 0,
     });
@@ -297,8 +306,9 @@ export default function Precificacao() {
     if (!produtoSelecionadoId || !novoConcorrenteNome || !novoConcorrentePreco) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const empresaId = await obterEmpresaAtiva();
     await supabase.from("concorrentes").insert({
-      user_id: user.id, produto_id: produtoSelecionadoId, nome_concorrente: novoConcorrenteNome,
+      user_id: user.id, empresa_id: empresaId, produto_id: produtoSelecionadoId, nome_concorrente: novoConcorrenteNome,
       preco: parseFloat(novoConcorrentePreco), posicionamento: novoConcorrentePosicionamento || null,
     });
     setNovoConcorrenteNome(""); setNovoConcorrentePreco(""); setNovoConcorrentePosicionamento("");

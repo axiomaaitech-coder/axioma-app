@@ -27,6 +27,7 @@ import {
   cfoT, canaisCompartilhamento,
   montarConselhoInvestimento, nomeCategoriaAlocacao, montarNarrativaAlocacao, montarNarrativaCenario,
 } from "../../../lib/cfoTextos";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { buscarIndicadoresMacro, type IndicadoresMacro } from "../../../lib/bcbApi";
 
@@ -168,19 +169,20 @@ export default function Investimentos() {
     if (!user) { setCarregando(false); return; }
 
     const inicioHist = inicioJanela24m(periodo.fim);
+    const empresaIdAtiva = await obterEmpresaAtiva();
 
     const [{ data: inv }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
       supabase.from("investimentos")
         .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
-        .eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
-      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
+        .order("created_at", { ascending: false }),
+      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
       // Leitura só (SELECT) — nunca escreve em dividas. Base do custo de oportunidade real.
-      supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("user_id", user.id),
+      supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros"),
       // Todo o histórico realizado — mesma definição de "caixa disponível" do Fluxo de Caixa.
-      supabase.from("fluxo_caixa").select("tipo, valor, status").eq("user_id", user.id),
-      supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
+      supabase.from("fluxo_caixa").select("tipo, valor, status"),
+      empresaIdAtiva ? supabase.from("empresas").select("regime_tributario").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
     setInvestimentos(inv || []);
@@ -224,9 +226,14 @@ export default function Investimentos() {
       data_vencimento: dataVencimento || null, indexador: indexador || null,
       instituicao: instituicao || null, liquidez, status,
     };
-    const { error } = editando
-      ? await supabase.from("investimentos").update(payload).eq("id", editando.id)
-      : await supabase.from("investimentos").insert({ ...payload, user_id: user.id });
+    let error;
+    if (editando) {
+      ({ error } = await supabase.from("investimentos").update(payload).eq("id", editando.id));
+    } else {
+      const empresaId = await obterEmpresaAtiva();
+      if (!empresaId) { setSalvando(false); return; }
+      ({ error } = await supabase.from("investimentos").insert({ ...payload, user_id: user.id, empresa_id: empresaId }));
+    }
 
     if (error) { setErroModal(error.message); setSalvando(false); return; }
     fecharModal(); setSalvando(false); await carregarTudo();

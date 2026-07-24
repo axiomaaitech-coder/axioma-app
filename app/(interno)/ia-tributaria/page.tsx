@@ -12,6 +12,7 @@ import {
   montarPromptTributario, respostaTributariaPorRegras, salvarMensagemTrib, carregarHistoricoTrib, limparHistoricoTrib,
   type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma,
 } from "../../../lib/iaTributariaHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -112,6 +113,7 @@ export default function IATributariaPage() {
   const chatRef = useRef<HTMLDivElement>(null);
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
   const [aba, setAba] = useState<"score" | "chat" | "simulador" | "carga" | "economia" | "reforma" | "diagnostico" | "calendario">("score");
@@ -145,7 +147,9 @@ export default function IATributariaPage() {
   async function carregarTudo(uid: string) {
     setCarregando(true);
     try {
-      const d = await carregarDadosFiscais(uid);
+      const empId = await obterEmpresaAtiva();
+      setEmpresaId(empId);
+      const d = await carregarDadosFiscais(uid, empId);
       const sf = calcularScoreFiscal(d);
       const sims = simularRegimes(d);
       const c = calcularCargaTributaria(d);
@@ -172,7 +176,7 @@ export default function IATributariaPage() {
     if (!texto.trim() || chatCarregando || !dados || !scoreFiscal || !userId) return;
     const novas = [...mensagens, { role: "user", texto }];
     setMensagens(novas); setInputChat(""); setChatCarregando(true);
-    await salvarMensagemTrib(userId, "user", texto);
+    await salvarMensagemTrib(userId, empresaId, "user", texto);
 
     let resposta = "", modelo = "regras";
     try {
@@ -187,7 +191,7 @@ export default function IATributariaPage() {
     if (!resposta) resposta = respostaTributariaPorRegras(dados, scoreFiscal, carga, texto, lang);
 
     setMensagens([...novas, { role: "assistant", texto: resposta }]);
-    await salvarMensagemTrib(userId, "assistant", resposta, { score: scoreFiscal.score }, modelo);
+    await salvarMensagemTrib(userId, empresaId, "assistant", resposta, { score: scoreFiscal.score }, modelo);
     setChatCarregando(false);
   }
 

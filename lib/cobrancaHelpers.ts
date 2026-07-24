@@ -62,8 +62,8 @@ export async function listarInteracoes(contaId?: string): Promise<CobrancaIntera
   return data || [];
 }
 
-export async function criarInteracao(userId: string, dados: Partial<CobrancaInteracao>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_interacoes").insert({ ...dados, user_id: userId });
+export async function criarInteracao(userId: string, empresaId: string | null, dados: Partial<CobrancaInteracao>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("cobranca_interacoes").insert({ ...dados, user_id: userId, empresa_id: empresaId });
   return error ? { erro: error.message } : {};
 }
 
@@ -86,8 +86,8 @@ export async function listarCompromissos(contaId?: string): Promise<CobrancaComp
   return data || [];
 }
 
-export async function criarCompromisso(userId: string, dados: Partial<CobrancaCompromisso>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_compromissos").insert({ ...dados, user_id: userId, status: "pendente" });
+export async function criarCompromisso(userId: string, empresaId: string | null, dados: Partial<CobrancaCompromisso>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("cobranca_compromissos").insert({ ...dados, user_id: userId, empresa_id: empresaId, status: "pendente" });
   return error ? { erro: error.message } : {};
 }
 
@@ -118,16 +118,16 @@ export function etapasReguaPadrao(): Omit<EtapaRegua, "id" | "user_id">[] {
 }
 
 export async function listarEtapasRegua(userId: string): Promise<EtapaRegua[]> {
-  const { data } = await supabase.from("cobranca_regua_etapas").select("*").eq("user_id", userId).order("ordem", { ascending: true });
+  const { data } = await supabase.from("cobranca_regua_etapas").select("*").order("ordem", { ascending: true });
   return data || [];
 }
 
-export async function salvarEtapaRegua(userId: string, etapa: Partial<EtapaRegua>): Promise<{ erro?: string }> {
+export async function salvarEtapaRegua(userId: string, empresaId: string | null, etapa: Partial<EtapaRegua>): Promise<{ erro?: string }> {
   if (etapa.id) {
     const { error } = await supabase.from("cobranca_regua_etapas").update(etapa).eq("id", etapa.id);
     return error ? { erro: error.message } : {};
   }
-  const { error } = await supabase.from("cobranca_regua_etapas").insert({ ...etapa, user_id: userId });
+  const { error } = await supabase.from("cobranca_regua_etapas").insert({ ...etapa, user_id: userId, empresa_id: empresaId });
   return error ? { erro: error.message } : {};
 }
 

@@ -14,6 +14,7 @@ import {
 } from "../../../lib/cfoCore";
 import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,9 +56,9 @@ export default function CustosFixos() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const { data } = await supabase.from("custos_fixos").select("*").eq("user_id", user.id).order("dia_vencimento", { ascending: true });
+    const { data } = await supabase.from("custos_fixos").select("*").order("dia_vencimento", { ascending: true });
     setCustos(data || []);
-    supabase.from("centros_custo").select("id, nome").eq("user_id", user.id).then(({ data }) => setCentrosCusto(data || []));
+    supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
   };
 
@@ -69,17 +70,19 @@ export default function CustosFixos() {
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
+    const empresaId = await obterEmpresaAtiva();
+    if (!empresaId) { setSalvando(false); return; }
     const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
       const { error } = await supabase.from("custos_fixos").update(payload).eq("id", editando.id);
       if (!error) {
-        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
+        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
         fecharModal(); await carregarCustos();
       }
     } else {
-      const { data, error } = await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id }).select("id").single();
+      const { data, error } = await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
       if (!error && data) {
-        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
+        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
         fecharModal(); await carregarCustos();
       }
     }
@@ -88,9 +91,10 @@ export default function CustosFixos() {
 
   const excluir = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
+    const empresaId = await obterEmpresaAtiva();
     const custo = custos.find(c => c.id === id);
     await supabase.from("custos_fixos").delete().eq("id", id);
-    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: custo?.centro_custo_id || null, tabela: "custos_fixos", registroId: id, acao: "excluir", descricao: `Custo fixo excluído: ${custo?.descricao || id}` });
+    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_fixos", registroId: id, acao: "excluir", descricao: `Custo fixo excluído: ${custo?.descricao || id}` });
     setCustos(custos.filter(c => c.id !== id));
   };
 

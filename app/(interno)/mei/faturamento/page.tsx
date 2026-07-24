@@ -131,7 +131,7 @@ export default function FaturamentoMEI() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
-    const { data } = await supabase.from('receitas').select('*').eq('user_id', user.id).order('data', { ascending: false })
+    const { data } = await supabase.from('receitas').select('*').order('data', { ascending: false })
     setReceitas(data || [])
     setLoading(false)
   }

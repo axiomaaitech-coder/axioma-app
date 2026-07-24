@@ -32,6 +32,7 @@ import {
   excluirRegistroImportacao,
   type StatsMes,
 } from "../../../lib/importarHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -365,8 +366,7 @@ export default function ImportarDocumentosPage() {
     if (!user) return;
     setUserId(user.id);
 
-    const { data: empresa } = await supabase.from("empresas").select("id").eq("user_id", user.id).maybeSingle();
-    setEmpresaId(empresa?.id || null);
+    setEmpresaId(await obterEmpresaAtiva());
 
     await Promise.all([
       carregarStatsMes(user.id).then(setStats),
@@ -380,7 +380,6 @@ export default function ImportarDocumentosPage() {
     const { data } = await supabase
       .from("importacoes")
       .select("*")
-      .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(50);
     setHistorico(data || []);

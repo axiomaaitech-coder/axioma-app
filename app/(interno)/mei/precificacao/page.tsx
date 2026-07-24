@@ -139,7 +139,7 @@ export default function PrecificacaoMEI() {
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data: mei } = await supabase.from('mei_dados').select('*').eq('user_id', user.id).maybeSingle()
+    const { data: mei } = await supabase.from('mei_dados').select('*').maybeSingle()
     setMeiDados(mei)
   }
 

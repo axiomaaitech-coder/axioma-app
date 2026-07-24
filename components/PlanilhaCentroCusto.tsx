@@ -119,11 +119,12 @@ export type PlanilhaCentroCustoProps = {
   fornecedores: { id: string; nome: string }[];
   categoriasPorTabela: Partial<Record<OrigemTabela, string[]>>;
   userId: string | null;
+  empresaId: string | null;
   idioma: Lang;
   onSalvo: () => void;
 };
 
-export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, idioma, onSalvo }: PlanilhaCentroCustoProps) {
+export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, empresaId, idioma, onSalvo }: PlanilhaCentroCustoProps) {
   const t = T[idioma];
 
   const [busca, setBusca] = useState("");
@@ -338,7 +339,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       : coluna === "data" && linha.tabela === "custos_fixos" ? "dia_vencimento" : (coluna as CampoEditavel);
 
     setSalvandoId(linha.id);
-    const { erro } = await atualizarCampoOrigem(userId, linha.tabela, linha.id, campo, valorFinal || null, {
+    const { erro } = await atualizarCampoOrigem(userId, empresaId, linha.tabela, linha.id, campo, valorFinal || null, {
       centroId: linha.centroId, valorPagoAtual: linha.valorPago, dataVencimentoAtual: linha.data,
     });
     setSalvandoId(null);

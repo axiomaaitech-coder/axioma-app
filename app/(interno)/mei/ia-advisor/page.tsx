@@ -210,8 +210,8 @@ export default function IAMEIAdvisor() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const [{ data: mei }, { data: rec }] = await Promise.all([
-      supabase.from('mei_dados').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('receitas').select('*').eq('user_id', user.id),
+      supabase.from('mei_dados').select('*').maybeSingle(),
+      supabase.from('receitas').select('*'),
     ])
     setMeiDados(mei)
     setReceitas(rec || [])

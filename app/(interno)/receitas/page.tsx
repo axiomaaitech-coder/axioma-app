@@ -15,6 +15,7 @@ import {
 } from "../../../lib/cfoCore";
 import { cfoT, textoInsight, canaisCompartilhamento } from "../../../lib/cfoTextos";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,9 +57,9 @@ export default function Receitas() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
     const [{ data }, { data: clientesData }, { data: centrosData }] = await Promise.all([
-      supabase.from("receitas").select("*").eq("user_id", user.id).order("data", { ascending: false }),
-      supabase.from("clientes").select("id, nome").eq("user_id", user.id).order("nome", { ascending: true }),
-      supabase.from("centros_custo").select("id, nome").eq("user_id", user.id),
+      supabase.from("receitas").select("*").order("data", { ascending: false }),
+      supabase.from("clientes").select("id, nome").order("nome", { ascending: true }),
+      supabase.from("centros_custo").select("id, nome"),
     ]);
     setReceitas(data || []);
     setClientesOpcoes(clientesData || []);
@@ -75,17 +76,19 @@ export default function Receitas() {
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvando(false); return; }
+    const empresaId = await obterEmpresaAtiva();
+    if (!empresaId) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, status: novo.status, cliente_id: novo.cliente_id || null, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
       const { error } = await supabase.from("receitas").update(payload).eq("id", editando.id);
       if (!error) {
-        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: editando.id, acao: "editar", descricao: `Receita editada: ${novo.descricao}` });
+        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: editando.id, acao: "editar", descricao: `Receita editada: ${novo.descricao}` });
         fecharModal(); await carregarReceitas();
       }
     } else {
-      const { data, error } = await supabase.from("receitas").insert({ ...payload, user_id: user.id }).select("id").single();
+      const { data, error } = await supabase.from("receitas").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
       if (!error && data) {
-        await registrarAuditoriaCentro({ userId: user.id, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: data.id, acao: "criar", descricao: `Receita criada: ${novo.descricao}` });
+        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: data.id, acao: "criar", descricao: `Receita criada: ${novo.descricao}` });
         fecharModal(); await carregarReceitas();
       }
     }
@@ -93,9 +96,10 @@ export default function Receitas() {
   };
   const excluir = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
+    const empresaId = await obterEmpresaAtiva();
     const receita = receitas.find(r => r.id === id);
     await supabase.from("receitas").delete().eq("id", id);
-    if (user) await registrarAuditoriaCentro({ userId: user.id, centroId: receita?.centro_custo_id || null, tabela: "receitas", registroId: id, acao: "excluir", descricao: `Receita excluída: ${receita?.descricao || id}` });
+    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: receita?.centro_custo_id || null, tabela: "receitas", registroId: id, acao: "excluir", descricao: `Receita excluída: ${receita?.descricao || id}` });
     setReceitas(receitas.filter(r => r.id !== id));
   };
 

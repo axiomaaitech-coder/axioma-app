@@ -247,7 +247,6 @@ export async function buscarImportacaoPorHash(
   const { data } = await supabase
     .from("importacoes")
     .select("id, nome_arquivo, created_at, status, linhas_importadas")
-    .eq("user_id", userId)
     .eq("hash_arquivo", hash)
     .neq("status", "revertido")
     .maybeSingle();
@@ -269,7 +268,6 @@ export async function marcarDuplicatasPorLinha(
   const { data: linhasExistentes } = await supabase
     .from("importacao_linhas")
     .select("hash_linha")
-    .eq("user_id", userId)
     .eq("destino_tabela", destino)
     .eq("status", "importada")
     .in("hash_linha", hashesNovos);
@@ -321,7 +319,6 @@ export async function excluirRegistroImportacao(
     .from("importacoes")
     .select("id, status, linhas_importadas")
     .eq("id", importacaoId)
-    .eq("user_id", userId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
@@ -339,8 +336,7 @@ export async function excluirRegistroImportacao(
   const { error: errLinhas } = await supabase
     .from("importacao_linhas")
     .delete()
-    .eq("importacao_id", importacaoId)
-    .eq("user_id", userId);
+    .eq("importacao_id", importacaoId);
 
   if (errLinhas) return { erro: `Erro ao limpar linhas: ${errLinhas.message}` };
 
@@ -348,8 +344,7 @@ export async function excluirRegistroImportacao(
   const { error: errImp } = await supabase
     .from("importacoes")
     .delete()
-    .eq("id", importacaoId)
-    .eq("user_id", userId);
+    .eq("id", importacaoId);
 
   if (errImp) return { erro: `Erro ao remover registro: ${errImp.message}` };
 
@@ -558,7 +553,6 @@ export async function listarLinhasImportacao(
     .from("importacao_linhas")
     .select("*")
     .eq("importacao_id", importacaoId)
-    .eq("user_id", userId)
     .order("linha_numero", { ascending: true });
   return data || [];
 }
@@ -582,7 +576,6 @@ export async function editarLinhaImportada(
     .from("importacao_linhas")
     .select("destino_tabela, destino_id, importacao_id")
     .eq("id", linhaAuditoriaId)
-    .eq("user_id", userId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
@@ -635,8 +628,7 @@ export async function editarLinhaImportada(
   const { error: errUpdate } = await supabase
     .from(destino)
     .update(payload)
-    .eq("id", aud.destino_id)
-    .eq("user_id", userId);
+    .eq("id", aud.destino_id);
 
   if (errUpdate) return { erro: errUpdate.message };
 
@@ -652,11 +644,10 @@ export async function editarLinhaImportada(
   await supabase
     .from("importacao_linhas")
     .update(auditUpdate)
-    .eq("id", linhaAuditoriaId)
-    .eq("user_id", userId);
+    .eq("id", linhaAuditoriaId);
 
   // 5) Recalcula totais da importação
-  await recalcularTotaisImportacao(aud.importacao_id, userId);
+  await recalcularTotaisImportacao(aud.importacao_id);
 
   return { erro: null };
 }
@@ -674,7 +665,6 @@ export async function deletarLinhaImportada(
     .from("importacao_linhas")
     .select("destino_tabela, destino_id, importacao_id")
     .eq("id", linhaAuditoriaId)
-    .eq("user_id", userId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
@@ -684,8 +674,7 @@ export async function deletarLinhaImportada(
   const { error: errDel } = await supabase
     .from(aud.destino_tabela)
     .delete()
-    .eq("id", aud.destino_id)
-    .eq("user_id", userId);
+    .eq("id", aud.destino_id);
 
   if (errDel) return { erro: errDel.message };
 
@@ -696,11 +685,10 @@ export async function deletarLinhaImportada(
       status: "revertida",
       mensagem: `Removida em ${new Date().toLocaleString("pt-BR")}`,
     })
-    .eq("id", linhaAuditoriaId)
-    .eq("user_id", userId);
+    .eq("id", linhaAuditoriaId);
 
   // 4) Recalcula totais da importação
-  await recalcularTotaisImportacao(aud.importacao_id, userId);
+  await recalcularTotaisImportacao(aud.importacao_id);
 
   return { erro: null };
 }
@@ -709,12 +697,11 @@ export async function deletarLinhaImportada(
 // RECALCULAR TOTAIS DE UMA IMPORTAÇÃO (após edição ou exclusão de linha)
 // ============================================================================
 
-async function recalcularTotaisImportacao(importacaoId: string, userId: string): Promise<void> {
+async function recalcularTotaisImportacao(importacaoId: string): Promise<void> {
   const { data: linhasImp } = await supabase
     .from("importacao_linhas")
     .select("valor, status")
-    .eq("importacao_id", importacaoId)
-    .eq("user_id", userId);
+    .eq("importacao_id", importacaoId);
 
   const lista = linhasImp || [];
   const importadas = lista.filter((l: any) => l.status === "importada").length;
@@ -735,8 +722,7 @@ async function recalcularTotaisImportacao(importacaoId: string, userId: string):
       valor_total_importado: valorTotal,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", importacaoId)
-    .eq("user_id", userId);
+    .eq("id", importacaoId);
 }
 
 // ============================================================================
@@ -751,7 +737,6 @@ export async function reverterImportacao(
     .from("importacao_linhas")
     .select("id, destino_tabela, destino_id")
     .eq("importacao_id", importacaoId)
-    .eq("user_id", userId)
     .eq("status", "importada");
 
   const erros: string[] = [];
@@ -771,8 +756,7 @@ export async function reverterImportacao(
       const { error, count } = await supabase
         .from(tabela)
         .delete({ count: "exact" })
-        .in("id", chunk)
-        .eq("user_id", userId);
+        .in("id", chunk);
 
       if (error) {
         erros.push(`${tabela}: ${error.message}`);
@@ -786,7 +770,6 @@ export async function reverterImportacao(
     .from("importacao_linhas")
     .update({ status: "revertida" })
     .eq("importacao_id", importacaoId)
-    .eq("user_id", userId)
     .eq("status", "importada");
 
   await supabase
@@ -796,8 +779,7 @@ export async function reverterImportacao(
       revertido_em: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", importacaoId)
-    .eq("user_id", userId);
+    .eq("id", importacaoId);
 
   return { removidas, erros };
 }
@@ -823,7 +805,6 @@ export async function carregarStatsMes(userId: string): Promise<StatsMes> {
   const { data } = await supabase
     .from("importacoes")
     .select("status, valor_total_importado, linhas_importadas, linhas_duplicadas, tempo_processamento_ms")
-    .eq("user_id", userId)
     .gte("created_at", inicioMes);
 
   const lista = data || [];
@@ -853,7 +834,6 @@ export async function carregarTemplates(userId: string): Promise<any[]> {
   const { data } = await supabase
     .from("importacao_templates")
     .select("*")
-    .eq("user_id", userId)
     .eq("ativo", true)
     .order("ultimo_uso", { ascending: false, nullsFirst: false });
   return data || [];

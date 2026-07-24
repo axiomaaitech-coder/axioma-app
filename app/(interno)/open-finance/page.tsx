@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useLanguage } from '../../../lib/LanguageContext'
+import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Building2, RefreshCw, CheckCircle, AlertCircle, Zap, TrendingUp, TrendingDown } from 'lucide-react'
@@ -208,8 +209,8 @@ export default function OpenFinancePage() {
     setCarregando(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setCarregando(false); return }
-    const { data: conex } = await supabase.from('open_finance').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-    const { data: tx } = await supabase.from('of_transacoes').select('*').eq('user_id', user.id).order('data', { ascending: false }).limit(50)
+    const { data: conex } = await supabase.from('open_finance').select('*').order('created_at', { ascending: false })
+    const { data: tx } = await supabase.from('of_transacoes').select('*').order('data', { ascending: false }).limit(50)
     setConexoes(conex || [])
     setTransacoes(tx || [])
     setCarregando(false)
@@ -275,8 +276,9 @@ export default function OpenFinancePage() {
         onSuccess: async (itemData: any) => {
           const itemId = itemData?.item?.id
           if (user && itemId) {
+            const empresaId = await obterEmpresaAtiva()
             await supabase.from('open_finance').upsert({
-              user_id: user.id, item_id: itemId,
+              user_id: user.id, empresa_id: empresaId, item_id: itemId,
               conector_nome: itemData.item.connector?.name || '',
               conector_tipo: itemData.item.connector?.type || '',
               status: itemData.item.status || 'UPDATED',

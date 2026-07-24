@@ -73,7 +73,7 @@ Meta: suportar 5.000 empresas com folga. A partir de agora, escala entra em toda
 8. **MEI será elevado a padrão CFO** — hoje isolado (`mei_dados`, `mei_declaracoes`, `mei_obrigacoes`). Quando virar CFO, o faturamento do MEI precisa cruzar com Receitas/DRE/Fluxo de Caixa como fonte única da verdade — nunca recalcular por conta própria. Nada que dificulte essa integração futura.
 9. **Sem mock data, sempre** — sem dado suficiente = estado vazio elegante (reforça a regra 2 já existente).
 
-**Migração pendente:** hoje quase todo o schema é user_id-only na prática de acesso (RLS sempre `auth.uid() = user_id`, mesmo em tabelas que já têm `empresa_id`). Levantamento completo e decisão de migração em `STATUS-AXIOMA.md`. **Fase 1 do Importar Documentos está pausada até essa decisão.**
+**Migração CONCLUÍDA (2026-07-23):** SQL rodado pelo Elias (`MIGRACAO-MULTITENANT.sql`) + ajuste de código completo em todo módulo (`obterEmpresaAtiva()`, `empresa_id` gravado em toda escrita, RLS decidindo a leitura). Detalhe técnico completo em `STATUS-AXIOMA.md` seção 13. Falta rodar `SQL-EMPRESA-PADRAO.sql` (empresa automática pro usuário novo) e testar clicando na tela antes de considerar pronto pra uso real — **Fase 1 do Importar Documentos retoma depois desse teste.**
 
 ## 🎨 IDENTIDADE VISUAL
 - Fundo módulos antigos: CanvasBox azul `#6ab0ff`, fundo `#020810` (MANTER — não refazer cores dos módulos antigos)

@@ -599,7 +599,7 @@ export function simularImpactoProvisaoNaDRE(
 
 export async function atualizarProvisaoNaDRE(userId: string, periodoInicio: string, periodoFim: string, provisaoPcld: number): Promise<{ atualizado: boolean; erro?: string }> {
   const { data: existente } = await supabase.from("dre_historico").select("id")
-    .eq("user_id", userId).eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
+    .eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
   if (!existente) return { atualizado: false };
   const { error } = await supabase.from("dre_historico").update({ provisao_pcld: provisaoPcld }).eq("id", existente.id);
   return error ? { atualizado: false, erro: error.message } : { atualizado: true };
