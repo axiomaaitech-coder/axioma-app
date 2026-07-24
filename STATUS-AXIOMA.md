@@ -678,7 +678,90 @@ Pedido do Elias depois de testar o plano da Fase 2: (1) mandar o SQL da Fase 2 p
 - Virtualização de verdade (lib dedicada) se o volume de lançamentos passar de milhares de linhas
 
 ## 4. PRÓXIMO PASSO
-Elias testar o módulo Centro de Custos completo (3/3 fases) — sobretudo a Planilha (Fase 3), que nunca foi testada clicando na tela por falta de acesso ao navegador nesta sessão. Módulo Centro de Custos encerrado. Próximo: seguir para o próximo item da fila (ver seção 5).
+**Arquivo `MIGRACAO-MULTITENANT.sql` entregue em 2026-07-23, aguardando Elias rodar no SQL Editor do Supabase.** Ver seção 11 pro detalhe técnico completo. Depois que ele rodar e colar o resultado da Parte 6 (validação) aqui:
+1. Eu confirmo no relatório: zero linhas sem `empresa_id`, 0 políticas na forma antiga, nº de políticas otimizadas.
+2. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios` pro usuário convidado) — é o próximo trabalho OBRIGATÓRIO logo depois da migração. Sem essa tela, a migração cria a fundação de acesso mas ninguém convidado consegue de fato usá-la — "convidar" continua sendo só um registro bonito na tela. Pequena depois que a fundação estiver correta, mas obrigatória antes do primeiro cliente pagante.
+3. **Parte 6 da migração (ajuste de código)**: trocar todo `insert`/`update` do app pra também gravar `empresa_id` (helper central `obterEmpresaAtiva()`), módulo por módulo, com `tsc --noEmit` limpo a cada leva — **sem isso, toda gravação do app para de aparecer pra quem gravou assim que o SQL rodar** (RLS passa a exigir `empresa_id`, código atual não grava). Fazer logo em seguida ao SQL, é dado de teste, mas não deixar a janela aberta.
+4. **RPC `centro_custo_totais`** — elimina o teto de 300 lançamentos do Centro de Custos movendo a agregação pro banco (era a correção mais urgente do levantamento da seção 10, item c).
+5. Depois disso: retomar Fase 1 do Importar Documentos (plano já aprovado, ver histórico da conversa) → próximo item da fila (seção 5). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
+
+## 11. MIGRAÇÃO MULTI-TENANT — arquivo entregue (2026-07-23)
+
+`MIGRACAO-MULTITENANT.sql` (raiz do projeto) — um único arquivo, `BEGIN`/`COMMIT` (tudo ou nada), idempotente. Contexto: banco ainda é só dado de teste (maior tabela tinha 17 linhas, ~150 registros no total) — Elias decidiu fazer a migração completa de uma vez em vez de incremental, por ser baixíssimo risco agora e "operação de guerra" depois do lançamento.
+
+**Conteúdo do arquivo:**
+- **Parte 1** — função `empresas_do_usuario()` (STABLE + SECURITY DEFINER + `search_path` fixo, evita recursão de RLS), usando a tabela `empresa_usuarios` (existia no banco, criada por fora, nunca usada pelo código — tem exatamente `id/empresa_id/user_id/papel`, é a peça certa). Semeia 1 linha por empresa (papel `dono`) pra ela virar fonte única de acesso desde já.
+- **Achado importante:** `empresa_equipe` (usada hoje no módulo Empresa pra "convidar") é uma coisa DIFERENTE — só grava convite + token, **nunca lido/consumido em nenhum lugar do código**. Ou seja, "convidar membro" hoje é cosmético — não dá acesso de verdade a ninguém. Ver seção 4, item 2.
+- **Parte 2** — `ADD COLUMN IF NOT EXISTS empresa_id` nas 24 tabelas que só tinham `user_id`: `dre_historico, ia_tributaria_historico, ia_financeira_historico, fornecedor_contatos, fornecedor_documentos, fornecedor_contratos, fornecedor_produtos, fornecedor_interacoes, cobranca_interacoes, cobranca_compromissos, cobranca_regua_etapas, centro_custo_plano_acao, centro_custo_rateio, centro_custo_orcamento, centro_custo_auditoria, centros_custo, lancamentos_centro, concorrentes, decisoes_precificacao, open_finance, of_transacoes, mei_dados, mei_declaracoes, mei_obrigacoes`.
+- **Parte 3** — backfill (empresa mais antiga e ativa do dono do `user_id`, mesma regra que `lib/empresaHelpers.ts` já usa) nessas 24 **+ mais 22 tabelas que já tinham `empresa_id` mas podiam ter linha antiga sem valor** (achado real: os builders de Contas a Pagar/Contas a Receber em `lib/importarHelpers.ts` gravam sem `empresa_id` mesmo a coluna já existindo). Relatório legível de nulos por tabela, depois um portão (`RAISE EXCEPTION`) que aborta a transação inteira se sobrar qualquer nulo — só então `SET NOT NULL` nas 46 tabelas. `mei_dados` ganha checagem própria de duplicidade por empresa antes do índice único (pedido explícito do Elias).
+- **Parte 4** — dropa toda política existente de cada tabela **pelo nome real** (consultando `pg_policies` dinamicamente, não um nome chutado — é o ponto mais crítico: política permissiva esquecida some com o efeito da migração inteira, sem erro nenhum). Cria 1 política `FOR ALL` por tabela nas 48 (as 46 + `assinaturas` + `empresa_usuarios`), filtrando por `empresa_id in (select empresas_do_usuario())`, sempre `(select auth.uid())` em subselect. `perfis`/`empresas` continuam com dono = usuário (decisão explícita do Elias), só otimizadas. 3 tabelas de referência (`planos`, `benchmarks_setoriais`, `simples_nacional_faixas`): leitura liberada pra autenticado, escrita bloqueada.
+- **Parte 5** — índices compostos `(empresa_id, coluna-de-data-real-de-cada-tabela)` + índice em toda FK usada em join, tudo verificado coluna por coluna via API antes de escrever (nenhum nome chutado). Não duplica os índices que já existiam (`CENTRO-CUSTO-FASE1-SQL.sql`/Fase2).
+- **Parte 6** — validação (só leitura): confirma zero nulos, conta políticas na forma antiga (deve ser 0) e total de políticas otimizadas, confirma `empresa_usuarios` semeada, e deixa pronto (comentado) o teste manual do convite: inserir uma segunda conta de teste em `empresa_usuarios` e logar com ela pra confirmar que os dados da empresa aparecem — prova que a fundação funciona, mesmo sem a tela de aceitar convite (que fica pro próximo passo, seção 4).
+
+**Risco operacional avisado no próprio arquivo:** assim que commitado, toda gravação do app atual para de aparecer (RLS passa a exigir `empresa_id`, código não grava ainda) até o ajuste de código (seção 4, item 3) ser feito. Aceitável agora (só dado de teste), não pode ficar aberto depois do primeiro cliente.
+
+**Aguardando:** Elias rodar o arquivo no SQL Editor e colar o resultado da Parte 6 aqui antes de qualquer próximo passo.
+
+---
+
+## 9. REGRAS DE ESCALA — MULTI-TENANT (decidido com Elias em 2026-07-23, PERMANENTE — vale pra todo código novo)
+
+Contexto da decisão: Axioma vai operar com meta de 5.000 empresas com folga, e o MEI será elevado a padrão CFO. A partir de agora, escala entra em toda decisão técnica.
+
+1. **MULTI-TENANT — dono do dado é a EMPRESA, não o usuário.** Toda tabela NOVA nasce com `empresa_id` (além de `user_id`, que fica só como "quem lançou"). RLS filtra por `empresa_id`. É o que permite dono, contador e funcionário verem os mesmos dados.
+2. **ÍNDICES COMPOSTOS.** Toda tabela nova entrega os `CREATE INDEX` junto do `CREATE TABLE`. Índice composto `(empresa_id, data)`, não índices separados — porque toda consulta do sistema é "dados desta empresa neste período". Indexar também as FKs usadas em join.
+3. **RLS PERFORMÁTICA.** Nas políticas novas, envolver a função de auth em subselect — `(select auth.uid())` em vez de `auth.uid()` direto. Sem o subselect o Postgres reavalia a função linha a linha; com ele, avalia uma vez por consulta — diferença de ordem de grandeza em tabela grande.
+4. **AGREGAÇÃO NO BANCO, NÃO NO NAVEGADOR.** Nunca carregar tabela inteira no cliente pra calcular KPI, soma, média, aging, curva ABC, score ou rateio. Vai pra view SQL, função RPC ou query agregada; o cliente recebe o resultado pronto.
+5. **PAGINAÇÃO OBRIGATÓRIA.** Nenhuma lista, grade ou planilha carrega tudo de uma vez. Sempre paginar ou usar janela virtual, com filtro de período aplicado no banco, não no cliente.
+6. **SEM CONSULTA N+1.** Módulos que leem vários outros (Centro de Custos, Importar Documentos, Dashboard) não podem fazer uma consulta por registro. Usar consultas agregadas ou views que já entreguem o cruzamento pronto.
+7. **TRABALHO PESADO FORA DA REQUISIÇÃO.** Importação de arquivo grande, processamento em lote e recálculo massivo não podem rodar na requisição da página. Vão para fila/edge function, com a tela acompanhando o progresso.
+8. **MEI SERÁ ELEVADO A PADRÃO CFO.** Hoje o MEI tem tabelas isoladas (`mei_dados`, `mei_declaracoes`, `mei_obrigacoes` — as duas últimas existem no banco mas nenhuma tela usa ainda). Quando virar CFO, o faturamento do MEI precisa conversar com Receitas, DRE e Fluxo de Caixa mantendo uma única fonte da verdade — o MEI lê e cruza, nunca recalcula por conta. Não criar nada que dificulte essa integração.
+9. **SEM MOCK DATA, sempre.** Sem dado suficiente = estado vazio elegante (reforço da regra já existente).
+
+---
+
+## 10. LEVANTAMENTO MULTI-TENANT (diagnóstico feito em 2026-07-23, nada foi alterado no banco nem no código)
+
+**Método:** sem acesso a `service_role`/SQL direto nesta sessão (só a `anon key` no `.env.local`). Tabelas e colunas foram confirmadas uma a uma via API do Supabase (PostgREST) — uma coluna que não existe retorna erro `42703` na hora, o que dá certeza sobre existência de coluna mesmo sem enxergar o schema completo. Índices e políticas RLS **não são visíveis pela API pública** — o que está reportado abaixo sobre índices/RLS é 100% confirmado só para as tabelas cujo SQL foi escrito nesta ferramenta (rastreável no repo); para as tabelas mais antigas (criadas direto no Supabase antes do rastreamento em arquivo), é inferência por ausência de evidência, não certeza — está sinalizado onde for o caso.
+
+### a) Tabelas: só user_id / só empresa_id / os dois
+
+**Só `user_id` (13):** `perfis`, `empresas`, `dre_historico`, `ia_tributaria_historico`, `ia_financeira_historico`, `fornecedor_contatos`, `fornecedor_documentos`, `fornecedor_contratos`, `fornecedor_produtos`, `fornecedor_interacoes`, `cobranca_interacoes`, `cobranca_compromissos`, `cobranca_regua_etapas`, `centro_custo_plano_acao`, `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria`, `centros_custo`, `lancamentos_centro`, `concorrentes`, `decisoes_precificacao`, `open_finance`, `of_transacoes`, `mei_dados`, `mei_declaracoes`, `mei_obrigacoes`.
+
+**Nem user_id nem empresa_id:** `benchmarks_setoriais` (tabela de referência pública, não é dado de empresa — correto ficar assim).
+
+**Os dois (`user_id` + `empresa_id` já existem como coluna):** `receitas`, `custos_variaveis`, `custos_fixos`, `dividas`, `contas_pagar`, `contas_receber`, `importacoes`, `importacao_linhas`, `importacao_templates`, `empresa_obrigacoes`, `empresa_socios`, `empresa_documentos`, `empresa_auditoria`, `empresa_equipe`, `fornecedores`, `clientes`, `metas`, `investimentos`, `precificacao`, `inadimplencia`, `fluxo_caixa`, `endividamento` (órfã, ver seção 8).
+
+**Achado mais importante desta seção:** ter a coluna `empresa_id` **não quer dizer que ela é usada como dono do dado hoje**. Em todo lugar checado, o filtro real de segurança (RLS) e as consultas do app usam `user_id`, nunca `empresa_id`, para decidir o que aparece na tela. Exemplo concreto: a tabela `empresa_equipe` — que deveria ser "quem trabalha em cada empresa" — hoje é lida e apagada filtrando por `user_id` do DONO (`lib/empresaHelpers.ts`, `carregarEquipe`/`excluirMembro`), e nenhuma política RLS em nenhuma tabela do projeto valida "esse usuário pertence a essa empresa". Ou seja: **hoje, um contador ou funcionário convidado não consegue de fato ver os dados da empresa** — "convidar membro" grava um convite, mas não existe check de acesso por trás. É exatamente o problema que a Regra 1 (seção 9) resolve.
+
+### b) Tabelas sem índice em user_id/empresa_id/data
+
+**Não dá pra saber com certeza total sem SQL direto no Supabase** — a API pública não expõe índices. O que posso afirmar com evidência real:
+- **Índices que EXISTEM, confirmados no SQL rastreado no repo:** `centro_custo_rateio(origem_tabela, origem_id)`, `centro_custo_rateio(centro_custo_id)`, `centro_custo_orcamento(centro_custo_id, periodo)` (único), `centro_custo_auditoria(centro_custo_id)`, `centro_custo_plano_acao(centro_custo_id)`, `centro_custo_plano_acao(status)`, e `centro_custo_id` em `custos_fixos`/`custos_variaveis`/`contas_pagar`/`receitas`. **Nenhum desses é composto com `user_id`/`empresa_id` + data** — são só índices de FK.
+- **Nenhuma tabela do projeto (nem essas, nem as mais antigas) tem um índice composto `(empresa_id, data)` ou `(user_id, data)`** — não existe no SQL rastreado, e não há nenhuma menção a índice desse tipo em nenhuma rodada anterior documentada aqui no STATUS.
+- **Tabelas mais antigas (`receitas`, `custos_fixos`, `custos_variaveis`, `contas_pagar`, `contas_receber`, `fluxo_caixa`, `clientes`, `fornecedores`, `dividas`, `metas`, `investimentos`, `precificacao`, `dre_historico`, `empresas`) nunca tiveram um arquivo `.sql` de criação neste repositório** — foram criadas direto no Supabase antes de eu rastrear os scripts em arquivo. **Não tenho como confirmar se têm índice ou não sem rodar uma consulta direta no Postgres.** Recomendo, quando decidirmos a migração, rodar `SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname='public'` no SQL Editor do Supabase — aí sim temos o retrato exato, sem achismo.
+
+### c) Telas que carregam tabela inteira e calculam no navegador (ordenado por risco)
+
+Confirmado por evidência direta: **não existe um único `.range()` no projeto inteiro** (busquei em todo `lib/` e `app/`) — ou seja, nenhuma lista, grade ou dashboard hoje pagina de verdade. O que existe de `.limit()` é só: buscar 1 linha (`.limit(1).maybeSingle()`, pra dados da empresa), um teto pequeno de histórico (24 snapshots de DRE, últimas 50 importações/transações), ou um teto de 300 linhas dentro do Centro de Custos (que é pequeno demais pra uma empresa grande — na prática já é um risco de faltar dado, não só de performance).
+
+Ordenado do maior risco pro menor (mais dado cruzado × mais registros por empresa esperados em 5.000 contas):
+1. **Contas a Receber / Inadimplência** — `clienteIntelHelpers.montarSnapshotsCarteira` lê TODAS as linhas de `contas_receber` + TODOS os `clientes` sem limite, e calcula aging, Score Axioma, curva ABC, heatmap, tudo no navegador. É a tabela que mais cresce (uma linha por fatura) — maior risco do projeto.
+2. **Centro de Custos** — cruza `custos_fixos`+`custos_variaveis`+`contas_pagar`+`receitas`+`fornecedores`+`fornecedor_contratos`, hoje com teto de 300 linhas por tabela (`lib/centroCustoHelpers.ts`). Empresa com mais de 300 lançamentos no período já perde dado da conta, silenciosamente — isso é mais grave que lentidão, é número errado na tela.
+3. **Fluxo de Caixa** — lê `fluxo_caixa`+`contas_receber`+`contas_pagar`+`custos_fixos`+`dividas` inteiros pra montar a visão de 13 semanas e os cenários.
+4. **DRE** — lê `receitas`+`custos_variaveis`+`custos_fixos`+`dividas`+`fluxo_caixa`+`contas_receber` inteiros toda vez que a tela abre.
+5. **Fornecedores** — cruza `contas_pagar`+`fornecedor_contratos`+`receitas`+`custos_fixos`+`custos_variaveis`+`dividas`+`fluxo_caixa`.
+6. **Clientes** — carteira lê todos os `clientes`+`contas_receber`+`inadimplencia`.
+7. **Importar Documentos** — hoje é o menor risco dos módulos grandes: `carregarStatsMes` lê as importações do mês corrente (recorte natural, não é a base toda), e o histórico da tela já usa `.limit(50)`. Ainda assim, a Fase 1 planejada (fila de exceções, timeline, motor de aprendizado) precisa nascer dentro das regras da seção 9 pra não estender esse problema pras tabelas novas.
+8. **Dashboard principal** — hoje ainda é maior parte DEMO (dado fictício), então o risco real de carga ainda não existe na prática — mas o dia que virar dado real (item já na fila, seção 5), herda o mesmo problema de todos os módulos acima se não vier com agregação no banco desde o início.
+
+### d) RLS: `auth.uid()` direto ou com subselect
+
+**100% direto, `auth.uid() = user_id`, em toda política que consegui confirmar — nenhum subselect `(select auth.uid())` em lugar nenhum do projeto.** Confirmado no SQL rastreado em arquivo/documento (`centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria`, `centro_custo_plano_acao`, `concorrentes`, `decisoes_precificacao`, `cobranca_interacoes`, `cobranca_compromissos`, `cobranca_regua_etapas` — 8 tabelas, todas com o padrão direto). Para as tabelas mais antigas sem SQL rastreado em arquivo, não tenho visibilidade da política exata, mas **todo comportamento observado no app** (toda consulta usa `.eq("user_id", ...)`, nunca `.eq("empresa_id", ...)` como filtro de posse) é consistente com o mesmo padrão. Pra ter certeza absoluta de 100% das tabelas, a consulta que dá a resposta definitiva é `SELECT tablename, policyname, qual FROM pg_policies WHERE schemaname='public'` no SQL Editor.
+
+### e) Pooler (Supavisor) ou conexão direta
+
+**O app não abre conexão direta com o Postgres em nenhum lugar.** Conferido: não existe `DATABASE_URL`, não existe chave `service_role` no `.env.local`, e não há nenhuma dependência de acesso direto ao banco (`pg`, `postgres`, `drizzle-orm`, `@prisma/client`) no `package.json`. Toda leitura/escrita — no navegador E nas 2 rotas de servidor que existem (`app/api/stripe/webhook`, `app/api/pluggy/webhook`) — passa pela API REST do Supabase (`createBrowserClient`/`createClient` do `@supabase/ssr`, sempre com a URL pública). Isso quer dizer: **a pergunta "pooler ou direto" não se aplica ao código de hoje**, porque o Supabase já gerencia esse pooling nos bastidores da própria API — o app nunca escolhe. **Isso muda no dia em que a Regra 7 (fila/edge function pra processamento pesado) for implementada**: se a fila/edge function abrir conexão Postgres direta (em vez de usar a mesma API REST), aí sim precisa ser explicitamente configurada pro pooler Supavisor em modo transaction (porta 6543), porque uma fila/worker serverless abre e fecha conexão a cada execução e esgota o limite de conexões diretas rápido em escala de 5.000 empresas. Fica registrado aqui pra não esquecer quando chegar a hora.
 
 ---
 

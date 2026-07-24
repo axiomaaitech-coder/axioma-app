@@ -60,6 +60,21 @@ Constantes: `CORES` (paleta alto luxo), `FONTE_EXEC` / `FONTE_EXEC_TITULO` (Geor
 14. **Todo módulo novo começa com pesquisa de concorrentes** (Conta Azul, Omie, Senior, SAP, Oracle + líderes mundiais) e implementa o que eles NÃO têm.
 15. Honestidade técnica: se algo não é viável do jeito pedido, explicar e propor alternativa real.
 
+## 🏋️ REGRAS DE ESCALA — MULTI-TENANT (decidido com Elias em 2026-07-23, vale pra TODO código novo daqui em diante)
+Meta: suportar 5.000 empresas com folga. A partir de agora, escala entra em toda decisão técnica — não é mais "fazer funcionar", é "fazer funcionar com 5.000 empresas".
+
+1. **Dono do dado é a EMPRESA, não o usuário.** Toda tabela NOVA nasce com `empresa_id` (além de `user_id`, que fica só como "quem lançou"). RLS filtra por `empresa_id`. É o que permite dono, contador e funcionário verem os mesmos dados.
+2. **Índices compostos junto do CREATE TABLE.** Índice composto `(empresa_id, data)` — não índices separados — porque toda consulta real do sistema é "dados desta empresa neste período". Indexar também toda FK usada em join.
+3. **RLS performática:** usar `(select auth.uid())` em vez de `auth.uid()` direto nas políticas novas — sem o subselect o Postgres reavalia a função linha a linha; com ele, avalia uma vez por consulta.
+4. **Agregação no banco, nunca no navegador.** KPI, soma, média, aging, curva ABC, score, rateio → view SQL, função RPC ou query agregada. O cliente só recebe o resultado pronto.
+5. **Paginação obrigatória.** Nenhuma lista/grade/planilha carrega tudo de uma vez — paginar ou virtualizar, com filtro de período aplicado no banco, não no cliente.
+6. **Zero consulta N+1.** Módulos que leem vários outros (Centro de Custos, Importar Documentos, Dashboard) usam consultas agregadas/views, nunca uma query por registro.
+7. **Trabalho pesado fora da requisição.** Importação de arquivo grande, processamento em lote, recálculo massivo → fila/edge function, com a tela acompanhando o progresso.
+8. **MEI será elevado a padrão CFO** — hoje isolado (`mei_dados`, `mei_declaracoes`, `mei_obrigacoes`). Quando virar CFO, o faturamento do MEI precisa cruzar com Receitas/DRE/Fluxo de Caixa como fonte única da verdade — nunca recalcular por conta própria. Nada que dificulte essa integração futura.
+9. **Sem mock data, sempre** — sem dado suficiente = estado vazio elegante (reforça a regra 2 já existente).
+
+**Migração pendente:** hoje quase todo o schema é user_id-only na prática de acesso (RLS sempre `auth.uid() = user_id`, mesmo em tabelas que já têm `empresa_id`). Levantamento completo e decisão de migração em `STATUS-AXIOMA.md`. **Fase 1 do Importar Documentos está pausada até essa decisão.**
+
 ## 🎨 IDENTIDADE VISUAL
 - Fundo módulos antigos: CanvasBox azul `#6ab0ff`, fundo `#020810` (MANTER — não refazer cores dos módulos antigos)
 - Dashboard/camada CFO: fundo gradiente `#06031a`→`#020810`; cards glass `linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))`, borda `rgba(99,102,241,0.13)`
