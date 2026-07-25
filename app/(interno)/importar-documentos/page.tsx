@@ -78,6 +78,25 @@ const T = {
     preview: "Revisão antes de Importar",
     tipoDetectado: "Tipo detectado",
     destino: "Destino",
+    destinoLabels: {
+      fluxo_caixa: "Fluxo de Caixa",
+      receitas: "Receitas",
+      custos_fixos: "Custos Fixos",
+      custos_variaveis: "Custos Variáveis",
+      contas_pagar: "Contas a Pagar",
+      contas_receber: "Contas a Receber",
+      fornecedores: "Fornecedores",
+      dividas: "Endividamento",
+    } as Record<string, string>,
+    statusLabels: {
+      aguardando_revisao: "Aguardando",
+      concluido: "Concluído",
+      parcialmente: "Parcial",
+      revertido: "Desfeito",
+      erro: "Erro",
+      processado: "Concluído",
+      falhou: "Erro",
+    } as Record<string, string>,
     destinoTodasLinhas: "(todas as linhas)",
     destinoDiferentesPorLinha: "destinos diferentes por linha (confira abaixo)",
     destinoMultiplos: "— múltiplos —",
@@ -116,6 +135,9 @@ const T = {
     desfeito: "Importação desfeita",
     compartilharTitulo: "Resumo da importação",
     arquivoCopiado: "Resumo copiado para área de transferência",
+    arquivoLabel: "Arquivo",
+    dataImportacaoLabel: "Data Importação",
+    resultadoLabel: "Resultado",
     nenhumaSelecionada: "Selecione pelo menos uma linha para importar",
     coluna: "Coluna",
     data: "Data",
@@ -173,6 +195,25 @@ const T = {
     preview: "Review before Import",
     tipoDetectado: "Detected type",
     destino: "Destination",
+    destinoLabels: {
+      fluxo_caixa: "Cash Flow",
+      receitas: "Revenue",
+      custos_fixos: "Fixed Costs",
+      custos_variaveis: "Variable Costs",
+      contas_pagar: "Accounts Payable",
+      contas_receber: "Accounts Receivable",
+      fornecedores: "Suppliers",
+      dividas: "Debt",
+    } as Record<string, string>,
+    statusLabels: {
+      aguardando_revisao: "Pending",
+      concluido: "Completed",
+      parcialmente: "Partial",
+      revertido: "Undone",
+      erro: "Error",
+      processado: "Completed",
+      falhou: "Error",
+    } as Record<string, string>,
     destinoTodasLinhas: "(all rows)",
     destinoDiferentesPorLinha: "different destinations per row (check below)",
     destinoMultiplos: "— multiple —",
@@ -211,6 +252,9 @@ const T = {
     desfeito: "Import undone",
     compartilharTitulo: "Import summary",
     arquivoCopiado: "Summary copied to clipboard",
+    arquivoLabel: "File",
+    dataImportacaoLabel: "Import Date",
+    resultadoLabel: "Result",
     nenhumaSelecionada: "Select at least one row to import",
     coluna: "Column",
     data: "Date",
@@ -268,6 +312,25 @@ const T = {
     preview: "Revisión antes de Importar",
     tipoDetectado: "Tipo detectado",
     destino: "Destino",
+    destinoLabels: {
+      fluxo_caixa: "Flujo de Caja",
+      receitas: "Ingresos",
+      custos_fixos: "Costos Fijos",
+      custos_variaveis: "Costos Variables",
+      contas_pagar: "Cuentas por Pagar",
+      contas_receber: "Cuentas por Cobrar",
+      fornecedores: "Proveedores",
+      dividas: "Deuda",
+    } as Record<string, string>,
+    statusLabels: {
+      aguardando_revisao: "Pendiente",
+      concluido: "Completado",
+      parcialmente: "Parcial",
+      revertido: "Deshecho",
+      erro: "Error",
+      processado: "Completado",
+      falhou: "Error",
+    } as Record<string, string>,
     destinoTodasLinhas: "(todas las filas)",
     destinoDiferentesPorLinha: "destinos diferentes por fila (revise abajo)",
     destinoMultiplos: "— múltiples —",
@@ -306,6 +369,9 @@ const T = {
     desfeito: "Importación deshecha",
     compartilharTitulo: "Resumen de importación",
     arquivoCopiado: "Resumen copiado al portapapeles",
+    arquivoLabel: "Archivo",
+    dataImportacaoLabel: "Fecha de Importación",
+    resultadoLabel: "Resultado",
     nenhumaSelecionada: "Selecciona al menos una fila para importar",
     coluna: "Columna",
     data: "Fecha",
@@ -340,27 +406,37 @@ const T = {
   },
 };
 
-// Destinos disponíveis com cor e ícone
-const DESTINOS: Array<{ key: DestinoTabela; label: string; icon: string; cor: string }> = [
-  { key: "fluxo_caixa", label: "Fluxo de Caixa", icon: "💸", cor: "#6ab0ff" },
-  { key: "receitas", label: "Receitas", icon: "💰", cor: "#34d399" },
-  { key: "custos_fixos", label: "Custos Fixos", icon: "📌", cor: "#fbbf24" },
-  { key: "custos_variaveis", label: "Custos Variáveis", icon: "📊", cor: "#a78bfa" },
-  { key: "contas_pagar", label: "Contas a Pagar", icon: "🧾", cor: "#f87171" },
-  { key: "contas_receber", label: "Contas a Receber", icon: "💵", cor: "#10b981" },
-  { key: "fornecedores", label: "Fornecedores", icon: "🏢", cor: "#fb923c" },
-  { key: "dividas", label: "Endividamento", icon: "📋", cor: "#ef4444" },
+// Destinos disponíveis com cor e ícone (idioma-neutros — o rótulo em texto
+// vem sempre de tt.destinoLabels/tt.statusLabels, nunca fixo aqui, pra não
+// vazar português/inglês dentro de outro idioma).
+const DESTINOS: Array<{ key: DestinoTabela; icon: string; cor: string }> = [
+  { key: "fluxo_caixa", icon: "💸", cor: "#6ab0ff" },
+  { key: "receitas", icon: "💰", cor: "#34d399" },
+  { key: "custos_fixos", icon: "📌", cor: "#fbbf24" },
+  { key: "custos_variaveis", icon: "📊", cor: "#a78bfa" },
+  { key: "contas_pagar", icon: "🧾", cor: "#f87171" },
+  { key: "contas_receber", icon: "💵", cor: "#10b981" },
+  { key: "fornecedores", icon: "🏢", cor: "#fb923c" },
+  { key: "dividas", icon: "📋", cor: "#ef4444" },
 ];
 
-const STATUS_INFO: Record<string, { label: string; cor: string }> = {
-  aguardando_revisao: { label: "Aguardando", cor: "#fbbf24" },
-  concluido: { label: "Concluído", cor: "#34d399" },
-  parcialmente: { label: "Parcial", cor: "#6ab0ff" },
-  revertido: { label: "Desfeito", cor: "#3a5a8a" },
-  erro: { label: "Erro", cor: "#f87171" },
-  processado: { label: "Concluído", cor: "#34d399" },
-  falhou: { label: "Erro", cor: "#f87171" },
+const STATUS_INFO: Record<string, { cor: string }> = {
+  aguardando_revisao: { cor: "#fbbf24" },
+  concluido: { cor: "#34d399" },
+  parcialmente: { cor: "#6ab0ff" },
+  revertido: { cor: "#3a5a8a" },
+  erro: { cor: "#f87171" },
+  processado: { cor: "#34d399" },
+  falhou: { cor: "#f87171" },
 };
+
+function destinoLabel(tt: any, key: string): string {
+  return tt?.destinoLabels?.[key] || key;
+}
+
+function statusLabel(tt: any, status: string): string {
+  return tt?.statusLabels?.[status] || status;
+}
 
 // Resumo de um array de destino por linha pra 1 rótulo só (cabeçalho da
 // importação, template, PDF) — o destino REAL de cada linha continua vindo
@@ -402,7 +478,8 @@ function formatDataHora(iso: string): string {
 export default function ImportarDocumentosPage() {
   const { t, idioma } = useLanguage();
   const imp = t.importar;
-  const tt = T[(idioma as "pt" | "en" | "es") || "pt"];
+  const langAtual = (idioma as "pt" | "en" | "es") || "pt";
+  const tt = T[langAtual];
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Estados base
@@ -568,7 +645,7 @@ export default function ImportarDocumentosPage() {
   async function processarParse(file: File) {
     if (!userId) return;
     setEtapa("parse");
-    const res = await parseArquivo(file, empresaCnpj || undefined);
+    const res = await parseArquivo(file, empresaCnpj || undefined, langAtual);
 
     setResultado(res);
     setLinhas(res.linhas);
@@ -689,11 +766,11 @@ export default function ImportarDocumentosPage() {
       if (ext === "csv" || ext === "tsv" || ext === "txt") {
         const { parseCSV } = await import("../../../lib/importarParsers");
         const texto = await arquivoSelecionado.text();
-        novoResult = await parseCSV(texto, novoMap, undefined, arquivoSelecionado.name);
+        novoResult = await parseCSV(texto, novoMap, undefined, arquivoSelecionado.name, langAtual);
       } else if (ext === "xlsx" || ext === "xls" || ext === "ods") {
         const { parseXLSX } = await import("../../../lib/importarParsers");
         const buffer = await arquivoSelecionado.arrayBuffer();
-        novoResult = await parseXLSX(buffer, novoMap, ext === "xls" ? "xls" : "xlsx", arquivoSelecionado.name);
+        novoResult = await parseXLSX(buffer, novoMap, ext === "xls" ? "xls" : "xlsx", arquivoSelecionado.name, langAtual);
       } else {
         setEtapa("");
         return;
@@ -837,7 +914,7 @@ export default function ImportarDocumentosPage() {
         tipoArquivo: resultado.formato,
         mimeType: arquivoSelecionado.type || "application/octet-stream",
         tamanhoBytes: arquivoSelecionado.size,
-        tipoDocumento: DESTINOS.find((d) => d.key === destinoPredominante(destinos))?.label || destinoPredominante(destinos),
+        tipoDocumento: destinoLabel(tt, destinoPredominante(destinos)),
         destino: destinoPredominante(destinos),
         totalLinhas: linhas.length,
         mapeamentoUsado: mapeamento,
@@ -1021,8 +1098,8 @@ export default function ImportarDocumentosPage() {
   // ========== CENTRO DE COMPARTILHAMENTO ===================================
 
   function montarTextoResumo(item: any, formato: "curto" | "longo" = "longo"): string {
-    const dest = DESTINOS.find((d) => d.key === item.destino)?.label || item.destino;
-    const stInfo = STATUS_INFO[item.status]?.label || item.status;
+    const dest = destinoLabel(tt, item.destino);
+    const stInfo = statusLabel(tt, item.status);
 
     if (formato === "curto") {
       return [
@@ -1036,12 +1113,12 @@ export default function ImportarDocumentosPage() {
     return [
       `🦅 *AXIOMA AI.TECH — ${tt.compartilharTitulo}*`,
       ``,
-      `📄 Arquivo: *${item.nome_arquivo}*`,
-      `📅 Data: ${formatDataHora(item.created_at)}`,
+      `📄 ${tt.arquivoLabel}: *${item.nome_arquivo}*`,
+      `📅 ${tt.data}: ${formatDataHora(item.created_at)}`,
       `🎯 ${tt.destino}: *${dest}*`,
-      `📊 Status: ${stInfo}`,
+      `📊 ${tt.filtroStatus}: ${stInfo}`,
       ``,
-      `*Resultado:*`,
+      `*${tt.resultadoLabel}:*`,
       `✅ ${item.linhas_importadas || 0} ${tt.importadas}`,
       `⚠️ ${item.linhas_duplicadas || 0} ${tt.duplicadas}`,
       `❌ ${item.linhas_erro || 0} ${tt.erros}`,
@@ -1134,16 +1211,16 @@ export default function ImportarDocumentosPage() {
         setLinhasPorImportacao((prev) => ({ ...prev, [shareModal.id]: lns }));
       }
 
-      const dest = DESTINOS.find((d) => d.key === shareModal.destino)?.label || shareModal.destino;
-      const stInfo = STATUS_INFO[shareModal.status]?.label || shareModal.status;
+      const dest = destinoLabel(tt, shareModal.destino);
+      const stInfo = statusLabel(tt, shareModal.status);
 
       const colunas = [
         { header: "#", key: "num", width: 12, align: "left" as const },
-        { header: "DATA", key: "data", width: 22, align: "left" as const },
-        { header: "DESCRIÇÃO", key: "desc", width: 70, align: "left" as const },
-        { header: "CATEGORIA", key: "cat", width: 30, align: "left" as const },
-        { header: "STATUS", key: "st", width: 22, align: "left" as const },
-        { header: "VALOR", key: "valor", width: 28, align: "right" as const },
+        { header: tt.data.toUpperCase(), key: "data", width: 22, align: "left" as const },
+        { header: tt.descricao.toUpperCase(), key: "desc", width: 70, align: "left" as const },
+        { header: tt.categoria.toUpperCase(), key: "cat", width: 30, align: "left" as const },
+        { header: tt.filtroStatus.toUpperCase(), key: "st", width: 22, align: "left" as const },
+        { header: tt.valor.toUpperCase(), key: "valor", width: 28, align: "right" as const },
       ];
 
       const linhasPdf = (lns || []).map((l: any) => ({
@@ -1156,10 +1233,10 @@ export default function ImportarDocumentosPage() {
       }));
 
       const resumo = [
-        { label: "Arquivo", valor: shareModal.nome_arquivo },
-        { label: "Data Importação", valor: formatDataHora(shareModal.created_at) },
+        { label: tt.arquivoLabel, valor: shareModal.nome_arquivo },
+        { label: tt.dataImportacaoLabel, valor: formatDataHora(shareModal.created_at) },
         { label: tt.destino, valor: dest },
-        { label: "Status", valor: stInfo },
+        { label: tt.filtroStatus, valor: stInfo },
         { label: tt.importadas, valor: String(shareModal.linhas_importadas || 0) },
         { label: tt.duplicadas, valor: String(shareModal.linhas_duplicadas || 0) },
         { label: tt.erros, valor: String(shareModal.linhas_erro || 0) },
@@ -1232,9 +1309,9 @@ export default function ImportarDocumentosPage() {
     try {
       const colunas = [
         { header: tt.data.toUpperCase(), key: "data", width: 22, align: "left" as const },
-        { header: "ARQUIVO", key: "arquivo", width: 60, align: "left" as const },
+        { header: tt.arquivoLabel.toUpperCase(), key: "arquivo", width: 60, align: "left" as const },
         { header: tt.destino.toUpperCase(), key: "destino", width: 35, align: "left" as const },
-        { header: "STATUS", key: "status", width: 25, align: "left" as const },
+        { header: tt.filtroStatus.toUpperCase(), key: "status", width: 25, align: "left" as const },
         { header: tt.importadas.toUpperCase(), key: "importadas", width: 20, align: "right" as const },
         { header: tt.valorTotal.toUpperCase(), key: "valor", width: 28, align: "right" as const },
       ];
@@ -1242,8 +1319,8 @@ export default function ImportarDocumentosPage() {
       const linhasPdf = historico.map((h: any) => ({
         data: formatData(h.created_at),
         arquivo: h.nome_arquivo || "—",
-        destino: DESTINOS.find((d) => d.key === h.destino)?.label || h.destino || "—",
-        status: STATUS_INFO[h.status]?.label || h.status,
+        destino: h.destino ? destinoLabel(tt, h.destino) : "—",
+        status: statusLabel(tt, h.status),
         importadas: String(h.linhas_importadas || 0),
         valor: formatBRL(Number(h.valor_total_importado) || 0),
       }));
@@ -1664,7 +1741,7 @@ export default function ImportarDocumentosPage() {
             <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
               <p style={{ color: "#5a7a9a" }}>
                 📅 {formatDataHora(shareModal.created_at)} •
-                🎯 <span style={{ color: "#6ab0ff" }}>{DESTINOS.find((d) => d.key === shareModal.destino)?.label || shareModal.destino}</span>
+                🎯 <span style={{ color: "#6ab0ff" }}>{destinoLabel(tt, shareModal.destino)}</span>
               </p>
               <p>
                 <span style={{ color: "#34d399" }}>✅ {shareModal.linhas_importadas || 0}</span> •
@@ -1805,7 +1882,7 @@ function PreviewBlock(props: any) {
               )}
               {DESTINOS.map((d) => (
                 <option key={d.key} value={d.key} style={{ background: "#020810" }}>
-                  {d.icon} {d.label}
+                  {d.icon} {destinoLabel(tt, d.key)}
                 </option>
               ))}
             </select>
@@ -1917,7 +1994,7 @@ function PreviewBlock(props: any) {
             style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
           >
             {DESTINOS.map((d) => (
-              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
             ))}
           </select>
           <button onClick={() => aplicarDestinoEmMassa(destinoMassa, true)}
@@ -2026,7 +2103,7 @@ function PreviewBlock(props: any) {
                             }}
                           >
                             {DESTINOS.map((d) => (
-                              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+                              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
                             ))}
                           </select>
                           {confereDestino && (
@@ -2095,7 +2172,7 @@ function PreviewBlock(props: any) {
                         }}
                       >
                         {DESTINOS.map((d) => (
-                          <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+                          <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
                         ))}
                       </select>
                       {l.confiancaDestino === "baixa" && (
@@ -2142,7 +2219,7 @@ function PreviewBlock(props: any) {
                 if (!pd) return null;
                 const linha = linhas[i];
                 const decisao = decisoesDuplicata[i];
-                const labelTabela = DESTINOS.find((d) => d.key === pd.candidato.tabela)?.label || pd.candidato.tabela;
+                const labelTabela = destinoLabel(tt, pd.candidato.tabela);
                 return (
                   <div key={i} className="rounded-lg p-2.5" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(251,191,36,0.15)" }}>
                     <p className="text-xs font-semibold" style={{ color: "#c8d8f0" }}>
@@ -2255,8 +2332,8 @@ function HistoricoBlock(props: any) {
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
               style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}>
               <option value="todos" style={{ background: "#020810" }}>{tt.todos}</option>
-              {Object.entries(STATUS_INFO).map(([k, v]: any) => (
-                <option key={k} value={k} style={{ background: "#020810" }}>{v.label}</option>
+              {Object.keys(STATUS_INFO).map((k) => (
+                <option key={k} value={k} style={{ background: "#020810" }}>{statusLabel(tt, k)}</option>
               ))}
             </select>
           </div>
@@ -2267,7 +2344,7 @@ function HistoricoBlock(props: any) {
               style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}>
               <option value="todos" style={{ background: "#020810" }}>{tt.todos}</option>
               {DESTINOS.map((d) => (
-                <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+                <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
               ))}
             </select>
           </div>
@@ -2287,7 +2364,7 @@ function HistoricoBlock(props: any) {
       ) : (
         historico.map((item: any) => {
           const destInfo = DESTINOS.find((d) => d.key === item.destino) || DESTINOS[0];
-          const stInfo = STATUS_INFO[item.status] || { label: item.status, cor: "#6ab0ff" };
+          const stInfo = STATUS_INFO[item.status] || { cor: "#6ab0ff" };
           const isExp = expandida === item.id;
           const podeDesfazer = item.status === "concluido" || item.status === "parcialmente";
           const podeExcluirRegistro = item.status === "erro" || item.status === "revertido" || item.status === "falhou";
@@ -2299,13 +2376,13 @@ function HistoricoBlock(props: any) {
                     <span className="text-2xl flex-shrink-0">{destInfo.icon}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{item.nome_arquivo}</p>
-                      <p className="text-xs mt-0.5" style={{ color: destInfo.cor }}>→ {destInfo.label}</p>
+                      <p className="text-xs mt-0.5" style={{ color: destInfo.cor }}>→ {destinoLabel(tt, item.destino)}</p>
                       <p className="text-[11px] mt-0.5" style={{ color: "#5a7a9a" }}>{formatDataHora(item.created_at)}</p>
                     </div>
                   </div>
                   <span className="px-2 py-1 rounded-lg text-[11px] font-semibold flex-shrink-0"
                     style={{ background: `${stInfo.cor}20`, color: stInfo.cor }}>
-                    {stInfo.label}
+                    {statusLabel(tt, item.status)}
                   </span>
                 </div>
 
