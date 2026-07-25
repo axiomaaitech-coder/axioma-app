@@ -22,6 +22,7 @@ export type DestinoTabela =
 
 export type LinhaImportada = {
   data?: string; // ISO YYYY-MM-DD
+  dataHora?: string; // ISO completo (timestamptz) — só quando o documento trouxe hora de verdade
   valor?: number;
   descricao?: string;
   categoria?: string;
@@ -43,6 +44,7 @@ export type ResultadoParse = {
 
 export type MapeamentoColunas = {
   data?: string;
+  hora?: string;
   valor?: string;
   descricao?: string;
   categoria?: string;
@@ -91,6 +93,42 @@ function parseDataBR(texto: string): string | undefined {
   return undefined;
 }
 
+// Extrai HH:MM(:SS) de dentro de um texto solto (ex: coluna "hora" tipo
+// "14:32" ou uma data que já vem com hora embutida "24/07/2026 14:32:00").
+function extrairHoraTexto(texto: string): string | undefined {
+  if (!texto) return undefined;
+  const m = String(texto).trim().match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return undefined;
+  const h = m[1].padStart(2, "0");
+  const min = m[2];
+  const s = (m[3] || "00").padStart(2, "0");
+  if (Number(h) > 23 || Number(min) > 59) return undefined;
+  return `${h}:${min}:${s}`;
+}
+
+// Junta uma data ISO (YYYY-MM-DD) já parseada com um texto de hora solto —
+// só retorna algo quando os dois lados existem de verdade (hora é opcional
+// por natureza: nunca inventa 00:00:00 pra um documento que não trouxe hora).
+function combinarDataHora(dataISO: string | undefined, horaTexto: string | undefined): string | undefined {
+  if (!dataISO || !horaTexto) return undefined;
+  const hora = extrairHoraTexto(horaTexto);
+  if (!hora) return undefined;
+  const d = new Date(`${dataISO}T${hora}`);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+// OFX: DTPOSTED vem como YYYYMMDD (só data) ou YYYYMMDDHHMMSS[.mmm][+TZ] (com
+// hora) — só monta timestamp quando os 14 dígitos de data+hora estão de fato
+// presentes, nunca completa com meia-noite inventada.
+function parseDataHoraOFX(dtPosted: string): string | undefined {
+  if (!dtPosted) return undefined;
+  const m = String(dtPosted).trim().match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+  if (!m) return undefined;
+  const [, ano, mes, dia, h, min, s] = m;
+  const d = new Date(`${ano}-${mes}-${dia}T${h}:${min}:${s}`);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 function parseValorBR(texto: any): number | undefined {
   if (texto === null || texto === undefined || texto === "") return undefined;
   if (typeof texto === "number") return texto;
@@ -135,6 +173,7 @@ export function autodetectarMapeamento(headers: string[]): MapeamentoColunas {
 
   const padroes: Record<keyof MapeamentoColunas, string[]> = {
     data: ["data", "date", "dtposted", "datalancamento", "datavencimento", "dtmovimento", "datamovimento", "fecha"],
+    hora: ["hora", "time", "horario", "hour", "horalancamento", "horamovimento"],
     valor: ["valor", "value", "amount", "trnamt", "vlr", "montante", "preco", "total", "monto"],
     descricao: ["descricao", "description", "memo", "historico", "obs", "observacao", "detalhe", "descripcion"],
     categoria: ["categoria", "category", "tipo", "classe", "grupo", "categoria"],
@@ -193,6 +232,7 @@ export async function parseOFX(texto: string): Promise<ResultadoParse> {
 
     linhas.push({
       data: parseDataBR(dtPosted || ""),
+      dataHora: parseDataHoraOFX(dtPosted || ""),
       valor: Math.abs(valorNum),
       descricao: memo || tipo || "Lançamento bancário",
       documento: fitId || checkNum,
@@ -436,9 +476,15 @@ export async function parseCSV(
     const categoria = mapUsado.categoria ? String(raw[mapUsado.categoria] || "") : undefined;
     const documento = mapUsado.documento ? String(raw[mapUsado.documento] || "") : undefined;
     const cnpj = mapUsado.cnpj ? String(raw[mapUsado.cnpj] || "") : undefined;
+    // Hora vem de coluna própria quando mapeada, senão tenta achar embutida
+    // na própria coluna de data (ex: "24/07/2026 14:32") — nunca inventa.
+    const dataHora = mapUsado.hora
+      ? combinarDataHora(data, raw[mapUsado.hora])
+      : combinarDataHora(data, mapUsado.data ? raw[mapUsado.data] : undefined);
 
     linhas.push({
       data,
+      dataHora,
       valor: valor !== undefined ? Math.abs(valor) : undefined,
       descricao,
       categoria,
@@ -501,9 +547,13 @@ export async function parseXLSX(
     const categoria = mapUsado.categoria ? String(row[mapUsado.categoria] || "") : undefined;
     const documento = mapUsado.documento ? String(row[mapUsado.documento] || "") : undefined;
     const cnpj = mapUsado.cnpj ? String(row[mapUsado.cnpj] || "") : undefined;
+    const dataHora = mapUsado.hora
+      ? combinarDataHora(data, row[mapUsado.hora])
+      : combinarDataHora(data, mapUsado.data ? row[mapUsado.data] : undefined);
 
     return {
       data,
+      dataHora,
       valor: valor !== undefined ? Math.abs(valor) : undefined,
       descricao,
       categoria,

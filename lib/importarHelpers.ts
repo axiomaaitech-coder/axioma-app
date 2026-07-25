@@ -44,6 +44,7 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         user_id: userId,
         empresa_id: empresaId,
         data: linha.data,
+        data_hora: linha.dataHora || null,
         valor: linha.valor,
         descricao: linha.descricao || "Lançamento importado",
         tipo: linha.tipo === "saida" ? "saida" : "entrada",
@@ -67,6 +68,7 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         user_id: userId,
         empresa_id: empresaId,
         data: linha.data,
+        data_hora: linha.dataHora || null,
         valor: linha.valor,
         descricao: linha.descricao || "Receita importada",
         categoria: linha.categoria || null,
@@ -89,6 +91,7 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         user_id: userId,
         empresa_id: empresaId,
         data: linha.data,
+        data_hora: linha.dataHora || null,
         valor: linha.valor,
         descricao: linha.descricao || "Custo importado",
         categoria: linha.categoria || null,
@@ -137,6 +140,7 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         valor_pago: 0,
         data_emissao: linha.data || null,
         data_vencimento: linha.data || null,
+        data_hora: linha.dataHora || null,
         status: "pendente",
         categoria: linha.categoria || null,
         numero_nota: linha.documento || null,
@@ -164,6 +168,7 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
         valor: linha.valor,
         data_vencimento: linha.data,
         data_emissao: linha.data,
+        data_hora: linha.dataHora || null,
         status: "pendente",
         categoria: linha.categoria || null,
         numero_documento: linha.documento || null,
@@ -219,6 +224,168 @@ const BUILDERS: Record<DestinoTabela, Builder> = {
     };
   },
 };
+
+// ============================================================================
+// POSSÍVEL DUPLICATA — cross-módulo, "estilo aviso de PIX repetido"
+// Camada A MAIS além da duplicata exata por hash (marcarDuplicatasPorLinha):
+// aqui o sistema NUNCA soma/descarta sozinho, só avisa quando valor+data
+// batem E nenhum campo disponível (hora, nº de documento, CNPJ da
+// contraparte) consegue provar que são lançamentos diferentes.
+// ============================================================================
+
+const LABEL_TABELA: Record<DestinoTabela, string> = {
+  fluxo_caixa: "Fluxo de Caixa",
+  receitas: "Receitas",
+  custos_fixos: "Custos Fixos",
+  custos_variaveis: "Custos Variáveis",
+  fornecedores: "Fornecedores",
+  contas_pagar: "Contas a Pagar",
+  contas_receber: "Contas a Receber",
+  dividas: "Endividamento",
+};
+
+type ConfigTabelaTransacao = {
+  tabela: DestinoTabela;
+  colValor: string;
+  colData: string;
+  colDataHora?: string;
+  colDescricao: string;
+  colDistintivo?: string;
+  colContraparteId?: string;
+  tabelaContraparte?: "fornecedores" | "clientes";
+};
+
+// Só as 6 tabelas que são LANÇAMENTO datado — custos_fixos (cadastro
+// recorrente, sem data de transação) e fornecedores (cadastro) ficam fora.
+const TABELAS_TRANSACAO: ConfigTabelaTransacao[] = [
+  { tabela: "fluxo_caixa", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
+  { tabela: "receitas", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
+  { tabela: "custos_variaveis", colValor: "valor", colData: "data", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "documento" },
+  { tabela: "contas_pagar", colValor: "valor_total", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_nota", colContraparteId: "fornecedor_id", tabelaContraparte: "fornecedores" },
+  { tabela: "contas_receber", colValor: "valor", colData: "data_emissao", colDataHora: "data_hora", colDescricao: "descricao", colDistintivo: "numero_documento", colContraparteId: "cliente_id", tabelaContraparte: "clientes" },
+  { tabela: "dividas", colValor: "valor_total", colData: "vencimento", colDescricao: "descricao" },
+];
+
+// Reaproveitado tanto pra gravar "Somar" (soma no registro existente em vez
+// de inserir um novo) quanto pra reverter (subtrai de volta o que foi somado).
+const COLUNA_VALOR_DESTINO: Partial<Record<DestinoTabela, string>> = Object.fromEntries(
+  TABELAS_TRANSACAO.map((t) => [t.tabela, t.colValor])
+);
+
+export type CandidatoDuplicata = {
+  tabela: DestinoTabela;
+  id: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  dataHora: string | null;
+  distintivo: string | null;
+  contraparteDocumento: string | null;
+};
+
+export type PossivelDuplicata = {
+  candidato: CandidatoDuplicata;
+  horaComparada: boolean;
+  motivo: string;
+};
+
+function valorBate(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.005;
+}
+
+// 1 consulta por tabela (+ no máximo 1 pra resolver fornecedor/cliente) — nunca
+// uma consulta por linha, mesmo com centenas de linhas na leva.
+async function buscarCandidatosPorTabela(
+  cfg: ConfigTabelaTransacao,
+  datas: string[],
+  valores: number[]
+): Promise<CandidatoDuplicata[]> {
+  const { data } = await supabase.from(cfg.tabela).select("*").in(cfg.colData, datas);
+  const linhas = (data || []).filter((r: any) => valores.some((v) => valorBate(v, Number(r[cfg.colValor]))));
+  if (linhas.length === 0) return [];
+
+  const contrapartes = new Map<string, string | null>();
+  if (cfg.colContraparteId && cfg.tabelaContraparte) {
+    const ids = Array.from(new Set(linhas.map((r: any) => r[cfg.colContraparteId!]).filter(Boolean)));
+    if (ids.length > 0) {
+      const { data: cad } = await supabase.from(cfg.tabelaContraparte).select("id, documento").in("id", ids);
+      (cad || []).forEach((c: any) => contrapartes.set(c.id, c.documento || null));
+    }
+  }
+
+  return linhas.map((r: any) => ({
+    tabela: cfg.tabela,
+    id: r.id,
+    descricao: r[cfg.colDescricao],
+    valor: Number(r[cfg.colValor]),
+    data: r[cfg.colData],
+    dataHora: cfg.colDataHora ? r[cfg.colDataHora] || null : null,
+    distintivo: cfg.colDistintivo ? r[cfg.colDistintivo] || null : null,
+    contraparteDocumento: cfg.colContraparteId ? contrapartes.get(r[cfg.colContraparteId]) || null : null,
+  }));
+}
+
+// Busca candidatos reais nas 6 tabelas (paralelo, 1 consulta cada) e decide,
+// linha a linha, se algum bate a ponto de merecer aviso. Índice do array de
+// retorno corresponde ao índice da linha importada; null = sem suspeita.
+export async function detectarPossiveisDuplicatas(
+  empresaId: string | null,
+  linhas: LinhaImportada[]
+): Promise<(PossivelDuplicata | null)[]> {
+  const resultado: (PossivelDuplicata | null)[] = linhas.map(() => null);
+  if (!empresaId) return resultado;
+
+  const comData = linhas
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => l.data && l.valor !== undefined && !isNaN(l.valor));
+  if (comData.length === 0) return resultado;
+
+  const datas = Array.from(new Set(comData.map(({ l }) => l.data!)));
+  const valores = Array.from(new Set(comData.map(({ l }) => Number(l.valor))));
+
+  const porTabela = await Promise.all(TABELAS_TRANSACAO.map((cfg) => buscarCandidatosPorTabela(cfg, datas, valores)));
+  const todosCandidatos = porTabela.flat();
+
+  for (const { l, i } of comData) {
+    const candidatos = todosCandidatos.filter((c) => c.data === l.data && valorBate(c.valor, Number(l.valor)));
+    if (candidatos.length === 0) continue;
+
+    for (const cand of candidatos) {
+      // 1) Os dois lados têm hora → hora decide, sem ambiguidade.
+      if (l.dataHora && cand.dataHora) {
+        const horaLinha = l.dataHora.slice(11, 19);
+        const horaCand = cand.dataHora.slice(11, 19);
+        if (horaLinha !== horaCand) continue; // hora diferente = lançamentos legítimos, não avisa
+        resultado[i] = {
+          candidato: cand,
+          horaComparada: true,
+          motivo: `Mesmo valor, data e horário (${horaLinha}) de um lançamento já existente em ${LABEL_TABELA[cand.tabela]}.`,
+        };
+        break;
+      }
+
+      // 2) Sem hora de um dos lados (ou dos dois) → nº de documento decide, se existir dos dois lados.
+      const docLinha = l.documento?.trim();
+      const docCand = cand.distintivo?.trim();
+      if (docLinha && docCand && docLinha !== docCand) continue;
+
+      // 3) CNPJ da contraparte (fornecedor/cliente), se a linha trouxe e o registro tem.
+      const cnpjLinha = l.cnpj?.replace(/\D/g, "");
+      const cnpjCand = cand.contraparteDocumento?.replace(/\D/g, "");
+      if (cnpjLinha && cnpjCand && cnpjLinha !== cnpjCand) continue;
+
+      // Nada provou que são diferentes → avisa.
+      resultado[i] = {
+        candidato: cand,
+        horaComparada: false,
+        motivo: `Mesmo valor e data de um lançamento já existente em ${LABEL_TABELA[cand.tabela]} — hora não disponível dos dois lados para confirmar automaticamente.`,
+      };
+      break;
+    }
+  }
+
+  return resultado;
+}
 
 // ============================================================================
 // TIMELINE — histórico de eventos por importação (Fase 1)
@@ -605,6 +772,7 @@ export async function criarImportacao(params: {
 
 export type ResultadoGravacao = {
   importadas: number;
+  somadas: number;
   duplicadas: number;
   ignoradas: number;
   erro: number;
@@ -625,8 +793,12 @@ export async function gravarLinhas(params: {
   // exceções/padrões. É por isso que não existe uma função de simulação
   // separada: o risco de simular e importar de verdade divergirem é zero.
   dryRun?: boolean;
+  // Confirmação de possível duplicata: quando a linha[i] veio marcada
+  // "Somar", soma no registro existente (que pode estar em OUTRA tabela,
+  // por isso tabela+id) em vez de inserir uma linha nova.
+  somarAlvo?: ({ tabela: DestinoTabela; id: string } | null)[];
 }): Promise<ResultadoGravacao> {
-  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destino, dryRun } = params;
+  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destino, dryRun, somarAlvo } = params;
 
   const builder = BUILDERS[destino];
   if (!builder) {
@@ -635,6 +807,7 @@ export async function gravarLinhas(params: {
 
   const resultado: ResultadoGravacao = {
     importadas: 0,
+    somadas: 0,
     duplicadas: 0,
     ignoradas: 0,
     erro: 0,
@@ -694,16 +867,62 @@ export async function gravarLinhas(params: {
       continue;
     }
 
+    const alvoSomar = somarAlvo?.[i] || null;
+
     // 4) dryRun (Simulador): mesma validação acima, mas não toca no banco —
     // conta como se tivesse dado certo, sem gravar nada real.
     if (dryRun) {
       resultado.importadas++;
+      if (alvoSomar) resultado.somadas++;
       resultado.valor_total += linha.valor || 0;
-      auditoriaRows.push({ ...auditoriaBase, status: "importada" });
+      auditoriaRows.push({ ...auditoriaBase, status: alvoSomar ? "somada" : "importada" });
       continue;
     }
 
-    // 4b) Inserir no destino de verdade (uma tentativa, sem retry)
+    // 4b) Confirmação de possível duplicata = "Somar": soma no registro
+    // existente (que pode estar em outra tabela) em vez de criar um novo.
+    if (alvoSomar) {
+      const colValor = COLUNA_VALOR_DESTINO[alvoSomar.tabela];
+      if (!colValor) {
+        resultado.erro++;
+        resultado.mensagens_erro.push(`Linha ${numLinha}: destino "${alvoSomar.tabela}" não suporta somar`);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: "Destino sem coluna de valor conhecida para somar" });
+        continue;
+      }
+      const { data: atual, error: errBusca } = await supabase
+        .from(alvoSomar.tabela)
+        .select(colValor)
+        .eq("id", alvoSomar.id)
+        .maybeSingle();
+      if (errBusca || !atual) {
+        resultado.erro++;
+        const msg = errBusca?.message || "Registro para somar não encontrado";
+        resultado.mensagens_erro.push(`Linha ${numLinha}: ${msg}`);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: msg });
+        continue;
+      }
+      const novoValor = Number((atual as any)[colValor] || 0) + (linha.valor || 0);
+      const { error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id);
+      if (errUpdate) {
+        resultado.erro++;
+        resultado.mensagens_erro.push(`Linha ${numLinha}: ${errUpdate.message}`);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: errUpdate.message });
+        continue;
+      }
+      resultado.importadas++;
+      resultado.somadas++;
+      resultado.valor_total += linha.valor || 0;
+      auditoriaRows.push({
+        ...auditoriaBase,
+        destino_tabela: alvoSomar.tabela,
+        destino_id: alvoSomar.id,
+        status: "somada",
+        mensagem: `Somado ao lançamento já existente em ${LABEL_TABELA[alvoSomar.tabela]}`,
+      });
+      continue;
+    }
+
+    // 4c) Inserir no destino de verdade (uma tentativa, sem retry)
     const { data: inserido, error } = await supabase
       .from(destino)
       .insert(build.payload)
@@ -786,9 +1005,10 @@ export async function gravarLinhas(params: {
     userId,
     importacaoId,
     evento: "linhas_gravadas",
-    descricao: `${resultado.importadas} importadas, ${resultado.duplicadas} duplicadas, ${resultado.ignoradas} ignoradas, ${resultado.erro} com erro`,
+    descricao: `${resultado.importadas} importadas (${resultado.somadas} somadas a lançamentos existentes), ${resultado.duplicadas} duplicadas, ${resultado.ignoradas} ignoradas, ${resultado.erro} com erro`,
     dados: {
       importadas: resultado.importadas,
+      somadas: resultado.somadas,
       duplicadas: resultado.duplicadas,
       ignoradas: resultado.ignoradas,
       erro: resultado.erro,
@@ -1008,17 +1228,19 @@ export async function reverterImportacao(
 ): Promise<{ removidas: number; erros: string[] }> {
   const { data: linhas } = await supabase
     .from("importacao_linhas")
-    .select("id, destino_tabela, destino_id, empresa_id")
+    .select("id, destino_tabela, destino_id, empresa_id, valor, status")
     .eq("importacao_id", importacaoId)
-    .eq("status", "importada");
+    .in("status", ["importada", "somada"]);
 
   const empresaId: string | null = linhas?.[0]?.empresa_id ?? null;
   const erros: string[] = [];
   let removidas = 0;
 
+  const paraDeletar = (linhas || []).filter((l: any) => l.status === "importada" && l.destino_id);
+  const paraSubtrair = (linhas || []).filter((l: any) => l.status === "somada" && l.destino_id);
+
   const porTabela = new Map<string, string[]>();
-  (linhas || []).forEach((l: any) => {
-    if (!l.destino_id) return;
+  paraDeletar.forEach((l: any) => {
     const arr = porTabela.get(l.destino_tabela) || [];
     arr.push(l.destino_id);
     porTabela.set(l.destino_tabela, arr);
@@ -1040,11 +1262,38 @@ export async function reverterImportacao(
     }
   }
 
+  // Linhas "somada": não existe registro próprio pra deletar — desfaz
+  // subtraindo de volta o valor que foi somado no registro existente
+  // (que pode viver em outra tabela, por isso não entrou no loop acima).
+  for (const l of paraSubtrair) {
+    const colValor = COLUNA_VALOR_DESTINO[l.destino_tabela as DestinoTabela];
+    if (!colValor) {
+      erros.push(`${l.destino_tabela}: sem coluna de valor conhecida para desfazer soma`);
+      continue;
+    }
+    const { data: atual, error: errBusca } = await supabase
+      .from(l.destino_tabela)
+      .select(colValor)
+      .eq("id", l.destino_id)
+      .maybeSingle();
+    if (errBusca || !atual) {
+      erros.push(`${l.destino_tabela}: registro ${l.destino_id} não encontrado pra desfazer soma`);
+      continue;
+    }
+    const novoValor = Number((atual as any)[colValor] || 0) - Number(l.valor || 0);
+    const { error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id);
+    if (errUpdate) {
+      erros.push(`${l.destino_tabela}: ${errUpdate.message}`);
+      continue;
+    }
+    removidas++;
+  }
+
   await supabase
     .from("importacao_linhas")
     .update({ status: "revertida" })
     .eq("importacao_id", importacaoId)
-    .eq("status", "importada");
+    .in("status", ["importada", "somada"]);
 
   await supabase
     .from("importacoes")

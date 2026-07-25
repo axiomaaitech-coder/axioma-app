@@ -36,9 +36,11 @@ import {
   abrirExcecaoFormatoReforma,
   sugerirClassificacoes,
   normalizarPadraoChave,
+  detectarPossiveisDuplicatas,
   type StatsMes,
   type ResultadoGravacao,
   type SugestaoClassificacao,
+  type PossivelDuplicata,
 } from "../../../lib/importarHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
@@ -128,6 +130,17 @@ const T = {
     timeline: "Linha do Tempo",
     semTimeline: "Sem eventos registrados.",
     motivo: "Motivo",
+    possivelDuplicata: "Possível Duplicata",
+    pareceIgualA: "Parece igual a",
+    horaConfere: "Mesma hora exata — bate perfeito",
+    semHoraDisponivel: "hora não disponível pra confirmar automaticamente",
+    importarMesmoAssim: "Importar mesmo assim",
+    pular: "Pular",
+    somar: "Somar ao existente",
+    aplicarATodasPendentes: "Aplicar a todas as pendentes",
+    duplicataPendente: "Resolva as possíveis duplicatas antes de continuar",
+    verificandoDuplicatas: "Conferindo possíveis duplicatas...",
+    linhaJaSomada: "Somado ao lançamento existente",
   },
   en: {
     dashboard: "Import Panel - This Month",
@@ -206,6 +219,17 @@ const T = {
     timeline: "Timeline",
     semTimeline: "No events recorded.",
     motivo: "Reason",
+    possivelDuplicata: "Possible Duplicate",
+    pareceIgualA: "Looks like",
+    horaConfere: "Exact same time — perfect match",
+    semHoraDisponivel: "time not available to auto-confirm",
+    importarMesmoAssim: "Import anyway",
+    pular: "Skip",
+    somar: "Add to existing",
+    aplicarATodasPendentes: "Apply to all pending",
+    duplicataPendente: "Resolve the possible duplicates before continuing",
+    verificandoDuplicatas: "Checking possible duplicates...",
+    linhaJaSomada: "Added to existing entry",
   },
   es: {
     dashboard: "Panel de Importaciones - Este Mes",
@@ -284,6 +308,17 @@ const T = {
     timeline: "Línea de Tiempo",
     semTimeline: "Sin eventos registrados.",
     motivo: "Motivo",
+    possivelDuplicata: "Posible Duplicado",
+    pareceIgualA: "Parece igual a",
+    horaConfere: "Misma hora exacta — coincide perfecto",
+    semHoraDisponivel: "hora no disponible para confirmar automáticamente",
+    importarMesmoAssim: "Importar de todos modos",
+    pular: "Omitir",
+    somar: "Sumar al existente",
+    aplicarATodasPendentes: "Aplicar a todas las pendientes",
+    duplicataPendente: "Resuelva los posibles duplicados antes de continuar",
+    verificandoDuplicatas: "Verificando posibles duplicados...",
+    linhaJaSomada: "Sumado al registro existente",
   },
 };
 
@@ -363,6 +398,12 @@ export default function ImportarDocumentosPage() {
   const [simulacao, setSimulacao] = useState<ResultadoGravacao | null>(null);
   // Motor de aprendizado (Fase 1): sugestão por descrição normalizada — só sugere, nunca decide sozinho
   const [sugestoes, setSugestoes] = useState<Map<string, SugestaoClassificacao>>(new Map());
+
+  // Possível duplicata cross-módulo: null = sem suspeita nessa linha.
+  // decisoesDuplicata: null = pendente (linha fica desmarcada até decidir).
+  const [possiveisDuplicatas, setPossiveisDuplicatas] = useState<(PossivelDuplicata | null)[]>([]);
+  const [decisoesDuplicata, setDecisoesDuplicata] = useState<("importar" | "pular" | "somar" | null)[]>([]);
+  const [verificandoDuplicatas, setVerificandoDuplicatas] = useState(false);
 
   // Templates
   const [templates, setTemplates] = useState<any[]>([]);
@@ -495,13 +536,29 @@ export default function ImportarDocumentosPage() {
     setMapeamento(res.mapeamentoAuto || {});
     setSugestoes(new Map());
 
-    // 3) Dedup por linha
+    // 3) Dedup por linha (hash idêntico — camada de baixo)
     setEtapa("dedup");
     const dups = await marcarDuplicatasPorLinha(userId, res.linhas, res.destinoSugerido);
     setDuplicadas(dups);
     // Linhas duplicadas começam desmarcadas
     setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
     setEtapa("");
+
+    // 3b) Possível duplicata cross-módulo (camada A MAIS — "parece repetido,
+    // confirme"): compara contra os registros reais de 6 tabelas, não só o
+    // hash de importações passadas. Linha suspeita nasce desmarcada até o
+    // usuário decidir — nada grava sozinho.
+    setPossiveisDuplicatas(res.linhas.map(() => null));
+    setDecisoesDuplicata(res.linhas.map(() => null));
+    if (empresaId) {
+      setVerificandoDuplicatas(true);
+      detectarPossiveisDuplicatas(empresaId, res.linhas).then((possiveis) => {
+        setPossiveisDuplicatas(possiveis);
+        setDecisoesDuplicata(possiveis.map(() => null));
+        setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
+        setVerificandoDuplicatas(false);
+      });
+    }
 
     // 4) Motor de aprendizado: sugere categoria/destino com base em importações
     // anteriores parecidas — só sugere, nunca preenche sozinho.
@@ -526,6 +583,11 @@ export default function ImportarDocumentosPage() {
     setHashFile("");
     setDuplicataGlobal(null);
     setEtapa("");
+    setSucesso(null);
+    setSimulacao(null);
+    setSugestoes(new Map());
+    setPossiveisDuplicatas([]);
+    setDecisoesDuplicata([]);
     setMostrarSalvarTemplate(false);
     setNomeNovoTemplate("");
     if (inputRef.current) inputRef.current.value = "";
@@ -541,6 +603,18 @@ export default function ImportarDocumentosPage() {
 
   function selecionarTodas(v: boolean) {
     setSelecionadas(linhas.map(() => v));
+  }
+
+  // Decisão do usuário sobre 1 linha com possível duplicata — nada grava
+  // sozinho, isso só resolve a pendência que libera (ou não) a linha.
+  function resolverDuplicata(i: number, decisao: "importar" | "pular" | "somar") {
+    setDecisoesDuplicata((prev) => prev.map((d, idx) => (idx === i ? decisao : d)));
+    setSelecionadas((prev) => prev.map((s, idx) => (idx === i ? decisao !== "pular" : s)));
+  }
+
+  function resolverDuplicataEmMassa(decisao: "importar" | "pular" | "somar") {
+    setDecisoesDuplicata((prev) => prev.map((d, i) => (possiveisDuplicatas[i] && d === null ? decisao : d)));
+    setSelecionadas((prev) => prev.map((s, i) => (possiveisDuplicatas[i] && decisoesDuplicata[i] === null ? decisao !== "pular" : s)));
   }
 
   function editarLinha(i: number, campo: "data" | "valor" | "descricao" | "categoria", valor: any) {
@@ -574,10 +648,21 @@ export default function ImportarDocumentosPage() {
       setResultado(novoResult);
       setLinhas(novoResult.linhas);
       setSelecionadas(novoResult.linhas.map((l) => Boolean(l.data && l.valor !== undefined)));
+      setPossiveisDuplicatas(novoResult.linhas.map(() => null));
+      setDecisoesDuplicata(novoResult.linhas.map(() => null));
       if (userId) {
         const dups = await marcarDuplicatasPorLinha(userId, novoResult.linhas, destino);
         setDuplicadas(dups);
         setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
+      }
+      if (empresaId) {
+        setVerificandoDuplicatas(true);
+        detectarPossiveisDuplicatas(empresaId, novoResult.linhas).then((possiveis) => {
+          setPossiveisDuplicatas(possiveis);
+          setDecisoesDuplicata(possiveis.map(() => null));
+          setSelecionadas((prev) => prev.map((s, i) => (possiveis[i] ? false : s)));
+          setVerificandoDuplicatas(false);
+        });
       }
     } catch (err: any) {
       showToast(err.message || "Erro ao remapear", "erro");
@@ -622,8 +707,19 @@ export default function ImportarDocumentosPage() {
   // validação de linha), só que com dryRun=true — sem upload, sem cabeçalho,
   // sem gravar nada real. É por isso que não existe uma função de simulação
   // paralela: se um dia o caminho real mudar, o simulador muda junto.
+  function montarSomarAlvo() {
+    return linhas.map((_, i) => {
+      const pd = possiveisDuplicatas[i];
+      return decisoesDuplicata[i] === "somar" && pd ? { tabela: pd.candidato.tabela, id: pd.candidato.id } : null;
+    });
+  }
+
   async function simularImportacao() {
     if (!userId || !resultado) return;
+    if (pendentesDuplicata > 0) {
+      showToast(tt.duplicataPendente, "erro");
+      return;
+    }
     const totalSel = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
     if (totalSel === 0) {
       showToast(tt.nenhumaSelecionada, "erro");
@@ -641,6 +737,7 @@ export default function ImportarDocumentosPage() {
         duplicadas,
         destino,
         dryRun: true,
+        somarAlvo: montarSomarAlvo(),
       });
       setSimulacao(result);
     } catch (err: any) {
@@ -651,6 +748,10 @@ export default function ImportarDocumentosPage() {
 
   async function confirmarImportacao() {
     if (!userId || !arquivoSelecionado || !resultado) return;
+    if (pendentesDuplicata > 0) {
+      showToast(tt.duplicataPendente, "erro");
+      return;
+    }
     const totalSel = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
     if (totalSel === 0) {
       showToast(tt.nenhumaSelecionada, "erro");
@@ -694,6 +795,7 @@ export default function ImportarDocumentosPage() {
         selecionadas,
         duplicadas,
         destino,
+        somarAlvo: montarSomarAlvo(),
       });
 
       // 4) Atualiza tempo de processamento
@@ -1123,6 +1225,7 @@ export default function ImportarDocumentosPage() {
 
   const totalSelecionadas = selecionadas.filter((s, i) => s && !duplicadas[i]).length;
   const totalDuplicadas = duplicadas.filter(Boolean).length;
+  const pendentesDuplicata = possiveisDuplicatas.filter((p, i) => p && decisoesDuplicata[i] === null).length;
   const valorTotalPreview = linhas.reduce(
     (sum, l, i) => (selecionadas[i] && !duplicadas[i] ? sum + (l.valor || 0) : sum),
     0
@@ -1299,6 +1402,12 @@ export default function ImportarDocumentosPage() {
               simulando={simulando}
               simulacao={simulacao}
               sugestoes={sugestoes}
+              possiveisDuplicatas={possiveisDuplicatas}
+              decisoesDuplicata={decisoesDuplicata}
+              resolverDuplicata={resolverDuplicata}
+              resolverDuplicataEmMassa={resolverDuplicataEmMassa}
+              pendentesDuplicata={pendentesDuplicata}
+              verificandoDuplicatas={verificandoDuplicatas}
               totalSelecionadas={totalSelecionadas}
               totalDuplicadas={totalDuplicadas}
               valorTotalPreview={valorTotalPreview}
@@ -1578,6 +1687,8 @@ function PreviewBlock(props: any) {
     toggleLinha, selecionarTodas, editarLinha,
     cancelarUpload, confirmarImportacao, confirmando,
     simularImportacao, simulando, simulacao, sugestoes,
+    possiveisDuplicatas, decisoesDuplicata, resolverDuplicata, resolverDuplicataEmMassa,
+    pendentesDuplicata, verificandoDuplicatas,
     totalSelecionadas, totalDuplicadas, valorTotalPreview,
     mostrarSalvarTemplate, setMostrarSalvarTemplate,
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
@@ -1862,6 +1973,69 @@ function PreviewBlock(props: any) {
           )}
         </div>
 
+        {/* Possível Duplicata — cross-módulo, estilo "aviso de PIX repetido".
+            Nada grava sozinho: cada linha suspeita fica desmarcada até o
+            usuário decidir. */}
+        {verificandoDuplicatas && (
+          <div className="rounded-xl p-3 text-center" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)" }}>
+            <p className="text-xs" style={{ color: "#fbbf24" }}>⏳ {tt.verificandoDuplicatas}</p>
+          </div>
+        )}
+        {possiveisDuplicatas.some((p: any) => p) && (
+          <div className="rounded-xl p-3" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.3)" }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#fbbf24" }}>
+                ⚠️ {tt.possivelDuplicata} {pendentesDuplicata > 0 ? `(${pendentesDuplicata})` : ""}
+              </p>
+              {pendentesDuplicata > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="text-[10px] self-center" style={{ color: "#5a7a9a" }}>{tt.aplicarATodasPendentes}:</span>
+                  <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>{tt.importarMesmoAssim}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: "#cbd5e1" }}>{tt.pular}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>{tt.somar}</button>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {possiveisDuplicatas.map((pd: any, i: number) => {
+                if (!pd) return null;
+                const linha = linhas[i];
+                const decisao = decisoesDuplicata[i];
+                const labelTabela = DESTINOS.find((d) => d.key === pd.candidato.tabela)?.label || pd.candidato.tabela;
+                return (
+                  <div key={i} className="rounded-lg p-2.5" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(251,191,36,0.15)" }}>
+                    <p className="text-xs font-semibold" style={{ color: "#c8d8f0" }}>
+                      Linha {i + 1}: {linha.descricao || "—"} · {formatBRL(linha.valor || 0)} · {linha.data ? formatData(linha.data) : "—"}
+                    </p>
+                    <p className="text-[11px] mt-1" style={{ color: "#fbbf24" }}>
+                      {tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
+                      {pd.horaComparada && <span style={{ color: "#f87171" }}> — {tt.horaConfere}</span>}
+                    </p>
+                    <p className="text-[10px] mt-0.5" style={{ color: "#5a7a9a" }}>{pd.motivo}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <button onClick={() => resolverDuplicata(i, "importar")}
+                        className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                        style={{ background: decisao === "importar" ? "rgba(52,211,153,0.3)" : "rgba(52,211,153,0.12)", color: "#34d399", border: decisao === "importar" ? "1px solid #34d399" : "none" }}>
+                        {tt.importarMesmoAssim}
+                      </button>
+                      <button onClick={() => resolverDuplicata(i, "pular")}
+                        className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                        style={{ background: decisao === "pular" ? "rgba(148,163,184,0.3)" : "rgba(148,163,184,0.12)", color: "#cbd5e1", border: decisao === "pular" ? "1px solid #cbd5e1" : "none" }}>
+                        {tt.pular}
+                      </button>
+                      <button onClick={() => resolverDuplicata(i, "somar")}
+                        className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                        style={{ background: decisao === "somar" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.12)", color: "#6ab0ff", border: decisao === "somar" ? "1px solid #6ab0ff" : "none" }}>
+                        {tt.somar}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Simulador — mesmo caminho da importação real, nada é gravado */}
         {simulacao && (
           <div className="rounded-xl p-3" style={{ background: "rgba(106,176,255,0.06)", border: "1px solid rgba(106,176,255,0.25)" }}>
@@ -1895,12 +2069,14 @@ function PreviewBlock(props: any) {
                 style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
                 {tt.cancelar}
               </button>
-              <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0}
+              <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0 || pendentesDuplicata > 0}
+                title={pendentesDuplicata > 0 ? tt.duplicataPendente : undefined}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
                 style={{ background: "rgba(106,176,255,0.12)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
                 {simulando ? `⏳ ${tt.simulando}` : `🔍 ${tt.simular}`}
               </button>
-              <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0}
+              <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0 || pendentesDuplicata > 0}
+                title={pendentesDuplicata > 0 ? tt.duplicataPendente : undefined}
                 className="px-6 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
                 style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
                 {confirmando ? `⏳ ${tt.importando}` : `✓ ${tt.confirmarImport} (${totalSelecionadas})`}

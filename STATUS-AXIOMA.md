@@ -734,6 +734,29 @@ Elias testou a Fase 1 do Importar Documentos (simulou 5, importou 5, bateu certo
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro, checado várias vezes ao longo da correção. Não testado clicando na tela nesta sessão.
 
+## 3-W. Botão "Nova Importação" travado + Confirmação de Possível Duplicata cross-módulo, entregue em 2026-07-25
+
+**Bug do botão:** `cancelarUpload()` limpava arquivo/resultado/linhas mas nunca limpava `sucesso` — e a área de upload só reaparece quando `!sucesso`. Depois de uma importação concluída, clicar em "Nova Importação" não fazia nada porque a tela de sucesso nunca saía do ar. Corrigido: agora limpa `sucesso`, `simulacao` e `sugestoes` também.
+
+**Confirmação de Possível Duplicata — "estilo aviso de PIX repetido":** camada nova, A MAIS além da duplicata exata por hash que já existia. O sistema nunca soma nem descarta um valor sozinho quando há suspeita — ele avisa e o usuário decide, linha a linha ou em massa, com 3 opções: Importar mesmo assim / Pular / Somar ao lançamento existente. Nada grava até o usuário confirmar (a linha suspeita nasce desmarcada e o botão de confirmar fica bloqueado enquanto houver pendência).
+
+**Critério de casamento (aprovado por Elias antes de codar):** só marca quando valor + data batem contra um registro REAL (não mock, não importação passada) em qualquer uma de 6 tabelas — Fluxo de Caixa, Receitas, Custos Variáveis, Contas a Pagar, Contas a Receber, Endividamento — cruzando módulos, não só o destino escolhido na importação. Antes de marcar, checa o que consegue provar que são lançamentos diferentes, nessa ordem:
+1. **Hora** (quando os dois lados têm `data_hora`) — hora diferente = legítimo, nunca avisa. Hora igual = confirma o aviso com confiança máxima.
+2. **Nº de documento/nota** (quando os dois lados têm) — diferente = legítimo.
+3. **CNPJ da contraparte** (fornecedor/cliente do registro existente vs. CNPJ que a linha importada trouxe) — diferente = legítimo.
+4. Se nada disso conseguiu provar que são diferentes, avisa — e, se a hora não estava disponível dos dois lados, a tela deixa isso explícito (não finge ter comparado hora que não existe).
+
+**Coluna `data_hora` (5 tabelas, SQL em `DATA-HORA-TRANSACOES.sql`, já rodado por Elias):** decisão consciente de **não converter** a coluna de data existente pra timestamp — isso quebraria todo `new Date(x.data + "T00:00:00")` espalhado pelo app. Coluna nova opcional (`fluxo_caixa`, `receitas`, `custos_variaveis`, `contas_pagar`, `contas_receber`), populada só quando o parser de OFX (`DTPOSTED`) ou CSV/XLSX (coluna de hora própria ou hora embutida na data) realmente captura hora — nunca inventa meia-noite. Registro antigo ou lançamento manual fica com `data_hora` vazia e continua funcionando 100% como antes. Sem índice novo — a busca de duplicata filtra pela coluna de data já indexada, não por `data_hora`.
+
+**"Somar":** em vez de criar um lançamento novo, faz `UPDATE` somando o valor importado ao registro existente (que pode estar em outra tabela — por isso o alvo é tabela+id, não só id). Reversão da importação trata isso corretamente: linha marcada "somada" não é deletada, é subtraída de volta do registro (diferente da linha "importada" normal, que é deletada). `dryRun` do Simulador também simula "somar" sem gravar nada.
+
+**Excluído conscientemente:** Custos Fixos (cadastro recorrente, sem data de transação) e Fornecedores (cadastro) ficam fora da checagem de duplicata — não são lançamento datado. Resolução automática de CNPJ via nome da contraparte (quando a linha não traz CNPJ explícito) não foi feita — só compara quando o dado já existe nos dois lados, sem inventar correspondência por texto parecido.
+
+**Arquivos alterados:** `lib/importarParsers.ts` (captura de hora), `lib/importarHelpers.ts` (motor de duplicata + Somar + reversão), `app/(interno)/importar-documentos/page.tsx` (botão corrigido + fila de possíveis duplicatas na revisão).
+**Arquivo criado:** `DATA-HORA-TRANSACOES.sql`.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro, confirmado a cada etapa. Confirmação das 5 colunas `data_hora` feita via consulta real à API do Supabase (erro `42703` apareceria se a coluna não existisse — não apareceu). Não testado clicando na tela nesta sessão.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
