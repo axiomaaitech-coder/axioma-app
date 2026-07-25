@@ -105,6 +105,8 @@ const T = {
 
 const tooltipStyle = { background: "rgba(2,8,16,0.97)", border: "1px solid rgba(106,176,255,0.3)", borderRadius: "12px", color: "#c8d8f0", fontSize: "12px" };
 function formatBRL(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR")}`; }
+// Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
+function formatBRL2(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 
 export default function IATributariaPage() {
   const { idioma } = useLanguage();
@@ -205,9 +207,9 @@ export default function IATributariaPage() {
   function montarTextoShare(): string {
     if (!dados || !scoreFiscal) return "Axioma AI.Tech";
     return [`🦅 *AXIOMA AI.TECH — IA Tributária*`, ``, `🛡️ *Score Fiscal:* ${scoreFiscal.score}/100`,
-      `📊 Carga: ${carga?.carga_pct.toFixed(1)}%`, `💰 ${lang === "en" ? "Revenue" : "Receita"}: ${formatBRL(dados.receita_bruta_mensal)}${tt.porMes}`,
+      `📊 Carga: ${carga?.carga_pct.toFixed(1)}%`, `💰 ${lang === "en" ? "Revenue" : "Receita"}: ${formatBRL2(dados.receita_bruta_mensal)}${tt.porMes}`,
       `🏛️ ${lang === "en" ? "Regime" : "Regime"}: ${dados.regime_atual || "—"}`,
-      economia?.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL(economia.economia_mensal)}` : "",
+      economia?.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL2(economia.economia_mensal)}` : "",
       ``, `_axiomaai.com.br_`].filter(Boolean).join("\n");
   }
   function shareWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
@@ -215,6 +217,12 @@ export default function IATributariaPage() {
   function shareGmail() { const s = encodeURIComponent("Axioma IA Tributária"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, "")); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`, "_blank", "noopener,noreferrer"); }
   function shareOutlook() { const s = encodeURIComponent("Axioma IA Tributária"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, "")); window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${s}&body=${b}`, "_blank", "noopener,noreferrer"); }
   async function shareCopiar() { try { await navigator.clipboard.writeText(montarTextoShare().replace(/\*/g, "")); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
+  function montarTextoDetalhado(): string {
+    return [`AXIOMA AI.TECH — IA Tributária (detalhado)`, ...simulacoes.filter(s => s.elegivel).map(s =>
+      `${s.regime_label} | ${lang === "en" ? "Tax/mo" : "Imposto/mês"} ${formatBRL2(s.imposto_mensal)} | ${s.aliquota_efetiva}% | ${lang === "en" ? "Savings/yr" : "Economia/ano"} ${formatBRL2(s.economia_vs_atual)}`
+    )].join("\n");
+  }
+  async function shareCopiarDetalhado() { try { await navigator.clipboard.writeText(montarTextoDetalhado()); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
 
   async function exportarPDF() {
     if (!dados || !scoreFiscal) return;
@@ -228,7 +236,7 @@ export default function IATributariaPage() {
           { header: lang === "en" ? "EFF.RATE" : "ALÍQ.EFET.", key: "aliq", width: 25, align: "right" as const },
           { header: lang === "en" ? "SAVINGS/YR" : "ECONOMIA/ANO", key: "eco", width: 30, align: "right" as const },
         ],
-        linhas: simulacoes.filter(s => s.elegivel).map(s => ({ reg: s.regime_label, imp: formatBRL(s.imposto_mensal), aliq: `${s.aliquota_efetiva}%`, eco: formatBRL(s.economia_vs_atual) })),
+        linhas: simulacoes.filter(s => s.elegivel).map(s => ({ reg: s.regime_label, imp: formatBRL2(s.imposto_mensal), aliq: `${s.aliquota_efetiva}%`, eco: formatBRL2(s.economia_vs_atual) })),
         resumo: [
           { label: "Score Fiscal", valor: `${scoreFiscal.score}/100 (${lang === "en" ? scoreFiscal.nivel_en : scoreFiscal.nivel})` },
           { label: lang === "en" ? "Tax Burden" : "Carga Tributária", valor: `${carga?.carga_pct.toFixed(1)}%` },
@@ -528,7 +536,8 @@ export default function IATributariaPage() {
               <button onClick={shareTelegram} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}><span className="text-xl">✈️</span>Telegram</button>
               <button onClick={shareGmail} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}><span className="text-xl">📨</span>Gmail</button>
               <button onClick={shareOutlook} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}><span className="text-xl">📩</span>Outlook</button>
-              <button onClick={shareCopiar} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar}</button>
+              <button onClick={shareCopiar} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar} (resumo)</button>
+              <button onClick={shareCopiarDetalhado} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar} (detalhado)</button>
               <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold disabled:opacity-50" style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}><span className="text-xl">{exportando ? "⏳" : "📄"}</span>{exportando ? tt.gerando : tt.pdfRelatorio}</button>
             </div>
             <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.fechar}</button>

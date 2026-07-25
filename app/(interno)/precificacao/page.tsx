@@ -78,6 +78,7 @@ export default function Precificacao() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
 
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState<ProdutoRow | null>(null);
@@ -394,6 +395,15 @@ export default function Precificacao() {
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${cx.prcTitulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${cx.prcTitulo} (detalhado)`,
+    ...produtos.map((p) =>
+      `${p.produto_servico} | Custo ${fmt(p.custo_total || 0)} | Margem ${p.margem_desejada || 0}% | Preço ${fmt(p.preco_sugerido || 0)}`
+    ),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   const inputStyle = { background: "rgba(255,255,255,0.04)", border: `1px solid ${COR_PRC}30`, color: "#c8d8f0" };
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -827,7 +837,8 @@ export default function Precificacao() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
                 </div>
               </CanvasBox>

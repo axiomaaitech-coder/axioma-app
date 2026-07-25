@@ -129,6 +129,8 @@ const CORES_COMP = [COR.verde, COR.vermelho, COR.laranja, COR.roxo];
 const ttip = { background: "rgba(10,8,30,0.97)", border: "1px solid rgba(139,92,246,0.4)", borderRadius: "14px", color: "#e2e8f0", fontSize: "12px", padding: "8px 12px" };
 
 function fBRL(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0); }
+// Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
+function fBRL2(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0); }
 function fData(iso: string, l: string) { if (!iso) return "—"; try { return new Date(iso + "T00:00:00").toLocaleDateString(l === "en" ? "en-US" : l === "es" ? "es-ES" : "pt-BR"); } catch { return iso; } }
 
 // Glass Card — estilo referência com borda sutil e hover glow
@@ -490,7 +492,7 @@ export default function DashboardPage() {
   const usandoExemplo = composicaoReal.length === 0;
 
   // Share
-  function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
+  function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL2(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL2(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
   function sWA() { window.open(`https://wa.me/?text=${encodeURIComponent(mSh())}`, "_blank"); }
   function sTG() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(mSh())}`, "_blank"); }
   function sGM() { window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mSh().replace(/\*/g, ""))}`, "_blank"); }
@@ -501,7 +503,7 @@ export default function DashboardPage() {
     if (!snap || !score360) return; setExportando(true);
     try { await gerarPdfTabela({ titulo: "Axioma Dashboard CFO", subtitulo: snap.periodo,
       colunas: [{ header: "MÉTRICA", key: "m", width: 55, align: "left" as const }, { header: "VALOR", key: "v", width: 40, align: "right" as const }],
-      linhas: [{ m: tt.receita, v: fBRL(snap.receita_bruta) }, { m: tt.custos, v: fBRL(snap.custos_totais) }, { m: tt.lucro, v: fBRL(snap.lucro_liquido) }, { m: tt.margem, v: `${snap.margem_liquida.toFixed(1)}%` },
+      linhas: [{ m: tt.receita, v: fBRL2(snap.receita_bruta) }, { m: tt.custos, v: fBRL2(snap.custos_totais) }, { m: tt.lucro, v: fBRL2(snap.lucro_liquido) }, { m: tt.margem, v: `${snap.margem_liquida.toFixed(1)}%` },
         ...score360.dimensoes.map(d => ({ m: lang === "en" ? d.nome_en : d.nome, v: `${d.score}/100` }))],
       resumo: [{ label: "Score 360°", valor: `${score360.total}/100` }], nomeArquivo: "axioma-dashboard.pdf" });
     } catch (e: any) { showToast(e.message, "erro"); } setExportando(false);

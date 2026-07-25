@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
   resolverPeriodo, montarDRE,
   simularCenariosExecutivos, analiseSensibilidade, simulacaoMonteCarlo,
   gerarChoquePreset, receitaPctParaMultiplicarLucro, optBarrasV,
@@ -63,6 +63,7 @@ export default function Simulacoes() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [macro, setMacro] = useState<IndicadoresMacro | null>(null);
 
   const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([]);
@@ -289,13 +290,20 @@ export default function Simulacoes() {
   // ═══════════════════════ COMPARTILHAR ═══════════════════════
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${txt.titulo}`,
-    resultado && cenarioBase ? `💰 ${cx.simCenariosTitulo} (${cx.invCenarioBase}): ${fBRL(cenarioBase.lucroLiquidoMensal)}/mês` : "",
+    resultado && cenarioBase ? `💰 ${cx.simCenariosTitulo} (${cx.invCenarioBase}): R$ ${fBRL2(cenarioBase.lucroLiquidoMensal)}/mês` : "",
     resultado ? `🎲 ${cx.simProbLucroPositivo}: ${fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)}` : "",
     resultado ? `⚠️ ${cx.simProbRupturaCaixa}: ${fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)}` : "",
     "_axiomaai.com.br_",
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${txt.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${txt.titulo} (detalhado)`,
+    ...(resultado?.cenarios || []).map((c) => `${NOME_CENARIO[c.nome] || c.nome} | R$ ${fBRL2(c.lucroLiquidoMensal)}/mês | Saldo projetado R$ ${fBRL2(c.saldoCaixaProjetado)}`),
+    "_axiomaai.com.br_",
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   const inputStyle = { background: "rgba(255,255,255,0.04)", border: `1px solid ${CORES.indigo}30`, color: "#c8d8f0" };
 
@@ -688,7 +696,8 @@ export default function Simulacoes() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
                 </div>
               </CanvasBox>

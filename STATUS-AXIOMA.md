@@ -718,6 +718,22 @@ Elias testou a Parte 6 na tela (item 1 da fila anterior) — confirmado: dados a
 
 **Aguardando:** Elias rodar o SQL no Supabase, depois testar a Fase 1 na tela — Fase 2 (planejada como "OCR de PDF com Claude Vision" no comentário do código) só entra depois de aprovado.
 
+## 3-V. Correção de 2 bugs pós-teste — arredondamento em cópia/PDF + Copiar Resumo/Detalhado (2026-07-24)
+
+Elias testou a Fase 1 do Importar Documentos (simulou 5, importou 5, bateu certo) e achou 2 bugs no Centro de Compartilhamento, presentes em módulos antigos — não relacionados ao Importar Documentos.
+
+**Bug 1 — arredondamento de valor monetário (crítico, erro contábil):** o app tem duas funções de formatação de dinheiro desde o início — uma com 2 casas decimais (usada no PDF) e uma sem casas decimais (feita pra caber bonito em cartão de KPI na tela). O problema: várias telas usavam a versão sem casas decimais também no texto de copiar/compartilhar, e em alguns casos até no PDF — "R$ 83.516" em vez de "R$ 83.516,40". Corrigido nas 18 telas abaixo: todo texto de compartilhamento/cópia/PDF agora usa a versão de 2 casas decimais, sempre. Os cartões de KPI na tela continuam arredondados de propósito (design), isso não mudou — o problema era só nos números que saem do app (copiados, compartilhados, exportados).
+
+**Achado que ampliou o escopo:** ao caçar o bug do compartilhamento, achei que o PDF de 4 telas (Dashboard, IA Tributária, IA Financeira, Relatórios) e o de Contas a Receber/Inadimplência também usava a versão errada, mesmo Elias achando que "o PDF já estava certo em tudo" — era certo só nas telas mais recentes (Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, DRE(cartões), Endividamento, Investimentos, Precificação, Metas, Simulações, Centro de Custos, Clientes, Fornecedores já usavam a formatação certa). Corrigido nas telas que faltavam.
+
+**Bug 2 — Copiar Resumo vs Copiar Detalhado:** antes só existia um botão "Copiar", que copiava um resumo curto. Agora tem dois botões nos módulos com lista de lançamento: "Copiar (resumo)" continua igual, "Copiar (detalhado)" copia a lista inteira (descrição/categoria/data/status/valor com centavos) pronta pra colar em e-mail/WhatsApp/planilha. Aplicado nos módulos com lista real: Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa, Endividamento, DRE (linhas da cascata), Investimentos, Precificação, Metas, Fornecedores, Clientes, Contas a Receber, Inadimplência — e nos 4 módulos de análise que tinham uma lista natural pra detalhar: IA Tributária (comparação de regimes), IA Financeira (dimensões do Score 360°), Simulações (cenários), Relatórios (linhas do DRE do período).
+
+**Deixado de fora conscientemente:** Dashboard (agrega os outros módulos, cada um já tem seu próprio detalhado), Empresa (cadastro de 1 registro só, não é lista), Importar Documentos (já tinha resumo curto/longo desde a Fase 1), Centro de Custos (não tem botão de copiar hoje).
+
+**Arquivos alterados (18):** `app/(interno)/receitas/page.tsx`, `custos-fixos/page.tsx`, `custos-variaveis/page.tsx`, `fluxo-caixa/page.tsx`, `endividamento/page.tsx`, `dre/page.tsx`, `investimentos/page.tsx`, `precificacao/page.tsx`, `metas/page.tsx`, `simulacoes/page.tsx`, `contas-receber/page.tsx`, `inadimplencia/page.tsx`, `fornecedores/page.tsx`, `clientes/page.tsx`, `dashboard/page.tsx`, `ia-tributaria/page.tsx`, `ia-financeira/page.tsx`, `relatorios/page.tsx`.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro, checado várias vezes ao longo da correção. Não testado clicando na tela nesta sessão.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

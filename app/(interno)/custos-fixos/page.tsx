@@ -48,6 +48,7 @@ export default function CustosFixos() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => { carregarCustos(); }, []);
@@ -156,13 +157,20 @@ export default function CustosFixos() {
   // ═══════════ COMPARTILHAR ═══════════
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${t.custosFixos.titulo}`,
-    `📉 ${cx.totalMensal}: ${fBRL(totalMensal)} · ${cx.totalAnual}: ${fBRL(totalAnual)}`,
-    economiaPotencial > 0 ? `💸 ${cx.economiaPotencial}: ${fBRL(economiaPotencial)}/mês` : "",
+    `📉 ${cx.totalMensal}: R$ ${fBRL2(totalMensal)} · ${cx.totalAnual}: R$ ${fBRL2(totalAnual)}`,
+    economiaPotencial > 0 ? `💸 ${cx.economiaPotencial}: R$ ${fBRL2(economiaPotencial)}/mês` : "",
     renovacoes.length > 0 ? `🔔 ${renovacoes.length} ${cx.radarRenovacoes}` : "",
     `_axiomaai.com.br_`,
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${t.custosFixos.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${t.custosFixos.titulo} (detalhado)`,
+    ...custosFiltrados.map((c) => `Dia ${c.dia_vencimento} | ${c.descricao} | ${c.categoria || "-"} | R$ ${fBRL2(c.valor_mensal)}/mês`),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   // ═══════════ GRÁFICOS ═══════════
   const optCat = optRosca(composicao, CORES.vermelho, cx.totalMensal.toUpperCase());
@@ -452,7 +460,8 @@ export default function CustosFixos() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>PDF</button>
                 </div>
               </CanvasBox>

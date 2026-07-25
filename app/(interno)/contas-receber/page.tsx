@@ -13,7 +13,7 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
-import { fBRL, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { fBRL, fBRL2, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
@@ -413,13 +413,13 @@ export default function ContasReceber() {
           return {
             cli: cliente(c.cliente_id)?.nome || '-', doc: c.numero_documento || '-',
             venc: c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-',
-            status: statusLabel(c.status), atual: fBRL(valorAtualizado), rec: fBRL(c.valor_recebido || 0), saldo: fBRL(saldo),
+            status: statusLabel(c.status), atual: `R$ ${fBRL2(valorAtualizado)}`, rec: `R$ ${fBRL2(c.valor_recebido || 0)}`, saldo: `R$ ${fBRL2(saldo)}`,
           }
         }),
         resumo: [
-          { label: L('Total a Receber', 'Total Receivable', 'Total por Cobrar'), valor: fBRL(kpis.valorTotalAReceber) },
-          { label: L('Vencido', 'Overdue', 'Vencido'), valor: fBRL(kpis.valorVencido) },
-          { label: L('Recebido no Mês', 'Received this Month', 'Recibido este Mes'), valor: fBRL(kpis.recebidoNoMes) },
+          { label: L('Total a Receber', 'Total Receivable', 'Total por Cobrar'), valor: `R$ ${fBRL2(kpis.valorTotalAReceber)}` },
+          { label: L('Vencido', 'Overdue', 'Vencido'), valor: `R$ ${fBRL2(kpis.valorVencido)}` },
+          { label: L('Recebido no Mês', 'Received this Month', 'Recibido este Mes'), valor: `R$ ${fBRL2(kpis.recebidoNoMes)}` },
           { label: L('Score Médio da Carteira', 'Avg. Portfolio Score', 'Score Promedio de Cartera'), valor: kpis.scoreMedioCarteira != null ? `${kpis.scoreMedioCarteira}/1000` : '—' },
         ],
         nomeArquivo: `axioma-contas-receber-${new Date().toISOString().slice(0, 10)}.pdf`,
@@ -428,8 +428,16 @@ export default function ContasReceber() {
     setExportando(false)
   }
 
-  const textoCompartilhar = `${L('Central de Recebimentos Axioma', 'Axioma Receivables Center', 'Centro de Cobros Axioma')}: ${L('a receber', 'receivable', 'por cobrar')} ${fBRL(kpis.valorTotalAReceber)}, ${L('vencido', 'overdue', 'vencido')} ${fBRL(kpis.valorVencido)}.`
+  const textoCompartilhar = `${L('Central de Recebimentos Axioma', 'Axioma Receivables Center', 'Centro de Cobros Axioma')}: ${L('a receber', 'receivable', 'por cobrar')} R$ ${fBRL2(kpis.valorTotalAReceber)}, ${L('vencido', 'overdue', 'vencido')} R$ ${fBRL2(kpis.valorVencido)}.`
   const canais = canaisCompartilhamento(textoCompartilhar, L('Contas a Receber — Axioma', 'Accounts Receivable — Axioma', 'Cuentas por Cobrar — Axioma'))
+
+  const textoDetalhado = [
+    `🦅 AXIOMA AI.TECH — ${L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')} (${L('detalhado', 'detailed', 'detallado')})`,
+    ...contasFiltradas.map((c) => {
+      const { valorAtualizado, saldo } = calcularLinha(c)
+      return `${cliente(c.cliente_id)?.nome || '-'} | ${c.numero_documento || '-'} | ${c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-'} | ${statusLabel(c.status)} | R$ ${fBRL2(valorAtualizado)} | ${L('Saldo', 'Balance', 'Saldo')} R$ ${fBRL2(saldo)}`
+    }),
+  ].join('\n')
 
   // ========== KPIs (17, com estado vazio honesto) ==========
   type KpiTile = { key: string; label: string; valor: string; cor: string; vazio: boolean; drillable: boolean }
@@ -1647,7 +1655,12 @@ export default function ContasReceber() {
                     <button onClick={() => { navigator.clipboard.writeText(textoCompartilhar); setShareAberto(false) }}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
                       style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Copy size={16} /> {L('Copiar texto', 'Copy text', 'Copiar texto')}
+                      <Copy size={16} /> {L('Copiar resumo', 'Copy summary', 'Copiar resumen')}
+                    </button>
+                    <button onClick={() => { navigator.clipboard.writeText(textoDetalhado); setShareAberto(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <Copy size={16} /> {L('Copiar detalhado', 'Copy detailed', 'Copiar detallado')}
                     </button>
                   </div>
                 </div>

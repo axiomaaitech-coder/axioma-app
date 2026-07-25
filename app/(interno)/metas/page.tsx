@@ -9,7 +9,7 @@ import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
-  fBRL, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
   filtrarPorPeriodo, montarDRE, ticketMedio, serieRolling, optRosca, optLinhaMulti,
   calcularRitmoMeta, progressoEsperado, projetarFechamentoMeta, progressoPercentual,
   detectarMetaIrreal, semaforoMeta, marcoAlcancado, traduzirMetaEmDinheiro,
@@ -224,6 +224,7 @@ export default function Metas() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
 
   const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([]);
   const [custosFixosRows, setCustosFixosRows] = useState<{ valor_mensal: number }[]>([]);
@@ -558,6 +559,15 @@ export default function Metas() {
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${txt.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${txt.titulo} (detalhado)`,
+    ...metasVisiveis.map((m) =>
+      `${m.titulo} | ${m.tipo_meta ? nomeTipoMeta(lang, m.tipo_meta) : "-"} | ${m.status} | Alvo R$ ${fBRL2(m.valor_meta)} | Atual R$ ${fBRL2(m.valor_atual)}`
+    ),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   const metasFiltradas = metasVisiveis.filter(m => m.titulo.toLowerCase().includes(busca.toLowerCase()));
 
@@ -951,7 +961,8 @@ export default function Metas() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
                 </div>
               </CanvasBox>

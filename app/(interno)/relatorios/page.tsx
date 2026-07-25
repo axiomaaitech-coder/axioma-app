@@ -185,6 +185,10 @@ const tooltipStyle = {
 function formatBRL(n: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
 }
+// Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
+function formatBRL2(n: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+}
 
 export default function Relatorios() {
   const { t, idioma } = useLanguage();
@@ -274,15 +278,15 @@ export default function Relatorios() {
           { header: "% RECEITA", key: "pct", width: 25, align: "right" },
         ];
         linhas = [
-          { linha: tt.receitaBruta, valor: formatBRL(dre.receita_bruta), pct: "100,0%" },
-          { linha: `(-) ${tt.deducoes}`, valor: formatBRL(-dre.deducoes), pct: `${dre.pct_deducoes.toFixed(1)}%` },
-          { linha: `= ${tt.receitaLiquida}`, valor: formatBRL(dre.receita_liquida), pct: `${(dre.receita_liquida / Math.max(dre.receita_bruta, 1) * 100).toFixed(1)}%` },
-          { linha: `(-) ${tt.custosVar}`, valor: formatBRL(-dre.custos_variaveis), pct: `${dre.pct_custos_variaveis.toFixed(1)}%` },
-          { linha: `= ${tt.margemContrib}`, valor: formatBRL(dre.margem_contribuicao), pct: `${dre.pct_margem_contribuicao.toFixed(1)}%` },
-          { linha: `(-) ${tt.custosFix}`, valor: formatBRL(-dre.custos_fixos), pct: `${dre.pct_custos_fixos.toFixed(1)}%` },
-          { linha: `= ${tt.lucroOp}`, valor: formatBRL(dre.lucro_operacional), pct: `${(dre.lucro_operacional / Math.max(dre.receita_bruta, 1) * 100).toFixed(1)}%` },
-          { linha: `(-) ${tt.despesasFin}`, valor: formatBRL(-dre.despesas_financeiras), pct: `${(dre.despesas_financeiras / Math.max(dre.receita_bruta, 1) * 100).toFixed(1)}%` },
-          { linha: `= ${tt.lucroLiquido}`, valor: formatBRL(dre.lucro_liquido), pct: `${dre.pct_lucro_liquido.toFixed(1)}%` },
+          { linha: tt.receitaBruta, valor: formatBRL2(dre.receita_bruta), pct: "100,0%" },
+          { linha: `(-) ${tt.deducoes}`, valor: formatBRL2(-dre.deducoes), pct: `${dre.pct_deducoes.toFixed(1)}%` },
+          { linha: `= ${tt.receitaLiquida}`, valor: formatBRL2(dre.receita_liquida), pct: `${(dre.receita_liquida / Math.max(dre.receita_bruta, 1) * 100).toFixed(1)}%` },
+          { linha: `(-) ${tt.custosVar}`, valor: formatBRL2(-dre.custos_variaveis), pct: `${dre.pct_custos_variaveis.toFixed(1)}%` },
+          { linha: `= ${tt.margemContrib}`, valor: formatBRL2(dre.margem_contribuicao), pct: `${dre.pct_margem_contribuicao.toFixed(1)}%` },
+          { linha: `(-) ${tt.custosFix}`, valor: formatBRL2(-dre.custos_fixos), pct: `${dre.pct_custos_fixos.toFixed(1)}%` },
+          { linha: `= ${tt.lucroOp}`, valor: formatBRL2(dre.lucro_operacional), pct: `${(dre.lucro_operacional / Math.max(dre.receita_bruta, 1) * 100).toFixed(1)}%` },
+          { linha: `(-) ${tt.despesasFin}`, valor: formatBRL2(-dre.despesas_financeiras), pct: `${(dre.despesas_financeiras / Math.max(dre.receita_bruta, 1) * 100).toFixed(1)}%` },
+          { linha: `= ${tt.lucroLiquido}`, valor: formatBRL2(dre.lucro_liquido), pct: `${dre.pct_lucro_liquido.toFixed(1)}%` },
         ];
       } else if (aba === "evolucao") {
         titulo = "Evolução Financeira 12 Meses";
@@ -295,9 +299,9 @@ export default function Relatorios() {
         ];
         linhas = evolucao.map((e) => ({
           mes: `${e.mes}/${e.ano}`,
-          rec: formatBRL(e.receita),
-          cus: formatBRL(e.custos),
-          luc: formatBRL(e.lucro),
+          rec: formatBRL2(e.receita),
+          cus: formatBRL2(e.custos),
+          luc: formatBRL2(e.lucro),
           mar: `${e.margem}%`,
         }));
       } else if (aba === "distribuicao") {
@@ -309,7 +313,7 @@ export default function Relatorios() {
         ];
         linhas = distribuicao.map((d) => ({
           cat: d.name,
-          val: formatBRL(d.value),
+          val: formatBRL2(d.value),
           pct: `${d.pct}%`,
         }));
       } else if (aba === "kpis") {
@@ -330,8 +334,8 @@ export default function Relatorios() {
 
       const resumo = [
         { label: tt.periodo, valor: `${MESES[mes - 1]}/${ano}` },
-        { label: tt.receitaBruta, valor: formatBRL(dre.receita_bruta) },
-        { label: tt.lucroLiquido, valor: formatBRL(dre.lucro_liquido) },
+        { label: tt.receitaBruta, valor: formatBRL2(dre.receita_bruta) },
+        { label: tt.lucroLiquido, valor: formatBRL2(dre.lucro_liquido) },
         { label: tt.scoreCFO, valor: `${scoreCFO.score}/100 (${scoreCFO.nivel})` },
       ];
 
@@ -359,9 +363,9 @@ export default function Relatorios() {
       ``,
       `📅 Período: *${MESES[mes - 1]}/${ano}*`,
       ``,
-      `💰 ${tt.receitaBruta}: ${formatBRL(dre.receita_bruta)}`,
-      `📉 Custos Totais: ${formatBRL(dre.custos_variaveis + dre.custos_fixos)}`,
-      `✅ ${tt.lucroLiquido}: ${formatBRL(dre.lucro_liquido)}`,
+      `💰 ${tt.receitaBruta}: ${formatBRL2(dre.receita_bruta)}`,
+      `📉 Custos Totais: ${formatBRL2(dre.custos_variaveis + dre.custos_fixos)}`,
+      `✅ ${tt.lucroLiquido}: ${formatBRL2(dre.lucro_liquido)}`,
       `📊 Margem Líquida: ${dre.pct_lucro_liquido.toFixed(1)}%`,
       ``,
       `🎯 *Score CFO:* ${scoreCFO.score}/100 (${scoreCFO.nivel})`,
@@ -392,6 +396,29 @@ export default function Relatorios() {
     try {
       await navigator.clipboard.writeText(montarTextoCompartilhamento().replace(/\*/g, ""));
       showToast("Resumo copiado!", "ok");
+    } catch {
+      showToast("Erro ao copiar", "erro");
+    }
+  }
+  function montarTextoDetalhado(): string {
+    if (!dre) return "Axioma AI.Tech";
+    return [
+      `AXIOMA AI.TECH — Relatório CFO (detalhado) — ${MESES[mes - 1]}/${ano}`,
+      `${tt.receitaBruta} | ${formatBRL2(dre.receita_bruta)} | 100,0%`,
+      `(-) ${tt.deducoes} | ${formatBRL2(-dre.deducoes)} | ${dre.pct_deducoes.toFixed(1)}%`,
+      `= ${tt.receitaLiquida} | ${formatBRL2(dre.receita_liquida)}`,
+      `(-) ${tt.custosVar} | ${formatBRL2(-dre.custos_variaveis)} | ${dre.pct_custos_variaveis.toFixed(1)}%`,
+      `= ${tt.margemContrib} | ${formatBRL2(dre.margem_contribuicao)} | ${dre.pct_margem_contribuicao.toFixed(1)}%`,
+      `(-) ${tt.custosFix} | ${formatBRL2(-dre.custos_fixos)} | ${dre.pct_custos_fixos.toFixed(1)}%`,
+      `= ${tt.lucroOp} | ${formatBRL2(dre.lucro_operacional)}`,
+      `(-) ${tt.despesasFin} | ${formatBRL2(-dre.despesas_financeiras)}`,
+      `= ${tt.lucroLiquido} | ${formatBRL2(dre.lucro_liquido)} | ${dre.pct_lucro_liquido.toFixed(1)}%`,
+    ].join("\n");
+  }
+  async function shareCopiarDetalhado() {
+    try {
+      await navigator.clipboard.writeText(montarTextoDetalhado());
+      showToast("Detalhado copiado!", "ok");
     } catch {
       showToast("Erro ao copiar", "erro");
     }
@@ -851,6 +878,11 @@ export default function Relatorios() {
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
                 style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
                 <span className="text-xl">📋</span>Copiar Resumo
+              </button>
+              <button onClick={shareCopiarDetalhado}
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                <span className="text-xl">📋</span>Copiar Detalhado
               </button>
               <button onClick={sharePdf} disabled={exportando}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50 sm:col-span-3"

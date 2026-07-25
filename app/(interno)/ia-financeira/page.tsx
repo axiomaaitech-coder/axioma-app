@@ -241,6 +241,10 @@ const tooltipStyle = { background: "rgba(2,8,16,0.97)", border: "1px solid rgba(
 function formatBRL(n: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
 }
+// Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
+function formatBRL2(n: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+}
 
 export default function IAFinanceiraPage() {
   const { idioma } = useLanguage();
@@ -406,9 +410,9 @@ export default function IAFinanceiraPage() {
       ``,
       `🏆 *Score 360°:* ${score360.total}/100 (${lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel})`,
       ``,
-      `💰 ${lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita"}: ${formatBRL(snap.receita_bruta)}`,
+      `💰 ${lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita"}: ${formatBRL2(snap.receita_bruta)}`,
       `📊 ${lang === "en" ? "Net Margin" : lang === "es" ? "Margen Neto" : "Margem Líquida"}: ${snap.margem_liquida.toFixed(1)}%`,
-      `✅ ${lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro"}: ${formatBRL(snap.lucro_liquido)}`,
+      `✅ ${lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro"}: ${formatBRL2(snap.lucro_liquido)}`,
       ``,
       score360.dimensoes.map(d => `${lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome}: ${d.score}/100`).join("\n"),
       ``,
@@ -430,6 +434,16 @@ export default function IAFinanceiraPage() {
     try { await navigator.clipboard.writeText(montarTextoShare().replace(/\*/g, "")); showToast(tt.cartaoCopiado, "ok"); }
     catch { showToast(tt.erroCopiar, "erro"); }
   }
+  function montarTextoDetalhado(): string {
+    if (!score360) return "Axioma AI.Tech";
+    return [`AXIOMA AI.TECH — IA Financeira (detalhado)`, ...score360.dimensoes.map(d =>
+      `${lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome}: ${d.score}/100`
+    )].join("\n");
+  }
+  async function shareCopiarDetalhado() {
+    try { await navigator.clipboard.writeText(montarTextoDetalhado()); showToast(tt.cartaoCopiado, "ok"); }
+    catch { showToast(tt.erroCopiar, "erro"); }
+  }
 
   // PDF
   async function exportarPDF() {
@@ -445,8 +459,8 @@ export default function IAFinanceiraPage() {
           { header: "STATUS", key: "st", width: 25, align: "left" as const },
         ],
         linhas: [
-          { ind: lang === "en" ? "Revenue" : "Receita", val: formatBRL(snap.receita_bruta), st: "—" },
-          { ind: lang === "en" ? "Net Profit" : "Lucro Líquido", val: formatBRL(snap.lucro_liquido), st: snap.lucro_liquido >= 0 ? "OK" : "⚠️" },
+          { ind: lang === "en" ? "Revenue" : "Receita", val: formatBRL2(snap.receita_bruta), st: "—" },
+          { ind: lang === "en" ? "Net Profit" : "Lucro Líquido", val: formatBRL2(snap.lucro_liquido), st: snap.lucro_liquido >= 0 ? "OK" : "⚠️" },
           { ind: lang === "en" ? "Gross Margin" : "Margem Bruta", val: `${snap.margem_bruta.toFixed(1)}%`, st: snap.margem_bruta >= 40 ? "OK" : "⚠️" },
           { ind: lang === "en" ? "Net Margin" : "Margem Líquida", val: `${snap.margem_liquida.toFixed(1)}%`, st: snap.margem_liquida >= 10 ? "OK" : "⚠️" },
           { ind: lang === "en" ? "Delinquency" : "Inadimplência", val: `${snap.inadimplencia_pct.toFixed(1)}%`, st: snap.inadimplencia_pct <= 5 ? "OK" : "⚠️" },
@@ -879,7 +893,10 @@ export default function IAFinanceiraPage() {
                 <span className="text-xl">📩</span>Outlook</button>
               <button onClick={shareCopiar} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
                 style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
-                <span className="text-xl">📋</span>{tt.copiar}</button>
+                <span className="text-xl">📋</span>{tt.copiar} (resumo)</button>
+              <button onClick={shareCopiarDetalhado} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                <span className="text-xl">📋</span>{tt.copiar} (detalhado)</button>
               <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50"
                 style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
                 <span className="text-xl">{exportando ? "⏳" : "📄"}</span>{exportando ? tt.gerando : tt.pdfRelatorio}</button>

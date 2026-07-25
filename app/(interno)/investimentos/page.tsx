@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
   resolverPeriodo, montarDRE, semaforoSaude, optRosca,
   dividaEbitda,
   rentabilidadeLiquidaAnual, detectarCustoOportunidade, escadaLiquidezInvestimentos,
@@ -98,6 +98,7 @@ export default function Investimentos() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [analiseAberta, setAnaliseAberta] = useState(false);
 
   const [nome, setNome] = useState("");
@@ -456,7 +457,7 @@ export default function Investimentos() {
   // ═══════════════════════ COMPARTILHAR ═══════════════════════
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${txt.titulo}`,
-    `💰 ${cx.invPatrimonioTotal}: ${fBRL(patrimonioTotal)}`,
+    `💰 ${cx.invPatrimonioTotal}: R$ ${fBRL2(patrimonioTotal)}`,
     `🏆 ${cx.invScoreTitulo}: ${score.total} (${scoreNivelLabel[score.nivel]})`,
     `📈 ${cx.invRentabilidadeConsolidada}: ${fPct(rentabilidadeMediaLiquidaAA)}`,
     oportunidades[0] ? `⚡ ${conselhos[0]}` : "",
@@ -464,6 +465,15 @@ export default function Investimentos() {
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${txt.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${txt.titulo} (detalhado)`,
+    ...investimentosFiltrados.map((i) =>
+      `${i.nome} | ${NOME_TIPO[i.tipo] || i.tipo} | ${i.instituicao || "-"} | R$ ${fBRL2(i.valor || 0)}`
+    ),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
     <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
@@ -1018,7 +1028,8 @@ export default function Investimentos() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
                 </div>
               </CanvasBox>

@@ -13,7 +13,7 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
-import { fBRL, fPct, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { fBRL, fBRL2, fPct, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
@@ -468,8 +468,15 @@ export default function Inadimplencia() {
     INDIGO, L('Total', 'Total', 'Total'),
   ) : null
 
-  const textoCompartilhar = `${L('Central de Recuperação Axioma', 'Axioma Recovery Center', 'Centro de Recuperación Axioma')}: ${L('inadimplente', 'delinquent', 'moroso')} ${fBRL(kpis.valorTotalInadimplente)}, ${L('recuperado no ano', 'recovered this year', 'recuperado este año')} ${fBRL(kpis.valorRecuperadoAno)}.`
+  const textoCompartilhar = `${L('Central de Recuperação Axioma', 'Axioma Recovery Center', 'Centro de Recuperación Axioma')}: ${L('inadimplente', 'delinquent', 'moroso')} R$ ${fBRL2(kpis.valorTotalInadimplente)}, ${L('recuperado no ano', 'recovered this year', 'recuperado este año')} R$ ${fBRL2(kpis.valorRecuperadoAno)}.`
   const canais = canaisCompartilhamento(textoCompartilhar, L('Inadimplência — Axioma', 'Delinquency — Axioma', 'Morosidad — Axioma'))
+
+  const textoDetalhado = [
+    `🦅 AXIOMA AI.TECH — ${L('Inadimplência', 'Delinquency', 'Morosidad')} (${L('detalhado', 'detailed', 'detallado')})`,
+    ...linhasFiltradas.map((l) =>
+      `${l.s.cliente.nome} | R$ ${fBRL2(l.s.valorVencido)} | ${l.s.diasAtrasoAtual} ${L('dias', 'days', 'días')} | ${L('Score', 'Score', 'Score')} ${l.score.total} | ${l.negociacao.label}`
+    ),
+  ].join('\n')
 
   const exportarPDF = async () => {
     setExportando(true)
@@ -496,10 +503,10 @@ export default function Inadimplencia() {
           responsavel: l.responsavel || '-',
         })),
         resumo: [
-          { label: L('Total Inadimplente', 'Total Delinquent', 'Total Moroso'), valor: fBRL(kpis.valorTotalInadimplente) },
+          { label: L('Total Inadimplente', 'Total Delinquent', 'Total Moroso'), valor: `R$ ${fBRL2(kpis.valorTotalInadimplente)}` },
           { label: L('Clientes Inadimplentes', 'Delinquent Clients', 'Clientes Morosos'), valor: String(kpis.qtdClientesInadimplentes) },
-          { label: L('Perda Provável', 'Probable Loss', 'Pérdida Probable'), valor: kpis.perdaProvavel != null ? fBRL(kpis.perdaProvavel) : '—' },
-          { label: L('Recuperado no Ano', 'Recovered this Year', 'Recuperado este Año'), valor: fBRL(kpis.valorRecuperadoAno) },
+          { label: L('Perda Provável', 'Probable Loss', 'Pérdida Probable'), valor: kpis.perdaProvavel != null ? `R$ ${fBRL2(kpis.perdaProvavel)}` : '—' },
+          { label: L('Recuperado no Ano', 'Recovered this Year', 'Recuperado este Año'), valor: `R$ ${fBRL2(kpis.valorRecuperadoAno)}` },
         ],
         nomeArquivo: `axioma-inadimplencia-${new Date().toISOString().slice(0, 10)}.pdf`,
       })
@@ -1297,7 +1304,12 @@ export default function Inadimplencia() {
                     <button onClick={() => { navigator.clipboard.writeText(textoCompartilhar); setShareAberto(false) }}
                       className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
                       style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Copy size={16} /> {L('Copiar texto', 'Copy text', 'Copiar texto')}
+                      <Copy size={16} /> {L('Copiar resumo', 'Copy summary', 'Copiar resumen')}
+                    </button>
+                    <button onClick={() => { navigator.clipboard.writeText(textoDetalhado); setShareAberto(false) }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <Copy size={16} /> {L('Copiar detalhado', 'Copy detailed', 'Copiar detallado')}
                     </button>
                   </div>
                 </div>

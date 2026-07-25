@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
   serieRolling, concentracao,
   pontoEquilibrio, margemSeguranca, pesoSobreReceita,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodosPorCategoria, detectarAnomaliasHistoricas,
@@ -98,6 +98,7 @@ export default function DREPage() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [historicoAberto, setHistoricoAberto] = useState(false);
   const [snapshotSelecionado, setSnapshotSelecionado] = useState<HistoricoRow | null>(null);
 
@@ -359,15 +360,15 @@ export default function DREPage() {
         ],
         linhas: linhasCascataTabela.map(l => ({
           conta: l.label,
-          valor: fBRL(l.linha.valor),
+          valor: `R$ ${fBRL2(l.linha.valor)}`,
           av: l.linha.avPct !== null ? fPct(l.linha.avPct) : "—",
           ah: fPct(l.ah),
         })),
         resumo: [
           { label: cx.dreMargemContribuicao, valor: fPct(dreAtual.margemContribuicaoPct) },
           { label: cx.dreMargemLiquida, valor: fPct(dreAtual.margemLiquidaPct) },
-          { label: cx.dreEbitda, valor: fBRL(dreAtual.ebitda.valor) },
-          { label: cx.dreLucroLiquido, valor: fBRL(dreAtual.lucroLiquido.valor) },
+          { label: cx.dreEbitda, valor: `R$ ${fBRL2(dreAtual.ebitda.valor)}` },
+          { label: cx.dreLucroLiquido, valor: `R$ ${fBRL2(dreAtual.lucroLiquido.valor)}` },
           ...(narrativaCausaRaiz ? [{ label: cx.causaRaizTitulo, valor: narrativaCausaRaiz }] : []),
         ],
         nomeArquivo: `axioma-dre-${new Date().toISOString().slice(0, 10)}.pdf`,
@@ -379,8 +380,8 @@ export default function DREPage() {
   // ═══════════════════════ COMPARTILHAR ═══════════════════════
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${d.titulo}`,
-    `💰 ${cx.dreLucroLiquido}: ${fBRL(dreAtual.lucroLiquido.valor)}`,
-    `📈 ${cx.dreEbitda}: ${fBRL(dreAtual.ebitda.valor)}`,
+    `💰 ${cx.dreLucroLiquido}: R$ ${fBRL2(dreAtual.lucroLiquido.valor)}`,
+    `📈 ${cx.dreEbitda}: R$ ${fBRL2(dreAtual.ebitda.valor)}`,
     `🎯 ${cx.dreMargemLiquida}: ${fPct(dreAtual.margemLiquidaPct)}`,
     narrativaCausaRaiz ? `💬 ${narrativaCausaRaiz}` : "",
     narrativaPonte && ponte.alerta ? `⚠️ ${narrativaPonte}` : "",
@@ -388,6 +389,15 @@ export default function DREPage() {
   ].filter(Boolean).join("\n");
   const canais = canaisCompartilhamento(textoShare, `${d.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${d.titulo} (detalhado)`,
+    ...linhasCascataTabela.map((l) =>
+      `${l.label} | R$ ${fBRL2(l.linha.valor)}${l.linha.avPct !== null ? ` | AV ${fPct(l.linha.avPct)}` : ""} | AH ${fPct(l.ah)}`
+    ),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   // ═══════════════════════ GRÁFICO CASCATA (waterfall) ═══════════════════════
   const itensCascata: ItemCascata[] = [
@@ -641,7 +651,8 @@ export default function DREPage() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(249,115,22,0.12)", border: "1px solid rgba(249,115,22,0.4)", color: "#fdba74" }}>PDF</button>
                 </div>
               </CanvasBox>

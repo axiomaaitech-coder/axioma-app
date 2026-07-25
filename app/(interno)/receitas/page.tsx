@@ -50,6 +50,7 @@ export default function Receitas() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
 
   const carregarReceitas = async () => {
@@ -161,13 +162,22 @@ export default function Receitas() {
   // ═══════════ COMPARTILHAR ═══════════
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${t.receitas.titulo}`,
-    `💰 ${t.receitas.totalReceitas}: ${fBRL(totalReceitas)}`,
-    `📈 MRR: ${fBRL(mrr)} · ARR: ${fBRL(arr)}`,
+    `💰 ${t.receitas.totalReceitas}: R$ ${fBRL2(totalReceitas)}`,
+    `📈 MRR: R$ ${fBRL2(mrr)} · ARR: R$ ${fBRL2(arr)}`,
     `📊 ${cx.crescimentoMoM}: ${cresc >= 0 ? "▲" : "▼"} ${Math.abs(cresc).toFixed(1)}%`,
     `_axiomaai.com.br_`,
   ].join("\n");
   const canais = canaisCompartilhamento(textoShare, `${t.receitas.titulo} — Axioma`);
   const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${t.receitas.titulo} (detalhado)`,
+    ...receitasFiltradas.map((r) =>
+      `${r.data ? new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${r.descricao} | ${r.categoria || "-"} | ${r.status === "recebido" ? "Recebido" : "Pendente"} | R$ ${fBRL2(r.valor)}`
+    ),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   // ═══════════ GRÁFICOS (options do alicerce) ═══════════
   const optEvol = optBarrasV(serie12, meses, CORES.roxo, CORES.roxoC);
@@ -452,7 +462,8 @@ export default function Receitas() {
                     <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                       style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                   ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                   <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>PDF</button>
                 </div>
               </CanvasBox>

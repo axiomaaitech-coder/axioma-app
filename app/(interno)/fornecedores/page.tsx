@@ -774,6 +774,7 @@ export default function Fornecedores() {
   const [drillDown, setDrillDown] = useState<string | null>(null);
   const [shareAberto, setShareAberto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -1592,6 +1593,15 @@ export default function Fornecedores() {
   ].filter(Boolean).join("\n");
   const canaisShare = canaisCompartilhamento(textoShare, `${tt.dashboardTitulo} — Axioma`);
   const copiarShare = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
+
+  const textoDetalhado = [
+    `🚀 AXIOMA AI.TECH — ${tt.dashboardTitulo} (detalhado)`,
+    ...fornecedoresFiltrados.map((f) =>
+      `${f.nome} | ${f.documento || "-"} | ${f.categoria || "-"} | ${f.telefone || f.contato || "-"} | ${(f.status || "ativo") === "ativo" ? "Ativo" : "Inativo"}`
+    ),
+    `_axiomaai.com.br_`,
+  ].join("\n");
+  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   const botaoNovaConta = (
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -2819,7 +2829,8 @@ export default function Fornecedores() {
                       <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
                         style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
                     ))}
-                    <button onClick={copiarShare} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : cx.copiar}</button>
+                    <button onClick={copiarShare} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
+                    <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
                     <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.4)", color: "#fca5a5" }}>PDF</button>
                   </div>
                 </CanvasBox>
