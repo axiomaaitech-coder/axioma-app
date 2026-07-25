@@ -212,51 +212,59 @@ const PALAVRAS_RECEITA: Record<Lang, string[]> = {
   es: ["venta", "ventas", "cobro", "recibido", "cliente", "honorario", "honorarios", "mensualidad", "factura emitida", "servicio prestado"],
 };
 const PALAVRAS_CUSTO: Record<Lang, string[]> = {
-  pt: ["compra", "compras", "pagamento", "fornecedor", "fornecedores", "insumo", "insumos", "material", "materiais", "frete", "comissao", "taxa"],
-  en: ["purchase", "purchases", "payment", "supplier", "suppliers", "vendor", "input", "inputs", "material", "materials", "freight", "shipping", "commission", "fee"],
-  es: ["compra", "compras", "pago", "proveedor", "proveedores", "insumo", "insumos", "material", "materiales", "flete", "comision", "tasa"],
+  pt: [
+    "compra", "compras", "pagamento", "fornecedor", "fornecedores", "insumo", "insumos", "material", "materiais",
+    "frete", "comissao", "taxa", "salario", "salarios", "folha de pagamento", "energia", "agua", "aluguel",
+    "condominio", "imposto", "tributo", "despesa", "despesas",
+  ],
+  en: [
+    "purchase", "purchases", "payment", "supplier", "suppliers", "vendor", "input", "inputs", "material", "materials",
+    "freight", "shipping", "commission", "fee", "salary", "salaries", "payroll", "electricity", "utility", "utilities",
+    "rent", "tax", "expense", "expenses",
+  ],
+  es: [
+    "compra", "compras", "pago", "proveedor", "proveedores", "insumo", "insumos", "material", "materiales",
+    "flete", "comision", "tasa", "salario", "salarios", "nomina", "energia", "agua", "alquiler", "impuesto",
+    "gasto", "gastos",
+  ],
 };
 
 function contarPalavras(alvo: string, lista: string[]): number {
   return lista.filter((p) => alvo.includes(` ${p} `)).length;
 }
 
-// Vocabulário de EXTRATO BANCÁRIO — diferente de PALAVRAS_RECEITA/CUSTO
-// (que são sobre natureza de negócio). "TED", "PIX", "boleto", "tarifa"
-// não dizem se é receita ou custo — dizem que a linha é movimento de
-// conta corrente, mesma coisa que o OFX já trata sempre como Fluxo de Caixa.
+// Vocabulário de EXTRATO BANCÁRIO — só palavra que é EXCLUSIVA de
+// movimentação de conta corrente, nunca usada num documento de negócio
+// comum. "boleto"/"depósito"/"transferência" ficaram de fora de propósito:
+// "Boleto fornecedor X" é uma conta a pagar normal, não extrato — incluir
+// essas palavras genéricas demais foi o que causou o arquivo misto (venda/
+// boleto/recebimento) ser confundido com extrato numa rodada anterior.
 const PALAVRAS_EXTRATO: Record<Lang, string[]> = {
-  pt: ["ted", "doc", "pix", "boleto", "tarifa", "saque", "deposito", "transferencia", "movimento", "extrato"],
-  en: ["wire transfer", "ach", "bank fee", "withdrawal", "deposit", "transfer", "statement", "bank charge"],
-  es: ["transferencia", "comision bancaria", "retiro", "deposito", "extracto", "movimiento"],
+  pt: ["ted", "doc", "pix", "tarifa", "saque", "movimento", "extrato"],
+  en: ["wire transfer", "ach", "bank fee", "bank charge", "withdrawal", "statement"],
+  es: ["transferencia bancaria", "comision bancaria", "retiro", "extracto", "movimiento"],
 };
 
 // Decide se o ARQUIVO INTEIRO (não uma linha isolada) tem cara de extrato
 // bancário — nesse caso, cada linha vai pra Fluxo de Caixa mesmo que a
 // descrição tenha uma palavra de receita/custo isolada ("PIX recebido" tem
 // "recebido", mas é so dinheiro entrando na MESMA conta, não uma venda).
-// Critério: vocabulário de extrato numa fração alta das linhas, OU parte
-// do vocabulário presente E entrada+saída misturadas no mesmo arquivo (o
-// que também é característica de extrato, não de um livro de receita/custo).
+// Critério único e rigoroso: vocabulário de extrato na MAIORIA das linhas
+// (>50%) — nada de "entrada+saída misturada" sozinho, isso também é
+// característica normal de um arquivo misto de negócio (venda + boleto a
+// pagar), não é exclusividade de extrato.
 function pareceExtrato(
-  linhasBase: { descricao?: string; categoria?: string; tipo?: "entrada" | "saida" }[],
+  linhasBase: { descricao?: string; categoria?: string }[],
   lang: Lang
 ): boolean {
   if (linhasBase.length === 0) return false;
   const palavras = PALAVRAS_EXTRATO[lang] || PALAVRAS_EXTRATO.pt;
   let hits = 0;
-  let temEntrada = false;
-  let temSaida = false;
   linhasBase.forEach((l) => {
     const alvo = ` ${normalizarBusca(`${l.descricao || ""} ${l.categoria || ""}`)} `;
     if (palavras.some((p) => alvo.includes(` ${p} `))) hits++;
-    if (l.tipo === "entrada") temEntrada = true;
-    if (l.tipo === "saida") temSaida = true;
   });
-  const proporcao = hits / linhasBase.length;
-  if (proporcao >= 0.4) return true;
-  if (hits > 0 && temEntrada && temSaida) return true;
-  return false;
+  return hits / linhasBase.length > 0.5;
 }
 
 // Motivos exibidos como tooltip na tela ("por que sugeri isso") — sempre no
@@ -269,6 +277,7 @@ const MOTIVOS_DESTINO: Record<Lang, {
   nfeNaoBate: string;
   vencimentoPagar: string;
   vencimentoReceber: string;
+  vencimentoPagarPadrao: string;
   extratoDetectado: string;
   movimentoReceita: string;
   movimentoCusto: string;
@@ -276,39 +285,42 @@ const MOTIVOS_DESTINO: Record<Lang, {
 }> = {
   pt: {
     ofx: "Detectado como extrato bancário (OFX) → Fluxo de Caixa.",
-    extratoDetectado: "Arquivo com cara de extrato bancário (TED/PIX/boleto/tarifa) → Fluxo de Caixa para todas as linhas.",
+    extratoDetectado: "Arquivo com cara de extrato bancário (TED/PIX/tarifa) → Fluxo de Caixa para todas as linhas.",
     nfeVenda: "CNPJ do emitente da nota é o da sua empresa → nota de venda → Receitas.",
     nfeCompra: "CNPJ do destinatário da nota é o da sua empresa → nota de compra de um fornecedor → Contas a Pagar.",
     nfeIndefinido: "Não foi possível confirmar se a nota é de venda ou compra (CNPJ da empresa não está cadastrado em Empresa) — mantido em Contas a Pagar, confira.",
     nfeNaoBate: "CNPJ da nota (emitente e destinatário) não bate com o CNPJ cadastrado da sua empresa — mantido em Contas a Pagar, confira.",
-    vencimentoPagar: "Coluna de data é vencimento e o valor é saída → compromisso futuro a pagar.",
-    vencimentoReceber: "Coluna de data é vencimento e o valor é entrada → compromisso futuro a receber.",
+    vencimentoPagar: "Coluna de data é vencimento e a descrição indica despesa/fornecedor → compromisso futuro a pagar.",
+    vencimentoReceber: "Coluna de data é vencimento e a descrição indica cliente/recebimento → compromisso futuro a receber.",
+    vencimentoPagarPadrao: "Coluna de data é vencimento, sem palavra de cliente/recebimento na descrição → tratado como Contas a Pagar (padrão mais comum pra esse tipo de arquivo), confira.",
     movimentoReceita: "Valor de entrada e palavra na descrição sugerem receita — confira.",
     movimentoCusto: "Valor de saída e palavra na descrição sugerem custo — confira.",
     movimentoFallback: "Lançamento já realizado, sem sinal suficiente para um destino mais específico.",
   },
   en: {
     ofx: "Detected as a bank statement (OFX) → Cash Flow.",
-    extratoDetectado: "File looks like a bank statement (wire/PIX/bill/fee) → Cash Flow for all rows.",
+    extratoDetectado: "File looks like a bank statement (wire transfer/PIX/bank fee) → Cash Flow for all rows.",
     nfeVenda: "Invoice issuer's tax ID matches your company → sales invoice → Revenue.",
     nfeCompra: "Invoice recipient's tax ID matches your company → purchase from a supplier → Accounts Payable.",
     nfeIndefinido: "Could not confirm whether this invoice is a sale or a purchase (your company's tax ID isn't registered under Company) — kept in Accounts Payable, please check.",
     nfeNaoBate: "The invoice's tax ID (issuer and recipient) doesn't match your company's registered tax ID — kept in Accounts Payable, please check.",
-    vencimentoPagar: "Date column is a due date and the amount is an outflow → future payable.",
-    vencimentoReceber: "Date column is a due date and the amount is an inflow → future receivable.",
+    vencimentoPagar: "Date column is a due date and the description indicates an expense/supplier → future payable.",
+    vencimentoReceber: "Date column is a due date and the description indicates a customer/payment received → future receivable.",
+    vencimentoPagarPadrao: "Date column is a due date, no customer/received wording in the description → treated as Accounts Payable (the most common case for this file type), please check.",
     movimentoReceita: "Inflow amount and a word in the description suggest revenue — please check.",
     movimentoCusto: "Outflow amount and a word in the description suggest a cost — please check.",
     movimentoFallback: "Already-settled transaction, not enough signal for a more specific destination.",
   },
   es: {
     ofx: "Detectado como extracto bancario (OFX) → Flujo de Caja.",
-    extratoDetectado: "Archivo con cara de extracto bancario (transferencia/PIX/boleto/comisión) → Flujo de Caja para todas las filas.",
+    extratoDetectado: "Archivo con cara de extracto bancario (transferencia/PIX/comisión bancaria) → Flujo de Caja para todas las filas.",
     nfeVenda: "El CNPJ del emisor de la factura es el de su empresa → factura de venta → Ingresos.",
     nfeCompra: "El CNPJ del destinatario de la factura es el de su empresa → compra a un proveedor → Cuentas por Pagar.",
     nfeIndefinido: "No fue posible confirmar si la factura es de venta o compra (el CNPJ de la empresa no está registrado en Empresa) — se mantuvo en Cuentas por Pagar, revise.",
     nfeNaoBate: "El CNPJ de la factura (emisor y destinatario) no coincide con el CNPJ registrado de su empresa — se mantuvo en Cuentas por Pagar, revise.",
-    vencimentoPagar: "La columna de fecha es de vencimiento y el valor es de salida → compromiso futuro por pagar.",
-    vencimentoReceber: "La columna de fecha es de vencimiento y el valor es de entrada → compromiso futuro por cobrar.",
+    vencimentoPagar: "La columna de fecha es de vencimiento y la descripción indica gasto/proveedor → compromiso futuro por pagar.",
+    vencimentoReceber: "La columna de fecha es de vencimiento y la descripción indica cliente/cobro → compromiso futuro por cobrar.",
+    vencimentoPagarPadrao: "La columna de fecha es de vencimiento, sin palabra de cliente/cobro en la descripción → tratado como Cuentas por Pagar (el caso más común para este tipo de archivo), revise.",
     movimentoReceita: "Valor de entrada y una palabra en la descripción sugieren ingreso — revise.",
     movimentoCusto: "Valor de salida y una palabra en la descripción sugieren un costo — revise.",
     movimentoFallback: "Movimiento ya realizado, sin señal suficiente para un destino más específico.",
@@ -333,19 +345,19 @@ export function sugerirDestinoTransacao(
   // Palavra-chave decide a direção quando presente — arquivo de vencimento
   // costuma trazer só valor positivo (sem sinal negativo nenhum pra saber
   // se é a pagar ou a receber), então a descrição (fornecedor/cliente) é
-  // mais confiável aqui do que o sinal do valor. Só cai pro sinal do valor
-  // quando a descrição não ajuda em nada.
+  // mais confiável aqui do que o sinal do valor. Sem palavra nenhuma dos
+  // dois lados, o padrão é CONTAS A PAGAR — despesa recorrente (energia,
+  // água, aluguel, salário) é o caso mais comum desse tipo de arquivo e
+  // raramente traz uma palavra de custo explícita; Contas a Receber só
+  // quando há sinal claro de recebimento (cliente/recebimento/venda).
   if (natureza === "vencimento") {
-    if (scoreCusto > scoreReceita) {
-      return { destino: "contas_pagar", confianca: "alta", motivo: m.vencimentoPagar };
-    }
     if (scoreReceita > scoreCusto) {
       return { destino: "contas_receber", confianca: "alta", motivo: m.vencimentoReceber };
     }
-    if (tipo === "saida") {
+    if (scoreCusto > scoreReceita) {
       return { destino: "contas_pagar", confianca: "alta", motivo: m.vencimentoPagar };
     }
-    return { destino: "contas_receber", confianca: "alta", motivo: m.vencimentoReceber };
+    return { destino: "contas_pagar", confianca: "baixa", motivo: m.vencimentoPagarPadrao };
   }
 
   // 2) Arquivo inteiro com cara de extrato bancário (calculado 1x pro
