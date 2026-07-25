@@ -281,6 +281,7 @@ export type CandidatoDuplicata = {
   dataHora: string | null;
   distintivo: string | null;
   contraparteDocumento: string | null;
+  temCampoContraparte: boolean;
 };
 
 export type PossivelDuplicata = {
@@ -322,6 +323,7 @@ async function buscarCandidatosPorTabela(
     dataHora: cfg.colDataHora ? r[cfg.colDataHora] || null : null,
     distintivo: cfg.colDistintivo ? r[cfg.colDistintivo] || null : null,
     contraparteDocumento: cfg.colContraparteId ? contrapartes.get(r[cfg.colContraparteId]) || null : null,
+    temCampoContraparte: !!(cfg.colContraparteId && cfg.tabelaContraparte),
   }));
 }
 
@@ -373,6 +375,15 @@ export async function detectarPossiveisDuplicatas(
       const cnpjLinha = l.cnpj?.replace(/\D/g, "");
       const cnpjCand = cand.contraparteDocumento?.replace(/\D/g, "");
       if (cnpjLinha && cnpjCand && cnpjLinha !== cnpjCand) continue;
+
+      // 4) Sem campo de cliente/fornecedor estruturado (ex: Fluxo de Caixa, onde o
+      // cliente vira parte da descrição) → a descrição é o único jeito de provar que
+      // são lançamentos diferentes. "cliente Gama" vs "cliente Alfa" nunca é duplicata.
+      if (!cand.temCampoContraparte) {
+        const descLinha = normalizarPadraoChave(l.descricao || "");
+        const descCand = normalizarPadraoChave(cand.descricao || "");
+        if (descLinha && descCand && descLinha !== descCand) continue;
+      }
 
       // Nada provou que são diferentes → avisa.
       resultado[i] = {

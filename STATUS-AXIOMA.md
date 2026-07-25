@@ -744,7 +744,8 @@ Elias testou a Fase 1 do Importar Documentos (simulou 5, importou 5, bateu certo
 1. **Hora** (quando os dois lados têm `data_hora`) — hora diferente = legítimo, nunca avisa. Hora igual = confirma o aviso com confiança máxima.
 2. **Nº de documento/nota** (quando os dois lados têm) — diferente = legítimo.
 3. **CNPJ da contraparte** (fornecedor/cliente do registro existente vs. CNPJ que a linha importada trouxe) — diferente = legítimo.
-4. Se nada disso conseguiu provar que são diferentes, avisa — e, se a hora não estava disponível dos dois lados, a tela deixa isso explícito (não finge ter comparado hora que não existe).
+4. **Descrição** (só quando a tabela não tem campo de cliente/fornecedor estruturado, ex: Fluxo de Caixa) — diferente = legítimo. Ver correção real na seção 3-X.
+5. Se nada disso conseguiu provar que são diferentes, avisa — e, se a hora não estava disponível dos dois lados, a tela deixa isso explícito (não finge ter comparado hora que não existe).
 
 **Coluna `data_hora` (5 tabelas, SQL em `DATA-HORA-TRANSACOES.sql`, já rodado por Elias):** decisão consciente de **não converter** a coluna de data existente pra timestamp — isso quebraria todo `new Date(x.data + "T00:00:00")` espalhado pelo app. Coluna nova opcional (`fluxo_caixa`, `receitas`, `custos_variaveis`, `contas_pagar`, `contas_receber`), populada só quando o parser de OFX (`DTPOSTED`) ou CSV/XLSX (coluna de hora própria ou hora embutida na data) realmente captura hora — nunca inventa meia-noite. Registro antigo ou lançamento manual fica com `data_hora` vazia e continua funcionando 100% como antes. Sem índice novo — a busca de duplicata filtra pela coluna de data já indexada, não por `data_hora`.
 
@@ -756,6 +757,18 @@ Elias testou a Fase 1 do Importar Documentos (simulou 5, importou 5, bateu certo
 **Arquivo criado:** `DATA-HORA-TRANSACOES.sql`.
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro, confirmado a cada etapa. Confirmação das 5 colunas `data_hora` feita via consulta real à API do Supabase (erro `42703` apareceria se a coluna não existisse — não apareceu). Não testado clicando na tela nesta sessão.
+
+## 3-X. Correção — falso positivo de duplicata quando não há campo de cliente estruturado (2026-07-25)
+
+Elias testou a Confirmação de Possível Duplicata (seção 3-W) na tela e achou um erro de precisão real: importando para Fluxo de Caixa, "Recebimento cliente Gama" foi marcado como possível duplicata de "Recebimento cliente Alfa" — mesmo valor e data, mas claramente lançamentos diferentes.
+
+**Causa raiz:** Fluxo de Caixa (e Receitas, Custos Variáveis, Dívidas) não têm campo de cliente/fornecedor estruturado como Contas a Pagar/Receber têm (`fornecedor_id`/`cliente_id`, checado via CNPJ no passo 3) — o nome do cliente vira só parte da descrição. O motor de duplicata comparava valor + data + hora/documento/CNPJ, mas nunca a descrição, então "Gama" e "Alfa" caíam no mesmo fallback ("nada provou que são diferentes → avisa").
+
+**Correção:** novo passo 4 no motor (`detectarPossiveisDuplicatas`, `lib/importarHelpers.ts`) — só entra em ação quando a tabela do candidato não tem campo de contraparte estruturado (`temCampoContraparte: false`, novo campo em `CandidatoDuplicata`). Compara a descrição da linha importada com a do lançamento existente usando `normalizarPadraoChave` (já existente, motor de aprendizado da Fase 1 — minúsculas, sem acento, sem número, sem pontuação) — reaproveitado em vez de duplicado. Se as descrições normalizadas forem diferentes e nenhuma das duas vazia, não é duplicata (linha passa livre). Contas a Pagar/Receber não mudam de comportamento — já tinham CNPJ da contraparte como disambiguador melhor que descrição.
+
+**Arquivo alterado:** `lib/importarHelpers.ts` (`CandidatoDuplicata`, `buscarCandidatosPorTabela`, `detectarPossiveisDuplicatas`).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Aguardando Elias reimportar o mesmo arquivo pra confirmar na tela: só a linha do Alfa (descrição idêntica) deve alertar, a do Gama deve passar livre.
 
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
