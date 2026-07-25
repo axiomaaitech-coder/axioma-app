@@ -29,6 +29,12 @@ export type LinhaImportada = {
   documento?: string;
   cnpj?: string;
   tipo?: "entrada" | "saida";
+  // Distribuição automática de destino (por linha, não por arquivo inteiro —
+  // um extrato pode ter entrada E saída, uma NF-e pode ser venda OU compra).
+  // Sempre uma SUGESTÃO: o usuário decide de verdade, nunca grava sozinho.
+  destinoSugerido?: DestinoTabela;
+  confiancaDestino?: "alta" | "baixa";
+  motivoDestino?: string;
   raw: Record<string, any>;
 };
 
@@ -166,6 +172,104 @@ function normalizar(s: string): string {
     .replace(/[^a-z0-9]/g, "");
 }
 
+// ============================================================================
+// DISTRIBUIÇÃO AUTOMÁTICA DE DESTINO — sinais estruturais primeiro (sinal do
+// valor + natureza da coluna de data), palavra-chave só desempata quando os
+// dois sinais estruturais não decidem sozinhos. Nunca finge certeza: quando
+// o único sinal é a palavra-chave, a confiança sai "baixa" (a tela mostra
+// "destino sugerido — confira"), porque descrição é sinal fraco (ex:
+// "recebimento de fornecedor" tem palavra de receita E de custo juntas).
+// ============================================================================
+
+function normalizarBusca(s: string): string {
+  return (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Coluna de "vencimento" = compromisso futuro (ainda não aconteceu) → Contas
+// a Pagar/Receber. Coluna de "movimento"/data genérica = lançamento já
+// realizado → Fluxo de Caixa (ou Receitas/Custos Variáveis, se a descrição
+// ajudar a refinar).
+function naturezaColunaData(nomeColuna?: string): "vencimento" | "movimento" {
+  const n = normalizarBusca(nomeColuna || "");
+  return n.includes("vencimento") || n.includes("vence") ? "vencimento" : "movimento";
+}
+
+const PALAVRAS_RECEITA = [
+  "venda", "vendas", "recebimento", "recebido", "cliente",
+  "honorario", "honorarios", "mensalidade", "fatura emitida",
+  "servico prestado", "servicos prestados",
+];
+const PALAVRAS_CUSTO = [
+  "compra", "compras", "pagamento", "fornecedor", "fornecedores",
+  "insumo", "insumos", "material", "materiais", "frete", "comissao", "taxa",
+];
+
+function contarPalavras(alvo: string, lista: string[]): number {
+  return lista.filter((p) => alvo.includes(` ${p} `)).length;
+}
+
+export function sugerirDestinoTransacao(
+  tipo: "entrada" | "saida" | undefined,
+  descricao: string,
+  nomeArquivo: string,
+  colunaData?: string
+): { destino: DestinoTabela; confianca: "alta" | "baixa"; motivo: string } {
+  const natureza = colunaData ? naturezaColunaData(colunaData) : "movimento";
+
+  // 1) Sinais estruturais concordam (vencimento + direção) → confiança alta,
+  // sem precisar de palavra-chave nenhuma.
+  if (natureza === "vencimento") {
+    if (tipo === "saida") {
+      return {
+        destino: "contas_pagar",
+        confianca: "alta",
+        motivo: "Coluna de data é vencimento e o valor é saída → compromisso futuro a pagar.",
+      };
+    }
+    return {
+      destino: "contas_receber",
+      confianca: "alta",
+      motivo: "Coluna de data é vencimento e o valor é entrada → compromisso futuro a receber.",
+    };
+  }
+
+  // 2) Lançamento já realizado (não é vencimento) — o sinal do valor sozinho
+  // não decide entre Fluxo de Caixa/Receitas/Custos Variáveis; a descrição
+  // só desempata dentro da direção que o valor já garantiu (nunca contra ela).
+  const alvo = ` ${normalizarBusca(`${descricao} ${nomeArquivo}`)} `;
+  const scoreReceita = contarPalavras(alvo, PALAVRAS_RECEITA);
+  const scoreCusto = contarPalavras(alvo, PALAVRAS_CUSTO);
+
+  if (tipo === "entrada" && scoreReceita > scoreCusto) {
+    return {
+      destino: "receitas",
+      confianca: "baixa",
+      motivo: "Valor de entrada e palavra na descrição sugerem receita — confira.",
+    };
+  }
+  if (tipo === "saida" && scoreCusto > scoreReceita) {
+    return {
+      destino: "custos_variaveis",
+      confianca: "baixa",
+      motivo: "Valor de saída e palavra na descrição sugerem custo — confira.",
+    };
+  }
+
+  // 3) Nada decisivo → fallback seguro (é o comportamento de sempre, não é
+  // uma adivinhação — por isso confiança alta).
+  return {
+    destino: "fluxo_caixa",
+    confianca: "alta",
+    motivo: "Lançamento já realizado, sem sinal suficiente para um destino mais específico.",
+  };
+}
+
 // Autodetecta mapeamento procurando por nomes comuns nos headers
 export function autodetectarMapeamento(headers: string[]): MapeamentoColunas {
   const map: MapeamentoColunas = {};
@@ -237,6 +341,9 @@ export async function parseOFX(texto: string): Promise<ResultadoParse> {
       descricao: memo || tipo || "Lançamento bancário",
       documento: fitId || checkNum,
       tipo: valorNum < 0 ? "saida" : "entrada",
+      destinoSugerido: "fluxo_caixa",
+      confiancaDestino: "alta",
+      motivoDestino: "Detectado como extrato bancário (OFX) → Fluxo de Caixa.",
       raw: { tipo, dtPosted, trnAmt, fitId, memo, checkNum },
     });
   }
@@ -315,7 +422,7 @@ function validarFormatoReforma(dets: any[]): string[] {
 // PARSER: XML NF-e
 // ============================================================================
 
-export async function parseXMLNFe(texto: string): Promise<ResultadoParse> {
+export async function parseXMLNFe(texto: string, empresaCnpj?: string): Promise<ResultadoParse> {
   const parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
@@ -343,6 +450,7 @@ export async function parseXMLNFe(texto: string): Promise<ResultadoParse> {
   }
 
   const emit = nfe.emit || {};
+  const dest = nfe.dest || {};
   const ide = nfe.ide || {};
   const total = nfe.total?.ICMSTot || {};
 
@@ -376,22 +484,55 @@ export async function parseXMLNFe(texto: string): Promise<ResultadoParse> {
     metadados.aviso_reforma = `Estimativa com base nas regras vigentes até ${new Date().toLocaleDateString("pt-BR")}. A Reforma Tributária ainda está em andamento e pode sofrer alterações — este número reflete o melhor entendimento atual.`;
   }
 
-  // Cria uma linha-resumo da NF (vai virar conta a pagar)
+  // Venda ou compra? Compara o CNPJ do emitente e do destinatário da nota
+  // com o CNPJ da própria empresa (cadastrado em Empresa) — não chuta.
+  const cnpjEmpresa = (empresaCnpj || "").replace(/\D/g, "");
+  const cnpjEmit = String(emit.CNPJ || emit.CPF || "").replace(/\D/g, "");
+  const cnpjDest = String(dest.CNPJ || dest.CPF || "").replace(/\D/g, "");
+
+  let destinoLinha: DestinoTabela = "contas_pagar";
+  let confiancaLinha: "alta" | "baixa" = "baixa";
+  let motivoLinha =
+    "Não foi possível confirmar se a nota é de venda ou compra (CNPJ da empresa não está cadastrado em Empresa) — mantido em Contas a Pagar, confira.";
+
+  if (cnpjEmpresa) {
+    if (cnpjEmit && cnpjEmit === cnpjEmpresa) {
+      destinoLinha = "receitas";
+      confiancaLinha = "alta";
+      motivoLinha = "CNPJ do emitente da nota é o da sua empresa → nota de venda → Receitas.";
+    } else if (cnpjDest && cnpjDest === cnpjEmpresa) {
+      destinoLinha = "contas_pagar";
+      confiancaLinha = "alta";
+      motivoLinha = "CNPJ do destinatário da nota é o da sua empresa → nota de compra de um fornecedor → Contas a Pagar.";
+    } else {
+      motivoLinha =
+        "CNPJ da nota (emitente e destinatário) não bate com o CNPJ cadastrado da sua empresa — mantido em Contas a Pagar, confira.";
+    }
+  }
+
+  const ehVenda = destinoLinha === "receitas";
+  const nomeContraparte = ehVenda ? dest.xNome || "Cliente" : emit.xNome || "Fornecedor";
+  const cnpjContraparte = ehVenda ? dest.CNPJ || dest.CPF : emit.CNPJ || emit.CPF;
+
+  // Cria uma linha-resumo da NF
   linhas.push({
     data: metadados.data_emissao,
     valor: metadados.valor_total,
-    descricao: `NF ${ide.nNF || "?"} - ${emit.xNome || "Fornecedor"}`,
+    descricao: `NF ${ide.nNF || "?"} - ${nomeContraparte}`,
     documento: String(ide.nNF || ""),
-    cnpj: metadados.cnpj_emitente,
-    tipo: "saida",
-    raw: { emit, ide, total },
+    cnpj: cnpjContraparte,
+    tipo: ehVenda ? "entrada" : "saida",
+    destinoSugerido: destinoLinha,
+    confiancaDestino: confiancaLinha,
+    motivoDestino: motivoLinha,
+    raw: { emit, ide, total, dest },
   });
 
   return {
     formato: "xml",
     linhas,
     metadados,
-    destinoSugerido: "contas_pagar",
+    destinoSugerido: destinoLinha,
     precisaMapeamento: false,
   };
 }
@@ -441,7 +582,8 @@ function parseLinhaCSV(linha: string, delim: string): string[] {
 export async function parseCSV(
   texto: string,
   mapeamento?: MapeamentoColunas,
-  delimitadorOverride?: string
+  delimitadorOverride?: string,
+  nomeArquivo?: string
 ): Promise<ResultadoParse> {
   const conteudo = texto.replace(/^\uFEFF/, "");
   const linhasTxt = conteudo.split(/\r?\n/).filter((l) => l.trim());
@@ -482,6 +624,9 @@ export async function parseCSV(
       ? combinarDataHora(data, raw[mapUsado.hora])
       : combinarDataHora(data, mapUsado.data ? raw[mapUsado.data] : undefined);
 
+    const tipo: "entrada" | "saida" = valor !== undefined && valor < 0 ? "saida" : "entrada";
+    const sugestao = sugerirDestinoTransacao(tipo, descricao, nomeArquivo || "", mapUsado.data);
+
     linhas.push({
       data,
       dataHora,
@@ -490,7 +635,10 @@ export async function parseCSV(
       categoria,
       documento,
       cnpj,
-      tipo: valor !== undefined && valor < 0 ? "saida" : "entrada",
+      tipo,
+      destinoSugerido: sugestao.destino,
+      confiancaDestino: sugestao.confianca,
+      motivoDestino: sugestao.motivo,
       raw,
     });
   }
@@ -513,7 +661,8 @@ export async function parseCSV(
 export async function parseXLSX(
   buffer: ArrayBuffer,
   mapeamento?: MapeamentoColunas,
-  formato: "xlsx" | "xls" = "xlsx"
+  formato: "xlsx" | "xls" = "xlsx",
+  nomeArquivo?: string
 ): Promise<ResultadoParse> {
   const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheetName = workbook.SheetNames[0];
@@ -551,6 +700,9 @@ export async function parseXLSX(
       ? combinarDataHora(data, row[mapUsado.hora])
       : combinarDataHora(data, mapUsado.data ? row[mapUsado.data] : undefined);
 
+    const tipo: "entrada" | "saida" = valor !== undefined && valor < 0 ? "saida" : "entrada";
+    const sugestao = sugerirDestinoTransacao(tipo, descricao, nomeArquivo || "", mapUsado.data);
+
     return {
       data,
       dataHora,
@@ -559,7 +711,10 @@ export async function parseXLSX(
       categoria,
       documento,
       cnpj,
-      tipo: valor !== undefined && valor < 0 ? "saida" : "entrada",
+      tipo,
+      destinoSugerido: sugestao.destino,
+      confiancaDestino: sugestao.confianca,
+      motivoDestino: sugestao.motivo,
       raw: row,
     };
   });
@@ -579,7 +734,7 @@ export async function parseXLSX(
 // ROTEADOR: detecta tipo e chama o parser certo
 // ============================================================================
 
-export async function parseArquivo(file: File): Promise<ResultadoParse> {
+export async function parseArquivo(file: File, empresaCnpj?: string): Promise<ResultadoParse> {
   const nome = file.name.toLowerCase();
   const ext = nome.split(".").pop() || "";
 
@@ -592,19 +747,19 @@ export async function parseArquivo(file: File): Promise<ResultadoParse> {
   // XML (NF-e, CT-e, NFS-e)
   if (ext === "xml") {
     const texto = await file.text();
-    return parseXMLNFe(texto);
+    return parseXMLNFe(texto, empresaCnpj);
   }
 
   // CSV / TSV
   if (ext === "csv" || ext === "tsv" || ext === "txt") {
     const texto = await file.text();
-    return parseCSV(texto);
+    return parseCSV(texto, undefined, undefined, file.name);
   }
 
   // XLSX / XLS
   if (ext === "xlsx" || ext === "xls" || ext === "ods") {
     const buffer = await file.arrayBuffer();
-    return parseXLSX(buffer, undefined, ext === "xls" ? "xls" : "xlsx");
+    return parseXLSX(buffer, undefined, ext === "xls" ? "xls" : "xlsx", file.name);
   }
 
   // PDF - salva pra OCR futuro (Fase 2 com Claude Vision)

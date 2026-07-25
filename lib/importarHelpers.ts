@@ -634,19 +634,33 @@ export async function buscarImportacaoPorHash(
 export async function marcarDuplicatasPorLinha(
   userId: string,
   linhas: LinhaImportada[],
-  destino: DestinoTabela
+  destinos: DestinoTabela[]
 ): Promise<boolean[]> {
   const hashesNovos = linhas.map(hashLinha);
   if (hashesNovos.length === 0) return [];
 
-  const { data: linhasExistentes } = await supabase
-    .from("importacao_linhas")
-    .select("hash_linha")
-    .eq("destino_tabela", destino)
-    .eq("status", "importada")
-    .in("hash_linha", hashesNovos);
+  // 1 consulta por destino distinto presente no lote — nunca 1 por linha,
+  // mesmo com destinos diferentes dentro do mesmo arquivo (extrato misto).
+  const hashesPorDestino = new Map<DestinoTabela, string[]>();
+  destinos.forEach((d, i) => {
+    const arr = hashesPorDestino.get(d) || [];
+    arr.push(hashesNovos[i]);
+    hashesPorDestino.set(d, arr);
+  });
 
-  const setExistente = new Set((linhasExistentes || []).map((l: any) => l.hash_linha));
+  const setExistente = new Set<string>();
+  await Promise.all(
+    Array.from(hashesPorDestino.entries()).map(async ([destino, hashes]) => {
+      const { data } = await supabase
+        .from("importacao_linhas")
+        .select("hash_linha")
+        .eq("destino_tabela", destino)
+        .eq("status", "importada")
+        .in("hash_linha", hashes);
+      (data || []).forEach((l: any) => setExistente.add(l.hash_linha));
+    })
+  );
+
   return hashesNovos.map((h) => setExistente.has(h));
 }
 
@@ -798,7 +812,9 @@ export async function gravarLinhas(params: {
   linhas: LinhaImportada[];
   selecionadas: boolean[];
   duplicadas: boolean[];
-  destino: DestinoTabela;
+  // Destino por linha (não por arquivo inteiro) — distribuição automática
+  // (sugerida pelo parser, confirmada/trocada pelo usuário na tela).
+  destinos: DestinoTabela[];
   // Simulador (Fase 1): roda o MESMO caminho — mesmos builders, mesma
   // validação — mas nunca grava no destino real nem em auditoria/timeline/
   // exceções/padrões. É por isso que não existe uma função de simulação
@@ -809,12 +825,7 @@ export async function gravarLinhas(params: {
   // por isso tabela+id) em vez de inserir uma linha nova.
   somarAlvo?: ({ tabela: DestinoTabela; id: string } | null)[];
 }): Promise<ResultadoGravacao> {
-  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destino, dryRun, somarAlvo } = params;
-
-  const builder = BUILDERS[destino];
-  if (!builder) {
-    throw new Error(`Destino nao suportado: ${destino}`);
-  }
+  const { userId, empresaId, importacaoId, linhas, selecionadas, duplicadas, destinos, dryRun, somarAlvo } = params;
 
   const resultado: ResultadoGravacao = {
     importadas: 0,
@@ -832,6 +843,7 @@ export async function gravarLinhas(params: {
     const linha = linhas[i];
     const numLinha = i + 1;
     const hashLn = hashLinha(linha);
+    const destino = destinos[i];
 
     const auditoriaBase = {
       importacao_id: importacaoId,
@@ -865,7 +877,15 @@ export async function gravarLinhas(params: {
       continue;
     }
 
-    // 3) Montar payload via builder específico do destino
+    // 3) Montar payload via builder específico do destino DESTA linha
+    const builder = BUILDERS[destino];
+    if (!builder) {
+      resultado.erro++;
+      const msg = `Destino nao suportado: ${destino}`;
+      resultado.mensagens_erro.push(`Linha ${numLinha}: ${msg}`);
+      auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: msg });
+      continue;
+    }
     const build = builder(linha, userId, empresaId);
     if ("erro" in build) {
       resultado.erro++;
@@ -1003,12 +1023,21 @@ export async function gravarLinhas(params: {
     }));
   await abrirExcecoes({ empresaId, userId, importacaoId, itens: itensExcecao });
 
-  // Motor de aprendizado: só aprende com o que realmente foi gravado.
+  // Motor de aprendizado: só aprende com o que realmente foi gravado —
+  // agrupado por destino (um lote pode ter linhas em tabelas diferentes).
   if (empresaId) {
-    const linhasGravadas = linhas.filter(
-      (_, i) => selecionadas[i] && !duplicadas[i] && auditoriaRows[i]?.status === "importada"
+    const gravadasPorDestino = new Map<DestinoTabela, LinhaImportada[]>();
+    linhas.forEach((linha, i) => {
+      if (!selecionadas[i] || duplicadas[i] || auditoriaRows[i]?.status !== "importada") return;
+      const arr = gravadasPorDestino.get(destinos[i]) || [];
+      arr.push(linha);
+      gravadasPorDestino.set(destinos[i], arr);
+    });
+    await Promise.all(
+      Array.from(gravadasPorDestino.entries()).map(([dest, lns]) =>
+        atualizarPadroesClassificacao(empresaId!, dest, lns)
+      )
     );
-    await atualizarPadroesClassificacao(empresaId, destino, linhasGravadas);
   }
 
   await registrarEventoTimeline({

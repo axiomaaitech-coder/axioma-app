@@ -42,7 +42,7 @@ import {
   type SugestaoClassificacao,
   type PossivelDuplicata,
 } from "../../../lib/importarHelpers";
-import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { obterEmpresaAtiva, carregarEmpresaPorId } from "../../../lib/empresaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,6 +78,12 @@ const T = {
     preview: "Revisão antes de Importar",
     tipoDetectado: "Tipo detectado",
     destino: "Destino",
+    destinoTodasLinhas: "(todas as linhas)",
+    destinoDiferentesPorLinha: "destinos diferentes por linha (confira abaixo)",
+    destinoMultiplos: "— múltiplos —",
+    destinoSelecionadas: "Destino das selecionadas:",
+    aplicar: "Aplicar",
+    confiraDestino: "Sugestão automática com baixa confiança — confira.",
     linhasDetectadas: "linhas detectadas",
     linhasSelecionadas: "selecionadas",
     duplicadasMarcadas: "duplicatas marcadas",
@@ -167,6 +173,12 @@ const T = {
     preview: "Review before Import",
     tipoDetectado: "Detected type",
     destino: "Destination",
+    destinoTodasLinhas: "(all rows)",
+    destinoDiferentesPorLinha: "different destinations per row (check below)",
+    destinoMultiplos: "— multiple —",
+    destinoSelecionadas: "Destination for selected:",
+    aplicar: "Apply",
+    confiraDestino: "Automatic suggestion with low confidence — please check.",
     linhasDetectadas: "rows detected",
     linhasSelecionadas: "selected",
     duplicadasMarcadas: "duplicates marked",
@@ -256,6 +268,12 @@ const T = {
     preview: "Revisión antes de Importar",
     tipoDetectado: "Tipo detectado",
     destino: "Destino",
+    destinoTodasLinhas: "(todas las filas)",
+    destinoDiferentesPorLinha: "destinos diferentes por fila (revise abajo)",
+    destinoMultiplos: "— múltiples —",
+    destinoSelecionadas: "Destino de las seleccionadas:",
+    aplicar: "Aplicar",
+    confiraDestino: "Sugerencia automática con baja confianza — revise.",
     linhasDetectadas: "filas detectadas",
     linhasSelecionadas: "seleccionadas",
     duplicadasMarcadas: "duplicados marcados",
@@ -344,6 +362,21 @@ const STATUS_INFO: Record<string, { label: string; cor: string }> = {
   falhou: { label: "Erro", cor: "#f87171" },
 };
 
+// Resumo de um array de destino por linha pra 1 rótulo só (cabeçalho da
+// importação, template, PDF) — o destino REAL de cada linha continua vindo
+// de importacao_linhas.destino_tabela, isso aqui é só pra exibição.
+function destinoPredominante(destinos: DestinoTabela[]): DestinoTabela {
+  if (destinos.length === 0) return "fluxo_caixa";
+  const contagem = new Map<DestinoTabela, number>();
+  destinos.forEach((d) => contagem.set(d, (contagem.get(d) || 0) + 1));
+  let melhor: DestinoTabela = destinos[0];
+  let max = 0;
+  contagem.forEach((qtd, d) => {
+    if (qtd > max) { max = qtd; melhor = d; }
+  });
+  return melhor;
+}
+
 function formatBRL(n: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 }
@@ -374,6 +407,7 @@ export default function ImportarDocumentosPage() {
 
   // Estados base
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [empresaCnpj, setEmpresaCnpj] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [aba, setAba] = useState<"visao" | "historico">("visao");
   const [exportando, setExportando] = useState(false);
@@ -390,7 +424,10 @@ export default function ImportarDocumentosPage() {
   const [linhas, setLinhas] = useState<LinhaImportada[]>([]);
   const [selecionadas, setSelecionadas] = useState<boolean[]>([]);
   const [duplicadas, setDuplicadas] = useState<boolean[]>([]);
-  const [destino, setDestino] = useState<DestinoTabela>("fluxo_caixa");
+  // Distribuição automática de destino: um destino por LINHA, não por
+  // arquivo inteiro (extrato pode ter entrada e saída, NF-e pode ser venda
+  // ou compra). Inicializado com a sugestão do parser, sempre trocável.
+  const [destinos, setDestinos] = useState<DestinoTabela[]>([]);
   const [mapeamento, setMapeamento] = useState<MapeamentoColunas>({});
   const [confirmando, setConfirmando] = useState(false);
   const [sucesso, setSucesso] = useState<any>(null);
@@ -460,7 +497,11 @@ export default function ImportarDocumentosPage() {
     if (!user) return;
     setUserId(user.id);
 
-    setEmpresaId(await obterEmpresaAtiva());
+    const empId = await obterEmpresaAtiva();
+    setEmpresaId(empId);
+    if (empId) {
+      carregarEmpresaPorId(empId).then((emp) => setEmpresaCnpj(emp?.cnpj || null));
+    }
 
     await Promise.all([
       carregarStatsMes(user.id).then(setStats),
@@ -527,18 +568,19 @@ export default function ImportarDocumentosPage() {
   async function processarParse(file: File) {
     if (!userId) return;
     setEtapa("parse");
-    const res = await parseArquivo(file);
+    const res = await parseArquivo(file, empresaCnpj || undefined);
 
     setResultado(res);
     setLinhas(res.linhas);
     setSelecionadas(res.linhas.map((l) => Boolean(l.data && l.valor !== undefined)));
-    setDestino(res.destinoSugerido);
+    const destinosIniciais = res.linhas.map((l) => l.destinoSugerido || res.destinoSugerido);
+    setDestinos(destinosIniciais);
     setMapeamento(res.mapeamentoAuto || {});
     setSugestoes(new Map());
 
     // 3) Dedup por linha (hash idêntico — camada de baixo)
     setEtapa("dedup");
-    const dups = await marcarDuplicatasPorLinha(userId, res.linhas, res.destinoSugerido);
+    const dups = await marcarDuplicatasPorLinha(userId, res.linhas, destinosIniciais);
     setDuplicadas(dups);
     // Linhas duplicadas começam desmarcadas
     setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
@@ -605,6 +647,17 @@ export default function ImportarDocumentosPage() {
     setSelecionadas(linhas.map(() => v));
   }
 
+  // Override do destino sugerido — o usuário decide, a sugestão nunca é
+  // definitiva. "apenasSelecionadas" reaproveita as checkboxes de importação
+  // que o usuário já está usando pra marcar quais linhas quer mexer.
+  function mudarDestinoLinha(i: number, novoDestino: DestinoTabela) {
+    setDestinos((prev) => prev.map((d, idx) => (idx === i ? novoDestino : d)));
+  }
+
+  function aplicarDestinoEmMassa(novoDestino: DestinoTabela, apenasSelecionadas: boolean) {
+    setDestinos((prev) => prev.map((d, i) => (!apenasSelecionadas || selecionadas[i] ? novoDestino : d)));
+  }
+
   // Decisão do usuário sobre 1 linha com possível duplicata — nada grava
   // sozinho, isso só resolve a pendência que libera (ou não) a linha.
   function resolverDuplicata(i: number, decisao: "importar" | "pular" | "somar") {
@@ -636,11 +689,11 @@ export default function ImportarDocumentosPage() {
       if (ext === "csv" || ext === "tsv" || ext === "txt") {
         const { parseCSV } = await import("../../../lib/importarParsers");
         const texto = await arquivoSelecionado.text();
-        novoResult = await parseCSV(texto, novoMap);
+        novoResult = await parseCSV(texto, novoMap, undefined, arquivoSelecionado.name);
       } else if (ext === "xlsx" || ext === "xls" || ext === "ods") {
         const { parseXLSX } = await import("../../../lib/importarParsers");
         const buffer = await arquivoSelecionado.arrayBuffer();
-        novoResult = await parseXLSX(buffer, novoMap, ext === "xls" ? "xls" : "xlsx");
+        novoResult = await parseXLSX(buffer, novoMap, ext === "xls" ? "xls" : "xlsx", arquivoSelecionado.name);
       } else {
         setEtapa("");
         return;
@@ -648,10 +701,12 @@ export default function ImportarDocumentosPage() {
       setResultado(novoResult);
       setLinhas(novoResult.linhas);
       setSelecionadas(novoResult.linhas.map((l) => Boolean(l.data && l.valor !== undefined)));
+      const novosDestinos = novoResult.linhas.map((l) => l.destinoSugerido || novoResult.destinoSugerido);
+      setDestinos(novosDestinos);
       setPossiveisDuplicatas(novoResult.linhas.map(() => null));
       setDecisoesDuplicata(novoResult.linhas.map(() => null));
       if (userId) {
-        const dups = await marcarDuplicatasPorLinha(userId, novoResult.linhas, destino);
+        const dups = await marcarDuplicatasPorLinha(userId, novoResult.linhas, novosDestinos);
         setDuplicadas(dups);
         setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
       }
@@ -670,10 +725,16 @@ export default function ImportarDocumentosPage() {
     setEtapa("");
   }
 
-  function aplicarTemplate(template: any) {
+  // Template define um destino padrão pra TODAS as linhas — o usuário ainda
+  // pode trocar linha a linha depois via o dropdown de override. Espera o
+  // re-parse terminar antes de aplicar, senão a sugestão automática
+  // sobrescreveria o padrão do template.
+  async function aplicarTemplate(template: any) {
     if (template?.mapeamento) {
-      aplicarMapeamento(template.mapeamento);
-      if (template.destino_padrao) setDestino(template.destino_padrao as DestinoTabela);
+      await aplicarMapeamento(template.mapeamento);
+      if (template.destino_padrao) {
+        setDestinos((prev) => prev.map(() => template.destino_padrao as DestinoTabela));
+      }
     }
   }
 
@@ -686,7 +747,7 @@ export default function ImportarDocumentosPage() {
         empresaId,
         nome: nomeNovoTemplate.trim(),
         tipoArquivo: ext,
-        destinoPadrao: destino,
+        destinoPadrao: destinoPredominante(destinos),
         mapeamento,
       });
       setNomeNovoTemplate("");
@@ -735,7 +796,7 @@ export default function ImportarDocumentosPage() {
         linhas,
         selecionadas,
         duplicadas,
-        destino,
+        destinos,
         dryRun: true,
         somarAlvo: montarSomarAlvo(),
       });
@@ -776,8 +837,8 @@ export default function ImportarDocumentosPage() {
         tipoArquivo: resultado.formato,
         mimeType: arquivoSelecionado.type || "application/octet-stream",
         tamanhoBytes: arquivoSelecionado.size,
-        tipoDocumento: DESTINOS.find((d) => d.key === destino)?.label || destino,
-        destino,
+        tipoDocumento: DESTINOS.find((d) => d.key === destinoPredominante(destinos))?.label || destinoPredominante(destinos),
+        destino: destinoPredominante(destinos),
         totalLinhas: linhas.length,
         mapeamentoUsado: mapeamento,
       });
@@ -794,7 +855,7 @@ export default function ImportarDocumentosPage() {
         linhas,
         selecionadas,
         duplicadas,
-        destino,
+        destinos,
         somarAlvo: montarSomarAlvo(),
       });
 
@@ -1386,8 +1447,10 @@ export default function ImportarDocumentosPage() {
               linhas={linhas}
               selecionadas={selecionadas}
               duplicadas={duplicadas}
-              destino={destino}
-              setDestino={setDestino}
+              destinos={destinos}
+              setDestinos={setDestinos}
+              mudarDestinoLinha={mudarDestinoLinha}
+              aplicarDestinoEmMassa={aplicarDestinoEmMassa}
               templates={templates}
               mapeamento={mapeamento}
               aplicarMapeamento={aplicarMapeamento}
@@ -1682,7 +1745,7 @@ export default function ImportarDocumentosPage() {
 
 function PreviewBlock(props: any) {
   const {
-    tt, resultado, linhas, selecionadas, duplicadas, destino, setDestino,
+    tt, resultado, linhas, selecionadas, duplicadas, destinos, mudarDestinoLinha, aplicarDestinoEmMassa,
     templates, mapeamento, aplicarMapeamento, aplicarTemplate,
     toggleLinha, selecionarTodas, editarLinha,
     cancelarUpload, confirmarImportacao, confirmando,
@@ -1694,7 +1757,10 @@ function PreviewBlock(props: any) {
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
   } = props;
 
-  const destInfo = DESTINOS.find((d) => d.key === destino) || DESTINOS[0];
+  const destinoResumo = destinoPredominante(destinos);
+  const destInfo = DESTINOS.find((d) => d.key === destinoResumo) || DESTINOS[0];
+  const multiplosDestinos = new Set(destinos).size > 1;
+  const [destinoMassa, setDestinoMassa] = useState<DestinoTabela>(destinoResumo);
   const precisaMap = resultado.precisaMapeamento && (resultado.colunas?.length || 0) > 0;
   const camposMap: Array<{ key: keyof MapeamentoColunas; label: string }> = [
     { key: "data", label: tt.data },
@@ -1718,18 +1784,25 @@ function PreviewBlock(props: any) {
             </p>
             <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>
               {tt.tipoDetectado}: <strong style={{ color: destInfo.cor }}>{resultado.formato.toUpperCase()}</strong>
+              {multiplosDestinos && (
+                <span className="ml-2" style={{ color: "#fbbf24" }}>· {tt.destinoDiferentesPorLinha}</span>
+              )}
             </p>
           </div>
 
-          {/* Seletor de destino */}
+          {/* Aplicar destino a TODAS as linhas de uma vez — cada linha ainda
+              pode ser trocada individualmente na tabela abaixo. */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.destino}</label>
+            <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.destino} {tt.destinoTodasLinhas}</label>
             <select
-              value={destino}
-              onChange={(e) => setDestino(e.target.value)}
+              value={multiplosDestinos ? "" : destinoResumo}
+              onChange={(e) => aplicarDestinoEmMassa(e.target.value as DestinoTabela, false)}
               className="px-3 py-2 rounded-lg text-sm focus:outline-none"
               style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
             >
+              {multiplosDestinos && (
+                <option value="" disabled style={{ background: "#020810" }}>{tt.destinoMultiplos}</option>
+              )}
               {DESTINOS.map((d) => (
                 <option key={d.key} value={d.key} style={{ background: "#020810" }}>
                   {d.icon} {d.label}
@@ -1833,6 +1906,26 @@ function PreviewBlock(props: any) {
           </span>
         </div>
 
+        {/* Aplicar destino em massa às linhas marcadas (mesmo padrão da
+            confirmação de duplicata: seleção + ação em massa) */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span style={{ color: "#5a7a9a" }}>{tt.destinoSelecionadas}</span>
+          <select
+            value={destinoMassa}
+            onChange={(e) => setDestinoMassa(e.target.value as DestinoTabela)}
+            className="px-2 py-1 rounded-lg text-[11px]"
+            style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+          >
+            {DESTINOS.map((d) => (
+              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+            ))}
+          </select>
+          <button onClick={() => aplicarDestinoEmMassa(destinoMassa, true)}
+            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>
+            {tt.aplicar}
+          </button>
+        </div>
+
         {/* Tabela DESKTOP */}
         <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)" }}>
           <div className="max-h-96 overflow-auto">
@@ -1844,6 +1937,7 @@ function PreviewBlock(props: any) {
                   <th className="px-2 py-2 text-right" style={{ color: "#5a7a9a" }}>{tt.valor}</th>
                   <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.descricao}</th>
                   <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.categoria}</th>
+                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.destino}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1851,6 +1945,7 @@ function PreviewBlock(props: any) {
                   const isDup = duplicadas[i];
                   const isSel = selecionadas[i];
                   const linhaInvalida = !l.data || l.valor === undefined;
+                  const confereDestino = l.confiancaDestino === "baixa";
                   return (
                     <tr key={i} className="border-t" style={{
                       borderColor: "rgba(106,176,255,0.08)",
@@ -1918,6 +2013,33 @@ function PreviewBlock(props: any) {
                           )}
                         </div>
                       </td>
+                      <td className="px-2 py-1.5">
+                        <div className="flex items-center gap-1">
+                          <select
+                            value={destinos[i]}
+                            onChange={(e) => mudarDestinoLinha(i, e.target.value as DestinoTabela)}
+                            className="text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
+                            style={{
+                              background: "rgba(2,8,16,0.7)",
+                              color: confereDestino ? "#fbbf24" : "#c8d8f0",
+                              border: `1px solid ${confereDestino ? "rgba(251,191,36,0.4)" : "rgba(106,176,255,0.2)"}`,
+                            }}
+                          >
+                            {DESTINOS.map((d) => (
+                              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+                            ))}
+                          </select>
+                          {confereDestino && (
+                            <span
+                              title={l.motivoDestino || tt.confiraDestino}
+                              className="text-[10px] cursor-help"
+                              style={{ color: "#fbbf24" }}
+                            >
+                              ⚠️
+                            </span>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -1950,7 +2072,7 @@ function PreviewBlock(props: any) {
                       <span className="text-sm font-bold" style={{ color: "#34d399" }}>{formatBRL(l.valor || 0)}</span>
                     </div>
                     <p className="text-xs truncate" style={{ color: "#c8d8f0" }}>{l.descricao || "—"}</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {l.categoria && (
                         <span className="text-[10px]" style={{ color: "#a78bfa" }}>{l.categoria}</span>
                       )}
@@ -1959,6 +2081,25 @@ function PreviewBlock(props: any) {
                           style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
                           DUPLICADA
                         </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <select
+                        value={destinos[i]}
+                        onChange={(e) => mudarDestinoLinha(i, e.target.value as DestinoTabela)}
+                        className="flex-1 text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
+                        style={{
+                          background: "rgba(2,8,16,0.7)",
+                          color: l.confiancaDestino === "baixa" ? "#fbbf24" : "#c8d8f0",
+                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(251,191,36,0.4)" : "rgba(106,176,255,0.2)"}`,
+                        }}
+                      >
+                        {DESTINOS.map((d) => (
+                          <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {d.label}</option>
+                        ))}
+                      </select>
+                      {l.confiancaDestino === "baixa" && (
+                        <span title={l.motivoDestino || tt.confiraDestino} className="text-[10px]" style={{ color: "#fbbf24" }}>⚠️</span>
                       )}
                     </div>
                   </div>

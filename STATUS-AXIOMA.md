@@ -770,6 +770,31 @@ Elias testou a Confirmação de Possível Duplicata (seção 3-W) na tela e acho
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Aguardando Elias reimportar o mesmo arquivo pra confirmar na tela: só a linha do Alfa (descrição idêntica) deve alertar, a do Gama deve passar livre.
 
+## 3-Y. Distribuição Automática de Destino, entregue em 2026-07-25
+
+Antes: usuário escolhia o destino (Fluxo de Caixa, Receitas, etc.) num dropdown único pro arquivo inteiro, do zero, sem nenhuma ajuda do sistema — mesmo o parser já identificando o tipo de documento. Pedido do Elias: o sistema sugerir o destino sozinho (por linha, não só por arquivo — um extrato tem entrada E saída), sempre com o dropdown de override visível, nunca gravando sem o usuário ver.
+
+**Plano de detecção aprovado antes de codar, com 2 ajustes de segurança do Elias:** (1) sinais estruturais (sinal do valor + natureza da coluna de data) sempre têm prioridade sobre palavra-chave na descrição — palavra só desempata quando os estruturais não decidem sozinhos; (2) toda sugestão baseada só em palavra-chave sai marcada confiança "baixa" (ícone ⚠️ "confira" na tela), nunca com falsa certeza.
+
+**Lógica de detecção por formato (`lib/importarParsers.ts`):**
+- **OFX** (extrato bancário): extensão já garante → Fluxo de Caixa, confiança alta.
+- **NF-e (.xml):** **corrigido um erro real que existia antes** — o sistema sempre jogava toda NF-e em Contas a Pagar, mesmo quando a nota era uma venda da própria empresa. Agora compara o CNPJ do emitente E do destinatário da nota com o CNPJ da própria empresa (`empresas.cnpj`, carregado via `carregarEmpresaPorId`): emitente = empresa → venda → Receitas; destinatário = empresa → compra → Contas a Pagar; nenhum dos dois bate (ou empresa sem CNPJ cadastrado) → mantém Contas a Pagar, mas confiança baixa, avisando que não deu pra confirmar.
+- **CSV/XLSX** (`sugerirDestinoTransacao`, novo): 1º sinal — nome da coluna de data mapeada é "vencimento" (compromisso futuro) → combinado com o sinal do valor decide Contas a Pagar/Receber, confiança alta, sem precisar de palavra-chave. 2º sinal — coluna genérica (lançamento já realizado): o valor sozinho não decide entre Fluxo de Caixa/Receitas/Custos Variáveis, então a descrição (+ nome do arquivo) desempata dentro da direção que o valor já travou — nunca contra ela (ex: linha de saída nunca vira Receitas por causa de palavra) — e some confiança baixa. Sem sinal nenhum → Fluxo de Caixa (fallback de sempre, confiança alta — não é chute, é o comportamento padrão). Palavra "recebimento" e "fornecedor" na mesma descrição (ex: "recebimento de fornecedor") empatam de propósito e caem no fallback — exatamente o caso que o Elias pediu pra nunca confundir.
+
+**Mudança de estrutura (não só sugestão — arquitetura):** antes existia 1 destino só pro arquivo inteiro (`useState<DestinoTabela>`). Agora é 1 destino por LINHA (`destinos: DestinoTabela[]`, paralelo a `linhas`), inicializado com a sugestão de cada linha. Dropdown por linha na tabela de revisão (desktop e mobile) sempre visível pra trocar, ícone ⚠️ com tooltip explicando o motivo quando a confiança é baixa, dropdown no cabeçalho pra aplicar um destino a TODAS as linhas de uma vez, e um controle "aplicar às selecionadas" reaproveitando as mesmas checkboxes de importação (mesmo padrão de seleção em massa já usado na Confirmação de Duplicata, seção 3-W).
+
+**`lib/importarHelpers.ts` adaptado pra múltiplos destinos no mesmo lote** (achado real ao investigar: tudo abaixo assumia 1 destino só pro arquivo inteiro):
+- `marcarDuplicatasPorLinha` agora agrupa por destino distinto presente no lote (1 consulta por tabela, nunca por linha — mantém a regra de escala).
+- `gravarLinhas` resolve builder/tabela por LINHA (`destinos[i]`), não mais 1 builder pro lote inteiro; motor de aprendizado (`atualizarPadroesClassificacao`) agrupado por destino.
+- `reverterImportacao` **não precisou mudar** — já agrupava por `destino_tabela` de cada linha de `importacao_linhas`, independente do cabeçalho (achado que reduziu bastante o risco da mudança).
+- Cabeçalho da importação (`importacoes.destino`, usado em histórico/PDF/compartilhamento) guarda o destino predominante do lote (`destinoPredominante`, moda entre as linhas) — só rótulo de exibição; o destino real de cada linha sempre vem de `importacao_linhas.destino_tabela`.
+
+**Excluído conscientemente:** sugestão automática pra Custos Fixos/Fornecedores/Dívidas em CSV/XLSX (não são "lançamento datado" genérico, mesmo motivo já registrado na seção 3-W pra duplicata — ficam disponíveis no dropdown pra escolha manual, só não são sugeridos sozinhos). Texto explicativo (`motivoDestino`) gerado pelos parsers ainda sai só em português — mesma lacuna já identificada e registrada no Centro de Custos (seção 3-R) antes de ser corrigida lá; registrado aqui pra decisão futura do Elias, não bloqueou a entrega.
+
+**Arquivos alterados:** `lib/importarParsers.ts` (`sugerirDestinoTransacao`, `LinhaImportada.destinoSugerido/confiancaDestino/motivoDestino`, `parseOFX`/`parseXMLNFe`/`parseCSV`/`parseXLSX`/`parseArquivo`), `lib/importarHelpers.ts` (`marcarDuplicatasPorLinha`, `gravarLinhas`), `app/(interno)/importar-documentos/page.tsx` (destino por linha, UI de override/seleção em massa, i18n PT/EN/ES dos novos rótulos).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela nesta sessão — Elias vai testar com extrato, NF-e de venda, NF-e de compra e CSV misto antes de aprovar.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
