@@ -221,6 +221,44 @@ function contarPalavras(alvo: string, lista: string[]): number {
   return lista.filter((p) => alvo.includes(` ${p} `)).length;
 }
 
+// Vocabulário de EXTRATO BANCÁRIO — diferente de PALAVRAS_RECEITA/CUSTO
+// (que são sobre natureza de negócio). "TED", "PIX", "boleto", "tarifa"
+// não dizem se é receita ou custo — dizem que a linha é movimento de
+// conta corrente, mesma coisa que o OFX já trata sempre como Fluxo de Caixa.
+const PALAVRAS_EXTRATO: Record<Lang, string[]> = {
+  pt: ["ted", "doc", "pix", "boleto", "tarifa", "saque", "deposito", "transferencia", "movimento", "extrato"],
+  en: ["wire transfer", "ach", "bank fee", "withdrawal", "deposit", "transfer", "statement", "bank charge"],
+  es: ["transferencia", "comision bancaria", "retiro", "deposito", "extracto", "movimiento"],
+};
+
+// Decide se o ARQUIVO INTEIRO (não uma linha isolada) tem cara de extrato
+// bancário — nesse caso, cada linha vai pra Fluxo de Caixa mesmo que a
+// descrição tenha uma palavra de receita/custo isolada ("PIX recebido" tem
+// "recebido", mas é so dinheiro entrando na MESMA conta, não uma venda).
+// Critério: vocabulário de extrato numa fração alta das linhas, OU parte
+// do vocabulário presente E entrada+saída misturadas no mesmo arquivo (o
+// que também é característica de extrato, não de um livro de receita/custo).
+function pareceExtrato(
+  linhasBase: { descricao?: string; categoria?: string; tipo?: "entrada" | "saida" }[],
+  lang: Lang
+): boolean {
+  if (linhasBase.length === 0) return false;
+  const palavras = PALAVRAS_EXTRATO[lang] || PALAVRAS_EXTRATO.pt;
+  let hits = 0;
+  let temEntrada = false;
+  let temSaida = false;
+  linhasBase.forEach((l) => {
+    const alvo = ` ${normalizarBusca(`${l.descricao || ""} ${l.categoria || ""}`)} `;
+    if (palavras.some((p) => alvo.includes(` ${p} `))) hits++;
+    if (l.tipo === "entrada") temEntrada = true;
+    if (l.tipo === "saida") temSaida = true;
+  });
+  const proporcao = hits / linhasBase.length;
+  if (proporcao >= 0.4) return true;
+  if (hits > 0 && temEntrada && temSaida) return true;
+  return false;
+}
+
 // Motivos exibidos como tooltip na tela ("por que sugeri isso") — sempre no
 // idioma ativo, nunca fixo em português (regra do projeto: PT/EN/ES em tudo).
 const MOTIVOS_DESTINO: Record<Lang, {
@@ -231,12 +269,14 @@ const MOTIVOS_DESTINO: Record<Lang, {
   nfeNaoBate: string;
   vencimentoPagar: string;
   vencimentoReceber: string;
+  extratoDetectado: string;
   movimentoReceita: string;
   movimentoCusto: string;
   movimentoFallback: string;
 }> = {
   pt: {
     ofx: "Detectado como extrato bancário (OFX) → Fluxo de Caixa.",
+    extratoDetectado: "Arquivo com cara de extrato bancário (TED/PIX/boleto/tarifa) → Fluxo de Caixa para todas as linhas.",
     nfeVenda: "CNPJ do emitente da nota é o da sua empresa → nota de venda → Receitas.",
     nfeCompra: "CNPJ do destinatário da nota é o da sua empresa → nota de compra de um fornecedor → Contas a Pagar.",
     nfeIndefinido: "Não foi possível confirmar se a nota é de venda ou compra (CNPJ da empresa não está cadastrado em Empresa) — mantido em Contas a Pagar, confira.",
@@ -249,6 +289,7 @@ const MOTIVOS_DESTINO: Record<Lang, {
   },
   en: {
     ofx: "Detected as a bank statement (OFX) → Cash Flow.",
+    extratoDetectado: "File looks like a bank statement (wire/PIX/bill/fee) → Cash Flow for all rows.",
     nfeVenda: "Invoice issuer's tax ID matches your company → sales invoice → Revenue.",
     nfeCompra: "Invoice recipient's tax ID matches your company → purchase from a supplier → Accounts Payable.",
     nfeIndefinido: "Could not confirm whether this invoice is a sale or a purchase (your company's tax ID isn't registered under Company) — kept in Accounts Payable, please check.",
@@ -261,6 +302,7 @@ const MOTIVOS_DESTINO: Record<Lang, {
   },
   es: {
     ofx: "Detectado como extracto bancario (OFX) → Flujo de Caja.",
+    extratoDetectado: "Archivo con cara de extracto bancario (transferencia/PIX/boleto/comisión) → Flujo de Caja para todas las filas.",
     nfeVenda: "El CNPJ del emisor de la factura es el de su empresa → factura de venta → Ingresos.",
     nfeCompra: "El CNPJ del destinatario de la factura es el de su empresa → compra a un proveedor → Cuentas por Pagar.",
     nfeIndefinido: "No fue posible confirmar si la factura es de venta o compra (el CNPJ de la empresa no está registrado en Empresa) — se mantuvo en Cuentas por Pagar, revise.",
@@ -278,35 +320,54 @@ export function sugerirDestinoTransacao(
   descricao: string,
   nomeArquivo: string,
   colunaData?: string,
-  lang: Lang = "pt"
+  lang: Lang = "pt",
+  arquivoPareceExtrato: boolean = false
 ): { destino: DestinoTabela; confianca: "alta" | "baixa"; motivo: string } {
   const m = MOTIVOS_DESTINO[lang] || MOTIVOS_DESTINO.pt;
   const natureza = colunaData ? naturezaColunaData(colunaData) : "movimento";
+  const alvo = ` ${normalizarBusca(`${descricao} ${nomeArquivo}`)} `;
+  const scoreReceita = contarPalavras(alvo, PALAVRAS_RECEITA[lang] || PALAVRAS_RECEITA.pt);
+  const scoreCusto = contarPalavras(alvo, PALAVRAS_CUSTO[lang] || PALAVRAS_CUSTO.pt);
 
-  // 1) Sinais estruturais concordam (vencimento + direção) → confiança alta,
-  // sem precisar de palavra-chave nenhuma.
+  // 1) Coluna de vencimento = compromisso futuro (Contas a Pagar/Receber).
+  // Palavra-chave decide a direção quando presente — arquivo de vencimento
+  // costuma trazer só valor positivo (sem sinal negativo nenhum pra saber
+  // se é a pagar ou a receber), então a descrição (fornecedor/cliente) é
+  // mais confiável aqui do que o sinal do valor. Só cai pro sinal do valor
+  // quando a descrição não ajuda em nada.
   if (natureza === "vencimento") {
+    if (scoreCusto > scoreReceita) {
+      return { destino: "contas_pagar", confianca: "alta", motivo: m.vencimentoPagar };
+    }
+    if (scoreReceita > scoreCusto) {
+      return { destino: "contas_receber", confianca: "alta", motivo: m.vencimentoReceber };
+    }
     if (tipo === "saida") {
       return { destino: "contas_pagar", confianca: "alta", motivo: m.vencimentoPagar };
     }
     return { destino: "contas_receber", confianca: "alta", motivo: m.vencimentoReceber };
   }
 
-  // 2) Lançamento já realizado (não é vencimento) — o sinal do valor sozinho
-  // não decide entre Fluxo de Caixa/Receitas/Custos Variáveis; a descrição
-  // só desempata dentro da direção que o valor já garantiu (nunca contra ela).
-  const alvo = ` ${normalizarBusca(`${descricao} ${nomeArquivo}`)} `;
-  const scoreReceita = contarPalavras(alvo, PALAVRAS_RECEITA[lang] || PALAVRAS_RECEITA.pt);
-  const scoreCusto = contarPalavras(alvo, PALAVRAS_CUSTO[lang] || PALAVRAS_CUSTO.pt);
+  // 2) Arquivo inteiro com cara de extrato bancário (calculado 1x pro
+  // arquivo todo, não por linha) → tudo Fluxo de Caixa, mesmo tratamento do
+  // OFX. Extrato é movimento do MESMO caixa — "PIX recebido" não é uma
+  // venda só porque a palavra "recebido" aparece.
+  if (arquivoPareceExtrato) {
+    return { destino: "fluxo_caixa", confianca: "alta", motivo: m.extratoDetectado };
+  }
 
+  // 3) Lançamento já realizado, arquivo não é extrato — a palavra-chave só
+  // reclassifica quando for DECISIVA (nenhuma palavra do lado oposto).
+  // Sinal ambíguo (as duas aparecem, uma só ganha por contagem) continua
+  // reclassificando, mas com confiança baixa — é o caso real de dúvida.
   if (tipo === "entrada" && scoreReceita > scoreCusto) {
-    return { destino: "receitas", confianca: "baixa", motivo: m.movimentoReceita };
+    return { destino: "receitas", confianca: scoreCusto === 0 ? "alta" : "baixa", motivo: m.movimentoReceita };
   }
   if (tipo === "saida" && scoreCusto > scoreReceita) {
-    return { destino: "custos_variaveis", confianca: "baixa", motivo: m.movimentoCusto };
+    return { destino: "custos_variaveis", confianca: scoreReceita === 0 ? "alta" : "baixa", motivo: m.movimentoCusto };
   }
 
-  // 3) Nada decisivo → fallback seguro (é o comportamento de sempre, não é
+  // 4) Nada decisivo → fallback seguro (é o comportamento de sempre, não é
   // uma adivinhação — por isso confiança alta).
   return { destino: "fluxo_caixa", confianca: "alta", motivo: m.movimentoFallback };
 }
@@ -317,7 +378,7 @@ export function autodetectarMapeamento(headers: string[]): MapeamentoColunas {
   const hMap = headers.map((h) => normalizar(h));
 
   const padroes: Record<keyof MapeamentoColunas, string[]> = {
-    data: ["data", "date", "dtposted", "datalancamento", "datavencimento", "dtmovimento", "datamovimento", "fecha"],
+    data: ["data", "date", "dtposted", "datalancamento", "datavencimento", "dtmovimento", "datamovimento", "fecha", "vencimento", "vence", "emissao", "competencia", "duedate", "dtvencimento", "dtemissao"],
     hora: ["hora", "time", "horario", "hour", "horalancamento", "horamovimento"],
     valor: ["valor", "value", "amount", "trnamt", "vlr", "montante", "preco", "total", "monto"],
     descricao: ["descricao", "description", "memo", "historico", "obs", "observacao", "detalhe", "descripcion"],
@@ -660,7 +721,15 @@ export async function parseCSV(
   const mapUsado = mapeamento || autodetectarMapeamento(headers);
   const precisa = !mapUsado.data || !mapUsado.valor;
 
-  const linhas: LinhaImportada[] = [];
+  // 1ª passada: monta os campos de cada linha sem decidir destino ainda —
+  // precisamos ver TODAS as linhas primeiro pra saber se o arquivo inteiro
+  // tem cara de extrato bancário (não dá pra decidir isso linha a linha).
+  type LinhaBase = {
+    data?: string; dataHora?: string; valor?: number; descricao: string;
+    categoria?: string; documento?: string; cnpj?: string;
+    tipo: "entrada" | "saida"; raw: Record<string, any>;
+  };
+  const base: LinhaBase[] = [];
   for (let i = 1; i < linhasTxt.length; i++) {
     const valores = parseLinhaCSV(linhasTxt[i], delim);
     const raw: Record<string, any> = {};
@@ -679,25 +748,23 @@ export async function parseCSV(
     const dataHora = mapUsado.hora
       ? combinarDataHora(data, raw[mapUsado.hora])
       : combinarDataHora(data, mapUsado.data ? raw[mapUsado.data] : undefined);
-
     const tipo: "entrada" | "saida" = valor !== undefined && valor < 0 ? "saida" : "entrada";
-    const sugestao = sugerirDestinoTransacao(tipo, descricao, nomeArquivo || "", mapUsado.data, lang);
 
-    linhas.push({
-      data,
-      dataHora,
-      valor: valor !== undefined ? Math.abs(valor) : undefined,
-      descricao,
-      categoria,
-      documento,
-      cnpj,
-      tipo,
+    base.push({ data, dataHora, valor: valor !== undefined ? Math.abs(valor) : undefined, descricao, categoria, documento, cnpj, tipo, raw });
+  }
+
+  // 2ª passada: agora sim decide o destino de cada linha, já sabendo se o
+  // arquivo inteiro parece um extrato bancário.
+  const arquivoExtrato = pareceExtrato(base, lang);
+  const linhas: LinhaImportada[] = base.map((l) => {
+    const sugestao = sugerirDestinoTransacao(l.tipo, l.descricao, nomeArquivo || "", mapUsado.data, lang, arquivoExtrato);
+    return {
+      ...l,
       destinoSugerido: sugestao.destino,
       confiancaDestino: sugestao.confianca,
       motivoDestino: sugestao.motivo,
-      raw,
-    });
-  }
+    };
+  });
 
   return {
     formato: "csv",
@@ -746,7 +813,14 @@ export async function parseXLSX(
   const mapUsado = mapeamento || autodetectarMapeamento(headers);
   const precisa = !mapUsado.data || !mapUsado.valor;
 
-  const linhas: LinhaImportada[] = json.map((row) => {
+  // 1ª passada: monta os campos sem decidir destino (precisa ver todas as
+  // linhas antes de saber se o arquivo inteiro parece um extrato bancário).
+  type LinhaBase = {
+    data?: string; dataHora?: string; valor?: number; descricao: string;
+    categoria?: string; documento?: string; cnpj?: string;
+    tipo: "entrada" | "saida"; raw: Record<string, any>;
+  };
+  const base: LinhaBase[] = json.map((row) => {
     const data = mapUsado.data ? parseDataBR(String(row[mapUsado.data] || "")) : undefined;
     const valor = mapUsado.valor ? parseValorBR(row[mapUsado.valor]) : undefined;
     const descricao = mapUsado.descricao ? String(row[mapUsado.descricao] || "") : "";
@@ -756,23 +830,19 @@ export async function parseXLSX(
     const dataHora = mapUsado.hora
       ? combinarDataHora(data, row[mapUsado.hora])
       : combinarDataHora(data, mapUsado.data ? row[mapUsado.data] : undefined);
-
     const tipo: "entrada" | "saida" = valor !== undefined && valor < 0 ? "saida" : "entrada";
-    const sugestao = sugerirDestinoTransacao(tipo, descricao, nomeArquivo || "", mapUsado.data, lang);
+    return { data, dataHora, valor: valor !== undefined ? Math.abs(valor) : undefined, descricao, categoria, documento, cnpj, tipo, raw: row };
+  });
 
+  // 2ª passada: decide o destino já sabendo se o arquivo parece extrato.
+  const arquivoExtrato = pareceExtrato(base, lang);
+  const linhas: LinhaImportada[] = base.map((l) => {
+    const sugestao = sugerirDestinoTransacao(l.tipo, l.descricao, nomeArquivo || "", mapUsado.data, lang, arquivoExtrato);
     return {
-      data,
-      dataHora,
-      valor: valor !== undefined ? Math.abs(valor) : undefined,
-      descricao,
-      categoria,
-      documento,
-      cnpj,
-      tipo,
+      ...l,
       destinoSugerido: sugestao.destino,
       confiancaDestino: sugestao.confianca,
       motivoDestino: sugestao.motivo,
-      raw: row,
     };
   });
 

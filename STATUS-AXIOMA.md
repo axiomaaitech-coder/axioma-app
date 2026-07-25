@@ -809,6 +809,22 @@ Elias achou, antes de testar: o tooltip que explica "por que sugeri esse destino
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela nesta sessão — Elias vai rodar a bateria de testes com vários tipos de arquivo agora.
 
+## 3-AA. Correção — 3 bugs reais de detecção achados na bateria de testes (2026-07-25)
+
+**Princípio que passou a valer daqui pra frente (decisão do Elias):** enquanto a Claude API real não está ligada (seção 1), a distribuição de destino é regra determinística, não IA — pra formato estruturado (NF-e, OFX, CSV/XLSX), erro de detecção é regra mal feita, não "limitação de falta de IA". Todo erro reportado vira regra corrigida até acertar, não uma desculpa. IA (Fase 2) fica só pra não-estruturado (PDF escaneado, foto de nota). Ver `[[project_axioma_regra_vs_ia_importacao]]` na memória.
+
+Elias testou com 4 arquivos (extrato, vendas, contas a pagar, misto) e achou 3 bugs reais na regra:
+
+**Bug 1 — extrato bancário quebrado em 3 destinos:** um CSV de extrato (TED/PIX/boleto/tarifa, categoria "Movimento") foi dividido entre Receitas/Custos Variáveis/Fluxo de Caixa porque o motor de palavra-chave via "recebido" em "PIX recebido" e "pagamento" em "Pagamento boleto" e reclassificava linha a linha — errado, num extrato entrada e saída são o MESMO caixa, não receita/custo de negócio. Corrigido com uma checagem em nível de ARQUIVO (`pareceExtrato`, novo em `lib/importarParsers.ts`) — vocabulário próprio de extrato (TED, DOC, PIX, boleto, tarifa, saque, depósito, transferência, "movimento"/"extrato" na categoria), diferente do vocabulário de receita/custo de negócio. Quando o arquivo bate esse padrão (≥40% das linhas, ou parte do vocabulário + entrada E saída misturadas), TODAS as linhas viram Fluxo de Caixa com confiança alta, mesmo tratamento que o OFX já tinha — palavra de receita/custo isolada deixa de valer dentro desse arquivo.
+
+**Bug 2 — coluna "vencimento" sozinha não era reconhecida como data:** `autodetectarMapeamento` só reconhecia "datavencimento" (data+vencimento grudado), não "vencimento" isolado — CSV real de contas a pagar ficou com data em branco e nada selecionado (por isso o total mostrava R$ 0,00 — não é bug de valor, é linha inválida por falta de data, então nada entra na seleção). Adicionados os sinônimos reais: "vencimento", "vence", "emissao", "competencia", "duedate", além dos compostos já cobertos. Corrigido também o destino: dentro do bloco de vencimento, a palavra-chave (fornecedor/cliente na descrição) agora decide a direção ANTES do sinal do valor — arquivo de contas a pagar tipicamente só tem valor positivo, sem sinal negativo nenhum pra indicar "saída", então o sinal do valor sozinho não bastava pra acertar Contas a Pagar vs Contas a Receber nesse tipo de arquivo.
+
+**Bug 3 — aviso ⚠️ em excesso, inclusive em casos óbvios:** o motor de palavra-chave marcava toda reclassificação como confiança "baixa", mesmo quando só um lado tinha sinal (ex: "Venda de produto X" tem "venda", zero palavra de custo — nada ambíguo ali). Corrigido: confiança agora é "alta" quando o sinal é decisivo (nenhuma palavra do lado oposto encontrada) e só cai pra "baixa" quando as duas aparecem e uma ganha só por contagem (ambiguidade real, ex: "recebimento de fornecedor").
+
+**Arquivo alterado:** `lib/importarParsers.ts` (`autodetectarMapeamento`, `PALAVRAS_EXTRATO` novo, `pareceExtrato` novo, `sugerirDestinoTransacao` reescrita — vencimento com palavra-chave antes do sinal, checagem de arquivo-extrato antes do bloco de palavra-chave de negócio, confiança condicionada a sinal decisivo —, `parseCSV`/`parseXLSX` em 2 passadas — 1ª monta os campos, 2ª decide destino já sabendo se o arquivo parece extrato —, novo motivo `extratoDetectado` PT/EN/ES).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Aguardando Elias reimportar os mesmos 4 arquivos: extrato → tudo Fluxo de Caixa, vendas → tudo Receitas (sem aviso), contas a pagar → datas lidas certas + destino Contas a Pagar, misto → destinos corretos por linha com aviso só onde houver dúvida real.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
