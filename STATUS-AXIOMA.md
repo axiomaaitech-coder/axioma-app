@@ -837,13 +837,23 @@ Elias confirmou extrato, vendas e leitura de "vencimento" corretos (seção 3-AA
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Aguardando Elias reimportar os mesmos 4 arquivos — meta explícita dele: os 4 corretos ao mesmo tempo, sem regressão.
 
+## 3-AC. Importar Documentos — PAUSADO no estado atual, decisão do Elias (2026-07-25)
+
+Elias decidiu pausar a lapidação da detecção aqui e seguir pra outros módulos. Retoma junto com a Fase 2 (OCR/IA). **Nenhuma alteração adicional em Importar Documentos até então.**
+
+**Estado no pause — Fase 1: FUNCIONAL.** Estruturados (CSV, XML NF-e, OFX) importam, com simulador (`dryRun`), Confirmação de Possível Duplicata estilo "aviso de PIX repetido" (cross-módulo, 6 tabelas), distribuição automática de destino por linha (não mais um destino só pro arquivo inteiro) e destino sempre editável por linha antes de confirmar. NF-e por CNPJ (venda vs. compra, comparando emitente/destinatário com o CNPJ da própria empresa) já funciona.
+
+**Detecção por regra acerta a maioria dos casos** (extrato bancário, vendas óbvias, contas a pagar com coluna de vencimento — seções 3-AA/3-AB). **Casos que ainda erram, por vocabulário limitado, não por falha de arquitetura:** despesa recorrente fora do vocabulário atual (internet, aluguel, telefone, software) cai em Fluxo de Caixa em vez de Custos Fixos; alguns custos avulsos (combustível) do mesmo jeito. **Isso é o limite natural da regra por palavra-chave sem IA** — não é bug, é a fronteira exata onde a Fase 2 entra.
+
+**Próximo passo quando retomar:** Fase 2 (OCR/IA, já citada como próxima etapa desde a seção 3-U) entra POR CIMA da regra determinística — cobre os casos de vocabulário que a regra não alcança (e PDF escaneado/foto de nota, que hoje só salva aguardando OCR). Não vale gastar mais esforço afinando palavra-chave manualmente agora antes da Fase 2 — retorno decrescente, cada palavra nova resolve 1 caso e arrisca quebrar outro (como já aconteceu nas seções 3-AA/3-AB). Ver `[[project_axioma_regra_vs_ia_importacao]]` na memória — princípio permanente pra quando a IA for ligada: ela melhora/cobre os casos difíceis, nunca substitui a regra determinística que já funciona pro estruturado.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
 **Parte 6 (ajuste de código) COMPLETA em 2026-07-23 — ver seção 13 pro relatório completo.** `tsc --noEmit` e `next build` limpos no projeto inteiro. **Elias rodou `SQL-EMPRESA-PADRAO.sql` em 2026-07-23** — empresa automática pronta ponta a ponta (função no banco + código já ligado nela). **Elias testou na tela em 2026-07-24 (item 1) — confirmado funcionando**, e reportou 2 bugs de UX corrigidos na seção 3-T. Próximos passos, nessa ordem:
 1. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios`) — obrigatória antes do primeiro cliente pagante. A base pra ela (ordem dono→convidado→criar) já está pronta desde a Parte 6.
 2. **RPC `centro_custo_totais` de verdade** — descoberta na Parte 6: não é só mover uma soma pro banco, a Causa Raiz e o Radar de Oportunidades do Centro de Custos precisam de dado linha-a-linha, não de total agregado. Redesenho maior, ver seção 13. Por ora o teto de 300 lançamentos virou 5000 (resolve a perda de dado real, não resolve a arquitetura).
-3. **Fase 1 do Importar Documentos entregue em 2026-07-24 (seção 3-U)** — aguardando Elias rodar `IMPORTAR-DOCUMENTOS-FASE1.sql` e testar na tela. Depois disso: próximo item da fila (seção 5). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
+3. **Importar Documentos Fase 1 — FUNCIONAL, PAUSADO em 2026-07-25 por decisão do Elias** (seção 3-AC) — retoma junto com a Fase 2 (OCR/IA). Próximo item real da fila (seção 5): **Inadimplência Fase 3** (aguardando aprovação do Elias) → **E-commerce/PDV** (alta prioridade, 2 clientes esperando). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
 
 ## 12. EMPRESA PADRÃO AUTOMÁTICA — pré-requisito da tela de aceitar convite (decidido 2026-07-23)
 
