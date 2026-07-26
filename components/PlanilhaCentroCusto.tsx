@@ -715,12 +715,12 @@ function CelulaEditavel(props: {
   const { ativo, display, onAbrir, onConfirmar, valorEdicao, setValorEdicao, onKeyDown, salvando, tipo, opcoes, tooltipFormula, erro } = props;
   if (!ativo) {
     return (
-      <td onDoubleClick={onAbrir} onClick={(e) => { e.stopPropagation(); }}
-        style={{ padding: "4px 10px", color: "#c8d8f0", fontSize: 12, cursor: "text", opacity: salvando ? 0.5 : 1 }}
+      <td onClick={(e) => { e.stopPropagation(); onAbrir(); }}
+        style={{ padding: "4px 10px", color: "#c8d8f0", fontSize: 12, cursor: "pointer", opacity: salvando ? 0.5 : 1 }}
         title={tipo === "valor" ? tooltipFormula : undefined}>
         <span className="flex items-center gap-1">
           {display}
-          {tipo === "valor" && <Pencil size={9} style={{ color: "#3d4d63", flexShrink: 0 }} />}
+          <Pencil size={9} style={{ color: "#3d4d63", flexShrink: 0 }} />
         </span>
       </td>
     );

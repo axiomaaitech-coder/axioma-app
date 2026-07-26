@@ -189,6 +189,7 @@ export default function CentrosCustoPage() {
   const [rateioTabela, setRateioTabela] = useState<OrigemTabela>("custos_fixos");
   const [rateioOrigemId, setRateioOrigemId] = useState("");
   const [rateioPercentuais, setRateioPercentuais] = useState<Record<string, string>>({});
+  const [avisoRateioBase, setAvisoRateioBase] = useState<string | null>(null);
   const [processandoRateio, setProcessandoRateio] = useState(false);
 
   useEffect(() => { carregarDados(); }, []);
@@ -234,7 +235,12 @@ export default function CentrosCustoPage() {
     if (!nomeCentro.trim()) return;
     if (documentoCentro.trim()) {
       const ok = tipoPessoaCentro === "PF" ? validarCPF(documentoCentro) : validarCNPJ(documentoCentro);
-      if (!ok) { setErroDocCentro(tipoPessoaCentro === "PF" ? "CPF inválido" : "CNPJ inválido"); return; }
+      if (!ok) {
+        setErroDocCentro(tipoPessoaCentro === "PF"
+          ? (idioma === "en" ? "Invalid CPF — check the digits" : idioma === "es" ? "CPF inválido — revise los dígitos" : "CPF inválido — confira os dígitos")
+          : (idioma === "en" ? "Invalid CNPJ — check the digits" : idioma === "es" ? "CNPJ inválido — revise los dígitos" : "CNPJ inválido — confira os dígitos"));
+        return;
+      }
     }
     setErroDocCentro("");
     setSalvandoCentro(true);
@@ -358,7 +364,7 @@ export default function CentrosCustoPage() {
 
   // ---------- RATEIO — divide UM lançamento existente entre centros por % ----------
   function abrirRateio() {
-    setRateioTabela("custos_fixos"); setRateioOrigemId(""); setRateioPercentuais({}); setModalRateio(true);
+    setRateioTabela("custos_fixos"); setRateioOrigemId(""); setRateioPercentuais({}); setAvisoRateioBase(null); setModalRateio(true);
   }
 
   const opcoesRateio = lancamentosOrigem.filter(o => o.tabela === rateioTabela);
@@ -386,7 +392,12 @@ export default function CentrosCustoPage() {
 
   function distribuirPorBase(base: "headcount" | "area") {
     const sugestao = sugerirPercentuaisPorBase(centros, base);
-    if (Object.keys(sugestao).length > 0) setRateioPercentuais(sugestao);
+    if (Object.keys(sugestao).length > 0) { setRateioPercentuais(sugestao); setAvisoRateioBase(null); return; }
+    setAvisoRateioBase(
+      idioma === "en" ? `No center has ${base === "headcount" ? "headcount" : "area (m²)"} filled in — fill it in the center's registration, or use "Equally".`
+      : idioma === "es" ? `Ningún centro tiene ${base === "headcount" ? "headcount" : "área (m²)"} registrado — complételo en el registro del centro, o use "Equitativamente".`
+      : `Nenhum centro tem ${base === "headcount" ? "headcount" : "área (m²)"} preenchido — preencha no cadastro do centro, ou use "Igualmente".`
+    );
   }
 
   async function confirmarRateio() {
@@ -471,12 +482,12 @@ export default function CentrosCustoPage() {
   const priorizados: ItemPriorizado[] = priorizar(causaRaiz, oportunidades, langF2);
 
   const idsComPlanoAcao = new Set(planosAcao.filter(p => p.status !== "cancelado").map(p => p.origem_id).filter(Boolean) as string[]);
-  const origensSemCentro = lancamentosOrigem.filter(o => !o.centro_custo_id).length;
+  const origensSemCentro = lancamentosOrigem.filter(o => !o.centro_custo_id).length + lancamentos.filter(l => !l.centro_custo_id).length;
   const scoreModulo = calcularScoreCentroCusto({
     centros: centrosLeves, custosPorCentro: Object.fromEntries(centros.map(c => [c.id, getCustos(c.id)])),
     orcamentoPorCentro: (id) => getOrcamento(centros.find(c => c.id === id)!),
     causaRaiz, totalCustos, oportunidades, idsComPlanoAcao,
-    origensSemCentro, origensTotais: lancamentosOrigem.length, lang: langF2,
+    origensSemCentro, origensTotais: lancamentosOrigem.length + lancamentos.length, lang: langF2,
   });
 
   const insights = montarCentralInsights({
@@ -497,7 +508,8 @@ export default function CentrosCustoPage() {
   const baselineSimulacao: BaselineSimulacao = {
     receitaMensal: totalReceitas,
     custoFixoMensal: lancamentosOrigem.filter(o => o.tabela === "custos_fixos").reduce((s, o) => s + o.valor, 0),
-    custoVariavelMensal: lancamentosOrigem.filter(o => o.tabela === "custos_variaveis" && o.data.slice(0, 7) === periodo).reduce((s, o) => s + o.valor, 0),
+    custoVariavelMensal: lancamentosOrigem.filter(o => o.tabela === "custos_variaveis" && o.data.slice(0, 7) === periodo).reduce((s, o) => s + o.valor, 0)
+      + lancPeriodo.filter(l => l.tipo === "custo").reduce((s, l) => s + l.valor, 0),
     caixaAtual: 0,
     capitalGiroAtual: -contasPagarEmAberto,
   };
@@ -1386,6 +1398,7 @@ export default function CentrosCustoPage() {
                   </button>
                 </div>
               </div>
+              {avisoRateioBase && <p className="text-xs mb-2" style={{ color: "#fbbf24" }}>{avisoRateioBase}</p>}
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {centros.length === 0 ? (
                   <p className="text-xs" style={{ color: "#5a7a9a" }}>{cc.semCentros}</p>

@@ -466,8 +466,11 @@ export function respostaPorRegrasCentro(pergunta: string, ctx: ContextoCopiloto)
   const fonte = lang === "en" ? ` (data from ${ctx.periodo})` : lang === "es" ? ` (datos de ${ctx.periodo})` : ` (dados de ${ctx.periodo})`;
 
   if (q.includes("consome mais caixa") || q.includes("maior custo") || q.includes("mais caro")
+    || q.includes("mais custo") || q.includes("mais gasto") || q.includes("mais despesa")
     || q.includes("consumes most cash") || q.includes("highest cost") || q.includes("most expensive")
-    || q.includes("consume mas caja") || q.includes("mayor costo") || q.includes("mas caro")) {
+    || q.includes("most expense") || q.includes("most spending")
+    || q.includes("consume mas caja") || q.includes("mayor costo") || q.includes("mas caro")
+    || q.includes("mas gasto") || q.includes("mas costo")) {
     const ranking = ctx.centros.map(c => ({ nome: c.nome, custo: ctx.custosPorCentro[c.id] || 0 })).sort((a, b) => b.custo - a.custo);
     if (ranking.length === 0 || ranking[0].custo === 0) return lang === "en" ? `No center with cost recorded in the period${fonte}.` : lang === "es" ? `Ningún centro con costo registrado en el período${fonte}.` : `Nenhum centro com custo registrado no período${fonte}.`;
     return lang === "en" ? `The center that consumes the most cash is "${ranking[0].nome}", with ${fBRL(ranking[0].custo)}${fonte}.` : lang === "es" ? `El centro que más consume caja es "${ranking[0].nome}", con ${fBRL(ranking[0].custo)}${fonte}.` : `O centro que mais consome caixa é "${ranking[0].nome}", com ${fBRL(ranking[0].custo)}${fonte}.`;
