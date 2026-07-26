@@ -401,7 +401,7 @@ export default function Inadimplencia() {
     } else {
       await supabase.from('contas_receber').insert({ ...payload, status: 'pendente', user_id: userId })
     }
-    const { data: ct } = await supabase.from('contas_receber').select('*').eq('user_id', userId).order('data_vencimento', { ascending: true })
+    const { data: ct } = await supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true })
     setContas((ct as ContaRow[]) || [])
     fecharModalCaso()
     setSalvandoCaso(false)

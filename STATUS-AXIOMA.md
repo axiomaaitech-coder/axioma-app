@@ -523,7 +523,7 @@ Até rodar, a tela mostra o impacto simulado normalmente — só o botão "Salva
 - Disparo real da Régua de Recuperação Escalonada quando o Elias escolher provedor (mesma arquitetura já documentada em `cobrancaHelpers.ts` pro Contas a Receber)
 - Mapa geográfico de verdade (GeoJSON do Brasil) se um dia fizer sentido investir nisso — hoje é distribuição por estado em gráfico
 - Impacto da Reforma Tributária 2026/2027 na recuperação (gancho comentado, pronto pra ativar)
-- Migrar/arquivar a tabela antiga `inadimplencia` (não usada desde a Fase 1, segue no banco sem uso)
+- Migrar/arquivar a tabela antiga `inadimplencia` (não usada desde a Fase 1, segue no banco sem uso — registrada na lista de limpeza futura, seção 8-A)
 - Mostrar `dre_historico.provisao_pcld` na própria tela DRE (hoje só a Inadimplência escreve/lê essa coluna)
 
 ## 3-P. Centro de Custos — Fase 1 de N (upgrade do módulo antigo, integração com os módulos reais)
@@ -847,6 +847,16 @@ Elias decidiu pausar a lapidação da detecção aqui e seguir pra outros módul
 
 **Próximo passo quando retomar:** Fase 2 (OCR/IA, já citada como próxima etapa desde a seção 3-U) entra POR CIMA da regra determinística — cobre os casos de vocabulário que a regra não alcança (e PDF escaneado/foto de nota, que hoje só salva aguardando OCR). Não vale gastar mais esforço afinando palavra-chave manualmente agora antes da Fase 2 — retorno decrescente, cada palavra nova resolve 1 caso e arrisca quebrar outro (como já aconteceu nas seções 3-AA/3-AB). Ver `[[project_axioma_regra_vs_ia_importacao]]` na memória — princípio permanente pra quando a IA for ligada: ela melhora/cobre os casos difíceis, nunca substitui a regra determinística que já funciona pro estruturado.
 
+## 3-AD. Inadimplência — auditoria pós-fechamento + correção de filtro residual (2026-07-25)
+
+Antes de fechar de vez o módulo Inadimplência, Elias pediu confirmação do estado real (não confiar só no documento). Auditoria no código (não só no STATUS) confirmou: **Fases 1-2-3 realmente implementadas e funcionando** (git log: `a4f5ad1`, `c1bb4f1`, `a297ea9` — a Fase 3 já tinha sido entregue em 2026-07-22, o `CONTEXTO-AXIOMA.md` e o ponteiro da seção 4 é que estavam desatualizados dizendo "aguardando aprovação" — corrigidos no commit `3a43fd2`), `empresa_id` gravado corretamente em todo insert (`contas_receber` via `page.tsx`, `cobranca_interacoes`/`cobranca_compromissos`/`cobranca_regua_etapas` via `cobrancaHelpers.ts`), e zero duplicação de dado (lê só `clientes`/`contas_receber`, reaproveita as tabelas `cobranca_*` do Contas a Receber — tabela antiga `inadimplencia` órfã desde a Fase 1, ver seção 8-A).
+
+**1 gap real encontrado e corrigido:** `salvarCaso()` recarregava a lista de contas com `.eq('user_id', userId)` depois de criar/editar um título — filtro manual residual, inconsistente com o resto do módulo (que já confia só na RLS por empresa). Sem efeito visível pro dono da empresa hoje, mas quebraria a visão de um contador/funcionário convidado no dia em que a tela de aceitar convite existir (veria só os títulos que ELE MESMO criou/editou, não os da empresa toda). Removido o filtro — `page.tsx` agora recarrega igual à função `carregar()` principal, sem `.eq`.
+
+**Arquivo alterado:** `app/(interno)/inadimplencia/page.tsx` (`salvarCaso`).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
@@ -995,4 +1005,7 @@ Não é programador. No Claude Code, ele aprova planos e você executa direto no
 ## 8. ARMADILHA CONHECIDA — dívidas vs endividamento
 A tabela real, populada e usada por Endividamento/DRE/Fluxo de Caixa/Relatórios é **`dividas`**. A tabela `endividamento` é órfã (schema diferente, nunca alimentada pela UI) — bug identificado e corrigido no commit `f421c93`. Se qualquer instrução futura mencionar "tabela endividamento", é quase certo um engano — confirme antes de agir.
 
-**Pergunte ao Elias qual das duas frentes da seção 4 ele quer primeiro (não implemente antes dele decidir — é a regra dele).**
+## 8-A. TABELAS ÓRFÃS — lista de limpeza futura (decisão do Elias 2026-07-25: não apagar agora, uma limpeza geral de uma vez só, com cuidado)
+- **`endividamento`** — órfã desde sempre, schema diferente de `dividas`, nunca lida pela UI (seção 8 acima).
+- **`inadimplencia`** — órfã desde a Fase 1 do módulo Inadimplência (2026-07-22), quando o módulo passou a ler `contas_receber`/`clientes` direto em vez de ter cadastro próprio (seção 3-O). Ainda no banco, sem nenhuma tela lendo ou escrevendo nela.
+Antes de apagar qualquer uma: confirmar de novo que nenhuma rotina (inclusive Importar Documentos, que já teve um bug de gravar em `endividamento` por engano — seção 3-U) ainda referencia essas tabelas.
