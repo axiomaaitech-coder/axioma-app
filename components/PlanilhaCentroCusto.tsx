@@ -123,9 +123,10 @@ export type PlanilhaCentroCustoProps = {
   empresaId: string | null;
   idioma: Lang;
   onSalvo: () => void;
+  onEditarRateio: (tabela: OrigemTabela, origemId: string) => void;
 };
 
-export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, empresaId, idioma, onSalvo }: PlanilhaCentroCustoProps) {
+export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, empresaId, idioma, onSalvo, onEditarRateio }: PlanilhaCentroCustoProps) {
   const t = T[idioma];
 
   const [busca, setBusca] = useState("");
@@ -637,9 +638,10 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                     {/* F - Centro (ou, se rateado, a distribuição entre centros — não editável direto aqui, mexe em "Ratear Custo") */}
                     {l.rateios && l.rateios.length > 0 ? (
                       <td style={{ padding: "4px 10px" }} title={l.rateios.map(r => `${r.centroNome}: ${r.percentual}%`).join(" · ")}>
-                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
-                          <Split size={9} /> {l.rateios.map(r => `${r.centroNome} ${r.percentual}%`).join(" / ")}
-                        </span>
+                        <button onClick={(e) => { e.stopPropagation(); onEditarRateio(l.tabela, l.id); }}
+                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                          <Split size={9} /> {l.rateios.map(r => `${r.centroNome} ${r.percentual}%`).join(" / ")} <Pencil size={8} />
+                        </button>
                       </td>
                     ) : (
                       <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "centro"} valor={l.centroId || ""} display={l.centroNome}

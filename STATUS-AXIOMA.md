@@ -896,7 +896,17 @@ Elias testou de novo e reportou 2 problemas, ambos com a mesma raiz por trás.
 
 **Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (`carregarDados` silencioso + rateios entrando na linha da Planilha), `components/PlanilhaCentroCusto.tsx` (selo de rateio na coluna Centro).
 
+## 3-AH. Centro de Custos — rateio já aplicado virava dado fixo, sem como corrigir (2026-07-26) — MÓDULO FECHADO
+
+Último ajuste antes do Elias migrar de chat. Depois do selo "Rateado" (seção 3-AG), faltava um jeito de corrigir um rateio errado — só dava pra remover e recomeçar do zero, digitando os % de novo.
+
+**Corrigido:** o selo "Rateado" na Planilha agora é clicável — abre o mesmo modal "Ratear Custo" já com o lançamento certo selecionado e os % atuais preenchidos nos campos, prontos pra ajustar e salvar por cima. "Salvar por cima" já era seguro antes disso: `aplicarRateio` sempre apaga a distribuição antiga daquele lançamento antes de gravar a nova (nunca acumula linha antiga + linha nova pro mesmo lançamento — zero duplicação). "Desfazer o rateio" (voltar o lançamento pra sem divisão) já existia — o link "Remover rateio atual" dentro do mesmo modal — e continua funcionando igual, agora acessível também a partir do selo.
+
+**Arquivos alterados:** `app/(interno)/centros-custo/page.tsx` (seleção de origem do rateio pré-preenche os % existentes; nova função abre o modal já apontando pro lançamento clicado), `components/PlanilhaCentroCusto.tsx` (selo "Rateado" virou botão).
+
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela (sem navegador logado nesta sessão).
+
+**Centro de Custos (3/3 fases) — módulo fechado em 2026-07-26**, depois de 3 rodadas de teste na tela do Elias (seções 3-AF, 3-AG, 3-AH). Próximo módulo da fila: ver seção 4.
 
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
@@ -904,7 +914,7 @@ Elias testou de novo e reportou 2 problemas, ambos com a mesma raiz por trás.
 **Parte 6 (ajuste de código) COMPLETA em 2026-07-23 — ver seção 13 pro relatório completo.** `tsc --noEmit` e `next build` limpos no projeto inteiro. **Elias rodou `SQL-EMPRESA-PADRAO.sql` em 2026-07-23** — empresa automática pronta ponta a ponta (função no banco + código já ligado nela). **Elias testou na tela em 2026-07-24 (item 1) — confirmado funcionando**, e reportou 2 bugs de UX corrigidos na seção 3-T. Próximos passos, nessa ordem:
 1. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios`) — obrigatória antes do primeiro cliente pagante. A base pra ela (ordem dono→convidado→criar) já está pronta desde a Parte 6.
 2. **RPC `centro_custo_totais` de verdade — ADIADO de propósito (decisão do Elias, 2026-07-26), não é próximo passo ativo.** Descoberta na Parte 6: não é só mover uma soma pro banco, a Causa Raiz e o Radar de Oportunidades do Centro de Custos precisam de dado linha-a-linha, não de total agregado. Redesenho maior, ver seção 13/3-AE. Sem cliente de alto volume ainda, retorno baixo pra redesenhar agora — retomar só quando houver. Por ora o teto de 300 lançamentos virou 5000 (resolve a perda de dado real, não resolve a arquitetura).
-3. **Importar Documentos Fase 1 — FUNCIONAL, PAUSADO em 2026-07-25 por decisão do Elias** (seção 3-AC) — retoma junto com a Fase 2 (OCR/IA). **Correção de registro (2026-07-25): Inadimplência já estava COMPLETO 3/3 fases desde 2026-07-22 (seção 3-O)** — o ponteiro desta seção e o `CONTEXTO-AXIOMA.md` estavam desatualizados dizendo "Fase 3 aguardando aprovação"; confirmado no código real (commit `a297ea9`) que a Fase 3 já foi entregue como final do módulo. Próximo item real da fila (seção 5): **E-commerce/PDV** (alta prioridade, 2 clientes esperando). Centro de Custos (3/3 fases) segue aguardando teste do Elias na tela, sobretudo a Planilha (Fase 3).
+3. **Importar Documentos Fase 1 — FUNCIONAL, PAUSADO em 2026-07-25 por decisão do Elias** (seção 3-AC) — retoma junto com a Fase 2 (OCR/IA). **Correção de registro (2026-07-25): Inadimplência já estava COMPLETO 3/3 fases desde 2026-07-22 (seção 3-O)** — o ponteiro desta seção e o `CONTEXTO-AXIOMA.md` estavam desatualizados dizendo "Fase 3 aguardando aprovação"; confirmado no código real (commit `a297ea9`) que a Fase 3 já foi entregue como final do módulo. Próximo item real da fila (seção 5): **E-commerce/PDV** (alta prioridade, 2 clientes esperando). **Centro de Custos (3/3 fases) fechado em 2026-07-26** após 3 rodadas de teste do Elias na tela (seções 3-AF, 3-AG, 3-AH).
 
 ## 12. EMPRESA PADRÃO AUTOMÁTICA — pré-requisito da tela de aceitar convite (decidido 2026-07-23)
 

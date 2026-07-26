@@ -370,6 +370,26 @@ export default function CentrosCustoPage() {
     setRateioTabela("custos_fixos"); setRateioOrigemId(""); setRateioPercentuais({}); setAvisoRateioBase(null); setModalRateio(true);
   }
 
+  // Escolhe a origem do rateio (via os selects do modal ou clicando no selo "Rateado" na
+  // Planilha) e, se já existir uma distribuição pra esse lançamento, pré-preenche os % atuais —
+  // editar um rateio é reabrir com os valores certos, ajustar e salvar por cima (nunca duplica).
+  function selecionarOrigemRateio(tabela: OrigemTabela, origemId: string) {
+    setRateioTabela(tabela); setRateioOrigemId(origemId); setAvisoRateioBase(null);
+    const existente = rateios.filter(r => r.origem_tabela === tabela && r.origem_id === origemId);
+    if (existente.length > 0) {
+      const pre: Record<string, string> = {};
+      existente.forEach(r => { pre[r.centro_custo_id] = String(r.percentual); });
+      setRateioPercentuais(pre);
+    } else {
+      setRateioPercentuais({});
+    }
+  }
+
+  function abrirEditarRateio(tabela: OrigemTabela, origemId: string) {
+    setModalRateio(true);
+    selecionarOrigemRateio(tabela, origemId);
+  }
+
   const opcoesRateio = lancamentosOrigem.filter(o => o.tabela === rateioTabela);
   const origemSelecionada = opcoesRateio.find(o => o.id === rateioOrigemId) || null;
   const rateioExistente = rateioOrigemId ? rateios.filter(r => r.origem_tabela === rateioTabela && r.origem_id === rateioOrigemId) : [];
@@ -1196,6 +1216,7 @@ export default function CentrosCustoPage() {
           <PlanilhaCentroCusto
             linhas={linhasPlanilha} centros={centros} orcamentos={orcamentos} fornecedores={fornecedoresLeves}
             categoriasPorTabela={categoriasPorTabelaPlanilha} userId={userId} empresaId={empresaId} idioma={langF2} onSalvo={carregarDados}
+            onEditarRateio={abrirEditarRateio}
           />
         )}
       </div>
@@ -1372,7 +1393,7 @@ export default function CentrosCustoPage() {
             </div>
             <div>
               <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Lançamento" : idioma === "es" ? "Movimiento" : "Entry"}</label>
-              <select value={rateioOrigemId} onChange={(e) => { setRateioOrigemId(e.target.value); setRateioPercentuais({}); }} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={selectStyle}>
+              <select value={rateioOrigemId} onChange={(e) => selecionarOrigemRateio(rateioTabela, e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={selectStyle}>
                 <option value="">-- {idioma === "pt" ? "Selecione" : idioma === "es" ? "Seleccione" : "Select"} --</option>
                 {opcoesRateio.map(o => <option key={o.id} value={o.id}>{o.descricao} — {fmt(o.valor)}</option>)}
               </select>
