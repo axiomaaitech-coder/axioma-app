@@ -282,7 +282,7 @@ export default function CentrosCustoPage() {
       const { error } = await supabase.from("lancamentos_centro").update(payload).eq("id", editandoLanc.id);
       if (error) { console.error("Erro ao editar lançamento:", error.message, error); alert("Erro ao editar: " + error.message); setSalvandoLanc(false); return; }
     } else {
-      const { error } = await supabase.from("lancamentos_centro").insert({ ...payload, user_id: user.id });
+      const { error } = await supabase.from("lancamentos_centro").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
       if (error) { console.error("Erro ao salvar lançamento:", error.message, error); alert("Erro ao salvar: " + error.message); setSalvandoLanc(false); return; }
     }
     fecharModalLancamento();

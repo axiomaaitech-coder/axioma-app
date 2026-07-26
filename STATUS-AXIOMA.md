@@ -857,6 +857,18 @@ Antes de fechar de vez o módulo Inadimplência, Elias pediu confirmação do es
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
 
+## 3-AE. Centro de Custos — auditoria pós-fechamento (2026-07-26)
+
+Mesmo pedido do Elias que originou a seção 3-AD, agora pro Centro de Custos: confirmar estado real no código antes de considerar o módulo fechado. Confirmado: **Fases 1-2-3 realmente implementadas** (`centros-custo/page.tsx` 1514 linhas, `centroCustoHelpers.ts`, `centroCustoInteligenciaHelpers.ts`, `components/PlanilhaCentroCusto.tsx` — a Planilha da Fase 3, seção 3-S, existe e está ligada na aba "Planilha" da tela, não ficou pendente). `empresa_id` retrofitado corretamente nas 6 tabelas do módulo (`centros_custo`, `lancamentos_centro`, `centro_custo_rateio`, `centro_custo_orcamento`, `centro_custo_auditoria`, `centro_custo_plano_acao` — Parte 6, seção 13). Zero tabela órfã (as duas órfãs conhecidas do sistema, `endividamento`/`inadimplencia`, são de outros módulos — seção 8-A).
+
+**1 gap real encontrado e corrigido:** `salvarLancamento()` gravava um novo lançamento em `lancamentos_centro` (a lista própria da Fase 1, usada pra custo que não pertence a nenhum dos 4 módulos reais) só com `user_id`, sem `empresa_id` — diferente do cadastro de Centro (que já gravava os dois campos certos). Sem RLS por empresa completo em cima do registro, um lançamento novo desse tipo específico ficaria com o dono errado assim que a tela de convite existir. Corrigido — mesmo padrão que o resto do módulo já usa.
+
+**Teto de leitura ainda é 5000 por tabela (Parte 6, seção 13, item 2), não virou RPC** — decisão registrada: o RPC `centro_custo_totais` de verdade exige redesenhar como a Causa Raiz e o Radar de Oportunidades consomem dado linha-a-linha (não serve um total agregado), redesenho maior que não foi feito ainda. 5000 cobre qualquer volume real de PME hoje, não é a arquitetura final.
+
+**Arquivo alterado:** `app/(interno)/centros-custo/page.tsx` (`salvarLancamento`).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
