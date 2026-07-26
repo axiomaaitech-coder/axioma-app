@@ -13,7 +13,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import ReactECharts from "echarts-for-react";
 import * as XLSX from "xlsx";
-import { Pencil, Lock, ChevronDown, ChevronRight, Filter, ArrowUp, ArrowDown, Download, FileSpreadsheet, X } from "lucide-react";
+import { Pencil, Lock, ChevronDown, ChevronRight, Filter, ArrowUp, ArrowDown, Download, FileSpreadsheet, X, Split } from "lucide-react";
 import { gerarPdfTabela } from "../lib/gerarPdfTabela";
 import { optBarrasH, optBarrasComparativo } from "../lib/cfoCore";
 import { avaliarFormula, pareceFormula } from "../lib/formulaHelpers";
@@ -29,6 +29,7 @@ export type LinhaPlanilha = {
   diaVencimento?: number;   // só custos_fixos
   centroId: string | null;
   centroNome: string;
+  rateios?: { centroNome: string; percentual: number }[]; // preenchido quando o lançamento foi rateado (Ratear Custo) entre vários centros
   fornecedorId?: string | null;
   fornecedorNome?: string;
   status?: string;          // só contas_pagar — somente leitura
@@ -190,6 +191,10 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
   const totalGeral = useMemo(() => linhasOrdenadas.reduce((s, l) => s + l.valor, 0), [linhasOrdenadas]);
 
   // ---------- AGRUPAMENTO ----------
+  // ponytail: agrupar "por centro" usa o centro original da linha (l.centroId), não a fração
+  // rateada — um lançamento rateado aparece inteiro no grupo antigo, com o badge de "Rateado"
+  // avisando a distribuição real (o total por centro correto já existe na Visão Geral). Fatiar
+  // a mesma linha em vários grupos fracionados é redesenho maior, fazer se pedirem grupo exato.
   type Grupo = { chave: string; nome: string; linhas: LinhaPlanilha[]; subtotal: number; orcado: number };
   const grupos: Grupo[] = useMemo(() => {
     if (agrupador === "nenhum") {
@@ -629,11 +634,19 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                       onAbrir={() => abrirEdicao(l, "data")} onConfirmar={() => confirmarEdicao(l)}
                       valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
                       tipo={l.tabela === "custos_fixos" ? "numero" : "data"} />
-                    {/* F - Centro */}
-                    <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "centro"} valor={l.centroId || ""} display={l.centroNome}
-                      onAbrir={() => abrirEdicao(l, "centro")} onConfirmar={() => confirmarEdicao(l)}
-                      valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
-                      tipo="select" opcoes={centros.map(c => ({ value: c.id, label: c.nome }))} />
+                    {/* F - Centro (ou, se rateado, a distribuição entre centros — não editável direto aqui, mexe em "Ratear Custo") */}
+                    {l.rateios && l.rateios.length > 0 ? (
+                      <td style={{ padding: "4px 10px" }} title={l.rateios.map(r => `${r.centroNome}: ${r.percentual}%`).join(" · ")}>
+                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                          <Split size={9} /> {l.rateios.map(r => `${r.centroNome} ${r.percentual}%`).join(" / ")}
+                        </span>
+                      </td>
+                    ) : (
+                      <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "centro"} valor={l.centroId || ""} display={l.centroNome}
+                        onAbrir={() => abrirEdicao(l, "centro")} onConfirmar={() => confirmarEdicao(l)}
+                        valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
+                        tipo="select" opcoes={centros.map(c => ({ value: c.id, label: c.nome }))} />
+                    )}
                     {/* G - Fornecedor */}
                     {l.tabela === "contas_pagar" ? (
                       <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "fornecedor"} valor={l.fornecedorId || ""} display={l.fornecedorNome || "-"}

@@ -192,10 +192,13 @@ export default function CentrosCustoPage() {
   const [avisoRateioBase, setAvisoRateioBase] = useState<string | null>(null);
   const [processandoRateio, setProcessandoRateio] = useState(false);
 
-  useEffect(() => { carregarDados(); }, []);
+  useEffect(() => { carregarDados(true); }, []);
 
-  async function carregarDados() {
-    setLoading(true);
+  // mostrarLoading só é true na carga inicial — nos recarregamentos depois de salvar/editar
+  // (rateio, planilha, lançamento) a busca é silenciosa, sem desmontar a tela inteira e
+  // resetar scroll/edição em andamento (era a causa da "página recarregando no meio da edição").
+  async function carregarDados(mostrarLoading = false) {
+    if (mostrarLoading) setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     setUserId(user.id);
@@ -461,6 +464,8 @@ export default function CentrosCustoPage() {
     id: o.id, tabela: o.tabela, descricao: o.descricao, categoria: o.categoria || "", valor: o.valor,
     data: o.data, diaVencimento: o.dia_vencimento, centroId: o.centro_custo_id,
     centroNome: centros.find(c => c.id === o.centro_custo_id)?.nome || (idioma === "pt" ? "Sem centro" : idioma === "es" ? "Sin centro" : "No center"),
+    rateios: rateios.filter(r => r.origem_tabela === o.tabela && r.origem_id === o.id)
+      .map(r => ({ centroNome: centros.find(c => c.id === r.centro_custo_id)?.nome || "?", percentual: r.percentual })),
     fornecedorId: o.fornecedor_id, fornecedorNome: fornecedoresF2.find(f => f.id === o.fornecedor_id)?.nome,
     status: o.status, valorPago: o.valor_pago,
   }));
