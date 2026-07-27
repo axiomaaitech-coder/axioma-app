@@ -60,6 +60,7 @@ const grupos = [
     itens: [
       { label: { pt: "Clientes", en: "Clients", es: "Clientes" }, path: "/clientes", emoji: "🤝" },
       { label: { pt: "Fornecedores", en: "Suppliers", es: "Proveedores" }, path: "/fornecedores", emoji: "🏭" },
+      { label: { pt: "Estoque", en: "Inventory", es: "Inventario" }, path: "/estoque", emoji: "📦" },
       { label: { pt: "Contas a Receber", en: "Receivables", es: "Cuentas por Cobrar" }, path: "/contas-receber", emoji: "📥" },
       { label: { pt: "Inadimplência", en: "Default", es: "Morosidad" }, path: "/inadimplencia", emoji: "⚠️" },
     ]

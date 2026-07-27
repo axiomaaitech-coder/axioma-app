@@ -908,6 +908,30 @@ Elias testou de novo e reportou 2 problemas, ambos com a mesma raiz por trás.
 
 **Centro de Custos (3/3 fases) — módulo fechado em 2026-07-26**, depois de 3 rodadas de teste na tela do Elias (seções 3-AF, 3-AG, 3-AH). Próximo módulo da fila: ver seção 4.
 
+## 3-AI. Estoque — Fase 1 de N (fundação operacional), entregue em 2026-07-27
+
+**Não é um controle de estoque comum — é a futura fonte da verdade do CMV.** Esta fase entrega só a espinha (cadastro, movimentações, saldo, custo médio, validade); a camada de inteligência (curva ABC, giro, ponto de reposição, Copiloto CFO) é Fase 2, deliberadamente fora do escopo agora.
+
+**Banco (3 tabelas novas, já nascem no padrão multi-tenant definitivo — `empresa_id` + `empresas_do_usuario()`):** `produtos` (cadastro completo: identificação, dimensões, localização física em texto livre, vínculos com Fornecedores/Centro de Custos, preços, campos fiscais nullable sem cálculo de imposto ainda, controle de estoque mín/máx), `estoque_lotes` (validade + FEFO), `estoque_movimentacoes` (7 tipos: entrada/saída/transferência/perda/ajuste/inventário/devolução). Arquivo: `ESTOQUE-FASE1-SQL.sql` (raiz, `BEGIN`/`COMMIT` único, idempotente — **aguardando Elias rodar no Supabase**, mesma janela dos outros `.sql`).
+
+**Custo médio móvel — o diferencial técnico da fase.** Uma trigger reprocessa o histórico de movimentações de cada produto em ordem cronológica a cada gravação (não é soma incremental ingênua — uma venda não muda o custo médio, só a próxima compra muda, ponderada pelo que sobrou de fato depois das vendas). Uma segunda trigger (`BEFORE INSERT`) grava sozinha o custo da saída/perda no momento exato, sem o app precisar calcular isso. Isso já deixa pronta a `vw_cmv_periodo` (soma de saídas × custo por mês/empresa) — **a DRE não foi tocada nesta fase**; ela pode ler essa view quando/se decidirem plugar, depois.
+
+**Saldo em 3 estados** (disponível / reservado / em trânsito) — resolve o buraco comum de ERP nacional onde uma compra já paga mas não recebida conta como estoque disponível antes da hora. "Em trânsito" só vira disponível quando o usuário confirma o recebimento na tela.
+
+**Centro de Avisos** (aba própria): ruptura, baixo estoque, capital parado, custo subindo, validade escalonada (90/60/30/7/1 dias, vencidos) — tudo vindo de 4 views agregadas no banco (`vw_estoque_avisos`, `vw_estoque_avisos_validade`, `vw_estoque_kpis`, `vw_estoque_por_categoria/fornecedor/evolucao`), nunca somado no navegador (Regra 4, seção 9).
+
+**Leitor de código de barras (HID):** implementado sem listener global nem debounce — um `<input>` comum já resolve (o leitor manda as teclas rápido + Enter, é exatamente o que um input trata sozinho). Usado na busca de Produtos e na seleção de produto em Movimentações.
+
+**Simplificações conscientes desta fase (documentadas com comentário `ponytail:` no SQL):** `transferencia` não afeta saldo total ainda (não existe múltiplo depósito); `reservado` é alocação manual (baixa automática por venda real é PDV/Fase 2); `inventário` grava como ajuste sinalizado, não como reset absoluto de contagem.
+
+**Ganchos preparados, não conectados** (`lib/estoqueDeviceAdapter.ts`, tudo comentado): `baixarEstoquePorVenda()` pro PDV, impressora ESC/POS, gaveta de caixa, NFC-e/SEFAZ, IA plugável (mesmo padrão de fallback determinístico até a `ANTHROPIC_API_KEY` ser ativada), e o ponto de entrada de NF-e de compra virando entrada de estoque quando Importar Documentos voltar (Fase 2 dele).
+
+**Arquivos:** `ESTOQUE-FASE1-SQL.sql` (novo), `lib/estoqueHelpers.ts` (novo), `lib/estoqueDeviceAdapter.ts` (novo), `app/(interno)/estoque/page.tsx` (novo — abas Painel/Produtos/Movimentações/Avisos), `lib/translations.ts` (bloco `estoque` PT/EN/ES), `components/TopNav.tsx` (item novo no grupo Comercial).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro; `next build` — `✓ Compiled successfully` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/pluggy/webhook`, falta `SUPABASE_SERVICE_ROLE_KEY` local). **Não testado clicando na tela** (sem navegador logado nesta sessão) — recomendo esse ser o primeiro passo antes de considerar a fase pronta pra uso real: rodar o SQL, criar o bucket `produto-imagens` (Storage → New bucket, público, mesmo padrão de `empresa-logos`), cadastrar 2-3 produtos, registrar entradas/saídas e conferir que saldo/custo médio/avisos batem.
+
+**PAREI aqui de propósito — não comecei a Fase 2** (curva ABC, giro, ponto de reposição, integração PDV real, IA preditiva), como combinado.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
@@ -1034,7 +1058,7 @@ Ordenado do maior risco pro menor (mais dado cruzado × mais registros por empre
 ---
 
 ## 5. FILA DEPOIS (Comercial)
-Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência), integração do Dashboard aos dados reais, módulo **E-commerce/PDV**.
+Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) — completo. **Estoque Fase 1 entregue em 2026-07-27** (seção 3-AI) — pré-requisito de dado real pro módulo **E-commerce/PDV**, que continua na fila (o PDV vai chamar o gancho `baixarEstoquePorVenda()` já preparado em `lib/estoqueDeviceAdapter.ts` em vez de duplicar lógica de baixa de estoque). Também na fila: integração do Dashboard aos dados reais, tela de aceitar convite (seção 12), Estoque Fase 2 (curva ABC, giro, ponto de reposição, Copiloto CFO).
 
 ---
 

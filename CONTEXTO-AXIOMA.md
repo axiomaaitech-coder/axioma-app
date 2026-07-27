@@ -50,7 +50,7 @@ Constantes: `CORES` (paleta alto luxo), `FONTE_EXEC` / `FONTE_EXEC_TITULO` (Geor
 4. **Código sempre completo e LIMPO** — sem sobra de código antigo (causa bugs). No Claude Code ele edita direto no arquivo.
 5. **Git junto:** ao fim de cada entrega, rodar `git add . && git commit -m "..." && git push origin main`.
 6. **Fonte executiva premium (Georgia serif, `FONTE_EXEC`) em todos os títulos/letreiros/KPIs** — padrão do Dashboard.
-7. **Cada módulo com COR DE TEMA DIFERENTE** no dashboard (não repetir): Receitas=roxo, Custos Fixos=vermelho/laranja, Custos Variáveis=laranja/âmbar, Fluxo de Caixa=cyan/azul, DRE=verde/teal, Endividamento=rosa/magenta, Metas=roxo/dourado, Investimentos=azul-royal/dourado, Simulações=índigo/prata, Precificação=amarelo/dourado, Contas a Receber=esmeralda/teal profundo + dourado champagne (detalhes finos).
+7. **Cada módulo com COR DE TEMA DIFERENTE** no dashboard (não repetir): Receitas=roxo, Custos Fixos=vermelho/laranja, Custos Variáveis=laranja/âmbar, Fluxo de Caixa=cyan/azul, DRE=verde/teal, Endividamento=rosa/magenta, Metas=roxo/dourado, Investimentos=azul-royal/dourado, Simulações=índigo/prata, Precificação=amarelo/dourado, Contas a Receber=esmeralda/teal profundo + dourado champagne (detalhes finos), Estoque=jade/verde-mineral + acento bronze.
 8. **SQL sempre `ADD COLUMN IF NOT EXISTS`** + RLS `auth.uid() = user_id`. Nunca CHECK constraint em status/tipo sem confirmar valores (erro 400 → checar `pg_constraint`). Avisar Elias e mandar o SQL ANTES de assumir coluna nova.
 9. **Supabase:** sempre `createBrowserClient` de `@supabase/ssr`.
 10. **Nunca mudar estrutura existente sem instrução.**
