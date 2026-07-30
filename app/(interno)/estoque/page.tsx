@@ -11,7 +11,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela, compartilharOuBaixarPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { fBRL, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
+import { fBRL, fBRL2, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
 import { useLeitorCodigoBarras } from "../../../lib/estoqueDeviceAdapter";
 import {
@@ -77,6 +77,48 @@ function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, 
     </div>
   );
 }
+// Moeda com 2 casas sempre visíveis (fBRL do cfoCore corta pra inteiro de
+// propósito nos dashboards executivos — aqui, na lista/ficha de Produtos, o
+// usuário precisa ver o centavo exato).
+const moeda = (n: number | null | undefined) => `R$ ${fBRL2(n || 0)}`;
+
+// Aceita vírgula OU ponto como decimal (e ponto como separador de milhar
+// quando junto com vírgula, ex: "1.234,56") — o <input type="number"> nativo
+// rejeita vírgula em vários navegadores e descartava os centavos digitados.
+function parseMoeda(texto: string): number | null {
+  const limpo = texto.trim().replace(/[^\d.,-]/g, "");
+  if (!limpo) return null;
+  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  const n = parseFloat(normalizado);
+  return isNaN(n) ? null : Math.round(n * 100) / 100;
+}
+
+function CampoMoeda({ label, valor, onChange, dica }: {
+  label: string; valor: number | null | undefined; onChange: (v: number | null) => void; dica?: string;
+}) {
+  const [texto, setTexto] = useState(valor != null ? valor.toFixed(2).replace(".", ",") : "");
+  const [focado, setFocado] = useState(false);
+  useEffect(() => {
+    if (!focado) setTexto(valor != null ? valor.toFixed(2).replace(".", ",") : "");
+  }, [valor, focado]);
+  return (
+    <div>
+      <label className={labelCls} style={labelStyle}>{label}</label>
+      <input type="text" inputMode="decimal" value={texto}
+        onFocus={() => setFocado(true)}
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={() => {
+          setFocado(false);
+          const numero = parseMoeda(texto);
+          setTexto(numero != null ? numero.toFixed(2).replace(".", ",") : "");
+          onChange(numero);
+        }}
+        placeholder="0,00" className={inputCls} style={inputStyle} />
+      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: "#5a7a9a" }}>{dica}</p>}
+    </div>
+  );
+}
+
 function CampoSelect({ label, value, onChange, opcoes, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; opcoes: { value: string; label: string }[]; placeholder?: string;
 }) {
@@ -414,7 +456,8 @@ export default function EstoquePage() {
         <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
         <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
         <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
-        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(p.preco_medio)}</td>
+        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{moeda(p.preco_medio)}</td>
+        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{moeda(p.preco_venda ?? p.preco_sugerido)}</td>
         <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO : "#5a7a9a" }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
         <td className="py-2 px-3 text-right">
           <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
@@ -428,7 +471,7 @@ export default function EstoquePage() {
     return (
       <tr key={chave} className="cursor-pointer select-none" onClick={() => toggleGrupo(chave)}
         style={{ background: nivel === 1 ? "rgba(4,120,87,0.12)" : "rgba(255,255,255,0.03)" }}>
-        <td colSpan={8} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? BRONZE : "#94a3b8", paddingLeft: nivel === 1 ? 12 : 30 }}>
+        <td colSpan={9} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? BRONZE : "#94a3b8", paddingLeft: nivel === 1 ? 12 : 30 }}>
           <span className="inline-flex items-center gap-1.5 uppercase tracking-wide">
             {gruposFechados.has(chave) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {texto}
@@ -716,11 +759,12 @@ export default function EstoquePage() {
         colunas: [
           { header: et.colNome, key: "nome", width: 3 }, { header: et.colCodigo, key: "codigo", width: 2 },
           { header: et.colCategoria, key: "categoria", width: 2 }, { header: et.colSaldo, key: "saldo", width: 1, align: "right" },
-          { header: et.colPrecoMedio, key: "precoMedio", width: 1.5, align: "right" }, { header: et.colStatus, key: "status", width: 1 },
+          { header: et.colPrecoMedio, key: "precoMedio", width: 1.5, align: "right" },
+          { header: et.colPrecoVenda, key: "precoVenda", width: 1.5, align: "right" }, { header: et.colStatus, key: "status", width: 1 },
         ],
         linhas: produtos.map((p) => ({
           nome: p.nome, codigo: p.codigo_interno || "—", categoria: p.categoria || "—",
-          saldo: String(p.saldo_disponivel), precoMedio: fBRL(p.preco_medio), status: p.status,
+          saldo: String(p.saldo_disponivel), precoMedio: moeda(p.preco_medio), precoVenda: moeda(p.preco_venda ?? p.preco_sugerido), status: p.status,
         })),
         nomeArquivo: "axioma-estoque-produtos.pdf",
       };
@@ -1004,6 +1048,7 @@ export default function EstoquePage() {
                     <th className="pb-2 px-3 font-semibold">{et.colCategoria}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.colSaldo}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.colPrecoMedio}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colPrecoVenda}</th>
                     <th className="pb-2 px-3 font-semibold">{et.colStatus}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.colAcoes}</th>
                   </tr>
@@ -1028,7 +1073,7 @@ export default function EstoquePage() {
                     );
                   })}
                   {produtos.length === 0 && (
-                    <tr><td colSpan={8} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semProdutos}</td></tr>
+                    <tr><td colSpan={9} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semProdutos}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1536,13 +1581,13 @@ export default function EstoquePage() {
           {produtoEditando && (
             <div className="p-3 rounded-xl mb-1" style={{ background: "rgba(4,120,87,0.08)" }}>
               <p className="text-[10px] font-bold uppercase" style={{ color: "#5a7a9a" }}>{et.campoCustoMedioSistema}</p>
-              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{fBRL(formProduto.preco_medio || 0)}</p>
+              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{moeda(formProduto.preco_medio)}</p>
             </div>
           )}
           <div className="grid grid-cols-3 gap-3">
-            <Campo label={et.campoCusto} tipo="number" value={String(formProduto.preco_custo ?? "")}
+            <CampoMoeda label={et.campoCusto} valor={formProduto.preco_custo}
               onChange={(v) => {
-                const custo = v ? Number(v) : 0;
+                const custo = v ?? 0;
                 setFormProduto((f) => ({ ...f, preco_custo: custo }));
                 aplicarCalculoPreco(custo, Number(markupPct) || 0);
               }} />
@@ -1551,15 +1596,15 @@ export default function EstoquePage() {
                 setMarkupPct(v);
                 aplicarCalculoPreco(Number(formProduto.preco_custo) || 0, Number(v) || 0);
               }} />
-            <Campo label={et.campoPrecoSugerido} tipo="number" value={String(formProduto.preco_sugerido ?? "")}
-              onChange={(v) => { setPrecoSugeridoManual(true); setFormProduto((f) => ({ ...f, preco_sugerido: v ? Number(v) : null })); }} />
+            <CampoMoeda label={et.campoPrecoSugerido} valor={formProduto.preco_sugerido}
+              onChange={(v) => { setPrecoSugeridoManual(true); setFormProduto((f) => ({ ...f, preco_sugerido: v })); }} />
           </div>
           {(formProduto.preco_custo || 0) > 0 && formProduto.preco_sugerido != null && (
             <p className="text-xs font-semibold" style={{ color: POSITIVO }}>{et.campoMargemReal}: {margemReal(formProduto.preco_sugerido, formProduto.preco_custo || 0).toFixed(1)}%</p>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <Campo label={et.campoPrecoMinimo} tipo="number" value={String(formProduto.preco_minimo ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, preco_minimo: v ? Number(v) : null }))} />
-            <Campo label={et.campoPrecoPromocional} tipo="number" value={String(formProduto.preco_promocional ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, preco_promocional: v ? Number(v) : null }))} />
+            <CampoMoeda label={et.campoPrecoMinimo} valor={formProduto.preco_minimo} onChange={(v) => setFormProduto((f) => ({ ...f, preco_minimo: v }))} />
+            <CampoMoeda label={et.campoPrecoPromocional} valor={formProduto.preco_promocional} onChange={(v) => setFormProduto((f) => ({ ...f, preco_promocional: v }))} />
             {produtoEditando && (
               <div><p className={labelCls} style={labelStyle}>{et.campoMargemMarkup}</p><p className="text-sm py-2" style={{ color: "#c8d8f0" }}>{(formProduto.margem ?? 0).toFixed(1)}% / {(formProduto.markup ?? 0).toFixed(1)}%</p></div>
             )}

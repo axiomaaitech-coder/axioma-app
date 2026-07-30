@@ -135,6 +135,12 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "importado", label: C("Importado", "Imported", "Importado") },
       ],
     },
+    { chave: "pesoLiquido", tipo: "text", label: C("Peso Líquido", "Net Weight", "Peso Neto") },
+    { chave: "pesoBruto", tipo: "text", label: C("Peso Bruto", "Gross Weight", "Peso Bruto") },
+    { chave: "registroSifDipoa", tipo: "text", label: C("Registro no órgão (SIF/DIPOA)", "Health Registry (SIF/DIPOA)", "Registro Sanitario (SIF/DIPOA)") },
+    { chave: "contemGluten", tipo: "boolean", label: C("Contém Glúten", "Contains Gluten", "Contiene Gluten") },
+    { chave: "contemLactose", tipo: "boolean", label: C("Contém Lactose", "Contains Lactose", "Contiene Lactosa") },
+    { chave: "organico", tipo: "boolean", label: C("Orgânico", "Organic", "Orgánico") },
   ],
   farmacia: [
     { chave: CHAVE_PERECIVEL, tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
@@ -170,6 +176,25 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
     { chave: "registroAnvisa", tipo: "text", label: C("Registro MS/ANVISA", "Health Registry No.", "Registro Sanitario") },
     { chave: "laboratorioFabricante", tipo: "text", label: C("Laboratório/Fabricante", "Laboratory/Manufacturer", "Laboratorio/Fabricante") },
     { chave: "necessitaReceita", tipo: "boolean", label: C("Necessita Receita", "Requires Prescription", "Requiere Receta") },
+    { chave: "pmc", tipo: "number", label: C("Valor Máximo ao Consumidor (PMC)", "Max. Consumer Price (PMC)", "Precio Máximo al Consumidor (PMC)") },
+    { chave: "eanCaixa", tipo: "text", label: C("Código EAN da caixa", "Box EAN Code", "Código EAN de la caja") },
+    {
+      chave: "classificacaoMedicamento", tipo: "select", label: C("Genérico/Similar/Referência", "Generic/Similar/Reference", "Genérico/Similar/Referencia"),
+      opcoes: [
+        { value: "generico", label: C("Genérico", "Generic", "Genérico") },
+        { value: "similar", label: C("Similar", "Similar", "Similar") },
+        { value: "referencia", label: C("Referência", "Reference", "Referencia") },
+      ],
+    },
+    { chave: "necessitaRefrigeracao", tipo: "boolean", label: C("Necessita Refrigeração", "Requires Refrigeration", "Requiere Refrigeración") },
+    {
+      chave: "publicoUso", tipo: "select", label: C("Uso", "Use", "Uso"),
+      opcoes: [
+        { value: "adulto", label: C("Adulto", "Adult", "Adulto") },
+        { value: "pediatrico", label: C("Pediátrico", "Pediatric", "Pediátrico") },
+        { value: "ambos", label: C("Ambos", "Both", "Ambos") },
+      ],
+    },
   ],
   vestuario: [
     {
@@ -187,6 +212,20 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
     },
     { chave: "materialComposicao", tipo: "text", label: C("Material/Composição", "Material/Composition", "Material/Composición") },
     { chave: "colecaoEstacao", tipo: "text", label: C("Coleção/Estação", "Collection/Season", "Colección/Temporada") },
+    { chave: "cor", tipo: "text", label: C("Cor", "Color", "Color") },
+    { chave: "composicaoTecido", tipo: "text", label: C("Composição do Tecido", "Fabric Composition", "Composición del Tejido") },
+    { chave: "colecao", tipo: "text", label: C("Coleção", "Collection", "Colección") },
+    {
+      chave: "modelagem", tipo: "select", label: C("Modelagem", "Fit", "Corte"),
+      opcoes: [
+        { value: "slim", label: C("Slim", "Slim", "Slim") },
+        { value: "regular", label: C("Regular", "Regular", "Regular") },
+        { value: "oversized", label: C("Oversized", "Oversized", "Oversized") },
+        NA(),
+      ],
+    },
+    { chave: "cuidadosLavagem", tipo: "text", label: C("Cuidados de Lavagem", "Washing Instructions", "Cuidados de Lavado") },
+    { chave: "referenciaModelo", tipo: "text", label: C("Referência do Modelo", "Model Reference", "Referencia del Modelo") },
   ],
   autopecas: [
     { chave: "aplicacaoVeiculo", tipo: "text", label: C("Aplicação/Veículo", "Vehicle Application", "Aplicación/Vehículo") },
@@ -194,6 +233,11 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
     { chave: "montadora", tipo: "text", label: C("Montadora", "Automaker", "Automotriz") },
     { chave: "anoInicio", tipo: "number", label: C("Ano Início", "Start Year", "Año Inicio") },
     { chave: "anoFim", tipo: "number", label: C("Ano Fim", "End Year", "Año Fin") },
+    { chave: "fabricantePeca", tipo: "text", label: C("Fabricante da Peça", "Part Manufacturer", "Fabricante de la Pieza") },
+    { chave: "garantiaMeses", tipo: "number", label: C("Garantia (meses)", "Warranty (months)", "Garantía (meses)") },
+    { chave: "material", tipo: "text", label: C("Material", "Material", "Material") },
+    { chave: "medidasDimensoes", tipo: "text", label: C("Medidas/Dimensões", "Measurements/Dimensions", "Medidas/Dimensiones") },
+    { chave: "crossReference", tipo: "text", label: C("Cross-reference/Similares", "Cross-reference/Equivalents", "Cross-reference/Similares") },
     {
       chave: "posicao", tipo: "select", label: C("Posição", "Position", "Posición"),
       opcoes: [
@@ -244,6 +288,11 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "congelado", label: C("Congelado", "Frozen", "Congelado") },
       ],
     },
+    { chave: "alergenos", tipo: "text", label: C("Alérgenos", "Allergens", "Alérgenos") },
+    { chave: "temperaturaArmazenamento", tipo: "text", label: C("Temperatura de Armazenamento", "Storage Temperature", "Temperatura de Almacenamiento") },
+    { chave: "fornecedorPreferencial", tipo: "text", label: C("Fornecedor Preferencial", "Preferred Supplier", "Proveedor Preferido") },
+    { chave: "custoPorPorcao", tipo: "number", label: C("Custo por Porção", "Cost per Serving", "Costo por Porción") },
+    { chave: "validadeAposAberto", tipo: "text", label: C("Validade após Aberto", "Shelf Life After Opening", "Vencimiento después de Abierto") },
   ],
   eletronicos: [
     { chave: "garantiaMeses", tipo: "number", label: C("Garantia (meses)", "Warranty (months)", "Garantía (meses)") },
@@ -260,11 +309,26 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
     { chave: "modeloPartNumber", tipo: "text", label: C("Modelo/Part Number", "Model/Part Number", "Modelo/Part Number") },
     { chave: "numeroSerieControlado", tipo: "boolean", label: C("Número de Série controlado", "Serial Number tracked", "Número de Serie controlado") },
     { chave: "cor", tipo: "text", label: C("Cor", "Color", "Color") },
+    { chave: "dimensoes", tipo: "text", label: C("Dimensões", "Dimensions", "Dimensiones") },
+    { chave: "pesoTexto", tipo: "text", label: C("Peso", "Weight", "Peso") },
+    { chave: "conteudoEmbalagem", tipo: "text", label: C("Conteúdo da Embalagem", "Package Contents", "Contenido del Paquete") },
+    { chave: "certificacaoAnatel", tipo: "text", label: C("Certificação Anatel", "Anatel Certification", "Certificación Anatel") },
+    { chave: "garantiaFabricanteMeses", tipo: "number", label: C("Garantia do Fabricante (meses)", "Manufacturer Warranty (months)", "Garantía del Fabricante (meses)") },
   ],
   papelaria: [
     { chave: "marcaFabricante", tipo: "text", label: C("Marca/Fabricante", "Brand/Manufacturer", "Marca/Fabricante") },
     { chave: "cor", tipo: "text", label: C("Cor", "Color", "Color") },
     { chave: "material", tipo: "text", label: C("Material", "Material", "Material") },
+    { chave: "dimensoes", tipo: "text", label: C("Dimensões", "Dimensions", "Dimensiones") },
+    {
+      chave: "unidadeVenda", tipo: "select", label: C("Unidade de Venda", "Sales Unit", "Unidad de Venta"),
+      opcoes: [
+        { value: "un", label: C("Unidade", "Unit", "Unidad") },
+        { value: "pacote", label: C("Pacote", "Pack", "Paquete") },
+        { value: "caixa", label: C("Caixa", "Box", "Caja") },
+        { value: "resma", label: C("Resma", "Ream", "Resma") },
+      ],
+    },
   ],
   pet: [
     {
@@ -307,6 +371,19 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
       ],
     },
     { chave: "pesoEmbalagem", tipo: "text", label: C("Peso da Embalagem", "Package Weight", "Peso del Paquete") },
+    { chave: "pesoVolume", tipo: "text", label: C("Peso/Volume", "Weight/Volume", "Peso/Volumen") },
+    { chave: "sabor", tipo: "text", label: C("Sabor", "Flavor", "Sabor") },
+    { chave: "indicacao", tipo: "text", label: C("Indicação", "Indication", "Indicación") },
+    { chave: "registroMapa", tipo: "text", label: C("Registro MAPA", "MAPA Registry", "Registro MAPA") },
+    {
+      chave: "linha", tipo: "select", label: C("Linha", "Line", "Línea"),
+      opcoes: [
+        { value: "premium", label: C("Premium", "Premium", "Premium") },
+        { value: "standard", label: C("Standard", "Standard", "Estándar") },
+        { value: "economica", label: C("Econômica", "Economy", "Económica") },
+        NA(),
+      ],
+    },
   ],
   servicos: [
     {
@@ -328,6 +405,17 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "h", label: C("Hora", "Hour", "Hora") },
       ],
     },
+    { chave: "descricaoServico", tipo: "text", label: C("Descrição do Serviço", "Service Description", "Descripción del Servicio") },
+    {
+      chave: "unidadeCobranca", tipo: "select", label: C("Unidade de Cobrança", "Billing Unit", "Unidad de Cobro"),
+      opcoes: [
+        { value: "hora", label: C("Hora", "Hour", "Hora") },
+        { value: "diaria", label: C("Diária", "Daily Rate", "Diaria") },
+        { value: "projeto", label: C("Projeto", "Project", "Proyecto") },
+        { value: "un", label: C("Unidade", "Unit", "Unidad") },
+      ],
+    },
+    { chave: "tempoEstimado", tipo: "text", label: C("Tempo Estimado", "Estimated Time", "Tiempo Estimado") },
   ],
   generico: [],
 };
