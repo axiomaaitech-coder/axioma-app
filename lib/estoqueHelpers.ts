@@ -145,7 +145,7 @@ export type EvolucaoMes = { periodo: string; entradas_qtd: number; saidas_qtd: n
 
 export const PAGE_SIZE = 30;
 
-export async function listarProdutos(empresaId: string, opts: { pagina?: number; busca?: string; status?: "ativo" | "inativo" | "todos"; limite?: number } = {}): Promise<{ dados: Produto[]; total: number }> {
+export async function listarProdutos(empresaId: string, opts: { pagina?: number; busca?: string; status?: "ativo" | "inativo" | "todos"; limite?: number; segmento?: string; segmentoPadraoEmpresa?: string | null } = {}): Promise<{ dados: Produto[]; total: number }> {
   const tamanhoPagina = opts.limite ?? PAGE_SIZE;
   const pagina = opts.pagina ?? 0;
   const de = pagina * tamanhoPagina;
@@ -153,6 +153,14 @@ export async function listarProdutos(empresaId: string, opts: { pagina?: number;
 
   let query = supabase.from("produtos").select("*", { count: "exact" }).eq("empresa_id", empresaId);
   if (opts.status && opts.status !== "todos") query = query.eq("status", opts.status);
+  if (opts.segmento && opts.segmento !== "todos") {
+    // Produto sem segmento próprio herda o padrão da empresa (mesma regra da
+    // tela de cadastro) — se o segmento filtrado é o padrão da empresa (ou,
+    // na falta de padrão, o "generico"), inclui também quem está em branco.
+    const cobreSegmentoEmBranco = opts.segmento === opts.segmentoPadraoEmpresa || (!opts.segmentoPadraoEmpresa && opts.segmento === "generico");
+    if (cobreSegmentoEmBranco) query = query.or(`segmento.eq.${opts.segmento},segmento.is.null`);
+    else query = query.eq("segmento", opts.segmento);
+  }
   if (opts.busca && opts.busca.trim()) {
     const termo = opts.busca.trim();
     const camposDiretos = `nome.ilike.%${termo}%,codigo_interno.ilike.%${termo}%,codigo_barras.ilike.%${termo}%,sku.ilike.%${termo}%,categoria.ilike.%${termo}%,marca.ilike.%${termo}%,rua.ilike.%${termo}%,prateleira.ilike.%${termo}%,nivel.ilike.%${termo}%,posicao.ilike.%${termo}%`;
@@ -411,6 +419,26 @@ export async function adicionarCampoPersonalizado(empresaId: string, atuais: Cam
   if (atuais.length >= MAX_CAMPOS_PERSONALIZADOS) return { erro: `Limite de ${MAX_CAMPOS_PERSONALIZADOS} campos personalizados atingido` };
   const { error } = await supabase.from("empresas").update({ campos_personalizados_estoque: [...atuais, novo] }).eq("id", empresaId);
   return error ? { erro: error.message } : {};
+}
+
+// Remove a definição do campo (empresas.campos_personalizados_estoque) E a
+// chave de dentro de atributos_nicho de TODOS os produtos da empresa, numa
+// função de banco (ver ESTOQUE-FASE2-REORGANIZACAO-SQL.sql) — nunca em loop
+// linha a linha aqui no app.
+export async function removerCampoPersonalizado(empresaId: string, chave: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.rpc("remover_campo_personalizado_estoque", { p_empresa_id: empresaId, p_chave: chave });
+  return error ? { erro: error.message } : {};
+}
+
+// ============================================================================
+// CONTAGEM POR SEGMENTO — chips dinâmicos da aba Produtos, agregado no banco.
+// ============================================================================
+
+export type ContagemSegmento = { segmento: string; qtd_ativo: number; qtd_inativo: number; qtd_total: number };
+
+export async function carregarContagemPorSegmento(empresaId: string): Promise<ContagemSegmento[]> {
+  const { data } = await supabase.from("vw_estoque_por_segmento").select("*").eq("empresa_id", empresaId);
+  return (data || []).map((d: any) => ({ segmento: d.segmento, qtd_ativo: Number(d.qtd_ativo || 0), qtd_inativo: Number(d.qtd_inativo || 0), qtd_total: Number(d.qtd_total || 0) }));
 }
 
 // ============================================================================

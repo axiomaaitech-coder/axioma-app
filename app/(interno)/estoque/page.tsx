@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import {
-  Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight, Share2,
+  Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Share2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -18,14 +18,15 @@ import {
   type Produto, type MovimentacaoComProduto, type EstoqueLote, type AvisoEstoque, type AvisoValidade,
   type KpisEstoque, type ComposicaoItem, type EvolucaoMes, type TipoMovimentacao,
   type CampoPersonalizadoEmpresa, type ItemGiro, type ItemCurvaABC, type ItemCapitalImobilizado,
-  type ItemRentabilidade, type FornecedorComparativo, type AlertaReposicao,
+  type ItemRentabilidade, type FornecedorComparativo, type AlertaReposicao, type ContagemSegmento,
   PAGE_SIZE, listarProdutos, criarProduto, atualizarProduto, excluirProduto, buscarProdutoPorCodigo,
   listarMovimentacoes, criarMovimentacao, atualizarMovimentacao, excluirMovimentacao, confirmarRecebimento,
   listarLotesProduto, sugerirConsumoFefo,
   carregarAvisosEstoque, carregarAvisosValidade, carregarKpisEstoque,
   carregarComposicaoPorCategoria, carregarComposicaoPorFornecedor, carregarEvolucaoEstoque,
   listarFornecedoresParaDropdown, listarCentrosCustoParaDropdown,
-  uploadImagemProduto, urlImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa, adicionarCampoPersonalizado, MAX_CAMPOS_PERSONALIZADOS,
+  uploadImagemProduto, urlImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa,
+  adicionarCampoPersonalizado, removerCampoPersonalizado, MAX_CAMPOS_PERSONALIZADOS, carregarContagemPorSegmento,
   carregarGiroEstoque, carregarCurvaABC, carregarCapitalImobilizado,
   carregarRentabilidadePorCategoria, carregarRentabilidadePorFornecedor, carregarRentabilidadePorMarca,
   carregarComparativoFornecedores, calcularAlertasReposicao,
@@ -99,6 +100,18 @@ function CampoTextarea({ label, value, onChange, linhas = 2 }: { label: string; 
 }
 function SecaoTitulo({ children }: { children: React.ReactNode }) {
   return <h4 className="text-xs font-black uppercase tracking-wider mt-5 mb-2 first:mt-0" style={{ color: JADE }}>{children}</h4>;
+}
+
+function SecaoColapsavel({ titulo, aberta, onToggle, children }: { titulo: string; aberta: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <div>
+      <button type="button" onClick={onToggle} className="w-full flex items-center gap-1.5 mt-5 mb-2 first:mt-0">
+        <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: JADE }}>{titulo}</h4>
+        {aberta ? <ChevronUp size={14} style={{ color: JADE }} /> : <ChevronDown size={14} style={{ color: JADE }} />}
+      </button>
+      {aberta && children}
+    </div>
+  );
 }
 
 function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
@@ -182,6 +195,9 @@ export default function EstoquePage() {
   const [paginaProdutos, setPaginaProdutos] = useState(0);
   const [buscaProdutos, setBuscaProdutos] = useState("");
   const [filtroStatusProdutos, setFiltroStatusProdutos] = useState<"ativo" | "inativo" | "todos">("ativo");
+  const [filtroSegmento, setFiltroSegmento] = useState<string>("todos");
+  const [contagemSegmentos, setContagemSegmentos] = useState<ContagemSegmento[]>([]);
+  const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
   const [modalProdutoAberto, setModalProdutoAberto] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [formProduto, setFormProduto] = useState<Partial<Produto>>({});
@@ -204,6 +220,8 @@ export default function EstoquePage() {
   const [mostrarNovoCampo, setMostrarNovoCampo] = useState(false);
   const [novoCampoNome, setNovoCampoNome] = useState("");
   const [novoCampoTipo, setNovoCampoTipo] = useState<"text" | "number" | "date">("text");
+  const [secaoCamposNichoAberta, setSecaoCamposNichoAberta] = useState(true);
+  const [secaoFiscalAberta, setSecaoFiscalAberta] = useState(true);
 
   // ---- Inteligência (Fase 2) ----
   const [giroEstoque, setGiroEstoque] = useState<ItemGiro[]>([]);
@@ -268,16 +286,29 @@ export default function EstoquePage() {
       setFornecedoresDrop(fs); setCentrosCustoDrop(cs);
       setEmpresaSegmentoPadrao(config.segmentoPadrao);
       setCamposPersonalizados(config.camposPersonalizados);
+      const segmentoSalvo = typeof window !== "undefined" ? window.localStorage.getItem(`axioma_estoque_segmento_${empId}`) : null;
+      if (segmentoSalvo) setFiltroSegmento(segmentoSalvo);
     }
     setCarregando(false);
+  }
+
+  function selecionarSegmento(valor: string) {
+    setFiltroSegmento(valor);
+    setPaginaProdutos(0);
+    if (empresaId && typeof window !== "undefined") window.localStorage.setItem(`axioma_estoque_segmento_${empresaId}`, valor);
   }
 
   // ---- Carregamento por aba (evita buscar tudo de uma vez) ----
   const carregarProdutos = useCallback(async () => {
     if (!empresaId) return;
-    const { dados, total } = await listarProdutos(empresaId, { pagina: paginaProdutos, busca: buscaProdutos, status: filtroStatusProdutos });
+    const { dados, total } = await listarProdutos(empresaId, {
+      pagina: paginaProdutos, busca: buscaProdutos, status: filtroStatusProdutos,
+      segmento: filtroSegmento, segmentoPadraoEmpresa: empresaSegmentoPadrao,
+    });
     setProdutos(dados); setTotalProdutos(total);
-  }, [empresaId, paginaProdutos, buscaProdutos, filtroStatusProdutos]);
+    const contagem = await carregarContagemPorSegmento(empresaId);
+    setContagemSegmentos(contagem);
+  }, [empresaId, paginaProdutos, buscaProdutos, filtroStatusProdutos, filtroSegmento, empresaSegmentoPadrao]);
 
   const carregarMovimentacoes = useCallback(async () => {
     if (!empresaId) return;
@@ -320,6 +351,92 @@ export default function EstoquePage() {
   useEffect(() => { if (aba === "painel") carregarPainel(); }, [aba, carregarPainel]);
   useEffect(() => { if (aba === "avisos") carregarAvisos(); }, [aba, carregarAvisos]);
   useEffect(() => { if (aba === "inteligencia" || aba === "copiloto") carregarInteligencia(); }, [aba, carregarInteligencia]);
+
+  // ---- Agrupamento visual da lista de Produtos: Segmento → Categoria ----
+  // Só reorganiza o que já veio da página atual (30 produtos, já filtrados
+  // pelo servidor) — nunca é um recálculo/soma pesada no navegador, é só
+  // agrupamento de exibição. Multi-tenant já foi resolvido na consulta.
+  type GrupoCategoria = { categoria: string; produtos: Produto[] };
+  type GrupoSegmento = { segmento: string; label: string; categorias: GrupoCategoria[] };
+
+  const gruposProdutos = useMemo<GrupoSegmento[]>(() => {
+    const porSegmento = new Map<string, Produto[]>();
+    for (const p of produtos) {
+      const seg = p.segmento || empresaSegmentoPadrao || "generico";
+      if (!porSegmento.has(seg)) porSegmento.set(seg, []);
+      porSegmento.get(seg)!.push(p);
+    }
+    const grupos = Array.from(porSegmento.entries()).map(([seg, lista]) => {
+      const porCategoria = new Map<string, Produto[]>();
+      for (const p of lista) {
+        const cat = p.categoria?.trim() || "—";
+        if (!porCategoria.has(cat)) porCategoria.set(cat, []);
+        porCategoria.get(cat)!.push(p);
+      }
+      const segInfo = SEGMENTOS.find((s) => s.value === seg);
+      return {
+        segmento: seg,
+        label: segInfo ? segInfo.label[idioma] : seg,
+        categorias: Array.from(porCategoria.entries())
+          .map(([categoria, lista2]) => ({ categoria, produtos: lista2 }))
+          .sort((a, b) => a.categoria.localeCompare(b.categoria)),
+      };
+    });
+    return grupos.sort((a, b) => a.label.localeCompare(b.label));
+  }, [produtos, empresaSegmentoPadrao, idioma]);
+
+  function toggleGrupo(chave: string) {
+    setGruposFechados((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(chave)) novo.delete(chave); else novo.add(chave);
+      return novo;
+    });
+  }
+
+  function linhaProduto(p: Produto) {
+    return (
+      <tr key={p.id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+        <td className="py-2 px-3">
+          <input type="checkbox" className="w-4 h-4 rounded" checked={produtosSelecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
+        </td>
+        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg relative overflow-hidden flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(4,120,87,0.25)" }}>
+              <ImagePlus size={14} style={{ color: "#5a7a9a" }} />
+              {p.imagem_principal && (
+                <img src={urlImagemProduto(p.imagem_principal)} alt="" className="absolute inset-0 w-8 h-8 object-cover"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              )}
+            </div>
+            {p.nome}
+          </div>
+        </td>
+        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
+        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
+        <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
+        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(p.preco_medio)}</td>
+        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO : "#5a7a9a" }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
+        <td className="py-2 px-3 text-right">
+          <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
+          <button onClick={() => excluirProdutoHandler(p)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO }}><Trash2 size={15} /></button>
+        </td>
+      </tr>
+    );
+  }
+
+  function linhaGrupo(chave: string, nivel: 1 | 2, texto: string) {
+    return (
+      <tr key={chave} className="cursor-pointer select-none" onClick={() => toggleGrupo(chave)}
+        style={{ background: nivel === 1 ? "rgba(4,120,87,0.12)" : "rgba(255,255,255,0.03)" }}>
+        <td colSpan={8} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? BRONZE : "#94a3b8", paddingLeft: nivel === 1 ? 12 : 30 }}>
+          <span className="inline-flex items-center gap-1.5 uppercase tracking-wide">
+            {gruposFechados.has(chave) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+            {texto}
+          </span>
+        </td>
+      </tr>
+    );
+  }
 
   // ---- Leitor de código de barras — busca/scan no mesmo campo da lista de Produtos ----
   const leitorProdutos = useLeitorCodigoBarras(async (codigo) => {
@@ -414,6 +531,20 @@ export default function EstoquePage() {
     if (erro) { mostrarToast(erro, "erro"); return; }
     mostrarToast(inativadoEmVezDeExcluir ? et.toastProdutoInativado : et.toastProdutoExcluido, "info");
     carregarProdutos();
+  }
+
+  async function excluirCampoPersonalizadoHandler(campo: CampoPersonalizadoEmpresa) {
+    if (!empresaId) return;
+    if (!confirm(`${et.confirmarExclusaoCampoPersonalizado} "${campo.nome}"?`)) return;
+    const { erro } = await removerCampoPersonalizado(empresaId, campo.chave);
+    if (erro) { mostrarToast(erro, "erro"); return; }
+    setCamposPersonalizados((c) => c.filter((x) => x.chave !== campo.chave));
+    setFormProduto((f) => {
+      const atributos = { ...(f.atributos_nicho || {}) };
+      delete atributos[campo.chave];
+      return { ...f, atributos_nicho: atributos };
+    });
+    mostrarToast(et.toastCampoPersonalizadoExcluido, "info");
   }
 
   // ================= AUTOMAÇÕES (seleção, lote, excel/csv, etiquetas) =================
@@ -798,6 +929,33 @@ export default function EstoquePage() {
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(() => {
+              const contarPara = (c: ContagemSegmento) => filtroStatusProdutos === "ativo" ? c.qtd_ativo : filtroStatusProdutos === "inativo" ? c.qtd_inativo : c.qtd_total;
+              const visiveis = contagemSegmentos.filter((c) => contarPara(c) > 0);
+              const totalTodos = visiveis.reduce((soma, c) => soma + contarPara(c), 0);
+              return (
+                <>
+                  <button onClick={() => selecionarSegmento("todos")}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
+                    style={{ background: filtroSegmento === "todos" ? JADE : "rgba(10,22,40,0.6)", color: filtroSegmento === "todos" ? "#fff" : "#94a3b8" }}>
+                    {et.statusTodos} ({totalTodos})
+                  </button>
+                  {visiveis.map((c) => {
+                    const info = SEGMENTOS.find((s) => s.value === c.segmento);
+                    return (
+                      <button key={c.segmento} onClick={() => selecionarSegmento(c.segmento)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
+                        style={{ background: filtroSegmento === c.segmento ? JADE : "rgba(10,22,40,0.6)", color: filtroSegmento === c.segmento ? "#fff" : "#94a3b8" }}>
+                        {info ? info.label[idioma] : c.segmento} ({contarPara(c)})
+                      </button>
+                    );
+                  })}
+                </>
+              );
+            })()}
+          </div>
+
           <CanvasBox cor={BRONZE}>
             <div className="flex flex-wrap items-end gap-2">
               <div className="w-52">
@@ -851,34 +1009,24 @@ export default function EstoquePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {produtos.map((p) => (
-                    <tr key={p.id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                      <td className="py-2 px-3">
-                        <input type="checkbox" className="w-4 h-4 rounded" checked={produtosSelecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
-                      </td>
-                      <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg relative overflow-hidden flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(4,120,87,0.25)" }}>
-                            <ImagePlus size={14} style={{ color: "#5a7a9a" }} />
-                            {p.imagem_principal && (
-                              <img src={urlImagemProduto(p.imagem_principal)} alt="" className="absolute inset-0 w-8 h-8 object-cover"
-                                onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                            )}
-                          </div>
-                          {p.nome}
-                        </div>
-                      </td>
-                      <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
-                      <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
-                      <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
-                      <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(p.preco_medio)}</td>
-                      <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO : "#5a7a9a" }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
-                      <td className="py-2 px-3 text-right">
-                        <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
-                        <button onClick={() => excluirProdutoHandler(p)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO }}><Trash2 size={15} /></button>
-                      </td>
-                    </tr>
-                  ))}
+                  {gruposProdutos.map((grupoSeg) => {
+                    const chaveSeg = `seg:${grupoSeg.segmento}`;
+                    const totalSeg = grupoSeg.categorias.reduce((n, c) => n + c.produtos.length, 0);
+                    return (
+                      <Fragment key={chaveSeg}>
+                        {filtroSegmento === "todos" && linhaGrupo(chaveSeg, 1, `${grupoSeg.label} (${totalSeg})`)}
+                        {(filtroSegmento !== "todos" || !gruposFechados.has(chaveSeg)) && grupoSeg.categorias.map((grupoCat) => {
+                          const chaveCat = `${chaveSeg}|cat:${grupoCat.categoria}`;
+                          return (
+                            <Fragment key={chaveCat}>
+                              {linhaGrupo(chaveCat, 2, `${grupoCat.categoria} (${grupoCat.produtos.length})`)}
+                              {!gruposFechados.has(chaveCat) && grupoCat.produtos.map((p) => linhaProduto(p))}
+                            </Fragment>
+                          );
+                        })}
+                      </Fragment>
+                    );
+                  })}
                   {produtos.length === 0 && (
                     <tr><td colSpan={8} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semProdutos}</td></tr>
                   )}
@@ -1304,8 +1452,7 @@ export default function EstoquePage() {
           </div>
 
           {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo].length > 0 && (
-            <>
-              <SecaoTitulo>{et.secaoCamposNicho}</SecaoTitulo>
+            <SecaoColapsavel titulo={et.secaoCamposNicho} aberta={secaoCamposNichoAberta} onToggle={() => setSecaoCamposNichoAberta((a) => !a)}>
               <div className="grid grid-cols-3 gap-3">
                 {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo]
                   .filter((campo) => !campo.dependeDe || !!(formProduto.atributos_nicho || {})[campo.dependeDe])
@@ -1333,7 +1480,7 @@ export default function EstoquePage() {
                   );
                 })}
               </div>
-            </>
+            </SecaoColapsavel>
           )}
 
           {!produtoEditando && !!(formProduto.atributos_nicho || {})[CHAVE_PERECIVEL] && (
@@ -1352,9 +1499,16 @@ export default function EstoquePage() {
           <SecaoTitulo>{et.secaoCamposPersonalizados}</SecaoTitulo>
           <div className="grid grid-cols-3 gap-3">
             {camposPersonalizados.map((campo) => (
-              <Campo key={campo.chave} label={campo.nome} tipo={campo.tipo === "number" ? "number" : campo.tipo === "date" ? "date" : "text"}
-                value={String((formProduto.atributos_nicho || {})[campo.chave] ?? "")}
-                onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
+              <div key={campo.chave} className="flex items-end gap-1">
+                <div className="flex-1">
+                  <Campo label={campo.nome} tipo={campo.tipo === "number" ? "number" : campo.tipo === "date" ? "date" : "text"}
+                    value={String((formProduto.atributos_nicho || {})[campo.chave] ?? "")}
+                    onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
+                </div>
+                <button type="button" onClick={() => excluirCampoPersonalizadoHandler(campo)} className="p-2.5 rounded-xl shrink-0" style={{ color: NEGATIVO }} title={et.excluirCampoPersonalizado}>
+                  <Trash2 size={15} />
+                </button>
+              </div>
             ))}
           </div>
           {!mostrarNovoCampo ? (
@@ -1411,17 +1565,18 @@ export default function EstoquePage() {
             )}
           </div>
 
-          <SecaoTitulo>{et.secaoFiscal}</SecaoTitulo>
-          <div className="grid grid-cols-4 gap-3">
-            <Campo label={et.campoNcm} value={formProduto.ncm || ""} onChange={(v) => setFormProduto((f) => ({ ...f, ncm: v }))} />
-            <Campo label={et.campoCest} value={formProduto.cest || ""} onChange={(v) => setFormProduto((f) => ({ ...f, cest: v }))} />
-            <Campo label={et.campoCfop} value={formProduto.cfop_padrao || ""} onChange={(v) => setFormProduto((f) => ({ ...f, cfop_padrao: v }))} />
-            <Campo label={et.campoIpi} tipo="number" value={String(formProduto.ipi ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, ipi: v ? Number(v) : null }))} />
-            <Campo label={et.campoIcms} tipo="number" value={String(formProduto.icms ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, icms: v ? Number(v) : null }))} />
-            <Campo label={et.campoPis} tipo="number" value={String(formProduto.pis ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, pis: v ? Number(v) : null }))} />
-            <Campo label={et.campoCofins} tipo="number" value={String(formProduto.cofins ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, cofins: v ? Number(v) : null }))} />
-            <Campo label={et.campoIss} tipo="number" value={String(formProduto.iss ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, iss: v ? Number(v) : null }))} />
-          </div>
+          <SecaoColapsavel titulo={et.secaoFiscal} aberta={secaoFiscalAberta} onToggle={() => setSecaoFiscalAberta((a) => !a)}>
+            <div className="grid grid-cols-4 gap-3">
+              <Campo label={et.campoNcm} value={formProduto.ncm || ""} onChange={(v) => setFormProduto((f) => ({ ...f, ncm: v }))} />
+              <Campo label={et.campoCest} value={formProduto.cest || ""} onChange={(v) => setFormProduto((f) => ({ ...f, cest: v }))} />
+              <Campo label={et.campoCfop} value={formProduto.cfop_padrao || ""} onChange={(v) => setFormProduto((f) => ({ ...f, cfop_padrao: v }))} />
+              <Campo label={et.campoIpi} tipo="number" value={String(formProduto.ipi ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, ipi: v ? Number(v) : null }))} />
+              <Campo label={et.campoIcms} tipo="number" value={String(formProduto.icms ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, icms: v ? Number(v) : null }))} />
+              <Campo label={et.campoPis} tipo="number" value={String(formProduto.pis ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, pis: v ? Number(v) : null }))} />
+              <Campo label={et.campoCofins} tipo="number" value={String(formProduto.cofins ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, cofins: v ? Number(v) : null }))} />
+              <Campo label={et.campoIss} tipo="number" value={String(formProduto.iss ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, iss: v ? Number(v) : null }))} />
+            </div>
+          </SecaoColapsavel>
 
           <SecaoTitulo>{et.secaoControle}</SecaoTitulo>
           <div className="grid grid-cols-3 gap-3">

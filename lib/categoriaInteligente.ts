@@ -149,6 +149,7 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "injetavel", label: C("Injetável", "Injectable", "Inyectable") },
         { value: "pomada", label: C("Pomada", "Ointment", "Pomada") },
         { value: "gotas", label: C("Gotas", "Drops", "Gotas") },
+        { value: "creme", label: C("Creme", "Cream", "Crema") },
         { value: "outro", label: C("Outro", "Other", "Otro") },
       ],
     },
@@ -164,7 +165,7 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
     { chave: "medicamentoControlado", tipo: "boolean", label: C("Medicamento Controlado (SNGPC)", "Controlled Medication (SNGPC)", "Medicamento Controlado (SNGPC)") },
     {
       chave: "listaControle", tipo: "select", label: C("Lista de Controle", "Control List", "Lista de Control"), dependeDe: "medicamentoControlado",
-      opcoes: ["A1", "A2", "A3", "B1", "B2", "C1", "C2", "C5"].map((l) => ({ value: l, label: C(l, l, l) })),
+      opcoes: [NA(), ...["A1", "A2", "A3", "B1", "B2", "C1", "C2", "C5"].map((l) => ({ value: l, label: C(l, l, l) }))],
     },
     { chave: "registroAnvisa", tipo: "text", label: C("Registro MS/ANVISA", "Health Registry No.", "Registro Sanitario") },
     { chave: "laboratorioFabricante", tipo: "text", label: C("Laboratório/Fabricante", "Laboratory/Manufacturer", "Laboratorio/Fabricante") },
