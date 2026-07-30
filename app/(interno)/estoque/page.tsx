@@ -187,6 +187,7 @@ export default function EstoquePage() {
   const [formProduto, setFormProduto] = useState<Partial<Produto>>({});
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
+  const [previewImagem, setPreviewImagem] = useState<string | null>(null);
   const [comprimindoImagem, setComprimindoImagem] = useState(false);
   const [categoriaSugerida, setCategoriaSugerida] = useState<string | null>(null);
 
@@ -333,6 +334,7 @@ export default function EstoquePage() {
     setProdutoEditando(produto || null);
     setFormProduto(produto ? { ...produto } : { unidade: "UN", status: "ativo", estoque_minimo: 0, atributos_nicho: {} });
     setArquivoImagem(null);
+    setPreviewImagem((old) => { if (old) URL.revokeObjectURL(old); return null; });
     setCategoriaSugerida(null);
     setPrecoSugeridoManual(false);
     const custoAtual = produto?.preco_custo || 0;
@@ -856,13 +858,13 @@ export default function EstoquePage() {
                       </td>
                       <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>
                         <div className="flex items-center gap-2">
-                          {p.imagem_principal ? (
-                            <img src={urlImagemProduto(p.imagem_principal)} alt="" className="w-8 h-8 rounded-lg object-cover" style={{ border: "1px solid rgba(4,120,87,0.25)" }} />
-                          ) : (
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
-                              <ImagePlus size={14} style={{ color: "#5a7a9a" }} />
-                            </div>
-                          )}
+                          <div className="w-8 h-8 rounded-lg relative overflow-hidden flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(4,120,87,0.25)" }}>
+                            <ImagePlus size={14} style={{ color: "#5a7a9a" }} />
+                            {p.imagem_principal && (
+                              <img src={urlImagemProduto(p.imagem_principal)} alt="" className="absolute inset-0 w-8 h-8 object-cover"
+                                onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                            )}
+                          </div>
                           {p.nome}
                         </div>
                       </td>
@@ -1427,22 +1429,33 @@ export default function EstoquePage() {
           </div>
           <div>
             <label className={labelCls} style={labelStyle}>{et.campoImagem}</label>
-            <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer" style={{ ...inputStyle, opacity: comprimindoImagem ? 0.6 : 1 }}>
-              <ImagePlus size={16} /> {comprimindoImagem ? et.comprimindoImagem : (arquivoImagem?.name || et.escolherArquivo)}
-              <input type="file" accept="image/*" className="hidden" disabled={comprimindoImagem}
-                onChange={async (e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) return;
-                  setComprimindoImagem(true);
-                  try {
-                    setArquivoImagem(await comprimirImagem(f));
-                  } catch {
-                    mostrarToast(et.toastImagemProcessarFalhou, "erro");
-                  } finally {
-                    setComprimindoImagem(false);
-                  }
-                }} />
-            </label>
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-xl relative overflow-hidden flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(4,120,87,0.25)" }}>
+                <ImagePlus size={20} style={{ color: "#5a7a9a" }} />
+                {(previewImagem || formProduto.imagem_principal) && (
+                  <img src={previewImagem || urlImagemProduto(formProduto.imagem_principal!)} alt="" className="absolute inset-0 w-16 h-16 object-cover"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                )}
+              </div>
+              <label className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer" style={{ ...inputStyle, opacity: comprimindoImagem ? 0.6 : 1 }}>
+                <ImagePlus size={16} /> {comprimindoImagem ? et.comprimindoImagem : (arquivoImagem?.name || et.escolherArquivo)}
+                <input type="file" accept="image/*" className="hidden" disabled={comprimindoImagem}
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    setComprimindoImagem(true);
+                    try {
+                      const comprimido = await comprimirImagem(f);
+                      setArquivoImagem(comprimido);
+                      setPreviewImagem((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(comprimido); });
+                    } catch {
+                      mostrarToast(et.toastImagemProcessarFalhou, "erro");
+                    } finally {
+                      setComprimindoImagem(false);
+                    }
+                  }} />
+              </label>
+            </div>
           </div>
           <CampoTextarea label={et.campoObservacoes} value={formProduto.observacoes || ""} onChange={(v) => setFormProduto((f) => ({ ...f, observacoes: v }))} />
 
