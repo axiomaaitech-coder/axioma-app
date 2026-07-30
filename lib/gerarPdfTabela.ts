@@ -10,22 +10,18 @@ export type ColunaPDF = {
 
 export type ResumoPDF = { label: string; valor: string };
 
-// Gera um PDF LIMPO, fundo branco e texto preto — formato relatório/auditoria.
-export function gerarPdfTabela({
-  titulo,
-  subtitulo,
-  colunas,
-  linhas,
-  resumo,
-  nomeArquivo,
-}: {
+export type ArgsPdfTabela = {
   titulo: string;
   subtitulo?: string;
   colunas: ColunaPDF[];
   linhas: Record<string, string>[];
   resumo?: ResumoPDF[];
   nomeArquivo: string;
-}) {
+};
+
+// Monta o documento (mesmo motor usado por gerarPdfTabela e compartilharOuBaixarPdf) —
+// PDF LIMPO, fundo branco e texto preto — formato relatório/auditoria.
+function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: ArgsPdfTabela): jsPDF {
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
@@ -151,5 +147,34 @@ export function gerarPdfTabela({
     pdf.text(`Página ${p} de ${totalPaginas}`, pageW - margin, pageH - 8, { align: "right" });
   }
 
-  pdf.save(nomeArquivo);
+  return pdf;
+}
+
+// Gera e baixa o PDF direto (comportamento original, usado pelo botão "Exportar PDF").
+export function gerarPdfTabela(args: ArgsPdfTabela) {
+  montarDocumentoPdf(args).save(args.nomeArquivo);
+}
+
+// Gera o PDF e tenta abrir o menu nativo de compartilhamento (mobile, via Web Share API
+// com arquivo). Onde não tem suporte (a maioria dos desktops), baixa o arquivo e avisa
+// pelo callback — o botão "Compartilhar" nunca fica sem fazer nada.
+export async function compartilharOuBaixarPdf(args: ArgsPdfTabela, aoConcluir: (baixouComoFallback: boolean) => void) {
+  const pdf = montarDocumentoPdf(args);
+  const blob = pdf.output("blob");
+  const arquivo = new File([blob], args.nomeArquivo, { type: "application/pdf" });
+
+  const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean; share?: (data: ShareData) => Promise<void> };
+  if (nav.canShare && nav.share && nav.canShare({ files: [arquivo] })) {
+    try {
+      await nav.share({ files: [arquivo], title: args.titulo });
+      aoConcluir(false);
+      return;
+    } catch {
+      // usuário cancelou o menu de compartilhamento — não trata como erro, só não baixa nada
+      return;
+    }
+  }
+
+  pdf.save(args.nomeArquivo);
+  aoConcluir(true);
 }

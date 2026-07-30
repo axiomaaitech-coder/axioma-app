@@ -4,6 +4,7 @@
 // no navegador, só lê o que a trigger já calculou.
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as XLSX from "xlsx";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,6 +67,10 @@ export type Produto = {
   saldo_disponivel: number;
   saldo_reservado: number;
   saldo_transito: number;
+  segmento: string | null;
+  atributos_nicho: Record<string, any>;
+  lead_time_dias: number | null;
+  preco_venda: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -140,18 +145,23 @@ export type EvolucaoMes = { periodo: string; entradas_qtd: number; saidas_qtd: n
 
 export const PAGE_SIZE = 30;
 
-export async function listarProdutos(empresaId: string, opts: { pagina?: number; busca?: string; status?: "ativo" | "inativo" | "todos" } = {}): Promise<{ dados: Produto[]; total: number }> {
+export async function listarProdutos(empresaId: string, opts: { pagina?: number; busca?: string; status?: "ativo" | "inativo" | "todos"; limite?: number } = {}): Promise<{ dados: Produto[]; total: number }> {
+  const tamanhoPagina = opts.limite ?? PAGE_SIZE;
   const pagina = opts.pagina ?? 0;
-  const de = pagina * PAGE_SIZE;
-  const ate = de + PAGE_SIZE - 1;
+  const de = pagina * tamanhoPagina;
+  const ate = de + tamanhoPagina - 1;
 
   let query = supabase.from("produtos").select("*", { count: "exact" }).eq("empresa_id", empresaId);
   if (opts.status && opts.status !== "todos") query = query.eq("status", opts.status);
   if (opts.busca && opts.busca.trim()) {
     const termo = opts.busca.trim();
-    query = query.or(
-      `nome.ilike.%${termo}%,codigo_interno.ilike.%${termo}%,codigo_barras.ilike.%${termo}%,sku.ilike.%${termo}%,categoria.ilike.%${termo}%,marca.ilike.%${termo}%`
-    );
+    const camposDiretos = `nome.ilike.%${termo}%,codigo_interno.ilike.%${termo}%,codigo_barras.ilike.%${termo}%,sku.ilike.%${termo}%,categoria.ilike.%${termo}%,marca.ilike.%${termo}%,rua.ilike.%${termo}%,prateleira.ilike.%${termo}%,nivel.ilike.%${termo}%,posicao.ilike.%${termo}%`;
+    // Fornecedor mora em outra tabela — resolve os IDs que batem com o nome primeiro
+    // (1 consulta pequena, não é N+1) e inclui no mesmo OR.
+    const { data: fornecedoresBatidos } = await supabase.from("fornecedores").select("id").eq("empresa_id", empresaId).ilike("nome", `%${termo}%`);
+    const idsFornecedor = (fornecedoresBatidos || []).map((f) => f.id);
+    const clausulaFornecedor = idsFornecedor.length > 0 ? `,fornecedor_id.in.(${idsFornecedor.join(",")})` : "";
+    query = query.or(camposDiretos + clausulaFornecedor);
   }
   const { data, count, error } = await query.order("nome", { ascending: true }).range(de, ate);
   if (error) return { dados: [], total: 0 };
@@ -378,4 +388,174 @@ export async function listarFornecedoresParaDropdown(empresaId: string): Promise
 export async function listarCentrosCustoParaDropdown(empresaId: string): Promise<{ id: string; nome: string }[]> {
   const { data } = await supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true });
   return data || [];
+}
+
+// ============================================================================
+// CADASTRO CAMALEÃO — config da empresa (segmento padrão + campos personalizados)
+// ============================================================================
+
+export type CampoPersonalizadoEmpresa = { chave: string; nome: string; tipo: "text" | "number" | "date" };
+export const MAX_CAMPOS_PERSONALIZADOS = 3;
+
+export async function carregarConfigEstoqueEmpresa(empresaId: string): Promise<{ segmentoPadrao: string | null; camposPersonalizados: CampoPersonalizadoEmpresa[] }> {
+  const { data } = await supabase.from("empresas").select("segmento_padrao, campos_personalizados_estoque").eq("id", empresaId).maybeSingle();
+  return { segmentoPadrao: data?.segmento_padrao || null, camposPersonalizados: data?.campos_personalizados_estoque || [] };
+}
+
+export async function definirSegmentoPadraoEmpresa(empresaId: string, segmento: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("empresas").update({ segmento_padrao: segmento }).eq("id", empresaId);
+  return error ? { erro: error.message } : {};
+}
+
+export async function adicionarCampoPersonalizado(empresaId: string, atuais: CampoPersonalizadoEmpresa[], novo: CampoPersonalizadoEmpresa): Promise<{ erro?: string }> {
+  if (atuais.length >= MAX_CAMPOS_PERSONALIZADOS) return { erro: `Limite de ${MAX_CAMPOS_PERSONALIZADOS} campos personalizados atingido` };
+  const { error } = await supabase.from("empresas").update({ campos_personalizados_estoque: [...atuais, novo] }).eq("id", empresaId);
+  return error ? { erro: error.message } : {};
+}
+
+// ============================================================================
+// GRADE/VARIAÇÕES — GANCHO, NÃO IMPLEMENTADO NESTA FASE
+// ============================================================================
+// Produto-pai com variações (tamanho/cor etc, cada uma com seu próprio saldo/
+// código de barras) fica pra um prompt dedicado. O único preparo feito aqui é
+// não travar nada que impeça isso depois: produtos já tem id próprio por SKU/
+// código de barras, então um "produto-pai" futuro poderia referenciar produtos
+// filhos via uma FK produto_pai_id nullable (não criada ainda) sem precisar
+// remodelar as tabelas existentes.
+// export type Variacao = { produtoFilhoId: string; atributos: Record<string,string> };
+
+// ============================================================================
+// INTELIGÊNCIA (Fase 2) — tudo lido de views agregadas no banco
+// ============================================================================
+
+export type ItemGiro = {
+  produto_id: string; nome: string; categoria: string | null; saldo_disponivel: number; preco_medio: number;
+  lead_time_dias: number | null; saida_qtd_90d: number; saida_valor_90d: number; velocidade_consumo_diaria: number; giro_90d: number | null;
+};
+
+export async function carregarGiroEstoque(empresaId: string): Promise<ItemGiro[]> {
+  const { data } = await supabase.from("vw_estoque_giro").select("*").eq("empresa_id", empresaId).order("giro_90d", { ascending: false, nullsFirst: false });
+  return data || [];
+}
+
+export type ItemCurvaABC = { produto_id: string; nome: string; categoria: string | null; valor_saida_90d: number; pct_acumulado: number; classe_abc: "A" | "B" | "C" | "sem_giro" };
+
+export async function carregarCurvaABC(empresaId: string): Promise<ItemCurvaABC[]> {
+  const { data } = await supabase.from("vw_estoque_curva_abc").select("*").eq("empresa_id", empresaId).order("valor_saida_90d", { ascending: false });
+  return data || [];
+}
+
+export type ItemCapitalImobilizado = {
+  produto_id: string; nome: string; categoria: string | null; saldo_disponivel: number; preco_medio: number;
+  capital_imobilizado: number; ultima_movimentacao: string | null; dias_sem_movimento: number | null;
+};
+
+export async function carregarCapitalImobilizado(empresaId: string): Promise<ItemCapitalImobilizado[]> {
+  const { data } = await supabase.from("vw_estoque_capital_imobilizado").select("*").eq("empresa_id", empresaId).order("capital_imobilizado", { ascending: false });
+  return data || [];
+}
+
+export type ItemRentabilidade = { chave: string; margem_media: number | null; markup_medio: number | null; capital_no_grupo: number };
+
+export async function carregarRentabilidadePorCategoria(empresaId: string): Promise<ItemRentabilidade[]> {
+  const { data } = await supabase.from("vw_estoque_rentabilidade_categoria").select("*").eq("empresa_id", empresaId);
+  return (data || []).map((d: any) => ({ chave: d.categoria, margem_media: d.margem_media, markup_medio: d.markup_medio, capital_no_grupo: Number(d.capital_no_grupo || 0) }));
+}
+
+export async function carregarRentabilidadePorFornecedor(empresaId: string): Promise<ItemRentabilidade[]> {
+  const { data } = await supabase.from("vw_estoque_rentabilidade_fornecedor").select("*").eq("empresa_id", empresaId);
+  return (data || []).map((d: any) => ({ chave: d.fornecedor_nome || "—", margem_media: d.margem_media, markup_medio: d.markup_medio, capital_no_grupo: Number(d.capital_no_grupo || 0) }));
+}
+
+export async function carregarRentabilidadePorMarca(empresaId: string): Promise<ItemRentabilidade[]> {
+  const { data } = await supabase.from("vw_estoque_rentabilidade_marca").select("*").eq("empresa_id", empresaId);
+  return (data || []).map((d: any) => ({ chave: d.marca, margem_media: d.margem_media, markup_medio: d.markup_medio, capital_no_grupo: Number(d.capital_no_grupo || 0) }));
+}
+
+export type FornecedorComparativo = { fornecedor_id: string; fornecedor_nome: string; preco_medio_compra: number | null; frequencia_entregas: number; ultima_entrada: string | null };
+
+export async function carregarComparativoFornecedores(empresaId: string): Promise<FornecedorComparativo[]> {
+  const { data } = await supabase.from("vw_estoque_fornecedores_comparativo").select("*").eq("empresa_id", empresaId).order("frequencia_entregas", { ascending: false });
+  return data || [];
+}
+
+// Ponto de reposição e previsão de ruptura — cálculo simples em cima de dados
+// já agregados no banco (vw_estoque_giro), não é soma de tabela crua.
+export type AlertaReposicao = { produto_id: string; nome: string; saldo_disponivel: number; velocidade_consumo_diaria: number; leadTimeDias: number; pontoReposicao: number; diasRestantes: number | null; emRisco: boolean };
+
+export function calcularAlertasReposicao(itens: ItemGiro[]): AlertaReposicao[] {
+  return itens
+    .filter((i) => i.lead_time_dias != null && i.velocidade_consumo_diaria > 0)
+    .map((i) => {
+      const leadTimeDias = i.lead_time_dias as number;
+      const pontoReposicao = Math.ceil(i.velocidade_consumo_diaria * leadTimeDias);
+      const diasRestantes = i.velocidade_consumo_diaria > 0 ? Math.floor(i.saldo_disponivel / i.velocidade_consumo_diaria) : null;
+      return { produto_id: i.produto_id, nome: i.nome, saldo_disponivel: i.saldo_disponivel, velocidade_consumo_diaria: i.velocidade_consumo_diaria, leadTimeDias, pontoReposicao, diasRestantes, emRisco: diasRestantes != null && diasRestantes < leadTimeDias };
+    })
+    .filter((a) => a.emRisco)
+    .sort((a, b) => (a.diasRestantes ?? 0) - (b.diasRestantes ?? 0));
+}
+
+// ============================================================================
+// AUTOMAÇÕES — edição em lote + Excel/CSV
+// ============================================================================
+
+export async function atualizarProdutosEmLote(ids: string[], dados: Partial<Produto>): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("produtos").update(dados).in("id", ids);
+  return error ? { erro: error.message } : {};
+}
+
+const COLUNAS_EXCEL = (p: Produto) => ({
+  Nome: p.nome, "Código Interno": p.codigo_interno || "", "Código de Barras": p.codigo_barras || "",
+  SKU: p.sku || "", Categoria: p.categoria || "", Marca: p.marca || "", Fornecedor: "", Unidade: p.unidade,
+  Saldo: p.saldo_disponivel, "Preço Médio": p.preco_medio, "Preço Sugerido": p.preco_sugerido ?? "",
+  "Estoque Mínimo": p.estoque_minimo, "Estoque Máximo": p.estoque_maximo ?? "", Status: p.status,
+});
+
+export function exportarProdutosExcel(produtos: Produto[]) {
+  const ws = XLSX.utils.json_to_sheet(produtos.map(COLUNAS_EXCEL));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+  XLSX.writeFile(wb, "axioma-estoque-produtos.xlsx");
+}
+
+export function exportarProdutosCsv(produtos: Produto[]) {
+  const ws = XLSX.utils.json_to_sheet(produtos.map(COLUNAS_EXCEL));
+  const csv = XLSX.utils.sheet_to_csv(ws);
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "axioma-estoque-produtos.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function importarProdutosArquivo(file: File, empresaId: string, userId: string): Promise<{ ok: number; erro?: string }> {
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const linhas = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
+  if (linhas.length === 0) return { ok: 0, erro: "Planilha vazia" };
+
+  const pega = (l: Record<string, any>, ...chaves: string[]) => {
+    for (const c of chaves) if (l[c] !== undefined && l[c] !== "") return l[c];
+    return "";
+  };
+
+  const registros = linhas.map((l) => ({
+    empresa_id: empresaId, user_id: userId,
+    nome: String(pega(l, "Nome", "nome")).trim(),
+    codigo_interno: String(pega(l, "Código Interno", "codigo_interno")) || null,
+    codigo_barras: String(pega(l, "Código de Barras", "codigo_barras")) || null,
+    sku: String(pega(l, "SKU", "sku")) || null,
+    categoria: String(pega(l, "Categoria", "categoria")) || null,
+    marca: String(pega(l, "Marca", "marca")) || null,
+    unidade: String(pega(l, "Unidade", "unidade")) || "UN",
+    estoque_minimo: Number(pega(l, "Estoque Mínimo", "estoque_minimo")) || 0,
+    status: "ativo" as const,
+  })).filter((r) => r.nome);
+
+  if (registros.length === 0) return { ok: 0, erro: "Nenhuma linha com nome válido" };
+  const { error } = await supabase.from("produtos").insert(registros);
+  if (error) return { ok: 0, erro: error.message };
+  return { ok: registros.length };
 }

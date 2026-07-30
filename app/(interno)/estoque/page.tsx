@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight,
+  Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight, Share2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -9,21 +9,31 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
-import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, compartilharOuBaixarPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { fBRL, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC } from "../../../lib/cfoCore";
 import { useLeitorCodigoBarras } from "../../../lib/estoqueDeviceAdapter";
 import {
   type Produto, type MovimentacaoComProduto, type EstoqueLote, type AvisoEstoque, type AvisoValidade,
   type KpisEstoque, type ComposicaoItem, type EvolucaoMes, type TipoMovimentacao,
+  type CampoPersonalizadoEmpresa, type ItemGiro, type ItemCurvaABC, type ItemCapitalImobilizado,
+  type ItemRentabilidade, type FornecedorComparativo, type AlertaReposicao,
   PAGE_SIZE, listarProdutos, criarProduto, atualizarProduto, excluirProduto, buscarProdutoPorCodigo,
   listarMovimentacoes, criarMovimentacao, atualizarMovimentacao, excluirMovimentacao, confirmarRecebimento,
   listarLotesProduto, sugerirConsumoFefo,
   carregarAvisosEstoque, carregarAvisosValidade, carregarKpisEstoque,
   carregarComposicaoPorCategoria, carregarComposicaoPorFornecedor, carregarEvolucaoEstoque,
   listarFornecedoresParaDropdown, listarCentrosCustoParaDropdown,
-  uploadImagemProduto,
+  uploadImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa, adicionarCampoPersonalizado, MAX_CAMPOS_PERSONALIZADOS,
+  carregarGiroEstoque, carregarCurvaABC, carregarCapitalImobilizado,
+  carregarRentabilidadePorCategoria, carregarRentabilidadePorFornecedor, carregarRentabilidadePorMarca,
+  carregarComparativoFornecedores, calcularAlertasReposicao,
+  atualizarProdutosEmLote, exportarProdutosExcel, exportarProdutosCsv, importarProdutosArquivo,
 } from "../../../lib/estoqueHelpers";
+import {
+  type Segmento, SEGMENTOS, CAMPOS_CONDICIONAIS_POR_SEGMENTO, sugerirCategoria, registrarAprendizadoCategoria,
+} from "../../../lib/categoriaInteligente";
+import { gerarEtiquetasPDF } from "../../../lib/etiquetaHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,15 +55,15 @@ const selectStyle = { background: "rgba(10,22,40,0.95)", border: `1px solid rgba
 const labelCls = "text-xs font-semibold mb-1 block";
 const labelStyle = { color: BRONZE };
 
-function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, readOnly, lista }: {
+function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, onBlur, readOnly, lista, dica }: {
   label: string; value: string; onChange?: (v: string) => void; tipo?: string; placeholder?: string;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; readOnly?: boolean; lista?: string[];
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; onBlur?: () => void; readOnly?: boolean; lista?: string[]; dica?: string;
 }) {
   const listId = lista ? `dl-${label.replace(/\s/g, "")}` : undefined;
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
-      <input type={tipo} value={value} onChange={(e) => onChange?.(e.target.value)} onKeyDown={onKeyDown}
+      <input type={tipo} value={value} onChange={(e) => onChange?.(e.target.value)} onKeyDown={onKeyDown} onBlur={onBlur}
         readOnly={readOnly} placeholder={placeholder} className={inputCls}
         style={{ ...inputStyle, opacity: readOnly ? 0.6 : 1 }} list={listId} />
       {lista && (
@@ -61,6 +71,7 @@ function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, 
           {lista.map((o) => <option key={o} value={o} />)}
         </datalist>
       )}
+      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: "#5a7a9a" }}>{dica}</p>}
     </div>
   );
 }
@@ -136,14 +147,15 @@ function Paginacao({ pagina, total, onMudar, et }: { pagina: number; total: numb
 const UNIDADES = ["UN", "CX", "KG", "L", "PC", "PAR", "M", "M2", "M3"];
 
 export default function EstoquePage() {
-  const { t } = useLanguage();
+  const { t, idioma } = useLanguage();
   const et = t.estoque;
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
-  const [aba, setAba] = useState<"painel" | "produtos" | "movimentacoes" | "avisos">("painel");
+  const [aba, setAba] = useState<"painel" | "produtos" | "movimentacoes" | "avisos" | "inteligencia" | "copiloto">("painel");
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [compartilhando, setCompartilhando] = useState(false);
 
   const [fornecedoresDrop, setFornecedoresDrop] = useState<{ id: string; nome: string }[]>([]);
   const [centrosCustoDrop, setCentrosCustoDrop] = useState<{ id: string; nome: string }[]>([]);
@@ -174,6 +186,32 @@ export default function EstoquePage() {
   const [formProduto, setFormProduto] = useState<Partial<Produto>>({});
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
+  const [categoriaSugerida, setCategoriaSugerida] = useState<string | null>(null);
+
+  // ---- Camaleão (config da empresa) ----
+  const [empresaSegmentoPadrao, setEmpresaSegmentoPadrao] = useState<string | null>(null);
+  const [camposPersonalizados, setCamposPersonalizados] = useState<CampoPersonalizadoEmpresa[]>([]);
+  const [mostrarNovoCampo, setMostrarNovoCampo] = useState(false);
+  const [novoCampoNome, setNovoCampoNome] = useState("");
+  const [novoCampoTipo, setNovoCampoTipo] = useState<"text" | "number" | "date">("text");
+
+  // ---- Inteligência (Fase 2) ----
+  const [giroEstoque, setGiroEstoque] = useState<ItemGiro[]>([]);
+  const [curvaAbc, setCurvaAbc] = useState<ItemCurvaABC[]>([]);
+  const [capitalImobilizado, setCapitalImobilizado] = useState<ItemCapitalImobilizado[]>([]);
+  const [rentabilidadeCategoria, setRentabilidadeCategoria] = useState<ItemRentabilidade[]>([]);
+  const [rentabilidadeFornecedor, setRentabilidadeFornecedor] = useState<ItemRentabilidade[]>([]);
+  const [rentabilidadeMarca, setRentabilidadeMarca] = useState<ItemRentabilidade[]>([]);
+  const [comparativoFornecedores, setComparativoFornecedores] = useState<FornecedorComparativo[]>([]);
+  const [alertasReposicao, setAlertasReposicao] = useState<AlertaReposicao[]>([]);
+
+  // ---- Automações ----
+  const [produtosSelecionados, setProdutosSelecionados] = useState<Set<string>>(new Set());
+  const [modalLoteAberto, setModalLoteAberto] = useState(false);
+  const [formLote, setFormLote] = useState<Partial<Produto>>({});
+  const [salvandoLote, setSalvandoLote] = useState(false);
+  const [importando, setImportando] = useState(false);
+  const [gerandoEtiquetas, setGerandoEtiquetas] = useState(false);
 
   // ---- Movimentações ----
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoComProduto[]>([]);
@@ -214,8 +252,12 @@ export default function EstoquePage() {
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     if (empId) {
-      const [fs, cs] = await Promise.all([listarFornecedoresParaDropdown(empId), listarCentrosCustoParaDropdown(empId)]);
+      const [fs, cs, config] = await Promise.all([
+        listarFornecedoresParaDropdown(empId), listarCentrosCustoParaDropdown(empId), carregarConfigEstoqueEmpresa(empId),
+      ]);
       setFornecedoresDrop(fs); setCentrosCustoDrop(cs);
+      setEmpresaSegmentoPadrao(config.segmentoPadrao);
+      setCamposPersonalizados(config.camposPersonalizados);
     }
     setCarregando(false);
   }
@@ -250,10 +292,24 @@ export default function EstoquePage() {
     setAvisosEstoque(ae); setAvisosValidade(av);
   }, [empresaId]);
 
+  const carregarInteligencia = useCallback(async () => {
+    if (!empresaId) return;
+    const [giro, abc, capital, rentCat, rentForn, rentMarca, comparativo] = await Promise.all([
+      carregarGiroEstoque(empresaId), carregarCurvaABC(empresaId), carregarCapitalImobilizado(empresaId),
+      carregarRentabilidadePorCategoria(empresaId), carregarRentabilidadePorFornecedor(empresaId), carregarRentabilidadePorMarca(empresaId),
+      carregarComparativoFornecedores(empresaId),
+    ]);
+    setGiroEstoque(giro); setCurvaAbc(abc); setCapitalImobilizado(capital);
+    setRentabilidadeCategoria(rentCat); setRentabilidadeFornecedor(rentForn); setRentabilidadeMarca(rentMarca);
+    setComparativoFornecedores(comparativo);
+    setAlertasReposicao(calcularAlertasReposicao(giro));
+  }, [empresaId]);
+
   useEffect(() => { if (aba === "produtos") carregarProdutos(); }, [aba, carregarProdutos]);
   useEffect(() => { if (aba === "movimentacoes") carregarMovimentacoes(); }, [aba, carregarMovimentacoes]);
   useEffect(() => { if (aba === "painel") carregarPainel(); }, [aba, carregarPainel]);
   useEffect(() => { if (aba === "avisos") carregarAvisos(); }, [aba, carregarAvisos]);
+  useEffect(() => { if (aba === "inteligencia" || aba === "copiloto") carregarInteligencia(); }, [aba, carregarInteligencia]);
 
   // ---- Leitor de código de barras — busca/scan no mesmo campo da lista de Produtos ----
   const leitorProdutos = useLeitorCodigoBarras(async (codigo) => {
@@ -266,9 +322,21 @@ export default function EstoquePage() {
   // ================= PRODUTOS =================
   function abrirModalProduto(produto?: Produto) {
     setProdutoEditando(produto || null);
-    setFormProduto(produto ? { ...produto } : { unidade: "UN", status: "ativo", estoque_minimo: 0 });
+    setFormProduto(produto ? { ...produto } : { unidade: "UN", status: "ativo", estoque_minimo: 0, atributos_nicho: {} });
     setArquivoImagem(null);
+    setCategoriaSugerida(null);
     setModalProdutoAberto(true);
+  }
+
+  const segmentoEfetivo = ((formProduto.segmento || empresaSegmentoPadrao || "generico") as Segmento);
+
+  async function sugerirCategoriaSeVazia() {
+    if (!empresaId || formProduto.categoria || !formProduto.nome?.trim()) return;
+    const sugestao = await sugerirCategoria(empresaId, segmentoEfetivo, formProduto.nome, idioma);
+    if (sugestao) {
+      setCategoriaSugerida(sugestao);
+      setFormProduto((f) => ({ ...f, categoria: sugestao }));
+    }
   }
 
   async function salvarProduto() {
@@ -290,6 +358,10 @@ export default function EstoquePage() {
         if (path) await atualizarProduto(produtoId, { imagem_principal: path });
         if (erro) mostrarToast(`${et.toastImagemFalhou}: ${erro}`, "info");
       }
+      // Aprende quando o usuário corrige a sugestão automática — próxima vez já vem certo.
+      if (categoriaSugerida && formProduto.categoria && formProduto.categoria !== categoriaSugerida) {
+        registrarAprendizadoCategoria(empresaId, formProduto.nome, formProduto.categoria);
+      }
       mostrarToast(produtoEditando ? et.toastProdutoAtualizado : et.toastProdutoSalvo);
       setModalProdutoAberto(false);
       carregarProdutos();
@@ -304,6 +376,72 @@ export default function EstoquePage() {
     if (erro) { mostrarToast(erro, "erro"); return; }
     mostrarToast(inativadoEmVezDeExcluir ? et.toastProdutoInativado : et.toastProdutoExcluido, "info");
     carregarProdutos();
+  }
+
+  // ================= AUTOMAÇÕES (seleção, lote, excel/csv, etiquetas) =================
+  function toggleSelecionado(id: string) {
+    setProdutosSelecionados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
+  function toggleSelecionarTodos() {
+    setProdutosSelecionados((s) => (s.size === produtos.length ? new Set() : new Set(produtos.map((p) => p.id))));
+  }
+
+  async function handleExportar(formato: "excel" | "csv") {
+    if (!empresaId) return;
+    setExportando(true);
+    try {
+      const alvo = produtosSelecionados.size > 0
+        ? produtos.filter((p) => produtosSelecionados.has(p.id))
+        : (await listarProdutos(empresaId, { busca: buscaProdutos, status: filtroStatusProdutos, limite: 5000 })).dados;
+      if (formato === "excel") exportarProdutosExcel(alvo); else exportarProdutosCsv(alvo);
+    } finally {
+      setExportando(false);
+    }
+  }
+
+  async function handleImportarArquivo(file: File) {
+    if (!empresaId || !userId) return;
+    setImportando(true);
+    try {
+      const { ok, erro } = await importarProdutosArquivo(file, empresaId, userId);
+      if (erro) { mostrarToast(erro, "erro"); return; }
+      mostrarToast(`${ok} ${et.toastImportadoOk}`, "ok");
+      carregarProdutos();
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  async function handleGerarEtiquetas() {
+    const alvo = produtosSelecionados.size > 0 ? produtos.filter((p) => produtosSelecionados.has(p.id)) : produtos;
+    if (alvo.length === 0) return;
+    setGerandoEtiquetas(true);
+    try {
+      await gerarEtiquetasPDF(alvo);
+    } finally {
+      setGerandoEtiquetas(false);
+    }
+  }
+
+  async function salvarLote() {
+    if (produtosSelecionados.size === 0) return;
+    const payload: Partial<Produto> = {};
+    (Object.keys(formLote) as (keyof Produto)[]).forEach((k) => {
+      const v = formLote[k];
+      if (v !== undefined && v !== "") (payload as any)[k] = v;
+    });
+    if (Object.keys(payload).length === 0) { setModalLoteAberto(false); return; }
+    setSalvandoLote(true);
+    try {
+      const { erro } = await atualizarProdutosEmLote(Array.from(produtosSelecionados), payload);
+      if (erro) { mostrarToast(erro, "erro"); return; }
+      mostrarToast(`${produtosSelecionados.size} ${et.toastLoteAtualizado}`, "ok");
+      setModalLoteAberto(false);
+      setProdutosSelecionados(new Set());
+      carregarProdutos();
+    } finally {
+      setSalvandoLote(false);
+    }
   }
 
   // ================= MOVIMENTAÇÕES =================
@@ -402,60 +540,82 @@ export default function EstoquePage() {
     ? sugerirConsumoFefo(lotesProdutoMov, Number(formMov.quantidade)) : [];
 
   // ================= PDF =================
+  function montarArgsPdfAtual(): ArgsPdfTabela | null {
+    if (aba === "produtos") {
+      return {
+        titulo: `${et.titulo} — ${et.abaProdutos}`, subtitulo: `${totalProdutos}`,
+        colunas: [
+          { header: et.colNome, key: "nome", width: 3 }, { header: et.colCodigo, key: "codigo", width: 2 },
+          { header: et.colCategoria, key: "categoria", width: 2 }, { header: et.colSaldo, key: "saldo", width: 1, align: "right" },
+          { header: et.colPrecoMedio, key: "precoMedio", width: 1.5, align: "right" }, { header: et.colStatus, key: "status", width: 1 },
+        ],
+        linhas: produtos.map((p) => ({
+          nome: p.nome, codigo: p.codigo_interno || "—", categoria: p.categoria || "—",
+          saldo: String(p.saldo_disponivel), precoMedio: fBRL(p.preco_medio), status: p.status,
+        })),
+        nomeArquivo: "axioma-estoque-produtos.pdf",
+      };
+    }
+    if (aba === "movimentacoes") {
+      return {
+        titulo: `${et.titulo} — ${et.abaMovimentacoes}`, subtitulo: `${totalMovimentacoes}`,
+        colunas: [
+          { header: et.colData, key: "data", width: 1.5 }, { header: et.colProduto, key: "produto", width: 2.5 },
+          { header: et.colTipo, key: "tipo", width: 1 }, { header: et.colQtd, key: "qtd", width: 1, align: "right" },
+          { header: et.colValor, key: "valor", width: 1.5, align: "right" },
+        ],
+        linhas: movimentacoes.map((m) => ({
+          data: new Date(m.data_hora).toLocaleDateString("pt-BR"), produto: m.produto_nome, tipo: m.tipo,
+          qtd: String(m.quantidade), valor: m.valor_total != null ? fBRL(m.valor_total) : "—",
+        })),
+        nomeArquivo: "axioma-estoque-movimentacoes.pdf",
+      };
+    }
+    if (aba === "avisos") {
+      return {
+        titulo: `${et.titulo} — ${et.abaAvisos}`, subtitulo: `${avisosEstoque.length + avisosValidade.length}`,
+        colunas: [
+          { header: et.colProduto, key: "produto", width: 3 }, { header: et.abaAvisos, key: "aviso", width: 2 },
+          { header: et.colStatus, key: "detalhe", width: 2 },
+        ],
+        linhas: [
+          ...avisosEstoque.flatMap((a) => {
+            const tags: string[] = [];
+            if (a.ruptura) tags.push(et.avisoRuptura);
+            if (a.baixo_estoque) tags.push(et.avisoBaixoEstoque);
+            if (a.capital_parado) tags.push(et.avisoCapitalParado);
+            if (a.custo_subindo) tags.push(et.avisoCustoSubindo);
+            return tags.map((tag) => ({ produto: a.nome, aviso: tag, detalhe: `${et.colSaldo}: ${a.saldo_disponivel}` }));
+          }),
+          ...avisosValidade.map((v) => ({ produto: v.produto_nome, aviso: SEVERIDADE_LABEL[v.severidade], detalhe: `${v.numero_lote || "—"} — ${new Date(v.data_validade).toLocaleDateString("pt-BR")}` })),
+        ],
+        nomeArquivo: "axioma-estoque-avisos.pdf",
+      };
+    }
+    return null;
+  }
+
   async function exportarPDF() {
+    const args = montarArgsPdfAtual();
+    if (!args) return;
     setExportando(true);
     try {
-      if (aba === "produtos") {
-        gerarPdfTabela({
-          titulo: `${et.titulo} — ${et.abaProdutos}`, subtitulo: `${totalProdutos}`,
-          colunas: [
-            { header: et.colNome, key: "nome", width: 3 }, { header: et.colCodigo, key: "codigo", width: 2 },
-            { header: et.colCategoria, key: "categoria", width: 2 }, { header: et.colSaldo, key: "saldo", width: 1, align: "right" },
-            { header: et.colPrecoMedio, key: "precoMedio", width: 1.5, align: "right" }, { header: et.colStatus, key: "status", width: 1 },
-          ],
-          linhas: produtos.map((p) => ({
-            nome: p.nome, codigo: p.codigo_interno || "—", categoria: p.categoria || "—",
-            saldo: String(p.saldo_disponivel), precoMedio: fBRL(p.preco_medio), status: p.status,
-          })),
-          nomeArquivo: "axioma-estoque-produtos.pdf",
-        });
-      } else if (aba === "movimentacoes") {
-        gerarPdfTabela({
-          titulo: `${et.titulo} — ${et.abaMovimentacoes}`, subtitulo: `${totalMovimentacoes}`,
-          colunas: [
-            { header: et.colData, key: "data", width: 1.5 }, { header: et.colProduto, key: "produto", width: 2.5 },
-            { header: et.colTipo, key: "tipo", width: 1 }, { header: et.colQtd, key: "qtd", width: 1, align: "right" },
-            { header: et.colValor, key: "valor", width: 1.5, align: "right" },
-          ],
-          linhas: movimentacoes.map((m) => ({
-            data: new Date(m.data_hora).toLocaleDateString("pt-BR"), produto: m.produto_nome, tipo: m.tipo,
-            qtd: String(m.quantidade), valor: m.valor_total != null ? fBRL(m.valor_total) : "—",
-          })),
-          nomeArquivo: "axioma-estoque-movimentacoes.pdf",
-        });
-      } else if (aba === "avisos") {
-        gerarPdfTabela({
-          titulo: `${et.titulo} — ${et.abaAvisos}`, subtitulo: `${avisosEstoque.length + avisosValidade.length}`,
-          colunas: [
-            { header: et.colProduto, key: "produto", width: 3 }, { header: et.abaAvisos, key: "aviso", width: 2 },
-            { header: et.colStatus, key: "detalhe", width: 2 },
-          ],
-          linhas: [
-            ...avisosEstoque.flatMap((a) => {
-              const tags: string[] = [];
-              if (a.ruptura) tags.push(et.avisoRuptura);
-              if (a.baixo_estoque) tags.push(et.avisoBaixoEstoque);
-              if (a.capital_parado) tags.push(et.avisoCapitalParado);
-              if (a.custo_subindo) tags.push(et.avisoCustoSubindo);
-              return tags.map((tag) => ({ produto: a.nome, aviso: tag, detalhe: `${et.colSaldo}: ${a.saldo_disponivel}` }));
-            }),
-            ...avisosValidade.map((v) => ({ produto: v.produto_nome, aviso: SEVERIDADE_LABEL[v.severidade], detalhe: `${v.numero_lote || "—"} — ${new Date(v.data_validade).toLocaleDateString("pt-BR")}` })),
-          ],
-          nomeArquivo: "axioma-estoque-avisos.pdf",
-        });
-      }
+      gerarPdfTabela(args);
     } finally {
       setExportando(false);
+    }
+  }
+
+  async function compartilharPDF() {
+    const args = montarArgsPdfAtual();
+    if (!args) return;
+    setCompartilhando(true);
+    try {
+      await compartilharOuBaixarPdf(args, (baixouComoFallback) => {
+        if (baixouComoFallback) mostrarToast(et.toastRelatorioProntoCompartilhar, "info");
+      });
+    } finally {
+      setCompartilhando(false);
     }
   }
 
@@ -472,6 +632,15 @@ export default function EstoquePage() {
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={aba === "produtos" ? () => abrirModalProduto() : aba === "movimentacoes" ? () => abrirModalMovimentacao() : undefined}
       labelBotao={aba === "produtos" ? et.novoProduto : et.novaMovimentacao}
+      botaoExtra={(aba === "produtos" || aba === "movimentacoes" || aba === "avisos") && (
+        <motion.button
+          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
+          onClick={compartilharPDF} disabled={compartilhando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+          <Share2 size={16} /> {compartilhando ? et.salvando : et.compartilhar}
+        </motion.button>
+      )}
     >
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
@@ -487,6 +656,8 @@ export default function EstoquePage() {
           { key: "produtos", label: `📦 ${et.abaProdutos} (${totalProdutos})` },
           { key: "movimentacoes", label: `🔄 ${et.abaMovimentacoes}` },
           { key: "avisos", label: `⚠️ ${et.abaAvisos} (${avisosEstoque.length + avisosValidade.length || 0})` },
+          { key: "inteligencia", label: `🧠 ${et.abaInteligencia}` },
+          { key: "copiloto", label: `🤖 ${et.abaCopiloto}` },
         ].map((a) => (
           <button key={a.key} onClick={() => setAba(a.key as any)}
             className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
@@ -589,37 +760,78 @@ export default function EstoquePage() {
             </div>
           </div>
 
+          <CanvasBox cor={BRONZE}>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="w-52">
+                <CampoSelect label={`${et.campoSegmento} (${et.secaoSegmento.toLowerCase()})`} value={empresaSegmentoPadrao || ""}
+                  onChange={async (v) => {
+                    if (!empresaId) return;
+                    setEmpresaSegmentoPadrao(v || null);
+                    await definirSegmentoPadraoEmpresa(empresaId, v);
+                  }}
+                  opcoes={SEGMENTOS.map((s) => ({ value: s.value, label: s.label[idioma] }))} />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <p className="text-xs font-bold mr-1" style={{ color: "#c8d8f0" }}>{et.automacoesTitulo}</p>
+              {produtosSelecionados.size > 0 && (
+                <span className="text-[11px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(4,120,87,0.15)", color: JADE }}>
+                  {produtosSelecionados.size} {et.itensSelecionados}
+                </span>
+              )}
+              <button onClick={() => { setFormLote({}); setModalLoteAberto(true); }} disabled={produtosSelecionados.size === 0}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.editarEmLote}</button>
+              <button onClick={handleGerarEtiquetas} disabled={gerandoEtiquetas || produtos.length === 0}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.gerarEtiquetas}</button>
+              <button onClick={() => handleExportar("excel")} disabled={exportando}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.exportarExcel}</button>
+              <button onClick={() => handleExportar("csv")} disabled={exportando}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.exportarCsv}</button>
+              <label className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0", opacity: importando ? 0.4 : 1 }}>
+                {et.importarArquivo}
+                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importando}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportarArquivo(f); e.target.value = ""; }} />
+              </label>
+            </div>
+          </CanvasBox>
+
           <CanvasBox cor={JADE}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ color: BRONZE }}>
-                    <th className="pb-2 font-semibold">{et.colNome}</th>
-                    <th className="pb-2 font-semibold">{et.colCodigo}</th>
-                    <th className="pb-2 font-semibold">{et.colCategoria}</th>
-                    <th className="pb-2 font-semibold text-right">{et.colSaldo}</th>
-                    <th className="pb-2 font-semibold text-right">{et.colPrecoMedio}</th>
-                    <th className="pb-2 font-semibold">{et.colStatus}</th>
-                    <th className="pb-2 font-semibold text-right">{et.colAcoes}</th>
+                    <th className="pb-2 px-3 font-semibold w-8">
+                      <input type="checkbox" className="w-4 h-4 rounded" checked={produtos.length > 0 && produtosSelecionados.size === produtos.length} onChange={toggleSelecionarTodos} />
+                    </th>
+                    <th className="pb-2 px-3 font-semibold">{et.colNome}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colCodigo}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colCategoria}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colSaldo}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colPrecoMedio}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colStatus}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colAcoes}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {produtos.map((p) => (
                     <tr key={p.id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                      <td className="py-2" style={{ color: "#c8d8f0" }}>{p.nome}</td>
-                      <td className="py-2" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
-                      <td className="py-2" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
-                      <td className="py-2 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
-                      <td className="py-2 text-right" style={{ color: "#c8d8f0" }}>{fBRL(p.preco_medio)}</td>
-                      <td className="py-2"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO : "#5a7a9a" }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
-                      <td className="py-2 text-right">
+                      <td className="py-2 px-3">
+                        <input type="checkbox" className="w-4 h-4 rounded" checked={produtosSelecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
+                      </td>
+                      <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{p.nome}</td>
+                      <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
+                      <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
+                      <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
+                      <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(p.preco_medio)}</td>
+                      <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO : "#5a7a9a" }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
+                      <td className="py-2 px-3 text-right">
                         <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
                         <button onClick={() => excluirProdutoHandler(p)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO }}><Trash2 size={15} /></button>
                       </td>
                     </tr>
                   ))}
                   {produtos.length === 0 && (
-                    <tr><td colSpan={7} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semProdutos}</td></tr>
+                    <tr><td colSpan={8} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semProdutos}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -648,13 +860,13 @@ export default function EstoquePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left" style={{ color: BRONZE }}>
-                    <th className="pb-2 font-semibold">{et.colData}</th>
-                    <th className="pb-2 font-semibold">{et.colProduto}</th>
-                    <th className="pb-2 font-semibold">{et.colTipo}</th>
-                    <th className="pb-2 font-semibold text-right">{et.colQtd}</th>
-                    <th className="pb-2 font-semibold text-right">{et.colValor}</th>
-                    <th className="pb-2 font-semibold">{et.colSituacao}</th>
-                    <th className="pb-2 font-semibold text-right">{et.colAcoes}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colData}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colTipo}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colQtd}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colValor}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.colSituacao}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colAcoes}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -662,12 +874,12 @@ export default function EstoquePage() {
                     const tipoInfo = TIPOS_MOV.find((tp) => tp.value === m.tipo);
                     return (
                       <tr key={m.id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <td className="py-2" style={{ color: "#94a3b8" }}>{new Date(m.data_hora).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
-                        <td className="py-2" style={{ color: "#c8d8f0" }}>{m.produto_nome}</td>
-                        <td className="py-2"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: `${tipoInfo?.cor}22`, color: tipoInfo?.cor }}>{tipoInfo?.label}</span></td>
-                        <td className="py-2 text-right" style={{ color: "#c8d8f0" }}>{m.quantidade}</td>
-                        <td className="py-2 text-right" style={{ color: "#c8d8f0" }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
-                        <td className="py-2">
+                        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{new Date(m.data_hora).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{m.produto_nome}</td>
+                        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: `${tipoInfo?.cor}22`, color: tipoInfo?.cor }}>{tipoInfo?.label}</span></td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{m.quantidade}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
+                        <td className="py-2 px-3">
                           {m.tipo === "entrada" && m.status_recebimento === "em_transito" ? (
                             <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO }}>
                               <Truck size={11} /> {et.emTransitoConfirmar}
@@ -676,7 +888,7 @@ export default function EstoquePage() {
                             <span className="text-[10px]" style={{ color: "#5a7a9a" }}>—</span>
                           )}
                         </td>
-                        <td className="py-2 text-right">
+                        <td className="py-2 px-3 text-right">
                           <button onClick={() => abrirModalMovimentacao(m)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
                           <button onClick={() => excluirMovimentacaoHandler(m.id)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO }}><Trash2 size={15} /></button>
                         </td>
@@ -746,17 +958,266 @@ export default function EstoquePage() {
         </div>
       )}
 
+      {/* ================= INTELIGÊNCIA ================= */}
+      {empresaId && aba === "inteligencia" && (
+        <div className="space-y-5">
+          <CanvasBox cor={JADE}>
+            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intCurvaAbcTitulo}</p>
+            {curvaAbc.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+              <>
+                <ReactECharts style={{ height: 240 }} option={optBarrasH(
+                  curvaAbc.slice(0, 10).map((c) => c.valor_saida_90d),
+                  curvaAbc.slice(0, 10).map((c) => c.nome),
+                  JADE, "#34d399",
+                  curvaAbc.slice(0, 10).map((c) => c.classe_abc === "A" ? POSITIVO : c.classe_abc === "B" ? ATENCAO : NEGATIVO)
+                )} />
+                <div className="overflow-x-auto mt-3">
+                  <table className="w-full text-sm">
+                    <thead><tr className="text-left" style={{ color: BRONZE }}>
+                      <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
+                      <th className="pb-2 px-3 font-semibold text-right">{et.colValor}</th>
+                      <th className="pb-2 px-3 font-semibold text-right">%</th>
+                      <th className="pb-2 px-3 font-semibold">{et.colStatus}</th>
+                    </tr></thead>
+                    <tbody>
+                      {curvaAbc.map((c) => (
+                        <tr key={c.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                          <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{c.nome}</td>
+                          <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(c.valor_saida_90d)}</td>
+                          <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{c.pct_acumulado}%</td>
+                          <td className="py-2 px-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{
+                              background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(245,158,11,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
+                              color: c.classe_abc === "A" ? POSITIVO : c.classe_abc === "B" ? ATENCAO : c.classe_abc === "C" ? NEGATIVO : "#5a7a9a",
+                            }}>{c.classe_abc === "A" ? et.intClasseA : c.classe_abc === "B" ? et.intClasseB : c.classe_abc === "C" ? et.intClasseC : et.intSemGiro}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </CanvasBox>
+
+          <CanvasBox cor={NEUTRO}>
+            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intGiroTitulo}</p>
+            {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                    <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colSaldo}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColGiro}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColVelocidade}</th>
+                  </tr></thead>
+                  <tbody>
+                    {giroEstoque.map((g) => (
+                      <tr key={g.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{g.nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{g.saldo_disponivel}</td>
+                        <td className="py-2 px-3 text-right font-semibold" style={{ color: g.giro_90d == null ? "#5a7a9a" : g.giro_90d >= 1 ? POSITIVO : g.giro_90d > 0 ? ATENCAO : NEGATIVO }}>{g.giro_90d ?? "—"}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{g.velocidade_consumo_diaria}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CanvasBox>
+
+          <CanvasBox cor={BRONZE}>
+            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intCapitalTitulo}</p>
+            {capitalImobilizado.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                    <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColCapital}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColDiasParado}</th>
+                  </tr></thead>
+                  <tbody>
+                    {capitalImobilizado.slice().sort((a, b) => (b.dias_sem_movimento ?? 0) - (a.dias_sem_movimento ?? 0)).map((c) => (
+                      <tr key={c.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{c.nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(c.capital_imobilizado)}</td>
+                        <td className="py-2 px-3 text-right font-semibold" style={{ color: (c.dias_sem_movimento ?? 0) > 60 ? NEGATIVO : (c.dias_sem_movimento ?? 0) > 30 ? ATENCAO : "#94a3b8" }}>
+                          {c.dias_sem_movimento ?? et.intSemMovimento}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CanvasBox>
+
+          <CanvasBox cor={ATENCAO}>
+            <p className="text-sm font-bold mb-2" style={{ color: "#c8d8f0" }}>{et.intReposicaoTitulo}</p>
+            {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p>
+              : alertasReposicao.length === 0 ? <p className="text-xs py-4" style={{ color: "#5a7a9a" }}>{et.intSemLeadTime}</p> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                    <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.colSaldo}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColPontoReposicao}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColDiasRestantes}</th>
+                  </tr></thead>
+                  <tbody>
+                    {alertasReposicao.map((a) => (
+                      <tr key={a.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{a.nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{a.saldo_disponivel}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{a.pontoReposicao}</td>
+                        <td className="py-2 px-3 text-right font-bold" style={{ color: NEGATIVO }}>{a.diasRestantes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CanvasBox>
+
+          <CanvasBox cor={JADE}>
+            <p className="text-sm font-bold mb-1" style={{ color: "#c8d8f0" }}>{et.intRentabilidadeTitulo}</p>
+            <p className="text-[11px] mb-3 italic" style={{ color: "#5a7a9a" }}>{et.intRentabilidadeAviso}</p>
+            {rentabilidadeCategoria.length === 0 && rentabilidadeFornecedor.length === 0 && rentabilidadeMarca.length === 0 ? (
+              <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-4">
+                {[
+                  { titulo: et.campoCategoria, itens: rentabilidadeCategoria },
+                  { titulo: et.campoFornecedor, itens: rentabilidadeFornecedor },
+                  { titulo: et.campoMarca, itens: rentabilidadeMarca },
+                ].map((grupo) => (
+                  <div key={grupo.titulo}>
+                    <p className="text-xs font-bold mb-2" style={{ color: BRONZE }}>{grupo.titulo}</p>
+                    {grupo.itens.map((it) => (
+                      <div key={it.chave} className="flex justify-between text-xs py-1 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                        <span style={{ color: "#c8d8f0" }}>{it.chave}</span>
+                        <span style={{ color: (it.margem_media ?? 0) > 0 ? POSITIVO : NEGATIVO }}>{(it.margem_media ?? 0).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CanvasBox>
+
+          <CanvasBox cor={NEUTRO}>
+            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intComparativoFornecedorTitulo}</p>
+            {comparativoFornecedores.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                    <th className="pb-2 px-3 font-semibold">{et.campoFornecedor}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColPrecoMedioCompra}</th>
+                    <th className="pb-2 px-3 font-semibold text-right">{et.intColFrequencia}</th>
+                    <th className="pb-2 px-3 font-semibold">{et.intColUltimaEntrada}</th>
+                  </tr></thead>
+                  <tbody>
+                    {comparativoFornecedores.map((f) => (
+                      <tr key={f.fornecedor_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{f.fornecedor_nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{f.preco_medio_compra != null ? fBRL(f.preco_medio_compra) : "—"}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{f.frequencia_entregas}</td>
+                        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{f.ultima_entrada ? new Date(f.ultima_entrada).toLocaleDateString("pt-BR") : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CanvasBox>
+        </div>
+      )}
+
+      {/* ================= COPILOTO ================= */}
+      {empresaId && aba === "copiloto" && (
+        <div className="space-y-5">
+          {capitalImobilizado.length === 0 && curvaAbc.length === 0 ? (
+            <CanvasBox cor="#5a7a9a"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.copilotoSemDados}</p></CanvasBox>
+          ) : (
+            <>
+              <CanvasBox cor={NEGATIVO}>
+                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoParadoTitulo}</p>
+                {capitalImobilizado.slice().sort((a, b) => (b.dias_sem_movimento ?? 0) - (a.dias_sem_movimento ?? 0)).slice(0, 5).map((c) => (
+                  <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                    <span style={{ color: "#c8d8f0" }}>{c.nome}</span>
+                    <span style={{ color: NEGATIVO }}>{c.dias_sem_movimento ?? et.intSemMovimento} {typeof c.dias_sem_movimento === "number" ? (idioma === "pt" ? "dias" : idioma === "es" ? "días" : "days") : ""}</span>
+                  </div>
+                ))}
+              </CanvasBox>
+
+              <CanvasBox cor={BRONZE}>
+                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoDinheiroParadoTitulo}</p>
+                {capitalImobilizado.slice().sort((a, b) => b.capital_imobilizado - a.capital_imobilizado).slice(0, 5).map((c) => (
+                  <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                    <span style={{ color: "#c8d8f0" }}>{c.nome}</span>
+                    <span style={{ color: BRONZE }}>{fBRL(c.capital_imobilizado)}</span>
+                  </div>
+                ))}
+              </CanvasBox>
+
+              <CanvasBox cor={ATENCAO}>
+                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoReporTitulo}</p>
+                {alertasReposicao.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.intSemLeadTime}</p> : alertasReposicao.slice(0, 5).map((a) => (
+                  <div key={a.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                    <span style={{ color: "#c8d8f0" }}>{a.nome}</span>
+                    <span style={{ color: ATENCAO }}>{a.pontoReposicao} un.</span>
+                  </div>
+                ))}
+              </CanvasBox>
+
+              <CanvasBox cor={NEUTRO}>
+                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoPromoverTitulo}</p>
+                {(() => {
+                  const idsParados = new Set(capitalImobilizado.filter((c) => (c.dias_sem_movimento ?? 0) > 30).map((c) => c.produto_id));
+                  const classeCParada = curvaAbc.filter((c) => c.classe_abc === "C" && idsParados.has(c.produto_id));
+                  return classeCParada.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : classeCParada.slice(0, 5).map((c) => (
+                    <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                      <span style={{ color: "#c8d8f0" }}>{c.nome}</span>
+                      <span style={{ color: NEUTRO }}>Classe C</span>
+                    </div>
+                  ));
+                })()}
+              </CanvasBox>
+
+              <CanvasBox cor={NEGATIVO}>
+                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoRupturaTitulo}</p>
+                {alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+                  alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).map((a) => (
+                    <div key={a.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
+                      <span style={{ color: "#c8d8f0" }}>{a.nome}</span>
+                      <span style={{ color: NEGATIVO }} className="font-bold">{a.diasRestantes} {idioma === "pt" ? "dias" : idioma === "es" ? "días" : "days"}</span>
+                    </div>
+                  ))
+                )}
+              </CanvasBox>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ================= MODAL PRODUTO ================= */}
       <ModalPremium aberto={modalProdutoAberto} onFechar={() => setModalProdutoAberto(false)} titulo={produtoEditando ? et.modalEditarProduto : et.modalNovoProduto} largo>
         <div className="max-h-[70vh] overflow-y-auto pr-1 space-y-3">
+          <SecaoTitulo>{et.secaoSegmento}</SecaoTitulo>
+          <CampoSelect label={`${et.campoSegmento} ${et.segmentoPadraoHint}`} value={formProduto.segmento || ""}
+            onChange={(v) => setFormProduto((f) => ({ ...f, segmento: v || null }))}
+            opcoes={SEGMENTOS.map((s) => ({ value: s.value, label: s.label[idioma] }))} />
+
           <SecaoTitulo>{et.secaoIdentificacao}</SecaoTitulo>
           <div className="grid grid-cols-2 gap-3">
-            <Campo label={et.campoNome} value={formProduto.nome || ""} onChange={(v) => setFormProduto((f) => ({ ...f, nome: v }))} />
+            <Campo label={et.campoNome} value={formProduto.nome || ""} onChange={(v) => setFormProduto((f) => ({ ...f, nome: v }))} onBlur={sugerirCategoriaSeVazia} />
             <Campo label={et.campoCodigoInterno} value={formProduto.codigo_interno || ""} onChange={(v) => setFormProduto((f) => ({ ...f, codigo_interno: v }))} />
             <Campo label={et.campoCodigoBarras} value={formProduto.codigo_barras || ""} onChange={(v) => setFormProduto((f) => ({ ...f, codigo_barras: v }))}
               onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
             <Campo label={et.campoSku} value={formProduto.sku || ""} onChange={(v) => setFormProduto((f) => ({ ...f, sku: v }))} />
-            <Campo label={et.campoCategoria} value={formProduto.categoria || ""} onChange={(v) => setFormProduto((f) => ({ ...f, categoria: v }))} />
+            <Campo label={et.campoCategoria} value={formProduto.categoria || ""}
+              onChange={(v) => { setFormProduto((f) => ({ ...f, categoria: v })); }}
+              dica={categoriaSugerida && formProduto.categoria === categoriaSugerida ? et.sugeridoAutomaticamente : undefined} />
             <Campo label={et.campoSubcategoria} value={formProduto.subcategoria || ""} onChange={(v) => setFormProduto((f) => ({ ...f, subcategoria: v }))} />
             <Campo label={et.campoMarca} value={formProduto.marca || ""} onChange={(v) => setFormProduto((f) => ({ ...f, marca: v }))} />
             <Campo label={et.campoFabricante} value={formProduto.fabricante || ""} onChange={(v) => setFormProduto((f) => ({ ...f, fabricante: v }))} />
@@ -787,6 +1248,66 @@ export default function EstoquePage() {
             <CampoSelect label={et.campoCentroCusto} value={formProduto.centro_custo_id || ""} onChange={(v) => setFormProduto((f) => ({ ...f, centro_custo_id: v || null }))} opcoes={opcoesCentroCusto} />
             <Campo label={et.campoContaContabil} value={formProduto.conta_contabil || ""} onChange={(v) => setFormProduto((f) => ({ ...f, conta_contabil: v }))} />
           </div>
+
+          {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo].length > 0 && (
+            <>
+              <SecaoTitulo>{et.secaoCamposNicho}</SecaoTitulo>
+              <div className="grid grid-cols-3 gap-3">
+                {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo].map((campo) => {
+                  const valorAtual = (formProduto.atributos_nicho || {})[campo.chave];
+                  if (campo.tipo === "boolean") {
+                    return (
+                      <label key={campo.chave} className="flex items-center gap-2 cursor-pointer select-none py-2">
+                        <input type="checkbox" checked={!!valorAtual} className="w-4 h-4 rounded"
+                          onChange={(e) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: e.target.checked } }))} />
+                        <span className="text-xs font-semibold" style={labelStyle}>{campo.label[idioma]}</span>
+                      </label>
+                    );
+                  }
+                  if (campo.tipo === "select") {
+                    return (
+                      <CampoSelect key={campo.chave} label={campo.label[idioma]} value={valorAtual || ""}
+                        onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: v } }))}
+                        opcoes={(campo.opcoes || []).map((o) => ({ value: o.value, label: o.label[idioma] }))} />
+                    );
+                  }
+                  return (
+                    <Campo key={campo.chave} label={campo.label[idioma]} tipo={campo.tipo === "number" ? "number" : "text"} value={String(valorAtual ?? "")}
+                      onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          <SecaoTitulo>{et.secaoCamposPersonalizados}</SecaoTitulo>
+          <div className="grid grid-cols-3 gap-3">
+            {camposPersonalizados.map((campo) => (
+              <Campo key={campo.chave} label={campo.nome} tipo={campo.tipo === "number" ? "number" : campo.tipo === "date" ? "date" : "text"}
+                value={String((formProduto.atributos_nicho || {})[campo.chave] ?? "")}
+                onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
+            ))}
+          </div>
+          {!mostrarNovoCampo ? (
+            camposPersonalizados.length < MAX_CAMPOS_PERSONALIZADOS && (
+              <button onClick={() => setMostrarNovoCampo(true)} className="text-xs font-semibold" style={{ color: JADE }}>{et.adicionarCampoPersonalizado}</button>
+            )
+          ) : (
+            <div className="grid grid-cols-3 gap-3 items-end p-3 rounded-xl" style={{ background: "rgba(4,120,87,0.06)" }}>
+              <Campo label={et.campoNomeDoCampo} value={novoCampoNome} onChange={setNovoCampoNome} />
+              <CampoSelect label={et.campoTipoDoCampo} value={novoCampoTipo} onChange={(v) => setNovoCampoTipo(v as any)}
+                opcoes={[{ value: "text", label: et.tipoTexto }, { value: "number", label: et.tipoNumero }, { value: "date", label: et.tipoData }]} />
+              <button onClick={async () => {
+                if (!empresaId || !novoCampoNome.trim()) return;
+                const chave = novoCampoNome.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
+                const novo = { chave, nome: novoCampoNome.trim(), tipo: novoCampoTipo };
+                const { erro } = await adicionarCampoPersonalizado(empresaId, camposPersonalizados, novo);
+                if (erro) { mostrarToast(erro, "erro"); return; }
+                setCamposPersonalizados((c) => [...c, novo]);
+                setNovoCampoNome(""); setNovoCampoTipo("text"); setMostrarNovoCampo(false);
+              }} className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: JADE, color: "#fff" }}>{et.salvarCampo}</button>
+            </div>
+          )}
 
           <SecaoTitulo>{et.secaoPrecos}</SecaoTitulo>
           {produtoEditando && (
@@ -835,6 +1356,26 @@ export default function EstoquePage() {
             <button onClick={() => setModalProdutoAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{et.cancelar}</button>
             <button onClick={salvarProduto} disabled={salvandoProduto} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
               {salvandoProduto ? et.salvando : et.salvar}
+            </button>
+          </div>
+        </div>
+      </ModalPremium>
+
+      {/* ================= MODAL EDIÇÃO EM LOTE ================= */}
+      <ModalPremium aberto={modalLoteAberto} onFechar={() => setModalLoteAberto(false)} titulo={`${et.editarEmLote} (${produtosSelecionados.size})`}>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Campo label={et.campoCategoria} value={formLote.categoria || ""} onChange={(v) => setFormLote((f) => ({ ...f, categoria: v }))} />
+            <Campo label={et.campoMarca} value={formLote.marca || ""} onChange={(v) => setFormLote((f) => ({ ...f, marca: v }))} />
+            <CampoSelect label={et.campoFornecedor} value={formLote.fornecedor_id || ""} onChange={(v) => setFormLote((f) => ({ ...f, fornecedor_id: v || undefined }))} opcoes={opcoesFornecedor} />
+            <CampoSelect label={et.campoCentroCusto} value={formLote.centro_custo_id || ""} onChange={(v) => setFormLote((f) => ({ ...f, centro_custo_id: v || undefined }))} opcoes={opcoesCentroCusto} />
+            <Campo label={et.campoEstoqueMinimo} tipo="number" value={String(formLote.estoque_minimo ?? "")} onChange={(v) => setFormLote((f) => ({ ...f, estoque_minimo: v ? Number(v) : undefined }))} />
+            <CampoSelect label={et.colStatus} value={formLote.status || ""} onChange={(v) => setFormLote((f) => ({ ...f, status: (v || undefined) as any }))} opcoes={[{ value: "ativo", label: et.statusAtivo }, { value: "inativo", label: et.statusInativo }]} />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={() => setModalLoteAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{et.cancelar}</button>
+            <button onClick={salvarLote} disabled={salvandoLote} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+              {salvandoLote ? et.salvando : et.aplicarEmLote}
             </button>
           </div>
         </div>
