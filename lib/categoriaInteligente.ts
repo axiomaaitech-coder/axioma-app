@@ -97,15 +97,61 @@ export const DICIONARIO_SEGMENTOS: Record<Segmento, RegraCategoria[]> = {
 // Campos condicionais por segmento — ficam dentro de produtos.atributos_nicho,
 // nunca viram coluna nova.
 export type TipoCampoNicho = "boolean" | "text" | "number" | "select";
-export type CampoNicho = { chave: string; label: Record<Idioma, string>; tipo: TipoCampoNicho; opcoes?: { value: string; label: Record<Idioma, string> }[] };
+export type CampoNicho = {
+  chave: string; label: Record<Idioma, string>; tipo: TipoCampoNicho; opcoes?: { value: string; label: Record<Idioma, string> }[];
+  // se preenchido, este campo só aparece quando o campo boolean de chave
+  // igual a "dependeDe" estiver marcado (ex: Lista de Controle só se
+  // Medicamento Controlado = sim).
+  dependeDe?: string;
+};
+
+// Chave única do campo "Perecível" em atributos_nicho — usada nos 3 segmentos
+// que têm a flag (mercado, farmácia, restaurante/food) e lida em page.tsx
+// pra decidir se abre os campos de lote/validade. Centralizada aqui, num só
+// lugar, pra nunca mais existir risco de divergência de string entre eles.
+export const CHAVE_PERECIVEL = "perecivel";
+
+const NA = (): { value: string; label: Record<Idioma, string> } => ({ value: "na", label: C("N/A", "N/A", "N/A") });
 
 export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = {
   mercado: [
-    { chave: "perecivel", tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
+    { chave: CHAVE_PERECIVEL, tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
+    { chave: "saborVariacao", tipo: "text", label: C("Sabor/Variação", "Flavor/Variant", "Sabor/Variante") },
+    {
+      chave: "unidadeVenda", tipo: "select", label: C("Unidade de Venda", "Sales Unit", "Unidad de Venta"),
+      opcoes: [
+        { value: "un", label: C("Unidade", "Unit", "Unidad") },
+        { value: "kg", label: C("Kg", "Kg", "Kg") },
+        { value: "L", label: C("Litro", "Liter", "Litro") },
+        { value: "pacote", label: C("Pacote", "Pack", "Paquete") },
+        { value: "caixa", label: C("Caixa", "Box", "Caja") },
+        { value: "fardo", label: C("Fardo", "Bundle", "Fardo") },
+      ],
+    },
+    {
+      chave: "origem", tipo: "select", label: C("Origem", "Origin", "Origen"),
+      opcoes: [
+        { value: "nacional", label: C("Nacional", "Domestic", "Nacional") },
+        { value: "importado", label: C("Importado", "Imported", "Importado") },
+      ],
+    },
   ],
   farmacia: [
-    { chave: "perecivel", tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
-    { chave: "principioAtivo", tipo: "text", label: C("Princípio Ativo", "Active Ingredient", "Principio Activo") },
+    { chave: CHAVE_PERECIVEL, tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
+    { chave: "principioAtivo", tipo: "text", label: C("Princípio Ativo / DCB", "Active Ingredient / INN", "Principio Activo / DCI") },
+    { chave: "concentracao", tipo: "text", label: C("Concentração/Dosagem", "Concentration/Dosage", "Concentración/Dosis") },
+    {
+      chave: "formaFarmaceutica", tipo: "select", label: C("Forma Farmacêutica", "Pharmaceutical Form", "Forma Farmacéutica"),
+      opcoes: [
+        { value: "comprimido", label: C("Comprimido", "Tablet", "Comprimido") },
+        { value: "capsula", label: C("Cápsula", "Capsule", "Cápsula") },
+        { value: "xarope", label: C("Xarope", "Syrup", "Jarabe") },
+        { value: "injetavel", label: C("Injetável", "Injectable", "Inyectable") },
+        { value: "pomada", label: C("Pomada", "Ointment", "Pomada") },
+        { value: "gotas", label: C("Gotas", "Drops", "Gotas") },
+        { value: "outro", label: C("Outro", "Other", "Otro") },
+      ],
+    },
     {
       chave: "tarja", tipo: "select", label: C("Tarja", "Prescription Class", "Franja"),
       opcoes: [
@@ -115,22 +161,88 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "preta", label: C("Preta (controlado)", "Black (controlled)", "Negra (controlado)") },
       ],
     },
-    { chave: "registroAnvisa", tipo: "text", label: C("Registro ANVISA", "Health Registry No.", "Registro Sanitario") },
+    { chave: "medicamentoControlado", tipo: "boolean", label: C("Medicamento Controlado (SNGPC)", "Controlled Medication (SNGPC)", "Medicamento Controlado (SNGPC)") },
+    {
+      chave: "listaControle", tipo: "select", label: C("Lista de Controle", "Control List", "Lista de Control"), dependeDe: "medicamentoControlado",
+      opcoes: ["A1", "A2", "A3", "B1", "B2", "C1", "C2", "C5"].map((l) => ({ value: l, label: C(l, l, l) })),
+    },
+    { chave: "registroAnvisa", tipo: "text", label: C("Registro MS/ANVISA", "Health Registry No.", "Registro Sanitario") },
+    { chave: "laboratorioFabricante", tipo: "text", label: C("Laboratório/Fabricante", "Laboratory/Manufacturer", "Laboratorio/Fabricante") },
+    { chave: "necessitaReceita", tipo: "boolean", label: C("Necessita Receita", "Requires Prescription", "Requiere Receta") },
   ],
   vestuario: [
     {
       chave: "tamanho", tipo: "select", label: C("Tamanho", "Size", "Talla"),
-      opcoes: ["PP", "P", "M", "G", "GG", "XG"].map((t) => ({ value: t, label: C(t, t, t) })),
+      opcoes: [...["PP", "P", "M", "G", "GG", "XG"].map((t) => ({ value: t, label: C(t, t, t) })), { value: "unico", label: C("Único", "One Size", "Único") }],
     },
+    {
+      chave: "genero", tipo: "select", label: C("Gênero", "Gender", "Género"),
+      opcoes: [
+        { value: "masculino", label: C("Masculino", "Men's", "Masculino") },
+        { value: "feminino", label: C("Feminino", "Women's", "Femenino") },
+        { value: "unissex", label: C("Unissex", "Unisex", "Unisex") },
+        { value: "infantil", label: C("Infantil", "Kids", "Infantil") },
+      ],
+    },
+    { chave: "materialComposicao", tipo: "text", label: C("Material/Composição", "Material/Composition", "Material/Composición") },
+    { chave: "colecaoEstacao", tipo: "text", label: C("Coleção/Estação", "Collection/Season", "Colección/Temporada") },
   ],
   autopecas: [
     { chave: "aplicacaoVeiculo", tipo: "text", label: C("Aplicação/Veículo", "Vehicle Application", "Aplicación/Vehículo") },
     { chave: "codigoOem", tipo: "text", label: C("Código OEM", "OEM Code", "Código OEM") },
+    { chave: "montadora", tipo: "text", label: C("Montadora", "Automaker", "Automotriz") },
+    { chave: "anoInicio", tipo: "number", label: C("Ano Início", "Start Year", "Año Inicio") },
+    { chave: "anoFim", tipo: "number", label: C("Ano Fim", "End Year", "Año Fin") },
+    {
+      chave: "posicao", tipo: "select", label: C("Posição", "Position", "Posición"),
+      opcoes: [
+        { value: "dianteira", label: C("Dianteira", "Front", "Delantera") },
+        { value: "traseira", label: C("Traseira", "Rear", "Trasera") },
+        { value: "ambas", label: C("Ambas", "Both", "Ambas") },
+        NA(),
+      ],
+    },
+    {
+      chave: "lado", tipo: "select", label: C("Lado", "Side", "Lado"),
+      opcoes: [
+        { value: "esquerdo", label: C("Esquerdo", "Left", "Izquierdo") },
+        { value: "direito", label: C("Direito", "Right", "Derecho") },
+        NA(),
+      ],
+    },
+    {
+      chave: "origemPeca", tipo: "select", label: C("Original ou Paralela", "Original or Aftermarket", "Original o Paralela"),
+      opcoes: [
+        { value: "original", label: C("Original", "Original", "Original") },
+        { value: "paralela", label: C("Paralela", "Aftermarket", "Paralela") },
+        { value: "recondicionada", label: C("Recondicionada", "Reconditioned", "Reacondicionada") },
+      ],
+    },
   ],
   restaurante_food: [
-    { chave: "perecivel", tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
+    { chave: CHAVE_PERECIVEL, tipo: "boolean", label: C("Perecível", "Perishable", "Perecedero") },
     { chave: "insumoReceita", tipo: "boolean", label: C("É insumo de receita", "Is a recipe ingredient", "Es insumo de receta") },
     { chave: "fichaTecnica", tipo: "text", label: C("Ficha Técnica", "Technical Sheet", "Ficha Técnica") },
+    {
+      chave: "unidadeConsumo", tipo: "select", label: C("Unidade de Consumo", "Consumption Unit", "Unidad de Consumo"),
+      opcoes: [
+        { value: "kg", label: C("Kg", "Kg", "Kg") },
+        { value: "g", label: C("Grama", "Gram", "Gramo") },
+        { value: "L", label: C("Litro", "Liter", "Litro") },
+        { value: "ml", label: C("Mililitro", "Milliliter", "Mililitro") },
+        { value: "un", label: C("Unidade", "Unit", "Unidad") },
+        { value: "porcao", label: C("Porção", "Portion", "Porción") },
+      ],
+    },
+    { chave: "rendimentoPorcoes", tipo: "number", label: C("Rendimento/Porções", "Yield/Servings", "Rendimiento/Porciones") },
+    {
+      chave: "armazenamento", tipo: "select", label: C("Armazenamento", "Storage", "Almacenamiento"),
+      opcoes: [
+        { value: "ambiente", label: C("Ambiente", "Room Temperature", "Ambiente") },
+        { value: "refrigerado", label: C("Refrigerado", "Refrigerated", "Refrigerado") },
+        { value: "congelado", label: C("Congelado", "Frozen", "Congelado") },
+      ],
+    },
   ],
   eletronicos: [
     { chave: "garantiaMeses", tipo: "number", label: C("Garantia (meses)", "Warranty (months)", "Garantía (meses)") },
@@ -140,10 +252,19 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "110v", label: C("110V", "110V", "110V") },
         { value: "220v", label: C("220V", "220V", "220V") },
         { value: "bivolt", label: C("Bivolt", "Dual voltage", "Bivoltaje") },
+        NA(),
       ],
     },
+    { chave: "potencia", tipo: "text", label: C("Potência", "Power", "Potencia") },
+    { chave: "modeloPartNumber", tipo: "text", label: C("Modelo/Part Number", "Model/Part Number", "Modelo/Part Number") },
+    { chave: "numeroSerieControlado", tipo: "boolean", label: C("Número de Série controlado", "Serial Number tracked", "Número de Serie controlado") },
+    { chave: "cor", tipo: "text", label: C("Cor", "Color", "Color") },
   ],
-  papelaria: [],
+  papelaria: [
+    { chave: "marcaFabricante", tipo: "text", label: C("Marca/Fabricante", "Brand/Manufacturer", "Marca/Fabricante") },
+    { chave: "cor", tipo: "text", label: C("Cor", "Color", "Color") },
+    { chave: "material", tipo: "text", label: C("Material", "Material", "Material") },
+  ],
   pet: [
     {
       chave: "especieAlvo", tipo: "select", label: C("Espécie", "Species", "Especie"),
@@ -151,11 +272,62 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "cao", label: C("Cão", "Dog", "Perro") },
         { value: "gato", label: C("Gato", "Cat", "Gato") },
         { value: "ave", label: C("Ave", "Bird", "Ave") },
+        { value: "peixe", label: C("Peixe", "Fish", "Pez") },
+        { value: "roedor", label: C("Roedor", "Rodent", "Roedor") },
         { value: "outro", label: C("Outro", "Other", "Otro") },
       ],
     },
+    {
+      chave: "porte", tipo: "select", label: C("Porte", "Size", "Tamaño"),
+      opcoes: [
+        { value: "pequeno", label: C("Pequeno", "Small", "Pequeño") },
+        { value: "medio", label: C("Médio", "Medium", "Mediano") },
+        { value: "grande", label: C("Grande", "Large", "Grande") },
+        { value: "todos", label: C("Todos", "All", "Todos") },
+      ],
+    },
+    {
+      chave: "faixaEtaria", tipo: "select", label: C("Faixa Etária", "Age Range", "Rango de Edad"),
+      opcoes: [
+        { value: "filhote", label: C("Filhote", "Puppy/Kitten", "Cachorro/Cría") },
+        { value: "adulto", label: C("Adulto", "Adult", "Adulto") },
+        { value: "senior", label: C("Sênior", "Senior", "Sénior") },
+        { value: "todos", label: C("Todos", "All", "Todos") },
+      ],
+    },
+    {
+      chave: "tipoPet", tipo: "select", label: C("Tipo", "Type", "Tipo"),
+      opcoes: [
+        { value: "alimento", label: C("Alimento", "Food", "Alimento") },
+        { value: "medicamento", label: C("Medicamento", "Medication", "Medicamento") },
+        { value: "higiene", label: C("Higiene", "Hygiene", "Higiene") },
+        { value: "acessorio", label: C("Acessório", "Accessory", "Accesorio") },
+        { value: "brinquedo", label: C("Brinquedo", "Toy", "Juguete") },
+      ],
+    },
+    { chave: "pesoEmbalagem", tipo: "text", label: C("Peso da Embalagem", "Package Weight", "Peso del Paquete") },
   ],
-  servicos: [],
+  servicos: [
+    {
+      chave: "tipoItem", tipo: "select", label: C("Tipo de Item", "Item Type", "Tipo de Ítem"),
+      opcoes: [
+        { value: "material_consumo", label: C("Material de Consumo", "Consumable", "Material de Consumo") },
+        { value: "peca", label: C("Peça", "Part", "Pieza") },
+        { value: "equipamento", label: C("Equipamento", "Equipment", "Equipo") },
+        { value: "ferramenta", label: C("Ferramenta", "Tool", "Herramienta") },
+      ],
+    },
+    {
+      chave: "unidadeUso", tipo: "select", label: C("Unidade de Uso", "Usage Unit", "Unidad de Uso"),
+      opcoes: [
+        { value: "un", label: C("Unidade", "Unit", "Unidad") },
+        { value: "kg", label: C("Kg", "Kg", "Kg") },
+        { value: "L", label: C("Litro", "Liter", "Litro") },
+        { value: "m", label: C("Metro", "Meter", "Metro") },
+        { value: "h", label: C("Hora", "Hour", "Hora") },
+      ],
+    },
+  ],
   generico: [],
 };
 

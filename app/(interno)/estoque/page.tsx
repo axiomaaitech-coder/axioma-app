@@ -32,7 +32,7 @@ import {
   atualizarProdutosEmLote, exportarProdutosExcel, exportarProdutosCsv, importarProdutosArquivo,
 } from "../../../lib/estoqueHelpers";
 import {
-  type Segmento, SEGMENTOS, CAMPOS_CONDICIONAIS_POR_SEGMENTO, sugerirCategoria, registrarAprendizadoCategoria,
+  type Segmento, SEGMENTOS, CAMPOS_CONDICIONAIS_POR_SEGMENTO, CHAVE_PERECIVEL, sugerirCategoria, registrarAprendizadoCategoria,
 } from "../../../lib/categoriaInteligente";
 import { gerarEtiquetasPDF } from "../../../lib/etiquetaHelpers";
 
@@ -381,7 +381,7 @@ export default function EstoquePage() {
       // Produto perecível novo com lote preenchido: registra a primeira entrada
       // reaproveitando criarMovimentacao() (mesmo caminho de "Nova Movimentação").
       const qtdLote = Number(loteInicial.quantidade) || 0;
-      if (!produtoEditando && produtoId && (formProduto.atributos_nicho || {}).perecivel && loteInicial.numero_lote.trim() && qtdLote > 0) {
+      if (!produtoEditando && produtoId && (formProduto.atributos_nicho || {})[CHAVE_PERECIVEL] && loteInicial.numero_lote.trim() && qtdLote > 0) {
         const { erro } = await criarMovimentacao(empresaId, userId, {
           produto_id: produtoId,
           tipo: "entrada",
@@ -1307,7 +1307,9 @@ export default function EstoquePage() {
             <>
               <SecaoTitulo>{et.secaoCamposNicho}</SecaoTitulo>
               <div className="grid grid-cols-3 gap-3">
-                {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo].map((campo) => {
+                {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo]
+                  .filter((campo) => !campo.dependeDe || !!(formProduto.atributos_nicho || {})[campo.dependeDe])
+                  .map((campo) => {
                   const valorAtual = (formProduto.atributos_nicho || {})[campo.chave];
                   if (campo.tipo === "boolean") {
                     return (
@@ -1334,7 +1336,7 @@ export default function EstoquePage() {
             </>
           )}
 
-          {!produtoEditando && !!(formProduto.atributos_nicho || {}).perecivel && (
+          {!produtoEditando && !!(formProduto.atributos_nicho || {})[CHAVE_PERECIVEL] && (
             <>
               <SecaoTitulo>{et.secaoLoteInicial}</SecaoTitulo>
               <div className="grid grid-cols-3 gap-3">
