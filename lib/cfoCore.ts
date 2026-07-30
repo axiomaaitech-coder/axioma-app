@@ -649,6 +649,20 @@ export function pontoEquilibrio(custoFixoTotal: number, margemContribuicaoPct: n
   return custoFixoTotal / (margemContribuicaoPct / 100);
 }
 
+// Calculadora simples de preço a partir do custo — fonte única (Estoque e
+// Precificação importam daqui, nenhum dos dois recalcula por conta própria).
+// markupPct é % sobre o CUSTO (preço = custo × (1 + markup/100)); diferente
+// de "margem", que é % sobre o PREÇO DE VENDA — por isso margemReal() abaixo
+// existe separada, pra mostrar a margem real depois que o preço é definido.
+export function precoPorMarkup(custo: number, markupPct: number): number {
+  return Number((custo * (1 + markupPct / 100)).toFixed(2));
+}
+
+export function margemReal(precoVenda: number, custo: number): number {
+  if (!precoVenda || precoVenda <= 0) return 0;
+  return ((precoVenda - custo) / precoVenda) * 100;
+}
+
 // Margem de segurança: quanto a receita atual pode cair antes do prejuízo (%)
 export function margemSeguranca(receitaAtual: number, pontoEquilibrioValor: number | null): number | null {
   if (pontoEquilibrioValor === null || receitaAtual <= 0) return null;

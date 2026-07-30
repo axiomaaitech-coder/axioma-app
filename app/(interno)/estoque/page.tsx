@@ -11,7 +11,8 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela, compartilharOuBaixarPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { fBRL, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC } from "../../../lib/cfoCore";
+import { fBRL, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
+import { comprimirImagem } from "../../../lib/imagemHelpers";
 import { useLeitorCodigoBarras } from "../../../lib/estoqueDeviceAdapter";
 import {
   type Produto, type MovimentacaoComProduto, type EstoqueLote, type AvisoEstoque, type AvisoValidade,
@@ -24,7 +25,7 @@ import {
   carregarAvisosEstoque, carregarAvisosValidade, carregarKpisEstoque,
   carregarComposicaoPorCategoria, carregarComposicaoPorFornecedor, carregarEvolucaoEstoque,
   listarFornecedoresParaDropdown, listarCentrosCustoParaDropdown,
-  uploadImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa, adicionarCampoPersonalizado, MAX_CAMPOS_PERSONALIZADOS,
+  uploadImagemProduto, urlImagemProduto, carregarConfigEstoqueEmpresa, definirSegmentoPadraoEmpresa, adicionarCampoPersonalizado, MAX_CAMPOS_PERSONALIZADOS,
   carregarGiroEstoque, carregarCurvaABC, carregarCapitalImobilizado,
   carregarRentabilidadePorCategoria, carregarRentabilidadePorFornecedor, carregarRentabilidadePorMarca,
   carregarComparativoFornecedores, calcularAlertasReposicao,
@@ -186,7 +187,15 @@ export default function EstoquePage() {
   const [formProduto, setFormProduto] = useState<Partial<Produto>>({});
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
+  const [comprimindoImagem, setComprimindoImagem] = useState(false);
   const [categoriaSugerida, setCategoriaSugerida] = useState<string | null>(null);
+
+  // ---- Calculadora de preço (custo + markup → preço sugerido) ----
+  const [markupPct, setMarkupPct] = useState("");
+  const [precoSugeridoManual, setPrecoSugeridoManual] = useState(false);
+
+  // ---- Lote inicial (produto perecível novo) ----
+  const [loteInicial, setLoteInicial] = useState({ numero_lote: "", data_fabricacao: "", data_validade: "", quantidade: "", custo_unitario: "" });
 
   // ---- Camaleão (config da empresa) ----
   const [empresaSegmentoPadrao, setEmpresaSegmentoPadrao] = useState<string | null>(null);
@@ -325,7 +334,16 @@ export default function EstoquePage() {
     setFormProduto(produto ? { ...produto } : { unidade: "UN", status: "ativo", estoque_minimo: 0, atributos_nicho: {} });
     setArquivoImagem(null);
     setCategoriaSugerida(null);
+    setPrecoSugeridoManual(false);
+    const custoAtual = produto?.preco_custo || 0;
+    setMarkupPct(custoAtual > 0 && produto?.preco_sugerido ? (((produto.preco_sugerido - custoAtual) / custoAtual) * 100).toFixed(1) : "");
+    setLoteInicial({ numero_lote: "", data_fabricacao: "", data_validade: "", quantidade: "", custo_unitario: "" });
     setModalProdutoAberto(true);
+  }
+
+  function aplicarCalculoPreco(custo: number, markup: number) {
+    if (precoSugeridoManual) return;
+    setFormProduto((f) => ({ ...f, preco_sugerido: precoPorMarkup(custo, markup) }));
   }
 
   const segmentoEfetivo = ((formProduto.segmento || empresaSegmentoPadrao || "generico") as Segmento);
@@ -357,6 +375,24 @@ export default function EstoquePage() {
         const { path, erro } = await uploadImagemProduto(arquivoImagem, empresaId, produtoId);
         if (path) await atualizarProduto(produtoId, { imagem_principal: path });
         if (erro) mostrarToast(`${et.toastImagemFalhou}: ${erro}`, "info");
+      }
+      // Produto perecível novo com lote preenchido: registra a primeira entrada
+      // reaproveitando criarMovimentacao() (mesmo caminho de "Nova Movimentação").
+      const qtdLote = Number(loteInicial.quantidade) || 0;
+      if (!produtoEditando && produtoId && (formProduto.atributos_nicho || {}).perecivel && loteInicial.numero_lote.trim() && qtdLote > 0) {
+        const { erro } = await criarMovimentacao(empresaId, userId, {
+          produto_id: produtoId,
+          tipo: "entrada",
+          quantidade: qtdLote,
+          custo_unitario: loteInicial.custo_unitario ? Number(loteInicial.custo_unitario) : (formProduto.preco_custo || null),
+          status_recebimento: "confirmada",
+          lote: {
+            numero_lote: loteInicial.numero_lote.trim(),
+            data_fabricacao: loteInicial.data_fabricacao || undefined,
+            data_validade: loteInicial.data_validade || undefined,
+          },
+        });
+        if (erro) mostrarToast(`${et.toastLoteFalhou}: ${erro}`, "info");
       }
       // Aprende quando o usuário corrige a sugestão automática — próxima vez já vem certo.
       if (categoriaSugerida && formProduto.categoria && formProduto.categoria !== categoriaSugerida) {
@@ -818,7 +854,18 @@ export default function EstoquePage() {
                       <td className="py-2 px-3">
                         <input type="checkbox" className="w-4 h-4 rounded" checked={produtosSelecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
                       </td>
-                      <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{p.nome}</td>
+                      <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>
+                        <div className="flex items-center gap-2">
+                          {p.imagem_principal ? (
+                            <img src={urlImagemProduto(p.imagem_principal)} alt="" className="w-8 h-8 rounded-lg object-cover" style={{ border: "1px solid rgba(4,120,87,0.25)" }} />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
+                              <ImagePlus size={14} style={{ color: "#5a7a9a" }} />
+                            </div>
+                          )}
+                          {p.nome}
+                        </div>
+                      </td>
                       <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
                       <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
                       <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
@@ -1096,12 +1143,17 @@ export default function EstoquePage() {
                     {grupo.itens.map((it) => (
                       <div key={it.chave} className="flex justify-between text-xs py-1 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
                         <span style={{ color: "#c8d8f0" }}>{it.chave}</span>
-                        <span style={{ color: (it.margem_media ?? 0) > 0 ? POSITIVO : NEGATIVO }}>{(it.margem_media ?? 0).toFixed(1)}%</span>
+                        <span style={{ color: it.margem_media == null ? "#5a7a9a" : it.margem_media > 0 ? POSITIVO : NEGATIVO }}>
+                          {it.margem_media == null ? "—" : `${it.margem_media.toFixed(1)}%`}
+                        </span>
                       </div>
                     ))}
                   </div>
                 ))}
               </div>
+            )}
+            {[...rentabilidadeCategoria, ...rentabilidadeFornecedor, ...rentabilidadeMarca].some((it) => it.margem_media == null) && (
+              <p className="text-[11px] mt-3 italic" style={{ color: "#5a7a9a" }}>{et.intRentabilidadeSemDado}</p>
             )}
           </CanvasBox>
 
@@ -1280,6 +1332,19 @@ export default function EstoquePage() {
             </>
           )}
 
+          {!produtoEditando && !!(formProduto.atributos_nicho || {}).perecivel && (
+            <>
+              <SecaoTitulo>{et.secaoLoteInicial}</SecaoTitulo>
+              <div className="grid grid-cols-3 gap-3">
+                <Campo label={et.campoNumeroLote} value={loteInicial.numero_lote} onChange={(v) => setLoteInicial((l) => ({ ...l, numero_lote: v }))} />
+                <Campo label={et.campoDataFabricacao} tipo="date" value={loteInicial.data_fabricacao} onChange={(v) => setLoteInicial((l) => ({ ...l, data_fabricacao: v }))} />
+                <Campo label={et.campoValidade} tipo="date" value={loteInicial.data_validade} onChange={(v) => setLoteInicial((l) => ({ ...l, data_validade: v }))} />
+                <Campo label={et.campoQuantidade} tipo="number" value={loteInicial.quantidade} onChange={(v) => setLoteInicial((l) => ({ ...l, quantidade: v }))} />
+                <Campo label={et.campoCustoUnitario} tipo="number" value={loteInicial.custo_unitario} onChange={(v) => setLoteInicial((l) => ({ ...l, custo_unitario: v }))} />
+              </div>
+            </>
+          )}
+
           <SecaoTitulo>{et.secaoCamposPersonalizados}</SecaoTitulo>
           <div className="grid grid-cols-3 gap-3">
             {camposPersonalizados.map((campo) => (
@@ -1311,13 +1376,30 @@ export default function EstoquePage() {
 
           <SecaoTitulo>{et.secaoPrecos}</SecaoTitulo>
           {produtoEditando && (
-            <div className="grid grid-cols-2 gap-3 p-3 rounded-xl mb-1" style={{ background: "rgba(4,120,87,0.08)" }}>
-              <div><p className="text-[10px] font-bold uppercase" style={{ color: "#5a7a9a" }}>{et.campoCustoMedioSistema}</p><p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{fBRL(formProduto.preco_medio || 0)}</p></div>
-              <div><p className="text-[10px] font-bold uppercase" style={{ color: "#5a7a9a" }}>{et.campoUltimaEntrada}</p><p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{fBRL(formProduto.preco_custo || 0)}</p></div>
+            <div className="p-3 rounded-xl mb-1" style={{ background: "rgba(4,120,87,0.08)" }}>
+              <p className="text-[10px] font-bold uppercase" style={{ color: "#5a7a9a" }}>{et.campoCustoMedioSistema}</p>
+              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{fBRL(formProduto.preco_medio || 0)}</p>
             </div>
           )}
+          <div className="grid grid-cols-3 gap-3">
+            <Campo label={et.campoCusto} tipo="number" value={String(formProduto.preco_custo ?? "")}
+              onChange={(v) => {
+                const custo = v ? Number(v) : 0;
+                setFormProduto((f) => ({ ...f, preco_custo: custo }));
+                aplicarCalculoPreco(custo, Number(markupPct) || 0);
+              }} />
+            <Campo label={et.campoMarkupPct} tipo="number" value={markupPct}
+              onChange={(v) => {
+                setMarkupPct(v);
+                aplicarCalculoPreco(Number(formProduto.preco_custo) || 0, Number(v) || 0);
+              }} />
+            <Campo label={et.campoPrecoSugerido} tipo="number" value={String(formProduto.preco_sugerido ?? "")}
+              onChange={(v) => { setPrecoSugeridoManual(true); setFormProduto((f) => ({ ...f, preco_sugerido: v ? Number(v) : null })); }} />
+          </div>
+          {(formProduto.preco_custo || 0) > 0 && formProduto.preco_sugerido != null && (
+            <p className="text-xs font-semibold" style={{ color: POSITIVO }}>{et.campoMargemReal}: {margemReal(formProduto.preco_sugerido, formProduto.preco_custo || 0).toFixed(1)}%</p>
+          )}
           <div className="grid grid-cols-2 gap-3">
-            <Campo label={et.campoPrecoSugerido} tipo="number" value={String(formProduto.preco_sugerido ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, preco_sugerido: v ? Number(v) : null }))} />
             <Campo label={et.campoPrecoMinimo} tipo="number" value={String(formProduto.preco_minimo ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, preco_minimo: v ? Number(v) : null }))} />
             <Campo label={et.campoPrecoPromocional} tipo="number" value={String(formProduto.preco_promocional ?? "")} onChange={(v) => setFormProduto((f) => ({ ...f, preco_promocional: v ? Number(v) : null }))} />
             {produtoEditando && (
@@ -1345,9 +1427,21 @@ export default function EstoquePage() {
           </div>
           <div>
             <label className={labelCls} style={labelStyle}>{et.campoImagem}</label>
-            <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer" style={inputStyle}>
-              <ImagePlus size={16} /> {arquivoImagem?.name || et.escolherArquivo}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => setArquivoImagem(e.target.files?.[0] || null)} />
+            <label className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm cursor-pointer" style={{ ...inputStyle, opacity: comprimindoImagem ? 0.6 : 1 }}>
+              <ImagePlus size={16} /> {comprimindoImagem ? et.comprimindoImagem : (arquivoImagem?.name || et.escolherArquivo)}
+              <input type="file" accept="image/*" className="hidden" disabled={comprimindoImagem}
+                onChange={async (e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  setComprimindoImagem(true);
+                  try {
+                    setArquivoImagem(await comprimirImagem(f));
+                  } catch {
+                    mostrarToast(et.toastImagemProcessarFalhou, "erro");
+                  } finally {
+                    setComprimindoImagem(false);
+                  }
+                }} />
             </label>
           </div>
           <CampoTextarea label={et.campoObservacoes} value={formProduto.observacoes || ""} onChange={(v) => setFormProduto((f) => ({ ...f, observacoes: v }))} />
