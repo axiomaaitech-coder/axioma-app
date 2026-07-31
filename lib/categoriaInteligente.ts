@@ -210,11 +210,9 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "infantil", label: C("Infantil", "Kids", "Infantil") },
       ],
     },
-    { chave: "materialComposicao", tipo: "text", label: C("Material/Composição", "Material/Composition", "Material/Composición") },
+    { chave: "materialComposicao", tipo: "text", label: C("Material/Composição do Tecido", "Fabric Material/Composition", "Material/Composición del Tejido") },
     { chave: "colecaoEstacao", tipo: "text", label: C("Coleção/Estação", "Collection/Season", "Colección/Temporada") },
     { chave: "cor", tipo: "text", label: C("Cor", "Color", "Color") },
-    { chave: "composicaoTecido", tipo: "text", label: C("Composição do Tecido", "Fabric Composition", "Composición del Tejido") },
-    { chave: "colecao", tipo: "text", label: C("Coleção", "Collection", "Colección") },
     {
       chave: "modelagem", tipo: "select", label: C("Modelagem", "Fit", "Corte"),
       opcoes: [
@@ -313,7 +311,6 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
     { chave: "pesoTexto", tipo: "text", label: C("Peso", "Weight", "Peso") },
     { chave: "conteudoEmbalagem", tipo: "text", label: C("Conteúdo da Embalagem", "Package Contents", "Contenido del Paquete") },
     { chave: "certificacaoAnatel", tipo: "text", label: C("Certificação Anatel", "Anatel Certification", "Certificación Anatel") },
-    { chave: "garantiaFabricanteMeses", tipo: "number", label: C("Garantia do Fabricante (meses)", "Manufacturer Warranty (months)", "Garantía del Fabricante (meses)") },
   ],
   papelaria: [
     { chave: "marcaFabricante", tipo: "text", label: C("Marca/Fabricante", "Brand/Manufacturer", "Marca/Fabricante") },
@@ -370,8 +367,7 @@ export const CAMPOS_CONDICIONAIS_POR_SEGMENTO: Record<Segmento, CampoNicho[]> = 
         { value: "brinquedo", label: C("Brinquedo", "Toy", "Juguete") },
       ],
     },
-    { chave: "pesoEmbalagem", tipo: "text", label: C("Peso da Embalagem", "Package Weight", "Peso del Paquete") },
-    { chave: "pesoVolume", tipo: "text", label: C("Peso/Volume", "Weight/Volume", "Peso/Volumen") },
+    { chave: "pesoVolume", tipo: "text", label: C("Peso/Volume da Embalagem", "Package Weight/Volume", "Peso/Volumen del Paquete") },
     { chave: "sabor", tipo: "text", label: C("Sabor", "Flavor", "Sabor") },
     { chave: "indicacao", tipo: "text", label: C("Indicação", "Indication", "Indicación") },
     { chave: "registroMapa", tipo: "text", label: C("Registro MAPA", "MAPA Registry", "Registro MAPA") },

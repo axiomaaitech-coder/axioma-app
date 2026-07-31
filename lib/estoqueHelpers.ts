@@ -587,3 +587,31 @@ export async function importarProdutosArquivo(file: File, empresaId: string, use
   if (error) return { ok: 0, erro: error.message };
   return { ok: registros.length };
 }
+
+// ============================================================================
+// AUTO-CADASTRO POR EAN (Cosmos Bluesoft) — o token nunca chega aqui, este
+// helper só fala com a nossa própria rota (app/api/produto/consulta-ean),
+// que é quem guarda o COSMOS_API_TOKEN no servidor.
+// ============================================================================
+
+export type ConsultaEanResposta =
+  | { status: "nao_configurado" }
+  | { status: "nao_encontrado" }
+  | { status: "erro"; mensagem?: string }
+  | {
+      status: "ok";
+      nome?: string; marca?: string; categoria?: string; ncm?: string;
+      peso?: number; altura?: number; largura?: number; comprimento?: number;
+      ipi?: number; icms?: number; pis?: number; cofins?: number;
+      imagemBase64?: string;
+    };
+
+export async function consultarEan(ean: string): Promise<ConsultaEanResposta> {
+  try {
+    const resp = await fetch(`/api/produto/consulta-ean?ean=${encodeURIComponent(ean)}`);
+    const dados = await resp.json();
+    return dados;
+  } catch {
+    return { status: "erro" };
+  }
+}

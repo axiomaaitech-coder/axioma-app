@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import {
-  Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Share2,
+  Search, Pencil, Trash2, X, AlertTriangle, Truck, ImagePlus, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Share2, ScanBarcode,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
@@ -31,11 +31,13 @@ import {
   carregarRentabilidadePorCategoria, carregarRentabilidadePorFornecedor, carregarRentabilidadePorMarca,
   carregarComparativoFornecedores, calcularAlertasReposicao,
   atualizarProdutosEmLote, exportarProdutosExcel, exportarProdutosCsv, importarProdutosArquivo,
+  type ConsultaEanResposta, consultarEan,
 } from "../../../lib/estoqueHelpers";
 import {
   type Segmento, SEGMENTOS, CAMPOS_CONDICIONAIS_POR_SEGMENTO, CHAVE_PERECIVEL, sugerirCategoria, registrarAprendizadoCategoria,
 } from "../../../lib/categoriaInteligente";
 import { gerarEtiquetasPDF } from "../../../lib/etiquetaHelpers";
+import { buscarSugestoesColuna, buscarSugestoesAtributo, buscarCombosLocalizacao, type ColunaComSugestao, type ComboLocalizacao } from "../../../lib/sugestaoInteligente";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,15 +59,15 @@ const selectStyle = { background: "rgba(10,22,40,0.95)", border: `1px solid rgba
 const labelCls = "text-xs font-semibold mb-1 block";
 const labelStyle = { color: BRONZE };
 
-function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, onBlur, readOnly, lista, dica }: {
+function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, onBlur, onFocus, readOnly, lista, dica }: {
   label: string; value: string; onChange?: (v: string) => void; tipo?: string; placeholder?: string;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; onBlur?: () => void; readOnly?: boolean; lista?: string[]; dica?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; onBlur?: () => void; onFocus?: () => void; readOnly?: boolean; lista?: string[]; dica?: string;
 }) {
   const listId = lista ? `dl-${label.replace(/\s/g, "")}` : undefined;
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
-      <input type={tipo} value={value} onChange={(e) => onChange?.(e.target.value)} onKeyDown={onKeyDown} onBlur={onBlur}
+      <input type={tipo} value={value} onChange={(e) => onChange?.(e.target.value)} onKeyDown={onKeyDown} onBlur={onBlur} onFocus={onFocus}
         readOnly={readOnly} placeholder={placeholder} className={inputCls}
         style={{ ...inputStyle, opacity: readOnly ? 0.6 : 1 }} list={listId} />
       {lista && (
@@ -264,6 +266,13 @@ export default function EstoquePage() {
   const [novoCampoTipo, setNovoCampoTipo] = useState<"text" | "number" | "date">("text");
   const [secaoCamposNichoAberta, setSecaoCamposNichoAberta] = useState(true);
   const [secaoFiscalAberta, setSecaoFiscalAberta] = useState(true);
+
+  // ---- Auto-cadastro por EAN (Cosmos) ----
+  const [consultandoEan, setConsultandoEan] = useState(false);
+
+  // ---- Sugestão inteligente (autocomplete por histórico) ----
+  const [sugestoes, setSugestoes] = useState<Record<string, string[]>>({});
+  const [combosLocalizacao, setCombosLocalizacao] = useState<ComboLocalizacao[]>([]);
 
   // ---- Inteligência (Fase 2) ----
   const [giroEstoque, setGiroEstoque] = useState<ItemGiro[]>([]);
@@ -500,7 +509,74 @@ export default function EstoquePage() {
     const custoAtual = produto?.preco_custo || 0;
     setMarkupPct(custoAtual > 0 && produto?.preco_sugerido ? (((produto.preco_sugerido - custoAtual) / custoAtual) * 100).toFixed(1) : "");
     setLoteInicial({ numero_lote: "", data_fabricacao: "", data_validade: "", quantidade: "", custo_unitario: "" });
+    setSugestoes({});
+    setCombosLocalizacao([]);
+    if (empresaId) buscarCombosLocalizacao(empresaId).then(setCombosLocalizacao);
     setModalProdutoAberto(true);
+  }
+
+  // Busca a sugestão só quando o campo é focado (não ao abrir o modal
+  // inteiro) e guarda em cache — foco repetido no mesmo campo não refaz a
+  // consulta. Digitação livre nunca é bloqueada: é só um <datalist>.
+  function garantirSugestaoColuna(coluna: ColunaComSugestao) {
+    const chaveCache = `col:${coluna}`;
+    if (!empresaId || sugestoes[chaveCache] !== undefined) return;
+    setSugestoes((s) => ({ ...s, [chaveCache]: [] }));
+    buscarSugestoesColuna(empresaId, coluna).then((valores) => setSugestoes((s) => ({ ...s, [chaveCache]: valores })));
+  }
+
+  function garantirSugestaoAtributo(chaveAtributo: string) {
+    const chaveCache = `attr:${chaveAtributo}`;
+    if (!empresaId || sugestoes[chaveCache] !== undefined) return;
+    setSugestoes((s) => ({ ...s, [chaveCache]: [] }));
+    buscarSugestoesAtributo(empresaId, chaveAtributo).then((valores) => setSugestoes((s) => ({ ...s, [chaveCache]: valores })));
+  }
+
+  function aplicarComboLocalizacao(combo: ComboLocalizacao) {
+    setFormProduto((f) => ({ ...f, rua: combo.rua, prateleira: combo.prateleira, nivel: combo.nivel, posicao: combo.posicao }));
+  }
+
+  async function handleConsultarEan() {
+    const ean = (formProduto.codigo_barras || "").trim();
+    if (!ean || consultandoEan) return;
+    setConsultandoEan(true);
+    try {
+      const r: ConsultaEanResposta = await consultarEan(ean);
+      if (r.status === "nao_configurado") { mostrarToast(et.toastEanNaoConfigurado, "info"); return; }
+      if (r.status === "nao_encontrado") { mostrarToast(et.toastEanNaoEncontrado, "info"); return; }
+      if (r.status === "erro") { mostrarToast(r.mensagem || et.toastEanErro, "erro"); return; }
+
+      setFormProduto((f) => ({
+        ...f,
+        nome: r.nome ?? f.nome,
+        marca: r.marca ?? f.marca,
+        categoria: r.categoria ?? f.categoria,
+        ncm: r.ncm ?? f.ncm,
+        peso: r.peso ?? f.peso,
+        altura: r.altura ?? f.altura,
+        largura: r.largura ?? f.largura,
+        comprimento: r.comprimento ?? f.comprimento,
+        ipi: r.ipi ?? f.ipi,
+        icms: r.icms ?? f.icms,
+        pis: r.pis ?? f.pis,
+        cofins: r.cofins ?? f.cofins,
+      }));
+
+      if (r.imagemBase64) {
+        try {
+          const blob = await (await fetch(r.imagemBase64)).blob();
+          const arquivo = new File([blob], `ean-${ean}.jpg`, { type: blob.type || "image/jpeg" });
+          const comprimido = await comprimirImagem(arquivo);
+          setArquivoImagem(comprimido);
+          setPreviewImagem((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(comprimido); });
+        } catch {
+          // imagem é enriquecimento — o resto dos dados já preencheu, não trava por isso
+        }
+      }
+      mostrarToast(et.toastEanPreenchido, "ok");
+    } finally {
+      setConsultandoEan(false);
+    }
   }
 
   function aplicarCalculoPreco(custo: number, markup: number) {
@@ -1459,8 +1535,16 @@ export default function EstoquePage() {
           <div className="grid grid-cols-2 gap-3">
             <Campo label={et.campoNome} value={formProduto.nome || ""} onChange={(v) => setFormProduto((f) => ({ ...f, nome: v }))} onBlur={sugerirCategoriaSeVazia} />
             <Campo label={et.campoCodigoInterno} value={formProduto.codigo_interno || ""} onChange={(v) => setFormProduto((f) => ({ ...f, codigo_interno: v }))} />
-            <Campo label={et.campoCodigoBarras} value={formProduto.codigo_barras || ""} onChange={(v) => setFormProduto((f) => ({ ...f, codigo_barras: v }))}
-              onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }} />
+            <div className="flex items-end gap-1">
+              <div className="flex-1">
+                <Campo label={et.campoCodigoBarras} value={formProduto.codigo_barras || ""} onChange={(v) => setFormProduto((f) => ({ ...f, codigo_barras: v }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleConsultarEan(); } }} />
+              </div>
+              <button type="button" onClick={handleConsultarEan} disabled={consultandoEan || !formProduto.codigo_barras?.trim()}
+                title={et.botaoBuscarEan} className="p-2.5 rounded-xl shrink-0 disabled:opacity-40" style={{ background: "rgba(4,120,87,0.15)", color: JADE }}>
+                <ScanBarcode size={17} className={consultandoEan ? "animate-pulse" : ""} />
+              </button>
+            </div>
             <Campo label={et.campoSku} value={formProduto.sku || ""} onChange={(v) => setFormProduto((f) => ({ ...f, sku: v }))} />
             <Campo label={et.campoCategoria} value={formProduto.categoria || ""}
               onChange={(v) => { setFormProduto((f) => ({ ...f, categoria: v })); }}
@@ -1485,15 +1569,31 @@ export default function EstoquePage() {
           </div>
 
           <SecaoTitulo>{et.secaoLocalizacao}</SecaoTitulo>
+          {combosLocalizacao.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <span className="text-[10px] font-semibold" style={{ color: "#5a7a9a" }}>{et.localizacoesJaUsadas}</span>
+              {combosLocalizacao.map((c, i) => (
+                <button key={i} type="button" onClick={() => aplicarComboLocalizacao(c)}
+                  className="px-2 py-1 rounded-lg text-[11px] font-semibold" style={{ background: "rgba(4,120,87,0.1)", color: JADE }}>
+                  {[c.rua, c.prateleira, c.nivel, c.posicao].filter(Boolean).join(" / ") || "—"}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-4 gap-3">
-            <Campo label={et.campoRua} value={formProduto.rua || ""} onChange={(v) => setFormProduto((f) => ({ ...f, rua: v }))} />
-            <Campo label={et.campoPrateleira} value={formProduto.prateleira || ""} onChange={(v) => setFormProduto((f) => ({ ...f, prateleira: v }))} />
-            <Campo label={et.campoNivel} value={formProduto.nivel || ""} onChange={(v) => setFormProduto((f) => ({ ...f, nivel: v }))} />
-            <Campo label={et.campoPosicao} value={formProduto.posicao || ""} onChange={(v) => setFormProduto((f) => ({ ...f, posicao: v }))} />
+            <Campo label={et.campoRua} value={formProduto.rua || ""} onChange={(v) => setFormProduto((f) => ({ ...f, rua: v }))}
+              onFocus={() => garantirSugestaoColuna("rua")} lista={sugestoes["col:rua"]} />
+            <Campo label={et.campoPrateleira} value={formProduto.prateleira || ""} onChange={(v) => setFormProduto((f) => ({ ...f, prateleira: v }))}
+              onFocus={() => garantirSugestaoColuna("prateleira")} lista={sugestoes["col:prateleira"]} />
+            <Campo label={et.campoNivel} value={formProduto.nivel || ""} onChange={(v) => setFormProduto((f) => ({ ...f, nivel: v }))}
+              onFocus={() => garantirSugestaoColuna("nivel")} lista={sugestoes["col:nivel"]} />
+            <Campo label={et.campoPosicao} value={formProduto.posicao || ""} onChange={(v) => setFormProduto((f) => ({ ...f, posicao: v }))}
+              onFocus={() => garantirSugestaoColuna("posicao")} lista={sugestoes["col:posicao"]} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <CampoSelect label={et.campoCentroCusto} value={formProduto.centro_custo_id || ""} onChange={(v) => setFormProduto((f) => ({ ...f, centro_custo_id: v || null }))} opcoes={opcoesCentroCusto} />
-            <Campo label={et.campoContaContabil} value={formProduto.conta_contabil || ""} onChange={(v) => setFormProduto((f) => ({ ...f, conta_contabil: v }))} />
+            <Campo label={et.campoContaContabil} value={formProduto.conta_contabil || ""} onChange={(v) => setFormProduto((f) => ({ ...f, conta_contabil: v }))}
+              onFocus={() => garantirSugestaoColuna("conta_contabil")} lista={sugestoes["col:conta_contabil"]} />
           </div>
 
           {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo].length > 0 && (
@@ -1521,7 +1621,9 @@ export default function EstoquePage() {
                   }
                   return (
                     <Campo key={campo.chave} label={campo.label[idioma]} tipo={campo.tipo === "number" ? "number" : "text"} value={String(valorAtual ?? "")}
-                      onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
+                      onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))}
+                      onFocus={campo.tipo === "text" ? () => garantirSugestaoAtributo(campo.chave) : undefined}
+                      lista={campo.tipo === "text" ? sugestoes[`attr:${campo.chave}`] : undefined} />
                   );
                 })}
               </div>
