@@ -105,13 +105,13 @@ export default function Simulacoes() {
 
     const inicioHist = inicioJanela12m(periodo.fim);
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
-      supabase.from("receitas").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("valor_mensal").eq("user_id", user.id),
-      supabase.from("custos_variaveis").select("valor, data").eq("user_id", user.id).gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
+      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
       // Leitura só (SELECT) — nunca escreve em dividas.
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("user_id", user.id),
+      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
       // Mesma definição de "caixa disponível" do Fluxo de Caixa/Investimentos.
-      supabase.from("fluxo_caixa").select("tipo, valor, status").eq("user_id", user.id),
+      supabase.from("fluxo_caixa").select("tipo, valor, status"),
       supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
     ]);
 
