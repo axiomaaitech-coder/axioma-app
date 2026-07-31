@@ -43,8 +43,12 @@ export async function GET(req: NextRequest) {
 
   let cosmosResp: Response;
   try {
-    cosmosResp = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${encodeURIComponent(ean)}`, {
-      headers: { "X-Cosmos-Token": token },
+    cosmosResp = await fetch(`https://cosmos.bluesoft.com.br/api/gtins/${encodeURIComponent(ean)}.json`, {
+      headers: {
+        "X-Cosmos-Token": token,
+        "User-Agent": "Cosmos-API-Request",
+        "Content-Type": "application/json",
+      },
     });
   } catch {
     return NextResponse.json({ status: "erro", mensagem: "Falha de rede ao consultar o catálogo" });
