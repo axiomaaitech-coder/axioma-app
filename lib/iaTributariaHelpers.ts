@@ -2,6 +2,7 @@
 // Simulador de regime, Score Fiscal, carga tributária, economia estimada, reforma 2026.
 
 import { createBrowserClient } from "@supabase/ssr";
+import { dasMensalPorCategoria } from "./meiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -133,7 +134,7 @@ export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
 
   // 1. MEI
   const meiElegivel = rb12 <= 144000;
-  const meiMensal = 76.90; // valor fixo 2026
+  const meiMensal = dasMensalPorCategoria("Serviços"); // fonte única: lib/meiHelpers.ts
   resultados.push({
     regime: "mei", regime_label: "MEI",
     imposto_mensal: Math.round(meiMensal),
@@ -216,7 +217,7 @@ export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
 // do regime tributário, em vez de um percentual fixo chutado).
 export function calcularImpostoRegime(regime: string, rb12: number, rbMes: number): number {
   const r = (regime || "").toLowerCase();
-  if (r === "mei") return 76.90;
+  if (r === "mei") return dasMensalPorCategoria("Serviços");
   if (r.includes("simples")) {
     const aliq = calcularAliquotaSimples(rb12, "III");
     return rbMes * (aliq / 100);
@@ -274,7 +275,8 @@ export function calcularCargaTributaria(dados: DadosFiscais): {
   let composicao: { nome: string; valor: number; pct: number }[] = [];
 
   if (regime === "mei") {
-    composicao = [{ nome: "DAS MEI", valor: 77, pct: rbMes > 0 ? (77 / rbMes) * 100 : 0 }];
+    const dasMei = dasMensalPorCategoria("Serviços");
+    composicao = [{ nome: "DAS MEI", valor: dasMei, pct: rbMes > 0 ? (dasMei / rbMes) * 100 : 0 }];
   } else if (regime.includes("simples")) {
     const aliq = calcularAliquotaSimples(rb12, "III");
     const das = rbMes * (aliq / 100);

@@ -33,7 +33,7 @@ export default function DASObrigacoes() {
   const { idioma } = useLanguage()
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
-  const [dasValor, setDasValor] = useState('75.90')
+  const [dasValor, setDasValor] = useState(String(dasMensalPorCategoria('Serviços')))
   const [editandoDas, setEditandoDas] = useState(false)
   const [dasValorTemp, setDasValorTemp] = useState('')
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoMEI[]>([])
@@ -227,8 +227,8 @@ export default function DASObrigacoes() {
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'DAS Mensal', value: fmt(parseFloat(dasValor || '75.90')), cor: OURO },
-            { label: `DAS Anual ${anoAtual}`, value: fmt(parseFloat(dasValor || '75.90') * 12), cor: AZUL },
+            { label: 'DAS Mensal', value: fmt(parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei)))), cor: OURO },
+            { label: `DAS Anual ${anoAtual}`, value: fmt(parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei))) * 12), cor: AZUL },
             { label: `Receita Bruta ${anoAtual}`, value: fmt(faturamentoAnual), cor: VERDE },
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
@@ -258,7 +258,7 @@ export default function DASObrigacoes() {
                     <button onClick={() => setEditandoDas(false)} className="p-1.5 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: VERMELHO }}><X size={14} /></button>
                   </div>
                 ) : (
-                  <p className="text-xs font-semibold mt-1" style={{ color: OURO }}>{fmt(parseFloat(dasValor || '75.90'))}</p>
+                  <p className="text-xs font-semibold mt-1" style={{ color: OURO }}>{fmt(parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei))))}</p>
                 )}
                 {(() => { const { texto, atrasado } = diasOuAtraso(vencimentoDas, statusDas); return texto ? <p className="text-[10px] mt-1 font-semibold" style={{ color: atrasado ? VERMELHO : AMBAR }}>{texto}</p> : null })()}
               </div>

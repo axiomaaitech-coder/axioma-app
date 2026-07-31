@@ -14,10 +14,11 @@ const supabase = createBrowserClient(
 
 export const LIMITE_ANUAL_MEI = 81000;
 
-// DAS 2026: INSS 5% do salário mínimo (R$75,90 — mesma base já usada no
-// projeto) + parcela fixa por categoria (ICMS/ISS, estável ano a ano).
-// Se a tabela oficial 2026 divergir, ajustar só aqui.
-export const INSS_MEI_2026 = 75.9;
+// DAS 2026: INSS 5% do salário mínimo oficial 2026 (R$1.621, Decreto
+// 12.797/2025) = R$81,05 + parcela fixa por categoria (ICMS R$1 / ISS R$5,
+// estáveis desde 2006). Valores conferidos: Comércio/Indústria R$82,05,
+// Serviços R$86,05, Comércio+Serviços R$87,05.
+export const INSS_MEI_2026 = 81.05;
 export const DAS_MEI_2026 = {
   "Comércio": INSS_MEI_2026 + 1, // ICMS
   "Indústria": INSS_MEI_2026 + 1, // ICMS
