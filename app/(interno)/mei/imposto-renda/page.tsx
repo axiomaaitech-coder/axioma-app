@@ -4,9 +4,11 @@ import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
-import { FileText, AlertTriangle, CheckCircle } from 'lucide-react'
+import { FileText, AlertTriangle, CheckCircle, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { calcularIRPF, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,27 +22,14 @@ const AZUL = '#6ab0ff'
 const AMBAR = '#f59e0b'
 const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
 
-const FAIXAS_IRPF = [
-  { limite: 2259.20, aliquota: 0, deducao: 0 },
-  { limite: 2826.65, aliquota: 0.075, deducao: 169.44 },
-  { limite: 3751.05, aliquota: 0.15, deducao: 381.44 },
-  { limite: 4664.68, aliquota: 0.225, deducao: 662.77 },
-  { limite: Infinity, aliquota: 0.275, deducao: 896.00 },
-]
-
-function calcularIRPF(rendaMensal: number): { imposto: number; aliquota: number; aliquotaEfetiva: number } {
-  const faixa = FAIXAS_IRPF.find(f => rendaMensal <= f.limite)!
-  const imposto = Math.max(0, rendaMensal * faixa.aliquota - faixa.deducao)
-  const aliquotaEfetiva = rendaMensal > 0 ? (imposto / rendaMensal) * 100 : 0
-  return { imposto, aliquota: faixa.aliquota * 100, aliquotaEfetiva }
-}
-
 export default function ImpostoRendaMEI() {
   const { idioma } = useLanguage()
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
   const [outraRenda, setOutraRenda] = useState('')
   const [exportando, setExportando] = useState(false)
+  const [compartilhando, setCompartilhando] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const [checklistMarcado, setChecklistMarcado] = useState<boolean[]>([false, false, false, false, false, false])
   const conteudoRef = useRef<HTMLDivElement>(null)
 
@@ -58,6 +47,8 @@ export default function ImpostoRendaMEI() {
     obrigatorio: { pt: 'Declaração OBRIGATÓRIA', en: 'MANDATORY Declaration', es: 'Declaración OBLIGATORIA' },
     naoObrigatorio: { pt: 'Declaração não obrigatória', en: 'Declaration not required', es: 'Declaración no obligatoria' },
     progresso: { pt: 'itens concluídos', en: 'items completed', es: 'elementos completados' },
+    compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
+    toastBaixado: { pt: 'PDF pronto — baixado.', en: 'PDF ready — downloaded.', es: 'PDF listo — descargado.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -87,9 +78,7 @@ export default function ImpostoRendaMEI() {
     .filter(r => new Date(r.data).getFullYear() === anoAtual)
     .reduce((acc, r) => acc + (r.valor || 0), 0)
 
-  const percentualIsento = meiDados?.categoria_mei === 'Comércio' ? 0.08
-    : meiDados?.categoria_mei === 'Indústria' ? 0.08
-    : meiDados?.categoria_mei === 'Transporte' ? 0.16 : 0.32
+  const percentualIsento = percentualIsentoPorCategoria(meiDados?.categoria_mei)
 
   const isencaoMEI = faturamentoAnual * percentualIsento
   const rendaTributavelMEI = faturamentoAnual - isencaoMEI
@@ -156,9 +145,52 @@ export default function ImpostoRendaMEI() {
     setExportando(false)
   }
 
+  function montarArgsPdfAtual(): ArgsPdfTabela {
+    return {
+      titulo: `${t('titulo')} — ${anoAtual}`,
+      subtitulo: obrigado ? t('obrigatorio') : t('naoObrigatorio'),
+      colunas: [
+        { header: t('receitaBruta'), key: 'label', width: 3 },
+        { header: 'Valor', key: 'valor', width: 2, align: 'right' },
+      ],
+      linhas: [
+        { label: t('receitaBruta'), valor: fmt(faturamentoAnual) },
+        { label: t('isencao'), valor: fmt(isencaoMEI) },
+        { label: t('rendaTributavel'), valor: fmt(rendaTributavelMEI) },
+        { label: lang === 'pt' ? 'IRPF estimado/ano' : lang === 'en' ? 'Estimated IRPF/year' : 'IRPF estimado/año', valor: fmt(impostoAnual) },
+      ],
+      nomeArquivo: `axioma-mei-irpf-${new Date().toISOString().slice(0, 10)}.pdf`,
+    }
+  }
+
+  async function compartilharPDF() {
+    setCompartilhando(true)
+    try {
+      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
+        if (baixouComoFallback) { setToast(t('toastBaixado')); setTimeout(() => setToast(null), 2500) }
+      })
+    } finally {
+      setCompartilhando(false)
+    }
+  }
+
   return (
-    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}>
+    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+      botaoExtra={
+        <button onClick={compartilharPDF} disabled={compartilhando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+          <Share2 size={16} /> {t('compartilhar')}
+        </button>
+      }>
       <div ref={conteudoRef} className="space-y-4">
+
+        {toast && (
+          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
+            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
+            {toast}
+          </div>
+        )}
 
         {/* Status obrigatoriedade */}
         <div className="flex items-center gap-3 p-4 rounded-2xl"

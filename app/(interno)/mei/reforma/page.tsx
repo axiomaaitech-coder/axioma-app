@@ -5,10 +5,12 @@ import { createBrowserClient } from '@supabase/ssr'
 import { motion } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { dasMensalPorCategoria } from '../../../../lib/meiHelpers'
+import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,6 +28,8 @@ export default function ReformaTributaria() {
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [exportando, setExportando] = useState(false)
+  const [compartilhando, setCompartilhando] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const dataHojeStr = new Date().toLocaleDateString(idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR')
@@ -46,6 +50,7 @@ export default function ReformaTributaria() {
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
+  const mx = meiT((idioma as 'pt' | 'en' | 'es') || 'pt')
 
   useEffect(() => { carregar() }, [])
 
@@ -100,6 +105,33 @@ export default function ReformaTributaria() {
     setExportando(false)
   }
 
+  function montarArgsPdfAtual(): ArgsPdfTabela {
+    return {
+      titulo: t('titulo'),
+      subtitulo: `${anoAtual}`,
+      colunas: [
+        { header: 'Regime', key: 'regime', width: 2 },
+        { header: 'Valor/mês', key: 'valor', width: 2, align: 'right' },
+      ],
+      linhas: [
+        { regime: 'MEI (DAS fixo)', valor: fmt(dasValor) },
+        { regime: 'ME Simples (estimado ~6%)', valor: fmt((faturamentoAnual * 0.06) / 12) },
+      ],
+      nomeArquivo: `axioma-mei-reforma-${new Date().toISOString().slice(0, 10)}.pdf`,
+    }
+  }
+
+  async function compartilharPDF() {
+    setCompartilhando(true)
+    try {
+      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
+        if (baixouComoFallback) { setToast(mx.toastBaixado); setTimeout(() => setToast(null), 2500) }
+      })
+    } finally {
+      setCompartilhando(false)
+    }
+  }
+
   const itensReforma = [
     { titulo: { pt: 'IBS e CBS já em vigor', en: 'IBS and CBS already in effect', es: 'IBS y CBS ya en vigor' }, desc: { pt: 'Substituem PIS, COFINS e ICMS gradualmente até 2033. MEI está isento durante a transição.', en: 'Replace PIS, COFINS and ICMS gradually until 2033. MEI is exempt during the transition.', es: 'Reemplazan PIS, COFINS e ICMS gradualmente hasta 2033. MEI está exento durante la transición.' }, cor: '#34d399', status: '✅' },
     { titulo: { pt: 'Prazo decisão: setembro 2026', en: 'Decision deadline: September 2026', es: 'Plazo decisión: septiembre 2026' }, desc: { pt: 'MEI precisa decidir se continua no regime simplificado ou migra para ME em 2027.', en: 'MEI needs to decide whether to stay in the simplified regime or migrate to ME in 2027.', es: 'MEI debe decidir si continúa en el régimen simplificado o migra a ME en 2027.' }, cor: AMBAR, status: '⚠️' },
@@ -123,8 +155,22 @@ export default function ReformaTributaria() {
       subtitulo={t('subtitulo')}
       onExportarPDF={exportarPDF}
       exportando={exportando}
+      botaoExtra={
+        <button onClick={compartilharPDF} disabled={compartilhando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+          <Share2 size={16} /> {mx.compartilhar}
+        </button>
+      }
     >
       <div ref={conteudoRef} className="space-y-4">
+
+        {toast && (
+          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
+            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
+            {toast}
+          </div>
+        )}
 
         {/* Alerta destaque */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}

@@ -5,10 +5,12 @@ import { createBrowserClient } from '@supabase/ssr'
 import { motion } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
-import { Bot } from 'lucide-react'
+import { Bot, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { LIMITE_ANUAL_MEI, dasMensalPorCategoria } from '../../../../lib/meiHelpers'
+import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,6 +101,8 @@ export default function IAMEIAdvisor() {
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const [exportando, setExportando] = useState(false)
+  const [compartilhando, setCompartilhando] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const conteudoRef = useRef<HTMLDivElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
@@ -121,6 +125,7 @@ export default function IAMEIAdvisor() {
   }
 
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
+  const mx = meiT(lang)
   const t = (key: keyof typeof txt) => {
     const val = txt[key]
     if (typeof val === 'object' && !Array.isArray(val)) return (val as any)[lang] ?? (val as any).pt
@@ -206,9 +211,50 @@ export default function IAMEIAdvisor() {
     setExportando(false)
   }
 
+  function montarArgsPdfAtual(): ArgsPdfTabela {
+    return {
+      titulo: t('titulo') as string,
+      subtitulo: t('subtitulo') as string,
+      colunas: [
+        { header: lang === 'pt' ? 'Quem' : lang === 'en' ? 'Who' : 'Quién', key: 'role', width: 1 },
+        { header: lang === 'pt' ? 'Mensagem' : lang === 'en' ? 'Message' : 'Mensaje', key: 'content', width: 4 },
+      ],
+      linhas: chatMensagens.map((m) => ({
+        role: m.role === 'user' ? (lang === 'pt' ? 'Você' : lang === 'en' ? 'You' : 'Usted') : 'MEI Advisor',
+        content: m.content,
+      })),
+      nomeArquivo: `axioma-mei-ia-${new Date().toISOString().slice(0, 10)}.pdf`,
+    }
+  }
+
+  async function compartilharPDF() {
+    setCompartilhando(true)
+    try {
+      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
+        if (baixouComoFallback) { setToast(mx.toastBaixado); setTimeout(() => setToast(null), 2500) }
+      })
+    } finally {
+      setCompartilhando(false)
+    }
+  }
+
   return (
-    <ModuloLayout titulo={t('titulo') as string} subtitulo={t('subtitulo') as string} onExportarPDF={exportarPDF} exportando={exportando}>
+    <ModuloLayout titulo={t('titulo') as string} subtitulo={t('subtitulo') as string} onExportarPDF={exportarPDF} exportando={exportando}
+      botaoExtra={
+        <button onClick={compartilharPDF} disabled={compartilhando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+          <Share2 size={16} /> {mx.compartilhar}
+        </button>
+      }>
       <div ref={conteudoRef} className="space-y-4">
+
+        {toast && (
+          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
+            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
+            {toast}
+          </div>
+        )}
 
         {/* Cards contexto */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

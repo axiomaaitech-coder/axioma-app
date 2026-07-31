@@ -5,11 +5,15 @@ import { createBrowserClient } from '@supabase/ssr'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
-import { AlertTriangle, Pencil, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Pencil, Trash2, X, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { meiT } from '../../../../lib/meiTextos'
-import { LIMITE_ANUAL_MEI, faturamentoAnoMEI, limiteRestante, percentualLimite, projecaoTeto } from '../../../../lib/meiHelpers'
+import {
+  LIMITE_ANUAL_MEI, faturamentoAnoMEI, limiteRestante, percentualLimite, projecaoTeto,
+  dasMensalPorCategoria, percentualIsentoPorCategoria, calcularIRPF, percentualReservaImposto, valorASepararPorReceita,
+} from '../../../../lib/meiHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,8 +33,10 @@ type Receita = { id: string; descricao: string; valor: number; data: string; cat
 export default function FaturamentoMEI() {
   const { idioma } = useLanguage()
   const [receitas, setReceitas] = useState<Receita[]>([])
+  const [meiDados, setMeiDados] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
+  const [compartilhando, setCompartilhando] = useState(false)
   const [editando, setEditando] = useState<Receita | null>(null)
   const [excluindo, setExcluindo] = useState<Receita | null>(null)
   const [form, setForm] = useState({ descricao: '', valor: '', data: '', categoria: CATEGORIAS[0], status: 'recebido' })
@@ -63,6 +69,8 @@ export default function FaturamentoMEI() {
     confirmarExcluir: { pt: 'Excluir este lançamento?', en: 'Delete this entry?', es: '¿Eliminar este movimiento?' },
     excluir: { pt: 'Excluir', en: 'Delete', es: 'Eliminar' },
     semLancamentos: { pt: 'Nenhum lançamento neste ano.', en: 'No entries this year.', es: 'Sin movimientos este año.' },
+    compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
+    toastBaixado: { pt: 'PDF pronto — baixado.', en: 'PDF ready — downloaded.', es: 'PDF listo — descargado.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -75,8 +83,12 @@ export default function FaturamentoMEI() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
-    const { data } = await supabase.from('receitas').select('*').order('data', { ascending: false })
+    const [{ data }, { data: mei }] = await Promise.all([
+      supabase.from('receitas').select('*').order('data', { ascending: false }),
+      supabase.from('mei_dados').select('*').maybeSingle(),
+    ])
     setReceitas((data || []) as Receita[])
+    setMeiDados(mei || null)
     setLoading(false)
   }
 
@@ -121,8 +133,15 @@ export default function FaturamentoMEI() {
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
   const percentualLimiteAtual = percentualLimite(faturamentoAnual)
   const restanteLimite = limiteRestante(faturamentoAnual)
-  const { mesesParaEstourar } = projecaoTeto(receitas, anoAtual, mesAtual, 6)
+  const { mesesParaEstourar, mediaMensal } = projecaoTeto(receitas, anoAtual, mesAtual, 6)
   const receitasAno = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual)
+
+  // ---- Reserva automática de imposto (Fase 2): quanto separar por lançamento ----
+  const categoriaMei = meiDados?.categoria_mei || 'Serviços'
+  const dasMensal = meiDados?.das_valor || dasMensalPorCategoria(categoriaMei)
+  const irpfMensal = calcularIRPF(mediaMensal * (1 - percentualIsentoPorCategoria(categoriaMei))).imposto
+  const percentualReserva = percentualReservaImposto(dasMensal, mediaMensal, irpfMensal)
+  const reservaAcumulada = valorASepararPorReceita(faturamentoAnual, percentualReserva)
 
   const exportarPDF = async () => {
     if (!conteudoRef.current) return
@@ -157,8 +176,45 @@ export default function FaturamentoMEI() {
     setExportando(false)
   }
 
+  function montarArgsPdfAtual(): ArgsPdfTabela {
+    return {
+      titulo: t('titulo'),
+      subtitulo: `${anoAtual}`,
+      colunas: [
+        { header: t('descricao'), key: 'descricao', width: 3 },
+        { header: t('data'), key: 'data', width: 2 },
+        { header: t('valor'), key: 'valor', width: 2, align: 'right' },
+      ],
+      linhas: receitasAno.map((r) => ({
+        descricao: r.descricao,
+        data: new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR'),
+        valor: fmt(r.valor),
+      })),
+      resumo: [{ label: t('faturamento'), valor: fmt(faturamentoAnual) }],
+      nomeArquivo: `axioma-mei-faturamento-${new Date().toISOString().slice(0, 10)}.pdf`,
+    }
+  }
+
+  async function compartilharPDF() {
+    setCompartilhando(true)
+    try {
+      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
+        if (baixouComoFallback) showToast(t('toastBaixado'))
+      })
+    } finally {
+      setCompartilhando(false)
+    }
+  }
+
   return (
-    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}>
+    <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+      botaoExtra={
+        <button onClick={compartilharPDF} disabled={compartilhando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+          <Share2 size={16} /> {t('compartilhar')}
+        </button>
+      }>
       <div ref={conteudoRef} className="space-y-4">
 
         {toast && (
@@ -183,6 +239,17 @@ export default function FaturamentoMEI() {
         </div>
 
         <p className="text-xs px-1" style={{ color: '#5a7a9a' }}>{mx.considerandoTodasReceitas}</p>
+
+        {/* Reserva automática de imposto (Fase 2) */}
+        {percentualReserva > 0 && (
+          <CanvasBox cor={AMBAR}>
+            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#5a7a9a' }}>{mx.reservaAcumuladaTitulo}</p>
+            <p className="text-xl font-black" style={{ color: AMBAR, ...FONTE }}>{fmt(reservaAcumulada)}</p>
+            <p className="text-[10px] mt-1" style={{ color: '#5a7a9a' }}>
+              {mx.reservarDeste} {percentualReserva.toFixed(1)}% {lang === 'pt' ? 'de cada receita nova (DAS + IRPF proporcional).' : lang === 'en' ? 'of every new revenue (DAS + proportional IRPF).' : 'de cada nuevo ingreso (DAS + IRPF proporcional).'}
+            </p>
+          </CanvasBox>
+        )}
 
         {/* Velocímetro */}
         <CanvasBox cor={OURO}>
@@ -261,6 +328,11 @@ export default function FaturamentoMEI() {
                       <p className="text-[10px]" style={{ color: '#5a7a9a' }}>
                         {new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {r.categoria}
                       </p>
+                      {percentualReserva > 0 && (
+                        <p className="text-[10px] mt-0.5" style={{ color: AMBAR }}>
+                          {mx.reservarDeste}: {fmt(valorASepararPorReceita(r.valor, percentualReserva))}
+                        </p>
+                      )}
                     </div>
                     <span className="text-sm font-bold" style={{ color: OURO }}>{fmt(r.valor)}</span>
                     <button onClick={() => alternarContaTeto(r)}

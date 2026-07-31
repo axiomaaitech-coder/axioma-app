@@ -57,6 +57,48 @@ const TEXTOS = {
 
     // Badge
     badgeLabel: "PRO",
+
+    // Compartilhar (Fase 2, todas as 7 telas)
+    compartilhar: "Compartilhar",
+    toastBaixado: "PDF pronto — baixado.",
+
+    // Cofre Inteligente
+    cofreTitulo: "O que é seu de verdade",
+    cofreExplicacao: "Da sobra do mês, isto aqui já tem dono — o resto é seu pró-labore seguro.",
+    cofreDas: "DAS do mês — não é seu, vence dia 20",
+    cofreIrpf: "Reserva de IRPF — guardando pro ano",
+    cofreCompromissos: "Contas a pagar do período — já tem dono",
+    cofreReserva: "Reserva de emergência",
+    cofreProLabore: "Seu pró-labore seguro este mês",
+
+    // Reserva automática de imposto
+    reservarDeste: "Guarde deste valor",
+    reservaAcumuladaTitulo: "Você deveria ter guardado até agora",
+
+    // Detector de retirada perigosa
+    retiradaTitulo: "Retirada acima do seguro",
+    retiradaAvisoSeguroNegativo: "Sua sobra não cobre nem DAS, IRPF e compromissos deste mês — evite retirar pró-labore agora.",
+    retiradaAvisoGastoAlto: "Os gastos que parecem pessoais já passam do seu pró-labore seguro este mês.",
+
+    // Guardião da Reserva
+    guardiaoTitulo: "Guardião da Reserva",
+    guardiaoConsumiu: "Você usou ~R$X da reserva do DAS",
+    guardiaoBaseadoEm: "Baseado nos lançamentos registrados no sistema, não no saldo real do banco.",
+    guardiaoDiasRestantes: "dias pra repor até o vencimento",
+    guardiaoConsequencia: "Se não repor até o vencimento, o atraso gera",
+    guardiaoEstimativa: "Estimativa com base nas regras vigentes (multa 0,33%/dia, teto 20%, + juros Selic).",
+
+    // Gráficos analíticos do Painel
+    evolucaoGanhos: "Evolução de Ganhos",
+    fluxoCaixaVisual: "Fluxo de Caixa Visual",
+    composicaoCofre: "Composição do Cofre",
+    progressoTeto: "Progresso do Teto no Tempo",
+    acimaMedia: "acima da sua média",
+    abaixoMedia: "abaixo da sua média",
+    semHistoricoSuficiente: "Ainda faltam meses de histórico pra essa comparação.",
+    ticketMedio: "Ticket médio",
+    nRecebimentos: "Recebimentos no mês",
+    maiorReceita: "Maior receita do mês",
   },
   en: {
     radarTeto: "Cap Radar",
@@ -101,6 +143,42 @@ const TEXTOS = {
     statusNaoObrigatorio: "Not required",
 
     badgeLabel: "PRO",
+
+    compartilhar: "Share",
+    toastBaixado: "PDF ready — downloaded.",
+
+    cofreTitulo: "What's really yours",
+    cofreExplicacao: "Of this month's leftover, this part already has an owner — the rest is your safe pro-labore.",
+    cofreDas: "This month's DAS — not yours, due on the 20th",
+    cofreIrpf: "IRPF reserve — saving for the year",
+    cofreCompromissos: "Bills due this period — already spoken for",
+    cofreReserva: "Emergency reserve",
+    cofreProLabore: "Your safe pro-labore this month",
+
+    reservarDeste: "Set aside from this",
+    reservaAcumuladaTitulo: "You should have saved by now",
+
+    retiradaTitulo: "Withdrawal above safe limit",
+    retiradaAvisoSeguroNegativo: "Your leftover doesn't even cover this month's DAS, IRPF and bills — avoid withdrawing pro-labore now.",
+    retiradaAvisoGastoAlto: "Expenses that look personal already exceed your safe pro-labore this month.",
+
+    guardiaoTitulo: "Reserve Guardian",
+    guardiaoConsumiu: "You've used ~R$X of the DAS reserve",
+    guardiaoBaseadoEm: "Based on entries recorded in the system, not your actual bank balance.",
+    guardiaoDiasRestantes: "days to replace it before the due date",
+    guardiaoConsequencia: "If not replaced by the due date, the delay generates",
+    guardiaoEstimativa: "Estimate based on current rules (0.33%/day fine, 20% cap, + Selic interest).",
+
+    evolucaoGanhos: "Revenue Evolution",
+    fluxoCaixaVisual: "Visual Cash Flow",
+    composicaoCofre: "Vault Composition",
+    progressoTeto: "Cap Progress Over Time",
+    acimaMedia: "above your average",
+    abaixoMedia: "below your average",
+    semHistoricoSuficiente: "Still need more months of history for this comparison.",
+    ticketMedio: "Average ticket",
+    nRecebimentos: "Payments this month",
+    maiorReceita: "Largest revenue this month",
   },
   es: {
     radarTeto: "Radar del Límite",
@@ -145,6 +223,42 @@ const TEXTOS = {
     statusNaoObrigatorio: "No obligatorio",
 
     badgeLabel: "PRO",
+
+    compartilhar: "Compartir",
+    toastBaixado: "PDF listo — descargado.",
+
+    cofreTitulo: "Lo que es realmente suyo",
+    cofreExplicacao: "De la sobra del mes, esto ya tiene dueño — el resto es su pro-labore seguro.",
+    cofreDas: "DAS del mes — no es suyo, vence el día 20",
+    cofreIrpf: "Reserva de IRPF — guardando para el año",
+    cofreCompromissos: "Cuentas por pagar del período — ya tienen dueño",
+    cofreReserva: "Reserva de emergencia",
+    cofreProLabore: "Su pro-labore seguro este mes",
+
+    reservarDeste: "Guarde de este valor",
+    reservaAcumuladaTitulo: "Debería haber guardado hasta ahora",
+
+    retiradaTitulo: "Retiro por encima del límite seguro",
+    retiradaAvisoSeguroNegativo: "Su sobra no cubre ni el DAS, IRPF y cuentas de este mes — evite retirar pro-labore ahora.",
+    retiradaAvisoGastoAlto: "Los gastos que parecen personales ya superan su pro-labore seguro este mes.",
+
+    guardiaoTitulo: "Guardián de la Reserva",
+    guardiaoConsumiu: "Usó ~R$X de la reserva del DAS",
+    guardiaoBaseadoEm: "Basado en los movimientos registrados en el sistema, no en el saldo real del banco.",
+    guardiaoDiasRestantes: "días para reponer antes del vencimiento",
+    guardiaoConsequencia: "Si no repone antes del vencimiento, el atraso genera",
+    guardiaoEstimativa: "Estimación con base en las reglas vigentes (multa 0,33%/día, tope 20%, + intereses Selic).",
+
+    evolucaoGanhos: "Evolución de Ingresos",
+    fluxoCaixaVisual: "Flujo de Caja Visual",
+    composicaoCofre: "Composición de la Caja Fuerte",
+    progressoTeto: "Progreso del Límite en el Tiempo",
+    acimaMedia: "por encima de su promedio",
+    abaixoMedia: "por debajo de su promedio",
+    semHistoricoSuficiente: "Aún faltan meses de historial para esta comparación.",
+    ticketMedio: "Ticket promedio",
+    nRecebimentos: "Cobros en el mes",
+    maiorReceita: "Mayor ingreso del mes",
   },
 };
 

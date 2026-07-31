@@ -3,18 +3,24 @@ import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { createBrowserClient } from '@supabase/ssr'
-import { AlertTriangle, X, TrendingUp, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, X, TrendingUp, ShieldAlert, Share2, Clock } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
+import ReactECharts from 'echarts-for-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { motion, AnimatePresence } from 'framer-motion'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
+import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
+import { buscarIndicadoresMacro } from '../../../lib/bcbApi'
+import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
 import { meiT } from '../../../lib/meiTextos'
 import {
   LIMITE_ANUAL_MEI, dasMensalPorCategoria, faturamentoAnoMEI, limiteRestante, percentualLimite,
   semaforoTeto, projecaoTeto, fluxoMesMEI, pareceGastoPessoal, scoreMEI, carregarObrigacoesAno,
-  type StatusObrigacao,
+  serieMensalMEI, montarCofre,
+  detectarRetiradaPerigosa, detectarConsumoReserva, calcularPenalidadeDASAtraso, diasParaDAS,
+  type StatusObrigacao, type ContaPagarMEI,
 } from '../../../lib/meiHelpers'
 
 const supabase = createBrowserClient(
@@ -40,13 +46,19 @@ export default function PainelMEI() {
   const [receitas, setReceitas] = useState<any[]>([])
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
   const [custosFixos, setCustosFixos] = useState<any[]>([])
+  const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
+  const [statusDas, setStatusDas] = useState<StatusObrigacao>('Pendente')
   const [statusDasn, setStatusDasn] = useState<StatusObrigacao>('Pendente')
   const [statusIrpf, setStatusIrpf] = useState<StatusObrigacao>('Não obrigatório')
+  const [selicAnual, setSelicAnual] = useState(10.75)
   const [modalConfig, setModalConfig] = useState(false)
   const [categoriaMei, setCategoriaMei] = useState('Serviços')
   const [dasValor, setDasValor] = useState(String(dasMensalPorCategoria('Serviços')))
   const [dataAbertura, setDataAbertura] = useState('')
+  const [reservaEmergenciaPctForm, setReservaEmergenciaPctForm] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [compartilhando, setCompartilhando] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const txt = {
@@ -65,6 +77,9 @@ export default function PainelMEI() {
     totalReceitas: { pt: 'Total de receitas lançadas', en: 'Total registered revenues', es: 'Total de ingresos registrados' },
     mediaMensal: { pt: 'Média mensal (6m)', en: 'Monthly average (6m)', es: 'Promedio mensual (6m)' },
     projecaoAnual: { pt: 'Projeção anual', en: 'Annual projection', es: 'Proyección anual' },
+    reservaEmergencia: { pt: 'Reserva de Emergência (%)', en: 'Emergency Reserve (%)', es: 'Reserva de Emergencia (%)' },
+    compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
+    toastBaixado: { pt: 'PDF pronto — baixado.', en: 'PDF ready — downloaded.', es: 'PDF listo — descargado.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -78,26 +93,37 @@ export default function PainelMEI() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
-    const anoAtual = new Date().getFullYear()
-    const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, obrigacoes] = await Promise.all([
+    const hoje = new Date()
+    const anoAtual = hoje.getFullYear()
+    const inicioMes = new Date(anoAtual, hoje.getMonth(), 1).toISOString().slice(0, 10)
+    const fimMes = new Date(anoAtual, hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
+    const competenciaDas = `${anoAtual}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, { data: cp }, obrigacoes, macro] = await Promise.all([
       supabase.from('mei_dados').select('*').maybeSingle(),
       supabase.from('receitas').select('*').order('data', { ascending: false }),
       supabase.from('custos_variaveis').select('valor, data, descricao').order('data', { ascending: false }),
       supabase.from('custos_fixos').select('valor_mensal, descricao'),
+      supabase.from('contas_pagar').select('valor_total, valor_pago').neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes),
       carregarObrigacoesAno(anoAtual),
+      buscarIndicadoresMacro(),
     ])
     setMeiDados(mei || null)
     setReceitas(rec || [])
     setCustosVariaveis(cv || [])
     setCustosFixos(cf || [])
+    setContasPagar((cp || []) as ContaPagarMEI[])
+    setSelicAnual(macro.selic)
+    const das = obrigacoes.find(o => o.tipo === 'DAS' && o.competencia === competenciaDas)
     const dasn = obrigacoes.find(o => o.tipo === 'DASN' && o.competencia === String(anoAtual))
     const irpf = obrigacoes.find(o => o.tipo === 'IRPF' && o.competencia === String(anoAtual))
+    if (das) setStatusDas(das.status)
     if (dasn) setStatusDasn(dasn.status)
     if (irpf) setStatusIrpf(irpf.status)
     if (mei) {
       setCategoriaMei(mei.categoria_mei || 'Serviços')
       setDasValor(String(mei.das_valor || dasMensalPorCategoria(mei.categoria_mei)))
       setDataAbertura(mei.data_abertura || '')
+      setReservaEmergenciaPctForm(mei.reserva_emergencia_pct != null ? String(mei.reserva_emergencia_pct) : '')
     }
     setLoading(false)
   }
@@ -113,6 +139,7 @@ export default function PainelMEI() {
       categoria_mei: categoriaMei,
       das_valor: parseFloat(dasValor),
       data_abertura: dataAbertura || null,
+      reserva_emergencia_pct: reservaEmergenciaPctForm ? parseFloat(reservaEmergenciaPctForm) : null,
       limite_anual: LIMITE_ANUAL_MEI,
       regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
@@ -159,6 +186,51 @@ export default function PainelMEI() {
   const impostoAtualMensal = dasMensalPorCategoria(categoriaMei)
   const impostoMEMensal = faturamentoAnual > 0 ? calcularImpostoRegime('simples', faturamentoAnual, faturamentoAnual / 12) : 0
 
+  // ---- Cofre Inteligente (Fase 2) — "o que é seu de verdade" ----
+  // Gancho de IA: a explicação de cada fatia é texto fixo por regra hoje;
+  // quando ANTHROPIC_API_KEY entrar, trocar por chamada a app/api/ia-chat
+  // (mesma rota do IA MEI Advisor) sem mudar os números calculados abaixo.
+  const cofre = montarCofre({
+    sobraMes: fluxo.sobra,
+    receitaMensalMedia: mediaMensal,
+    faturamentoAnual,
+    categoriaMei,
+    dasValor: parseFloat(dasValor || String(impostoAtualMensal)),
+    contasPagarAbertas: contasPagar,
+    reservaEmergenciaPct: meiDados?.reserva_emergencia_pct ?? null,
+  })
+
+  // ---- Detector de retirada perigosa (Fase 2) ----
+  const gastosPessoaisMesValor = gastosPessoais.reduce((s, g) => s + (g.valor ?? g.valor_mensal ?? 0), 0)
+  const retirada = detectarRetiradaPerigosa({ proLaboreSeguro: cofre.proLaboreSeguro, gastosPessoaisMes: gastosPessoaisMesValor })
+
+  // ---- Guardião da Reserva (Fase 2) ----
+  const guardiao = detectarConsumoReserva({ reservaNecessaria: cofre.das + cofre.irpfReserva, sobraMes: fluxo.sobra })
+  const diasAteVencimentoDas = diasParaDAS()
+  const vencimentoDasEsteMes = new Date(anoAtual, mesAtual, 20)
+  const diasAtrasoDasReal = statusDas === 'Entregue' ? 0 : Math.max(0, Math.floor((new Date().getTime() - vencimentoDasEsteMes.getTime()) / 86400000))
+  const penalidadeAtual = calcularPenalidadeDASAtraso(cofre.das, diasAtrasoDasReal, selicAnual)
+  const penalidadeTeto = calcularPenalidadeDASAtraso(cofre.das, 61, selicAnual) // 61 dias = multa satura em 20% (teto legal)
+
+  // ---- Gráficos analíticos (Fase 2) — reaproveita ReactECharts + cfoCore, mesmo padrão de DRE/Investimentos ----
+  const evolucaoMensal = serieMensalMEI(receitas, custosVariaveis, custosFixos, anoAtual, mesAtual, mesAtual + 1)
+  const fluxoSerie6m = serieMensalMEI(receitas, custosVariaveis, custosFixos, anoAtual, mesAtual, 6)
+  const temHistoricoSuficiente = evolucaoMensal.length >= 2
+  const mediaEvolucao = temHistoricoSuficiente
+    ? evolucaoMensal.slice(0, -1).reduce((s, p) => s + p.entrou, 0) / Math.max(1, evolucaoMensal.length - 1)
+    : 0
+  const mesAtualPonto = evolucaoMensal[evolucaoMensal.length - 1]
+  const variacaoVsMedia = temHistoricoSuficiente && mediaEvolucao > 0 && mesAtualPonto
+    ? ((mesAtualPonto.entrou - mediaEvolucao) / mediaEvolucao) * 100
+    : 0
+
+  const ticketMedio = receitasMes.length > 0 ? receitaMesAtual / receitasMes.length : 0
+  const nRecebimentosMes = receitasMes.length
+  const maiorReceitaMes = receitasMes.length > 0 ? Math.max(...receitasMes.map(r => r.valor || 0)) : 0
+
+  const acumuladoTeto: number[] = []
+  { let acc = 0; for (const p of evolucaoMensal) { acc += p.entrou; acumuladoTeto.push(acc) } }
+
   const exportarPDF = async () => {
     if (!conteudoRef.current) return
     setExportando(true)
@@ -192,6 +264,37 @@ export default function PainelMEI() {
     setExportando(false)
   }
 
+  function montarArgsPdfAtual(): ArgsPdfTabela {
+    return {
+      titulo: t('titulo'),
+      subtitulo: `${anoAtual} — Score ${score.score}/1000 (${score.nivel})`,
+      colunas: [
+        { header: 'Item', key: 'label', width: 3 },
+        { header: 'Valor', key: 'valor', width: 2, align: 'right' },
+      ],
+      linhas: [
+        { label: t('faturamento'), valor: fmt(faturamentoAnual) },
+        { label: mx.cofreDas, valor: fmt(cofre.das) },
+        { label: mx.cofreIrpf, valor: fmt(cofre.irpfReserva) },
+        { label: mx.cofreCompromissos, valor: fmt(cofre.compromissos) },
+        { label: mx.cofreReserva, valor: fmt(cofre.reservaEmergencia) },
+        { label: mx.cofreProLabore, valor: fmt(cofre.proLaboreSeguro) },
+      ],
+      nomeArquivo: `axioma-mei-painel-${new Date().toISOString().slice(0, 10)}.pdf`,
+    }
+  }
+
+  async function compartilharPDF() {
+    setCompartilhando(true)
+    try {
+      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
+        if (baixouComoFallback) { setToast(t('toastBaixado')); setTimeout(() => setToast(null), 2500) }
+      })
+    } finally {
+      setCompartilhando(false)
+    }
+  }
+
   return (
     <ModuloLayout
       titulo={t('titulo')}
@@ -200,8 +303,22 @@ export default function PainelMEI() {
       exportando={exportando}
       onNovo={() => setModalConfig(true)}
       labelBotao={t('configurar')}
+      botaoExtra={
+        <button onClick={compartilharPDF} disabled={compartilhando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          style={{ background: `linear-gradient(135deg, ${ROYAL}, ${OURO})`, color: '#fff' }}>
+          <Share2 size={16} /> {t('compartilhar')}
+        </button>
+      }
     >
       <div ref={conteudoRef} className="space-y-4">
+
+        {toast && (
+          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
+            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
+            {toast}
+          </div>
+        )}
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -216,6 +333,86 @@ export default function PainelMEI() {
             </CanvasBox>
           ))}
         </div>
+
+        {/* Cofre Inteligente — coração da Fase 2: "o que é seu de verdade" */}
+        <CanvasBox cor={OURO}>
+          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{mx.cofreTitulo}</p>
+          <p className="text-[10px] mb-4" style={{ color: '#5a7a9a' }}>{mx.cofreExplicacao}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              {[
+                { label: mx.cofreDas, valor: cofre.das, cor: VERMELHO },
+                { label: mx.cofreIrpf, valor: cofre.irpfReserva, cor: AMBAR },
+                { label: mx.cofreCompromissos, valor: cofre.compromissos, cor: AZUL },
+                { label: `${mx.cofreReserva} (${cofre.reservaEmergenciaPctUsado.toFixed(0)}%)`, valor: cofre.reservaEmergencia, cor: '#a78bfa' },
+              ].map((item, i) => (
+                <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg" style={{ background: `${item.cor}08`, border: `1px solid ${item.cor}20` }}>
+                  <span className="text-xs" style={{ color: '#c8d8f0' }}>{item.label}</span>
+                  <span className="text-xs font-bold" style={{ color: item.cor }}>{fmt(item.valor)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between items-center px-3 py-3 rounded-lg mt-3" style={{ background: `${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}15`, border: `1px solid ${cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO}40` }}>
+                <span className="text-sm font-bold" style={{ color: '#c8d8f0' }}>{mx.cofreProLabore}</span>
+                <span className="text-lg font-black" style={{ color: cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO, fontFamily: "'Georgia','Times New Roman',serif" }}>{fmt(cofre.proLaboreSeguro)}</span>
+              </div>
+              {cofre.avisos.map((aviso, i) => (
+                <p key={i} className="text-[10px] mt-1" style={{ color: '#5a7a9a' }}>⚠️ {aviso}</p>
+              ))}
+            </div>
+            <div style={{ height: 220 }}>
+              <p className="text-[10px] uppercase tracking-wider mb-1 text-center" style={{ color: '#5a7a9a' }}>{mx.composicaoCofre}</p>
+              <ReactECharts style={{ height: 200 }} option={optRosca(
+                [
+                  { name: mx.cofreDas, value: Math.max(0, cofre.das), color: VERMELHO },
+                  { name: mx.cofreIrpf, value: Math.max(0, cofre.irpfReserva), color: AMBAR },
+                  { name: mx.cofreCompromissos, value: Math.max(0, cofre.compromissos), color: AZUL },
+                  { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: '#a78bfa' },
+                  { name: mx.cofreProLabore, value: Math.max(0, cofre.proLaboreSeguro), color: VERDE },
+                ],
+                OURO, mx.cofreTitulo
+              )} notMerge />
+            </div>
+          </div>
+        </CanvasBox>
+
+        {/* Detector de retirada perigosa */}
+        {retirada.perigosa && (
+          <CanvasBox cor={VERMELHO}>
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={16} style={{ color: VERMELHO, flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <p className="text-sm font-bold mb-1" style={{ color: VERMELHO }}>{mx.retiradaTitulo}</p>
+                <p className="text-xs" style={{ color: '#c8d8f0' }}>
+                  {retirada.motivo === 'seguro_negativo' ? mx.retiradaAvisoSeguroNegativo : mx.retiradaAvisoGastoAlto}
+                </p>
+              </div>
+            </div>
+          </CanvasBox>
+        )}
+
+        {/* Guardião da Reserva */}
+        {guardiao.consumida && (
+          <CanvasBox cor={AMBAR}>
+            <div className="flex items-start gap-2 mb-3">
+              <Clock size={16} style={{ color: AMBAR, flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <p className="text-sm font-bold mb-1" style={{ color: AMBAR }}>{mx.guardiaoTitulo}</p>
+                <p className="text-xs" style={{ color: '#c8d8f0' }}>
+                  {mx.guardiaoConsumiu.replace('X', guardiao.valorConsumido.toFixed(0))} — {diasAteVencimentoDas} {mx.guardiaoDiasRestantes}.
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: '#5a7a9a' }}>{mx.guardiaoBaseadoEm}</p>
+              </div>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: `${VERMELHO}08`, border: `1px solid ${VERMELHO}20` }}>
+              <p className="text-xs" style={{ color: '#c8d8f0' }}>
+                {mx.guardiaoConsequencia} {diasAtrasoDasReal > 0
+                  ? <><strong style={{ color: VERMELHO }}>{fmt(penalidadeAtual.multa)}</strong> {lang === 'pt' ? 'de multa' : lang === 'en' ? 'in fines' : 'de multa'} + <strong style={{ color: VERMELHO }}>{fmt(penalidadeAtual.juros)}</strong> {lang === 'pt' ? 'de juros até hoje' : lang === 'en' ? 'in interest so far' : 'de intereses hasta hoy'}.</>
+                  : <>{lang === 'pt' ? 'até' : lang === 'en' ? 'up to' : 'hasta'} <strong style={{ color: VERMELHO }}>{fmt(penalidadeTeto.multa)}</strong> {lang === 'pt' ? 'de multa (teto legal) + juros pela Selic' : lang === 'en' ? 'in fines (legal cap) + Selic interest' : 'de multa (tope legal) + intereses Selic'} ({selicAnual.toFixed(2)}% a.a.).</>}
+              </p>
+              <p className="text-[10px] mt-2" style={{ color: '#5a7a9a' }}>{mx.guardiaoEstimativa}</p>
+            </div>
+          </CanvasBox>
+        )}
 
         {/* 2a — Radar do Teto */}
         <CanvasBox cor={corSemaforo}>
@@ -258,6 +455,56 @@ export default function PainelMEI() {
           )}
         </CanvasBox>
 
+        {/* Progresso do Teto no Tempo */}
+        {temHistoricoSuficiente ? (
+          <CanvasBox cor={corSemaforo}>
+            <p className="text-sm font-semibold mb-3" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{mx.progressoTeto}</p>
+            <ReactECharts style={{ height: 220 }} notMerge option={optLinhaMulti(
+              [
+                { nome: t('faturamento'), dados: acumuladoTeto, cor: corSemaforo, area: true },
+                { nome: 'Limite MEI', dados: evolucaoMensal.map(() => LIMITE_ANUAL_MEI), cor: VERMELHO, tipo: 'dashed' },
+              ],
+              evolucaoMensal.map(p => p.mes), corSemaforo
+            )} />
+          </CanvasBox>
+        ) : (
+          <CanvasBox cor={corSemaforo}>
+            <p className="text-xs" style={{ color: '#5a7a9a' }}>{mx.semHistoricoSuficiente}</p>
+          </CanvasBox>
+        )}
+
+        {/* Evolução de Ganhos + Métricas-chave */}
+        <CanvasBox cor={OURO}>
+          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{mx.evolucaoGanhos}</p>
+          {temHistoricoSuficiente && mediaEvolucao > 0 && (
+            <p className="text-xs mb-3" style={{ color: variacaoVsMedia >= 0 ? VERDE : VERMELHO }}>
+              {new Date().toLocaleDateString('pt-BR', { month: 'long' })} {Math.abs(variacaoVsMedia).toFixed(0)}% {variacaoVsMedia >= 0 ? mx.acimaMedia : mx.abaixoMedia}
+            </p>
+          )}
+          {temHistoricoSuficiente ? (
+            <ReactECharts style={{ height: 220 }} notMerge option={optBarrasV(
+              evolucaoMensal.map(p => p.entrou),
+              evolucaoMensal.map(p => p.mes),
+              OURO, '#f0d878',
+              evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? ROYAL : null))
+            )} />
+          ) : (
+            <p className="text-xs" style={{ color: '#5a7a9a' }}>{mx.semHistoricoSuficiente}</p>
+          )}
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            {[
+              { label: mx.ticketMedio, valor: fmt(ticketMedio) },
+              { label: mx.nRecebimentos, valor: String(nRecebimentosMes) },
+              { label: mx.maiorReceita, valor: fmt(maiorReceitaMes) },
+            ].map((m, i) => (
+              <div key={i} className="rounded-xl p-3 text-center" style={{ background: 'rgba(10,22,40,0.6)', border: '1px solid rgba(106,176,255,0.15)' }}>
+                <p className="text-[9px] uppercase tracking-wider" style={{ color: '#5a7a9a' }}>{m.label}</p>
+                <p className="text-sm font-bold mt-1" style={{ color: AZUL }}>{m.valor}</p>
+              </div>
+            ))}
+          </div>
+        </CanvasBox>
+
         {/* 2c — Fluxo traduzido */}
         <CanvasBox cor={AZUL}>
           <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{mx.fluxoTitulo}</p>
@@ -277,6 +524,21 @@ export default function PainelMEI() {
           </div>
           <p className="text-xs mt-3" style={{ color: AMBAR }}>⏰ {mx.atencaoDas}</p>
         </CanvasBox>
+
+        {/* Fluxo de Caixa Visual */}
+        {temHistoricoSuficiente ? (
+          <CanvasBox cor={AZUL}>
+            <p className="text-sm font-semibold mb-3" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{mx.fluxoCaixaVisual}</p>
+            <ReactECharts style={{ height: 220 }} notMerge option={optLinhaMulti(
+              [
+                { nome: mx.entrou, dados: fluxoSerie6m.map(p => p.entrou), cor: VERDE, area: true },
+                { nome: mx.saiu, dados: fluxoSerie6m.map(p => p.saiu), cor: VERMELHO },
+                { nome: mx.sobra, dados: fluxoSerie6m.map(p => p.sobra), cor: AZUL },
+              ],
+              fluxoSerie6m.map(p => p.mes), AZUL
+            )} />
+          </CanvasBox>
+        ) : null}
 
         {/* 2d — Score de Saúde */}
         <CanvasBox cor={score.cor}>
@@ -432,6 +694,14 @@ export default function PainelMEI() {
                     </label>
                     <input type="date" value={dataAbertura} onChange={e => setDataAbertura(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                      {t('reservaEmergencia')}
+                    </label>
+                    <input type="number" value={reservaEmergenciaPctForm} onChange={e => setReservaEmergenciaPctForm(e.target.value)}
+                      placeholder="10" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
                   </div>
                   <div className="flex gap-3 pt-2">
