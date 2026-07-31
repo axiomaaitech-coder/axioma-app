@@ -7,6 +7,7 @@ import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
 import { obterEmpresaAtiva, carregarEmpresaPorId } from "../lib/empresaHelpers";
+import BadgeDestaque from "./BadgeDestaque";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,9 +16,9 @@ const supabase = createBrowserClient(
 
 const grupos = [
   {
-    label: { pt: "🟠 MEI", en: "🟠 MEI", es: "🟠 MEI" },
-    cor: "#f97316",
-    corBg: "rgba(249,115,22,0.12)",
+    label: { pt: "🟡 MEI", en: "🟡 MEI", es: "🟡 MEI" },
+    cor: "#d4af37",
+    corBg: "rgba(212,175,55,0.12)",
     destaque: true,
     itens: [
       { label: { pt: "Painel MEI", en: "MEI Dashboard", es: "Panel MEI" }, path: "/mei", emoji: "🏪" },
@@ -212,19 +213,14 @@ export default function TopNav() {
                 onClick={() => setDropdown(aberto ? null : grupo.label.pt)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
-                  background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "transparent",
-                  color: ativo || aberto ? grupo.cor : ehMei ? "#f97316" : "#5a7a9a",
-                  border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(249,115,22,0.3)" : "1px solid transparent",
-                  boxShadow: ehMei ? "0 0 12px rgba(249,115,22,0.15)" : "none",
+                  background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "transparent",
+                  color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
+                  border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(212,175,55,0.3)" : "1px solid transparent",
+                  boxShadow: ehMei ? "0 0 12px rgba(212,175,55,0.15)" : "none",
                 }}
               >
                 <span className="text-xs">{grupo.label[lang]}</span>
-                {ehMei && (
-                  <span className="text-xs px-1 py-0.5 rounded-full font-black animate-pulse"
-                    style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 8, border: "1px solid rgba(249,115,22,0.4)" }}>
-                    NOVO
-                  </span>
-                )}
+                {ehMei && <BadgeDestaque lang={lang} />}
                 <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown size={13} />
                 </motion.div>
@@ -415,13 +411,13 @@ export default function TopNav() {
                         onClick={() => setGrupoMobile(aberto ? null : grupo.label.pt)}
                         className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
                         style={{
-                          background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "rgba(59,111,212,0.04)",
-                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(249,115,22,0.25)" : "1px solid rgba(59,111,212,0.08)",
-                          color: ativo || aberto ? grupo.cor : ehMei ? "#f97316" : "#5a7a9a",
+                          background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "rgba(59,111,212,0.04)",
+                          border: ativo || aberto ? `1px solid ${grupo.cor}35` : ehMei ? "1px solid rgba(212,175,55,0.25)" : "1px solid rgba(59,111,212,0.08)",
+                          color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
                         }}>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm">{grupo.label[lang]}</span>
-                          {ehMei && <span className="text-xs px-1 py-0.5 rounded-full font-black animate-pulse" style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 8 }}>NOVO</span>}
+                          {ehMei && <BadgeDestaque lang={lang} />}
                         </div>
                         <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown size={14} /></motion.div>
                       </motion.button>

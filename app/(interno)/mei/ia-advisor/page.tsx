@@ -2,108 +2,28 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { CanvasBox } from '../../../../components/CanvasBox'
 import { Bot } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { LIMITE_ANUAL_MEI, dasMensalPorCategoria } from '../../../../lib/meiHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const COR = '#f97316'
-const COR_B = '#fb923c'
-const COR_C = '#fbbf24'
-const COR_D = '#f472b6'
-const LIMITE_ANUAL = 81000
+const OURO = '#d4af37'
+const VERDE = '#34d399'
+const VERMELHO = '#f87171'
+const AZUL = '#6ab0ff'
+const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
 
-function CanvasNeural() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return
-    const ctx = canvas.getContext('2d'); if (!ctx) return
-    let animId: number
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
-    resize(); window.addEventListener('resize', resize)
-    const particles = Array.from({ length: 40 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
-      size: Math.random() * 2 + 0.5,
-      color: ['#f97316', '#fb923c', '#fbbf24', '#f472b6', '#a78bfa'][Math.floor(Math.random() * 5)],
-      opacity: Math.random() * 0.6 + 0.2,
-    }))
-    const chars = 'MEI IA AI CNPJ DAS R$ AXIOMA ADVISOR FISCAL'.split(' ').map((c) => ({
-      char: c, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 26 + 12, opacity: Math.random() * 0.06 + 0.02,
-      speed: Math.random() * 0.25 + 0.08,
-      color: ['#f97316', '#fbbf24', '#fb923c', '#a78bfa'][Math.floor(Math.random() * 4)],
-    }))
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height)
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105
-      })
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 100) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 100) * 0.1
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore()
-          }
-        })
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color
-        ctx.shadowColor = p.color; ctx.shadowBlur = 6
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore()
-        p.x += p.vx; p.y += p.vy
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
-      })
-      animId = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
-  }, [])
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.7 }} />
-}
-
-function CanvasBox({ children, cor = COR, corB = COR_B, corC = COR_C, corD = COR_D }: {
-  children: React.ReactNode; cor?: string; corB?: string; corC?: string; corD?: string
-}) {
-  return (
-    <div className="relative rounded-2xl overflow-hidden" style={{
-      background: 'rgba(4,10,22,0.97)', border: `1px solid ${cor}30`, boxShadow: `0 0 60px ${cor}10`,
-    }}>
-      <CanvasNeural />
-      {[
-        { pos: 'top-0 left-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(90deg, ${cor}, transparent)`, glow: cor },
-        { pos: 'top-0 left-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(180deg, ${cor}, transparent)`, glow: cor },
-        { pos: 'top-0 right-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(270deg, ${corB}, transparent)`, glow: corB },
-        { pos: 'top-0 right-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(180deg, ${corB}, transparent)`, glow: corB },
-        { pos: 'bottom-0 left-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(90deg, ${corC}, transparent)`, glow: corC },
-        { pos: 'bottom-0 left-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(0deg, ${corC}, transparent)`, glow: corC },
-        { pos: 'bottom-0 right-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(270deg, ${corD}, transparent)`, glow: corD },
-        { pos: 'bottom-0 right-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(0deg, ${corD}, transparent)`, glow: corD },
-      ].map((b, i) => (
-        <div key={i} className={`absolute ${b.pos} ${b.w} z-10`} style={{ background: b.bg, boxShadow: `0 0 14px ${b.glow}`, borderRadius: '999px' }} />
-      ))}
-      <motion.div animate={{ left: ['-5%', '105%', '-5%'] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, #fff, ${cor}, transparent)`, boxShadow: `0 0 20px #fff, 0 0 40px ${cor}`, borderRadius: '999px' }} />
-      <motion.div animate={{ right: ['-5%', '105%', '-5%'] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 2.5 }}
-        className="absolute bottom-0 h-[2.5px] w-24 z-20 pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${corB}, #fff, transparent)`, boxShadow: `0 0 20px ${corB}`, borderRadius: '999px', position: 'absolute' }} />
-      <div className="relative z-10 p-4 md:p-5">{children}</div>
-    </div>
-  )
-}
-
-// Respostas simuladas inteligentes baseadas nos dados reais
+// Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
+// no fim do arquivo (chamaria app/api/ia-chat/route.ts quando a chave
+// ANTHROPIC_API_KEY for ativada; hoje a explicação é 100% por regra).
 function gerarResposta(pergunta: string, dados: {
   faturamento: number, limite: number, percentual: number,
   restante: number, das: string, categoria: string, lang: string
@@ -184,10 +104,15 @@ export default function IAMEIAdvisor() {
 
   const txt = {
     titulo: { pt: 'IA MEI Advisor', en: 'AI MEI Advisor', es: 'IA MEI Advisor' },
-    subtitulo: { pt: 'Seu consultor financeiro e fiscal MEI com inteligência artificial', en: 'Your MEI financial and tax advisor with artificial intelligence', es: 'Su asesor financiero y fiscal MEI con inteligencia artificial' },
+    subtitulo: { pt: 'Seu consultor financeiro e fiscal MEI', en: 'Your MEI financial and tax advisor', es: 'Su asesor financiero y fiscal MEI' },
     placeholder: { pt: 'Pergunte sobre seu MEI...', en: 'Ask about your MEI...', es: 'Pregunte sobre su MEI...' },
     enviar: { pt: 'Enviar', en: 'Send', es: 'Enviar' },
     bemvindo: { pt: 'Olá! Sou o MEI Advisor da Axioma. Conheço seus dados reais. Pergunte sobre DAS, limite, IRPF, Reforma Tributária ou precificação.', en: 'Hello! I am the Axioma MEI Advisor. I know your real data. Ask about DAS, limit, IRPF, Tax Reform or pricing.', es: 'Hola! Soy el MEI Advisor de Axioma. Conozco sus datos reales. Pregunte sobre DAS, límite, IRPF, Reforma Tributaria o precios.' },
+    transparencia: {
+      pt: 'Respostas geradas 100% por regras a partir dos seus dados reais — ainda não é um modelo de linguagem.',
+      en: '100% rule-based answers from your real data — not a language model yet.',
+      es: 'Respuestas generadas 100% por reglas a partir de sus datos reales — todavía no es un modelo de lenguaje.',
+    },
     sugestoes: {
       pt: ['Vou estourar o limite?', 'Preciso declarar IRPF?', 'MEI ou ME em 2027?', 'Como reduzir meus impostos?', 'Qual meu DAS correto?'],
       en: ['Will I exceed the limit?', 'Do I need to declare IRPF?', 'MEI or ME in 2027?', 'How to reduce my taxes?', 'What is my correct DAS?'],
@@ -219,10 +144,10 @@ export default function IAMEIAdvisor() {
 
   const anoAtual = new Date().getFullYear()
   const faturamentoAnual = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual).reduce((acc, r) => acc + (r.valor || 0), 0)
-  const percentualLimite = Math.min(100, (faturamentoAnual / LIMITE_ANUAL) * 100)
-  const restanteLimite = Math.max(0, LIMITE_ANUAL - faturamentoAnual)
-  const dasValor = meiDados?.das_valor || 75.90
+  const percentualLimite = Math.min(100, (faturamentoAnual / LIMITE_ANUAL_MEI) * 100)
+  const restanteLimite = Math.max(0, LIMITE_ANUAL_MEI - faturamentoAnual)
   const categoria = meiDados?.categoria_mei || 'Serviços'
+  const dasValor = meiDados?.das_valor || dasMensalPorCategoria(categoria)
 
   async function enviarMensagem() {
     if (!chatInput.trim() || chatLoading) return
@@ -236,7 +161,7 @@ export default function IAMEIAdvisor() {
 
     const resposta = gerarResposta(msg, {
       faturamento: faturamentoAnual,
-      limite: LIMITE_ANUAL,
+      limite: LIMITE_ANUAL_MEI,
       percentual: percentualLimite,
       restante: restanteLimite,
       das: String(dasValor),
@@ -258,7 +183,7 @@ export default function IAMEIAdvisor() {
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width
       const pageHeight = pdf.internal.pageSize.getHeight()
       pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, 'F')
-      pdf.setTextColor(249, 115, 22); pdf.setFontSize(14); pdf.setFont('helvetica', 'bold')
+      pdf.setTextColor(212, 175, 55); pdf.setFontSize(14); pdf.setFont('helvetica', 'bold')
       pdf.text('AXIOMA AI.TECH — IA MEI Advisor', 14, 13)
       pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont('helvetica', 'normal')
       pdf.text(new Date().toLocaleDateString('pt-BR'), pdfWidth - 14, 13, { align: 'right' })
@@ -288,50 +213,43 @@ export default function IAMEIAdvisor() {
         {/* Cards contexto */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: `Faturamento ${anoAtual}`, value: fmt(faturamentoAnual), cor: COR },
-            { label: lang === 'pt' ? 'Limite usado' : lang === 'en' ? 'Limit used' : 'Límite usado', value: `${percentualLimite.toFixed(1)}%`, cor: percentualLimite >= 80 ? '#f87171' : '#34d399' },
-            { label: lang === 'pt' ? 'Categoria MEI' : lang === 'en' ? 'MEI Category' : 'Categoría MEI', value: categoria, cor: '#a78bfa' },
+            { label: `Faturamento ${anoAtual}`, value: fmt(faturamentoAnual), cor: OURO },
+            { label: lang === 'pt' ? 'Limite usado' : lang === 'en' ? 'Limit used' : 'Límite usado', value: `${percentualLimite.toFixed(1)}%`, cor: percentualLimite >= 80 ? VERMELHO : VERDE },
+            { label: lang === 'pt' ? 'Categoria MEI' : lang === 'en' ? 'MEI Category' : 'Categoría MEI', value: categoria, cor: AZUL },
           ].map((card, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-              <CanvasBox cor={card.cor}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#3a5a8a' }}>{card.label}</p>
-                <p className="text-lg md:text-xl font-black" style={{ color: card.cor, textShadow: `0 0 20px ${card.cor}60` }}>{card.value}</p>
-              </CanvasBox>
-            </motion.div>
+            <CanvasBox key={i} cor={card.cor}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
+              <p className="text-lg md:text-xl font-black" style={{ color: card.cor, ...FONTE }}>{card.value}</p>
+            </CanvasBox>
           ))}
         </div>
 
         {/* Chat */}
-        <CanvasBox>
-          <motion.p animate={{ opacity: [0.6, 1, 0.6] }} transition={{ duration: 3, repeat: Infinity }}
-            className="text-xs font-black tracking-[0.3em] uppercase mb-4" style={{ color: COR, textShadow: `0 0 20px ${COR}` }}>
-            AXIOMA AI.TECH — MEI ADVISOR
-          </motion.p>
+        <CanvasBox cor={OURO}>
+          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', ...FONTE }}>{t('titulo') as string}</p>
+          <p className="text-[10px] mb-4" style={{ color: '#5a7a9a' }}>{t('transparencia') as string}</p>
 
           <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(249,115,22,0.1)' }}>
+            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)' }}>
             {chatMensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full gap-3">
-                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                  <Bot size={40} style={{ color: `${COR}60` }} />
-                </motion.div>
-                <p className="text-xs text-center px-4" style={{ color: '#3a5a8a' }}>
+                <Bot size={40} style={{ color: `${OURO}60` }} />
+                <p className="text-xs text-center px-4" style={{ color: '#5a7a9a' }}>
                   {(t('bemvindo') as string)}
                 </p>
               </div>
             )}
             {chatMensagens.map((msg, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line"
                   style={{
-                    background: msg.role === 'user' ? `${COR}20` : 'rgba(255,255,255,0.05)',
+                    background: msg.role === 'user' ? `${OURO}20` : 'rgba(255,255,255,0.05)',
                     color: '#c8d8f0',
-                    border: `1px solid ${msg.role === 'user' ? COR + '30' : 'rgba(255,255,255,0.06)'}`,
+                    border: `1px solid ${msg.role === 'user' ? OURO + '30' : 'rgba(255,255,255,0.06)'}`,
                   }}>
                   {msg.content}
                 </div>
-              </motion.div>
+              </div>
             ))}
             {chatLoading && (
               <div className="flex justify-start">
@@ -339,7 +257,7 @@ export default function IAMEIAdvisor() {
                   <div className="flex gap-1">
                     {[0, 1, 2].map(i => (
                       <motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                        className="w-2 h-2 rounded-full" style={{ background: COR }} />
+                        className="w-2 h-2 rounded-full" style={{ background: OURO }} />
                     ))}
                   </div>
                 </div>
@@ -353,22 +271,21 @@ export default function IAMEIAdvisor() {
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
               placeholder={t('placeholder') as string}
               className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(249,115,22,0.2)', color: '#c8d8f0' }} />
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-              onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}20`, color: '#c8d8f0' }} />
+            <button onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
               className="px-4 py-3 rounded-xl font-bold text-sm disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, #c2410c, ${COR})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
               {t('enviar')}
-            </motion.button>
+            </button>
           </div>
 
           <div className="flex gap-2 flex-wrap mt-3">
             {((txt.sugestoes as any)[lang] as string[]).map((q: string, i: number) => (
-              <motion.button key={i} whileTap={{ scale: 0.95 }} onClick={() => setChatInput(q)}
+              <button key={i} onClick={() => setChatInput(q)}
                 className="text-xs px-3 py-1.5 rounded-full"
-                style={{ background: `${COR}10`, color: COR, border: `1px solid ${COR}25` }}>
+                style={{ background: `${OURO}10`, color: OURO, border: `1px solid ${OURO}25` }}>
                 {q}
-              </motion.button>
+              </button>
             ))}
           </div>
         </CanvasBox>
@@ -377,3 +294,23 @@ export default function IAMEIAdvisor() {
     </ModuloLayout>
   )
 }
+
+// ============================================================================
+// GANCHO IA GENERATIVA (comentado, não ativar) — quando ANTHROPIC_API_KEY
+// for configurada (decisão do Elias), o MEI Advisor chamaria a mesma rota já
+// usada por IA Financeira/IA Tributária, em vez de `gerarResposta()` por
+// regra. Formato pronto, só falta a chave:
+//
+// async function perguntarIAReal(mensagem: string, contexto: string) {
+//   const resp = await fetch('/api/ia-chat', {
+//     method: 'POST',
+//     headers: { 'Content-Type': 'application/json' },
+//     body: JSON.stringify({
+//       mensagem,
+//       contexto: `Você é o MEI Advisor da Axioma. Contexto do usuário: ${contexto}`,
+//     }),
+//   })
+//   const { resposta } = await resp.json()
+//   return resposta as string
+// }
+// ============================================================================

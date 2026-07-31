@@ -5,6 +5,7 @@ import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Menu, X, LogOut } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
+import BadgeDestaque from "./BadgeDestaque";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,9 +14,9 @@ const supabase = createBrowserClient(
 
 const grupos = [
   {
-    label: "🟠 MEI",
-    cor: "#f97316",
-    corBg: "rgba(249,115,22,0.08)",
+    label: "🟡 MEI",
+    cor: "#d4af37",
+    corBg: "rgba(212,175,55,0.08)",
     destaque: true,
     itens: [
       { label: "Painel MEI", path: "/mei", emoji: "🏪" },
@@ -97,7 +98,7 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useLanguage();
-  const [abertos, setAbertos] = useState<string[]>(["🟠 MEI", "💰 Financeiro"]);
+  const [abertos, setAbertos] = useState<string[]>(["🟡 MEI", "💰 Financeiro"]);
   const [menuAberto, setMenuAberto] = useState(false);
 
   const toggleGrupo = (label: string) => {
@@ -175,28 +176,23 @@ export default function Sidebar() {
                 onClick={() => toggleGrupo(grupo.label)}
                 className="flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all"
                 style={{
-                  background: ativo ? grupo.corBg : ehMei ? "rgba(249,115,22,0.06)" : "transparent",
-                  border: ativo ? `1px solid ${grupo.cor}30` : ehMei ? "1px solid rgba(249,115,22,0.25)" : "1px solid transparent",
-                  color: ativo ? grupo.cor : ehMei ? "#f97316" : "#4a6a8a",
-                  boxShadow: ehMei ? "0 0 16px rgba(249,115,22,0.1), inset 0 0 20px rgba(249,115,22,0.03)" : "none",
+                  background: ativo ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "transparent",
+                  border: ativo ? `1px solid ${grupo.cor}30` : ehMei ? "1px solid rgba(212,175,55,0.25)" : "1px solid transparent",
+                  color: ativo ? grupo.cor : ehMei ? "#d4af37" : "#4a6a8a",
+                  boxShadow: ehMei ? "0 0 16px rgba(212,175,55,0.1), inset 0 0 20px rgba(212,175,55,0.03)" : "none",
                 }}
               >
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 rounded-full" style={{
-                    background: aberto ? grupo.cor : ehMei ? "rgba(249,115,22,0.5)" : "rgba(59,111,212,0.2)",
-                    boxShadow: ehMei && aberto ? "0 0 8px #f97316" : "none"
+                    background: aberto ? grupo.cor : ehMei ? "rgba(212,175,55,0.5)" : "rgba(59,111,212,0.2)",
+                    boxShadow: ehMei && aberto ? "0 0 8px #d4af37" : "none"
                   }} />
                   <span className="text-xs font-bold tracking-wider uppercase">{grupo.label}</span>
-                  {ehMei && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-full font-black animate-pulse"
-                      style={{ background: "rgba(249,115,22,0.25)", color: "#f97316", fontSize: 9, border: "1px solid rgba(249,115,22,0.4)" }}>
-                      NOVO
-                    </span>
-                  )}
+                  {ehMei && <BadgeDestaque />}
                 </div>
                 {aberto
                   ? <ChevronDown size={13} style={{ color: grupo.cor }} />
-                  : <ChevronRight size={13} style={{ color: ehMei ? "#f97316" : "#4a6a8a" }} />}
+                  : <ChevronRight size={13} style={{ color: ehMei ? "#d4af37" : "#4a6a8a" }} />}
               </div>
               {aberto && (
                 <div className="ml-4 mt-1 space-y-0.5 mb-1 border-l-2 pl-3" style={{ borderColor: `${grupo.cor}40` }}>
