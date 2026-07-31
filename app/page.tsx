@@ -615,50 +615,27 @@ function NeonBox({ children, cor = '#6ab0ff', corB = '#34d399', corC = '#a78bfa'
 }
 
 // ============================================================
-// HERO VIDEO SEQUENCE — 5 vídeos (sem áudio, vídeo inteiro)
+// HERO VIDEO — slide único ("Uma Revolução Nascida no Brasil"),
+// em loop contínuo (sem áudio, sem rotação de slides)
 // ============================================================
 function HeroVideos() {
-  const TOTAL = 5
-  const [current, setCurrent] = useState(0)
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([])
-
-  useEffect(() => {
-    videoRefs.current.forEach((ref, i) => {
-      if (!ref) return
-      if (i === current) ref.play().catch(() => {})
-      else { ref.pause(); ref.currentTime = 0 }
-    })
-  }, [current])
-
-  const handleVideoEnd = (idx: number) => setCurrent(idx < TOTAL - 1 ? idx + 1 : 0)
-
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ background: '#020810' }}>
       <FrameRain cor="#00E5FF" />
-      {Array.from({ length: TOTAL }).map((_, i) => (
-        <video key={i} ref={(el) => { videoRefs.current[i] = el }} muted playsInline
-          preload={i === current || i === (current + 1) % TOTAL ? 'auto' : 'none'}
-          controlsList="nodownload nofullscreen noremoteplayback"
-          disablePictureInPicture
-          disableRemotePlayback
-          onEnded={() => handleVideoEnd(i)}
-          className="absolute inset-0 w-full h-full object-contain transition-opacity duration-1000"
-          style={{ zIndex: 1, opacity: current === i ? 1 : 0, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
-          <source src={`/videos/hero-${i + 1}.mp4`} type="video/mp4" />
-        </video>
-      ))}
+      <video autoPlay loop muted playsInline
+        controlsList="nodownload nofullscreen noremoteplayback"
+        disablePictureInPicture
+        disableRemotePlayback
+        className="absolute inset-0 w-full h-full object-contain"
+        style={{ zIndex: 1, filter: 'brightness(1.05) contrast(1.04) saturate(1.12)' }}>
+        <source src="/videos/hero-5.mp4" type="video/mp4" />
+      </video>
 
       <div className="absolute inset-0 pointer-events-none"
         style={{ zIndex: 2, background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2,8,16,0.35) 85%, rgba(2,8,16,0.7) 100%)' }} />
       <div className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{ zIndex: 2, background: 'linear-gradient(to top, rgba(2,8,16,0.85), transparent)' }} />
 
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-        {Array.from({ length: TOTAL }).map((_, i) => (
-          <div key={i} className="h-1 rounded-full transition-all duration-500"
-            style={{ width: current === i ? 44 : 18, background: current === i ? '#00E5FF' : 'rgba(0,229,255,0.3)', boxShadow: current === i ? '0 0 12px #00E5FF' : 'none' }} />
-        ))}
-      </div>
       <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
         style={{ background: 'linear-gradient(90deg, transparent, #00E5FF, transparent)', boxShadow: '0 0 20px #00E5FF' }} />
     </div>
