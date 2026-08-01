@@ -9,7 +9,8 @@ import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
-import { gerarPdfTabela, compartilharOuBaixarPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
+import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { fBRL, fBRL2, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
@@ -213,7 +214,7 @@ export default function EstoquePage() {
   const [aba, setAba] = useState<"painel" | "produtos" | "movimentacoes" | "avisos" | "inteligencia" | "copiloto">("painel");
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
   const [exportando, setExportando] = useState(false);
-  const [compartilhando, setCompartilhando] = useState(false);
+  const [shareAberto, setShareAberto] = useState(false);
 
   const [fornecedoresDrop, setFornecedoresDrop] = useState<{ id: string; nome: string }[]>([]);
   const [centrosCustoDrop, setCentrosCustoDrop] = useState<{ id: string; nome: string }[]>([]);
@@ -895,25 +896,13 @@ export default function EstoquePage() {
     }
   }
 
-  async function compartilharPDF() {
-    const args = montarArgsPdfAtual();
-    if (!args) return;
-    setCompartilhando(true);
-    try {
-      await compartilharOuBaixarPdf(args, (baixouComoFallback) => {
-        if (baixouComoFallback) mostrarToast(et.toastRelatorioProntoCompartilhar, "info");
-      });
-    } finally {
-      setCompartilhando(false);
-    }
-  }
-
   if (carregando) {
     return <ModuloLayout titulo={et.titulo} subtitulo={et.carregando}><div className="text-center py-20" style={{ color: "#5a7a9a" }}>{et.carregando}</div></ModuloLayout>;
   }
 
   const opcoesFornecedor = fornecedoresDrop.map((f) => ({ value: f.id, label: f.nome }));
   const opcoesCentroCusto = centrosCustoDrop.map((c) => ({ value: c.id, label: c.nome }));
+  const argsShare = montarArgsPdfAtual();
 
   return (
     <ModuloLayout
@@ -924,10 +913,10 @@ export default function EstoquePage() {
       botaoExtra={(aba === "produtos" || aba === "movimentacoes" || aba === "avisos") && (
         <motion.button
           whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
-          onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+          onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
-          <Share2 size={16} /> {compartilhando ? et.salvando : et.compartilhar}
+          <Share2 size={16} /> {et.compartilhar}
         </motion.button>
       )}
     >
@@ -1865,6 +1854,17 @@ export default function EstoquePage() {
           </div>
         </div>
       </ModalPremium>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={idioma}
+        textoResumo={argsShare ? textoResumoPdf(argsShare) : et.titulo}
+        textoDetalhado={argsShare ? textoDetalhadoPdf(argsShare) : undefined}
+        assunto={`${et.titulo} — Axioma`}
+        onExportarPDF={argsShare ? () => gerarPdfTabela(argsShare) : undefined}
+        cor={JADE}
+      />
     </ModuloLayout>
   );
 }

@@ -932,6 +932,18 @@ Elias testou de novo e reportou 2 problemas, ambos com a mesma raiz por trás.
 
 **PAREI aqui de propósito — não comecei a Fase 2** (curva ABC, giro, ponto de reposição, integração PDV real, IA preditiva), como combinado.
 
+## 3-AJ. Correção — Centro de Compartilhamento padronizado em TODAS as telas (2026-08-01)
+
+Ao retomar a sessão, encontrada uma faxina que tinha ficado pela metade: o botão "Compartilhar" (WhatsApp/Telegram/Gmail/Outlook/Copiar/PDF), que antes era código copiado e colado em cada tela, estava sendo extraído pro componente único `components/CentroCompartilhamento.tsx` (criado na rodada do MEI, commit `03872d0`). 13 telas já tinham sido convertidas, mas **Custos Fixos ficou com o botão quebrado** — o import e os estados antigos (`copiado`/`copiadoDetalhado`) tinham sido removidos, mas o bloco visual do modal continuava chamando essas variáveis, o que ia quebrar a geração do site (`tsc`/build acusavam erro). Corrigido, seguindo exatamente o padrão das outras 13.
+
+**Autorização nova do Elias nesta rodada:** sempre que eu achar um módulo fora do padrão dos demais (código antigo, duplicado ou quebrado), corrijo direto, sem precisar perguntar antes — registrado como regra permanente.
+
+Usando essa autorização, encontradas (não fazia parte do pedido original) **3 telas que nunca tinham sido convertidas**: Dashboard, IA Financeira e IA Tributária — cada uma com sua própria cópia dos botões de WhatsApp/Telegram/Gmail/Outlook (código repetido 3 vezes, cada versão levemente diferente da outra). Convertidas as 3 pro mesmo componente único. **Resultado: hoje as 17 telas do app inteiro que têm botão Compartilhar usam exatamente o mesmo código — zero duplicação, zero divergência visual.**
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro depois de cada tela corrigida. `next build` (produção) rodado 2x nesta rodada — o primeiro confirmou as 13 telas antigas + o fix de Custos Fixos, o segundo confirmou as 3 telas novas (Dashboard/IA Financeira/IA Tributária) — ambos `✓ Compiled successfully`. Não testado clicando na tela (sem navegador logado nesta sessão) — recomendo o Elias clicar em "Compartilhar" em pelo menos Custos Fixos, Dashboard e IA Financeira antes de considerar 100% fechado, já que foram as que tiveram código de verdade alterado (as outras 13 só tiveram o bloco antigo trocado pelo componente, sem mudar o que ele faz).
+
+**Arquivos alterados:** `components/CentroCompartilhamento.tsx` (sem mudança nesta rodada, só reaproveitado), `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/dashboard/page.tsx`, `app/(interno)/ia-financeira/page.tsx`, `app/(interno)/ia-tributaria/page.tsx` + as 13 telas que a sessão anterior já tinha deixado prontas (clientes, contas-receber, custos-variaveis, dre, endividamento, estoque, fluxo-caixa, fornecedores, inadimplencia, investimentos, metas, precificacao, simulacoes).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

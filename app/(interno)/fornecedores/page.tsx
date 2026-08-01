@@ -21,7 +21,8 @@ import {
   serieRolling, detectarAnomaliasHistoricas, detectarDesperdicio, montarDRE, simularCenariosExecutivos, FONTE_EXEC,
   type Periodo, type PeriodoPreset, type ItemRenovavel, type Lancamento, type ItemDespesa, type ChoqueSimulador,
 } from "../../../lib/cfoCore";
-import { cfoT, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { cfoT } from "../../../lib/cfoTextos";
+import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import {
   TIPOS_DOCUMENTO_FORNECEDOR,
@@ -773,8 +774,6 @@ export default function Fornecedores() {
   const [periodoPersonalizado, setPeriodoPersonalizado] = useState<Periodo>(resolverPeriodo("mes_atual"));
   const [drillDown, setDrillDown] = useState<string | null>(null);
   const [shareAberto, setShareAberto] = useState(false);
-  const [copiado, setCopiado] = useState(false);
-  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -1591,8 +1590,6 @@ export default function Fornecedores() {
     scoreCarteira.amostraSuficiente ? `⭐ ${tt.kpiScoreMedio}: ${scoreCarteira.media}/1000` : "",
     "_axiomaai.com.br_",
   ].filter(Boolean).join("\n");
-  const canaisShare = canaisCompartilhamento(textoShare, `${tt.dashboardTitulo} — Axioma`);
-  const copiarShare = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
 
   const textoDetalhado = [
     `🚀 AXIOMA AI.TECH — ${tt.dashboardTitulo} (detalhado)`,
@@ -1601,7 +1598,6 @@ export default function Fornecedores() {
     ),
     `_axiomaai.com.br_`,
   ].join("\n");
-  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   const botaoNovaConta = (
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -2807,39 +2803,16 @@ export default function Fornecedores() {
         document.body
       )}
 
-      {/* ====== CENTRO DE COMPARTILHAMENTO ====== */}
-      {typeof document !== "undefined" && createPortal(
-        <AnimatePresence>
-          {shareAberto && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-start justify-center pt-24 pb-8 z-[100] px-4 overflow-y-auto"
-              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => setShareAberto(false)}>
-              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                <CanvasBox cor={AMBAR}>
-                  <div className="flex justify-between items-center mb-5">
-                    <div>
-                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cx.centroCompart}</h3>
-                    </div>
-                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {canaisShare.map((c) => (
-                      <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                        style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
-                    ))}
-                    <button onClick={copiarShare} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
-                    <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
-                    <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.4)", color: "#fca5a5" }}>PDF</button>
-                  </div>
-                </CanvasBox>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoShare}
+        textoDetalhado={textoDetalhado}
+        assunto={`${tt.dashboardTitulo} — Axioma`}
+        onExportarPDF={exportarPDF}
+        cor={AMBAR}
+      />
     </ModuloLayout>
   );
 }

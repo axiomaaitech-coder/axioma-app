@@ -17,6 +17,7 @@ import {
   type SnapshotFinanceiro, type Score360, type Anomalia, type AcaoSugerida,
 } from "../../../lib/iaFinanceiraHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -493,12 +494,6 @@ export default function DashboardPage() {
 
   // Share
   function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL2(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL2(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
-  function sWA() { window.open(`https://wa.me/?text=${encodeURIComponent(mSh())}`, "_blank"); }
-  function sTG() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(mSh())}`, "_blank"); }
-  function sGM() { window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mSh().replace(/\*/g, ""))}`, "_blank"); }
-  function sOL() { window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${encodeURIComponent("Axioma Dashboard")}&body=${encodeURIComponent(mSh().replace(/\*/g, ""))}`, "_blank"); }
-  async function sCp() { try { await navigator.clipboard.writeText(mSh().replace(/\*/g, "")); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
-
   async function exportarPDF() {
     if (!snap || !score360) return; setExportando(true);
     try { await gerarPdfTabela({ titulo: "Axioma Dashboard CFO", subtitulo: snap.periodo,
@@ -621,30 +616,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* SHARE MODAL */}
-      {shareAberto && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto" style={{ background: "rgba(6,3,26,0.92)", backdropFilter: "blur(10px)" }} onClick={() => setShareAberto(false)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()} style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.98), rgba(10,8,35,0.99))", border: "1px solid rgba(139,92,246,0.25)" }}>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-black" style={{ color: "#f1f5f9" }}>{tt.centroCompart}</p>
-              <button onClick={() => setShareAberto(false)} className="text-xl" style={{ color: "#475569" }}>✕</button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-              {[
-                { fn: sWA, l: "WhatsApp", i: "📱", bg: "rgba(37,211,102,0.1)", bd: "rgba(37,211,102,0.3)", c: "#25d366" },
-                { fn: sTG, l: "Telegram", i: "✈️", bg: "rgba(34,158,217,0.1)", bd: "rgba(34,158,217,0.3)", c: "#229ed9" },
-                { fn: sGM, l: "Gmail", i: "📨", bg: "rgba(234,67,53,0.1)", bd: "rgba(234,67,53,0.3)", c: "#ea4335" },
-                { fn: sOL, l: "Outlook", i: "📩", bg: "rgba(0,120,212,0.1)", bd: "rgba(0,120,212,0.3)", c: "#0078d4" },
-                { fn: sCp, l: tt.copiar, i: "📋", bg: "rgba(139,92,246,0.1)", bd: "rgba(139,92,246,0.3)", c: COR.roxo },
-                { fn: exportarPDF, l: "PDF", i: exportando ? "⏳" : "📄", bg: "rgba(239,68,68,0.1)", bd: "rgba(239,68,68,0.3)", c: COR.vermelho },
-              ].map((b, i) => (
-                <button key={i} onClick={b.fn} className="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105" style={{ background: b.bg, border: `1px solid ${b.bd}`, color: b.c }}><span className="text-xl">{b.i}</span>{b.l}</button>
-              ))}
-            </div>
-            <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-[1.02]" style={{ background: "rgba(139,92,246,0.1)", color: COR.roxo }}>{tt.fechar}</button>
-          </div>
-        </div>
-      )}
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={mSh()}
+        assunto="Axioma Dashboard"
+        onExportarPDF={exportarPDF}
+        cor={COR.roxo}
+      />
     </div>
   );
 }

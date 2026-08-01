@@ -14,8 +14,8 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fBRL2, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
-import { canaisCompartilhamento } from '../../../lib/cfoTextos'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
+import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -429,7 +429,6 @@ export default function ContasReceber() {
   }
 
   const textoCompartilhar = `${L('Central de Recebimentos Axioma', 'Axioma Receivables Center', 'Centro de Cobros Axioma')}: ${L('a receber', 'receivable', 'por cobrar')} R$ ${fBRL2(kpis.valorTotalAReceber)}, ${L('vencido', 'overdue', 'vencido')} R$ ${fBRL2(kpis.valorVencido)}.`
-  const canais = canaisCompartilhamento(textoCompartilhar, L('Contas a Receber — Axioma', 'Accounts Receivable — Axioma', 'Cuentas por Cobrar — Axioma'))
 
   const textoDetalhado = [
     `🦅 AXIOMA AI.TECH — ${L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')} (${L('detalhado', 'detailed', 'detallado')})`,
@@ -1629,46 +1628,15 @@ export default function ContasReceber() {
         </AnimatePresence>, document.body,
       )}
 
-      {/* ================= CENTRO DE COMPARTILHAMENTO ================= */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {shareAberto && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-24 pb-8 overflow-y-auto"
-              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={() => setShareAberto(false)}>
-              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
-                className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${ESMERALDA}35` }}>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Compartilhar', 'Share', 'Compartir')}</h3>
-                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: CINZA }}><X size={20} /></motion.button>
-                  </div>
-                  <div className="space-y-2">
-                    {canais.map((c) => (
-                      <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
-                        style={{ background: `${c.cor}15`, color: c.cor, border: `1px solid ${c.cor}30` }}>
-                        {c.nome}
-                      </a>
-                    ))}
-                    <button onClick={() => { navigator.clipboard.writeText(textoCompartilhar); setShareAberto(false) }}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Copy size={16} /> {L('Copiar resumo', 'Copy summary', 'Copiar resumen')}
-                    </button>
-                    <button onClick={() => { navigator.clipboard.writeText(textoDetalhado); setShareAberto(false) }}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: CINZA, border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <Copy size={16} /> {L('Copiar detalhado', 'Copy detailed', 'Copiar detallado')}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>, document.body,
-      )}
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoCompartilhar}
+        textoDetalhado={textoDetalhado}
+        assunto={L('Contas a Receber — Axioma', 'Accounts Receivable — Axioma', 'Cuentas por Cobrar — Axioma')}
+        cor={ESMERALDA}
+      />
     </ModuloLayout>
   )
 }

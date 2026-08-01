@@ -13,6 +13,7 @@ import {
   type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma,
 } from "../../../lib/iaTributariaHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -212,17 +213,11 @@ export default function IATributariaPage() {
       economia?.economia_mensal > 0 ? `💰 ${tt.economiaMensal}: ${formatBRL2(economia.economia_mensal)}` : "",
       ``, `_axiomaai.com.br_`].filter(Boolean).join("\n");
   }
-  function shareWhatsApp() { window.open(`https://wa.me/?text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
-  function shareTelegram() { window.open(`https://t.me/share/url?url=https://axiomaai.com.br&text=${encodeURIComponent(montarTextoShare())}`, "_blank"); }
-  function shareGmail() { const s = encodeURIComponent("Axioma IA Tributária"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, "")); window.open(`https://mail.google.com/mail/?view=cm&fs=1&su=${s}&body=${b}`, "_blank", "noopener,noreferrer"); }
-  function shareOutlook() { const s = encodeURIComponent("Axioma IA Tributária"); const b = encodeURIComponent(montarTextoShare().replace(/\*/g, "")); window.open(`https://outlook.live.com/owa/?path=/mail/action/compose&subject=${s}&body=${b}`, "_blank", "noopener,noreferrer"); }
-  async function shareCopiar() { try { await navigator.clipboard.writeText(montarTextoShare().replace(/\*/g, "")); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
   function montarTextoDetalhado(): string {
     return [`AXIOMA AI.TECH — IA Tributária (detalhado)`, ...simulacoes.filter(s => s.elegivel).map(s =>
       `${s.regime_label} | ${lang === "en" ? "Tax/mo" : "Imposto/mês"} ${formatBRL2(s.imposto_mensal)} | ${s.aliquota_efetiva}% | ${lang === "en" ? "Savings/yr" : "Economia/ano"} ${formatBRL2(s.economia_vs_atual)}`
     )].join("\n");
   }
-  async function shareCopiarDetalhado() { try { await navigator.clipboard.writeText(montarTextoDetalhado()); showToast(tt.copiado, "ok"); } catch { showToast(tt.erroCopiar, "erro"); } }
 
   async function exportarPDF() {
     if (!dados || !scoreFiscal) return;
@@ -523,27 +518,16 @@ export default function IATributariaPage() {
         </div>
       )}
 
-      {/* MODAL SHARE */}
-      {shareAberto && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto" style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setShareAberto(false)}>
-          <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()} style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{tt.centroCompart}</p>
-              <button onClick={() => setShareAberto(false)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-              <button onClick={shareWhatsApp} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}><span className="text-xl">📱</span>WhatsApp</button>
-              <button onClick={shareTelegram} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}><span className="text-xl">✈️</span>Telegram</button>
-              <button onClick={shareGmail} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}><span className="text-xl">📨</span>Gmail</button>
-              <button onClick={shareOutlook} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}><span className="text-xl">📩</span>Outlook</button>
-              <button onClick={shareCopiar} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar} (resumo)</button>
-              <button onClick={shareCopiarDetalhado} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold" style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}><span className="text-xl">📋</span>{tt.copiar} (detalhado)</button>
-              <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold disabled:opacity-50" style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}><span className="text-xl">{exportando ? "⏳" : "📄"}</span>{exportando ? tt.gerando : tt.pdfRelatorio}</button>
-            </div>
-            <button onClick={() => setShareAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.fechar}</button>
-          </div>
-        </div>
-      )}
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={montarTextoShare()}
+        textoDetalhado={montarTextoDetalhado()}
+        assunto={`${tt.titulo} — Axioma`}
+        onExportarPDF={exportarPDF}
+        cor="#6ab0ff"
+      />
     </ModuloLayout>
   );
 }
