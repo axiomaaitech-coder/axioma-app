@@ -8,7 +8,7 @@ import { CanvasBox } from '../../../../components/CanvasBox'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { Share2 } from 'lucide-react'
-import { LIMITE_ANUAL_MEI, dasMensalPorCategoria, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
+import { dasMensalPorCategoria, percentualIsentoPorCategoria, tetoProporcionalMEI } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { meiT } from '../../../../lib/meiTextos'
@@ -74,7 +74,8 @@ export default function PrecificacaoMEI() {
     const custo = parseFloat(precoCusto)
     const horas = parseFloat(precoHoras) || 1
     const margem = parseFloat(precoMargem) / 100
-    const dasPerc = meiDados?.das_valor ? (meiDados.das_valor * 12) / LIMITE_ANUAL_MEI : 0.011
+    const teto = tetoProporcionalMEI(meiDados?.data_abertura, new Date().getFullYear()).teto
+    const dasPerc = meiDados?.das_valor ? (meiDados.das_valor * 12) / teto : 0.011
     const custoTotal = custo / horas
     const precoMinimo = custoTotal / (1 - margem - dasPerc - percentualIsento * 0.275)
     setPrecoResultado({

@@ -75,18 +75,107 @@ export function faturamentoAnoMEI(receitas: ReceitaMEI[], ano: number): number {
     .reduce((acc, r) => acc + (r.valor || 0), 0);
 }
 
-export function limiteRestante(faturamentoAno: number): number {
-  return Math.max(0, LIMITE_ANUAL_MEI - faturamentoAno);
+export function limiteRestante(faturamentoAno: number, teto: number = LIMITE_ANUAL_MEI): number {
+  return Math.max(0, teto - faturamentoAno);
 }
 
-export function percentualLimite(faturamentoAno: number): number {
-  return Math.min(100, (faturamentoAno / LIMITE_ANUAL_MEI) * 100);
+export function percentualLimite(faturamentoAno: number, teto: number = LIMITE_ANUAL_MEI): number {
+  return Math.min(100, (faturamentoAno / teto) * 100);
 }
 
 export function semaforoTeto(percentual: number): "verde" | "amarelo" | "vermelho" {
   if (percentual >= 90) return "vermelho";
   if (percentual >= 70) return "amarelo";
   return "verde";
+}
+
+// ============================================================================
+// TETO PROPORCIONAL — corrige o teto fixo de R$81.000 pra quem abriu o MEI no
+// ano corrente. Regra oficial: R$6.750 (81.000/12) por mês de atividade,
+// contando o mês de abertura como mês inteiro. Fonte única — toda tela que
+// mostra o teto do usuário (Faturamento, Painel, IA Advisor, Precificação
+// MEI) deve calcular por aqui, nunca usar LIMITE_ANUAL_MEI direto quando há
+// data_abertura disponível.
+// ============================================================================
+
+export function tetoProporcionalMEI(
+  dataAbertura: string | null | undefined,
+  ano: number
+): { teto: number; mesesAtivos: number; proporcional: boolean } {
+  if (!dataAbertura) return { teto: LIMITE_ANUAL_MEI, mesesAtivos: 12, proporcional: false };
+  const abertura = new Date(dataAbertura.slice(0, 10) + "T00:00:00");
+  const anoAbertura = abertura.getFullYear();
+  if (anoAbertura < ano) return { teto: LIMITE_ANUAL_MEI, mesesAtivos: 12, proporcional: false };
+  if (anoAbertura > ano) return { teto: 0, mesesAtivos: 0, proporcional: true };
+  const mesesAtivos = 12 - abertura.getMonth();
+  const teto = Math.round((LIMITE_ANUAL_MEI / 12) * mesesAtivos * 100) / 100;
+  return { teto, mesesAtivos, proporcional: true };
+}
+
+// Percentual SEM teto em 100% (diferente de percentualLimite, que trava em
+// 100 pra barra visual) — necessário pra distinguir 100-120% (ainda dá tempo
+// até dezembro) de >120% (desenquadramento retroativo).
+export function percentualDeTeto(faturamentoAno: number, teto: number): number {
+  return teto > 0 ? (faturamentoAno / teto) * 100 : faturamentoAno > 0 ? 999 : 0;
+}
+
+export function semaforoTetoDetalhado(percentual: number): "verde" | "amarelo" | "laranja" | "vermelho" {
+  if (percentual > 120) return "vermelho";
+  if (percentual > 100) return "laranja";
+  if (percentual > 80) return "amarelo";
+  return "verde";
+}
+
+// Projeção detalhada: além da média móvel (projecaoTeto já existente), traduz
+// pro que o MEI realmente quer saber — o MÊS calendário provável de estouro
+// (não só "N meses"), e quanto ainda dá pra faturar por mês até dezembro sem
+// estourar (o restante do teto dividido igualmente pelos meses que faltam).
+export function projecaoTetoDetalhada(
+  receitas: ReceitaMEI[],
+  ano: number,
+  mesReferencia: number,
+  teto: number,
+  janelaMeses = 6
+): {
+  mediaMensal: number;
+  projecaoAnual: number;
+  faturamentoAno: number;
+  restanteAno: number;
+  mesesParaEstourar: number | null;
+  mesIndexEstouro: number | null; // 0-11, null se não estoura dentro do ano corrente
+  margemRecomendadaMes: number;
+} {
+  const { mediaMensal, projecaoAnual } = projecaoTeto(receitas, ano, mesReferencia, janelaMeses);
+  const faturamentoAno = faturamentoAnoMEI(receitas, ano);
+  const restanteAno = Math.max(0, teto - faturamentoAno);
+  const mesesParaEstourar = mediaMensal > 0 ? Math.ceil(restanteAno / mediaMensal) : null;
+  const idxEstouro = mesesParaEstourar !== null ? mesReferencia + mesesParaEstourar : null;
+  const mesIndexEstouro = idxEstouro !== null && idxEstouro <= 11 ? idxEstouro : null;
+  const mesesRestantesAno = 12 - mesReferencia;
+  const margemRecomendadaMes = mesesRestantesAno > 0 ? restanteAno / mesesRestantesAno : 0;
+  return { mediaMensal, projecaoAnual, faturamentoAno, restanteAno, mesesParaEstourar, mesIndexEstouro, margemRecomendadaMes };
+}
+
+// ============================================================================
+// RELATÓRIO MENSAL DE RECEITAS BRUTAS — obrigação oficial do MEI (registro
+// que ele deve manter, mês a mês). Mesmo critério de "conta pro teto MEI" já
+// usado no resto da tela (considera_teto_mei), pra não ter dois números de
+// "receita bruta" divergentes na mesma tela.
+// ============================================================================
+
+export function receitasBrutasPorMes(
+  receitas: ReceitaMEI[],
+  ano: number
+): { mesNum: number; total: number; quantidade: number }[] {
+  const meses = Array.from({ length: 12 }, (_, i) => ({ mesNum: i, total: 0, quantidade: 0 }));
+  receitas.forEach((r) => {
+    const d = new Date(r.data);
+    if (d.getFullYear() === ano && r.considera_teto_mei !== false) {
+      meses[d.getMonth()].total += r.valor || 0;
+      meses[d.getMonth()].quantidade += 1;
+    }
+  });
+  return meses;
 }
 
 // Projeção por média móvel (janela de até 6 meses, usa o que houver disponível

@@ -17,7 +17,7 @@ import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela }
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { meiT } from '../../../lib/meiTextos'
 import {
-  LIMITE_ANUAL_MEI, dasMensalPorCategoria, faturamentoAnoMEI, limiteRestante, percentualLimite,
+  LIMITE_ANUAL_MEI, dasMensalPorCategoria, faturamentoAnoMEI, limiteRestante, percentualLimite, tetoProporcionalMEI,
   semaforoTeto, projecaoTeto, fluxoMesMEI, pareceGastoPessoal, scoreMEI, carregarObrigacoesAno,
   serieMensalMEI, montarCofre,
   detectarRetiradaPerigosa, detectarConsumoReserva, calcularPenalidadeDASAtraso, diasParaDAS,
@@ -172,9 +172,11 @@ export default function PainelMEI() {
 
   const anoAtual = new Date().getFullYear()
   const mesAtual = new Date().getMonth()
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const teto = tetoInfo.teto
   const faturamentoAnual = faturamentoAnoMEI(receitas, anoAtual)
-  const percentualLimiteAtual = percentualLimite(faturamentoAnual)
-  const restanteLimite = limiteRestante(faturamentoAnual)
+  const percentualLimiteAtual = percentualLimite(faturamentoAnual, teto)
+  const restanteLimite = limiteRestante(faturamentoAnual, teto)
   const semaforo = semaforoTeto(percentualLimiteAtual)
   const corSemaforo = semaforo === 'vermelho' ? VERMELHO : semaforo === 'amarelo' ? AMBAR : VERDE
   const { mediaMensal, mesesParaEstourar, projecaoAnual } = projecaoTeto(receitas, anoAtual, mesAtual, 6)
@@ -438,7 +440,7 @@ export default function PainelMEI() {
           <div className="flex justify-between text-xs mb-4" style={{ color: '#5a7a9a' }}>
             <span>{fmt(faturamentoAnual)}</span>
             <span className="font-bold" style={{ color: corSemaforo }}>{percentualLimiteAtual.toFixed(1)}%</span>
-            <span>{fmt(LIMITE_ANUAL_MEI)}</span>
+            <span>{fmt(teto)}</span>
           </div>
 
           {mesesParaEstourar !== null && (
@@ -472,7 +474,7 @@ export default function PainelMEI() {
             <ReactECharts style={{ height: 220 }} notMerge option={optLinhaMulti(
               [
                 { nome: t('faturamento'), dados: acumuladoTeto, cor: corSemaforo, area: true },
-                { nome: 'Limite MEI', dados: evolucaoMensal.map(() => LIMITE_ANUAL_MEI), cor: VERMELHO, tipo: 'dashed' },
+                { nome: 'Limite MEI', dados: evolucaoMensal.map(() => teto), cor: VERMELHO, tipo: 'dashed' },
               ],
               evolucaoMensal.map(p => p.mes), corSemaforo
             )} />
@@ -611,7 +613,7 @@ export default function PainelMEI() {
               {[
                 { label: t('totalReceitas'), value: fmt(faturamentoAnual) },
                 { label: t('mediaMensal'), value: fmt(mediaMensal) },
-                { label: t('projecaoAnual'), value: fmt(projecaoAnual), destaque: projecaoAnual > LIMITE_ANUAL_MEI },
+                { label: t('projecaoAnual'), value: fmt(projecaoAnual), destaque: projecaoAnual > teto },
                 { label: t('categoriaMei'), value: meiDados?.categoria_mei || 'Serviços' },
               ].map((item, i) => (
                 <div key={i} className="flex justify-between items-center px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,22,40,0.5)', border: '1px solid rgba(106,176,255,0.1)' }}>

@@ -9,7 +9,7 @@ import { Bot, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import {
-  LIMITE_ANUAL_MEI, dasMensalPorCategoria, fluxoMesMEI, montarCofre, projecaoTeto,
+  dasMensalPorCategoria, fluxoMesMEI, montarCofre, projecaoTeto, tetoProporcionalMEI,
   type ContaPagarMEI,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
@@ -165,8 +165,10 @@ export default function IAMEIAdvisor() {
 
   const anoAtual = new Date().getFullYear()
   const faturamentoAnual = receitas.filter(r => new Date(r.data).getFullYear() === anoAtual).reduce((acc, r) => acc + (r.valor || 0), 0)
-  const percentualLimite = Math.min(100, (faturamentoAnual / LIMITE_ANUAL_MEI) * 100)
-  const restanteLimite = Math.max(0, LIMITE_ANUAL_MEI - faturamentoAnual)
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const teto = tetoInfo.teto
+  const percentualLimite = Math.min(100, (faturamentoAnual / teto) * 100)
+  const restanteLimite = Math.max(0, teto - faturamentoAnual)
   const categoria = meiDados?.categoria_mei || 'Serviços'
   const dasValor = meiDados?.das_valor || dasMensalPorCategoria(categoria)
 
@@ -192,7 +194,7 @@ export default function IAMEIAdvisor() {
 
 DADOS REAIS DESTE MEI:
 - Categoria: ${categoria}
-- Faturamento acumulado ${anoAtual}: ${fmt(faturamentoAnual)} (${percentualLimite.toFixed(1)}% do limite anual de ${fmt(LIMITE_ANUAL_MEI)}, restam ${fmt(restanteLimite)})
+- Faturamento acumulado ${anoAtual}: ${fmt(faturamentoAnual)} (${percentualLimite.toFixed(1)}% do teto de ${fmt(teto)}${tetoInfo.proporcional ? ' — proporcional aos meses de atividade este ano' : ''}, restam ${fmt(restanteLimite)})
 - DAS mensal: ${fmt(dasValor)}
 - Cofre Inteligente deste mês (o que já tem dono antes do pró-labore): DAS ${fmt(cofre.das)}, reserva IRPF ${fmt(cofre.irpfReserva)}, compromissos ${fmt(cofre.compromissos)}, reserva de emergência ${fmt(cofre.reservaEmergencia)} — pró-labore seguro real: ${fmt(cofre.proLaboreSeguro)}.`
   }
@@ -228,7 +230,7 @@ DADOS REAIS DESTE MEI:
       setTimeout(() => setToast(null), 4000)
       resposta = gerarResposta(msg, {
         faturamento: faturamentoAnual,
-        limite: LIMITE_ANUAL_MEI,
+        limite: teto,
         percentual: percentualLimite,
         restante: restanteLimite,
         das: String(dasValor),
