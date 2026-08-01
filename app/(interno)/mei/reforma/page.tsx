@@ -9,7 +9,8 @@ import { AlertTriangle, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { dasMensalPorCategoria } from '../../../../lib/meiHelpers'
-import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
@@ -28,8 +29,7 @@ export default function ReformaTributaria() {
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [exportando, setExportando] = useState(false)
-  const [compartilhando, setCompartilhando] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const dataHojeStr = new Date().toLocaleDateString(idioma === 'en' ? 'en-US' : idioma === 'es' ? 'es-ES' : 'pt-BR')
@@ -121,17 +121,6 @@ export default function ReformaTributaria() {
     }
   }
 
-  async function compartilharPDF() {
-    setCompartilhando(true)
-    try {
-      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
-        if (baixouComoFallback) { setToast(mx.toastBaixado); setTimeout(() => setToast(null), 2500) }
-      })
-    } finally {
-      setCompartilhando(false)
-    }
-  }
-
   const itensReforma = [
     { titulo: { pt: 'IBS e CBS já em vigor', en: 'IBS and CBS already in effect', es: 'IBS y CBS ya en vigor' }, desc: { pt: 'Substituem PIS, COFINS e ICMS gradualmente até 2033. MEI está isento durante a transição.', en: 'Replace PIS, COFINS and ICMS gradually until 2033. MEI is exempt during the transition.', es: 'Reemplazan PIS, COFINS e ICMS gradualmente hasta 2033. MEI está exento durante la transición.' }, cor: '#34d399', status: '✅' },
     { titulo: { pt: 'Prazo decisão: setembro 2026', en: 'Decision deadline: September 2026', es: 'Plazo decisión: septiembre 2026' }, desc: { pt: 'MEI precisa decidir se continua no regime simplificado ou migra para ME em 2027.', en: 'MEI needs to decide whether to stay in the simplified regime or migrate to ME in 2027.', es: 'MEI debe decidir si continúa en el régimen simplificado o migra a ME en 2027.' }, cor: AMBAR, status: '⚠️' },
@@ -156,21 +145,14 @@ export default function ReformaTributaria() {
       onExportarPDF={exportarPDF}
       exportando={exportando}
       botaoExtra={
-        <button onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+        <button onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {mx.compartilhar}
         </button>
       }
     >
       <div ref={conteudoRef} className="space-y-4">
-
-        {toast && (
-          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast}
-          </div>
-        )}
 
         {/* Alerta destaque */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
@@ -255,6 +237,17 @@ export default function ReformaTributaria() {
         </CanvasBox>
 
       </div>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoResumoPdf(montarArgsPdfAtual())}
+        textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
+        assunto={`${t('titulo')} — Axioma`}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        cor={OURO}
+      />
     </ModuloLayout>
   )
 }

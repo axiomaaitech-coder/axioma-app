@@ -13,7 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
 import { buscarIndicadoresMacro } from '../../../lib/bcbApi'
-import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
+import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { meiT } from '../../../lib/meiTextos'
 import {
   LIMITE_ANUAL_MEI, dasMensalPorCategoria, faturamentoAnoMEI, limiteRestante, percentualLimite,
@@ -62,8 +63,7 @@ export default function PainelMEI() {
   const [proLaboreDesejadoForm, setProLaboreDesejadoForm] = useState('')
   const [diaVencimentoDasForm, setDiaVencimentoDasForm] = useState('20')
   const [salvando, setSalvando] = useState(false)
-  const [compartilhando, setCompartilhando] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const txt = {
@@ -305,17 +305,6 @@ export default function PainelMEI() {
     }
   }
 
-  async function compartilharPDF() {
-    setCompartilhando(true)
-    try {
-      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
-        if (baixouComoFallback) { setToast(t('toastBaixado')); setTimeout(() => setToast(null), 2500) }
-      })
-    } finally {
-      setCompartilhando(false)
-    }
-  }
-
   return (
     <ModuloLayout
       titulo={t('titulo')}
@@ -325,21 +314,14 @@ export default function PainelMEI() {
       onNovo={() => setModalConfig(true)}
       labelBotao={t('configurar')}
       botaoExtra={
-        <button onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+        <button onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, ${ROYAL}, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {t('compartilhar')}
         </button>
       }
     >
       <div ref={conteudoRef} className="space-y-4">
-
-        {toast && (
-          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast}
-          </div>
-        )}
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -794,6 +776,17 @@ export default function PainelMEI() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoResumoPdf(montarArgsPdfAtual())}
+        textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
+        assunto={`${t('titulo')} — Axioma`}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        cor={OURO}
+      />
     </ModuloLayout>
   )
 }

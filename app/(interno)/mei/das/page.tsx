@@ -9,7 +9,8 @@ import { CanvasBox } from '../../../../components/CanvasBox'
 import { Pencil, Check, X, FileText, Bell, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { meiT } from '../../../../lib/meiTextos'
 import {
   faturamentoAnoMEI, dasMensalPorCategoria, carregarObrigacoesAno, salvarObrigacao,
@@ -40,8 +41,7 @@ export default function DASObrigacoes() {
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoMEI[]>([])
   const [editandoTipo, setEditandoTipo] = useState<'DAS' | 'DASN' | 'IRPF' | null>(null)
   const [exportando, setExportando] = useState(false)
-  const [compartilhando, setCompartilhando] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
   const [salvandoStatus, setSalvandoStatus] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
@@ -194,17 +194,6 @@ export default function DASObrigacoes() {
     }
   }
 
-  async function compartilharPDF() {
-    setCompartilhando(true)
-    try {
-      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
-        if (baixouComoFallback) { setToast(mx.toastBaixado); setTimeout(() => setToast(null), 2500) }
-      })
-    } finally {
-      setCompartilhando(false)
-    }
-  }
-
   const linhaObrigacao = (
     tipo: 'DAS' | 'DASN' | 'IRPF',
     nome: string,
@@ -255,20 +244,13 @@ export default function DASObrigacoes() {
   return (
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+        <button onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {mx.compartilhar}
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
-
-        {toast && (
-          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast}
-          </div>
-        )}
 
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -365,6 +347,17 @@ export default function DASObrigacoes() {
         </CanvasBox>
 
       </div>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoResumoPdf(montarArgsPdfAtual())}
+        textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
+        assunto={`${t('titulo')} — Axioma`}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        cor={OURO}
+      />
     </ModuloLayout>
   )
 }

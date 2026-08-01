@@ -7,7 +7,8 @@ import { CanvasBox } from '../../../../components/CanvasBox'
 import { FileText, AlertTriangle, CheckCircle, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { calcularIRPF, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
 
 const supabase = createBrowserClient(
@@ -28,8 +29,7 @@ export default function ImpostoRendaMEI() {
   const [receitas, setReceitas] = useState<any[]>([])
   const [outraRenda, setOutraRenda] = useState('')
   const [exportando, setExportando] = useState(false)
-  const [compartilhando, setCompartilhando] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
   const [checklistMarcado, setChecklistMarcado] = useState<boolean[]>([false, false, false, false, false, false])
   const conteudoRef = useRef<HTMLDivElement>(null)
 
@@ -163,34 +163,16 @@ export default function ImpostoRendaMEI() {
     }
   }
 
-  async function compartilharPDF() {
-    setCompartilhando(true)
-    try {
-      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
-        if (baixouComoFallback) { setToast(t('toastBaixado')); setTimeout(() => setToast(null), 2500) }
-      })
-    } finally {
-      setCompartilhando(false)
-    }
-  }
-
   return (
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+        <button onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {t('compartilhar')}
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
-
-        {toast && (
-          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast}
-          </div>
-        )}
 
         {/* Status obrigatoriedade */}
         <div className="flex items-center gap-3 p-4 rounded-2xl"
@@ -380,6 +362,17 @@ export default function ImpostoRendaMEI() {
         </CanvasBox>
 
       </div>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoResumoPdf(montarArgsPdfAtual())}
+        textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
+        assunto={`${t('titulo')} — Axioma`}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        cor={OURO}
+      />
     </ModuloLayout>
   )
 }

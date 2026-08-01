@@ -9,7 +9,8 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { Share2 } from 'lucide-react'
 import { LIMITE_ANUAL_MEI, dasMensalPorCategoria, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
-import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
@@ -31,8 +32,7 @@ export default function PrecificacaoMEI() {
   const [precoMargem, setPrecoMargem] = useState('30')
   const [precoResultado, setPrecoResultado] = useState<any>(null)
   const [exportando, setExportando] = useState(false)
-  const [compartilhando, setCompartilhando] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const txt = {
@@ -139,17 +139,6 @@ export default function PrecificacaoMEI() {
     }
   }
 
-  async function compartilharPDF() {
-    setCompartilhando(true)
-    try {
-      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
-        if (baixouComoFallback) { setToast(mx.toastBaixado); setTimeout(() => setToast(null), 2500) }
-      })
-    } finally {
-      setCompartilhando(false)
-    }
-  }
-
   const dicas = [
     { pt: 'Nunca precifique abaixo do custo real por hora — inclua DAS, IRPF e tempo improdutivo.', en: 'Never price below the real hourly cost — include DAS, IRPF and unproductive time.', es: 'Nunca precios por debajo del costo real por hora — incluya DAS, IRPF y tiempo improductivo.' },
     { pt: 'Adicione 20-30% de margem mínima para cobrir imprevistos e investimentos no negócio.', en: 'Add 20-30% minimum margin to cover unforeseen events and business investments.', es: 'Agregue 20-30% de margen mínimo para cubrir imprevistos e inversiones en el negocio.' },
@@ -160,20 +149,13 @@ export default function PrecificacaoMEI() {
   return (
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+        <button onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {mx.compartilhar}
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
-
-        {toast && (
-          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast}
-          </div>
-        )}
 
         {/* Info do MEI */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -250,6 +232,17 @@ export default function PrecificacaoMEI() {
         </CanvasBox>
 
       </div>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoResumoPdf(montarArgsPdfAtual())}
+        textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
+        assunto={`${t('titulo')} — Axioma`}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        cor={OURO}
+      />
     </ModuloLayout>
   )
 }

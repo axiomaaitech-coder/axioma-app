@@ -13,7 +13,8 @@ import {
   concentracao, percentualRecorrente, mrrArr, porCategoria, preverProximosMeses,
   gerarInsights, optBarrasV, optRosca, optLinhaPrevisao, type Lancamento,
 } from "../../../lib/cfoCore";
-import { cfoT, textoInsight, canaisCompartilhamento } from "../../../lib/cfoTextos";
+import { cfoT, textoInsight } from "../../../lib/cfoTextos";
+import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
@@ -49,8 +50,6 @@ export default function Receitas() {
   const [salvando, setSalvando] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
-  const [copiado, setCopiado] = useState(false);
-  const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
 
   const carregarReceitas = async () => {
@@ -167,8 +166,6 @@ export default function Receitas() {
     `📊 ${cx.crescimentoMoM}: ${cresc >= 0 ? "▲" : "▼"} ${Math.abs(cresc).toFixed(1)}%`,
     `_axiomaai.com.br_`,
   ].join("\n");
-  const canais = canaisCompartilhamento(textoShare, `${t.receitas.titulo} — Axioma`);
-  const copiar = async () => { try { await navigator.clipboard.writeText(textoShare); setCopiado(true); setTimeout(() => setCopiado(false), 1800); } catch {} };
 
   const textoDetalhado = [
     `🚀 AXIOMA AI.TECH — ${t.receitas.titulo} (detalhado)`,
@@ -177,7 +174,6 @@ export default function Receitas() {
     ),
     `_axiomaai.com.br_`,
   ].join("\n");
-  const copiarDetalhado = async () => { try { await navigator.clipboard.writeText(textoDetalhado); setCopiadoDetalhado(true); setTimeout(() => setCopiadoDetalhado(false), 1800); } catch {} };
 
   // ═══════════ GRÁFICOS (options do alicerce) ═══════════
   const optEvol = optBarrasV(serie12, meses, CORES.roxo, CORES.roxoC);
@@ -444,33 +440,16 @@ export default function Receitas() {
         )}
       </AnimatePresence>
 
-      {/* Centro de Compartilhamento */}
-      <AnimatePresence>
-        {shareAberto && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => setShareAberto(false)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-              <CanvasBox cor="#8b5cf6">
-                <div className="flex justify-between items-center mb-5">
-                  <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#c4b5fd" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cx.centroCompart}</h3>
-                  </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setShareAberto(false)} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {canais.map(c => (
-                    <a key={c.nome} href={c.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-                      style={{ background: `${c.cor}18`, border: `1px solid ${c.cor}50`, color: c.cor }}>{c.nome}</a>
-                  ))}
-                  <button onClick={copiar} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiado ? cx.copiado : `${cx.copiar} (resumo)`}</button>
-                  <button onClick={copiarDetalhado} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>{copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}</button>
-                  <button onClick={() => { setShareAberto(false); exportarPDF(); }} className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>PDF</button>
-                </div>
-              </CanvasBox>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoShare}
+        textoDetalhado={textoDetalhado}
+        assunto={`${t.receitas.titulo} — Axioma`}
+        onExportarPDF={exportarPDF}
+        cor="#8b5cf6"
+      />
     </ModuloLayout>
   );
 }

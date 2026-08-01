@@ -8,7 +8,8 @@ import { CanvasBox } from '../../../../components/CanvasBox'
 import { AlertTriangle, Pencil, Trash2, X, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { compartilharOuBaixarPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { meiT } from '../../../../lib/meiTextos'
 import {
   LIMITE_ANUAL_MEI, faturamentoAnoMEI, limiteRestante, percentualLimite, projecaoTeto,
@@ -36,7 +37,7 @@ export default function FaturamentoMEI() {
   const [meiDados, setMeiDados] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
-  const [compartilhando, setCompartilhando] = useState(false)
+  const [shareAberto, setShareAberto] = useState(false)
   const [editando, setEditando] = useState<Receita | null>(null)
   const [excluindo, setExcluindo] = useState<Receita | null>(null)
   const [form, setForm] = useState({ descricao: '', valor: '', data: '', categoria: CATEGORIAS[0], status: 'recebido' })
@@ -195,22 +196,11 @@ export default function FaturamentoMEI() {
     }
   }
 
-  async function compartilharPDF() {
-    setCompartilhando(true)
-    try {
-      await compartilharOuBaixarPdf(montarArgsPdfAtual(), (baixouComoFallback) => {
-        if (baixouComoFallback) showToast(t('toastBaixado'))
-      })
-    } finally {
-      setCompartilhando(false)
-    }
-  }
-
   return (
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={compartilharPDF} disabled={compartilhando}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
+        <button onClick={() => setShareAberto(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
           style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {t('compartilhar')}
         </button>
@@ -431,6 +421,17 @@ export default function FaturamentoMEI() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={textoResumoPdf(montarArgsPdfAtual())}
+        textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
+        assunto={`${t('titulo')} — Axioma`}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        cor={OURO}
+      />
     </ModuloLayout>
   )
 }

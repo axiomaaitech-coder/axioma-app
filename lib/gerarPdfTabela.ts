@@ -155,6 +155,22 @@ export function gerarPdfTabela(args: ArgsPdfTabela) {
   montarDocumentoPdf(args).save(args.nomeArquivo);
 }
 
+// Deriva o texto de compartilhamento (resumo/detalhado) do mesmo ArgsPdfTabela
+// já usado pra gerar o PDF — uma fonte só, sem escrever resumo à mão por tela.
+export function textoResumoPdf(args: ArgsPdfTabela, maxLinhas = 6): string {
+  const linhas = args.linhas.slice(0, maxLinhas).map((l) =>
+    args.colunas.map((c) => l[c.key]).filter(Boolean).join(" — ")
+  );
+  return [`🚀 AXIOMA AI.TECH — ${args.titulo}`, args.subtitulo, ...linhas].filter(Boolean).join("\n");
+}
+
+export function textoDetalhadoPdf(args: ArgsPdfTabela): string {
+  const linhas = args.linhas.map((l) =>
+    args.colunas.map((c) => `${c.header}: ${l[c.key]}`).join(" | ")
+  );
+  return [`🚀 AXIOMA AI.TECH — ${args.titulo}`, args.subtitulo, ...linhas].filter(Boolean).join("\n");
+}
+
 // Gera o PDF e tenta abrir o menu nativo de compartilhamento (mobile, via Web Share API
 // com arquivo). Onde não tem suporte (a maioria dos desktops), baixa o arquivo e avisa
 // pelo callback — o botão "Compartilhar" nunca fica sem fazer nada.
