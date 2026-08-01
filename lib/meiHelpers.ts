@@ -120,14 +120,14 @@ export function projecaoTeto(
 // CALENDÁRIO DAS
 // ============================================================================
 
-// Dias até o próximo dia 20 (vencimento mensal do DAS).
-export function diasParaDAS(hoje: Date = new Date()): number {
-  const dia20DesteMes = new Date(hoje.getFullYear(), hoje.getMonth(), 20);
-  if (hoje.getDate() <= 20) {
-    return Math.ceil((dia20DesteMes.getTime() - hoje.getTime()) / 86400000);
+// Dias até o próximo vencimento do DAS (dia 20 por padrão, configurável em Configurar MEI).
+export function diasParaDAS(hoje: Date = new Date(), diaVencimento: number = 20): number {
+  const diaEsteMes = new Date(hoje.getFullYear(), hoje.getMonth(), diaVencimento);
+  if (hoje.getDate() <= diaVencimento) {
+    return Math.ceil((diaEsteMes.getTime() - hoje.getTime()) / 86400000);
   }
-  const dia20ProxMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 20);
-  return Math.ceil((dia20ProxMes.getTime() - hoje.getTime()) / 86400000);
+  const diaProxMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, diaVencimento);
+  return Math.ceil((diaProxMes.getTime() - hoje.getTime()) / 86400000);
 }
 
 // ============================================================================

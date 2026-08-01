@@ -169,9 +169,10 @@ export async function compartilharOuBaixarPdf(args: ArgsPdfTabela, aoConcluir: (
       await nav.share({ files: [arquivo], title: args.titulo });
       aoConcluir(false);
       return;
-    } catch {
-      // usuário cancelou o menu de compartilhamento — não trata como erro, só não baixa nada
-      return;
+    } catch (err) {
+      // usuário cancelou o menu de compartilhamento — não é erro, não faz nada
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      // qualquer outra falha do share nativo (ex.: SO sem app compatível) cai no fallback abaixo
     }
   }
 

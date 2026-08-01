@@ -88,6 +88,12 @@ const TEXTOS = {
     guardiaoConsequencia: "Se não repor até o vencimento, o atraso gera",
     guardiaoEstimativa: "Estimativa com base nas regras vigentes (multa 0,33%/dia, teto 20%, + juros Selic).",
 
+    // Comparação com o pró-labore desejado (Configurar MEI)
+    proLaboreComparativo: "Você queria retirar {desejado} — hoje o pró-labore seguro real é {seguro}.",
+
+    // IA real (MEI Advisor)
+    iaRespondendoPorRegra: "IA indisponível agora — respondendo com base em regras.",
+
     // Gráficos analíticos do Painel
     evolucaoGanhos: "Evolução de Ganhos",
     fluxoCaixaVisual: "Fluxo de Caixa Visual",
@@ -169,6 +175,10 @@ const TEXTOS = {
     guardiaoConsequencia: "If not replaced by the due date, the delay generates",
     guardiaoEstimativa: "Estimate based on current rules (0.33%/day fine, 20% cap, + Selic interest).",
 
+    proLaboreComparativo: "You wanted to withdraw {desejado} — today the real safe pro-labore is {seguro}.",
+
+    iaRespondendoPorRegra: "AI unavailable right now — answering based on rules.",
+
     evolucaoGanhos: "Revenue Evolution",
     fluxoCaixaVisual: "Visual Cash Flow",
     composicaoCofre: "Vault Composition",
@@ -248,6 +258,10 @@ const TEXTOS = {
     guardiaoDiasRestantes: "días para reponer antes del vencimiento",
     guardiaoConsequencia: "Si no repone antes del vencimiento, el atraso genera",
     guardiaoEstimativa: "Estimación con base en las reglas vigentes (multa 0,33%/día, tope 20%, + intereses Selic).",
+
+    proLaboreComparativo: "Quería retirar {desejado} — hoy el pro-labore seguro real es {seguro}.",
+
+    iaRespondendoPorRegra: "IA no disponible ahora — respondiendo con base en reglas.",
 
     evolucaoGanhos: "Evolución de Ingresos",
     fluxoCaixaVisual: "Flujo de Caja Visual",

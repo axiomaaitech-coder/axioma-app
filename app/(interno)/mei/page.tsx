@@ -56,6 +56,11 @@ export default function PainelMEI() {
   const [dasValor, setDasValor] = useState(String(dasMensalPorCategoria('Serviços')))
   const [dataAbertura, setDataAbertura] = useState('')
   const [reservaEmergenciaPctForm, setReservaEmergenciaPctForm] = useState('')
+  const [cnpjForm, setCnpjForm] = useState('')
+  const [razaoSocialForm, setRazaoSocialForm] = useState('')
+  const [cnaeForm, setCnaeForm] = useState('')
+  const [proLaboreDesejadoForm, setProLaboreDesejadoForm] = useState('')
+  const [diaVencimentoDasForm, setDiaVencimentoDasForm] = useState('20')
   const [salvando, setSalvando] = useState(false)
   const [compartilhando, setCompartilhando] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -78,6 +83,11 @@ export default function PainelMEI() {
     mediaMensal: { pt: 'Média mensal (6m)', en: 'Monthly average (6m)', es: 'Promedio mensual (6m)' },
     projecaoAnual: { pt: 'Projeção anual', en: 'Annual projection', es: 'Proyección anual' },
     reservaEmergencia: { pt: 'Reserva de Emergência (%)', en: 'Emergency Reserve (%)', es: 'Reserva de Emergencia (%)' },
+    razaoSocial: { pt: 'Nome / Razão Social', en: 'Name / Legal Name', es: 'Nombre / Razón Social' },
+    cnpj: { pt: 'CNPJ', en: 'CNPJ (Tax ID)', es: 'CNPJ' },
+    cnae: { pt: 'Atividade Principal (CNAE)', en: 'Main Activity (CNAE)', es: 'Actividad Principal (CNAE)' },
+    proLaboreDesejado: { pt: 'Pró-labore Desejado (R$)', en: 'Desired Pro-labore (R$)', es: 'Pro-labore Deseado (R$)' },
+    diaVencimentoDas: { pt: 'Dia de Vencimento do DAS', en: 'DAS Due Day', es: 'Día de Vencimiento del DAS' },
     compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
     toastBaixado: { pt: 'PDF pronto — baixado.', en: 'PDF ready — downloaded.', es: 'PDF listo — descargado.' },
   }
@@ -124,6 +134,11 @@ export default function PainelMEI() {
       setDasValor(String(mei.das_valor || dasMensalPorCategoria(mei.categoria_mei)))
       setDataAbertura(mei.data_abertura || '')
       setReservaEmergenciaPctForm(mei.reserva_emergencia_pct != null ? String(mei.reserva_emergencia_pct) : '')
+      setCnpjForm(mei.cnpj || '')
+      setRazaoSocialForm(mei.razao_social || '')
+      setCnaeForm(mei.cnae || '')
+      setProLaboreDesejadoForm(mei.pro_labore_desejado != null ? String(mei.pro_labore_desejado) : '')
+      setDiaVencimentoDasForm(mei.dia_vencimento_das != null ? String(mei.dia_vencimento_das) : '20')
     }
     setLoading(false)
   }
@@ -140,6 +155,11 @@ export default function PainelMEI() {
       das_valor: parseFloat(dasValor),
       data_abertura: dataAbertura || null,
       reserva_emergencia_pct: reservaEmergenciaPctForm ? parseFloat(reservaEmergenciaPctForm) : null,
+      cnpj: cnpjForm || null,
+      razao_social: razaoSocialForm || null,
+      cnae: cnaeForm || null,
+      pro_labore_desejado: proLaboreDesejadoForm ? parseFloat(proLaboreDesejadoForm) : null,
+      dia_vencimento_das: diaVencimentoDasForm ? parseInt(diaVencimentoDasForm, 10) : 20,
       limite_anual: LIMITE_ANUAL_MEI,
       regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
@@ -205,9 +225,10 @@ export default function PainelMEI() {
   const retirada = detectarRetiradaPerigosa({ proLaboreSeguro: cofre.proLaboreSeguro, gastosPessoaisMes: gastosPessoaisMesValor })
 
   // ---- Guardião da Reserva (Fase 2) ----
+  const diaVencimentoDas = meiDados?.dia_vencimento_das || 20
   const guardiao = detectarConsumoReserva({ reservaNecessaria: cofre.das + cofre.irpfReserva, sobraMes: fluxo.sobra })
-  const diasAteVencimentoDas = diasParaDAS()
-  const vencimentoDasEsteMes = new Date(anoAtual, mesAtual, 20)
+  const diasAteVencimentoDas = diasParaDAS(new Date(), diaVencimentoDas)
+  const vencimentoDasEsteMes = new Date(anoAtual, mesAtual, diaVencimentoDas)
   const diasAtrasoDasReal = statusDas === 'Entregue' ? 0 : Math.max(0, Math.floor((new Date().getTime() - vencimentoDasEsteMes.getTime()) / 86400000))
   const penalidadeAtual = calcularPenalidadeDASAtraso(cofre.das, diasAtrasoDasReal, selicAnual)
   const penalidadeTeto = calcularPenalidadeDASAtraso(cofre.das, 61, selicAnual) // 61 dias = multa satura em 20% (teto legal)
@@ -355,6 +376,13 @@ export default function PainelMEI() {
                 <span className="text-sm font-bold" style={{ color: '#c8d8f0' }}>{mx.cofreProLabore}</span>
                 <span className="text-lg font-black" style={{ color: cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO, fontFamily: "'Georgia','Times New Roman',serif" }}>{fmt(cofre.proLaboreSeguro)}</span>
               </div>
+              {meiDados?.pro_labore_desejado != null && (
+                <p className="text-[11px] px-1" style={{ color: '#5a7a9a' }}>
+                  {mx.proLaboreComparativo
+                    .replace('{desejado}', fmt(meiDados.pro_labore_desejado))
+                    .replace('{seguro}', fmt(cofre.proLaboreSeguro))}
+                </p>
+              )}
               {cofre.avisos.map((aviso, i) => (
                 <p key={i} className="text-[10px] mt-1" style={{ color: '#5a7a9a' }}>⚠️ {aviso}</p>
               ))}
@@ -703,6 +731,50 @@ export default function PainelMEI() {
                     <input type="number" value={reservaEmergenciaPctForm} onChange={e => setReservaEmergenciaPctForm(e.target.value)}
                       placeholder="10" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                      {t('razaoSocial')}
+                    </label>
+                    <input type="text" value={razaoSocialForm} onChange={e => setRazaoSocialForm(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                        {t('cnpj')}
+                      </label>
+                      <input type="text" value={cnpjForm} onChange={e => setCnpjForm(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                        {t('cnae')}
+                      </label>
+                      <input type="text" value={cnaeForm} onChange={e => setCnaeForm(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                        {t('proLaboreDesejado')}
+                      </label>
+                      <input type="number" value={proLaboreDesejadoForm} onChange={e => setProLaboreDesejadoForm(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                        {t('diaVencimentoDas')}
+                      </label>
+                      <input type="number" min={1} max={31} value={diaVencimentoDasForm} onChange={e => setDiaVencimentoDasForm(e.target.value)}
+                        placeholder="20" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                    </div>
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button onClick={() => setModalConfig(false)}

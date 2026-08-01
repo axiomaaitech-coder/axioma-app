@@ -7,7 +7,7 @@ const client = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { mensagem, historico, contexto } = await request.json()
+    const { mensagem, historico, contexto, modelo } = await request.json()
 
     if (!mensagem) {
       return NextResponse.json({ error: 'Mensagem não fornecida' }, { status: 400 })
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     messages.push({ role: 'user', content: mensagem })
 
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: modelo || 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       system: contexto || 'Você é um assistente financeiro inteligente da Axioma AI.Tech. Responda sempre em português, de forma clara, prática e objetiva.',
       messages,
