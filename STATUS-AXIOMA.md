@@ -944,6 +944,18 @@ Usando essa autorização, encontradas (não fazia parte do pedido original) **3
 
 **Arquivos alterados:** `components/CentroCompartilhamento.tsx` (sem mudança nesta rodada, só reaproveitado), `app/(interno)/custos-fixos/page.tsx`, `app/(interno)/dashboard/page.tsx`, `app/(interno)/ia-financeira/page.tsx`, `app/(interno)/ia-tributaria/page.tsx` + as 13 telas que a sessão anterior já tinha deixado prontas (clientes, contas-receber, custos-variaveis, dre, endividamento, estoque, fluxo-caixa, fornecedores, inadimplencia, investimentos, metas, precificacao, simulacoes).
 
+## 3-AK. MEI Faturamento elevado a padrão CFO com IA real (2026-08-01)
+
+**Correção de rota importante: a `ANTHROPIC_API_KEY` está ATIVA em produção** (Elias confirmou e testou no mesmo dia, IA MEI Advisor respondendo com Claude real) — isso substitui o que a seção 1 registrava antes ("seguimos sem ativar"). Ver memória corrigida.
+
+**Bug de precisão corrigido — teto proporcional:** o teto de R$81.000/ano era tratado como fixo pra todo mundo, inclusive quem abriu o MEI no meio do ano corrente (regra oficial: R$6.750 × meses de atividade). `tetoProporcionalMEI(dataAbertura, ano)`, nova em `meiHelpers.ts`, é a fonte única — usa `mei_dados.data_abertura` (coluna já existia, sem SQL novo) e recalcula em 4 telas: Faturamento, Painel MEI, IA MEI Advisor, Precificação MEI (dasPerc da fórmula de preço mínimo também usava o teto fixo).
+
+**Faturamento MEI (`/mei/faturamento`) — reforma completa:** projeção mostra o MÊS calendário provável de estouro (não só "N meses") e quanto ainda dá pra faturar por mês até dezembro sem estourar (`projecaoTetoDetalhada`, novo); semáforo de 4 faixas (≤80% verde, 80-100% amarelo, 100-120% laranja "ainda dá até dez", >120% vermelho "risco de desenquadramento retroativo", via `semaforoTetoDetalhado`); **Análise Executiva por IA real** — mesmo padrão funcional do IA MEI Advisor (`fetch('/api/ia-chat')`, modelo `'claude-sonnet-5'` explícito, confirmado como o identificador que já funciona em produção), fallback por regra só pra falha real; **Relatório Mensal de Receitas Brutas** (obrigação oficial do MEI) exportável em PDF via `gerarPdfTabela`; gráfico ECharts (`optLinhaMulti`) com faturamento real × teto mensal recomendado × média móvel; comparação vs. mês anterior e vs. média.
+
+**Arquivos:** `lib/meiHelpers.ts` (`tetoProporcionalMEI`, `percentualDeTeto`, `semaforoTetoDetalhado`, `projecaoTetoDetalhada`, `receitasBrutasPorMes` novos; `limiteRestante`/`percentualLimite` ganharam parâmetro `teto` opcional, retrocompatíveis), `app/(interno)/mei/faturamento/page.tsx`, `app/(interno)/mei/page.tsx`, `app/(interno)/mei/ia-advisor/page.tsx`, `app/(interno)/mei/precificacao/page.tsx`.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — `✓ Compiled successfully in 4.7min` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/stripe/webhook`, falta chave da Stripe local). **Não testado clicando na tela** (sem navegador logado nesta sessão) — Elias vai testar manualmente (roteiro passado a ele no chat).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
