@@ -62,6 +62,7 @@ export default function PainelMEI() {
   const [cnaeForm, setCnaeForm] = useState('')
   const [proLaboreDesejadoForm, setProLaboreDesejadoForm] = useState('')
   const [diaVencimentoDasForm, setDiaVencimentoDasForm] = useState('20')
+  const [perfilClienteForm, setPerfilClienteForm] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
@@ -78,6 +79,10 @@ export default function PainelMEI() {
     categoriaMei: { pt: 'Categoria MEI', en: 'MEI Category', es: 'Categoría MEI' },
     valorDas: { pt: 'Valor DAS Mensal (R$)', en: 'Monthly DAS Value (R$)', es: 'Valor DAS Mensual (R$)' },
     dataAbertura: { pt: 'Data de Abertura do MEI', en: 'MEI Opening Date', es: 'Fecha de Apertura del MEI' },
+    perfilCliente: { pt: 'Seus clientes são principalmente', en: 'Your clients are mostly', es: 'Sus clientes son principalmente' },
+    perfilB2B: { pt: 'Empresas (B2B)', en: 'Companies (B2B)', es: 'Empresas (B2B)' },
+    perfilB2C: { pt: 'Pessoas físicas (B2C)', en: 'Individuals (B2C)', es: 'Personas físicas (B2C)' },
+    perfilAmbos: { pt: 'Ambos', en: 'Both', es: 'Ambos' },
     resumoAnual: { pt: 'Resumo Anual MEI', en: 'MEI Annual Summary', es: 'Resumen Anual MEI' },
     totalReceitas: { pt: 'Total de receitas lançadas', en: 'Total registered revenues', es: 'Total de ingresos registrados' },
     mediaMensal: { pt: 'Média mensal (6m)', en: 'Monthly average (6m)', es: 'Promedio mensual (6m)' },
@@ -139,6 +144,7 @@ export default function PainelMEI() {
       setCnaeForm(mei.cnae || '')
       setProLaboreDesejadoForm(mei.pro_labore_desejado != null ? String(mei.pro_labore_desejado) : '')
       setDiaVencimentoDasForm(mei.dia_vencimento_das != null ? String(mei.dia_vencimento_das) : '20')
+      setPerfilClienteForm(mei.perfil_cliente || '')
     }
     setLoading(false)
   }
@@ -160,6 +166,7 @@ export default function PainelMEI() {
       cnae: cnaeForm || null,
       pro_labore_desejado: proLaboreDesejadoForm ? parseFloat(proLaboreDesejadoForm) : null,
       dia_vencimento_das: diaVencimentoDasForm ? parseInt(diaVencimentoDasForm, 10) : 20,
+      perfil_cliente: perfilClienteForm || null,
       limite_anual: LIMITE_ANUAL_MEI,
       regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
@@ -758,6 +765,28 @@ export default function PainelMEI() {
                       <input type="number" min={1} max={31} value={diaVencimentoDasForm} onChange={e => setDiaVencimentoDasForm(e.target.value)}
                         placeholder="20" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                         style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>
+                      {t('perfilCliente')}
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { valor: 'b2b', label: t('perfilB2B') },
+                        { valor: 'b2c', label: t('perfilB2C') },
+                        { valor: 'ambos', label: t('perfilAmbos') },
+                      ].map(op => (
+                        <button key={op.valor} onClick={() => setPerfilClienteForm(op.valor)}
+                          className="py-2.5 rounded-xl text-xs font-semibold"
+                          style={{
+                            background: perfilClienteForm === op.valor ? `${OURO}20` : 'rgba(106,176,255,0.05)',
+                            color: perfilClienteForm === op.valor ? OURO : '#5a7a9a',
+                            border: `1px solid ${perfilClienteForm === op.valor ? OURO + '40' : 'rgba(106,176,255,0.1)'}`,
+                          }}>
+                          {op.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   <div className="flex gap-3 pt-2">

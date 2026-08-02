@@ -17,8 +17,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://axiomaai.com.br"),
   title: "Axioma AI.Tech — Inteligência Financeira",
   description: "Plataforma de inteligência financeira com IA para PMEs",
+  openGraph: {
+    title: "Axioma AI.Tech — Inteligência Financeira",
+    description: "Plataforma de inteligência financeira com IA para PMEs",
+    url: "https://axiomaai.com.br",
+    siteName: "Axioma AI.Tech",
+    images: [{ url: "/logo-aitech.png" }],
+    locale: "pt_BR",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {

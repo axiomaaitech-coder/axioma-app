@@ -645,3 +645,37 @@ export function maxParcelasDAS(dividaTotal: number): number {
   if (dividaTotal <= 0) return 0;
   return Math.max(1, Math.min(PARCELAS_MAXIMAS_DAS, Math.floor(dividaTotal / PARCELA_MINIMA_DAS)));
 }
+
+// ============================================================================
+// REFORMA TRIBUTÁRIA — marcos oficiais pro MEI, como dado (não texto — a
+// página monta a cópia PT/EN/ES). Fonte: EC 132/2023 + LC 214/2025. Mudam
+// por lei — atualizar aqui quando houver regulamentação nova, tratar sempre
+// como estimativa sujeita a confirmação.
+//
+// Tom deliberado: 2026 é ano-teste (IBS/CBS simbólicos, MEI segue só no DAS,
+// sem imposto novo) — `urgente: false` de propósito, pra nunca alarmar por
+// algo que ainda não pesa no bolso. A urgência real é 2027 (decisão MEI x ME,
+// prazo setembro/2026, CBS cobrada de verdade, split payment voluntário B2B,
+// nota fiscal obrigatória pra serviços).
+// ============================================================================
+
+export type MarcoReformaMEI = { ano: number; urgente: boolean };
+
+export const MARCOS_REFORMA_MEI: MarcoReformaMEI[] = [
+  { ano: 2026, urgente: false },
+  { ano: 2027, urgente: true },
+  { ano: 2033, urgente: false },
+];
+
+// Índice do marco em que estamos hoje — só pra posicionar o marcador "você
+// está aqui" na timeline.
+export function faseAtualReformaMEI(anoAtual: number = new Date().getFullYear()): number {
+  if (anoAtual < 2027) return 0;
+  if (anoAtual < 2033) return 1;
+  return 2;
+}
+
+// Nanoempreendedor (categoria nova da Reforma, LC 214/2025): teto próprio
+// menor que o MEI, isento de CBS/IBS — opção informativa pra MEI muito
+// pequeno, nunca empurrada como recomendação automática.
+export const LIMITE_NANOEMPREENDEDOR = 40500;
