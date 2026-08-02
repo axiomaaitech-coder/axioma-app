@@ -534,3 +534,114 @@ export function calcularPenalidadeDASAtraso(
   const juros = valorDas * (selicAnualPct / 100 / 365) * diasAtraso;
   return { multa, juros, total: valorDas + multa + juros };
 }
+
+// ============================================================================
+// DÍVIDA ACUMULADA DE DAS — "Mapa de Consequências" (Fase reforma DAS &
+// Obrigações). Detecção de atraso é sempre por DATA (vencimento no passado +
+// status diferente de "Entregue"), nunca depende do usuário ter clicado
+// "Atrasado" manualmente — um mês nunca tocado na tela é "Pendente" por
+// padrão (mesmo comportamento já usado na tela), mas se o vencimento já
+// passou, ele entra na dívida do mesmo jeito.
+// ============================================================================
+
+// Marcos oficiais do MEI inadimplente. 61 dias é onde a multa de 0,33%/dia
+// atinge o teto de 20% (0,33 × 61 ≈ 20,1%). 12 e 24 meses são os prazos
+// oficiais de CNPJ Inapto e inscrição em Dívida Ativa da União.
+export const DIAS_MULTA_TETO = 61;
+export const DIAS_CNPJ_INAPTO = 365;
+export const DIAS_DIVIDA_ATIVA = 730;
+
+export type FaseRiscoDAS = "em_dia" | "atrasado" | "multa_teto" | "inapto" | "divida_ativa";
+
+export function faseRiscoDAS(diasAtraso: number): FaseRiscoDAS {
+  if (diasAtraso <= 0) return "em_dia";
+  if (diasAtraso < DIAS_MULTA_TETO) return "atrasado";
+  if (diasAtraso < DIAS_CNPJ_INAPTO) return "multa_teto";
+  if (diasAtraso < DIAS_DIVIDA_ATIVA) return "inapto";
+  return "divida_ativa";
+}
+
+export type CompetenciaDAS = { mesNum: number; competencia: string; dataVencimento: Date; status: StatusObrigacao };
+
+// Monta a lista honesta de competências de DAS que já deveriam existir este
+// ano (desde a abertura do MEI, ou desde janeiro se abriu em ano anterior),
+// cruzando com o que já foi gravado em mei_obrigacoes — mês sem registro
+// conta como "Pendente" (mesmo default já usado na tela). Único lugar que
+// gera essa lista — alimenta tanto o cálculo da dívida quanto o Histórico do
+// ano, pra nunca divergir.
+export function competenciasDASDoAno(
+  obrigacoesCarregadas: ObrigacaoMEI[],
+  anoAtual: number,
+  diaVencimento: number,
+  dataAbertura: string | null | undefined,
+  hoje: Date = new Date()
+): CompetenciaDAS[] {
+  const aberturaObj = dataAbertura ? new Date(dataAbertura.slice(0, 10) + "T00:00:00") : null;
+  const mesInicio = aberturaObj && aberturaObj.getFullYear() === anoAtual ? aberturaObj.getMonth() : 0;
+  if (aberturaObj && aberturaObj.getFullYear() > anoAtual) return [];
+  const resultado: CompetenciaDAS[] = [];
+  for (let m = mesInicio; m <= 11; m++) {
+    const dataVencimento = new Date(anoAtual, m, diaVencimento);
+    if (dataVencimento > hoje) break; // mês futuro ainda não é uma obrigação
+    const competencia = `${anoAtual}-${String(m + 1).padStart(2, "0")}`;
+    const registro = obrigacoesCarregadas.find((o) => o.tipo === "DAS" && o.competencia === competencia);
+    resultado.push({ mesNum: m, competencia, dataVencimento, status: registro?.status || "Pendente" });
+  }
+  return resultado;
+}
+
+export type DasAtrasado = {
+  competencia: string;
+  dataVencimento: string;
+  diasAtraso: number;
+  valorOriginal: number;
+  penalidade: { multa: number; juros: number; total: number };
+};
+
+export function calcularDividaDASAcumulada(
+  competenciasDoAno: CompetenciaDAS[],
+  dasValorMensal: number,
+  selicAnualPct: number,
+  hoje: Date = new Date()
+): { atrasos: DasAtrasado[]; totalOriginal: number; totalAtualizado: number; piorDiasAtraso: number } {
+  const atrasos: DasAtrasado[] = competenciasDoAno
+    .filter((c) => c.status !== "Entregue" && c.dataVencimento < hoje)
+    .map((c) => {
+      const diasAtraso = Math.floor((hoje.getTime() - c.dataVencimento.getTime()) / 86400000);
+      return {
+        competencia: c.competencia,
+        dataVencimento: c.dataVencimento.toISOString().slice(0, 10),
+        diasAtraso,
+        valorOriginal: dasValorMensal,
+        penalidade: calcularPenalidadeDASAtraso(dasValorMensal, diasAtraso, selicAnualPct),
+      };
+    });
+  const totalOriginal = atrasos.length * dasValorMensal;
+  const totalAtualizado = atrasos.reduce((s, a) => s + a.penalidade.total, 0);
+  const piorDiasAtraso = atrasos.reduce((m, a) => Math.max(m, a.diasAtraso), 0);
+  return { atrasos, totalOriginal, totalAtualizado, piorDiasAtraso };
+}
+
+// Projeção "bola de neve": quanto a dívida acumulada vira daqui a N dias se
+// nada for pago, reaproveitando a mesma fórmula de penalidade pra cada
+// competência em atraso.
+export function projecaoBolaDeNeveDAS(
+  atrasos: DasAtrasado[],
+  selicAnualPct: number,
+  horizontesDias: number[] = [30, 60, 90]
+): { dias: number; valorTotal: number }[] {
+  return horizontesDias.map((h) => ({
+    dias: h,
+    valorTotal: atrasos.reduce((s, a) => s + calcularPenalidadeDASAtraso(a.valorOriginal, a.diasAtraso + h, selicAnualPct).total, 0),
+  }));
+}
+
+// Parcelamento PGMEI: até 60 parcelas, mínimo R$50 cada — trava o máximo de
+// parcelas automaticamente pra nunca sugerir uma parcela abaixo do mínimo.
+export const PARCELA_MINIMA_DAS = 50;
+export const PARCELAS_MAXIMAS_DAS = 60;
+
+export function maxParcelasDAS(dividaTotal: number): number {
+  if (dividaTotal <= 0) return 0;
+  return Math.max(1, Math.min(PARCELAS_MAXIMAS_DAS, Math.floor(dividaTotal / PARCELA_MINIMA_DAS)));
+}
