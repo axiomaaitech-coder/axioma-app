@@ -966,6 +966,20 @@ Usando essa autorização, encontradas (não fazia parte do pedido original) **3
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — `✓ Compiled successfully in 5.0min` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/pluggy/webhook`, falta `SUPABASE_SERVICE_ROLE_KEY` local, Pluggy em modo teste). **Não testado clicando na tela** (sem navegador logado nesta sessão) — Elias vai testar manualmente, incluindo simular um atraso real pra ver o Mapa de Consequências (roteiro passado a ele no chat).
 
+## 3-AM. Favicon do Axioma + MEI Reforma Tributária elevado a padrão CFO com IA real (2026-08-02)
+
+**Favicon genérico trocado pelo selo circular da marca** (`public/logo-aitech.png` → `app/icon.png`, convenção nativa do Next.js App Router — aplica sozinho em todo o app, sem mexer em cada tela). `metadataBase`/`og:title`/`og:description`/`og:image` adicionados no `app/layout.tsx`.
+
+**Diferencial: Reforma personalizada por perfil de cliente** — nenhum concorrente faz isso. Campo novo `mei_dados.perfil_cliente` (SQL separado, `b2b`/`b2c`/`ambos`/null), configurável em "Configurar MEI" (Painel). B2B vê o risco real de crédito de IBS/CBS a partir de 2027 (empresa no regime regular passa a preferir fornecedor que gera crédito, e o MEI não gera) com 3 ações práticas; B2C vê tranquilização honesta (crédito é irrelevante pro consumidor final); sem perfil configurado, vê os dois lados com aviso pra configurar. Simulador MEI vs ME ganhou o aviso de crédito quando o perfil é B2B.
+
+**Tom — pedido explícito do Elias, tratado como crítico:** banner verde no topo, calmo, deixando claro que a Reforma NÃO aumenta o imposto do MEI em 2026 (ano-teste, IBS/CBS simbólicos 0,9%+0,1%, MEI segue só no DAS) — só depois vem o banner âmbar com a urgência real (decisão até setembro/2026 pra valer em 2027: CBS cobrada de verdade, split payment voluntário B2B, nota fiscal obrigatória). Linha do tempo honesta ancorada em `MARCOS_REFORMA_MEI` (constante documentada em `meiHelpers.ts`, fácil de atualizar quando a lei mudar) — 2026 em verde de propósito (nunca vermelho pra algo que ainda não pesa no bolso), marcador "você está aqui". Checklist prescritivo com links pro DAS e Faturamento, e menção honesta ao Nanoempreendedor (LC 214/2025, até R$40,5 mil/ano, isento).
+
+**IA real:** mesmo padrão funcional e **mesmo identificador de modelo (`'claude-sonnet-5'`)** — conferido de novo nos arquivos do DAS e do IA MEI Advisor antes de codar, por pedido explícito do Elias, não assumido de memória.
+
+**Arquivos:** `app/layout.tsx`, `app/icon.png` (novo), `lib/meiHelpers.ts` (`MARCOS_REFORMA_MEI`, `faseAtualReformaMEI`, `LIMITE_NANOEMPREENDEDOR` novos), `app/(interno)/mei/page.tsx` (seletor de perfil no modal Configurar MEI), `app/(interno)/mei/reforma/page.tsx` (reescrita completa).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — `✓ Compiled successfully in 4.1min` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/pluggy/webhook`, falta `SUPABASE_SERVICE_ROLE_KEY` local). **Não testado clicando na tela** (sem navegador logado nesta sessão) — Elias vai testar manualmente, incluindo trocar o perfil B2B/B2C pra ver os textos mudarem e confirmar o favicon na aba (roteiro passado a ele no chat). **Pendente:** Elias rodar `MEI-REFORMA-PERFIL-CLIENTE-SQL.sql` no Supabase antes de testar o seletor de perfil.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
