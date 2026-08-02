@@ -718,6 +718,15 @@ export type DetectorTrabalhoGratisResultado = {
   margemRealPct: number; // só relevante quando situacao !== "prejuizo"
 };
 
+// Traduz "horas por dia" + "dias por semana" (linguagem que o MEI sabe de
+// cabeça) pra horas/mês (número que ele não sabe) — 4,33 = média de semanas
+// por mês (52/12). % produtivo desconta tempo não-faturável (reunião,
+// deslocamento) da hora que efetivamente sustenta o preço.
+export function horasMensaisCalculadas(horasPorDia: number, diasPorSemana: number, pctProdutivo: number = 100): number {
+  const horasBrutas = horasPorDia * diasPorSemana * 4.33;
+  return horasBrutas * (Math.max(0, Math.min(100, pctProdutivo)) / 100);
+}
+
 // "Você está trabalhando de graça?" — compara o que o usuário diz que cobra
 // hoje com o preço mínimo real (custo + DAS + IRPF, sem lucro nenhum).
 export function detectarTrabalhoDeGraca(params: {

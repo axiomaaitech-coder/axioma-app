@@ -6,15 +6,16 @@ import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { Share2, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Share2, AlertTriangle, CheckCircle2, Pencil, Trash2, Save, ChevronLeft, ChevronRight } from 'lucide-react'
 import ReactECharts from 'echarts-for-react'
 import { precoPorDivisor, optRosca, ticketMedio } from '../../../../lib/cfoCore'
 import {
-  dasMensalPorCategoria, tetoProporcionalMEI,
+  dasMensalPorCategoria, tetoProporcionalMEI, horasMensaisCalculadas,
   custoProprioRateado, fracaoDASSobrePreco, fracaoIRPFExposicao, detectarTrabalhoDeGraca,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
+import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
@@ -43,7 +44,11 @@ export default function PrecificacaoMEI() {
   const [custoFixoMensal, setCustoFixoMensal] = useState('')
   const [custoVariavelMensal, setCustoVariavelMensal] = useState('')
   const [margemDesejada, setMargemDesejada] = useState('30')
+  const [horasPorDia, setHorasPorDia] = useState('8')
+  const [diasPorSemana, setDiasPorSemana] = useState('5')
+  const [pctProdutivo, setPctProdutivo] = useState('100')
   const [horasTrabalhadasMes, setHorasTrabalhadasMes] = useState('')
+  const [horasTocado, setHorasTocado] = useState(false)
   const [horasEstimadasProjeto, setHorasEstimadasProjeto] = useState('')
   const [materiaisProjeto, setMateriaisProjeto] = useState('0')
   const [custoUnitarioProduto, setCustoUnitarioProduto] = useState('')
@@ -56,6 +61,13 @@ export default function PrecificacaoMEI() {
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
+
+  const [precosSalvos, setPrecosSalvos] = useState<{ id: string; nome: string; modo: Modo; dados: any; updated_at: string }[]>([])
+  const [nomePrecoSalvo, setNomePrecoSalvo] = useState('')
+  const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [salvandoPreco, setSalvandoPreco] = useState(false)
+  const [paginaAtual, setPaginaAtual] = useState(0)
+  const ITENS_POR_PAGINA = 10
 
   const txt = {
     titulo: { pt: 'MEI — Precificação', en: 'MEI — Pricing', es: 'MEI — Precios' },
@@ -75,7 +87,12 @@ export default function PrecificacaoMEI() {
     custosReaisVazio: { pt: 'Sem lançamentos suficientes — preencha manualmente.', en: 'Not enough entries yet — fill in manually.', es: 'Sin registros suficientes — complete manualmente.' },
     custoFixoLbl: { pt: 'Custo Fixo Mensal (R$)', en: 'Monthly Fixed Cost (R$)', es: 'Costo Fijo Mensual (R$)' },
     custoVariavelLbl: { pt: 'Custo Variável Mensal (R$)', en: 'Monthly Variable Cost (R$)', es: 'Costo Variable Mensual (R$)' },
-    horasTrabalhadasLbl: { pt: 'Horas trabalhadas por mês', en: 'Hours worked per month', es: 'Horas trabajadas por mes' },
+    horasTrabalhadasLbl: { pt: 'Horas usadas no cálculo (por mês)', en: 'Hours used in the calculation (per month)', es: 'Horas usadas en el cálculo (por mes)' },
+    horasPorDiaLbl: { pt: 'Horas por dia', en: 'Hours per day', es: 'Horas por día' },
+    diasPorSemanaLbl: { pt: 'Dias por semana', en: 'Days per week', es: 'Días por semana' },
+    pctProdutivoLbl: { pt: '% de horas produtivas (opcional) — desconta reunião/deslocamento', en: '% productive hours (optional) — discounts meetings/commute', es: '% de horas productivas (opcional) — descuenta reunión/traslado' },
+    horasCalculadasTexto: { pt: 'Você trabalha ~{v} h/mês', en: 'You work ~{v} h/month', es: 'Usted trabaja ~{v} h/mes' },
+    horasOverrideNota: { pt: 'Pré-preenchido pelo cálculo acima — pode sobrescrever com um número exato.', en: 'Pre-filled by the calculation above — you can override with an exact number.', es: 'Prellenado por el cálculo de arriba — puede sobrescribir con un número exacto.' },
     horasEstimadasLbl: { pt: 'Horas estimadas para este projeto', en: 'Estimated hours for this project', es: 'Horas estimadas para este proyecto' },
     materiaisLbl: { pt: 'Materiais/insumos deste projeto (R$)', en: 'Materials/supplies for this project (R$)', es: 'Materiales/insumos de este proyecto (R$)' },
     custoUnitarioLbl: { pt: 'Custo do produto (R$/unidade)', en: 'Product cost (R$/unit)', es: 'Costo del producto (R$/unidad)' },
@@ -107,11 +124,27 @@ export default function PrecificacaoMEI() {
     analiseIATitulo: { pt: 'Análise Executiva Axioma', en: 'Axioma Executive Analysis', es: 'Análisis Ejecutivo Axioma' },
     analiseIATransparencia: { pt: 'Análise gerada pela inteligência do Axioma com base nos seus dados reais. Se não for possível gerar agora, cai automaticamente para uma análise por regra.', en: 'Analysis generated by Axioma intelligence based on your real data. If it cannot be generated right now, it automatically falls back to a rule-based analysis.', es: 'Análisis generado por la inteligencia de Axioma con base en sus datos reales. Si no se puede generar ahora, cae automáticamente a un análisis por regla.' },
     dicas: { pt: 'Dicas de Precificação MEI', en: 'MEI Pricing Tips', es: 'Consejos de Precios MEI' },
+    nomePrecoLbl: { pt: 'Nome deste preço (ex: Corte de cabelo masculino)', en: 'Name for this price (e.g. Men\'s haircut)', es: 'Nombre de este precio (ej: Corte de cabello masculino)' },
+    salvarPreco: { pt: 'Salvar Preço', en: 'Save Price', es: 'Guardar Precio' },
+    salvando: { pt: 'Salvando...', en: 'Saving...', es: 'Guardando...' },
+    atualizarPreco: { pt: 'Atualizar Preço', en: 'Update Price', es: 'Actualizar Precio' },
+    cancelarEdicao: { pt: 'Cancelar edição', en: 'Cancel editing', es: 'Cancelar edición' },
+    editandoAviso: { pt: 'Editando "{v}" — salvar vai atualizar este preço.', en: 'Editing "{v}" — saving will update this price.', es: 'Editando "{v}" — guardar actualizará este precio.' },
+    meusPrecosTitulo: { pt: 'Meus Preços Salvos', en: 'My Saved Prices', es: 'Mis Precios Guardados' },
+    meusPrecosVazio: { pt: 'Nenhum preço salvo ainda — calcule acima e clique em "Salvar Preço".', en: 'No saved prices yet — calculate above and click "Save Price".', es: 'Ningún precio guardado todavía — calcule arriba y haga clic en "Guardar Precio".' },
+    confirmarExcluir: { pt: 'Excluir "{v}"? Essa ação não pode ser desfeita.', en: 'Delete "{v}"? This action cannot be undone.', es: '¿Eliminar "{v}"? Esta acción no se puede deshacer.' },
+    paginaLbl: { pt: 'Página {a} de {b}', en: 'Page {a} of {b}', es: 'Página {a} de {b}' },
   }
   const t = (key: keyof typeof txt) => txt[key][lang]
   const fmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => { carregar(); carregarPrecosSalvos() }, [])
+
+  useEffect(() => {
+    if (horasTocado) return
+    const calc = horasMensaisCalculadas(parseFloat(horasPorDia) || 0, parseFloat(diasPorSemana) || 0, parseFloat(pctProdutivo) || 100)
+    setHorasTrabalhadasMes(calc > 0 ? String(Math.round(calc * 10) / 10) : '')
+  }, [horasPorDia, diasPorSemana, pctProdutivo, horasTocado])
 
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -132,6 +165,11 @@ export default function PrecificacaoMEI() {
     if (somaCF > 0) setCustoFixoMensal(String(Math.round(somaCF * 100) / 100))
     if (mediaCV > 0) setCustoVariavelMensal(String(Math.round(mediaCV * 100) / 100))
     if (!modoTocado) setModo(mei?.categoria_mei === 'Comércio' || mei?.categoria_mei === 'Indústria' ? 'produto' : 'hora')
+  }
+
+  async function carregarPrecosSalvos() {
+    const { data } = await supabase.from('mei_precos_salvos').select('*').order('updated_at', { ascending: false }).limit(200)
+    setPrecosSalvos(data || [])
   }
 
   function trocarModo(m: Modo) { setModo(m); setModoTocado(true) }
@@ -247,6 +285,66 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
     setAnaliseIA(resposta)
     setAnalisandoIA(false)
   }
+
+  // ---- Salvar Preço — zero token, nunca chama /api/ia-chat ----
+  function montarSnapshotDados() {
+    return {
+      custoFixoMensal, custoVariavelMensal, margemDesejada,
+      horasPorDia, diasPorSemana, pctProdutivo, horasTrabalhadasMes, horasTocado,
+      horasEstimadasProjeto, materiaisProjeto,
+      custoUnitarioProduto, unidadesVendidasMes,
+      precoCobradoHoje, urgenciaPct,
+      resultado: { custoBase, precoMinimo, precoSugerido, margemReais, dasReais, irpfReais },
+    }
+  }
+
+  async function salvarPrecoAtual() {
+    if (!nomePrecoSalvo.trim()) return
+    setSalvandoPreco(true)
+    const dados = montarSnapshotDados()
+    if (editandoId) {
+      await supabase.from('mei_precos_salvos').update({ nome: nomePrecoSalvo.trim(), modo, dados, updated_at: new Date().toISOString() }).eq('id', editandoId)
+    } else {
+      const { data: { user } } = await supabase.auth.getUser()
+      const empresaId = await obterEmpresaAtiva()
+      if (user && empresaId) {
+        await supabase.from('mei_precos_salvos').insert({ user_id: user.id, empresa_id: empresaId, nome: nomePrecoSalvo.trim(), modo, dados })
+      }
+    }
+    setNomePrecoSalvo(''); setEditandoId(null)
+    await carregarPrecosSalvos()
+    setSalvandoPreco(false)
+  }
+
+  function editarPrecoSalvo(row: typeof precosSalvos[number]) {
+    const d = row.dados || {}
+    setEditandoId(row.id)
+    setNomePrecoSalvo(row.nome)
+    setModo(row.modo); setModoTocado(true)
+    setCustoFixoMensal(d.custoFixoMensal ?? '')
+    setCustoVariavelMensal(d.custoVariavelMensal ?? '')
+    setMargemDesejada(d.margemDesejada ?? '30')
+    setHorasPorDia(d.horasPorDia ?? '8')
+    setDiasPorSemana(d.diasPorSemana ?? '5')
+    setPctProdutivo(d.pctProdutivo ?? '100')
+    setHorasTrabalhadasMes(d.horasTrabalhadasMes ?? '')
+    setHorasTocado(!!d.horasTocado)
+    setHorasEstimadasProjeto(d.horasEstimadasProjeto ?? '')
+    setMateriaisProjeto(d.materiaisProjeto ?? '0')
+    setCustoUnitarioProduto(d.custoUnitarioProduto ?? '')
+    setUnidadesVendidasMes(d.unidadesVendidasMes ?? '')
+    setPrecoCobradoHoje(d.precoCobradoHoje ?? '')
+    setUrgenciaPct(d.urgenciaPct ?? '0')
+  }
+
+  async function excluirPrecoSalvo(row: typeof precosSalvos[number]) {
+    if (!window.confirm(t('confirmarExcluir').replace('{v}', row.nome))) return
+    await supabase.from('mei_precos_salvos').delete().eq('id', row.id)
+    if (editandoId === row.id) { setEditandoId(null); setNomePrecoSalvo('') }
+    await carregarPrecosSalvos()
+  }
+
+  function cancelarEdicaoPreco() { setEditandoId(null); setNomePrecoSalvo('') }
 
   const exportarPDF = async () => {
     if (!conteudoRef.current) return
@@ -375,11 +473,37 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             </div>
 
             {(modo === 'hora' || modo === 'projeto') && (
-              <div>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasTrabalhadasLbl')}</label>
-                <input type="number" value={horasTrabalhadasMes} onChange={(e) => setHorasTrabalhadasMes(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+              <div className="sm:col-span-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${AZUL}15` }}>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasPorDiaLbl')}</label>
+                    <input type="number" value={horasPorDia} onChange={(e) => setHorasPorDia(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('diasPorSemanaLbl')}</label>
+                    <input type="number" value={diasPorSemana} onChange={(e) => setDiasPorSemana(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('pctProdutivoLbl')}</label>
+                    <input type="number" value={pctProdutivo} onChange={(e) => setPctProdutivo(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                  </div>
+                </div>
+                <p className="text-xs mt-3" style={{ color: AZUL }}>
+                  {t('horasCalculadasTexto').replace('{v}', (Math.round(horasMensaisCalculadas(parseFloat(horasPorDia) || 0, parseFloat(diasPorSemana) || 0, parseFloat(pctProdutivo) || 100) * 10) / 10).toString())}
+                </p>
+                <div className="mt-3">
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasTrabalhadasLbl')}</label>
+                  <input type="number" value={horasTrabalhadasMes} onChange={(e) => { setHorasTrabalhadasMes(e.target.value); setHorasTocado(true) }}
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                  <p className="text-[10px] mt-1 italic" style={{ color: '#5a7a9a' }}>{t('horasOverrideNota')}</p>
+                </div>
               </div>
             )}
             {modo === 'projeto' && (
@@ -465,6 +589,26 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               <p className="text-xs mt-2" style={{ color: OURO }}>{t('precoComUrgenciaLbl')}: <b>{fmt(precoComUrgencia)}</b></p>
             )}
           </div>
+
+          <div className="mt-4 pt-4 flex flex-col sm:flex-row gap-2 items-stretch sm:items-end" style={{ borderTop: `1px solid ${OURO}20` }}>
+            <div className="flex-1">
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('nomePrecoLbl')}</label>
+              <input type="text" value={nomePrecoSalvo} onChange={(e) => setNomePrecoSalvo(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+            </div>
+            <button onClick={salvarPrecoAtual} disabled={salvandoPreco || !nomePrecoSalvo.trim()}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              <Save size={14} /> {salvandoPreco ? t('salvando') : editandoId ? t('atualizarPreco') : t('salvarPreco')}
+            </button>
+          </div>
+          {editandoId && (
+            <p className="text-[10px] mt-2 italic flex items-center gap-2" style={{ color: '#5a7a9a' }}>
+              {t('editandoAviso').replace('{v}', nomePrecoSalvo)}
+              <button onClick={cancelarEdicaoPreco} className="underline" style={{ color: AZUL }}>{t('cancelarEdicao')}</button>
+            </p>
+          )}
         </CanvasBox>
 
         {/* Composição do preço */}
@@ -522,6 +666,55 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)', color: '#c8d8f0' }}>
               {analiseIA}
             </div>
+          )}
+        </CanvasBox>
+
+        {/* Meus Preços Salvos */}
+        <CanvasBox cor={OURO}>
+          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('meusPrecosTitulo')}</p>
+          {precosSalvos.length === 0 ? (
+            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('meusPrecosVazio')}</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {precosSalvos.slice(paginaAtual * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA + ITENS_POR_PAGINA).map((row) => (
+                  <div key={row.id} className="flex items-center justify-between gap-3 p-3 rounded-xl"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${OURO}20` }}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold truncate" style={{ color: '#c8d8f0' }}>{row.nome}</p>
+                      <p className="text-[10px]" style={{ color: '#5a7a9a' }}>
+                        {row.modo === 'hora' ? t('modoHora') : row.modo === 'projeto' ? t('modoProjeto') : t('modoProduto')}
+                        {' · '}{fmt(row.dados?.resultado?.precoSugerido || 0)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => editarPrecoSalvo(row)} className="p-2 rounded-lg" style={{ background: `${AZUL}15`, border: `1px solid ${AZUL}30` }}>
+                        <Pencil size={14} style={{ color: AZUL }} />
+                      </button>
+                      <button onClick={() => excluirPrecoSalvo(row)} className="p-2 rounded-lg" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}30` }}>
+                        <Trash2 size={14} style={{ color: VERMELHO }} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {precosSalvos.length > ITENS_POR_PAGINA && (
+                <div className="flex items-center justify-between mt-4">
+                  <button onClick={() => setPaginaAtual((p) => Math.max(0, p - 1))} disabled={paginaAtual === 0}
+                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <ChevronLeft size={16} style={{ color: '#c8d8f0' }} />
+                  </button>
+                  <p className="text-xs" style={{ color: '#5a7a9a' }}>
+                    {t('paginaLbl').replace('{a}', String(paginaAtual + 1)).replace('{b}', String(Math.ceil(precosSalvos.length / ITENS_POR_PAGINA)))}
+                  </p>
+                  <button onClick={() => setPaginaAtual((p) => Math.min(Math.ceil(precosSalvos.length / ITENS_POR_PAGINA) - 1, p + 1))}
+                    disabled={paginaAtual >= Math.ceil(precosSalvos.length / ITENS_POR_PAGINA) - 1}
+                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <ChevronRight size={16} style={{ color: '#c8d8f0' }} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </CanvasBox>
 
