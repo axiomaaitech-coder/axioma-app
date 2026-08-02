@@ -1961,6 +1961,19 @@ export function receitaPctParaMultiplicarLucro(lucroAtual: number, receitaAtual:
 // cliente ou itens de pedido pra sustentar esses números com honestidade.
 // ═══════════════════════════════════════════════════════════════
 
+// ---------- FÓRMULA DO PREÇO (divisor, não markup somado) ----------
+// Preço = Custo ÷ (1 − soma dos percentuais sobre o preço final: margem,
+// impostos, despesas). Somar a margem sobre o custo (markup) sub-precifica
+// sempre que há qualquer percentual incidindo sobre o preço de venda — é o
+// erro nº 1 de precificação de PME. Fonte única: Precificação principal e
+// MEI Precificação chamam esta função, nenhuma reimplementa o cálculo.
+export function precoPorDivisor(custo: number, percentuaisFracaoSobrePreco: number[]): number {
+  const somaFracoes = percentuaisFracaoSobrePreco.reduce((s, f) => s + f, 0);
+  const divisor = 1 - somaFracoes;
+  if (divisor <= 0) return 0;
+  return custo / divisor;
+}
+
 // ---------- IMPACTO DE PREÇO (Digital Twin de um produto) ----------
 export type ImpactoPreco = {
   receitaMensalProduto: number; custoMensalProduto: number; margemContribuicaoPct: number;

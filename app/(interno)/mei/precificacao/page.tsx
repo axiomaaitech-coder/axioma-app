@@ -2,13 +2,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
-import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { Share2 } from 'lucide-react'
-import { dasMensalPorCategoria, percentualIsentoPorCategoria, tetoProporcionalMEI } from '../../../../lib/meiHelpers'
+import { Share2, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import ReactECharts from 'echarts-for-react'
+import { precoPorDivisor, optRosca, ticketMedio } from '../../../../lib/cfoCore'
+import {
+  dasMensalPorCategoria, tetoProporcionalMEI,
+  custoProprioRateado, fracaoDASSobrePreco, fracaoIRPFExposicao, detectarTrabalhoDeGraca,
+} from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { meiT } from '../../../../lib/meiTextos'
@@ -20,70 +24,228 @@ const supabase = createBrowserClient(
 
 const OURO = '#d4af37'
 const VERDE = '#34d399'
+const VERMELHO = '#f87171'
 const AZUL = '#6ab0ff'
-const AMBAR = '#f59e0b'
 const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
+
+type Modo = 'hora' | 'projeto' | 'produto'
 
 export default function PrecificacaoMEI() {
   const { idioma } = useLanguage()
+  const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
+  const mx = meiT(lang)
+
   const [meiDados, setMeiDados] = useState<any>(null)
-  const [precoCusto, setPrecoCusto] = useState('')
-  const [precoHoras, setPrecoHoras] = useState('')
-  const [precoMargem, setPrecoMargem] = useState('30')
-  const [precoResultado, setPrecoResultado] = useState<any>(null)
+  const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([])
+  const [modoTocado, setModoTocado] = useState(false)
+
+  const [modo, setModo] = useState<Modo>('hora')
+  const [custoFixoMensal, setCustoFixoMensal] = useState('')
+  const [custoVariavelMensal, setCustoVariavelMensal] = useState('')
+  const [margemDesejada, setMargemDesejada] = useState('30')
+  const [horasTrabalhadasMes, setHorasTrabalhadasMes] = useState('')
+  const [horasEstimadasProjeto, setHorasEstimadasProjeto] = useState('')
+  const [materiaisProjeto, setMateriaisProjeto] = useState('0')
+  const [custoUnitarioProduto, setCustoUnitarioProduto] = useState('')
+  const [unidadesVendidasMes, setUnidadesVendidasMes] = useState('')
+  const [precoCobradoHoje, setPrecoCobradoHoje] = useState('')
+  const [urgenciaPct, setUrgenciaPct] = useState('0')
+
+  const [analiseIA, setAnaliseIA] = useState<string | null>(null)
+  const [analisandoIA, setAnalisandoIA] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
 
   const txt = {
     titulo: { pt: 'MEI — Precificação', en: 'MEI — Pricing', es: 'MEI — Precios' },
-    subtitulo: { pt: 'Calcule o preço justo dos seus produtos e serviços', en: 'Calculate the fair price for your products and services', es: 'Calcule el precio justo de sus productos y servicios' },
-    calculadora: { pt: 'Calculadora de Preço Justo MEI', en: 'MEI Fair Price Calculator', es: 'Calculadora de Precio Justo MEI' },
-    custo: { pt: 'Custo total mensal (R$)', en: 'Total monthly cost (R$)', es: 'Costo total mensual (R$)' },
-    horas: { pt: 'Horas trabalhadas por mês', en: 'Hours worked per month', es: 'Horas trabajadas por mes' },
-    margem: { pt: 'Margem de lucro desejada (%)', en: 'Desired profit margin (%)', es: 'Margen de ganancia deseado (%)' },
-    calcular: { pt: 'Calcular Preço Justo', en: 'Calculate Fair Price', es: 'Calcular Precio Justo' },
-    custoHora: { pt: 'Custo por hora', en: 'Cost per hour', es: 'Costo por hora' },
-    impostos: { pt: 'Impostos estimados/hora', en: 'Estimated taxes/hour', es: 'Impuestos estimados/hora' },
-    margemReais: { pt: 'Margem de lucro/hora', en: 'Profit margin/hour', es: 'Margen de ganancia/hora' },
-    precoMinimo: { pt: '💰 Preço mínimo/hora', en: '💰 Minimum price/hour', es: '💰 Precio mínimo/hora' },
-    dicas: { pt: 'Dicas de Precificação MEI', en: 'MEI Pricing Tips', es: 'Consejos de Precios MEI' },
+    subtitulo: { pt: 'Descubra o preço mínimo real e pare de trabalhar de graça', en: 'Find your real minimum price and stop working for free', es: 'Descubra el precio mínimo real y deje de trabajar gratis' },
     categoria: { pt: 'Categoria MEI', en: 'MEI Category', es: 'Categoría MEI' },
-    aliquota: { pt: 'Alíquota de isenção IRPF', en: 'IRPF exemption rate', es: 'Alícuota de exención IRPF' },
-    dasAnual: { pt: 'DAS anual estimado', en: 'Estimated annual DAS', es: 'DAS anual estimado' },
+    dasMensalLbl: { pt: 'DAS Mensal', en: 'Monthly DAS', es: 'DAS Mensual' },
+    receitaMediaLbl: { pt: 'Receita Mensal Média Real', en: 'Real Average Monthly Revenue', es: 'Ingreso Mensual Promedio Real' },
+    modoTitulo: { pt: 'Como você cobra?', en: 'How do you charge?', es: '¿Cómo cobra?' },
+    modoHora: { pt: 'Por Hora', en: 'By Hour', es: 'Por Hora' },
+    modoProjeto: { pt: 'Por Projeto/Serviço', en: 'By Project/Service', es: 'Por Proyecto/Servicio' },
+    modoProduto: { pt: 'Por Produto', en: 'By Product', es: 'Por Producto' },
+    porHora: { pt: 'hora', en: 'hour', es: 'hora' },
+    porProjeto: { pt: 'projeto', en: 'project', es: 'proyecto' },
+    porProduto: { pt: 'produto', en: 'product', es: 'producto' },
+    custosReaisTitulo: { pt: 'Seus Custos Reais', en: 'Your Real Costs', es: 'Sus Costos Reales' },
+    custosReaisPuxados: { pt: 'Puxamos dos seus lançamentos — ajuste se quiser.', en: 'Pulled from your entries — adjust if you want.', es: 'Extraído de sus registros — ajuste si quiere.' },
+    custosReaisVazio: { pt: 'Sem lançamentos suficientes — preencha manualmente.', en: 'Not enough entries yet — fill in manually.', es: 'Sin registros suficientes — complete manualmente.' },
+    custoFixoLbl: { pt: 'Custo Fixo Mensal (R$)', en: 'Monthly Fixed Cost (R$)', es: 'Costo Fijo Mensual (R$)' },
+    custoVariavelLbl: { pt: 'Custo Variável Mensal (R$)', en: 'Monthly Variable Cost (R$)', es: 'Costo Variable Mensual (R$)' },
+    horasTrabalhadasLbl: { pt: 'Horas trabalhadas por mês', en: 'Hours worked per month', es: 'Horas trabajadas por mes' },
+    horasEstimadasLbl: { pt: 'Horas estimadas para este projeto', en: 'Estimated hours for this project', es: 'Horas estimadas para este proyecto' },
+    materiaisLbl: { pt: 'Materiais/insumos deste projeto (R$)', en: 'Materials/supplies for this project (R$)', es: 'Materiales/insumos de este proyecto (R$)' },
+    custoUnitarioLbl: { pt: 'Custo do produto (R$/unidade)', en: 'Product cost (R$/unit)', es: 'Costo del producto (R$/unidad)' },
+    unidadesVendidasLbl: { pt: 'Unidades vendidas por mês', en: 'Units sold per month', es: 'Unidades vendidas por mes' },
+    margemLbl: { pt: 'Margem de lucro desejada (%)', en: 'Desired profit margin (%)', es: 'Margen de ganancia deseado (%)' },
+    custoProprioNota: { pt: 'Inclui seu próprio pró-labore desejado ({v}/mês, configurado em Configurar MEI) rateado pelas horas/unidades — o erro nº 1 é esquecer o valor do seu tempo.', en: 'Includes your own desired pro-labore ({v}/month, set in Configure MEI) split across hours/units — the #1 mistake is forgetting the value of your own time.', es: 'Incluye su propio pro-labore deseado ({v}/mes, configurado en Configurar MEI) prorrateado por horas/unidades — el error nº 1 es olvidar el valor de su propio tiempo.' },
+    custoProprioAusente: { pt: 'Configure seu pró-labore desejado em "Configurar MEI" para incluir o custo do seu tempo neste cálculo.', en: 'Set your desired pro-labore in "Configure MEI" to include the cost of your own time in this calculation.', es: 'Configure su pro-labore deseado en "Configurar MEI" para incluir el costo de su propio tiempo en este cálculo.' },
+    resultadoTitulo: { pt: 'Resultado', en: 'Result', es: 'Resultado' },
+    custoBaseLbl: { pt: 'Custo Base', en: 'Base Cost', es: 'Costo Base' },
+    dasLbl: { pt: 'DAS (no preço)', en: 'DAS (in price)', es: 'DAS (en el precio)' },
+    irpfLbl: { pt: 'Exposição IRPF (no preço)', en: 'IRPF Exposure (in price)', es: 'Exposición IRPF (en el precio)' },
+    margemReaisLbl: { pt: 'Sua Margem em R$', en: 'Your Margin in R$', es: 'Su Margen en R$' },
+    precoMinimoLbl: { pt: '⚠️ Preço Mínimo (sem lucro)', en: '⚠️ Minimum Price (no profit)', es: '⚠️ Precio Mínimo (sin ganancia)' },
+    precoSugeridoLbl: { pt: '💰 Preço Sugerido', en: '💰 Suggested Price', es: '💰 Precio Sugerido' },
+    ticketMedioLbl: { pt: 'Seu ticket médio histórico real', en: 'Your real historical average ticket', es: 'Su ticket promedio histórico real' },
+    urgenciaLbl: { pt: 'Adicional de urgência/complexidade (%) — opcional', en: 'Urgency/complexity add-on (%) — optional', es: 'Adicional de urgencia/complejidad (%) — opcional' },
+    precoComUrgenciaLbl: { pt: 'Preço com adicional', en: 'Price with add-on', es: 'Precio con adicional' },
+    composicaoTitulo: { pt: 'Composição do Preço Sugerido', en: 'Suggested Price Composition', es: 'Composición del Precio Sugerido' },
+    detectorTitulo: { pt: 'Você Está Trabalhando de Graça?', en: 'Are You Working for Free?', es: '¿Está Trabajando Gratis?' },
+    precoCobradoLbl: { pt: 'Quanto você cobra hoje? (R$)', en: 'How much do you charge today? (R$)', es: '¿Cuánto cobra hoy? (R$)' },
+    detectorVazio: { pt: 'Informe o que você cobra hoje pra comparar com o preço mínimo real.', en: 'Enter what you charge today to compare with the real minimum price.', es: 'Informe lo que cobra hoy para comparar con el precio mínimo real.' },
+    prejuizoTitulo: { pt: 'Prejuízo Detectado', en: 'Loss Detected', es: 'Pérdida Detectada' },
+    prejuizoTexto: { pt: 'Você está tendo prejuízo de {v} por {u} — está pagando pra trabalhar.', en: 'You are losing {v} per {u} — you are paying to work.', es: 'Está teniendo una pérdida de {v} por {u} — está pagando para trabajar.' },
+    prejuizoMensal: { pt: 'No ritmo atual, isso é {v} de prejuízo por mês.', en: 'At this pace, that is {v} in losses per month.', es: 'A este ritmo, eso es {v} de pérdida por mes.' },
+    margemSaudavel: { pt: 'Sua margem real é {v}% — saudável.', en: 'Your real margin is {v}% — healthy.', es: 'Su margen real es {v}% — saludable.' },
+    margemApertada: { pt: 'Sua margem real é {v}% — apertada. Considere subir pro preço sugerido.', en: 'Your real margin is {v}% — tight. Consider raising it to the suggested price.', es: 'Su margen real es {v}% — ajustado. Considere subir al precio sugerido.' },
+    analisarIA: { pt: 'Analisar', en: 'Analyze', es: 'Analizar' },
+    analisando: { pt: 'Analisando...', en: 'Analyzing...', es: 'Analizando...' },
+    analiseIATitulo: { pt: 'Análise Executiva Axioma', en: 'Axioma Executive Analysis', es: 'Análisis Ejecutivo Axioma' },
+    analiseIATransparencia: { pt: 'Análise gerada pela inteligência do Axioma com base nos seus dados reais. Se não for possível gerar agora, cai automaticamente para uma análise por regra.', en: 'Analysis generated by Axioma intelligence based on your real data. If it cannot be generated right now, it automatically falls back to a rule-based analysis.', es: 'Análisis generado por la inteligencia de Axioma con base en sus datos reales. Si no se puede generar ahora, cae automáticamente a un análisis por regla.' },
+    dicas: { pt: 'Dicas de Precificação MEI', en: 'MEI Pricing Tips', es: 'Consejos de Precios MEI' },
   }
-
-  const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
-  const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
-  const mx = meiT(lang)
-  const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  const t = (key: keyof typeof txt) => txt[key][lang]
+  const fmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   useEffect(() => { carregar() }, [])
 
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data: mei } = await supabase.from('mei_dados').select('*').maybeSingle()
+    const inicio12m = new Date(); inicio12m.setMonth(inicio12m.getMonth() - 11)
+    const inicioIso = inicio12m.toISOString().slice(0, 10)
+    const hoje = new Date().toISOString().slice(0, 10)
+    const [{ data: mei }, { data: cf }, { data: cv }, { data: rec }] = await Promise.all([
+      supabase.from('mei_dados').select('*').maybeSingle(),
+      supabase.from('custos_fixos').select('valor_mensal'),
+      supabase.from('custos_variaveis').select('valor, data').gte('data', inicioIso).lte('data', hoje),
+      supabase.from('receitas').select('valor, data').gte('data', inicioIso).lte('data', hoje),
+    ])
     setMeiDados(mei)
+    setReceitasRows(rec || [])
+    const somaCF = (cf || []).reduce((s, c) => s + Number(c.valor_mensal || 0), 0)
+    const mediaCV = (cv || []).reduce((s, c) => s + Number(c.valor || 0), 0) / 12
+    if (somaCF > 0) setCustoFixoMensal(String(Math.round(somaCF * 100) / 100))
+    if (mediaCV > 0) setCustoVariavelMensal(String(Math.round(mediaCV * 100) / 100))
+    if (!modoTocado) setModo(mei?.categoria_mei === 'Comércio' || mei?.categoria_mei === 'Indústria' ? 'produto' : 'hora')
   }
 
-  const percentualIsento = percentualIsentoPorCategoria(meiDados?.categoria_mei)
+  function trocarModo(m: Modo) { setModo(m); setModoTocado(true) }
 
-  function calcularPreco() {
-    if (!precoCusto) return
-    const custo = parseFloat(precoCusto)
-    const horas = parseFloat(precoHoras) || 1
-    const margem = parseFloat(precoMargem) / 100
-    const teto = tetoProporcionalMEI(meiDados?.data_abertura, new Date().getFullYear()).teto
-    const dasPerc = meiDados?.das_valor ? (meiDados.das_valor * 12) / teto : 0.011
-    const custoTotal = custo / horas
-    const precoMinimo = custoTotal / (1 - margem - dasPerc - percentualIsento * 0.275)
-    setPrecoResultado({
-      custoHora: custoTotal,
-      precoMinimo,
-      margemReais: precoMinimo * margem,
-      impostos: precoMinimo * (dasPerc + percentualIsento * 0.275)
-    })
+  const anoAtual = new Date().getFullYear()
+  const receitaMensalMedia = receitasRows.reduce((s, r) => s + (r.valor || 0), 0) / 12
+  const tetoInfo = tetoProporcionalMEI(meiDados?.data_abertura, anoAtual)
+  const dasMensal = meiDados?.das_valor || dasMensalPorCategoria(meiDados?.categoria_mei)
+  const receitaReferenciaDAS = receitaMensalMedia > 0 ? receitaMensalMedia : tetoInfo.teto / 12
+  const fracaoDAS = fracaoDASSobrePreco(dasMensal, receitaReferenciaDAS)
+  const fracaoIRPF = fracaoIRPFExposicao(meiDados?.categoria_mei)
+  const margemFracao = (parseFloat(margemDesejada) || 0) / 100
+  const custoFixoNum = parseFloat(custoFixoMensal) || 0
+  const custoVarNum = parseFloat(custoVariavelMensal) || 0
+  const horasNum = parseFloat(horasTrabalhadasMes) || 0
+  const unidadesNum = parseFloat(unidadesVendidasMes) || 0
+  const proLaboreDesejado = meiDados?.pro_labore_desejado ?? null
+
+  const custoPorHoraOperacional = horasNum > 0 ? (custoFixoNum + custoVarNum) / horasNum + custoProprioRateado(proLaboreDesejado, horasNum) : 0
+  const custoPorUnidadeOperacional = unidadesNum > 0 ? (custoFixoNum + custoVarNum) / unidadesNum + custoProprioRateado(proLaboreDesejado, unidadesNum) : 0
+
+  let custoBase = 0
+  let unidadeLabel = t('porHora')
+  let volumeMensal = 1
+  if (modo === 'hora') {
+    custoBase = custoPorHoraOperacional
+    unidadeLabel = t('porHora')
+    volumeMensal = horasNum
+  } else if (modo === 'projeto') {
+    const horasProjeto = parseFloat(horasEstimadasProjeto) || 0
+    const materiais = parseFloat(materiaisProjeto) || 0
+    custoBase = custoPorHoraOperacional * horasProjeto + materiais
+    unidadeLabel = t('porProjeto')
+    volumeMensal = 1
+  } else {
+    const custoUnit = parseFloat(custoUnitarioProduto) || 0
+    custoBase = custoUnit + custoPorUnidadeOperacional
+    unidadeLabel = t('porProduto')
+    volumeMensal = unidadesNum
+  }
+
+  const precoSugerido = precoPorDivisor(custoBase, [margemFracao, fracaoDAS, fracaoIRPF])
+  const precoMinimo = precoPorDivisor(custoBase, [fracaoDAS, fracaoIRPF])
+  const dasReais = precoSugerido * fracaoDAS
+  const irpfReais = precoSugerido * fracaoIRPF
+  const margemReais = precoSugerido * margemFracao
+  const urgenciaFracao = (parseFloat(urgenciaPct) || 0) / 100
+  const precoComUrgencia = precoSugerido * (1 + urgenciaFracao)
+
+  const detector = precoCobradoHoje
+    ? detectarTrabalhoDeGraca({ precoCobradoHoje: parseFloat(precoCobradoHoje) || 0, custoBase, fracaoDAS, fracaoIRPF })
+    : null
+  const prejuizoMensalEstimado = detector && detector.situacao === 'prejuizo' ? detector.prejuizoPorUnidade * volumeMensal : 0
+
+  const ticket = ticketMedio(receitasRows.map((r) => ({ valor: r.valor, data: r.data })))
+
+  const dadosComposicao = [
+    { name: t('custoBaseLbl'), value: Math.max(0, custoBase), color: AZUL },
+    { name: t('dasLbl'), value: Math.max(0, dasReais), color: VERDE },
+    { name: t('irpfLbl'), value: Math.max(0, irpfReais), color: '#a78bfa' },
+    { name: t('margemReaisLbl'), value: Math.max(0, margemReais), color: OURO },
+  ]
+
+  const idiomaNome = lang === 'en' ? 'English' : lang === 'es' ? 'Spanish' : 'Portuguese (Brazilian)'
+
+  function montarContextoIAPrecificacao(): string {
+    const modoTexto = modo === 'hora' ? (lang === 'pt' ? 'por hora' : lang === 'en' ? 'by hour' : 'por hora') : modo === 'projeto' ? (lang === 'pt' ? 'por projeto' : lang === 'en' ? 'by project' : 'por proyecto') : (lang === 'pt' ? 'por produto' : lang === 'en' ? 'by product' : 'por producto')
+    return `You are the Axioma MEI pricing consultant. Answer in ${idiomaNome}, direct and practical, in 1st person as a consultant, in up to 6 sentences. Never invent a number outside the data below.
+
+REAL PRICING DATA (mode: ${modoTexto}):
+- MEI Category: ${meiDados?.categoria_mei || 'Serviços'}
+- Base cost calculated: ${fmt(custoBase)} per ${unidadeLabel}
+- Minimum price (breakeven, no profit): ${fmt(precoMinimo)}
+- Suggested price (desired margin ${margemDesejada}%): ${fmt(precoSugerido)}
+- ${precoCobradoHoje ? `Price currently charged: ${fmt(parseFloat(precoCobradoHoje))} — ${detector?.situacao === 'prejuizo' ? `LOSS of ${fmt(detector.prejuizoPorUnidade)} per ${unidadeLabel}` : `real margin of ${detector?.margemRealPct.toFixed(1)}%`}` : 'Has not informed the current price charged yet'}
+- Real historical average ticket: ${fmt(ticket)}
+- Monthly DAS: ${fmt(dasMensal)}
+
+Focus on: whether the price is healthy, how much to raise it, how to justify a price increase to the client, and when to refuse a discount.`
+  }
+
+  function gerarAnaliseFallback(): string {
+    if (detector?.situacao === 'prejuizo') {
+      if (lang === 'en') return `You are losing ${fmt(detector.prejuizoPorUnidade)} per ${unidadeLabel} at your current price — you are paying to work. Raise your price to at least ${fmt(precoMinimo)} to break even, or ${fmt(precoSugerido)} to keep your desired ${margemDesejada}% margin.`
+      if (lang === 'es') return `Está perdiendo ${fmt(detector.prejuizoPorUnidade)} por ${unidadeLabel} con su precio actual — está pagando para trabajar. Suba su precio a por lo menos ${fmt(precoMinimo)} para no perder, o ${fmt(precoSugerido)} para mantener su margen deseado de ${margemDesejada}%.`
+      return `Você está perdendo ${fmt(detector.prejuizoPorUnidade)} por ${unidadeLabel} no preço atual — está pagando pra trabalhar. Suba o preço pra pelo menos ${fmt(precoMinimo)} pra não ter prejuízo, ou ${fmt(precoSugerido)} pra manter sua margem desejada de ${margemDesejada}%.`
+    }
+    if (lang === 'en') return `Suggested price for this ${unidadeLabel}: ${fmt(precoSugerido)} (${margemDesejada}% margin over a real base cost of ${fmt(custoBase)}). ${detector ? `At your current price, real margin is ${detector.margemRealPct.toFixed(1)}%.` : ''} Your real historical average ticket is ${fmt(ticket)}.`
+    if (lang === 'es') return `Precio sugerido para este ${unidadeLabel}: ${fmt(precoSugerido)} (margen de ${margemDesejada}% sobre un costo base real de ${fmt(custoBase)}). ${detector ? `Con su precio actual, el margen real es ${detector.margemRealPct.toFixed(1)}%.` : ''} Su ticket promedio histórico real es ${fmt(ticket)}.`
+    return `Preço sugerido para este ${unidadeLabel}: ${fmt(precoSugerido)} (margem de ${margemDesejada}% sobre um custo base real de ${fmt(custoBase)}). ${detector ? `No seu preço atual, a margem real é ${detector.margemRealPct.toFixed(1)}%.` : ''} Seu ticket médio histórico real é ${fmt(ticket)}.`
+  }
+
+  async function analisarComIA() {
+    setAnalisandoIA(true)
+    let resposta = ''
+    try {
+      const res = await fetch('/api/ia-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mensagem: lang === 'en' ? 'Analyze my MEI pricing based on the data below.' : lang === 'es' ? 'Analice mi precificación MEI con base en los datos abajo.' : 'Analise minha precificação MEI com base nos dados abaixo.',
+          historico: [],
+          contexto: montarContextoIAPrecificacao(),
+          modelo: 'claude-sonnet-5',
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.resposta) resposta = data.resposta
+      }
+    } catch {}
+    if (!resposta) resposta = gerarAnaliseFallback()
+    setAnaliseIA(resposta)
+    setAnalisandoIA(false)
   }
 
   const exportarPDF = async () => {
@@ -97,7 +259,7 @@ export default function PrecificacaoMEI() {
       const pageHeight = pdf.internal.pageSize.getHeight()
       pdf.setFillColor(2, 8, 16); pdf.rect(0, 0, pdfWidth, 20, 'F')
       pdf.setTextColor(212, 175, 55); pdf.setFontSize(14); pdf.setFont('helvetica', 'bold')
-      pdf.text('AXIOMA AI.TECH — MEI Precificação', 14, 13)
+      pdf.text('AXIOMA — MEI Precificação', 14, 13)
       pdf.setTextColor(58, 90, 138); pdf.setFontSize(9); pdf.setFont('helvetica', 'normal')
       pdf.text(new Date().toLocaleDateString('pt-BR'), pdfWidth - 14, 13, { align: 'right' })
       let position = 22; let remaining = pdfHeight
@@ -120,14 +282,14 @@ export default function PrecificacaoMEI() {
   }
 
   function montarArgsPdfAtual(): ArgsPdfTabela {
-    const linhas = precoResultado
-      ? [
-          { label: t('custoHora'), valor: fmt(precoResultado.custoHora) },
-          { label: t('impostos'), valor: fmt(precoResultado.impostos) },
-          { label: t('margemReais'), valor: fmt(precoResultado.margemReais) },
-          { label: t('precoMinimo'), valor: fmt(precoResultado.precoMinimo) },
-        ]
-      : []
+    const linhas = [
+      { label: t('custoBaseLbl'), valor: fmt(custoBase) },
+      { label: t('dasLbl'), valor: fmt(dasReais) },
+      { label: t('irpfLbl'), valor: fmt(irpfReais) },
+      { label: t('margemReaisLbl'), valor: fmt(margemReais) },
+      { label: t('precoMinimoLbl'), valor: fmt(precoMinimo) },
+      { label: t('precoSugeridoLbl'), valor: fmt(precoSugerido) },
+    ]
     return {
       titulo: t('titulo'),
       subtitulo: meiDados?.categoria_mei || 'Serviços',
@@ -141,7 +303,7 @@ export default function PrecificacaoMEI() {
   }
 
   const dicas = [
-    { pt: 'Nunca precifique abaixo do custo real por hora — inclua DAS, IRPF e tempo improdutivo.', en: 'Never price below the real hourly cost — include DAS, IRPF and unproductive time.', es: 'Nunca precios por debajo del costo real por hora — incluya DAS, IRPF y tiempo improductivo.' },
+    { pt: 'Nunca precifique abaixo do custo real — inclua DAS, IRPF e o valor do seu próprio tempo.', en: 'Never price below the real cost — include DAS, IRPF and the value of your own time.', es: 'Nunca precios por debajo del costo real — incluya DAS, IRPF y el valor de su propio tiempo.' },
     { pt: 'Adicione 20-30% de margem mínima para cobrir imprevistos e investimentos no negócio.', en: 'Add 20-30% minimum margin to cover unforeseen events and business investments.', es: 'Agregue 20-30% de margen mínimo para cubrir imprevistos e inversiones en el negocio.' },
     { pt: 'Revise seus preços a cada 6 meses considerando inflação e novos custos.', en: 'Review your prices every 6 months considering inflation and new costs.', es: 'Revise sus precios cada 6 meses considerando inflación y nuevos costos.' },
     { pt: 'Serviços MEI têm isenção de 32% de IRPF sobre a receita — use isso no seu cálculo.', en: 'MEI services have a 32% IRPF exemption on revenue — use this in your calculation.', es: 'Servicios MEI tienen exención de 32% de IRPF sobre ingresos — úselo en su cálculo.' },
@@ -162,8 +324,8 @@ export default function PrecificacaoMEI() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: t('categoria'), value: meiDados?.categoria_mei || 'Serviços', cor: OURO },
-            { label: t('aliquota'), value: `${(percentualIsento * 100).toFixed(0)}%`, cor: VERDE },
-            { label: t('dasAnual'), value: fmt((meiDados?.das_valor || dasMensalPorCategoria(meiDados?.categoria_mei)) * 12), cor: AZUL },
+            { label: t('dasMensalLbl'), value: fmt(dasMensal), cor: AZUL },
+            { label: t('receitaMediaLbl'), value: fmt(receitaMensalMedia), cor: VERDE },
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
@@ -172,51 +334,195 @@ export default function PrecificacaoMEI() {
           ))}
         </div>
 
-        {/* Calculadora */}
+        {/* Seletor de modo */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('calculadora')}</p>
-          <div className="space-y-4">
-            {[
-              { label: t('custo'), value: precoCusto, set: setPrecoCusto },
-              { label: t('horas'), value: precoHoras, set: setPrecoHoras },
-              { label: t('margem'), value: precoMargem, set: setPrecoMargem },
-            ].map((campo, i) => (
-              <div key={i}>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{campo.label}</label>
-                <input
-                  type="number"
-                  value={campo.value}
-                  onChange={e => campo.set(e.target.value)}
+          <p className="text-sm font-semibold mb-3" style={{ color: '#c8d8f0', ...FONTE }}>{t('modoTitulo')}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {([
+              { key: 'hora' as Modo, label: t('modoHora') },
+              { key: 'projeto' as Modo, label: t('modoProjeto') },
+              { key: 'produto' as Modo, label: t('modoProduto') },
+            ]).map((op) => (
+              <button key={op.key} onClick={() => trocarModo(op.key)}
+                className="py-2.5 rounded-xl text-xs font-bold transition-all"
+                style={modo === op.key
+                  ? { background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }
+                  : { background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }}>
+                {op.label}
+              </button>
+            ))}
+          </div>
+        </CanvasBox>
+
+        {/* Custos reais + inputs do modo */}
+        <CanvasBox cor={AZUL}>
+          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', ...FONTE }}>{t('custosReaisTitulo')}</p>
+          <p className="text-[10px] mb-4 italic" style={{ color: '#5a7a9a' }}>
+            {custoFixoNum > 0 || custoVarNum > 0 ? t('custosReaisPuxados') : t('custosReaisVazio')}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('custoFixoLbl')}</label>
+              <input type="number" value={custoFixoMensal} onChange={(e) => setCustoFixoMensal(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('custoVariavelLbl')}</label>
+              <input type="number" value={custoVariavelMensal} onChange={(e) => setCustoVariavelMensal(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+            </div>
+
+            {(modo === 'hora' || modo === 'projeto') && (
+              <div>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasTrabalhadasLbl')}</label>
+                <input type="number" value={horasTrabalhadasMes} onChange={(e) => setHorasTrabalhadasMes(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }}
-                />
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+              </div>
+            )}
+            {modo === 'projeto' && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasEstimadasLbl')}</label>
+                  <input type="number" value={horasEstimadasProjeto} onChange={(e) => setHorasEstimadasProjeto(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('materiaisLbl')}</label>
+                  <input type="number" value={materiaisProjeto} onChange={(e) => setMateriaisProjeto(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                </div>
+              </>
+            )}
+            {modo === 'produto' && (
+              <>
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('custoUnitarioLbl')}</label>
+                  <input type="number" value={custoUnitarioProduto} onChange={(e) => setCustoUnitarioProduto(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('unidadesVendidasLbl')}</label>
+                  <input type="number" value={unidadesVendidasMes} onChange={(e) => setUnidadesVendidasMes(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                </div>
+              </>
+            )}
+            <div>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('margemLbl')}</label>
+              <input type="number" value={margemDesejada} onChange={(e) => setMargemDesejada(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+            </div>
+          </div>
+
+          <p className="text-[10px] mt-3 italic" style={{ color: proLaboreDesejado ? '#5a7a9a' : VERMELHO }}>
+            {proLaboreDesejado ? t('custoProprioNota').replace('{v}', fmt(proLaboreDesejado)) : t('custoProprioAusente')}
+          </p>
+        </CanvasBox>
+
+        {/* Resultado */}
+        <CanvasBox cor={OURO}>
+          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('resultadoTitulo')}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { label: t('custoBaseLbl'), value: fmt(custoBase), cor: '#5a7a9a' },
+              { label: t('dasLbl'), value: fmt(dasReais), cor: VERDE },
+              { label: t('irpfLbl'), value: fmt(irpfReais), cor: '#a78bfa' },
+              { label: t('margemReaisLbl'), value: fmt(margemReais), cor: OURO },
+            ].map((item, i) => (
+              <div key={i} className="flex justify-between items-center p-3 rounded-xl"
+                style={{ background: `${item.cor}10`, border: `1px solid ${item.cor}20` }}>
+                <span className="text-xs" style={{ color: '#c8d8f0' }}>{item.label}</span>
+                <span className="text-sm font-black" style={{ color: item.cor }}>{item.value}</span>
               </div>
             ))}
-            <button onClick={calcularPreco}
-              className="w-full py-3 rounded-xl font-bold text-sm"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
-              {t('calcular')}
-            </button>
-
-            <AnimatePresence>
-              {precoResultado && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-2 mt-2">
-                  {[
-                    { label: t('custoHora'), value: fmt(precoResultado.custoHora), cor: '#5a7a9a' },
-                    { label: t('impostos'), value: fmt(precoResultado.impostos), cor: AMBAR },
-                    { label: t('margemReais'), value: fmt(precoResultado.margemReais), cor: VERDE },
-                    { label: t('precoMinimo'), value: fmt(precoResultado.precoMinimo), cor: OURO },
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 rounded-xl"
-                      style={{ background: `${item.cor}10`, border: `1px solid ${item.cor}20` }}>
-                      <span className="text-xs" style={{ color: '#c8d8f0' }}>{item.label}</span>
-                      <span className="text-sm font-black" style={{ color: item.cor }}>{item.value}</span>
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div className="p-4 rounded-xl" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
+              <p className="text-xs mb-1" style={{ color: '#c8d8f0' }}>{t('precoMinimoLbl')}</p>
+              <p className="text-xl font-black" style={{ color: VERMELHO, ...FONTE }}>{fmt(precoMinimo)}</p>
+            </div>
+            <div className="p-4 rounded-xl" style={{ background: `${OURO}12`, border: `1px solid ${OURO}40` }}>
+              <p className="text-xs mb-1" style={{ color: '#c8d8f0' }}>{t('precoSugeridoLbl')}</p>
+              <p className="text-xl font-black" style={{ color: OURO, ...FONTE }}>{fmt(precoSugerido)}</p>
+            </div>
+          </div>
+          <p className="text-[10px] mt-3" style={{ color: '#5a7a9a' }}>{t('ticketMedioLbl')}: <b style={{ color: '#c8d8f0' }}>{fmt(ticket)}</b></p>
+
+          <div className="mt-4">
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('urgenciaLbl')}</label>
+            <input type="number" value={urgenciaPct} onChange={(e) => setUrgenciaPct(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+            {urgenciaFracao > 0 && (
+              <p className="text-xs mt-2" style={{ color: OURO }}>{t('precoComUrgenciaLbl')}: <b>{fmt(precoComUrgencia)}</b></p>
+            )}
+          </div>
+        </CanvasBox>
+
+        {/* Composição do preço */}
+        <CanvasBox cor={AZUL}>
+          <p className="text-sm font-semibold mb-2" style={{ color: '#c8d8f0', ...FONTE }}>{t('composicaoTitulo')}</p>
+          {precoSugerido > 0 ? (
+            <ReactECharts option={optRosca(dadosComposicao, OURO, t('precoSugeridoLbl'))} style={{ height: 260, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'canvas' }} />
+          ) : (
+            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('custosReaisVazio')}</p>
+          )}
+        </CanvasBox>
+
+        {/* Detector "trabalhando de graça" */}
+        <CanvasBox cor={detector?.situacao === 'prejuizo' ? VERMELHO : VERDE}>
+          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('detectorTitulo')}</p>
+          <div className="mb-4">
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('precoCobradoLbl')}</label>
+            <input type="number" value={precoCobradoHoje} onChange={(e) => setPrecoCobradoHoje(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+          </div>
+          {!detector && <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('detectorVazio')}</p>}
+          {detector && detector.situacao === 'prejuizo' && (
+            <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERMELHO}12`, border: `1px solid ${VERMELHO}40` }}>
+              <AlertTriangle size={20} style={{ color: VERMELHO, flexShrink: 0 }} />
+              <div>
+                <p className="text-sm font-black mb-1" style={{ color: VERMELHO }}>{t('prejuizoTitulo')}</p>
+                <p className="text-xs" style={{ color: '#c8d8f0' }}>{t('prejuizoTexto').replace('{v}', fmt(detector.prejuizoPorUnidade)).replace('{u}', unidadeLabel)}</p>
+                {volumeMensal > 0 && <p className="text-xs mt-1" style={{ color: '#c8d8f0' }}>{t('prejuizoMensal').replace('{v}', fmt(prejuizoMensalEstimado))}</p>}
+              </div>
+            </div>
+          )}
+          {detector && detector.situacao !== 'prejuizo' && (
+            <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}40` }}>
+              <CheckCircle2 size={20} style={{ color: VERDE, flexShrink: 0 }} />
+              <p className="text-xs" style={{ color: '#c8d8f0' }}>
+                {(detector.situacao === 'saudavel' ? t('margemSaudavel') : t('margemApertada')).replace('{v}', detector.margemRealPct.toFixed(1))}
+              </p>
+            </div>
+          )}
+        </CanvasBox>
+
+        {/* Análise Axioma */}
+        <CanvasBox cor={OURO}>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <p className="text-sm font-semibold" style={{ color: '#c8d8f0', ...FONTE }}>{t('analiseIATitulo')}</p>
+            <button onClick={analisarComIA} disabled={analisandoIA}
+              className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
+              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              {analisandoIA ? t('analisando') : t('analisarIA')}
+            </button>
+          </div>
+          <p className="text-[10px] mb-3" style={{ color: '#5a7a9a' }}>{t('analiseIATransparencia')}</p>
+          {analiseIA && (
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)', color: '#c8d8f0' }}>
+              {analiseIA}
+            </div>
+          )}
         </CanvasBox>
 
         {/* Dicas */}

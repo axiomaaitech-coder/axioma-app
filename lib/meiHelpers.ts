@@ -7,6 +7,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import { nomeMesPt } from "./relatoriosHelpers";
+import { precoPorDivisor } from "./cfoCore";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -679,3 +680,57 @@ export function faseAtualReformaMEI(anoAtual: number = new Date().getFullYear())
 // menor que o MEI, isento de CBS/IBS — opção informativa pra MEI muito
 // pequeno, nunca empurrada como recomendação automática.
 export const LIMITE_NANOEMPREENDEDOR = 40500;
+
+// ============================================================================
+// PRECIFICAÇÃO MEI — reaproveita a fórmula única `precoPorDivisor` (cfoCore.ts,
+// mesma usada pela Precificação principal). DAS e a exposição de IRPF viram
+// FRAÇÃO do preço pra caber no mesmo divisor; custo da própria hora entra
+// ANTES do divisor, como custo — é o erro nº 1 de quem precifica MEI: esquecer
+// o próprio tempo.
+// ============================================================================
+
+// pro_labore_desejado (mei_dados) rateado pelas horas/unidades da venda —
+// unit-agnóstico: serve pra hora, projeto ou produto.
+export function custoProprioRateado(proLaboreDesejado: number | null | undefined, unidadesOuHoras: number): number {
+  if (!proLaboreDesejado || unidadesOuHoras <= 0) return 0;
+  return proLaboreDesejado / unidadesOuHoras;
+}
+
+// DAS é valor fixo mensal — vira fração do preço dividindo pela receita
+// mensal de referência (média real, se houver histórico; senão o teto
+// proporcional/12, estimativa honesta pra quem ainda não faturou).
+export function fracaoDASSobrePreco(dasMensal: number, receitaMensalReferencia: number): number {
+  if (receitaMensalReferencia <= 0) return 0;
+  return Math.min(0.95, dasMensal / receitaMensalReferencia);
+}
+
+// Aproximação conservadora: parcela exposta do IRPF (1 − isenção da categoria)
+// tributada na alíquota marginal máxima (27,5%) — mesmo teto usado no Cofre
+// Inteligente (calcularIRPF), sem inventar uma alíquota efetiva menor.
+export function fracaoIRPFExposicao(categoria: string | null | undefined): number {
+  return (1 - percentualIsentoPorCategoria(categoria)) * 0.275;
+}
+
+export type DetectorTrabalhoGratisResultado = {
+  precoMinimo: number; // margem 0 — só cobre custo + DAS + IRPF
+  situacao: "prejuizo" | "apertada" | "saudavel";
+  prejuizoPorUnidade: number; // > 0 só quando situacao === "prejuizo"
+  margemRealPct: number; // só relevante quando situacao !== "prejuizo"
+};
+
+// "Você está trabalhando de graça?" — compara o que o usuário diz que cobra
+// hoje com o preço mínimo real (custo + DAS + IRPF, sem lucro nenhum).
+export function detectarTrabalhoDeGraca(params: {
+  precoCobradoHoje: number;
+  custoBase: number; // custo fixo rateado + variável rateado + custo da própria hora, sem imposto
+  fracaoDAS: number;
+  fracaoIRPF: number;
+}): DetectorTrabalhoGratisResultado {
+  const precoMinimo = precoPorDivisor(params.custoBase, [params.fracaoDAS, params.fracaoIRPF]);
+  if (params.precoCobradoHoje < precoMinimo) {
+    return { precoMinimo, situacao: "prejuizo", prejuizoPorUnidade: precoMinimo - params.precoCobradoHoje, margemRealPct: 0 };
+  }
+  const custoTotalComImpostos = params.custoBase + params.precoCobradoHoje * (params.fracaoDAS + params.fracaoIRPF);
+  const margemRealPct = params.precoCobradoHoje > 0 ? ((params.precoCobradoHoje - custoTotalComImpostos) / params.precoCobradoHoje) * 100 : 0;
+  return { precoMinimo, situacao: margemRealPct < 15 ? "apertada" : "saudavel", prejuizoPorUnidade: 0, margemRealPct };
+}

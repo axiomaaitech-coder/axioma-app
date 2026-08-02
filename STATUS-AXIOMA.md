@@ -982,6 +982,30 @@ Usando essa autorização, encontradas (não fazia parte do pedido original) **3
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — `✓ Compiled successfully in 4.1min` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/pluggy/webhook`, falta `SUPABASE_SERVICE_ROLE_KEY` local). **Não testado clicando na tela** (sem navegador logado nesta sessão) — Elias vai testar manualmente, incluindo trocar o perfil B2B/B2C pra ver os textos mudarem e confirmar o favicon na aba (roteiro passado a ele no chat). **`MEI-REFORMA-PERFIL-CLIENTE-SQL.sql` já rodado pelo Elias com sucesso (2026-08-02)** — coluna `perfil_cliente` existe, seletor em "Configurar MEI" pronto pra testar de ponta a ponta.
 
+## 3-AN. MEI Precificação elevado a padrão CFO com IA real (2026-08-02)
+
+**Antes:** calculadora isolada de 3 campos (custo/horas/margem), sem tocar `custos_fixos`/`custos_variaveis`/`receitas`, sem IA, sem detectar preço abaixo do custo.
+
+**Fórmula corrigida — divisor, não markup somado (fonte única):** `precoPorDivisor()`, nova em `lib/cfoCore.ts`, substitui as duas implementações locais que existiam (Precificação principal e MEI) — Preço = Custo ÷ (1 − margem% − impostos% − despesas%), nunca margem somada sobre o custo. A Precificação principal (`app/(interno)/precificacao/page.tsx`) também foi migrada pra chamar essa função, em vez de reimplementar.
+
+**Dados reais puxados:** custo fixo mensal (soma de `custos_fixos`) e custo variável mensal (média 12 meses de `custos_variaveis`) pré-preenchem os campos — editáveis, com aviso "puxamos dos seus lançamentos" ou estado vazio honesto se não houver dado. DAS e categoria vêm de `mei_dados`.
+
+**Custo da própria hora — o erro nº 1 de quem precifica MEI:** `custoProprioRateado()` (nova em `meiHelpers.ts`) rateia o `pro_labore_desejado` (já existente em `mei_dados`, configurado em "Configurar MEI") pelas horas/unidades da venda e soma ao custo antes do divisor — se o pró-labore não estiver configurado, aviso explícito pedindo pra configurar.
+
+**Detector "Você está trabalhando de graça?":** `detectarTrabalhoDeGraca()` (nova em `meiHelpers.ts`) compara o preço que o usuário diz que cobra hoje com o preço mínimo real (custo + DAS + exposição de IRPF, margem zero) — mostra prejuízo em R$ por hora/projeto/produto e projeção de prejuízo mensal se estiver abaixo; mostra margem real % (saudável/apertada) se estiver acima.
+
+**3 modos de precificação:** Por Hora, Por Projeto/Serviço, Por Produto — sugestão automática de modo pela categoria MEI (Comércio/Indústria → Produto, resto → Hora), trocável a qualquer momento. Multiplicador de urgência/complexidade opcional, mostrado como adicional sem alterar o preço-base sugerido.
+
+**Profundidade:** comparação com o ticket médio histórico real (`ticketMedio`, reaproveitado de `cfoCore.ts`) e gráfico de composição do preço (custo/DAS/IRPF/margem) via `optRosca`.
+
+**IA real:** mesmo padrão funcional e **mesmo identificador de modelo (`'claude-sonnet-5'`)** — conferido de novo nos arquivos do Faturamento e do DAS antes de codar, por pedido explícito do Elias, não assumido de memória. Rótulo "Análise Axioma"/"Analisar", nunca menciona IA/Claude.
+
+**SQL:** nenhum — tudo derivado de `receitas`/`custos_fixos`/`custos_variaveis`/`mei_dados` já existentes.
+
+**Arquivos:** `lib/cfoCore.ts` (`precoPorDivisor` nova), `lib/meiHelpers.ts` (`custoProprioRateado`, `fracaoDASSobrePreco`, `fracaoIRPFExposicao`, `detectarTrabalhoDeGraca` novas), `app/(interno)/precificacao/page.tsx` (migrado pra `precoPorDivisor`), `app/(interno)/mei/precificacao/page.tsx` (reescrita completa).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — `✓ Compiled successfully in 4.5min` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/pluggy/webhook`, falta `SUPABASE_SERVICE_ROLE_KEY` local). Não testado clicando na tela nesta sessão (sem navegador logado) — roteiro de teste manual passado ao Elias no chat.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

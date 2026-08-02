@@ -16,6 +16,7 @@ import {
   montarDRE, margemContribuicao, coeficienteVariacao, concentracao,
   simularCenariosExecutivos, calcularImpactoPreco, calcularImpactoDesconto,
   estimarElasticidade, detectarOportunidadesPrecificacao, calcularIPPA, optRosca,
+  precoPorDivisor,
   type Lancamento, type ChoqueSimulador, type ResultadoCenario,
   type TipoOportunidadePrecificacao,
 } from "../../../lib/cfoCore";
@@ -158,9 +159,7 @@ export default function Precificacao() {
 
   function calcularPreco(c: string, m: string, imp: string, desp: string): number {
     const custoNum = parseFloat(c || "0");
-    const divisor = 1 - parseFloat(m || "0") / 100 - parseFloat(imp || "0") / 100 - parseFloat(desp || "0") / 100;
-    if (divisor <= 0) return 0;
-    return custoNum / divisor;
+    return precoPorDivisor(custoNum, [parseFloat(m || "0") / 100, parseFloat(imp || "0") / 100, parseFloat(desp || "0") / 100]);
   }
   const precoPreview = calcularPreco(custoTotal, margemDesejada, impostos, despesas);
 
