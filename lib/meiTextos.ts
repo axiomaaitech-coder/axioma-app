@@ -91,8 +91,8 @@ const TEXTOS = {
     // Comparação com o pró-labore desejado (Configurar MEI)
     proLaboreComparativo: "Você queria retirar {desejado} — hoje o pró-labore seguro real é {seguro}.",
 
-    // IA real (MEI Advisor)
-    iaRespondendoPorRegra: "IA indisponível agora — respondendo com base em regras.",
+    // Análise Axioma (MEI Advisor)
+    iaRespondendoPorRegra: "Respondendo com base em regras — tente novamente em instantes.",
 
     // Gráficos analíticos do Painel
     evolucaoGanhos: "Evolução de Ganhos",
@@ -177,7 +177,7 @@ const TEXTOS = {
 
     proLaboreComparativo: "You wanted to withdraw {desejado} — today the real safe pro-labore is {seguro}.",
 
-    iaRespondendoPorRegra: "AI unavailable right now — answering based on rules.",
+    iaRespondendoPorRegra: "Answering based on rules — try again shortly.",
 
     evolucaoGanhos: "Revenue Evolution",
     fluxoCaixaVisual: "Visual Cash Flow",
@@ -261,7 +261,7 @@ const TEXTOS = {
 
     proLaboreComparativo: "Quería retirar {desejado} — hoy el pro-labore seguro real es {seguro}.",
 
-    iaRespondendoPorRegra: "IA no disponible ahora — respondiendo con base en reglas.",
+    iaRespondendoPorRegra: "Respondiendo con base en reglas — intente de nuevo en instantes.",
 
     evolucaoGanhos: "Evolución de Ingresos",
     fluxoCaixaVisual: "Flujo de Caja Visual",

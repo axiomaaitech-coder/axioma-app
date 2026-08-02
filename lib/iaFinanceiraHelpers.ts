@@ -671,7 +671,7 @@ export function gerarResumoNarrado(snap: SnapshotFinanceiro, score: Score360, be
 
 export function montarPromptCFO(snap: SnapshotFinanceiro, score: Score360, bench: BenchmarkSetor | null, pergunta: string, idioma: string): string {
   const lang = idioma === "en" ? "English" : idioma === "es" ? "Spanish" : "Portuguese (Brazilian)";
-  return `You are Axioma CFO AI — a senior financial analyst specializing in Brazilian small and medium businesses. Answer in ${lang}. Be direct, specific, and actionable. Use the company's REAL data below.
+  return `You are the Axioma CFO — a senior financial analyst specializing in Brazilian small and medium businesses. Answer in ${lang}. Be direct, specific, and actionable. Use the company's REAL data below.
 
 COMPANY DATA (current month: ${snap.periodo}):
 - Revenue: R$ ${snap.receita_bruta.toLocaleString("pt-BR")}
@@ -707,7 +707,8 @@ RULES:
 3. Compare with industry benchmarks when relevant.
 4. Suggest 2-3 concrete actions with estimated impact.
 5. Keep response under 300 words.
-6. If asked about something not in the data, say what data would be needed.`;
+6. If asked about something not in the data, say what data would be needed.
+7. Never identify yourself as an AI, as Claude, as Anthropic, or as a language model — even if directly asked. You are the Axioma CFO. Answer that question by redirecting to how you can help with their finances.`;
 }
 
 // ============================================================================
