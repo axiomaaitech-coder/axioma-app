@@ -1016,6 +1016,24 @@ Usando essa autorização, encontradas (não fazia parte do pedido original) **3
 
 **Verificação feita:** `tsc --noEmit` limpo, `next build` — `✓ Compiled successfully in 3.5min` — mesmo ponto de falha de sempre depois (`/api/pluggy/webhook`). **`MEI-PRECOS-SALVOS-SQL.sql` já rodado pelo Elias com sucesso (2026-08-02)** — tabela `mei_precos_salvos` existe, seção "Meus Preços Salvos" pronta pra testar de ponta a ponta (salvar/editar/excluir).
 
+## 3-AP. MEI Imposto de Renda — Central de Documentos Fiscais, Fase 1 (2026-08-02)
+
+**Storage seguro desde a fundação.** Bucket novo `documentos-fiscais` no Supabase Storage — **PRIVADO** (diferente do `produto-imagens`, que é público). Path sempre `empresaId/ano/timestamp-arquivo.ext`, nunca um UUID solto — é o que permite a política RLS comparar o primeiro pedaço do caminho com `empresas_do_usuario()`. Acesso só via signed URL (1h de validade, `lib/documentoStorageAdapter.ts`), nunca URL pública. Fail-safe por padrão: bucket privado com RLS ativo e nenhuma política aplicada = zero acesso pra qualquer um, nem o dono — só depois de rodar `DOCUMENTOS-FISCAIS-SQL.sql` o dono da empresa passa a conseguir usar.
+
+**Gancho R2 preparado, não implementado:** `lib/documentoStorageAdapter.ts` é o único ponto de configuração de storage do projeto pra esse tipo de documento — 3 funções (`uploadArquivoStorage`, `gerarUrlAssinada`, `removerArquivoStorage`). Trocar pro Cloudflare R2 no futuro é reimplementar essas 3 funções com o SDK S3-compatible do R2 (comentado no arquivo, com o desenho já escrito) — nenhum chamador (`lib/documentosFiscaisHelpers.ts`) muda.
+
+**Tabela `documentos_fiscais`** (metadados: ano, tipo, descrição, nome do arquivo, path no storage, tamanho) — `empresa_id NOT NULL`, RLS igual ao resto do projeto, índice composto `(empresa_id, ano)`.
+
+**Upload leve:** imagem passa por `comprimirImagem()` (já existente em `lib/imagemHelpers.ts`, mesma função do Estoque — reaproveitada, não duplicada) antes de subir; PDF sobe direto, limite de 10MB. Indicador de progresso **por etapa** (enviando → concluído), não uma porcentagem falsa — o cliente do Supabase não expõe progresso real de bytes, e o projeto tem regra de nunca simular dado.
+
+**Interface no IRPF** (`app/(interno)/mei/imposto-renda/page.tsx`, seção nova "Documentos Fiscais"): agrupado por ano (abas), filtro por tipo, cada documento com visualizar (signed URL em nova aba)/editar tipo e descrição (lápis)/excluir com confirmação (lixeira, apaga storage e banco juntos). **Checklist inteligente** cruza os 4 tipos que o IRPF do MEI mais pede (informe de rendimento, comprovante de despesa, recibo, DAS pago) com o que já foi enviado no ano selecionado — badge verde/vermelho por tipo. Paginação de 10 em 10. Estado vazio honesto. Checklist manual antigo da tela (localStorage) mantido intacto, sem mexer — o novo é uma seção separada, pra não arriscar quebrar o que já funcionava.
+
+**Arquivos:** `DOCUMENTOS-FISCAIS-SQL.sql` (novo), `lib/documentoStorageAdapter.ts` (novo), `lib/documentosFiscaisHelpers.ts` (novo), `app/(interno)/mei/imposto-renda/page.tsx` (seção nova, resto da tela intocado).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
+
+**Aguardando:** Elias criar o bucket `documentos-fiscais` como PRIVADO no painel do Supabase e rodar `DOCUMENTOS-FISCAIS-SQL.sql` antes de testar upload/visualizar/editar/excluir — sem isso, a seção aparece na tela mas nenhuma operação de storage funciona (fail-safe correto, não é bug).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

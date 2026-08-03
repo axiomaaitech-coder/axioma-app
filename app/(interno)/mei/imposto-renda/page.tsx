@@ -4,12 +4,17 @@ import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
-import { FileText, AlertTriangle, CheckCircle, Share2 } from 'lucide-react'
+import { FileText, AlertTriangle, CheckCircle, Share2, Upload, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, X, Check } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { calcularIRPF, percentualIsentoPorCategoria } from '../../../../lib/meiHelpers'
+import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
+import {
+  listarDocumentosFiscais, uploadDocumentoFiscal, atualizarDocumentoFiscal, excluirDocumentoFiscal, urlDocumentoFiscal,
+  TIPOS_DOCUMENTO_FISCAL, TIPOS_ESPERADOS_IRPF, type TipoDocumentoFiscal, type DocumentoFiscal,
+} from '../../../../lib/documentosFiscaisHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,6 +38,21 @@ export default function ImpostoRendaMEI() {
   const [checklistMarcado, setChecklistMarcado] = useState<boolean[]>([false, false, false, false, false, false])
   const conteudoRef = useRef<HTMLDivElement>(null)
 
+  const [documentos, setDocumentos] = useState<DocumentoFiscal[]>([])
+  const [anoDocSelecionado, setAnoDocSelecionado] = useState(new Date().getFullYear())
+  const [filtroTipoDoc, setFiltroTipoDoc] = useState<TipoDocumentoFiscal | 'todos'>('todos')
+  const [arquivoDoc, setArquivoDoc] = useState<File | null>(null)
+  const [tipoUploadDoc, setTipoUploadDoc] = useState<TipoDocumentoFiscal>('outro')
+  const [descricaoUploadDoc, setDescricaoUploadDoc] = useState('')
+  const [etapaUpload, setEtapaUpload] = useState<'idle' | 'enviando' | 'concluido'>('idle')
+  const [editandoDocId, setEditandoDocId] = useState<string | null>(null)
+  const [editTipoDoc, setEditTipoDoc] = useState<TipoDocumentoFiscal>('outro')
+  const [editDescricaoDoc, setEditDescricaoDoc] = useState('')
+  const [paginaDocumentos, setPaginaDocumentos] = useState(0)
+  const [toastDoc, setToastDoc] = useState<{ msg: string; tipo: 'ok' | 'erro' | 'info' } | null>(null)
+  const fileInputDocRef = useRef<HTMLInputElement>(null)
+  const ITENS_POR_PAGINA_DOC = 10
+
   const txt = {
     titulo: { pt: 'MEI — Imposto de Renda', en: 'MEI — Income Tax', es: 'MEI — Impuesto a la Renta' },
     subtitulo: { pt: 'Calcule e planeje seu IRPF com dados reais', en: 'Calculate and plan your IRPF with real data', es: 'Calcule y planifique su IRPF con datos reales' },
@@ -49,13 +69,52 @@ export default function ImpostoRendaMEI() {
     progresso: { pt: 'itens concluídos', en: 'items completed', es: 'elementos completados' },
     compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
     toastBaixado: { pt: 'PDF pronto — baixado.', en: 'PDF ready — downloaded.', es: 'PDF listo — descargado.' },
+
+    docTitulo: { pt: 'Documentos Fiscais', en: 'Tax Documents', es: 'Documentos Fiscales' },
+    docSub: { pt: 'Guarde seus comprovantes organizados por ano — acesso privado, só você vê.', en: 'Keep your receipts organized by year — private access, only you can see them.', es: 'Guarde sus comprobantes organizados por año — acceso privado, solo usted los ve.' },
+    docEnviarTitulo: { pt: 'Enviar Documento', en: 'Upload Document', es: 'Subir Documento' },
+    docSelecionarArquivo: { pt: 'Escolher arquivo (PDF ou imagem, até 10 MB)', en: 'Choose file (PDF or image, up to 10 MB)', es: 'Elegir archivo (PDF o imagen, hasta 10 MB)' },
+    docTipoLbl: { pt: 'Tipo de documento', en: 'Document type', es: 'Tipo de documento' },
+    docDescricaoLbl: { pt: 'Descrição (opcional)', en: 'Description (optional)', es: 'Descripción (opcional)' },
+    docEnviar: { pt: 'Enviar', en: 'Upload', es: 'Subir' },
+    docEnviando: { pt: 'Enviando...', en: 'Uploading...', es: 'Enviando...' },
+    docEnviado: { pt: 'Enviado!', en: 'Uploaded!', es: 'Enviado!' },
+    docAno: { pt: 'Ano', en: 'Year', es: 'Año' },
+    docFiltroTipo: { pt: 'Filtrar por tipo', en: 'Filter by type', es: 'Filtrar por tipo' },
+    docTodos: { pt: 'Todos', en: 'All', es: 'Todos' },
+    docListaVazia: { pt: 'Nenhum documento neste ano ainda — envie o primeiro acima.', en: 'No documents for this year yet — upload the first one above.', es: 'Ningún documento en este año todavía — suba el primero arriba.' },
+    docVisualizar: { pt: 'Visualizar', en: 'View', es: 'Ver' },
+    docEditar: { pt: 'Editar', en: 'Edit', es: 'Editar' },
+    docExcluir: { pt: 'Excluir', en: 'Delete', es: 'Eliminar' },
+    docSalvar: { pt: 'Salvar', en: 'Save', es: 'Guardar' },
+    docCancelar: { pt: 'Cancelar', en: 'Cancel', es: 'Cancelar' },
+    docPaginaLbl: { pt: 'Página {a} de {b}', en: 'Page {a} of {b}', es: 'Página {a} de {b}' },
+    docChecklistTitulo: { pt: 'Você já subiu o que o IRPF precisa?', en: 'Have you uploaded what the IRPF needs?', es: '¿Ya subió lo que el IRPF necesita?' },
+    docConfirmarExcluir: { pt: 'Excluir "{v}"? Essa ação apaga o arquivo e não pode ser desfeita.', en: 'Delete "{v}"? This removes the file and cannot be undone.', es: '¿Eliminar "{v}"? Esta acción borra el archivo y no se puede deshacer.' },
+    toastSemEmpresa: { pt: 'Não foi possível identificar sua empresa — recarregue a página.', en: 'Could not identify your company — reload the page.', es: 'No fue posible identificar su empresa — recargue la página.' },
+    toastTipoInvalido: { pt: 'Arquivo inválido — envie um PDF ou uma imagem.', en: 'Invalid file — upload a PDF or an image.', es: 'Archivo inválido — suba un PDF o una imagen.' },
+    toastTamanhoExcedido: { pt: 'Arquivo maior que 10 MB — reduza o tamanho e tente de novo.', en: 'File larger than 10 MB — reduce the size and try again.', es: 'Archivo mayor a 10 MB — reduzca el tamaño e intente de nuevo.' },
+    toastDocumentoEnviado: { pt: 'Documento enviado com sucesso.', en: 'Document uploaded successfully.', es: 'Documento enviado con éxito.' },
+    toastDocumentoAtualizado: { pt: 'Documento atualizado.', en: 'Document updated.', es: 'Documento actualizado.' },
+    toastDocumentoExcluido: { pt: 'Documento excluído.', en: 'Document deleted.', es: 'Documento eliminado.' },
+    toastFalhaAbrir: { pt: 'Não foi possível abrir o documento agora — tente de novo.', en: 'Could not open the document right now — try again.', es: 'No fue posible abrir el documento ahora — intente de nuevo.' },
+  }
+
+  const TIPO_DOC_LABEL: Record<TipoDocumentoFiscal, { pt: string; en: string; es: string }> = {
+    comprovante_despesa: { pt: 'Comprovante de Despesa', en: 'Expense Receipt', es: 'Comprobante de Gasto' },
+    recibo: { pt: 'Recibo', en: 'Receipt', es: 'Recibo' },
+    informe_rendimento: { pt: 'Informe de Rendimento', en: 'Income Report', es: 'Informe de Rendimientos' },
+    nota_fiscal: { pt: 'Nota Fiscal', en: 'Invoice', es: 'Factura' },
+    das_pago: { pt: 'DAS Pago', en: 'Paid DAS', es: 'DAS Pagado' },
+    outro: { pt: 'Outro', en: 'Other', es: 'Otro' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-  useEffect(() => { carregar() }, [])
+  useEffect(() => { carregar(); carregarDocumentos() }, [])
+  useEffect(() => { setPaginaDocumentos(0) }, [anoDocSelecionado, filtroTipoDoc])
 
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -71,6 +130,72 @@ export default function ImpostoRendaMEI() {
     if (salvo) {
       try { setChecklistMarcado(JSON.parse(salvo)) } catch {}
     }
+  }
+
+  async function carregarDocumentos() {
+    setDocumentos(await listarDocumentosFiscais())
+  }
+
+  function mostrarToastDoc(msg: string, tipo: 'ok' | 'erro' | 'info' = 'ok') {
+    setToastDoc({ msg, tipo })
+    setTimeout(() => setToastDoc(null), 3500)
+  }
+
+  function fmtBytes(n: number): string {
+    if (n < 1024) return `${n} B`
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+    return `${(n / 1024 / 1024).toFixed(1)} MB`
+  }
+
+  async function handleEnviarDocumento() {
+    if (!arquivoDoc) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const empresaId = await obterEmpresaAtiva()
+    if (!empresaId) { mostrarToastDoc(t('toastSemEmpresa'), 'erro'); return }
+
+    setEtapaUpload('enviando')
+    const { erro } = await uploadDocumentoFiscal({
+      file: arquivoDoc, empresaId, userId: user.id, ano: anoDocSelecionado, tipo: tipoUploadDoc, descricao: descricaoUploadDoc || undefined,
+    })
+
+    if (erro === 'tipo_invalido') { mostrarToastDoc(t('toastTipoInvalido'), 'erro'); setEtapaUpload('idle'); return }
+    if (erro === 'tamanho_excedido') { mostrarToastDoc(t('toastTamanhoExcedido'), 'erro'); setEtapaUpload('idle'); return }
+    if (erro) { mostrarToastDoc(erro, 'erro'); setEtapaUpload('idle'); return }
+
+    setEtapaUpload('concluido')
+    mostrarToastDoc(t('toastDocumentoEnviado'), 'ok')
+    setArquivoDoc(null); setDescricaoUploadDoc(''); setTipoUploadDoc('outro')
+    if (fileInputDocRef.current) fileInputDocRef.current.value = ''
+    await carregarDocumentos()
+    setTimeout(() => setEtapaUpload('idle'), 1500)
+  }
+
+  function iniciarEdicaoDoc(doc: DocumentoFiscal) {
+    setEditandoDocId(doc.id); setEditTipoDoc(doc.tipo); setEditDescricaoDoc(doc.descricao || '')
+  }
+  function cancelarEdicaoDoc() { setEditandoDocId(null) }
+
+  async function salvarEdicaoDoc(id: string) {
+    const { erro } = await atualizarDocumentoFiscal(id, { tipo: editTipoDoc, descricao: editDescricaoDoc || undefined })
+    if (erro) { mostrarToastDoc(erro, 'erro'); return }
+    setEditandoDocId(null)
+    mostrarToastDoc(t('toastDocumentoAtualizado'), 'ok')
+    await carregarDocumentos()
+  }
+
+  async function excluirDocumento(doc: DocumentoFiscal) {
+    if (!window.confirm(t('docConfirmarExcluir').replace('{v}', doc.nome_arquivo))) return
+    const { erro } = await excluirDocumentoFiscal(doc)
+    if (erro) { mostrarToastDoc(erro, 'erro'); return }
+    mostrarToastDoc(t('toastDocumentoExcluido'), 'info')
+    await carregarDocumentos()
+  }
+
+  async function visualizarDocumento(doc: DocumentoFiscal) {
+    const url = await urlDocumentoFiscal(doc.path_storage)
+    if (url) window.open(url, '_blank', 'noopener,noreferrer')
+    else mostrarToastDoc(t('toastFalhaAbrir'), 'erro')
   }
 
   const anoAtual = new Date().getFullYear()
@@ -98,6 +223,14 @@ export default function ImpostoRendaMEI() {
     { pt: 'Informes de outras fontes de renda (se houver)', en: 'Reports from other income sources (if any)', es: 'Informes de otras fuentes de ingresos (si hay)', auto: false },
     { pt: 'Programa IRPF Receita Federal instalado', en: 'Receita Federal IRPF Program installed', es: 'Programa IRPF Receita Federal instalado', auto: false },
   ]
+
+  const anosComDocumentos = Array.from(new Set([anoAtual, ...documentos.map((d) => d.ano)])).sort((a, b) => b - a)
+  const documentosDoAno = documentos.filter((d) => d.ano === anoDocSelecionado)
+  const documentosFiltrados = filtroTipoDoc === 'todos' ? documentosDoAno : documentosDoAno.filter((d) => d.tipo === filtroTipoDoc)
+  const totalPaginasDoc = Math.max(1, Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA_DOC))
+  const documentosPaginaAtual = documentosFiltrados.slice(paginaDocumentos * ITENS_POR_PAGINA_DOC, paginaDocumentos * ITENS_POR_PAGINA_DOC + ITENS_POR_PAGINA_DOC)
+  const tiposPresentesNoAno = new Set(documentosDoAno.map((d) => d.tipo))
+  const checklistDocItens = TIPOS_ESPERADOS_IRPF.map((tp) => ({ tipo: tp, presente: tiposPresentesNoAno.has(tp) }))
 
   function toggleChecklist(index: number) {
     if (checklistItens[index].auto) return
@@ -164,6 +297,13 @@ export default function ImpostoRendaMEI() {
   }
 
   return (
+    <>
+    {toastDoc && (
+      <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+        style={{ background: toastDoc.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : toastDoc.tipo === 'ok' ? 'rgba(52,211,153,0.95)' : 'rgba(106,176,255,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+        {toastDoc.msg}
+      </div>
+    )}
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
         <button onClick={() => setShareAberto(true)}
@@ -361,6 +501,142 @@ export default function ImpostoRendaMEI() {
           </a>
         </CanvasBox>
 
+        {/* Documentos Fiscais */}
+        <CanvasBox cor={AZUL}>
+          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', ...FONTE }}>{t('docTitulo')}</p>
+          <p className="text-xs mb-4" style={{ color: '#5a7a9a' }}>{t('docSub')}</p>
+
+          <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${AZUL}20` }}>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: '#5a7a9a' }}>{t('docEnviarTitulo')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('docAno')}</label>
+                <select value={anoDocSelecionado} onChange={(e) => setAnoDocSelecionado(Number(e.target.value))}
+                  className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }}>
+                  {anosComDocumentos.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('docTipoLbl')}</label>
+                <select value={tipoUploadDoc} onChange={(e) => setTipoUploadDoc(e.target.value as TipoDocumentoFiscal)}
+                  className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }}>
+                  {TIPOS_DOCUMENTO_FISCAL.map((tp) => <option key={tp} value={tp}>{TIPO_DOC_LABEL[tp][lang]}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('docDescricaoLbl')}</label>
+              <input type="text" value={descricaoUploadDoc} onChange={(e) => setDescricaoUploadDoc(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+            </div>
+            <div className="mb-3">
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('docSelecionarArquivo')}</label>
+              <input ref={fileInputDocRef} type="file" accept="application/pdf,image/*" onChange={(e) => setArquivoDoc(e.target.files?.[0] || null)}
+                className="w-full text-xs" style={{ color: '#c8d8f0' }} />
+            </div>
+            <button onClick={handleEnviarDocumento} disabled={!arquivoDoc || etapaUpload === 'enviando'}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold disabled:opacity-50"
+              style={{ background: `linear-gradient(135deg, #1a3a8f, ${AZUL})`, color: '#fff' }}>
+              <Upload size={16} />
+              {etapaUpload === 'enviando' ? t('docEnviando') : etapaUpload === 'concluido' ? t('docEnviado') : t('docEnviar')}
+            </button>
+          </div>
+
+          <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.15)' }}>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: '#5a7a9a' }}>{t('docChecklistTitulo')} ({anoDocSelecionado})</p>
+            <div className="flex flex-wrap gap-2">
+              {checklistDocItens.map((item) => (
+                <div key={item.tipo} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
+                  style={{ background: item.presente ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.1)', border: `1px solid ${item.presente ? 'rgba(52,211,153,0.4)' : 'rgba(248,113,113,0.25)'}`, color: item.presente ? VERDE : VERMELHO }}>
+                  {item.presente ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
+                  {TIPO_DOC_LABEL[item.tipo][lang]}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
+            <div className="flex gap-1 flex-wrap">
+              {anosComDocumentos.map((a) => (
+                <button key={a} onClick={() => setAnoDocSelecionado(a)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                  style={a === anoDocSelecionado ? { background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' } : { background: 'rgba(255,255,255,0.04)', color: '#5a7a9a' }}>
+                  {a}
+                </button>
+              ))}
+            </div>
+            <select value={filtroTipoDoc} onChange={(e) => setFiltroTipoDoc(e.target.value as TipoDocumentoFiscal | 'todos')}
+              className="px-3 py-1.5 rounded-lg text-xs ml-auto" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }}>
+              <option value="todos">{t('docTodos')}</option>
+              {TIPOS_DOCUMENTO_FISCAL.map((tp) => <option key={tp} value={tp}>{TIPO_DOC_LABEL[tp][lang]}</option>)}
+            </select>
+          </div>
+
+          {documentosFiltrados.length === 0 ? (
+            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('docListaVazia')}</p>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {documentosPaginaAtual.map((doc) => (
+                  <div key={doc.id} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${AZUL}20` }}>
+                    {editandoDocId === doc.id ? (
+                      <div className="space-y-2">
+                        <select value={editTipoDoc} onChange={(e) => setEditTipoDoc(e.target.value as TipoDocumentoFiscal)}
+                          className="w-full px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }}>
+                          {TIPOS_DOCUMENTO_FISCAL.map((tp) => <option key={tp} value={tp}>{TIPO_DOC_LABEL[tp][lang]}</option>)}
+                        </select>
+                        <input type="text" value={editDescricaoDoc} onChange={(e) => setEditDescricaoDoc(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                        <div className="flex gap-2">
+                          <button onClick={() => salvarEdicaoDoc(doc.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: VERDE, color: '#020810' }}>
+                            <Check size={12} /> {t('docSalvar')}
+                          </button>
+                          <button onClick={cancelarEdicaoDoc} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: 'rgba(255,255,255,0.08)', color: '#c8d8f0' }}>
+                            <X size={12} /> {t('docCancelar')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold truncate" style={{ color: '#c8d8f0' }}>{doc.nome_arquivo}</p>
+                          <p className="text-[10px]" style={{ color: '#5a7a9a' }}>
+                            {TIPO_DOC_LABEL[doc.tipo][lang]}{doc.descricao ? ` · ${doc.descricao}` : ''} · {fmtBytes(doc.tamanho_bytes)} · {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={() => visualizarDocumento(doc)} className="p-2 rounded-lg" style={{ background: `${VERDE}15`, border: `1px solid ${VERDE}30` }} title={t('docVisualizar')}>
+                            <Eye size={14} style={{ color: VERDE }} />
+                          </button>
+                          <button onClick={() => iniciarEdicaoDoc(doc)} className="p-2 rounded-lg" style={{ background: `${AZUL}15`, border: `1px solid ${AZUL}30` }} title={t('docEditar')}>
+                            <Pencil size={14} style={{ color: AZUL }} />
+                          </button>
+                          <button onClick={() => excluirDocumento(doc)} className="p-2 rounded-lg" style={{ background: `${VERMELHO}15`, border: `1px solid ${VERMELHO}30` }} title={t('docExcluir')}>
+                            <Trash2 size={14} style={{ color: VERMELHO }} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {documentosFiltrados.length > ITENS_POR_PAGINA_DOC && (
+                <div className="flex items-center justify-between mt-4">
+                  <button onClick={() => setPaginaDocumentos((p) => Math.max(0, p - 1))} disabled={paginaDocumentos === 0}
+                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <ChevronLeft size={16} style={{ color: '#c8d8f0' }} />
+                  </button>
+                  <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('docPaginaLbl').replace('{a}', String(paginaDocumentos + 1)).replace('{b}', String(totalPaginasDoc))}</p>
+                  <button onClick={() => setPaginaDocumentos((p) => Math.min(totalPaginasDoc - 1, p + 1))} disabled={paginaDocumentos >= totalPaginasDoc - 1}
+                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <ChevronRight size={16} style={{ color: '#c8d8f0' }} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </CanvasBox>
+
       </div>
 
       <CentroCompartilhamento
@@ -374,5 +650,6 @@ export default function ImpostoRendaMEI() {
         cor={OURO}
       />
     </ModuloLayout>
+    </>
   )
 }
