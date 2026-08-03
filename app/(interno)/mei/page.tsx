@@ -15,6 +15,7 @@ import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
 import { buscarIndicadoresMacro } from '../../../lib/bcbApi'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
+import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { meiT } from '../../../lib/meiTextos'
 import {
   LIMITE_ANUAL_MEI, dasMensalPorCategoria, faturamentoAnoMEI, limiteRestante, percentualLimite, tetoProporcionalMEI,
@@ -261,6 +262,14 @@ export default function PainelMEI() {
   const acumuladoTeto: number[] = []
   { let acc = 0; for (const p of evolucaoMensal) { acc += p.entrou; acumuladoTeto.push(acc) } }
 
+  const marquee = [
+    'AXIOMA',
+    `${t('faturamento')} ${anoAtual}: ${fmt(faturamentoAnual)}`,
+    `${t('limiteRestante')}: ${fmt(restanteLimite)} (${percentualLimiteAtual.toFixed(1)}%)`,
+    `${mx.cofreProLabore}: ${fmt(cofre.proLaboreSeguro)}`,
+    !loading ? `Score ${score.score}/1000 (${score.nivel})` : '',
+  ].filter(Boolean)
+
   const exportarPDF = async () => {
     if (!conteudoRef.current) return
     setExportando(true)
@@ -331,6 +340,8 @@ export default function PainelMEI() {
       }
     >
       <div ref={conteudoRef} className="space-y-4">
+
+        <LetreiroExecutivo itens={marquee} cor={ROYAL} />
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -14,6 +14,7 @@ import {
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
+import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
@@ -25,6 +26,7 @@ const OURO = '#d4af37'
 const VERDE = '#34d399'
 const VERMELHO = '#f87171'
 const AZUL = '#6ab0ff'
+const ROXO = '#a78bfa'
 const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
@@ -188,6 +190,14 @@ export default function IAMEIAdvisor() {
     reservaEmergenciaPct: meiDados?.reserva_emergencia_pct ?? null,
   })
 
+  const marquee = [
+    'AXIOMA',
+    lang === 'pt' ? `Faturamento ${anoAtual}: ${fmt(faturamentoAnual)}` : lang === 'en' ? `Revenue ${anoAtual}: ${fmt(faturamentoAnual)}` : `Facturación ${anoAtual}: ${fmt(faturamentoAnual)}`,
+    `${percentualLimite.toFixed(1)}% ${lang === 'pt' ? 'do teto' : lang === 'en' ? 'of cap' : 'del límite'}`,
+    lang === 'pt' ? `DAS mensal: ${fmt(dasValor)}` : lang === 'en' ? `Monthly DAS: ${fmt(dasValor)}` : `DAS mensual: ${fmt(dasValor)}`,
+    faturamentoAnual > 0 ? (lang === 'pt' ? `Pró-labore seguro: ${fmt(cofre.proLaboreSeguro)}` : lang === 'en' ? `Safe pro-labore: ${fmt(cofre.proLaboreSeguro)}` : `Pro-labore seguro: ${fmt(cofre.proLaboreSeguro)}`) : '',
+  ].filter(Boolean)
+
   function montarContextoIA(): string {
     const idiomaNome = lang === 'pt' ? 'português' : lang === 'en' ? 'inglês' : 'espanhol'
     return `Você é o MEI Advisor da Axioma AI.Tech — consultor financeiro e fiscal para Microempreendedores Individuais brasileiros. Responda em ${idiomaNome}, direto, prático e acolhedor, em 1ª pessoa como consultor. Nunca invente número fora dos dados abaixo — se faltar dado, diga que não tem essa informação.
@@ -302,6 +312,8 @@ DADOS REAIS DESTE MEI:
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
+
+        <LetreiroExecutivo itens={marquee} cor={ROXO} />
 
         {toast && (
           <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"

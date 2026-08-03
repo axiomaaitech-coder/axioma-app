@@ -15,6 +15,7 @@ import {
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
+import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 
 const supabase = createBrowserClient(
@@ -186,6 +187,18 @@ export default function ReformaTributaria() {
 
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
 
+  const marcoAtual = timeline[indiceFaseAtual]
+  const marquee = [
+    'AXIOMA',
+    lang === 'pt' ? `Marco atual: ${marcoAtual.ano}` : lang === 'en' ? `Current milestone: ${marcoAtual.ano}` : `Hito actual: ${marcoAtual.ano}`,
+    marcoAtual.urgente
+      ? `⚠️ ${lang === 'pt' ? 'ano de decisão' : lang === 'en' ? 'decision year' : 'año de decisión'}`
+      : `✅ ${lang === 'pt' ? 'sem urgência ainda' : lang === 'en' ? 'no urgency yet' : 'sin urgencia todavía'}`,
+    perfilCliente
+      ? `${lang === 'pt' ? 'Perfil de cliente' : lang === 'en' ? 'Client profile' : 'Perfil de cliente'}: ${perfilCliente.toUpperCase()}`
+      : (lang === 'pt' ? 'Perfil de cliente não configurado' : lang === 'en' ? 'Client profile not set' : 'Perfil de cliente no configurado'),
+  ].filter(Boolean)
+
   // ---- Análise Executiva por IA — mesmo padrão funcional e mesmo
   // identificador de modelo ('claude-sonnet-5') confirmados funcionando hoje
   // no IA MEI Advisor e no DAS. Fallback por regra só pra falha real.
@@ -262,6 +275,8 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
       }
     >
       <div ref={conteudoRef} className="space-y-4">
+
+        <LetreiroExecutivo itens={marquee} cor={VERDE} />
 
         {/* Calmo pra 2026 — diferencial contra concorrente que assusta o MEI */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}

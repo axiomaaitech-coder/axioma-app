@@ -11,6 +11,7 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
+import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
@@ -159,6 +160,7 @@ export default function DASObrigacoes() {
   // ---- Mapa de Consequências: detecção de atraso sempre por DATA, nunca só por status manual ----
   const competenciasAno = competenciasDASDoAno(obrigacoes, anoAtual, diaVencimentoDas, meiDados?.data_abertura, hoje)
   const divida = calcularDividaDASAcumulada(competenciasAno, dasValorNum, selicAnual, hoje)
+  const obrigacoesPendentes = competenciasAno.filter((c) => c.status !== 'Entregue').length
   const temAtrasoReal = divida.atrasos.length > 0
   const faseAtual: FaseRiscoDAS = faseRiscoDAS(divida.piorDiasAtraso)
   const bolaDeNeve = temAtrasoReal ? projecaoBolaDeNeveDAS(divida.atrasos, selicAnual) : []
@@ -200,6 +202,14 @@ export default function DASObrigacoes() {
 
   const corStatus = (s: StatusObrigacao) =>
     s === 'Entregue' ? VERDE : s === 'Atrasado' ? VERMELHO : s === 'Não obrigatório' ? '#5a7a9a' : AMBAR
+
+  const marquee = [
+    'AXIOMA',
+    lang === 'pt' ? `DAS Mensal: ${fmt(dasValorNum)}` : lang === 'en' ? `Monthly DAS: ${fmt(dasValorNum)}` : `DAS Mensual: ${fmt(dasValorNum)}`,
+    `${obrigacoesPendentes} ${lang === 'pt' ? 'obrigações pendentes' : lang === 'en' ? 'pending obligations' : 'obligaciones pendientes'}`,
+    divida.totalAtualizado > 0 ? `${t('dividaAtualizada')}: ${fmt(divida.totalAtualizado)}` : '',
+    faseAtual !== 'em_dia' ? `⚠️ ${t(`fase_${faseAtual}` as keyof typeof txt)}` : `✅ ${t('fase_em_dia' as keyof typeof txt)}`,
+  ].filter(Boolean)
 
   const exportarPDF = async () => {
     if (!conteudoRef.current) return
@@ -366,6 +376,8 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
+
+        <LetreiroExecutivo itens={marquee} cor={VERMELHO} />
 
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

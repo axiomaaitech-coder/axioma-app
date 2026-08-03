@@ -1034,6 +1034,25 @@ Usando essa autorização, encontradas (não fazia parte do pedido original) **3
 
 **Aguardando:** Elias criar o bucket `documentos-fiscais` como PRIVADO no painel do Supabase e rodar `DOCUMENTOS-FISCAIS-SQL.sql` antes de testar upload/visualizar/editar/excluir — sem isso, a seção aparece na tela mas nenhuma operação de storage funciona (fail-safe correto, não é bug).
 
+## 3-AQ. MEI Imposto de Renda — 4 correções + Letreiro em todo o MEI (2026-08-02)
+
+**1. Botão "Enviar" sem feedback visual:** a lógica de `disabled` já estava correta (`!arquivoDoc`) — o problema real era não ter nenhum retorno visível de qual arquivo foi escolhido (mesma família do bug 2, contraste), então parecia que nada tinha acontecido. Adicionado "✓ Arquivo selecionado: nome.pdf" abaixo do input + `colorScheme: 'dark'` no seletor nativo.
+
+**2. Texto transparente em selects:** os 4 selects novos da Central de Documentos Fiscais (Ano, Tipo, Filtro, Editar Tipo) não tinham `background` explícito no `<option>` — sem isso, o menu nativo do navegador renderiza quase transparente e o texto só aparece por acidente no hover. Corrigido com `style={{ background: '#020810', color: '#c8d8f0' }}` em cada `<option>`, mesmo padrão que `mei/faturamento/page.tsx` já usava corretamente (auditoria confirmou que era o único lugar do módulo MEI com o bug).
+
+**3 e 4. Letreiro + Análise Axioma no IRPF, e Letreiro em todo o MEI:** `components/LetreiroExecutivo.tsx` (novo) — marquee rolante extraído como componente compartilhado (array de itens + cor via prop), porque ia entrar em 7 telas de uma vez; módulos mais antigos (Dashboard, Custos Fixos etc.) mantêm a versão inline original, não precisou migrar. Adicionado com dado real e cor própria em todos os submódulos MEI que ainda não tinham:
+- Painel MEI — azul-royal, faturamento/limite restante/pró-labore seguro/score de saúde.
+- Faturamento — dourado, faturamento/teto proporcional/% usado/projeção anual.
+- DAS & Obrigações — vermelho, DAS mensal/obrigações pendentes/dívida atualizada/fase de risco.
+- Reforma Tributária — verde, marco atual da timeline/urgência/perfil de cliente.
+- Precificação — azul-céu, custo base/preço mínimo/margem/ticket médio.
+- IA MEI Advisor — roxo, faturamento/% do teto/DAS/pró-labore seguro (mesmo motor do Cofre do Painel).
+- Imposto de Renda — teal (cor nova, nenhum módulo MEI usava ainda), receita/isenção/tributável/IRPF/alíquota/status.
+
+Nenhuma cor laranja usada (removida do MEI por decisão anterior). IRPF também ganhou o bloco "Análise Axioma" (botão "Analisar", mesmo identificador de modelo `'claude-sonnet-5'` — conferido de novo nos 5 submódulos que já tinham IA antes de codar, não assumido), contexto com obrigatoriedade/receita/isenção/tributável/IRPF/alíquota, fallback por regra, nunca cita IA/Claude.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

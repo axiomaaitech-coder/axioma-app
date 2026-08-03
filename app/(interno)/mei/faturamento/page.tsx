@@ -10,6 +10,7 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
+import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
@@ -171,6 +172,14 @@ export default function FaturamentoMEI() {
   const nomeMesEstouro = mesIndexEstouro !== null ? formatarNomeMes(mesIndexEstouro) : null
   const dataAberturaObj = meiDados?.data_abertura ? new Date(String(meiDados.data_abertura).slice(0, 10) + 'T00:00:00') : null
   const nomeMesAbertura = dataAberturaObj ? `${formatarNomeMes(dataAberturaObj.getMonth())}/${dataAberturaObj.getFullYear()}` : ''
+
+  const marquee = [
+    'AXIOMA',
+    lang === 'pt' ? `Faturamento ${anoAtual}: ${fmt(faturamentoAnual)}` : lang === 'en' ? `Revenue ${anoAtual}: ${fmt(faturamentoAnual)}` : `Facturación ${anoAtual}: ${fmt(faturamentoAnual)}`,
+    lang === 'pt' ? `Teto proporcional: ${fmt(teto)}` : lang === 'en' ? `Proportional cap: ${fmt(teto)}` : `Límite proporcional: ${fmt(teto)}`,
+    `${percentualReal.toFixed(1)}% ${lang === 'pt' ? 'do teto usado' : lang === 'en' ? 'of cap used' : 'del límite usado'}`,
+    faturamentoAnual > 0 ? (lang === 'pt' ? `Projeção anual: ${fmt(projecaoAnual)}` : lang === 'en' ? `Annual projection: ${fmt(projecaoAnual)}` : `Proyección anual: ${fmt(projecaoAnual)}`) : '',
+  ].filter(Boolean)
 
   const valorMesAtual = faturamentoAnoMEI(receitasAno.filter(r => new Date(r.data).getMonth() === mesAtual), anoAtual)
   const valorMesAnterior = mesAtual > 0 ? faturamentoAnoMEI(receitasAno.filter(r => new Date(r.data).getMonth() === mesAtual - 1), anoAtual) : 0
@@ -336,6 +345,8 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
+
+        <LetreiroExecutivo itens={marquee} cor={OURO} />
 
         {toast && (
           <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"

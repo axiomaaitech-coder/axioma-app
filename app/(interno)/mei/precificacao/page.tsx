@@ -15,6 +15,7 @@ import {
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
+import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { meiT } from '../../../../lib/meiTextos'
 
@@ -226,6 +227,14 @@ export default function PrecificacaoMEI() {
 
   const ticket = ticketMedio(receitasRows.map((r) => ({ valor: r.valor, data: r.data })))
 
+  const marquee = [
+    'AXIOMA',
+    custoBase > 0 ? `${t('custoBaseLbl')}: ${fmt(custoBase)}` : '',
+    precoMinimo > 0 ? `${t('precoMinimoLbl')}: ${fmt(precoMinimo)}` : '',
+    margemReais > 0 ? `${t('margemReaisLbl')}: ${fmt(margemReais)}` : '',
+    ticket > 0 ? `${t('ticketMedioLbl')}: ${fmt(ticket)}` : '',
+  ].filter(Boolean)
+
   const dadosComposicao = [
     { name: t('custoBaseLbl'), value: Math.max(0, custoBase), color: AZUL },
     { name: t('dasLbl'), value: Math.max(0, dasReais), color: VERDE },
@@ -417,6 +426,8 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </button>
       }>
       <div ref={conteudoRef} className="space-y-4">
+
+        <LetreiroExecutivo itens={marquee} cor={AZUL} />
 
         {/* Info do MEI */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
