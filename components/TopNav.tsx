@@ -22,6 +22,7 @@ const grupos = [
     destaque: true,
     itens: [
       { label: { pt: "Painel MEI", en: "MEI Dashboard", es: "Panel MEI" }, path: "/mei", emoji: "🏪" },
+      { label: { pt: "Cockpit", en: "Cockpit", es: "Cockpit" }, path: "/mei/cockpit", emoji: "🧭" },
       { label: { pt: "Faturamento", en: "Revenue", es: "Facturación" }, path: "/mei/faturamento", emoji: "📊" },
       { label: { pt: "DAS & Obrigações", en: "DAS & Obligations", es: "DAS & Obligaciones" }, path: "/mei/das", emoji: "🔔" },
       { label: { pt: "Reforma Tributária", en: "Tax Reform", es: "Reforma Tributaria" }, path: "/mei/reforma", emoji: "⚠️" },
