@@ -686,23 +686,61 @@ export function gerarObrigacoesPadrao(regimeTributario: string, ano: number): an
 }
 
 // ============================================================================
-// EQUIPE - CRUD
+// EQUIPE / PAPÉIS — PDV Fase 0
 // ============================================================================
 
-export async function carregarEquipe(empresaId: string, userId: string): Promise<any[]> {
-  const { data } = await supabase
-    .from("empresa_equipe")
-    .select("*")
-    .eq("empresa_id", empresaId)
-    .order("created_at", { ascending: false });
-  return data || [];
+// Papel do usuário logado NAQUELA empresa (nunca global — a mesma pessoa
+// pode ser dono numa empresa e operador em outra). null = sem vínculo.
+export async function obterMeuPapel(empresaId: string): Promise<string | null> {
+  const { data } = await supabase.rpc("meu_papel", { p_empresa_id: empresaId });
+  return (data as string) || null;
 }
 
-export async function convidarMembro(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
+export type MembroEquipe = {
+  id: string;
+  origem: "ativo" | "convite";
+  user_id: string | null;
+  email: string;
+  nome: string;
+  cargo: string;
+  papel: string;
+  token_convite: string | null;
+  expira_em: string | null;
+  criado_em: string;
+};
+
+// Lista unificada (ativos + convites pendentes) — RPC recusa quem não é dono
+// daquela empresa (checagem dentro da própria função, não só na RLS).
+export async function listarEquipe(empresaId: string): Promise<{ dados: MembroEquipe[]; erro?: string; codigo?: string }> {
+  const { data, error } = await supabase.rpc("listar_equipe", { p_empresa_id: empresaId });
+  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  return { dados: (data as MembroEquipe[]) || [] };
+}
+
+export async function convidarMembro(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string; codigo?: string }> {
+  // Anti-duplicidade: já existe convite pendente (não aceito) pra este e-mail
+  // nesta empresa? Se estiver expirado, some com o antigo e deixa convidar de
+  // novo; se ainda estiver valendo, recusa (evita 2 convites vivos ao mesmo
+  // tempo pro mesmo e-mail).
+  const emailNorm = String(dados.email_convidado || "").trim().toLowerCase();
+  const { data: existente } = await supabase
+    .from("empresa_equipe")
+    .select("id, expira_em")
+    .eq("empresa_id", empresaId)
+    .eq("convite_aceito", false)
+    .ilike("email_convidado", emailNorm);
+
+  const pendente = (existente || [])[0];
+  if (pendente) {
+    const expirado = pendente.expira_em && new Date(pendente.expira_em) < new Date();
+    if (!expirado) return { erro: "duplicado", codigo: "AX008" };
+    await supabase.from("empresa_equipe").delete().eq("id", pendente.id);
+  }
+
   const token = typeof crypto !== "undefined" && (crypto as any).randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
-  const payload = { ...dados, empresa_id: empresaId, user_id: userId, token_convite: token };
+  const payload = { ...dados, email_convidado: emailNorm, empresa_id: empresaId, user_id: userId, token_convite: token };
   const { data, error } = await supabase.from("empresa_equipe").insert(payload).select("id").single();
-  if (error) return { erro: error.message };
+  if (error) return { erro: error.message, codigo: (error as any).code };
   await registrarAuditoria({
     empresaId, userId,
     tabela: "empresa_equipe",
@@ -726,22 +764,42 @@ export async function obterConvitePorToken(token: string): Promise<{
 // Aceita o convite (exige login) — cria o vínculo real em empresa_usuarios,
 // que é o que faltava (ver seção 11 do STATUS-AXIOMA: "convidar membro" só
 // gravava o convite, nunca dava acesso de fato a ninguém).
-export async function aceitarConvite(token: string): Promise<{ empresaId?: string; erro?: string }> {
+export async function aceitarConvite(token: string): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
   const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token });
-  if (error) return { erro: error.message };
+  if (error) return { erro: error.message, codigo: (error as any).code };
   limparCacheEmpresaAtiva();
   return { empresaId: data as string };
 }
 
-export async function excluirMembro(id: string, empresaId: string, userId: string, email: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("empresa_equipe").delete().eq("id", id).eq("empresa_id", empresaId);
-  if (error) return { erro: error.message };
+// Troca o papel de um membro. origem "ativo" = empresa_usuarios (já aceitou);
+// "convite" = empresa_equipe (ainda pendente, muda o papel oferecido).
+export async function alterarPapelMembro(
+  membro: MembroEquipe, empresaId: string, userId: string, novoPapel: string
+): Promise<{ erro?: string; codigo?: string }> {
+  const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
+  const { error } = await supabase.from(tabela).update({ papel: novoPapel }).eq("id", membro.id).eq("empresa_id", empresaId);
+  if (error) return { erro: error.message, codigo: (error as any).code };
   await registrarAuditoria({
-    empresaId, userId,
-    tabela: "empresa_equipe",
-    registroId: id,
-    acao: "excluir",
-    descricao: `Membro removido: ${email}`,
+    empresaId, userId, tabela, registroId: membro.id, acao: "editar",
+    campo: "papel", valorAntes: membro.papel, valorDepois: novoPapel,
+    descricao: `Papel alterado (${membro.email}): ${membro.papel} → ${novoPapel}`,
+  });
+  return {};
+}
+
+// Remove o ACESSO de verdade — antes só apagava o registro de convite
+// (empresa_equipe) e, pra quem já tinha aceitado, o acesso real continuava
+// valendo (empresa_usuarios nunca era tocado). Agora remove o vínculo real
+// quando a origem é "ativo"; pra convite pendente, cancela o convite.
+export async function removerAcessoMembro(
+  membro: MembroEquipe, empresaId: string, userId: string
+): Promise<{ erro?: string; codigo?: string }> {
+  const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
+  const { error } = await supabase.from(tabela).delete().eq("id", membro.id).eq("empresa_id", empresaId);
+  if (error) return { erro: error.message, codigo: (error as any).code };
+  await registrarAuditoria({
+    empresaId, userId, tabela, registroId: membro.id, acao: "excluir",
+    descricao: `Acesso removido: ${membro.email}`,
   });
   return {};
 }

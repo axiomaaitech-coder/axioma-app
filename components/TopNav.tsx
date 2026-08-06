@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
-import { obterEmpresaAtiva, carregarEmpresaPorId } from "../lib/empresaHelpers";
+import { obterEmpresaAtiva, carregarEmpresaPorId, obterMeuPapel } from "../lib/empresaHelpers";
 import BadgeDestaque from "./BadgeDestaque";
 
 const supabase = createBrowserClient(
@@ -120,14 +120,21 @@ export default function TopNav() {
   const [menuMobile, setMenuMobile] = useState(false);
   const [grupoMobile, setGrupoMobile] = useState<string | null>(null);
   const [cadastroIncompleto, setCadastroIncompleto] = useState(false);
+  // Papel do usuário NA EMPRESA ATIVA (nunca global — recalculado sempre que a
+  // rota muda, o que também cobre troca de empresa numa nova sessão/aba).
+  const [papel, setPapel] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
       const empresaId = await obterEmpresaAtiva();
-      if (!empresaId) { setCadastroIncompleto(false); return; }
-      const emp = await carregarEmpresaPorId(empresaId);
+      if (!empresaId) { setCadastroIncompleto(false); setPapel(null); return; }
+      const [emp, meuPapel] = await Promise.all([
+        carregarEmpresaPorId(empresaId),
+        obterMeuPapel(empresaId),
+      ]);
       setCadastroIncompleto(emp?.cadastro_completo === false);
+      setPapel(meuPapel);
     })();
   }, [pathname]);
 
@@ -164,6 +171,57 @@ export default function TopNav() {
   const pdvTooltip = lang === "pt" ? "Ponto de Venda" : lang === "en" ? "Point of Sale" : "Punto de Venta";
   const pdvAtivo = pathname === pdvModulo.path || pathname.startsWith(pdvModulo.path + "/");
 
+  // Operador (balconista) só vê o PDV — o resto do menu (financeiro/CFO) fica
+  // fora, tanto aqui (camada de UI) quanto no banco (RLS, camada real). Papel
+  // ainda não carregado (null) não é tratado como operador — evita esconder o
+  // menu inteiro por um instante a cada navegação enquanto o papel carrega.
+  const isOperador = papel === "operador";
+  const ehDono = papel === "dono";
+  const destinoLogo = isOperador ? pdvModulo.path : "/dashboard";
+
+  const equipeItem = { label: { pt: "Equipe", en: "Team", es: "Equipo" }, path: "/equipe", emoji: "🧑‍🤝‍🧑" };
+  const gruposVisiveis = ehDono
+    ? grupos.map((g) => g.label.pt === "⚙️ Config" ? { ...g, itens: [...g.itens, equipeItem] } : g)
+    : grupos;
+
+  const pdvBotaoDesktop = (
+    <motion.button
+      key="pdv-desktop"
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+      onClick={() => navegar(pdvModulo.path)}
+      title={pdvTooltip}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+      style={{
+        background: pdvAtivo ? "rgba(0,255,136,0.28)" : "rgba(0,255,136,0.12)",
+        color: pdvModulo.cor,
+        border: pdvAtivo ? "1px solid rgba(0,255,136,0.85)" : "1px solid rgba(0,255,136,0.45)",
+        boxShadow: "0 0 18px rgba(0,255,136,0.4)",
+        textShadow: "0 0 8px rgba(0,255,136,0.5)",
+      }}
+    >
+      <span className="text-xs">{pdvModulo.label[lang]}</span>
+      <BadgeDestaque lang={lang} />
+    </motion.button>
+  );
+
+  const pdvBotaoMobile = (
+    <motion.button key="pdv-mobile" whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(pdvModulo.path)}
+      title={pdvTooltip}
+      className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
+      style={{
+        background: pdvAtivo ? "rgba(0,255,136,0.26)" : "rgba(0,255,136,0.10)",
+        border: pdvAtivo ? "1px solid rgba(0,255,136,0.8)" : "1px solid rgba(0,255,136,0.4)",
+        color: pdvModulo.cor,
+        boxShadow: "0 0 14px rgba(0,255,136,0.3)",
+      }}>
+      <div className="flex items-center gap-2">
+        <span className="font-bold text-sm">{pdvModulo.label[lang]}</span>
+        <BadgeDestaque lang={lang} />
+      </div>
+    </motion.button>
+  );
+
   return (
     <>
       {/* DESKTOP */}
@@ -184,7 +242,7 @@ export default function TopNav() {
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => navegar("/dashboard")}
+          onClick={() => navegar(destinoLogo)}
           className="flex items-center gap-2.5 cursor-pointer mr-3 pr-3"
           style={{ borderRight: "1px solid rgba(59,111,212,0.2)" }}
         >
@@ -200,24 +258,26 @@ export default function TopNav() {
           </div>
         </motion.div>
 
-        {/* Dashboard */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => navegar("/dashboard")}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
-          style={{
-            background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "transparent",
-            color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a",
-            border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid transparent",
-          }}
-        >
-          <span>🏠</span>
-          <span>{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
-        </motion.button>
+        {/* Dashboard — fora do alcance do operador (é o financeiro do dono) */}
+        {!isOperador && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navegar("/dashboard")}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
+            style={{
+              background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "transparent",
+              color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a",
+              border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid transparent",
+            }}
+          >
+            <span>🏠</span>
+            <span>{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
+          </motion.button>
+        )}
 
-        {/* Grupos */}
-        {grupos.map((grupo) => {
+        {/* Grupos — nenhum aparece pro operador (nenhum é PDV, todos tocam dado do dono) */}
+        {!isOperador && gruposVisiveis.map((grupo) => {
           const ativo = grupoAtivo(grupo.itens);
           const aberto = dropdown === grupo.label.pt;
           const ehMei = (grupo as any).destaque === true;
@@ -296,60 +356,45 @@ export default function TopNav() {
             </div>
           );
           if (!ehMei) return grupoEl;
-          return [
-            grupoEl,
-            <motion.button
-              key="pdv-desktop"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navegar(pdvModulo.path)}
-              title={pdvTooltip}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-              style={{
-                background: pdvAtivo ? "rgba(0,255,136,0.28)" : "rgba(0,255,136,0.12)",
-                color: pdvModulo.cor,
-                border: pdvAtivo ? "1px solid rgba(0,255,136,0.85)" : "1px solid rgba(0,255,136,0.45)",
-                boxShadow: "0 0 18px rgba(0,255,136,0.4)",
-                textShadow: "0 0 8px rgba(0,255,136,0.5)",
-              }}
-            >
-              <span className="text-xs">{pdvModulo.label[lang]}</span>
-              <BadgeDestaque lang={lang} />
-            </motion.button>,
-          ];
+          return [grupoEl, pdvBotaoDesktop];
         })}
+
+        {/* Operador: PDV é a única coisa que sobra no menu (o mapa acima nem roda) */}
+        {isOperador && pdvBotaoDesktop}
 
         {/* Lado direito */}
         <div className="ml-auto flex items-center gap-3">
-          {/* ✨ BOTÃO CONECTAR BANCO — verde neon, exposto */}
-          <motion.button
-            whileHover={{ scale: 1.06 }}
-            whileTap={{ scale: 0.95 }}
-            animate={{ boxShadow: [
-              "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
-              "0 0 26px rgba(52,211,153,0.85), inset 0 0 16px rgba(52,211,153,0.22)",
-              "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
-            ] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-            onClick={() => navegar("/open-finance")}
-            title={conectarLabel}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide"
-            style={{
-              background: ofAtivo
-                ? "linear-gradient(135deg, rgba(16,185,129,0.4), rgba(52,211,153,0.5))"
-                : "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(52,211,153,0.3))",
-              border: "1px solid rgba(52,211,153,0.7)",
-              color: "#7CFFC4",
-              textShadow: "0 0 8px rgba(52,211,153,0.6)",
-            }}
-          >
-            <Landmark size={15} />
-            <span>{conectarLabelCurto}</span>
-            <span className="px-1.5 py-0.5 rounded-full font-black"
-              style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>
-              NOVO
-            </span>
-          </motion.button>
+          {/* ✨ BOTÃO CONECTAR BANCO — verde neon, exposto (fora do alcance do operador) */}
+          {!isOperador && (
+            <motion.button
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.95 }}
+              animate={{ boxShadow: [
+                "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
+                "0 0 26px rgba(52,211,153,0.85), inset 0 0 16px rgba(52,211,153,0.22)",
+                "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
+              ] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              onClick={() => navegar("/open-finance")}
+              title={conectarLabel}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide"
+              style={{
+                background: ofAtivo
+                  ? "linear-gradient(135deg, rgba(16,185,129,0.4), rgba(52,211,153,0.5))"
+                  : "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(52,211,153,0.3))",
+                border: "1px solid rgba(52,211,153,0.7)",
+                color: "#7CFFC4",
+                textShadow: "0 0 8px rgba(52,211,153,0.6)",
+              }}
+            >
+              <Landmark size={15} />
+              <span>{conectarLabelCurto}</span>
+              <span className="px-1.5 py-0.5 rounded-full font-black"
+                style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>
+                NOVO
+              </span>
+            </motion.button>
+          )}
 
           <SeletorIdioma />
           <motion.button
@@ -381,7 +426,7 @@ export default function TopNav() {
           backdropFilter: "blur(16px)",
         }}
       >
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-2.5 cursor-pointer" onClick={() => navegar("/dashboard")}>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-2.5 cursor-pointer" onClick={() => navegar(destinoLogo)}>
           <div style={{ filter: "drop-shadow(0 0 10px rgba(106,176,255,0.6))" }}>
             <Image src="/logo-aitech.png" alt="Axioma" width={30} height={30} className="object-contain" />
           </div>
@@ -391,16 +436,18 @@ export default function TopNav() {
           </div>
         </motion.div>
         <div className="flex items-center gap-2">
-          {/* Botão Conectar Banco compacto no mobile */}
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={() => navegar("/open-finance")}
-            className="p-2 rounded-xl"
-            style={{ background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.5)", boxShadow: "0 0 12px rgba(52,211,153,0.4)" }}
-            aria-label={conectarLabel}
-          >
-            <Landmark size={17} style={{ color: "#7CFFC4" }} />
-          </motion.button>
+          {/* Botão Conectar Banco compacto no mobile (fora do alcance do operador) */}
+          {!isOperador && (
+            <motion.button
+              whileTap={{ scale: 0.92 }}
+              onClick={() => navegar("/open-finance")}
+              className="p-2 rounded-xl"
+              style={{ background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.5)", boxShadow: "0 0 12px rgba(52,211,153,0.4)" }}
+              aria-label={conectarLabel}
+            >
+              <Landmark size={17} style={{ color: "#7CFFC4" }} />
+            </motion.button>
+          )}
           <SeletorIdioma />
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <AnimatePresence mode="wait">
@@ -424,23 +471,29 @@ export default function TopNav() {
               className="md:hidden fixed top-14 right-0 bottom-0 w-80 z-50 overflow-auto"
               style={{ background: "linear-gradient(180deg, #0a1628 0%, #060f1e 100%)", borderLeft: "1px solid rgba(59,111,212,0.2)", boxShadow: "-20px 0 60px rgba(0,0,0,0.6)" }}>
               <div className="p-4 space-y-2">
-                {/* Conectar Banco em destaque no topo do drawer */}
-                <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/open-finance")}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
-                  style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.3))", border: "1px solid rgba(52,211,153,0.6)", color: "#7CFFC4", boxShadow: "0 0 16px rgba(52,211,153,0.4)" }}>
-                  <Landmark size={17} />
-                  <span className="font-black text-sm uppercase tracking-wide">{conectarLabelCurto}</span>
-                  <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>NOVO</span>
-                </motion.button>
+                {/* Conectar Banco em destaque no topo do drawer (fora do alcance do operador) */}
+                {!isOperador && (
+                  <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/open-finance")}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
+                    style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.3))", border: "1px solid rgba(52,211,153,0.6)", color: "#7CFFC4", boxShadow: "0 0 16px rgba(52,211,153,0.4)" }}>
+                    <Landmark size={17} />
+                    <span className="font-black text-sm uppercase tracking-wide">{conectarLabelCurto}</span>
+                    <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>NOVO</span>
+                  </motion.button>
+                )}
 
-                <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
-                  style={{ background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
-                  <span>🏠</span>
-                  <span className="font-semibold text-sm">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
-                </motion.button>
+                {!isOperador && (
+                  <motion.button whileHover={{ x: 4 }} whileTap={{ scale: 0.98 }} onClick={() => navegar("/dashboard")}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
+                    style={{ background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "rgba(59,111,212,0.06)", border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid rgba(59,111,212,0.1)", color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a" }}>
+                    <span>🏠</span>
+                    <span className="font-semibold text-sm">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
+                  </motion.button>
+                )}
 
-                {grupos.map((grupo) => {
+                {isOperador && pdvBotaoMobile}
+
+                {!isOperador && gruposVisiveis.map((grupo) => {
                   const ativo = grupoAtivo(grupo.itens);
                   const aberto = grupoMobile === grupo.label.pt;
                   const ehMei = (grupo as any).destaque === true;
@@ -491,23 +544,7 @@ export default function TopNav() {
                     </div>
                   );
                   if (!ehMei) return grupoEl;
-                  return [
-                    grupoEl,
-                    <motion.button key="pdv-mobile" whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(pdvModulo.path)}
-                      title={pdvTooltip}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
-                      style={{
-                        background: pdvAtivo ? "rgba(0,255,136,0.26)" : "rgba(0,255,136,0.10)",
-                        border: pdvAtivo ? "1px solid rgba(0,255,136,0.8)" : "1px solid rgba(0,255,136,0.4)",
-                        color: pdvModulo.cor,
-                        boxShadow: "0 0 14px rgba(0,255,136,0.3)",
-                      }}>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm">{pdvModulo.label[lang]}</span>
-                        <BadgeDestaque lang={lang} />
-                      </div>
-                    </motion.button>,
-                  ];
+                  return [grupoEl, pdvBotaoMobile];
                 })}
 
                 <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={handleLogout}

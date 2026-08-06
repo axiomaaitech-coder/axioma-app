@@ -14,7 +14,6 @@ import {
   uploadLogo,
   carregarAuditoria,
   carregarObrigacoes, criarObrigacao, atualizarObrigacao, excluirObrigacao, gerarObrigacoesPadrao,
-  carregarEquipe, convidarMembro, excluirMembro,
   calcularHealthScore, calcularComplianceScore,
   TIPOS_DOCUMENTOS, REGIMES_TRIBUTARIOS,
   type ScoreResultado,
@@ -121,20 +120,6 @@ const T = {
     qualificacao: "Qualificação",
     participacaoPct: "% Participação",
     dataEntrada: "Data de Entrada",
-    // Equipe
-    equipeInterna: "🧑‍💻 Equipe Interna",
-    convidarMembro: "+ Convidar Membro",
-    semMembros: "Nenhum membro convidado.",
-    convidarMembroTitulo: "Convidar Membro",
-    emailConvidado: "E-mail do convidado *",
-    cargo: "Cargo",
-    papelAdmin: "👑 Admin (acesso total)",
-    papelFinanceiro: "💰 Financeiro",
-    papelContabil: "📊 Contábil",
-    papelLeitor: "👁️ Leitor (somente visualização)",
-    aceito: "✅ Aceito",
-    pendente: "⏳ Pendente",
-    convidar: "✓ Convidar",
     // Compliance
     calendarioFiscal: "📅 Calendário Fiscal",
     regime: "Regime",
@@ -221,10 +206,6 @@ const T = {
     toastObrigSalva: "Obrigação salva",
     toastMarcadaPaga: "Marcada como paga",
     toastConfirmRemoverObrig: (nome: string) => `Remover "${nome}"?`,
-    toastConviteRegistrado: "Convite registrado",
-    toastLinkConviteCopiado: "Link do convite copiado! Envie pra pessoa (WhatsApp, e-mail etc.)",
-    copiarLink: "🔗 Copiar link",
-    toastConfirmRemoverMembro: (email: string) => `Remover ${email}?`,
     toastCartaoCopiado: "Cartão copiado!",
     toastErroCopiar: "Erro ao copiar",
     toastErroPdf: "Erro ao gerar PDF",
@@ -317,19 +298,6 @@ const T = {
     qualificacao: "Role",
     participacaoPct: "% Ownership",
     dataEntrada: "Entry Date",
-    equipeInterna: "🧑‍💻 Internal Team",
-    convidarMembro: "+ Invite Member",
-    semMembros: "No members invited yet.",
-    convidarMembroTitulo: "Invite Member",
-    emailConvidado: "Invitee e-mail *",
-    cargo: "Position",
-    papelAdmin: "👑 Admin (full access)",
-    papelFinanceiro: "💰 Financial",
-    papelContabil: "📊 Accounting",
-    papelLeitor: "👁️ Reader (view only)",
-    aceito: "✅ Accepted",
-    pendente: "⏳ Pending",
-    convidar: "✓ Invite",
     calendarioFiscal: "📅 Fiscal Calendar",
     regime: "Regime",
     naoDefinido: "not defined",
@@ -410,10 +378,6 @@ const T = {
     toastObrigSalva: "Obligation saved",
     toastMarcadaPaga: "Marked as paid",
     toastConfirmRemoverObrig: (nome: string) => `Remove "${nome}"?`,
-    toastConviteRegistrado: "Invitation registered",
-    toastLinkConviteCopiado: "Invite link copied! Send it to the person (WhatsApp, e-mail etc.)",
-    copiarLink: "🔗 Copy link",
-    toastConfirmRemoverMembro: (email: string) => `Remove ${email}?`,
     toastCartaoCopiado: "Card copied!",
     toastErroCopiar: "Copy error",
     toastErroPdf: "PDF error",
@@ -505,19 +469,6 @@ const T = {
     qualificacao: "Calificación",
     participacaoPct: "% Participación",
     dataEntrada: "Fecha de Entrada",
-    equipeInterna: "🧑‍💻 Equipo Interno",
-    convidarMembro: "+ Invitar Miembro",
-    semMembros: "Ningún miembro invitado.",
-    convidarMembroTitulo: "Invitar Miembro",
-    emailConvidado: "Correo del invitado *",
-    cargo: "Cargo",
-    papelAdmin: "👑 Admin (acceso total)",
-    papelFinanceiro: "💰 Financiero",
-    papelContabil: "📊 Contable",
-    papelLeitor: "👁️ Lector (solo visualización)",
-    aceito: "✅ Aceptado",
-    pendente: "⏳ Pendiente",
-    convidar: "✓ Invitar",
     calendarioFiscal: "📅 Calendario Fiscal",
     regime: "Régimen",
     naoDefinido: "no definido",
@@ -598,10 +549,6 @@ const T = {
     toastObrigSalva: "Obligación guardada",
     toastMarcadaPaga: "Marcada como pagada",
     toastConfirmRemoverObrig: (nome: string) => `¿Eliminar "${nome}"?`,
-    toastConviteRegistrado: "Invitación registrada",
-    toastLinkConviteCopiado: "¡Link de invitación copiado! Envíalo a la persona (WhatsApp, correo, etc.)",
-    copiarLink: "🔗 Copiar link",
-    toastConfirmRemoverMembro: (email: string) => `¿Eliminar ${email}?`,
     toastCartaoCopiado: "¡Tarjeta copiada!",
     toastErroCopiar: "Error al copiar",
     toastErroPdf: "Error en PDF",
@@ -650,7 +597,6 @@ export default function EmpresaPage() {
   const [socios, setSocios] = useState<any[]>([]);
   const [documentos, setDocumentos] = useState<any[]>([]);
   const [obrigacoes, setObrigacoes] = useState<any[]>([]);
-  const [equipe, setEquipe] = useState<any[]>([]);
   const [auditoria, setAuditoria] = useState<any[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -672,7 +618,6 @@ export default function EmpresaPage() {
   const [modalSocio, setModalSocio] = useState<any>(null);
   const [modalDocumento, setModalDocumento] = useState<any>(null);
   const [modalObrigacao, setModalObrigacao] = useState<any>(null);
-  const [modalMembro, setModalMembro] = useState<any>(null);
   const [modalScoreDetalhe, setModalScoreDetalhe] = useState<"health" | "compliance" | null>(null);
   const [shareModalAberto, setShareModalAberto] = useState(false);
 
@@ -707,14 +652,13 @@ export default function EmpresaPage() {
       if (emp) {
         setEmpresa(emp);
         setEmpresaForm(emp);
-        const [s, d, o, e, a] = await Promise.all([
+        const [s, d, o, a] = await Promise.all([
           carregarSocios(emp.id, uid),
           carregarDocumentos(emp.id, uid),
           carregarObrigacoes(emp.id, uid),
-          carregarEquipe(emp.id, uid),
           carregarAuditoria(emp.id, uid, 100),
         ]);
-        setSocios(s); setDocumentos(d); setObrigacoes(o); setEquipe(e); setAuditoria(a);
+        setSocios(s); setDocumentos(d); setObrigacoes(o); setAuditoria(a);
         setHealthScore(calcularHealthScore(emp, s, d));
         setComplianceScore(calcularComplianceScore(emp, o, d));
       }
@@ -921,35 +865,6 @@ export default function EmpresaPage() {
     await carregarTudo(userId);
   }
 
-  // Equipe
-  async function salvarMembro(dados: any) {
-    if (!empresa || !userId) return;
-    const r = await convidarMembro(empresa.id, userId, dados);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    setModalMembro(null);
-    await carregarTudo(userId);
-    // Não existe motor de e-mail no Axioma ainda — o link precisa ser copiado
-    // e enviado manualmente (WhatsApp, e-mail etc.) pra quem foi convidado.
-    const equipeAtualizada = await carregarEquipe(empresa.id, userId);
-    const novo = equipeAtualizada.find((m: any) => m.email_convidado === dados.email_convidado && !m.convite_aceito);
-    if (novo?.token_convite) copiarLinkConvite(novo.token_convite);
-    else showToast(tt.toastConviteRegistrado, "ok");
-  }
-
-  function copiarLinkConvite(token: string) {
-    const link = `${window.location.origin}/convite/${token}`;
-    navigator.clipboard.writeText(link);
-    showToast(tt.toastLinkConviteCopiado, "ok");
-  }
-
-  async function removerMembro(m: any) {
-    if (!empresa || !userId) return;
-    if (!window.confirm(tt.toastConfirmRemoverMembro(m.email_convidado))) return;
-    const r = await excluirMembro(m.id, empresa.id, userId, m.email_convidado);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
-    await carregarTudo(userId);
-  }
-
   // Compartilhamento
   function montarTextoCompartilhamento(): string {
     if (!empresa) return "Axioma AI.Tech";
@@ -1121,7 +1036,7 @@ export default function EmpresaPage() {
           <div className="flex gap-2 overflow-x-auto pb-1">
             {[
               { key: "dados", label: tt.abaDados },
-              { key: "socios", label: `${tt.abaSocios} (${socios.length + equipe.length})` },
+              { key: "socios", label: `${tt.abaSocios} (${socios.length})` },
               { key: "compliance", label: `${tt.abaCompliance} (${obrigacoes.length})` },
               { key: "cofre", label: `${tt.abaCofre} (${documentos.length})` },
               { key: "auditoria", label: tt.abaAuditoria },
@@ -1347,40 +1262,6 @@ export default function EmpresaPage() {
                           <button onClick={() => setModalSocio(s)} title={tt.editar}
                             className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
                           <button onClick={() => removerSocio(s)} title={tt.remover}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CanvasBox>
-
-              <CanvasBox cor="#a78bfa">
-                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.equipeInterna} ({equipe.length})</p>
-                  <button onClick={() => setModalMembro("novo")}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>{tt.convidarMembro}</button>
-                </div>
-                {equipe.length === 0 ? (
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.semMembros}</p>
-                ) : (
-                  <div className="space-y-2">
-                    {equipe.map((m: any) => (
-                      <div key={m.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(167,139,250,0.15)" }}>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{m.nome || m.email_convidado}</p>
-                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
-                            {m.cargo || "—"} • {m.papel} • {m.convite_aceito ? tt.aceito : tt.pendente}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {!m.convite_aceito && m.token_convite && (
-                            <button onClick={() => copiarLinkConvite(m.token_convite)}
-                              className="px-2 py-1 rounded text-xs" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>{tt.copiarLink}</button>
-                          )}
-                          <button onClick={() => removerMembro(m)}
                             className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
                         </div>
                       </div>
@@ -1664,11 +1545,6 @@ export default function EmpresaPage() {
           <FormObrigacao inicial={modalObrigacao === "novo" ? {} : modalObrigacao} onSalvar={salvarObrigacao} cancelar={() => setModalObrigacao(null)} tt={tt} />
         </ModalGenerico>
       )}
-      {modalMembro && (
-        <ModalGenerico titulo={tt.convidarMembroTitulo} fechar={() => setModalMembro(null)}>
-          <FormMembro onSalvar={salvarMembro} cancelar={() => setModalMembro(null)} tt={tt} />
-        </ModalGenerico>
-      )}
     </ModuloLayout>
   );
 }
@@ -1830,35 +1706,6 @@ function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
         <button onClick={() => onSalvar(form)} disabled={!form.tipo || !form.nome || !form.data_vencimento}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
           style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.salvar}</button>
-      </div>
-    </div>
-  );
-}
-
-function FormMembro({ onSalvar, cancelar, tt }: any) {
-  const [form, setForm] = useState<any>({ papel: "leitor" });
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
-  return (
-    <div className="space-y-3">
-      <input type="email" value={form.email_convidado || ""} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
-        placeholder={tt.emailConvidado} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-        placeholder={tt.nome} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <input value={form.cargo || ""} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-        placeholder={tt.cargo} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
-      <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
-        className="w-full px-3 py-2 rounded-lg text-sm" style={inp}>
-        <option value="admin" style={{ background: "#020810" }}>{tt.papelAdmin}</option>
-        <option value="financeiro" style={{ background: "#020810" }}>{tt.papelFinanceiro}</option>
-        <option value="contabil" style={{ background: "#020810" }}>{tt.papelContabil}</option>
-        <option value="leitor" style={{ background: "#020810" }}>{tt.papelLeitor}</option>
-      </select>
-      <div className="flex gap-2">
-        <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.cancelar}</button>
-        <button onClick={() => onSalvar(form)} disabled={!form.email_convidado}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>{tt.convidar}</button>
       </div>
     </div>
   );
