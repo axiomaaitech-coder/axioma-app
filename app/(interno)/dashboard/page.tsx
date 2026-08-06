@@ -449,7 +449,7 @@ export default function DashboardPage() {
         { data: investRows },
       ] = await Promise.all([
         Promise.resolve(supabase.from("clientes").select("id")).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("fornecedores").select("id, valor_total")).catch(() => ({ data: [] })),
+        Promise.resolve(supabase.from("fornecedores").select("id")).catch(() => ({ data: [] })),
         Promise.resolve(supabase.from("contas_receber").select("valor, valor_recebido, status").neq("status", "recebido")).catch(() => ({ data: [] })),
         Promise.resolve(supabase.from("contas_pagar").select("valor_total, valor_pago, status").neq("status", "pago")).catch(() => ({ data: [] })),
         Promise.resolve(supabase.from("metas").select("id, valor_meta, valor_atual")).catch(() => ({ data: [] })),
@@ -459,7 +459,6 @@ export default function DashboardPage() {
       setModulosData({
         clientesCount: (clientesRows || []).length,
         fornecedoresCount: (fornecedoresRows || []).length,
-        fornecedoresTotal: (fornecedoresRows || []).reduce((sm: number, r: any) => sm + Number(r.valor_total || 0), 0),
         crCount: (crAbertas || []).length,
         crTotal: (crAbertas || []).reduce((sm: number, r: any) => sm + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0),
         cpCount: (cpAbertas || []).length,
