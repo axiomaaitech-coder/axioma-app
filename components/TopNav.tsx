@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { useLanguage } from "../lib/LanguageContext";
+import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
@@ -108,78 +108,8 @@ type Idioma = "pt" | "en" | "es";
 const pdvModulo = {
   label: { pt: "🛒 PDV", en: "🛒 PDV", es: "🛒 PDV" },
   path: "/pdv",
-  cor: "#34d399",
+  cor: "#00ff88",
 };
-
-const BANDEIRA_EMOJI: Record<Idioma, string> = { pt: "🇧🇷", en: "🇺🇸", es: "🇪🇸" };
-
-// Seletor de idiomas compacto — mesmo hook (useLanguage) e mesma função
-// (setIdioma) do SeletorIdioma original em lib/LanguageContext.tsx, só que
-// mostrando apenas a bandeira ativa + dropdown com as outras duas. Fica só
-// aqui no TopNav pra não afetar o Sidebar, que continua usando o seletor
-// original com as 3 bandeiras lado a lado.
-function SeletorIdiomaCompacto() {
-  const { idioma, setIdioma } = useLanguage();
-  const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
-  const [aberto, setAberto] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const idiomaTitulo = lang === "pt" ? "Idioma" : lang === "en" ? "Language" : "Idioma";
-  const outros = (["pt", "en", "es"] as Idioma[]).filter((codigo) => codigo !== lang);
-
-  return (
-    <div ref={ref} className="relative">
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setAberto(!aberto)}
-        title={idiomaTitulo}
-        aria-label={idiomaTitulo}
-        className="flex items-center gap-1 px-2 py-2 rounded-xl"
-        style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}
-      >
-        <span className="text-base leading-none">{BANDEIRA_EMOJI[lang]}</span>
-        <ChevronDown size={12} style={{ color: "#5a7a9a" }} />
-      </motion.button>
-      <AnimatePresence>
-        {aberto && (
-          <motion.div
-            initial={{ opacity: 0, y: 6, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute top-full right-0 mt-2 min-w-[100px] rounded-xl overflow-hidden z-50"
-            style={{
-              background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
-              border: "1px solid rgba(59,111,212,0.3)",
-              boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
-            }}
-          >
-            {outros.map((codigo) => (
-              <button
-                key={codigo}
-                onClick={() => { setIdioma(codigo); setAberto(false); }}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all"
-                style={{ color: "#c8d8f0" }}
-              >
-                <span className="text-base leading-none">{BANDEIRA_EMOJI[codigo]}</span>
-                <span className="text-xs font-semibold">{codigo.toUpperCase()}</span>
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 export default function TopNav() {
   const router = useRouter();
@@ -255,18 +185,18 @@ export default function TopNav() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => navegar("/dashboard")}
-          className="flex items-center gap-3 cursor-pointer mr-4 pr-4"
+          className="flex items-center gap-2.5 cursor-pointer mr-3 pr-3"
           style={{ borderRight: "1px solid rgba(59,111,212,0.2)" }}
         >
           <div style={{ filter: "drop-shadow(0 0 12px rgba(106,176,255,0.7))" }}>
-            <Image src="/logo-aitech.png" alt="Axioma" width={34} height={34} className="object-contain" />
+            <Image src="/logo-aitech.png" alt="Axioma" width={28} height={28} className="object-contain" />
           </div>
           <div>
-            <p className="font-black tracking-[0.25em] text-sm leading-none" style={{
+            <p className="font-black tracking-[0.22em] text-xs leading-none" style={{
               background: "linear-gradient(135deg, #c8d8f0 0%, #6ab0ff 40%, #ffffff 60%, #3b6fd4 100%)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
             }}>AXIOMA</p>
-            <p className="text-xs tracking-[0.3em] font-semibold" style={{ color: "#3a5a8a", fontSize: 9 }}>AI.TECH</p>
+            <p className="tracking-[0.3em] font-semibold" style={{ color: "#3a5a8a", fontSize: 8 }}>AI.TECH</p>
           </div>
         </motion.div>
 
@@ -275,7 +205,7 @@ export default function TopNav() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => navegar("/dashboard")}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
           style={{
             background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "transparent",
             color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a",
@@ -376,10 +306,11 @@ export default function TopNav() {
               title={pdvTooltip}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
               style={{
-                background: pdvAtivo ? "rgba(6,95,70,0.3)" : "rgba(4,120,87,0.10)",
+                background: pdvAtivo ? "rgba(0,255,136,0.28)" : "rgba(0,255,136,0.12)",
                 color: pdvModulo.cor,
-                border: pdvAtivo ? "1px solid rgba(52,211,153,0.55)" : "1px solid rgba(4,120,87,0.35)",
-                boxShadow: "0 0 12px rgba(4,120,87,0.18)",
+                border: pdvAtivo ? "1px solid rgba(0,255,136,0.85)" : "1px solid rgba(0,255,136,0.45)",
+                boxShadow: "0 0 18px rgba(0,255,136,0.4)",
+                textShadow: "0 0 8px rgba(0,255,136,0.5)",
               }}
             >
               <span className="text-xs">{pdvModulo.label[lang]}</span>
@@ -420,7 +351,7 @@ export default function TopNav() {
             </span>
           </motion.button>
 
-          <SeletorIdiomaCompacto />
+          <SeletorIdioma />
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -470,7 +401,7 @@ export default function TopNav() {
           >
             <Landmark size={17} style={{ color: "#7CFFC4" }} />
           </motion.button>
-          <SeletorIdiomaCompacto />
+          <SeletorIdioma />
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <AnimatePresence mode="wait">
               {menuMobile
@@ -566,9 +497,10 @@ export default function TopNav() {
                       title={pdvTooltip}
                       className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
                       style={{
-                        background: pdvAtivo ? "rgba(6,95,70,0.3)" : "rgba(4,120,87,0.08)",
-                        border: pdvAtivo ? "1px solid rgba(52,211,153,0.5)" : "1px solid rgba(4,120,87,0.3)",
+                        background: pdvAtivo ? "rgba(0,255,136,0.26)" : "rgba(0,255,136,0.10)",
+                        border: pdvAtivo ? "1px solid rgba(0,255,136,0.8)" : "1px solid rgba(0,255,136,0.4)",
                         color: pdvModulo.cor,
+                        boxShadow: "0 0 14px rgba(0,255,136,0.3)",
                       }}>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm">{pdvModulo.label[lang]}</span>
