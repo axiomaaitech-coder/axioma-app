@@ -28,6 +28,10 @@ export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 export const mesesPt = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 export const mesesEn = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 export const mesesEs = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+export function nomeMesPt(mes: number): string {
+  return mesesPt[mes - 1] || "";
+}
 export const mesesPorLang = (lang: string) => lang === "en" ? mesesEn : lang === "es" ? mesesEs : mesesPt;
 
 // ---------- SÉRIE MENSAL (12 meses do ano corrente) ----------

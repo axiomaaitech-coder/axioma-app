@@ -4,6 +4,8 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import { calcularImpostoRegime } from "./iaTributariaHelpers";
+import { nomeMesPt } from "./cfoCore";
+export { nomeMesPt };
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,11 +80,6 @@ export function montarPeriodo(ano: number, mes: number): Periodo {
   const inicio = new Date(ano, mes - 1, 1).toISOString().slice(0, 10);
   const fim = new Date(ano, mes, 0).toISOString().slice(0, 10);
   return { inicio, fim, ano, mes };
-}
-
-export function nomeMesPt(mes: number): string {
-  const nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-  return nomes[mes - 1] || "";
 }
 
 // ============================================================================

@@ -6,8 +6,7 @@
 // no mesmo arquivo).
 
 import { createBrowserClient } from "@supabase/ssr";
-import { nomeMesPt } from "./relatoriosHelpers";
-import { precoPorDivisor } from "./cfoCore";
+import { nomeMesPt, precoPorDivisor } from "./cfoCore";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
