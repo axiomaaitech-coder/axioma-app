@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# graphify (generated knowledge graph + AST cache, rebuilt via `graphify update .`)
+/graphify-out/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
