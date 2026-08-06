@@ -236,6 +236,15 @@ export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: s
     .single();
   if (error) return { erro: error.message };
 
+  // Garante o vínculo real do dono em empresa_usuarios — sem essa linha o
+  // proprietário fica invisível pra listar_equipe() (e pra qualquer tela
+  // futura que use essa tabela como fonte). obter_ou_criar_empresa_padrao()
+  // já grava isso pro caminho automático de cadastro; este é o caminho
+  // manual, que ficou de fora até agora.
+  await supabase
+    .from("empresa_usuarios")
+    .upsert({ empresa_id: data.id, user_id: userId, papel: "dono" }, { onConflict: "empresa_id,user_id" });
+
   await registrarAuditoria({
     empresaId: data.id,
     userId,
