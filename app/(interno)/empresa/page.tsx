@@ -32,6 +32,9 @@ const T = {
     // Header
     titulo: "🏢 Empresa",
     subtitulo: "Cadastro profissional, compliance e cofre de documentos",
+    empresaNaoEncontrada: "Não encontramos sua empresa agora",
+    empresaNaoEncontradaSub: "Isso pode ser só uma instabilidade — recarregue a página. Se continuar, fale com a gente.",
+    recarregarPagina: "Recarregar página",
     empresa: "Empresa",
     semCnpj: "Sem CNPJ",
     healthScore: "📊 Health Score (Completude)",
@@ -220,6 +223,9 @@ const T = {
   en: {
     titulo: "🏢 Company",
     subtitulo: "Professional registration, compliance and document vault",
+    empresaNaoEncontrada: "We couldn't find your company right now",
+    empresaNaoEncontradaSub: "This might just be a hiccup — reload the page. If it keeps happening, reach out to us.",
+    recarregarPagina: "Reload page",
     empresa: "Company",
     semCnpj: "No Tax ID",
     healthScore: "📊 Health Score (Completeness)",
@@ -391,6 +397,9 @@ const T = {
   es: {
     titulo: "🏢 Empresa",
     subtitulo: "Registro profesional, cumplimiento y bóveda de documentos",
+    empresaNaoEncontrada: "No encontramos su empresa en este momento",
+    empresaNaoEncontradaSub: "Puede ser solo una inestabilidad — recargue la página. Si continúa, contáctenos.",
+    recarregarPagina: "Recargar página",
     empresa: "Empresa",
     semCnpj: "Sin CNPJ",
     healthScore: "📊 Health Score (Completitud)",
@@ -633,18 +642,22 @@ export default function EmpresaPage() {
     tt.qualSocio, tt.qualSocioAdm, tt.qualAdministrador, tt.qualDiretor, tt.qualProcurador, tt.qualOutros,
   ];
 
-  useEffect(() => { inicializar(); }, []);
+  useEffect(() => { carregarTudo(); }, []);
 
-  async function inicializar() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setCarregando(false); return; }
-    setUserId(user.id);
-    await carregarTudo(user.id);
-  }
-
-  async function carregarTudo(uid: string) {
+  // Uma função só, auto-suficiente (mesmo padrão do Cockpit e dos outros
+  // módulos: um único carregar() que já busca o usuário por dentro) — antes
+  // era inicializar() + carregarTudo(uid), duas funções em cadeia, e um erro
+  // em QUALQUER ponto de inicializar() (antes de chamar carregarTudo) nunca
+  // tinha try/catch nem garantia de setCarregando(false), deixando a tela
+  // travada em "carregando" pra sempre sem nenhum aviso. O finally abaixo
+  // garante que isso nunca mais acontece, não importa onde algo falhe.
+  async function carregarTudo() {
     setCarregando(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+
       // obterEmpresaAtiva() já garante a criação (dono/convidado/"Minha Empresa" automática) —
       // não repetir a criação aqui evita duas empresas por corrida (ver SQL-EMPRESA-PADRAO.sql).
       const empresaAtivaId = await obterEmpresaAtiva();
@@ -653,10 +666,10 @@ export default function EmpresaPage() {
         setEmpresa(emp);
         setEmpresaForm(emp);
         const [s, d, o, a] = await Promise.all([
-          carregarSocios(emp.id, uid),
-          carregarDocumentos(emp.id, uid),
-          carregarObrigacoes(emp.id, uid),
-          carregarAuditoria(emp.id, uid, 100),
+          carregarSocios(emp.id, user.id),
+          carregarDocumentos(emp.id, user.id),
+          carregarObrigacoes(emp.id, user.id),
+          carregarAuditoria(emp.id, user.id, 100),
         ]);
         setSocios(s); setDocumentos(d); setObrigacoes(o); setAuditoria(a);
         setHealthScore(calcularHealthScore(emp, s, d));
@@ -664,8 +677,9 @@ export default function EmpresaPage() {
       }
     } catch (err: any) {
       showToast(err.message || tt.toastErroCarregar, "erro");
+    } finally {
+      setCarregando(false);
     }
-    setCarregando(false);
   }
 
   // CNPJ
@@ -716,7 +730,7 @@ export default function EmpresaPage() {
       if (window.confirm(tt.toastConfirmImportarSocios(d.socios.length))) {
         importarSociosDoQSA(empresa.id, userId!, d.socios).then((qtd) => {
           showToast(tt.toastSociosImportados(qtd), "ok");
-          carregarTudo(userId!);
+          carregarTudo();
         });
       }
     }
@@ -746,7 +760,7 @@ export default function EmpresaPage() {
     setSalvando(true);
     const r = await atualizarEmpresa(empresa.id, userId, empresa, empresaForm);
     if (r.erro) showToast(r.erro, "erro");
-    else { showToast(tt.toastDadosSalvos, "ok"); await carregarTudo(userId); }
+    else { showToast(tt.toastDadosSalvos, "ok"); await carregarTudo(); }
     setSalvando(false);
   }
 
@@ -773,7 +787,7 @@ export default function EmpresaPage() {
       showToast(tt.toastSocioAtualizado, "ok");
     }
     setModalSocio(null);
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   async function removerSocio(socio: any) {
@@ -782,7 +796,7 @@ export default function EmpresaPage() {
     const r = await excluirSocio(socio.id, empresa.id, userId, socio.nome);
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastSocioRemovido, "ok");
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   // Documentos
@@ -800,7 +814,7 @@ export default function EmpresaPage() {
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastDocAdicionado, "ok");
     setModalDocumento(null);
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   async function removerDocumento(doc: any) {
@@ -809,7 +823,7 @@ export default function EmpresaPage() {
     const r = await excluirDocumento(doc.id, empresa.id, userId, doc.storage_path, doc.nome);
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastDocRemovido, "ok");
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   async function baixarDocumento(doc: any) {
@@ -832,7 +846,7 @@ export default function EmpresaPage() {
       if (!r.erro) ok++;
     }
     showToast(tt.toastObrigCriadas(ok), "ok");
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   async function salvarObrigacao(dados: any) {
@@ -846,7 +860,7 @@ export default function EmpresaPage() {
     }
     setModalObrigacao(null);
     showToast(tt.toastObrigSalva, "ok");
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   async function marcarObrigacaoPaga(obr: any) {
@@ -854,7 +868,7 @@ export default function EmpresaPage() {
     const r = await atualizarObrigacao(obr.id, empresa.id, userId, { status: "paga", valor_pago: obr.valor_estimado });
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastMarcadaPaga, "ok");
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   async function removerObrigacao(obr: any) {
@@ -862,7 +876,7 @@ export default function EmpresaPage() {
     if (!window.confirm(tt.toastConfirmRemoverObrig(obr.nome))) return;
     const r = await excluirObrigacao(obr.id, empresa.id, userId, obr.nome);
     if (r.erro) { showToast(r.erro, "erro"); return; }
-    await carregarTudo(userId);
+    await carregarTudo();
   }
 
   // Compartilhamento
@@ -961,13 +975,6 @@ export default function EmpresaPage() {
 
   const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
 
-  // TEMPORÁRIO — diagnóstico do bug "módulo Empresa vazio". Remover depois de
-  // confirmado. Abra o Console em produção, procure por [AXIOMA-DEBUG-EMPRESA].
-  console.log("[AXIOMA-DEBUG-EMPRESA]", {
-    carregando, aba, temEmpresa: !!empresa, empresaId: empresa?.id,
-    socios: socios.length, documentos: documentos.length, obrigacoes: obrigacoes.length, auditoria: auditoria.length,
-  });
-
   return (
     <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
       {toast && (
@@ -983,6 +990,24 @@ export default function EmpresaPage() {
           <div className="py-12 text-center">
             <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm" style={{ color: "#6ab0ff" }}>{tt.carregandoEmpresa}</p>
+          </div>
+        </CanvasBox>
+      )}
+
+      {/* Estado vazio honesto — nunca mais fica em branco quando a empresa não
+          é encontrada. Antes, esse caso não tinha nenhuma tela própria: o
+          carregamento podia terminar (ou travar) sem nenhum aviso. */}
+      {!carregando && !empresa && (
+        <CanvasBox cor="#f87171">
+          <div className="py-12 text-center">
+            <p className="text-3xl mb-3">🏢</p>
+            <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{tt.empresaNaoEncontrada}</p>
+            <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{tt.empresaNaoEncontradaSub}</p>
+            <button onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(106,176,255,0.12)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
+              {tt.recarregarPagina}
+            </button>
           </div>
         </CanvasBox>
       )}
