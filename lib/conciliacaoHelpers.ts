@@ -309,7 +309,11 @@ export type KPIsOpenFinance = {
   saldoSistema: number;
   divergencia: number;
   dinheiroNaoExplicado: number;
-  percentualConciliado: number;
+  // null = sem transação nenhuma no período pra calcular em cima — nunca
+  // 100% por padrão (0 de 0 não é "tudo conciliado", é "nada pra conciliar
+  // ainda"). Quem exibe decide o estado neutro; esta função só recusa
+  // inventar um veredito sem base real.
+  percentualConciliado: number | null;
 };
 
 export function calcularKPIsOpenFinance(params: {
@@ -324,7 +328,7 @@ export function calcularKPIsOpenFinance(params: {
   const todas = [...resultado.conciliadas, ...naoConciliadas];
   const totalValor = todas.reduce((s, t) => s + Math.abs(t.valor), 0);
   const valorConciliado = resultado.conciliadas.reduce((s, t) => s + Math.abs(t.valor), 0);
-  const percentualConciliado = totalValor > 0 ? (valorConciliado / totalValor) * 100 : 100;
+  const percentualConciliado = totalValor > 0 ? (valorConciliado / totalValor) * 100 : null;
 
   return {
     saldoBanco, saldoSistema, divergencia: saldoBanco - saldoSistema,

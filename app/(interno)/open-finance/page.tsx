@@ -78,6 +78,7 @@ const textos = {
     categoriaSugerida: 'Categoria sugerida', semSugestao: 'Escolha uma categoria',
     multiplosCandidatos: 'Mais de um lançamento parecido — escolha qual é',
     candidatoContestado: 'Esse lançamento também combina com outra transação — confirme se é este',
+    semComparacaoBanco: 'Conecte um banco para comparar', semTransacaoImportada: 'Sem transação importada ainda',
     escolherLancamento: 'Escolher lançamento', confirmarEscolha: 'Usar este',
     motivoDuplicidade: 'Possível cobrança duplicada', motivoForaPadrao: 'Valor fora do padrão histórico',
     motivoDebitoNovo: 'Débito novo, nunca visto antes',
@@ -111,6 +112,7 @@ const textos = {
     categoriaSugerida: 'Suggested category', semSugestao: 'Choose a category',
     multiplosCandidatos: 'More than one similar entry — pick which one',
     candidatoContestado: 'This entry also matches another transaction — confirm this is the right one',
+    semComparacaoBanco: 'Connect a bank to compare', semTransacaoImportada: 'No transaction imported yet',
     escolherLancamento: 'Choose entry', confirmarEscolha: 'Use this one',
     motivoDuplicidade: 'Possible duplicate charge', motivoForaPadrao: 'Amount outside historical pattern',
     motivoDebitoNovo: 'New debit, never seen before',
@@ -144,6 +146,7 @@ const textos = {
     categoriaSugerida: 'Categoría sugerida', semSugestao: 'Elija una categoría',
     multiplosCandidatos: 'Más de un registro parecido — elija cuál es',
     candidatoContestado: 'Ese registro también coincide con otra transacción — confirme si es este',
+    semComparacaoBanco: 'Conecte un banco para comparar', semTransacaoImportada: 'Ninguna transacción importada todavía',
     escolherLancamento: 'Elegir registro', confirmarEscolha: 'Usar este',
     motivoDuplicidade: 'Posible cobro duplicado', motivoForaPadrao: 'Valor fuera del patrón histórico',
     motivoDebitoNovo: 'Débito nuevo, nunca visto antes',
@@ -413,9 +416,17 @@ export default function OpenFinancePage() {
   const kpis = useMemo(() => calcularKPIsOpenFinance({ saldoBanco, saldoSistema, resultado }), [saldoBanco, saldoSistema, resultado])
 
   const temBanco = conexoes.length > 0
-  const divergenciaRelevante = Math.abs(kpis.divergencia) >= 1
-  const corDivergencia = divergenciaRelevante ? VERMELHO : VERDE
-  const corPctConciliado = kpis.percentualConciliado >= 90 ? VERDE : kpis.percentualConciliado >= 60 ? AMBAR : VERMELHO
+  const temTransacoes = transacoesPeriodo.length > 0
+  const divergenciaRelevante = temBanco && Math.abs(kpis.divergencia) >= 1
+  const corDivergencia = !temBanco ? AZUL : divergenciaRelevante ? VERMELHO : VERDE
+  const corPctConciliado = kpis.percentualConciliado === null ? AZUL
+    : kpis.percentualConciliado >= 90 ? VERDE : kpis.percentualConciliado >= 60 ? AMBAR : VERMELHO
+  const corNaoExplicado = !temTransacoes ? AZUL : kpis.dinheiroNaoExplicado > 0 ? AMBAR : VERDE
+  const corSaldoBanco = temBanco ? JADE : AZUL
+
+  const NAO_DISPONIVEL = '—'
+  const fmtOuTraco = (v: number, disponivel: boolean) => disponivel ? fmt(v) : NAO_DISPONIVEL
+  const fPctOuTraco = (v: number | null) => v === null ? NAO_DISPONIVEL : fPct(v)
 
   function irParaAba(aba: BaldeConciliacao) {
     setAbaAtiva(aba)
@@ -497,11 +508,11 @@ export default function OpenFinancePage() {
           valor: `${tx.tipo === 'saida' ? '-' : '+'} R$ ${fBRL2(tx.valor)}`,
         })),
         resumo: [
-          { label: t.kpiSaldoBanco, valor: `R$ ${fBRL2(kpis.saldoBanco)}` },
+          { label: t.kpiSaldoBanco, valor: temBanco ? `R$ ${fBRL2(kpis.saldoBanco)}` : NAO_DISPONIVEL },
           { label: t.kpiSaldoSistema, valor: `R$ ${fBRL2(kpis.saldoSistema)}` },
-          { label: t.kpiDivergencia, valor: `R$ ${fBRL2(kpis.divergencia)}` },
-          { label: t.kpiNaoExplicado, valor: `R$ ${fBRL2(kpis.dinheiroNaoExplicado)}` },
-          { label: t.kpiPctConciliado, valor: fPct(kpis.percentualConciliado) },
+          { label: t.kpiDivergencia, valor: temBanco ? `R$ ${fBRL2(kpis.divergencia)}` : NAO_DISPONIVEL },
+          { label: t.kpiNaoExplicado, valor: temTransacoes ? `R$ ${fBRL2(kpis.dinheiroNaoExplicado)}` : NAO_DISPONIVEL },
+          { label: t.kpiPctConciliado, valor: fPctOuTraco(kpis.percentualConciliado) },
         ],
         nomeArquivo: `axioma-open-finance-${new Date().toISOString().slice(0, 10)}.pdf`,
       })
@@ -511,10 +522,10 @@ export default function OpenFinancePage() {
 
   const textoShare = [
     `🚀 AXIOMA AI.TECH — ${t.titulo}`,
-    `🏦 ${t.kpiSaldoBanco}: R$ ${fBRL2(kpis.saldoBanco)}`,
+    `🏦 ${t.kpiSaldoBanco}: ${temBanco ? `R$ ${fBRL2(kpis.saldoBanco)}` : NAO_DISPONIVEL}`,
     `📒 ${t.kpiSaldoSistema}: R$ ${fBRL2(kpis.saldoSistema)}`,
-    `⚖️ ${t.kpiDivergencia}: R$ ${fBRL2(kpis.divergencia)}`,
-    `✅ ${t.kpiPctConciliado}: ${fPct(kpis.percentualConciliado)}`,
+    `⚖️ ${t.kpiDivergencia}: ${temBanco ? `R$ ${fBRL2(kpis.divergencia)}` : NAO_DISPONIVEL}`,
+    `✅ ${t.kpiPctConciliado}: ${fPctOuTraco(kpis.percentualConciliado)}`,
     `_axiomaai.com.br_`,
   ].join('\n')
   const textoDetalhado = linhasPdf.map((tx) =>
@@ -554,9 +565,10 @@ export default function OpenFinancePage() {
 
         {/* ---- KPIs executivos: Saldo do Banco vs Sistema vs Divergência ---- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <CanvasBox cor={JADE}>
+          <CanvasBox cor={corSaldoBanco}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiSaldoBanco}</p>
-            <p className="text-lg md:text-2xl font-black" style={{ ...FONTE_EXEC, color: JADE }}>{fmt(saldoBanco)}</p>
+            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corSaldoBanco }}>{fmtOuTraco(saldoBanco, temBanco)}</p>
+            {!temBanco && <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semComparacaoBanco}</p>}
           </CanvasBox>
           <CanvasBox cor={BRONZE}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiSaldoSistema}</p>
@@ -565,11 +577,15 @@ export default function OpenFinancePage() {
           </CanvasBox>
           <CanvasBox cor={corDivergencia}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiDivergencia}</p>
-            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corDivergencia }}>{fmt(kpis.divergencia)}</p>
-            {divergenciaRelevante ? (
-              <button onClick={() => irParaAba('pendente')} className="text-[11px] font-semibold underline text-left" style={{ color: corDivergencia }}>
-                {resultado.pendentes.length + resultado.atipicas.length} {t.divergenciaConvite}
-              </button>
+            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corDivergencia }}>{fmtOuTraco(kpis.divergencia, temBanco)}</p>
+            {!temBanco ? (
+              <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semComparacaoBanco}</p>
+            ) : divergenciaRelevante ? (
+              (resultado.pendentes.length + resultado.atipicas.length) > 0 && (
+                <button onClick={() => irParaAba('pendente')} className="text-[11px] font-semibold underline text-left" style={{ color: corDivergencia }}>
+                  {resultado.pendentes.length + resultado.atipicas.length} {t.divergenciaConvite}
+                </button>
+              )
             ) : (
               <p className="text-[11px] font-semibold" style={{ color: VERDE }}>{t.divergenciaOk}</p>
             )}
@@ -577,13 +593,15 @@ export default function OpenFinancePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <CanvasBox cor={AMBAR}>
+          <CanvasBox cor={corNaoExplicado}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiNaoExplicado}</p>
-            <p className="text-lg md:text-2xl font-black" style={{ ...FONTE_EXEC, color: kpis.dinheiroNaoExplicado > 0 ? AMBAR : VERDE }}>{fmt(kpis.dinheiroNaoExplicado)}</p>
+            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corNaoExplicado }}>{fmtOuTraco(kpis.dinheiroNaoExplicado, temTransacoes)}</p>
+            {!temTransacoes && <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semTransacaoImportada}</p>}
           </CanvasBox>
           <CanvasBox cor={corPctConciliado}>
             <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiPctConciliado}</p>
-            <p className="text-lg md:text-2xl font-black" style={{ ...FONTE_EXEC, color: corPctConciliado }}>{fPct(kpis.percentualConciliado)}</p>
+            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corPctConciliado }}>{fPctOuTraco(kpis.percentualConciliado)}</p>
+            {kpis.percentualConciliado === null && <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semTransacaoImportada}</p>}
           </CanvasBox>
         </div>
 
