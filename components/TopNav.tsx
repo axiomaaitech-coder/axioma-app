@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
+import { useLanguage } from "../lib/LanguageContext";
 import { useState, useRef, useEffect } from "react";
 import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
@@ -100,6 +100,87 @@ const grupos = [
 
 type Idioma = "pt" | "en" | "es";
 
+// PDV — botão único por enquanto (ainda não tem subtelas). Quando ganhar
+// catálogo/cadastro/frente de caixa/fechamento nas próximas fases, vira mais
+// um item do array `grupos` (com `itens: [...]`) e passa a usar o mesmo
+// dropdown que os outros módulos já usam — não precisa refazer, só migrar
+// este objeto pra lá.
+const pdvModulo = {
+  label: { pt: "🛒 PDV", en: "🛒 PDV", es: "🛒 PDV" },
+  path: "/pdv",
+  cor: "#34d399",
+};
+
+const BANDEIRA_EMOJI: Record<Idioma, string> = { pt: "🇧🇷", en: "🇺🇸", es: "🇪🇸" };
+
+// Seletor de idiomas compacto — mesmo hook (useLanguage) e mesma função
+// (setIdioma) do SeletorIdioma original em lib/LanguageContext.tsx, só que
+// mostrando apenas a bandeira ativa + dropdown com as outras duas. Fica só
+// aqui no TopNav pra não afetar o Sidebar, que continua usando o seletor
+// original com as 3 bandeiras lado a lado.
+function SeletorIdiomaCompacto() {
+  const { idioma, setIdioma } = useLanguage();
+  const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
+  const [aberto, setAberto] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const idiomaTitulo = lang === "pt" ? "Idioma" : lang === "en" ? "Language" : "Idioma";
+  const outros = (["pt", "en", "es"] as Idioma[]).filter((codigo) => codigo !== lang);
+
+  return (
+    <div ref={ref} className="relative">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setAberto(!aberto)}
+        title={idiomaTitulo}
+        aria-label={idiomaTitulo}
+        className="flex items-center gap-1 px-2 py-2 rounded-xl"
+        style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(59,111,212,0.15)" }}
+      >
+        <span className="text-base leading-none">{BANDEIRA_EMOJI[lang]}</span>
+        <ChevronDown size={12} style={{ color: "#5a7a9a" }} />
+      </motion.button>
+      <AnimatePresence>
+        {aberto && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute top-full right-0 mt-2 min-w-[100px] rounded-xl overflow-hidden z-50"
+            style={{
+              background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
+              border: "1px solid rgba(59,111,212,0.3)",
+              boxShadow: "0 16px 48px rgba(0,0,0,0.55)",
+            }}
+          >
+            {outros.map((codigo) => (
+              <button
+                key={codigo}
+                onClick={() => { setIdioma(codigo); setAberto(false); }}
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all"
+                style={{ color: "#c8d8f0" }}
+              >
+                <span className="text-base leading-none">{BANDEIRA_EMOJI[codigo]}</span>
+                <span className="text-xs font-semibold">{codigo.toUpperCase()}</span>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
@@ -147,7 +228,11 @@ export default function TopNav() {
     itens.some(i => pathname === i.path || pathname.startsWith(i.path + "/"));
 
   const conectarLabel = lang === "pt" ? "Conectar Banco" : lang === "en" ? "Connect Bank" : "Conectar Banco";
+  const conectarLabelCurto = lang === "pt" ? "BANCO" : lang === "en" ? "BANK" : "BANCO";
   const ofAtivo = pathname === "/open-finance" || pathname.startsWith("/open-finance/");
+
+  const pdvTooltip = lang === "pt" ? "Ponto de Venda" : lang === "en" ? "Point of Sale" : "Punto de Venta";
+  const pdvAtivo = pathname === pdvModulo.path || pathname.startsWith(pdvModulo.path + "/");
 
   return (
     <>
@@ -206,7 +291,7 @@ export default function TopNav() {
           const ativo = grupoAtivo(grupo.itens);
           const aberto = dropdown === grupo.label.pt;
           const ehMei = (grupo as any).destaque === true;
-          return (
+          const grupoEl = (
             <div key={grupo.label.pt} className="relative">
               <motion.button
                 whileHover={{ scale: 1.04 }}
@@ -280,6 +365,27 @@ export default function TopNav() {
               </AnimatePresence>
             </div>
           );
+          if (!ehMei) return grupoEl;
+          return [
+            grupoEl,
+            <motion.button
+              key="pdv-desktop"
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navegar(pdvModulo.path)}
+              title={pdvTooltip}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+              style={{
+                background: pdvAtivo ? "rgba(6,95,70,0.3)" : "rgba(4,120,87,0.10)",
+                color: pdvModulo.cor,
+                border: pdvAtivo ? "1px solid rgba(52,211,153,0.55)" : "1px solid rgba(4,120,87,0.35)",
+                boxShadow: "0 0 12px rgba(4,120,87,0.18)",
+              }}
+            >
+              <span className="text-xs">{pdvModulo.label[lang]}</span>
+              <BadgeDestaque lang={lang} />
+            </motion.button>,
+          ];
         })}
 
         {/* Lado direito */}
@@ -295,6 +401,7 @@ export default function TopNav() {
             ] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
             onClick={() => navegar("/open-finance")}
+            title={conectarLabel}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide"
             style={{
               background: ofAtivo
@@ -306,14 +413,14 @@ export default function TopNav() {
             }}
           >
             <Landmark size={15} />
-            <span>{conectarLabel}</span>
+            <span>{conectarLabelCurto}</span>
             <span className="px-1.5 py-0.5 rounded-full font-black"
               style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>
               NOVO
             </span>
           </motion.button>
 
-          <SeletorIdioma />
+          <SeletorIdiomaCompacto />
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -363,7 +470,7 @@ export default function TopNav() {
           >
             <Landmark size={17} style={{ color: "#7CFFC4" }} />
           </motion.button>
-          <SeletorIdioma />
+          <SeletorIdiomaCompacto />
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => setMenuMobile(!menuMobile)} className="p-2 rounded-xl" style={{ background: "rgba(59,111,212,0.15)", border: "1px solid rgba(59,111,212,0.3)" }}>
             <AnimatePresence mode="wait">
               {menuMobile
@@ -391,7 +498,7 @@ export default function TopNav() {
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left"
                   style={{ background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.3))", border: "1px solid rgba(52,211,153,0.6)", color: "#7CFFC4", boxShadow: "0 0 16px rgba(52,211,153,0.4)" }}>
                   <Landmark size={17} />
-                  <span className="font-black text-sm uppercase tracking-wide">{conectarLabel}</span>
+                  <span className="font-black text-sm uppercase tracking-wide">{conectarLabelCurto}</span>
                   <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black" style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>NOVO</span>
                 </motion.button>
 
@@ -406,7 +513,7 @@ export default function TopNav() {
                   const ativo = grupoAtivo(grupo.itens);
                   const aberto = grupoMobile === grupo.label.pt;
                   const ehMei = (grupo as any).destaque === true;
-                  return (
+                  const grupoEl = (
                     <div key={grupo.label.pt}>
                       <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
                         onClick={() => setGrupoMobile(aberto ? null : grupo.label.pt)}
@@ -452,6 +559,23 @@ export default function TopNav() {
                       </AnimatePresence>
                     </div>
                   );
+                  if (!ehMei) return grupoEl;
+                  return [
+                    grupoEl,
+                    <motion.button key="pdv-mobile" whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(pdvModulo.path)}
+                      title={pdvTooltip}
+                      className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
+                      style={{
+                        background: pdvAtivo ? "rgba(6,95,70,0.3)" : "rgba(4,120,87,0.08)",
+                        border: pdvAtivo ? "1px solid rgba(52,211,153,0.5)" : "1px solid rgba(4,120,87,0.3)",
+                        color: pdvModulo.cor,
+                      }}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm">{pdvModulo.label[lang]}</span>
+                        <BadgeDestaque lang={lang} />
+                      </div>
+                    </motion.button>,
+                  ];
                 })}
 
                 <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={handleLogout}
