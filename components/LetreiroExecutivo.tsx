@@ -5,8 +5,13 @@
 // extraído aqui porque o MEI passou a usar em 7 telas de uma vez — evita
 // duplicar a mesma animação 7 vezes. Módulos mais antigos que já tinham a
 // versão inline (Dashboard, Custos Fixos...) não precisaram migrar.
+//
+// cor/onClick por item são OPCIONAIS — usados pelo Cockpit MEI pra misturar
+// avisos de severidades diferentes numa única tira, cada um clicável pro seu
+// submódulo de origem. Os 7 módulos que só passam string/destaque continuam
+// exatamente iguais.
 
-export type ItemLetreiro = { texto: string; destaque?: boolean };
+export type ItemLetreiro = { texto: string; destaque?: boolean; cor?: string; onClick?: () => void };
 
 export function LetreiroExecutivo({
   itens,
@@ -27,8 +32,21 @@ export function LetreiroExecutivo({
         {[0, 1].map((rep) => (
           <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
             {normalizados.map((it, i) => (
-              <span key={i} style={{ color: it.destaque ? cor : "#e2e8f0" }}>
-                {it.texto}
+              <span key={i}>
+                {it.onClick ? (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={it.onClick}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); it.onClick!(); } }}
+                    className="cursor-pointer px-1 -mx-1 py-2 -my-2 rounded active:opacity-70"
+                    style={{ color: it.cor || (it.destaque ? cor : "#e2e8f0") }}
+                  >
+                    {it.texto}
+                  </span>
+                ) : (
+                  <span style={{ color: it.cor || (it.destaque ? cor : "#e2e8f0") }}>{it.texto}</span>
+                )}
                 <span style={{ color: cor }}>{"  •  "}</span>
               </span>
             ))}

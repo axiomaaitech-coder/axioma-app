@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect, ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, carregarEmpresaPorId } from '../../../../lib/empresaHelpers'
 import { createBrowserClient } from '@supabase/ssr'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
+import { LetreiroExecutivo, type ItemLetreiro } from '../../../../components/LetreiroExecutivo'
 import { ArrowRight } from 'lucide-react'
 import {
   tetoProporcionalMEI, faturamentoAnoMEI, percentualLimite, limiteRestante, semaforoTeto,
@@ -13,6 +15,7 @@ import {
   fracaoDASSobrePreco, fracaoIRPFExposicao, custoProprioRateado, detectarTrabalhoDeGraca,
   type StatusObrigacao, type ContaPagarMEI, type FaseRiscoDAS, type DetectorTrabalhoGratisResultado,
 } from '../../../../lib/meiHelpers'
+import { montarAvisosCockpitMEI, type AvisoCockpit, type ChaveAvisoCockpit } from '../../../../lib/avisosCockpitHelpers'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +37,63 @@ const MESES: Record<'pt' | 'en' | 'es', string[]> = {
   es: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
 }
 
+// Textos da camada proativa (letreiro) — o motor de regras (lib/avisosCockpitHelpers)
+// só devolve chaveI18n + valores; a tradução e a interpolação são só daqui.
+const AVISOS_TXT: Record<ChaveAvisoCockpit, Record<'pt' | 'en' | 'es', string>> = {
+  das_atrasado: {
+    pt: 'DAS atrasado há {dias} dias — juros e multa aumentando',
+    en: 'DAS overdue by {dias} days — interest and fine growing',
+    es: 'DAS atrasado hace {dias} días — intereses y multa aumentando',
+  },
+  das_vence_em: {
+    pt: 'DAS vence em {dias} dias',
+    en: 'DAS due in {dias} days',
+    es: 'DAS vence en {dias} días',
+  },
+  teto_risco: {
+    pt: 'Teto do MEI em {percentual}% — risco de estourar o limite',
+    en: 'MEI cap at {percentual}% — risk of breaking the limit',
+    es: 'Techo del MEI en {percentual}% — riesgo de superar el límite',
+  },
+  teto_neutro: {
+    pt: 'Teto do MEI em {percentual}% — de olho no limite',
+    en: 'MEI cap at {percentual}% — keep an eye on the limit',
+    es: 'Techo del MEI en {percentual}% — atento al límite',
+  },
+  cofre_negativo: {
+    pt: 'O que é seu de verdade está negativo: {valor}',
+    en: "What's really yours is negative: {valor}",
+    es: 'Lo que es realmente suyo está negativo: {valor}',
+  },
+  sobra_insuficiente: {
+    pt: 'Sobra do mês não cobre DAS + IRPF ({sobra} de {necessario})',
+    en: "This month's leftover doesn't cover DAS + income tax ({sobra} of {necessario})",
+    es: 'La sobra del mes no cubre DAS + IRPF ({sobra} de {necessario})',
+  },
+  trabalho_gratis_prejuizo: {
+    pt: 'Você está no prejuízo de {prejuizo} por unidade cobrada',
+    en: "You're losing {prejuizo} per unit charged",
+    es: 'Está perdiendo {prejuizo} por unidad cobrada',
+  },
+  trabalho_gratis_apertada: {
+    pt: 'Margem apertada: {margem}% — pouca folga pra imprevisto',
+    en: 'Tight margin: {margem}% — little room for the unexpected',
+    es: 'Margen ajustado: {margem}% — poco margen para imprevistos',
+  },
+  faturamento_queda: {
+    pt: 'Faturamento caiu {percentual}% vs. o mês anterior',
+    en: 'Revenue dropped {percentual}% vs. last month',
+    es: 'La facturación cayó {percentual}% vs. el mes anterior',
+  },
+  tudo_em_ordem: {
+    pt: 'Tudo em ordem hoje — nenhum risco encontrado',
+    en: 'All good today — no risk found',
+    es: 'Todo en orden hoy — ningún riesgo encontrado',
+  },
+}
+
 export default function CockpitMEI() {
+  const router = useRouter()
   const { idioma } = useLanguage()
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
@@ -227,13 +286,69 @@ export default function CockpitMEI() {
   const reservaNecessaria = cofre.das + cofre.irpfReserva
   const corReserva = fluxo.sobra >= reservaNecessaria ? VERDE : VERMELHO
 
+  // ---- Camada proativa (Peça 2): motor de regras sobre os MESMOS valores
+  // já calculados acima pros 4 cards — nunca recalcula, nunca diverge. ----
+  const avisosCockpit = montarAvisosCockpitMEI({
+    faseAtualDas: faseAtual,
+    diasAtrasoDas: divida.piorDiasAtraso,
+    diasAteVencimentoDas,
+    percentualLimiteTeto: percentualLimiteAtual,
+    mesEstouroLabel,
+    proLaboreSeguro: cofre.proLaboreSeguro,
+    sobraMes: fluxo.sobra,
+    reservaNecessaria,
+    situacaoTrabalhoGraca: detectorGraca?.situacao ?? null,
+    prejuizoPorUnidade: detectorGraca?.prejuizoPorUnidade ?? 0,
+    margemRealPct: detectorGraca?.margemRealPct ?? 0,
+    crescimentoMoM,
+    temHistoricoMesAnterior: receitaMesAnterior > 0,
+  })
+
+  const textoAviso = (chave: ChaveAvisoCockpit, valores: Record<string, number | string>): string => {
+    let texto = AVISOS_TXT[chave][lang]
+    Object.entries(valores).forEach(([chaveValor, valor]) => {
+      const valorFormatado = typeof valor !== 'number'
+        ? String(valor)
+        : chaveValor === 'percentual' || chaveValor === 'margem'
+          ? valor.toFixed(1)
+          : chaveValor === 'dias'
+            ? String(valor)
+            : fmt(valor)
+      texto = texto.split(`{${chaveValor}}`).join(valorFormatado)
+    })
+    return texto
+  }
+
+  const corAviso = (aviso: AvisoCockpit): string => {
+    if (aviso.severidade === 'positivo') return VERDE
+    if (aviso.severidade === 'neutro') return AZUL
+    switch (aviso.chaveI18n) {
+      case 'das_atrasado': return corDas
+      case 'teto_risco': return corTeto === VERMELHO ? VERMELHO : AMBAR
+      case 'sobra_insuficiente': return AMBAR
+      case 'faturamento_queda': return AMBAR
+      default: return VERMELHO
+    }
+  }
+
+  const corLetreiro = avisosCockpit.some((a) => a.severidade === 'risco')
+    ? VERMELHO
+    : avisosCockpit.some((a) => a.severidade === 'neutro') ? AZUL : VERDE
+
+  const itensLetreiro: ItemLetreiro[] = avisosCockpit.map((aviso) => ({
+    texto: textoAviso(aviso.chaveI18n, aviso.valores),
+    destaque: true,
+    cor: corAviso(aviso),
+    onClick: aviso.ctaPath ? () => router.push(aviso.ctaPath as string) : undefined,
+  }))
+
   const saudacao = t('saudacao').replace('{nome}', nomeEmpresa || t('empresaFallback'))
 
   const CardVeredito = ({ cor, titulo, children, href }: { cor: string; titulo: string; children: ReactNode; href: string }) => (
     <CanvasBox cor={cor}>
       <p className="text-sm font-semibold mb-3" style={{ color: '#c8d8f0', fontFamily: FONTE_EXEC }}>{titulo}</p>
       <div className="mb-4">{children}</div>
-      <a href={href} className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: cor, textDecoration: 'none' }}>
+      <a href={href} className="inline-flex items-center gap-1 text-xs font-semibold py-2 -my-2 px-1 -mx-1" style={{ color: cor, textDecoration: 'none' }}>
         {t('verDetalhe')} <ArrowRight size={12} />
       </a>
     </CanvasBox>
@@ -252,6 +367,8 @@ export default function CockpitMEI() {
   return (
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')}>
       <div className="space-y-4">
+
+        <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />
 
         {/* Saudação + Health Score */}
         <CanvasBox cor={JADE}>
