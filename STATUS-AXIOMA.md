@@ -1053,6 +1053,14 @@ Nenhuma cor laranja usada (removida do MEI por decisão anterior). IRPF também 
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro.
 
+## 3-AR. Cockpit CFO no MEI — veredito consolidado (2026-08-03)
+
+Tela nova (`/mei/cockpit`) que junta o resultado das 7 telas do MEI (Faturamento, DAS, Precificação, IA Advisor, Reforma Tributária, Imposto de Renda) num único veredito executivo — "está tudo bem" ou "isso aqui precisa de atenção agora". Zero cálculo novo, zero tabela nova, zero IA nova: só reaproveita 100% do que cada tela já calcula em `lib/meiHelpers.ts` (teto, cofre, atraso do DAS, detector de trabalho de graça, score de saúde). i18n completo PT/EN/ES.
+
+**Arquivos:** `app/(interno)/mei/cockpit/page.tsx` (novo), `components/TopNav.tsx` (link novo no menu).
+
+**Verificação feita:** sem SQL, sem dependência nova.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
