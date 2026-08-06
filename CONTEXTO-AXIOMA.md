@@ -116,7 +116,7 @@ Meta: suportar 5.000 empresas com folga. A partir de agora, escala entra em toda
 
 ## 🔜 PRÓXIMO NA FILA
 **Importar Documentos PAUSADO em 2026-07-25** (decisão do Elias) — Fase 1 funcional (estruturados + distribuição automática de destino + duplicata estilo-PIX), retoma junto com a Fase 2 (OCR/IA). Ver `STATUS-AXIOMA.md` seção 3-AC.
-**Inadimplência já está completo (3/3 fases)** — não é mais item de fila, ver acima. Próximo real: **E-commerce/PDV** (alta prioridade — 2 clientes esperando). Fornecedores já está em padrão CFO. Ver `STATUS-AXIOMA.md` seção 4.
+**Inadimplência já está completo (3/3 fases)** — não é mais item de fila, ver acima. **Tela de Aceitar Convite entregue em 2026-08-05** (aguardando só o Elias rodar `CONVITE-EQUIPE-SQL.sql`) — ver `STATUS-AXIOMA.md` seção 3-AS. Próximo real: **E-commerce/PDV** (alta prioridade — 2 clientes esperando). Fornecedores já está em padrão CFO. Ver `STATUS-AXIOMA.md` seção 4.
 
 ## 📋 DEPOIS DOS MÓDULOS FINANCEIROS
 - Crescimento (Metas, Investimentos, Simulações, Precificação) · Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) · Gestão

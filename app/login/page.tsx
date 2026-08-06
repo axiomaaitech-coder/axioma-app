@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,18 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [verSenha, setVerSenha] = useState(false)
+  const [next, setNext] = useState('/dashboard')
   const supabase = createClient()
+
+  // Vem de um link de convite (?next=/convite/TOKEN&email=...) — preenche o
+  // e-mail e leva pro convite depois de logar, em vez de cair no dashboard.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const nextParam = params.get('next')
+    const emailParam = params.get('email')
+    if (nextParam) setNext(nextParam)
+    if (emailParam) setEmail(emailParam)
+  }, [])
 
   const handleLogin = async () => {
     setLoading(true)
@@ -24,7 +35,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    router.push('/dashboard')
+    router.push(next)
     router.refresh()
   }
 
@@ -32,7 +43,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://axioma-app.vercel.app/auth/callback'
+        redirectTo: `https://axioma-app.vercel.app/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
   }

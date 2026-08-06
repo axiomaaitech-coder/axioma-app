@@ -222,6 +222,8 @@ const T = {
     toastMarcadaPaga: "Marcada como paga",
     toastConfirmRemoverObrig: (nome: string) => `Remover "${nome}"?`,
     toastConviteRegistrado: "Convite registrado",
+    toastLinkConviteCopiado: "Link do convite copiado! Envie pra pessoa (WhatsApp, e-mail etc.)",
+    copiarLink: "🔗 Copiar link",
     toastConfirmRemoverMembro: (email: string) => `Remover ${email}?`,
     toastCartaoCopiado: "Cartão copiado!",
     toastErroCopiar: "Erro ao copiar",
@@ -409,6 +411,8 @@ const T = {
     toastMarcadaPaga: "Marked as paid",
     toastConfirmRemoverObrig: (nome: string) => `Remove "${nome}"?`,
     toastConviteRegistrado: "Invitation registered",
+    toastLinkConviteCopiado: "Invite link copied! Send it to the person (WhatsApp, e-mail etc.)",
+    copiarLink: "🔗 Copy link",
     toastConfirmRemoverMembro: (email: string) => `Remove ${email}?`,
     toastCartaoCopiado: "Card copied!",
     toastErroCopiar: "Copy error",
@@ -595,6 +599,8 @@ const T = {
     toastMarcadaPaga: "Marcada como pagada",
     toastConfirmRemoverObrig: (nome: string) => `¿Eliminar "${nome}"?`,
     toastConviteRegistrado: "Invitación registrada",
+    toastLinkConviteCopiado: "¡Link de invitación copiado! Envíalo a la persona (WhatsApp, correo, etc.)",
+    copiarLink: "🔗 Copiar link",
     toastConfirmRemoverMembro: (email: string) => `¿Eliminar ${email}?`,
     toastCartaoCopiado: "¡Tarjeta copiada!",
     toastErroCopiar: "Error al copiar",
@@ -920,9 +926,20 @@ export default function EmpresaPage() {
     if (!empresa || !userId) return;
     const r = await convidarMembro(empresa.id, userId, dados);
     if (r.erro) { showToast(r.erro, "erro"); return; }
-    showToast(tt.toastConviteRegistrado, "ok");
     setModalMembro(null);
     await carregarTudo(userId);
+    // Não existe motor de e-mail no Axioma ainda — o link precisa ser copiado
+    // e enviado manualmente (WhatsApp, e-mail etc.) pra quem foi convidado.
+    const equipeAtualizada = await carregarEquipe(empresa.id, userId);
+    const novo = equipeAtualizada.find((m: any) => m.email_convidado === dados.email_convidado && !m.convite_aceito);
+    if (novo?.token_convite) copiarLinkConvite(novo.token_convite);
+    else showToast(tt.toastConviteRegistrado, "ok");
+  }
+
+  function copiarLinkConvite(token: string) {
+    const link = `${window.location.origin}/convite/${token}`;
+    navigator.clipboard.writeText(link);
+    showToast(tt.toastLinkConviteCopiado, "ok");
   }
 
   async function removerMembro(m: any) {
@@ -1358,8 +1375,14 @@ export default function EmpresaPage() {
                             {m.cargo || "—"} • {m.papel} • {m.convite_aceito ? tt.aceito : tt.pendente}
                           </p>
                         </div>
-                        <button onClick={() => removerMembro(m)}
-                          className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                        <div className="flex items-center gap-2">
+                          {!m.convite_aceito && m.token_convite && (
+                            <button onClick={() => copiarLinkConvite(m.token_convite)}
+                              className="px-2 py-1 rounded text-xs" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>{tt.copiarLink}</button>
+                          )}
+                          <button onClick={() => removerMembro(m)}
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                        </div>
                       </div>
                     ))}
                   </div>

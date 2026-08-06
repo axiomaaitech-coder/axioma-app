@@ -1061,11 +1061,26 @@ Tela nova (`/mei/cockpit`) que junta o resultado das 7 telas do MEI (Faturamento
 
 **Verificação feita:** sem SQL, sem dependência nova.
 
+## 3-AS. Tela de Aceitar Convite — entregue nesta rodada (2026-08-05)
+
+**Fechava o buraco mais importante do multi-tenant** (achado real, seção 11): "convidar membro" em `/empresa` só gravava um convite na tabela `empresa_equipe` — nunca existiu nada que desse acesso de verdade. Um contador ou funcionário convidado não conseguia ver os dados da empresa do cliente.
+
+**Entregue:**
+- **`app/convite/[token]/page.tsx`** (nova, pública, fora do login) — mostra pra quem for convidado o nome da empresa e o papel, com 4 estados honestos: link inválido, convite já usado, precisa entrar/criar conta (com o e-mail do convite pré-preenchido), ou "você está logado com outro e-mail — saia e entre com o certo". Botão único "Aceitar Convite" no final.
+- **2 RPCs novas no banco** (`CONVITE-EQUIPE-SQL.sql`, a rodar): `obter_convite_por_token` (consulta pública seguininho, nunca expõe a linha inteira do convite) e `aceitar_convite` (exige login, confere que o e-mail bate com o convidado, só então cria a linha real em `empresa_usuarios` — é isso que faltava).
+- **Correção que evita o usuário cair na empresa errada:** identificado que o momento de login/cadastro já cria uma "Minha Empresa" automática (seção 12) — se isso rodasse ANTES do convite ser aceito, o convidado ganhava uma empresa vazia própria e nunca mais via a empresa certa (a ordem dono→convidado sempre acha a própria primeiro). Corrigido em `app/auth/callback/route.ts`: enquanto o destino do login é a tela de convite, a criação automática de empresa fica em espera — quem decide qual empresa o convidado usa passa a ser só o aceite do convite.
+- **Login e Cadastro** (`app/login/page.tsx`, `app/cadastro/page.tsx`) ganharam suporte a `?next=` e `?email=` — chegando pelo link do convite, o e-mail já vem preenchido e, depois de entrar, volta direto pra tela de convite (login por senha, Google e confirmação por e-mail, os 3 caminhos).
+- **Link de convite copiável** — como o Axioma não tem motor de e-mail (decisão já registrada, seção 3-I), "Convidar Membro" em `/empresa` agora copia o link pronto (`/convite/TOKEN`) direto pra área de transferência pra enviar por WhatsApp/e-mail manualmente; cada convite pendente na lista também ganhou um botão "🔗 Copiar link" pra reenviar.
+
+**Schema:** `CONVITE-EQUIPE-SQL.sql` (novo) — 2 colunas em `empresa_equipe` (`aceito_em`, `user_id_convidado`, só auditoria) + índice em `token_convite` + as 2 funções acima.
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela nesta sessão — depende do SQL rodar primeiro.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
 **Parte 6 (ajuste de código) COMPLETA em 2026-07-23 — ver seção 13 pro relatório completo.** `tsc --noEmit` e `next build` limpos no projeto inteiro. **Elias rodou `SQL-EMPRESA-PADRAO.sql` em 2026-07-23** — empresa automática pronta ponta a ponta (função no banco + código já ligado nela). **Elias testou na tela em 2026-07-24 (item 1) — confirmado funcionando**, e reportou 2 bugs de UX corrigidos na seção 3-T. Próximos passos, nessa ordem:
-1. **Construir a tela de "aceitar convite"** (consumir `token_convite` de `empresa_equipe`, criar a linha real em `empresa_usuarios`) — obrigatória antes do primeiro cliente pagante. A base pra ela (ordem dono→convidado→criar) já está pronta desde a Parte 6.
+1. **Tela de "aceitar convite" — ENTREGUE em 2026-08-05, ver seção 3-AS.** Aguardando só o Elias rodar `CONVITE-EQUIPE-SQL.sql` pra testar de ponta a ponta.
 2. **RPC `centro_custo_totais` de verdade — ADIADO de propósito (decisão do Elias, 2026-07-26), não é próximo passo ativo.** Descoberta na Parte 6: não é só mover uma soma pro banco, a Causa Raiz e o Radar de Oportunidades do Centro de Custos precisam de dado linha-a-linha, não de total agregado. Redesenho maior, ver seção 13/3-AE. Sem cliente de alto volume ainda, retorno baixo pra redesenhar agora — retomar só quando houver. Por ora o teto de 300 lançamentos virou 5000 (resolve a perda de dado real, não resolve a arquitetura).
 3. **Importar Documentos Fase 1 — FUNCIONAL, PAUSADO em 2026-07-25 por decisão do Elias** (seção 3-AC) — retoma junto com a Fase 2 (OCR/IA). **Correção de registro (2026-07-25): Inadimplência já estava COMPLETO 3/3 fases desde 2026-07-22 (seção 3-O)** — o ponteiro desta seção e o `CONTEXTO-AXIOMA.md` estavam desatualizados dizendo "Fase 3 aguardando aprovação"; confirmado no código real (commit `a297ea9`) que a Fase 3 já foi entregue como final do módulo. Próximo item real da fila (seção 5): **E-commerce/PDV** (alta prioridade, 2 clientes esperando). **Centro de Custos (3/3 fases) fechado em 2026-07-26** após 3 rodadas de teste do Elias na tela (seções 3-AF, 3-AG, 3-AH).
 

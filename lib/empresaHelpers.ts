@@ -714,6 +714,25 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
   return { id: data.id };
 }
 
+// Consulta pública do convite (funciona sem login — RPC SECURITY DEFINER,
+// nunca expõe a linha inteira de empresa_equipe, só o necessário pra tela).
+export async function obterConvitePorToken(token: string): Promise<{
+  empresa_nome: string; email_convidado: string; papel: string; cargo: string | null; convite_aceito: boolean;
+} | null> {
+  const { data } = await supabase.rpc("obter_convite_por_token", { p_token: token });
+  return data?.[0] || null;
+}
+
+// Aceita o convite (exige login) — cria o vínculo real em empresa_usuarios,
+// que é o que faltava (ver seção 11 do STATUS-AXIOMA: "convidar membro" só
+// gravava o convite, nunca dava acesso de fato a ninguém).
+export async function aceitarConvite(token: string): Promise<{ empresaId?: string; erro?: string }> {
+  const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token });
+  if (error) return { erro: error.message };
+  limparCacheEmpresaAtiva();
+  return { empresaId: data as string };
+}
+
 export async function excluirMembro(id: string, empresaId: string, userId: string, email: string): Promise<{ erro?: string }> {
   const { error } = await supabase.from("empresa_equipe").delete().eq("id", id).eq("empresa_id", empresaId);
   if (error) return { erro: error.message };

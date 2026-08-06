@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useLanguage } from '../../lib/LanguageContext'
@@ -17,13 +17,24 @@ export default function Cadastro() {
   const [sucesso, setSucesso] = useState(false)
   const [verSenha, setVerSenha] = useState(false)
   const [verConfirmar, setVerConfirmar] = useState(false)
+  const [next, setNext] = useState('/dashboard')
   const supabase = createClient()
+
+  // Vem de um link de convite (?next=/convite/TOKEN&email=...) — preenche o
+  // e-mail e leva pro convite depois de confirmar a conta.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const nextParam = params.get('next')
+    const emailParam = params.get('email')
+    if (nextParam) setNext(nextParam)
+    if (emailParam) setEmail(emailParam)
+  }, [])
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://axioma-app.vercel.app/auth/callback'
+        redirectTo: `https://axioma-app.vercel.app/auth/callback?next=${encodeURIComponent(next)}`
       }
     })
   }
@@ -46,7 +57,10 @@ export default function Cadastro() {
     const { error } = await supabase.auth.signUp({
       email,
       password: senha,
-      options: { data: { nome } }
+      options: {
+        data: { nome },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+      }
     })
     if (error) {
       setErro(error.message)
