@@ -961,6 +961,13 @@ export default function EmpresaPage() {
 
   const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
 
+  // TEMPORÁRIO — diagnóstico do bug "módulo Empresa vazio". Remover depois de
+  // confirmado. Abra o Console em produção, procure por [AXIOMA-DEBUG-EMPRESA].
+  console.log("[AXIOMA-DEBUG-EMPRESA]", {
+    carregando, aba, temEmpresa: !!empresa, empresaId: empresa?.id,
+    socios: socios.length, documentos: documentos.length, obrigacoes: obrigacoes.length, auditoria: auditoria.length,
+  });
+
   return (
     <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
       {toast && (
