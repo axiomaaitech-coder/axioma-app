@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       const { data: vinculo } = await supabase.from('empresa_usuarios').select('empresa_id').eq('user_id', user.id).limit(1).maybeSingle()
       empresaId = vinculo?.empresa_id || null
     }
+    if (!empresaId) return NextResponse.json({ error: 'Nenhuma empresa ativa' }, { status: 400 })
 
     // itemId opcional no body — se vier, sincroniza só esse banco
     let itemIdFiltro: string | null = null
@@ -41,8 +42,9 @@ export async function POST(request: NextRequest) {
       if (body?.itemId) itemIdFiltro = String(body.itemId)
     } catch { /* sem body */ }
 
-    // Busca os bancos conectados DESTE usuário
-    let q = supabase.from('open_finance').select('item_id')
+    // Busca os bancos conectados DESTA empresa (nunca de outra empresa do
+    // mesmo usuário, num cenário multi-empresa/multi-tenant).
+    let q = supabase.from('open_finance').select('item_id').eq('empresa_id', empresaId)
     if (itemIdFiltro) q = q.eq('item_id', itemIdFiltro)
     const { data: itens } = await q
     if (!itens || itens.length === 0) {
@@ -75,8 +77,11 @@ export async function POST(request: NextRequest) {
       const accounts = accountsJson?.results || []
 
       const novas: any[] = []
+      let saldoItem = 0
 
       for (const account of accounts) {
+        saldoItem += Number(account.balance) || 0
+
         // Transações da conta (até 500)
         const txResp = await fetch(
           `https://api.pluggy.ai/transactions?accountId=${account.id}&pageSize=500`,
@@ -86,11 +91,16 @@ export async function POST(request: NextRequest) {
         const transactions = txJson?.results || []
 
         for (const tx of transactions) {
+          // Chave estável: id da própria transação na Pluggy. Sem ela não dá
+          // pra fazer UPSERT de verdade (é o que evita duplicidade e evita
+          // perder o vínculo de conciliação a cada nova sincronização).
+          if (!tx.id) continue
           novas.push({
             user_id: user.id,
             empresa_id: empresaId,
             item_id: itemId,
             account_id: account.id,
+            pluggy_transaction_id: String(tx.id),
             descricao: tx.description || tx.merchant?.name || 'Transação',
             valor: Math.abs(Number(tx.amount) || 0),
             tipo: tx.type === 'DEBIT' ? 'saida' : 'entrada',
@@ -100,17 +110,22 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Substitui as transações desse banco (evita duplicar a cada sincronização)
-      await supabase.from('of_transacoes').delete().eq('item_id', itemId)
+      // UPSERT pela chave estável — nunca duplica a mesma transação e NUNCA
+      // sobrescreve lancamento_id/lancamento_tabela (não fazem parte deste
+      // payload, então o Supabase preserva o valor já gravado na linha
+      // existente em vez de resetar).
       if (novas.length > 0) {
-        const { error: insErr } = await supabase.from('of_transacoes').insert(novas)
-        if (!insErr) totalSalvas += novas.length
+        const { error: upsertErr } = await supabase
+          .from('of_transacoes')
+          .upsert(novas, { onConflict: 'pluggy_transaction_id' })
+        if (!upsertErr) totalSalvas += novas.length
       }
 
-      // Marca a conexão como ativa
+      // Marca a conexão como ativa e atualiza o saldo (soma das contas do item)
       await supabase.from('open_finance')
-        .update({ status: 'UPDATED', updated_at: new Date().toISOString() })
+        .update({ status: 'UPDATED', saldo_atual: saldoItem, updated_at: new Date().toISOString() })
         .eq('item_id', itemId)
+        .eq('empresa_id', empresaId)
     }
 
     return NextResponse.json({ total: totalSalvas })
