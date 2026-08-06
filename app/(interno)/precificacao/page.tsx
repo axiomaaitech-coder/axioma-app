@@ -67,6 +67,7 @@ export default function Precificacao() {
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const [produtos, setProdutos] = useState<ProdutoRow[]>([]);
   const [concorrentes, setConcorrentes] = useState<ConcorrenteRow[]>([]);
@@ -401,7 +402,6 @@ export default function Precificacao() {
   ].join("\n");
 
   const inputStyle = { background: "rgba(255,255,255,0.04)", border: `1px solid ${COR_PRC}30`, color: "#c8d8f0" };
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
     <ModuloLayout titulo={cx.prcTitulo} subtitulo={cx.prcSubtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
