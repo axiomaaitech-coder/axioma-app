@@ -702,16 +702,6 @@ export default function EmpresaPage() {
 
   useEffect(() => { carregarTudo(); listarBancos().then(setBancos); }, []);
 
-  // TEMPORÁRIO — diagnóstico do bug "Aplicar Dados não preenche nada".
-  // Loga o empresaForm real que o React já comitou, toda vez que ele muda —
-  // é a única forma confiável de ver o valor final (um log direto dentro de
-  // aplicarDadosCNPJ, depois do setEmpresaForm, ainda leria o valor antigo
-  // por causa da closure do render atual). Remover assim que a causa for
-  // confirmada.
-  useEffect(() => {
-    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR] empresaForm mudou (React já comitou)", empresaForm);
-  }, [empresaForm]);
-
   // Uma função só, auto-suficiente (mesmo padrão do Cockpit e dos outros
   // módulos: um único carregar() que já busca o usuário por dentro) — antes
   // era inicializar() + carregarTudo(uid), duas funções em cadeia, e um erro
@@ -730,14 +720,6 @@ export default function EmpresaPage() {
       // não repetir a criação aqui evita duas empresas por corrida (ver SQL-EMPRESA-PADRAO.sql).
       const empresaAtivaId = await obterEmpresaAtiva();
       const emp = empresaAtivaId ? await carregarEmpresaPorId(empresaAtivaId) : null;
-      // TEMPORÁRIO — 2ª rodada de diagnóstico. A 1ª só via o resultado final
-      // (empresa?.id); esta separa os dois passos pra saber qual dos dois
-      // falha: obterEmpresaAtiva() devolvendo vazio, ou carregarEmpresaPorId()
-      // não achando a linha pro id que ela devolveu. Remover depois de confirmado.
-      console.log("[AXIOMA-DEBUG-EMPRESA-2]", {
-        userId: user.id, empresaAtivaId, temEmpresaAtivaId: !!empresaAtivaId,
-        empEncontrado: !!emp, empId: emp?.id,
-      });
       if (emp) {
         setEmpresa(emp);
         setEmpresaForm(emp);
@@ -779,11 +761,6 @@ export default function EmpresaPage() {
   function preencherSeVazio(prev: any, sugeridosNovos: Set<string>, campo: string, valor: any) {
     const vazio = prev[campo] === undefined || prev[campo] === null || prev[campo] === "" || prev[campo] === 0;
     const preenche = vazio && valor !== undefined && valor !== null && valor !== "";
-    // TEMPORÁRIO — diagnóstico do bug "Aplicar Dados não preenche nada".
-    // Remover assim que a causa for confirmada.
-    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR]", {
-      campo, prevValor: prev[campo], tipoPrevValor: typeof prev[campo], vazio, valorNovo: valor, preenche,
-    });
     if (!preenche) return prev[campo];
     sugeridosNovos.add(campo);
     return valor;
@@ -807,6 +784,20 @@ export default function EmpresaPage() {
     });
   }
 
+  // Recarrega só a lista de sócios (e o Health Score, que depende dela) —
+  // nunca chamar carregarTudo() depois de mexer em sócios: carregarTudo()
+  // faz setEmpresaForm(emp) com o registro do BANCO, e isso apaga qualquer
+  // edição em andamento no rascunho do cadastro (empresa/empresaForm) que
+  // ainda não foi salva — foi exatamente esse o bug do "Aplicar Dados":
+  // aplicava os campos do CNPJ no rascunho, importava os sócios, e o
+  // carregarTudo() que vinha em seguida apagava o rascunho de volta.
+  async function recarregarSocios() {
+    if (!empresa || !userId) return;
+    const s = await carregarSocios(empresa.id, userId);
+    setSocios(s);
+    setHealthScore(calcularHealthScore(empresa, s, documentos));
+  }
+
   // CNPJ
   async function preencherPorCNPJ() {
     const cnpj = limparCNPJ(empresaForm.cnpj || "");
@@ -822,10 +813,6 @@ export default function EmpresaPage() {
   function aplicarDadosCNPJ() {
     if (!resultadoCNPJ) return;
     const d = resultadoCNPJ;
-    // TEMPORÁRIO — mesmo diagnóstico do bug "Aplicar Dados não preenche
-    // nada". Remover assim que a causa for confirmada.
-    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR] dados recebidos (d)", d);
-    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR] empresaForm ANTES de aplicar", empresaForm);
     const sugeridosNovos = new Set<string>();
     setEmpresaForm((prev: any) => {
       const p = (campo: string, valor: any) => preencherSeVazio(prev, sugeridosNovos, campo, valor);
@@ -869,7 +856,7 @@ export default function EmpresaPage() {
       if (window.confirm(tt.toastConfirmImportarSocios(d.socios.length))) {
         importarSociosDoQSA(empresa.id, userId!, d.socios, socios).then(({ importados, ignorados }) => {
           showToast(ignorados > 0 ? tt.toastSociosImportadosComIgnorados(importados, ignorados) : tt.toastSociosImportados(importados), "ok");
-          carregarTudo();
+          recarregarSocios();
         });
       }
     }
@@ -958,7 +945,7 @@ export default function EmpresaPage() {
       showToast(tt.toastSocioAtualizado, "ok");
     }
     setModalSocio(null);
-    await carregarTudo();
+    await recarregarSocios();
   }
 
   async function removerSocio(socio: any) {
@@ -967,7 +954,7 @@ export default function EmpresaPage() {
     const r = await excluirSocio(socio.id, empresa.id, userId, socio.nome);
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastSocioRemovido, "ok");
-    await carregarTudo();
+    await recarregarSocios();
   }
 
   // Documentos
