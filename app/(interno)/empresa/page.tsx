@@ -702,6 +702,16 @@ export default function EmpresaPage() {
 
   useEffect(() => { carregarTudo(); listarBancos().then(setBancos); }, []);
 
+  // TEMPORÁRIO — diagnóstico do bug "Aplicar Dados não preenche nada".
+  // Loga o empresaForm real que o React já comitou, toda vez que ele muda —
+  // é a única forma confiável de ver o valor final (um log direto dentro de
+  // aplicarDadosCNPJ, depois do setEmpresaForm, ainda leria o valor antigo
+  // por causa da closure do render atual). Remover assim que a causa for
+  // confirmada.
+  useEffect(() => {
+    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR] empresaForm mudou (React já comitou)", empresaForm);
+  }, [empresaForm]);
+
   // Uma função só, auto-suficiente (mesmo padrão do Cockpit e dos outros
   // módulos: um único carregar() que já busca o usuário por dentro) — antes
   // era inicializar() + carregarTudo(uid), duas funções em cadeia, e um erro
@@ -768,7 +778,13 @@ export default function EmpresaPage() {
   // (ver onChangeCampo).
   function preencherSeVazio(prev: any, sugeridosNovos: Set<string>, campo: string, valor: any) {
     const vazio = prev[campo] === undefined || prev[campo] === null || prev[campo] === "" || prev[campo] === 0;
-    if (!vazio || valor === undefined || valor === null || valor === "") return prev[campo];
+    const preenche = vazio && valor !== undefined && valor !== null && valor !== "";
+    // TEMPORÁRIO — diagnóstico do bug "Aplicar Dados não preenche nada".
+    // Remover assim que a causa for confirmada.
+    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR]", {
+      campo, prevValor: prev[campo], tipoPrevValor: typeof prev[campo], vazio, valorNovo: valor, preenche,
+    });
+    if (!preenche) return prev[campo];
     sugeridosNovos.add(campo);
     return valor;
   }
@@ -806,6 +822,10 @@ export default function EmpresaPage() {
   function aplicarDadosCNPJ() {
     if (!resultadoCNPJ) return;
     const d = resultadoCNPJ;
+    // TEMPORÁRIO — mesmo diagnóstico do bug "Aplicar Dados não preenche
+    // nada". Remover assim que a causa for confirmada.
+    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR] dados recebidos (d)", d);
+    console.log("[AXIOMA-DEBUG-CNPJ-APLICAR] empresaForm ANTES de aplicar", empresaForm);
     const sugeridosNovos = new Set<string>();
     setEmpresaForm((prev: any) => {
       const p = (campo: string, valor: any) => preencherSeVazio(prev, sugeridosNovos, campo, valor);
