@@ -114,6 +114,13 @@ const T = {
     email: "E-mail",
     // Botões
     salvarEmpresa: "✅ Salvar Dados da Empresa",
+    limparCampos: "Limpar campos",
+    limparCamposModalTitulo: "Limpar campos do cadastro?",
+    limparCamposModalTexto: "Isso vai esvaziar todos os campos de Dados Cadastrais na tela: razão social, fantasia, IE/IM, porte, dados tributários, endereço, contato, dados bancários e contador.",
+    limparCamposModalNaoAfeta: "Sócios, documentos do Cofre, Compliance e a trilha de Auditoria NÃO são afetados — são outras abas, outros registros.",
+    limparCamposModalAviso: "Os campos só ficam vazios na tela. Nada é apagado no banco até você clicar em \"Salvar Dados da Empresa\".",
+    limparCamposConfirmar: "Limpar campos",
+    toastCamposLimpos: "Campos esvaziados — clique em Salvar para aplicar.",
     salvando: "⏳ Salvando...",
     salvar: "✓ Salvar",
     cancelar: "Cancelar",
@@ -310,6 +317,13 @@ const T = {
     telefone: "Phone",
     email: "E-mail",
     salvarEmpresa: "✅ Save Company Data",
+    limparCampos: "Clear fields",
+    limparCamposModalTitulo: "Clear the registration fields?",
+    limparCamposModalTexto: "This will empty every field in Company Data on screen: legal name, trade name, state/municipal registration, size, tax data, address, contact, banking data and accountant.",
+    limparCamposModalNaoAfeta: "Partners, Vault documents, Compliance and the Audit trail are NOT affected — those are other tabs, other records.",
+    limparCamposModalAviso: "Fields are only emptied on screen. Nothing is deleted in the database until you click \"Save Company Data\".",
+    limparCamposConfirmar: "Clear fields",
+    toastCamposLimpos: "Fields cleared — click Save to apply.",
     salvando: "⏳ Saving...",
     salvar: "✓ Save",
     cancelar: "Cancel",
@@ -498,6 +512,13 @@ const T = {
     telefone: "Teléfono",
     email: "Correo",
     salvarEmpresa: "✅ Guardar Datos de la Empresa",
+    limparCampos: "Limpiar campos",
+    limparCamposModalTitulo: "¿Limpiar los campos del registro?",
+    limparCamposModalTexto: "Esto vaciará todos los campos de Datos de la Empresa en pantalla: razón social, nombre fantasía, IE/IM, porte, datos tributarios, dirección, contacto, datos bancarios y contador.",
+    limparCamposModalNaoAfeta: "Socios, documentos de la Bóveda, Cumplimiento y el registro de Auditoría NO se ven afectados — son otras pestañas, otros registros.",
+    limparCamposModalAviso: "Los campos solo se vacían en pantalla. Nada se elimina en la base de datos hasta que haga clic en \"Guardar Datos de la Empresa\".",
+    limparCamposConfirmar: "Limpiar campos",
+    toastCamposLimpos: "Campos vaciados — haga clic en Guardar para aplicar.",
     salvando: "⏳ Guardando...",
     salvar: "✓ Guardar",
     cancelar: "Cancelar",
@@ -687,6 +708,7 @@ export default function EmpresaPage() {
   const [modalObrigacao, setModalObrigacao] = useState<any>(null);
   const [modalScoreDetalhe, setModalScoreDetalhe] = useState<"health" | "compliance" | null>(null);
   const [shareModalAberto, setShareModalAberto] = useState(false);
+  const [modalLimparAberto, setModalLimparAberto] = useState(false);
 
   // Toast
   const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
@@ -920,6 +942,30 @@ export default function EmpresaPage() {
     if (r.erro) showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro");
     else { showToast(tt.toastDadosSalvos, "ok"); await carregarTudo(); }
     setSalvando(false);
+  }
+
+  // Só mexe no rascunho (empresaForm) — nada é apagado no banco aqui. O
+  // usuário ainda precisa clicar em Salvar pra gravar os campos vazios.
+  // Nunca toca em sócios/documentos/obrigações/auditoria — são outras
+  // tabelas, outras abas, não fazem parte do "cadastro" limpo aqui.
+  function limparCampos() {
+    setEmpresaForm((prev: any) => ({
+      ...prev,
+      cnpj: "",
+      razao_social: "", nome_fantasia: "", inscricao_estadual: "", inscricao_municipal: "", porte: "",
+      regime_tributario: "", cnae_principal: "", cnae_descricao: "", cnaes_secundarios: [], natureza_juridica: "",
+      capital_social: 0, data_abertura: "", situacao_cadastral: "", opcao_simples: false, opcao_mei: false,
+      cep: "", logradouro: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "",
+      telefone_principal: "", telefone_secundario: "", email_principal: "", email_financeiro: "", email_contabil: "", website: "",
+      banco_principal: "", agencia: "", conta: "", chave_pix: "",
+      contador_nome: "", contador_crc: "", contador_telefone: "", contador_email: "",
+    }));
+    setCamposSugeridos(new Set()); // nenhum campo vazio pode continuar marcado como "sugerido"
+    setErrosCampo({});
+    setResultadoCNPJ(null);
+    setUltimoCepConsultado(""); // libera nova consulta de CEP sem a trava de "mesmo CEP de antes"
+    setModalLimparAberto(false);
+    showToast(tt.toastCamposLimpos, "ok");
   }
 
   async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1486,11 +1532,18 @@ export default function EmpresaPage() {
                 </div>
               </CanvasBox>
 
-              <button onClick={salvarEmpresa} disabled={salvando}
-                className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
-                {salvando ? tt.salvando : tt.salvarEmpresa}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button onClick={() => setModalLimparAberto(true)}
+                  className="sm:w-auto w-full px-4 py-3 rounded-xl text-sm font-semibold order-2 sm:order-1"
+                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: "#5a7a9a" }}>
+                  {tt.limparCampos}
+                </button>
+                <button onClick={salvarEmpresa} disabled={salvando}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50 order-1 sm:order-2"
+                  style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+                  {salvando ? tt.salvando : tt.salvarEmpresa}
+                </button>
+              </div>
             </div>
           )}
 
@@ -1675,6 +1728,29 @@ export default function EmpresaPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* MODAL LIMPAR CAMPOS */}
+      {modalLimparAberto && (
+        <ModalGenerico titulo={tt.limparCamposModalTitulo} fechar={() => setModalLimparAberto(false)}>
+          <p className="text-sm mb-3" style={{ color: "#c8d8f0" }}>{tt.limparCamposModalTexto}</p>
+          <p className="text-xs mb-3" style={{ color: "#5a7a9a" }}>{tt.limparCamposModalNaoAfeta}</p>
+          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: "#fbbf24", background: "rgba(251,191,36,0.1)" }}>
+            {tt.limparCamposModalAviso}
+          </p>
+          <div className="flex flex-col sm:flex-row-reverse gap-2">
+            <button onClick={() => setModalLimparAberto(false)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+              {tt.cancelar}
+            </button>
+            <button onClick={limparCampos}
+              className="sm:w-auto w-full px-4 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: "#5a7a9a" }}>
+              {tt.limparCamposConfirmar}
+            </button>
+          </div>
+        </ModalGenerico>
       )}
 
       {/* MODAL CNPJ */}
