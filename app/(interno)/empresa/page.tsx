@@ -1178,6 +1178,10 @@ export default function EmpresaPage() {
   }
 
   const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  // Secundário de propósito — nunca pode se confundir com "Salvar" (verde) nem
+  // com "Exportar PDF" (vermelho #dc2626, padrão do projeto). Âmbar de alerta
+  // suave, com contraste real no fundo escuro (não some como o cinza de antes).
+  const estiloLimparCampos = { background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.5)", color: "#fbbf24" };
 
   return (
     <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
@@ -1290,6 +1294,14 @@ export default function EmpresaPage() {
           {/* ABA DADOS */}
           {aba === "dados" && (
             <div className="space-y-4">
+              <div className="flex justify-end">
+                <button onClick={() => setModalLimparAberto(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold"
+                  style={estiloLimparCampos}>
+                  {tt.limparCampos}
+                </button>
+              </div>
+
               <CanvasBox cor="#a78bfa">
                 <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.autoCnpjTitulo}</p>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -1535,7 +1547,7 @@ export default function EmpresaPage() {
               <div className="flex flex-col sm:flex-row gap-2">
                 <button onClick={() => setModalLimparAberto(true)}
                   className="sm:w-auto w-full px-4 py-3 rounded-xl text-sm font-semibold order-2 sm:order-1"
-                  style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: "#5a7a9a" }}>
+                  style={estiloLimparCampos}>
                   {tt.limparCampos}
                 </button>
                 <button onClick={salvarEmpresa} disabled={salvando}
