@@ -24,7 +24,28 @@
 --      mesma folga que meu_papel() já dá — pra nunca mais depender só do
 --      backfill acima (se uma empresa nova escapar do backfill por algum
 --      motivo, ainda aparece certo na tela).
+--
+-- COMO RODAR (2 passos, não um bloco só):
+--   1) Rode a verificação no fim deste arquivo PRIMEIRO, sozinha, ANTES do
+--      bloco BEGIN/COMMIT abaixo — ela precisa mostrar o estado de ANTES do
+--      backfill. Se for rodada depois (dentro do mesmo bloco), o backfill já
+--      terá resolvido tudo e ela sempre vai devolver 0 linhas, não provando
+--      nada.
+--   2) Depois rode o bloco BEGIN/COMMIT abaixo.
 -- ============================================================================
+
+-- ============================================================================
+-- VERIFICAÇÃO "ANTES" — RODE ESTA CONSULTA SOZINHA, AGORA, ANTES DE CONTINUAR.
+-- Mostra toda empresa cujo dono ainda não tem a linha espelho em
+-- empresa_usuarios (é o que o backfill abaixo vai corrigir). Guarde o
+-- resultado pra comparar depois.
+-- ============================================================================
+SELECT e.id, e.nome
+FROM empresas e
+WHERE NOT EXISTS (
+  SELECT 1 FROM empresa_usuarios eu WHERE eu.empresa_id = e.id AND eu.user_id = e.user_id
+);
+
 
 BEGIN;
 
@@ -79,6 +100,14 @@ begin
     -- Dono sem linha em empresa_usuarios ainda (não deveria mais acontecer
     -- depois do backfill do item 1, mas fica de proteção permanente —
     -- nunca deixa o proprietário sumir da própria lista de equipe).
+    -- LIMITAÇÃO CONHECIDA: o "id" devolvido aqui é e.user_id (id do usuário),
+    -- não o id de uma linha real em empresa_usuarios — essa linha não existe
+    -- nesse ramo (é exatamente o que falta e o backfill do item 1 resolve).
+    -- Não quebra hoje porque a tela (/equipe) esconde lápis/lixeira pra quem
+    -- é "(você)" (ehVoce), e é sempre o dono vendo a própria linha aqui. Se um
+    -- dia a tela permitir editar/remover essa linha usando esse id, ela vai
+    -- apontar pra um id que não existe em empresa_usuarios — não usar esse id
+    -- pra UPDATE/DELETE em empresa_usuarios sem antes resolver essa lacuna.
     select e.user_id, 'ativo'::text, e.user_id, u.email::text,
            coalesce(eq.nome, '')::text, coalesce(eq.cargo, '')::text, 'dono'::text,
            null::text, null::timestamptz, e.created_at
@@ -104,11 +133,15 @@ $$;
 revoke all on function public.listar_equipe(uuid) from public;
 grant execute on function public.listar_equipe(uuid) to authenticated;
 
--- Verificação (só leitura) — deve devolver 0 linhas depois do backfill
+COMMIT;
+
+-- ============================================================================
+-- VERIFICAÇÃO "DEPOIS" — rode esta mesma consulta de novo, agora que o bloco
+-- acima já rodou. Deve devolver 0 linhas (prova que o backfill cobriu todo
+-- mundo). Se sobrar alguma linha aqui, me avise antes de considerar concluído.
+-- ============================================================================
 SELECT e.id, e.nome
 FROM empresas e
 WHERE NOT EXISTS (
   SELECT 1 FROM empresa_usuarios eu WHERE eu.empresa_id = e.id AND eu.user_id = e.user_id
 );
-
-COMMIT;

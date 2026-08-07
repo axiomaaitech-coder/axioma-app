@@ -144,23 +144,32 @@ export default function EquipePage() {
     }
   }
 
+  // Try/catch/finally por inteiro — mesmo padrão de /empresa (commit
+  // 6c6ad64): antes, qualquer erro em QUALQUER passo daqui (rede, RPC que
+  // ainda não existia no banco etc.) travava a tela em "carregando" pra
+  // sempre, sem nenhum aviso. O finally garante que isso nunca mais acontece.
   async function carregarTudo() {
     setCarregando(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setCarregando(false); return }
-    setUserId(user.id)
-    const id = await obterEmpresaAtiva()
-    if (!id) { setCarregando(false); return }
-    setEmpresaId(id)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      setUserId(user.id)
+      const id = await obterEmpresaAtiva()
+      if (!id) return
+      setEmpresaId(id)
 
-    const papel = await obterMeuPapel(id)
-    setMeuPapel(papel)
-    if (papel !== 'dono') { setCarregando(false); return }
+      const papel = await obterMeuPapel(id)
+      setMeuPapel(papel)
+      if (papel !== 'dono') return
 
-    const r = await listarEquipe(id)
-    if (r.erro) avisar('erro', mensagemErro(r.codigo))
-    setMembros(r.dados)
-    setCarregando(false)
+      const r = await listarEquipe(id)
+      if (r.erro) avisar('erro', mensagemErro(r.codigo))
+      setMembros(r.dados)
+    } catch (err: any) {
+      avisar('erro', t.erroGenerico)
+    } finally {
+      setCarregando(false)
+    }
   }
 
   async function enviarConvite() {

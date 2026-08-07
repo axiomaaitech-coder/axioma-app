@@ -662,6 +662,14 @@ export default function EmpresaPage() {
       // não repetir a criação aqui evita duas empresas por corrida (ver SQL-EMPRESA-PADRAO.sql).
       const empresaAtivaId = await obterEmpresaAtiva();
       const emp = empresaAtivaId ? await carregarEmpresaPorId(empresaAtivaId) : null;
+      // TEMPORÁRIO — 2ª rodada de diagnóstico. A 1ª só via o resultado final
+      // (empresa?.id); esta separa os dois passos pra saber qual dos dois
+      // falha: obterEmpresaAtiva() devolvendo vazio, ou carregarEmpresaPorId()
+      // não achando a linha pro id que ela devolveu. Remover depois de confirmado.
+      console.log("[AXIOMA-DEBUG-EMPRESA-2]", {
+        userId: user.id, empresaAtivaId, temEmpresaAtivaId: !!empresaAtivaId,
+        empEncontrado: !!emp, empId: emp?.id,
+      });
       if (emp) {
         setEmpresa(emp);
         setEmpresaForm(emp);
