@@ -3,6 +3,7 @@
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP } from "./enderecoHelpers";
 export { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP };
 
@@ -637,7 +638,7 @@ export async function registrarAuditoria(params: {
     autorEmail?.split("@")[0] ||
     null;
 
-  await supabase.from("empresa_auditoria").insert({
+  const { error } = await supabase.from("empresa_auditoria").insert({
     empresa_id: params.empresaId,
     empresa_nome: emp?.razao_social || emp?.nome || null,
     user_id: params.userId,
@@ -651,6 +652,21 @@ export async function registrarAuditoria(params: {
     valor_depois: params.valorDepois,
     descricao: params.descricao,
   });
+
+  // Uma auditoria que falha em silêncio é pior que não ter auditoria — dá
+  // falsa sensação de rastreabilidade. Nunca propaga o erro pra quem chamou
+  // (a operação principal do usuário — salvar cadastro, adicionar sócio etc.
+  // — já aconteceu e tem que continuar funcionando mesmo se o LOG falhar),
+  // mas também nunca engole: console.error + Sentry, mesmo padrão já usado
+  // em app/global-error.tsx.
+  if (error) {
+    console.error("[AXIOMA] Falha ao gravar auditoria", {
+      tabela: params.tabela, acao: params.acao, empresaId: params.empresaId, registroId: params.registroId, erro: error.message,
+    });
+    Sentry.captureException(new Error(`Falha ao gravar empresa_auditoria: ${error.message}`), {
+      extra: { tabela: params.tabela, acao: params.acao, campo: params.campo, empresaId: params.empresaId, registroId: params.registroId },
+    });
+  }
 }
 
 export async function carregarAuditoria(empresaId: string, userId: string, limit: number = 100): Promise<any[]> {
