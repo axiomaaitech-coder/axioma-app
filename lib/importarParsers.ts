@@ -48,6 +48,24 @@ export type ResultadoParse = {
   destinoSugerido: DestinoTabela;
   precisaMapeamento: boolean;
   mapeamentoAuto?: MapeamentoColunas;
+  // Itens de NF-e (PDV Fase 2.1) — só populado por parseXMLNFe quando a nota
+  // tem <det> de verdade. Campo aditivo: Importar Documentos nunca lê isso,
+  // continua exatamente como antes.
+  itensNFe?: ItemNFe[];
+};
+
+// PDV Fase 2.1 — um item (produto) dentro de uma NF-e de entrada. Todo campo
+// vem literalmente do XML validado pela SEFAZ, nunca calculado/inferido aqui.
+export type ItemNFe = {
+  codigoFornecedor?: string; // det.prod.cProd — código que O FORNECEDOR usa
+  ean?: string; // det.prod.cEAN — "SEM GTIN" quando o produto não tem código de barras
+  descricao: string; // det.prod.xProd — texto cru da nota, sem tratamento
+  ncm?: string;
+  cfop?: string;
+  unidade?: string; // det.prod.uCom
+  quantidade: number; // det.prod.qCom
+  valorUnitario: number; // det.prod.vUnCom
+  valorTotal: number; // det.prod.vProd
 };
 
 export type MapeamentoColunas = {
@@ -589,6 +607,13 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   metadados.fantasia = emit.xFant;
   metadados.numero_nf = ide.nNF;
   metadados.serie = ide.serie;
+  // Chave de acesso (44 dígitos) — dois lugares possíveis no XML real: o
+  // protocolo de autorização (nfeProc.protNFe.infProt.chNFe, já limpo) ou o
+  // atributo Id de infNFe (formato "NFe" + 44 dígitos, precisa tirar o
+  // prefixo). PDV Fase 2.1 usa isso pra travar reimportação da mesma nota.
+  const chaveProtocolo = obj?.nfeProc?.protNFe?.infProt?.chNFe;
+  const chaveAtributo = String(nfe?.["@_Id"] || "").replace(/^NFe/i, "");
+  metadados.chave_acesso = chaveProtocolo || (chaveAtributo.length === 44 ? chaveAtributo : undefined);
   metadados.data_emissao = parseDataBR(ide.dhEmi || ide.dEmi || "");
   metadados.valor_total = parseValorBR(total.vNF);
   metadados.valor_icms = parseValorBR(total.vICMS);
@@ -605,6 +630,26 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   const dets = Array.isArray(nfe.det) ? nfe.det : nfe.det ? [nfe.det] : [];
   const problemasFormato = validarFormatoReforma(dets);
   if (problemasFormato.length > 0) metadados.problemas_formato_reforma = problemasFormato;
+
+  // PDV Fase 2.1 — itens da nota (produto/serviço comprado), sempre literal
+  // do XML. cEAN vem como "SEM GTIN" quando o produto não tem código de
+  // barras próprio (padrão SEFAZ) — tratado como ausente, nunca gravado
+  // como se fosse um código real.
+  const itensNFe: ItemNFe[] = dets.map((det: any) => {
+    const prod = det?.prod || {};
+    const eanCru = String(prod.cEAN || prod.cEANTrib || "").trim();
+    return {
+      codigoFornecedor: prod.cProd ? String(prod.cProd) : undefined,
+      ean: eanCru && eanCru.toUpperCase() !== "SEM GTIN" ? eanCru : undefined,
+      descricao: String(prod.xProd || "").trim(),
+      ncm: prod.NCM ? String(prod.NCM) : undefined,
+      cfop: prod.CFOP ? String(prod.CFOP) : undefined,
+      unidade: prod.uCom ? String(prod.uCom) : undefined,
+      quantidade: parseValorBR(prod.qCom) ?? 0,
+      valorUnitario: parseValorBR(prod.vUnCom) ?? 0,
+      valorTotal: parseValorBR(prod.vProd) ?? 0,
+    };
+  }).filter((item: ItemNFe) => item.descricao);
 
   // Estimativa honesta do impacto do Split Payment (reaproveita o mesmo
   // cálculo já usado em Contas a Receber — nenhuma fórmula nova) — só
@@ -662,6 +707,7 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
     metadados,
     destinoSugerido: destinoLinha,
     precisaMapeamento: false,
+    itensNFe,
   };
 }
 
