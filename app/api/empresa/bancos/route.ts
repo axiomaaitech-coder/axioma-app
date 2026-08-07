@@ -6,6 +6,9 @@ import { cookies } from "next/headers";
 // Alimenta o seletor com busca do campo Banco em /empresa. Lista muda raramente
 // (não sai banco novo toda semana) — cache de 24h no fetch, sem custo de rodar
 // de novo a cada tela aberta.
+//
+// Mesma instrumentação do consulta-cnpj/route.ts (ver comentário lá) — log
+// real no servidor + campo "detalhe" técnico na resposta, nunca corpo cru.
 
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
@@ -20,20 +23,43 @@ export async function GET(req: NextRequest) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
   let resp: Response;
+  const inicio = Date.now();
   try {
     resp = await fetch("https://brasilapi.com.br/api/banks/v1", {
       signal: controller.signal,
       next: { revalidate: 86400 },
+      headers: { "User-Agent": "AxiomaAI.Tech/1.0 (+https://axioma.ai.tech)" },
     });
-  } catch {
-    return NextResponse.json({ status: "indisponivel", bancos: [] });
+  } catch (err: any) {
+    const timeoutEstourou = err?.name === "AbortError";
+    console.error("[bancos] fetch falhou", {
+      ms: Date.now() - inicio, timeout: timeoutEstourou,
+      erroNome: err?.name, erroMsg: err?.message, erroCausa: err?.cause?.message || err?.cause,
+    });
+    return NextResponse.json({
+      status: "indisponivel", bancos: [],
+      detalhe: { httpStatus: null, motivo: timeoutEstourou ? "timeout_8s" : `fetch_excecao: ${err?.message || err?.name || "desconhecido"}` },
+    });
   } finally {
     clearTimeout(timeoutId);
   }
 
-  if (!resp.ok) return NextResponse.json({ status: "indisponivel", bancos: [] });
+  if (!resp.ok) {
+    const corpo = await resp.text().catch(() => "");
+    console.error("[bancos] BrasilAPI respondeu status != 2xx", {
+      httpStatus: resp.status, ms: Date.now() - inicio, corpoInicio: corpo.slice(0, 300),
+    });
+    return NextResponse.json({ status: "indisponivel", bancos: [], detalhe: { httpStatus: resp.status, motivo: "http_nao_ok" } });
+  }
 
-  const data = await resp.json();
+  let data: any;
+  try {
+    data = await resp.json();
+  } catch (err: any) {
+    console.error("[bancos] JSON inválido na resposta 2xx da BrasilAPI", { erroMsg: err?.message });
+    return NextResponse.json({ status: "indisponivel", bancos: [], detalhe: { httpStatus: resp.status, motivo: "json_invalido" } });
+  }
+
   const bancos = (Array.isArray(data) ? data : [])
     .filter((b: any) => b.code && b.name)
     .map((b: any) => ({ codigo: String(b.code), nome: b.name }))

@@ -6,6 +6,9 @@ import { cookies } from "next/headers";
 // O CSP hoje já libera viacep.com.br (não estava bloqueada), mas
 // consultarCEP() é helper compartilhado (Empresa, Fornecedores, Centro de
 // Custos) — move pro servidor também, mesmo padrão do CNPJ/Cosmos EAN.
+//
+// Mesma instrumentação do consulta-cnpj/route.ts (ver comentário lá) — log
+// real no servidor + campo "detalhe" técnico na resposta, nunca corpo cru.
 
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
@@ -23,16 +26,41 @@ export async function GET(req: NextRequest) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 6000);
   let resp: Response;
+  const inicio = Date.now();
   try {
-    resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { signal: controller.signal });
-  } catch {
-    return NextResponse.json({ status: "indisponivel" });
+    resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      signal: controller.signal,
+      headers: { "User-Agent": "AxiomaAI.Tech/1.0 (+https://axioma.ai.tech)" },
+    });
+  } catch (err: any) {
+    const timeoutEstourou = err?.name === "AbortError";
+    console.error("[consulta-cep] fetch falhou", {
+      cep, ms: Date.now() - inicio, timeout: timeoutEstourou,
+      erroNome: err?.name, erroMsg: err?.message, erroCausa: err?.cause?.message || err?.cause,
+    });
+    return NextResponse.json({
+      status: "indisponivel",
+      detalhe: { httpStatus: null, motivo: timeoutEstourou ? "timeout_6s" : `fetch_excecao: ${err?.message || err?.name || "desconhecido"}` },
+    });
   } finally {
     clearTimeout(timeoutId);
   }
 
-  if (!resp.ok) return NextResponse.json({ status: "indisponivel" });
-  const data = await resp.json();
+  if (!resp.ok) {
+    const corpo = await resp.text().catch(() => "");
+    console.error("[consulta-cep] ViaCEP respondeu status != 2xx", {
+      cep, httpStatus: resp.status, ms: Date.now() - inicio, corpoInicio: corpo.slice(0, 300),
+    });
+    return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "http_nao_ok" } });
+  }
+
+  let data: any;
+  try {
+    data = await resp.json();
+  } catch (err: any) {
+    console.error("[consulta-cep] JSON inválido na resposta 2xx do ViaCEP", { cep, erroMsg: err?.message });
+    return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "json_invalido" } });
+  }
   if (data.erro) return NextResponse.json({ status: "nao_encontrado" });
 
   return NextResponse.json({

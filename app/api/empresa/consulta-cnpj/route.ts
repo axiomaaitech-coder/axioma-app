@@ -7,6 +7,19 @@ import { cookies } from "next/headers";
 // brasilapi.com.br do browser (connect-src restritivo, decisão consciente —
 // não liberamos a CSP, movemos a chamada). Mesmo padrão de
 // app/api/produto/consulta-ean/route.ts.
+//
+// INSTRUMENTAÇÃO (rodada de diagnóstico — produção devolvia "indisponivel"
+// em ~1,3s, rápido demais pra ser o timeout de 8s, e o catch antigo descartava
+// a causa real sem logar nada): todo caminho de erro agora faz console.error
+// com a causa real (pra ler no Runtime Logs da Vercel) e devolve um campo
+// "detalhe" técnico (status HTTP da BrasilAPI + motivo curto, nunca corpo
+// cru/dado sensível) — dá pra diagnosticar direto pela aba Network sem
+// depender do painel de logs.
+//
+// User-Agent explícito adicionado como blindagem preventiva (BrasilAPI e
+// APIs similares às vezes recusam requisições sem User-Agent, tratando como
+// bot) — isso reduz UMA causa provável, não é a correção confirmada. A causa
+// real só fica confirmada com o log real de produção.
 
 function limparCNPJ(cnpj: string): string {
   return (cnpj || "").replace(/\D/g, "");
@@ -48,18 +61,44 @@ export async function GET(req: NextRequest) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
   let resp: Response;
+  const inicio = Date.now();
   try {
-    resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: controller.signal });
-  } catch {
-    return NextResponse.json({ status: "indisponivel" });
+    resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, {
+      signal: controller.signal,
+      headers: { "User-Agent": "AxiomaAI.Tech/1.0 (+https://axioma.ai.tech)" },
+    });
+  } catch (err: any) {
+    const timeoutEstourou = err?.name === "AbortError";
+    console.error("[consulta-cnpj] fetch falhou", {
+      cnpj, ms: Date.now() - inicio, timeout: timeoutEstourou,
+      erroNome: err?.name, erroMsg: err?.message, erroCausa: err?.cause?.message || err?.cause,
+    });
+    return NextResponse.json({
+      status: "indisponivel",
+      detalhe: { httpStatus: null, motivo: timeoutEstourou ? "timeout_8s" : `fetch_excecao: ${err?.message || err?.name || "desconhecido"}` },
+    });
   } finally {
     clearTimeout(timeoutId);
   }
 
   if (resp.status === 404) return NextResponse.json({ status: "nao_encontrado" });
-  if (!resp.ok) return NextResponse.json({ status: "indisponivel" });
+  if (!resp.ok) {
+    const corpo = await resp.text().catch(() => "");
+    console.error("[consulta-cnpj] BrasilAPI respondeu status != 2xx", {
+      cnpj, httpStatus: resp.status, ms: Date.now() - inicio, corpoInicio: corpo.slice(0, 300),
+    });
+    return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "http_nao_ok" } });
+  }
 
-  const data = await resp.json();
+  let data: any;
+  try {
+    data = await resp.json();
+  } catch (err: any) {
+    console.error("[consulta-cnpj] JSON inválido na resposta 2xx da BrasilAPI", {
+      cnpj, httpStatus: resp.status, erroMsg: err?.message,
+    });
+    return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "json_invalido" } });
+  }
 
   let regime = "";
   if (data.opcao_pelo_mei) regime = "mei";
