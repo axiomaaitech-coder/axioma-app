@@ -66,6 +66,12 @@ export type ItemNFe = {
   quantidade: number; // det.prod.qCom
   valorUnitario: number; // det.prod.vUnCom
   valorTotal: number; // det.prod.vProd
+  // Grupo <rastro> — só presente em produto regulado (medicamento, alguns
+  // alimentos). Quando a nota traz mais de um lote pro mesmo item, pega só
+  // o primeiro (rastreabilidade completa multi-lote fica de fora por ora).
+  numeroLote?: string;
+  dataFabricacao?: string;
+  dataValidade?: string;
 };
 
 export type MapeamentoColunas = {
@@ -638,6 +644,8 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
   const itensNFe: ItemNFe[] = dets.map((det: any) => {
     const prod = det?.prod || {};
     const eanCru = String(prod.cEAN || prod.cEANTrib || "").trim();
+    const rastroCru = prod.rastro;
+    const rastro = Array.isArray(rastroCru) ? rastroCru[0] : rastroCru;
     return {
       codigoFornecedor: prod.cProd ? String(prod.cProd) : undefined,
       ean: eanCru && eanCru.toUpperCase() !== "SEM GTIN" ? eanCru : undefined,
@@ -648,6 +656,9 @@ export async function parseXMLNFe(texto: string, empresaCnpj?: string, lang: Lan
       quantidade: parseValorBR(prod.qCom) ?? 0,
       valorUnitario: parseValorBR(prod.vUnCom) ?? 0,
       valorTotal: parseValorBR(prod.vProd) ?? 0,
+      numeroLote: rastro?.nLote ? String(rastro.nLote) : undefined,
+      dataFabricacao: rastro?.dFab ? parseDataBR(rastro.dFab) : undefined,
+      dataValidade: rastro?.dVal ? parseDataBR(rastro.dVal) : undefined,
     };
   }).filter((item: ItemNFe) => item.descricao);
 
