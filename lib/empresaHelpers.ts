@@ -3,8 +3,8 @@
 // CRUD profissional com auditoria automática, validações, scores e calendário fiscal.
 
 import { createBrowserClient } from "@supabase/ssr";
-import { formatarCEP, consultarCEP, type DadosCEP } from "./enderecoHelpers";
-export { formatarCEP, consultarCEP, type DadosCEP };
+import { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP } from "./enderecoHelpers";
+export { formatarCEP, consultarCEP, validarCPF, formatarCPF, type DadosCEP };
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +72,7 @@ export type DadosCNPJ = {
   situacao_cadastral?: string;
   opcao_simples?: boolean;
   opcao_mei?: boolean;
+  regime_sugerido?: string | null;
   cep?: string | null;
   logradouro?: string | null;
   numero?: string | null;
@@ -84,54 +85,118 @@ export type DadosCNPJ = {
   socios?: any[];
 };
 
-export async function consultarCNPJ(cnpj: string): Promise<DadosCNPJ | { erro: string }> {
+// Consulta a BrasilAPI por dentro da nossa própria rota (app/api/empresa/
+// consulta-cnpj) — nunca mais direto do navegador. A CSP bloqueia
+// brasilapi.com.br em connect-src de propósito (mantida restritiva); mover a
+// chamada pro servidor é a correção certa, não abrir a CSP. `codigo` no
+// retorno de erro é estável (não muda por idioma) — a tela traduz.
+export async function consultarCNPJ(cnpj: string): Promise<DadosCNPJ | { erro: string; codigo: string }> {
   const c = limparCNPJ(cnpj);
-  if (!validarCNPJ(c)) return { erro: "CNPJ inválido (dígitos verificadores não conferem)" };
+  if (!validarCNPJ(c)) return { erro: "CNPJ inválido (dígitos verificadores não conferem)", codigo: "invalido" };
 
+  let data: any;
   try {
-    const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c}`);
-    if (!resp.ok) {
-      if (resp.status === 404) return { erro: "CNPJ não encontrado na Receita Federal" };
-      if (resp.status === 429) return { erro: "Limite de consultas atingido. Tente novamente em alguns minutos." };
-      return { erro: `Erro da Receita: ${resp.status}` };
-    }
-    const data = await resp.json();
-
-    // Determina regime tributário
-    let regime = "";
-    if (data.opcao_pelo_mei) regime = "mei";
-    else if (data.opcao_pelo_simples) regime = "simples";
-
-    return {
-      razao_social: data.razao_social,
-      nome_fantasia: data.nome_fantasia || null,
-      cnpj: formatarCNPJ(data.cnpj),
-      cnae_principal: data.cnae_fiscal ? String(data.cnae_fiscal) : null,
-      cnae_descricao: data.cnae_fiscal_descricao,
-      cnaes_secundarios: data.cnaes_secundarios || [],
-      natureza_juridica: data.natureza_juridica,
-      porte: data.porte,
-      data_abertura: data.data_inicio_atividade,
-      capital_social: data.capital_social ? Number(data.capital_social) : 0,
-      situacao_cadastral: (data.descricao_situacao_cadastral || data.situacao_cadastral || "").toLowerCase(),
-      opcao_simples: data.opcao_pelo_simples || false,
-      opcao_mei: data.opcao_pelo_mei || false,
-      cep: data.cep ? formatarCEP(String(data.cep)) : null,
-      logradouro: data.logradouro || data.descricao_tipo_de_logradouro
-        ? `${data.descricao_tipo_de_logradouro || ""} ${data.logradouro || ""}`.trim()
-        : null,
-      numero: data.numero ? String(data.numero) : null,
-      complemento: data.complemento,
-      bairro: data.bairro,
-      cidade: data.municipio,
-      uf: data.uf,
-      telefone_principal: data.ddd_telefone_1 ? formatarTelefone(String(data.ddd_telefone_1)) : null,
-      email_principal: data.email,
-      socios: data.qsa || [],
-    };
-  } catch (err: any) {
-    return { erro: `Erro de conexão: ${err.message}` };
+    const resp = await fetch(`/api/empresa/consulta-cnpj?cnpj=${c}`);
+    data = await resp.json();
+  } catch {
+    return { erro: "Erro de conexão", codigo: "indisponivel" };
   }
+
+  if (data.status === "invalido") return { erro: "CNPJ inválido (dígitos verificadores não conferem)", codigo: "invalido" };
+  if (data.status === "nao_encontrado") return { erro: "CNPJ não encontrado na Receita Federal", codigo: "nao_encontrado" };
+  if (data.status !== "ok") return { erro: "Serviço de consulta indisponível no momento. Tente novamente em instantes.", codigo: "indisponivel" };
+
+  return {
+    razao_social: data.razao_social,
+    nome_fantasia: data.nome_fantasia || null,
+    cnpj: formatarCNPJ(data.cnpj),
+    cnae_principal: data.cnae_principal,
+    cnae_descricao: data.cnae_descricao,
+    cnaes_secundarios: data.cnaes_secundarios || [],
+    natureza_juridica: data.natureza_juridica,
+    porte: data.porte,
+    data_abertura: data.data_abertura,
+    capital_social: data.capital_social ? Number(data.capital_social) : 0,
+    situacao_cadastral: data.situacao_cadastral || "",
+    opcao_simples: data.opcao_simples || false,
+    opcao_mei: data.opcao_mei || false,
+    regime_sugerido: data.regime_sugerido || null,
+    cep: data.cep ? formatarCEP(String(data.cep)) : null,
+    logradouro: data.logradouro || null,
+    numero: data.numero ? String(data.numero) : null,
+    complemento: data.complemento,
+    bairro: data.bairro,
+    cidade: data.cidade,
+    uf: data.uf,
+    telefone_principal: data.telefone_principal ? formatarTelefone(String(data.telefone_principal)) : null,
+    email_principal: data.email_principal,
+    socios: data.socios || [],
+  };
+}
+
+// ============================================================================
+// BANCOS (BrasilAPI, server-side) — alimenta o seletor com busca do campo Banco
+// ============================================================================
+export type Banco = { codigo: string; nome: string };
+
+export async function listarBancos(): Promise<Banco[]> {
+  try {
+    const resp = await fetch("/api/empresa/bancos");
+    const data = await resp.json();
+    return data.status === "ok" ? (data.bancos as Banco[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
+// CHAVE PIX — detecta o tipo (CPF/CNPJ/e-mail/telefone/aleatória) e formata
+// conforme. Chave aleatória (UUID do banco) e e-mail não têm máscara — só
+// passam direto.
+// ============================================================================
+export type TipoChavePix = "cpf" | "cnpj" | "email" | "telefone" | "aleatoria" | "";
+
+export function detectarTipoChavePix(valor: string): TipoChavePix {
+  const v = (valor || "").trim();
+  if (!v) return "";
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)) return "aleatoria";
+  if (/^\S+@\S+\.\S+$/.test(v)) return "email";
+  const digitos = v.replace(/\D/g, "");
+  if (digitos.length === 11 && validarCPF(digitos)) return "cpf";
+  if (digitos.length === 14 && validarCNPJ(digitos)) return "cnpj";
+  if (digitos.length >= 10 && digitos.length <= 13 && /^[\d\s()+-]+$/.test(v)) return "telefone";
+  return "aleatoria";
+}
+
+export function formatarChavePix(valor: string): string {
+  const tipo = detectarTipoChavePix(valor);
+  const digitos = (valor || "").replace(/\D/g, "");
+  if (tipo === "cpf") return formatarCPF(digitos);
+  if (tipo === "cnpj") return formatarCNPJ(digitos);
+  if (tipo === "telefone") return formatarTelefone(digitos);
+  return valor;
+}
+
+// ============================================================================
+// MOEDA BR — máscara de capital social enquanto digita (dígitos viram
+// centavos, formata R$ 1.234,56). Armazenado sempre como number no form.
+// ============================================================================
+export function formatarMoedaBR(numero: number): string {
+  return (numero || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+export function moedaBRParaNumero(digitado: string): number {
+  const digitos = (digitado || "").replace(/\D/g, "");
+  return digitos ? parseInt(digitos, 10) / 100 : 0;
+}
+
+// ============================================================================
+// SUGESTÃO — regime tributário pelo PORTE (só quando não há dado real de
+// opcao_simples/opcao_mei vindo da Receita). Sempre editável, nunca imposto.
+// ============================================================================
+export function sugerirRegimePorPorte(porte: string): string | null {
+  if (porte === "MEI" || porte === "ME" || porte === "EPP") return "simples";
+  return null;
 }
 
 // ============================================================================
@@ -378,8 +443,19 @@ export async function excluirSocio(socioId: string, empresaId: string, userId: s
 // IMPORTAR SÓCIOS DO QSA (BrasilAPI)
 // ============================================================================
 
-export async function importarSociosDoQSA(empresaId: string, userId: string, qsa: any[]): Promise<number> {
+// sociosExistentes: lista já carregada na tela (carregarSocios) — evita
+// reimportar o mesmo sócio a cada nova consulta de CNPJ. Compara por
+// cpf_cnpj (limpo) quando existe dos dois lados; sem CPF/CNPJ em algum dos
+// dois, compara por nome (case/acento-insensível, aproximado).
+export async function importarSociosDoQSA(
+  empresaId: string, userId: string, qsa: any[], sociosExistentes: any[] = []
+): Promise<{ importados: number; ignorados: number }> {
+  const norm = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+  const cpfCnpjExistentes = new Set(sociosExistentes.map((s) => (s.cpf_cnpj || "").replace(/\D/g, "")).filter(Boolean));
+  const nomesExistentes = new Set(sociosExistentes.map((s) => norm(s.nome)).filter(Boolean));
+
   let importados = 0;
+  let ignorados = 0;
   for (const s of qsa) {
     const dados = {
       nome: s.nome_socio || s.nome,
@@ -390,6 +466,10 @@ export async function importarSociosDoQSA(empresaId: string, userId: string, qsa
     };
     if (!dados.nome) continue;
 
+    const cpfCnpjLimpo = (dados.cpf_cnpj || "").replace(/\D/g, "");
+    const jaExiste = cpfCnpjLimpo ? cpfCnpjExistentes.has(cpfCnpjLimpo) : nomesExistentes.has(norm(dados.nome));
+    if (jaExiste) { ignorados++; continue; }
+
     const { data, error } = await supabase
       .from("empresa_socios")
       .insert({ ...dados, empresa_id: empresaId, user_id: userId, ativo: true })
@@ -397,6 +477,7 @@ export async function importarSociosDoQSA(empresaId: string, userId: string, qsa
       .single();
     if (!error && data) {
       importados++;
+      if (cpfCnpjLimpo) cpfCnpjExistentes.add(cpfCnpjLimpo); else nomesExistentes.add(norm(dados.nome));
       await registrarAuditoria({
         empresaId,
         userId,
@@ -407,7 +488,7 @@ export async function importarSociosDoQSA(empresaId: string, userId: string, qsa
       });
     }
   }
-  return importados;
+  return { importados, ignorados };
 }
 
 // ============================================================================

@@ -15,6 +15,10 @@ import {
   carregarAuditoria,
   carregarObrigacoes, criarObrigacao, atualizarObrigacao, excluirObrigacao, gerarObrigacoesPadrao,
   calcularHealthScore, calcularComplianceScore,
+  listarBancos, type Banco,
+  detectarTipoChavePix, formatarChavePix,
+  formatarMoedaBR, moedaBRParaNumero,
+  sugerirRegimePorPorte,
   TIPOS_DOCUMENTOS, REGIMES_TRIBUTARIOS,
   type ScoreResultado,
 } from "../../../lib/empresaHelpers";
@@ -52,6 +56,12 @@ const T = {
     autoCnpjTitulo: "🪄 Auto-preenchimento por CNPJ (Receita Federal)",
     autoCnpjInfo: "ℹ️ Usa a API gratuita da BrasilAPI. Preenche razão social, endereço, CNAE, regime tributário e sócios automaticamente.",
     consultando: "⏳ Consultando...",
+    sugeridoBadge: "Sugestão automática — edite se quiser",
+    buscarBanco: "Buscar banco...",
+    selecioneBanco: "Selecione o banco",
+    nenhumBancoEncontrado: "Nenhum banco encontrado",
+    pixTipoDetectado: "Tipo detectado",
+    pixTipo_cpf: "CPF", pixTipo_cnpj: "CNPJ", pixTipo_email: "E-mail", pixTipo_telefone: "Telefone", pixTipo_aleatoria: "Chave aleatória",
     preencherCnpj: "🪄 Preencher por CNPJ",
     // Dados básicos
     logo: "Logo",
@@ -186,9 +196,16 @@ const T = {
     toastDigiteCnpj: "Digite o CNPJ primeiro",
     toastCnpjInvalido: "CNPJ inválido",
     toastCepInvalido: "CEP inválido",
+    toastCnpjNaoEncontrado: "CNPJ não encontrado na Receita Federal",
+    toastCepNaoEncontrado: "CEP não encontrado",
+    toastServicoIndisponivel: "Serviço de consulta indisponível no momento. Tente novamente em instantes.",
+    erroCnpjInvalido: "CNPJ inválido (dígitos verificadores não conferem)",
+    erroCepInvalido: "CEP deve ter 8 dígitos",
+    erroEmailInvalido: "E-mail em formato inválido",
     toastEnderecoPreenchido: "Endereço preenchido!",
     toastDadosAplicados: "Dados aplicados! Clique em Salvar.",
     toastSociosImportados: (n: number) => `${n} sócio(s) importado(s)`,
+    toastSociosImportadosComIgnorados: (n: number, ign: number) => `${n} sócio(s) importado(s) — ${ign} já cadastrado(s), ignorado(s)`,
     toastConfirmImportarSocios: (n: number) => `Encontramos ${n} sócio(s) na Receita. Importar para o sistema?`,
     toastDadosSalvos: "Dados salvos!",
     toastErroCarregar: "Erro ao carregar",
@@ -242,6 +259,12 @@ const T = {
     autoCnpjTitulo: "🪄 Auto-fill by Tax ID (Federal Revenue)",
     autoCnpjInfo: "ℹ️ Uses free BrasilAPI. Auto-fills legal name, address, business activity, tax regime and partners.",
     consultando: "⏳ Looking up...",
+    sugeridoBadge: "Auto-suggested — edit if you want",
+    buscarBanco: "Search bank...",
+    selecioneBanco: "Select the bank",
+    nenhumBancoEncontrado: "No bank found",
+    pixTipoDetectado: "Detected type",
+    pixTipo_cpf: "CPF", pixTipo_cnpj: "Tax ID", pixTipo_email: "E-mail", pixTipo_telefone: "Phone", pixTipo_aleatoria: "Random key",
     preencherCnpj: "🪄 Fill by Tax ID",
     logo: "Logo",
     uploadLogo: "📤 Upload Logo",
@@ -362,9 +385,16 @@ const T = {
     toastDigiteCnpj: "Enter the Tax ID first",
     toastCnpjInvalido: "Invalid Tax ID",
     toastCepInvalido: "Invalid ZIP",
+    toastCnpjNaoEncontrado: "Tax ID not found in the Federal Revenue database",
+    toastCepNaoEncontrado: "ZIP code not found",
+    toastServicoIndisponivel: "Lookup service unavailable right now. Try again shortly.",
+    erroCnpjInvalido: "Invalid Tax ID (check digits don't match)",
+    erroCepInvalido: "ZIP code must have 8 digits",
+    erroEmailInvalido: "Invalid e-mail format",
     toastEnderecoPreenchido: "Address filled!",
     toastDadosAplicados: "Data applied! Click Save.",
     toastSociosImportados: (n: number) => `${n} partner(s) imported`,
+    toastSociosImportadosComIgnorados: (n: number, ign: number) => `${n} partner(s) imported — ${ign} already registered, skipped`,
     toastConfirmImportarSocios: (n: number) => `Found ${n} partner(s). Import into system?`,
     toastDadosSalvos: "Data saved!",
     toastErroCarregar: "Loading error",
@@ -417,6 +447,12 @@ const T = {
     autoCnpjTitulo: "🪄 Auto-rellenar por CNPJ (Receita Federal)",
     autoCnpjInfo: "ℹ️ Usa la API gratuita de BrasilAPI. Rellena razón social, dirección, CNAE, régimen tributario y socios automáticamente.",
     consultando: "⏳ Consultando...",
+    sugeridoBadge: "Sugerencia automática — edite si quiere",
+    buscarBanco: "Buscar banco...",
+    selecioneBanco: "Seleccione el banco",
+    nenhumBancoEncontrado: "Ningún banco encontrado",
+    pixTipoDetectado: "Tipo detectado",
+    pixTipo_cpf: "CPF", pixTipo_cnpj: "CNPJ", pixTipo_email: "Correo", pixTipo_telefone: "Teléfono", pixTipo_aleatoria: "Clave aleatoria",
     preencherCnpj: "🪄 Rellenar por CNPJ",
     logo: "Logo",
     uploadLogo: "📤 Subir Logo",
@@ -537,9 +573,16 @@ const T = {
     toastDigiteCnpj: "Ingrese el CNPJ primero",
     toastCnpjInvalido: "CNPJ inválido",
     toastCepInvalido: "CEP inválido",
+    toastCnpjNaoEncontrado: "CNPJ no encontrado en la Receita Federal",
+    toastCepNaoEncontrado: "CEP no encontrado",
+    toastServicoIndisponivel: "Servicio de consulta no disponible en este momento. Intente de nuevo en instantes.",
+    erroCnpjInvalido: "CNPJ inválido (dígitos verificadores no coinciden)",
+    erroCepInvalido: "El CEP debe tener 8 dígitos",
+    erroEmailInvalido: "Formato de correo inválido",
     toastEnderecoPreenchido: "¡Dirección rellenada!",
     toastDadosAplicados: "¡Datos aplicados! Haga clic en Guardar.",
     toastSociosImportados: (n: number) => `${n} socio(s) importado(s)`,
+    toastSociosImportadosComIgnorados: (n: number, ign: number) => `${n} socio(s) importado(s) — ${ign} ya registrado(s), omitido(s)`,
     toastConfirmImportarSocios: (n: number) => `Encontramos ${n} socio(s). ¿Importar al sistema?`,
     toastDadosSalvos: "¡Datos guardados!",
     toastErroCarregar: "Error al cargar",
@@ -625,6 +668,18 @@ export default function EmpresaPage() {
   const [consultandoCNPJ, setConsultandoCNPJ] = useState(false);
   const [resultadoCNPJ, setResultadoCNPJ] = useState<any>(null);
   const [consultandoCEP, setConsultandoCEP] = useState(false);
+  const [ultimoCepConsultado, setUltimoCepConsultado] = useState("");
+
+  // Preenchimento inteligente — campos sugeridos por regra (visíveis, nunca
+  // impostos) e erros de validação em tempo real, por campo.
+  const [camposSugeridos, setCamposSugeridos] = useState<Set<string>>(new Set());
+  const [errosCampo, setErrosCampo] = useState<Record<string, string>>({});
+
+  // Banco — seletor com busca (BrasilAPI, server-side). O próprio campo de
+  // texto filtra a lista ao digitar (typeahead) — sem coluna nova no banco,
+  // continua salvando o nome em banco_principal, só a UI de escolha muda.
+  const [bancos, setBancos] = useState<Banco[]>([]);
+  const [bancoDropdownAberto, setBancoDropdownAberto] = useState(false);
 
   // Modais
   const [modalSocio, setModalSocio] = useState<any>(null);
@@ -645,7 +700,7 @@ export default function EmpresaPage() {
     tt.qualSocio, tt.qualSocioAdm, tt.qualAdministrador, tt.qualDiretor, tt.qualProcurador, tt.qualOutros,
   ];
 
-  useEffect(() => { carregarTudo(); }, []);
+  useEffect(() => { carregarTudo(); listarBancos().then(setBancos); }, []);
 
   // Uma função só, auto-suficiente (mesmo padrão do Cockpit e dos outros
   // módulos: um único carregar() que já busca o usuário por dentro) — antes
@@ -693,54 +748,107 @@ export default function EmpresaPage() {
     }
   }
 
+  // Traduz o código de erro estável que os helpers devolvem (SEM_PERMISSAO_ESCRITA,
+  // invalido/nao_encontrado/indisponivel do CNPJ/CEP) — mesmo padrão de mensagemErro() em /equipe.
+  function mensagemErroCodigo(contexto: "cnpj" | "cep", codigo: string | undefined, fallback: string): string {
+    if (codigo === "indisponivel") return tt.toastServicoIndisponivel;
+    if (contexto === "cnpj") {
+      if (codigo === "invalido") return tt.toastCnpjInvalido;
+      if (codigo === "nao_encontrado") return tt.toastCnpjNaoEncontrado;
+    } else {
+      if (codigo === "invalido") return tt.toastCepInvalido;
+      if (codigo === "nao_encontrado") return tt.toastCepNaoEncontrado;
+    }
+    return fallback;
+  }
+
+  // Preenche um campo só se estiver vazio (Ressalva do Elias: nunca apagar
+  // dado já digitado). Quando preenche, marca como "sugerido" pra tela
+  // mostrar o selo — some sozinho assim que o usuário editar o campo
+  // (ver onChangeCampo).
+  function preencherSeVazio(prev: any, sugeridosNovos: Set<string>, campo: string, valor: any) {
+    const vazio = prev[campo] === undefined || prev[campo] === null || prev[campo] === "" || prev[campo] === 0;
+    if (!vazio || valor === undefined || valor === null || valor === "") return prev[campo];
+    sugeridosNovos.add(campo);
+    return valor;
+  }
+
+  // onChange de todo campo passa por aqui — sai da lista de "sugerido" no
+  // instante em que o usuário mexe, mesmo que retype o mesmo valor.
+  function onChangeCampo(campo: string, valor: any) {
+    setCampo(campo, valor);
+    setCamposSugeridos((prev) => {
+      if (!prev.has(campo)) return prev;
+      const novo = new Set(prev);
+      novo.delete(campo);
+      return novo;
+    });
+    setErrosCampo((prev) => {
+      if (!(campo in prev)) return prev;
+      const novo = { ...prev };
+      delete novo[campo];
+      return novo;
+    });
+  }
+
   // CNPJ
   async function preencherPorCNPJ() {
     const cnpj = limparCNPJ(empresaForm.cnpj || "");
     if (!cnpj) { showToast(tt.toastDigiteCnpj, "erro"); return; }
-    if (!validarCNPJ(cnpj)) { showToast(tt.toastCnpjInvalido, "erro"); return; }
+    if (!validarCNPJ(cnpj)) { setErrosCampo((p) => ({ ...p, cnpj: tt.erroCnpjInvalido })); return; }
     setConsultandoCNPJ(true);
     const r = await consultarCNPJ(cnpj);
     setConsultandoCNPJ(false);
-    if ("erro" in r) { showToast(r.erro, "erro"); return; }
+    if ("erro" in r) { showToast(mensagemErroCodigo("cnpj", r.codigo, r.erro), "erro"); return; }
     setResultadoCNPJ(r);
   }
 
   function aplicarDadosCNPJ() {
     if (!resultadoCNPJ) return;
     const d = resultadoCNPJ;
-    const regime = d.opcao_mei ? "mei" : d.opcao_simples ? "simples" : empresaForm.regime_tributario;
-    setEmpresaForm((prev: any) => ({
-      ...prev,
-      razao_social: d.razao_social || prev.razao_social,
-      nome_fantasia: d.nome_fantasia || prev.nome_fantasia,
-      cnpj: d.cnpj || prev.cnpj,
-      cnae_principal: d.cnae_principal || prev.cnae_principal,
-      cnae_descricao: d.cnae_descricao || prev.cnae_descricao,
-      cnaes_secundarios: d.cnaes_secundarios || prev.cnaes_secundarios,
-      natureza_juridica: d.natureza_juridica || prev.natureza_juridica,
-      porte: d.porte || prev.porte,
-      data_abertura: d.data_abertura || prev.data_abertura,
-      capital_social: d.capital_social ?? prev.capital_social,
-      situacao_cadastral: d.situacao_cadastral || prev.situacao_cadastral,
-      opcao_simples: d.opcao_simples ?? prev.opcao_simples,
-      opcao_mei: d.opcao_mei ?? prev.opcao_mei,
-      regime_tributario: regime,
-      cep: d.cep || prev.cep,
-      logradouro: d.logradouro || prev.logradouro,
-      numero: d.numero || prev.numero,
-      complemento: d.complemento || prev.complemento,
-      bairro: d.bairro || prev.bairro,
-      cidade: d.cidade || prev.cidade,
-      uf: d.uf || prev.uf,
-      telefone_principal: d.telefone_principal || prev.telefone_principal,
-      email_principal: d.email_principal || prev.email_principal,
-      nome: prev.nome || d.nome_fantasia || d.razao_social,
-    }));
+    const sugeridosNovos = new Set<string>();
+    setEmpresaForm((prev: any) => {
+      const p = (campo: string, valor: any) => preencherSeVazio(prev, sugeridosNovos, campo, valor);
+      // Regime: dado REAL da Receita (opcao_mei/opcao_simples) tem prioridade
+      // sobre a sugestão por porte — só quando não há nenhum dos dois é que o
+      // campo fica sem sugestão (ex.: porte "Demais").
+      const regimeReal = d.opcao_mei ? "mei" : d.opcao_simples ? "simples" : null;
+      const regime = regimeReal || sugerirRegimePorPorte(d.porte);
+      return {
+        ...prev,
+        razao_social: p("razao_social", d.razao_social),
+        nome_fantasia: p("nome_fantasia", d.nome_fantasia),
+        cnpj: prev.cnpj || d.cnpj,
+        cnae_principal: p("cnae_principal", d.cnae_principal),
+        cnae_descricao: p("cnae_descricao", d.cnae_descricao),
+        cnaes_secundarios: prev.cnaes_secundarios?.length ? prev.cnaes_secundarios : d.cnaes_secundarios,
+        natureza_juridica: p("natureza_juridica", d.natureza_juridica),
+        porte: p("porte", d.porte),
+        data_abertura: p("data_abertura", d.data_abertura),
+        capital_social: p("capital_social", d.capital_social),
+        situacao_cadastral: p("situacao_cadastral", d.situacao_cadastral),
+        opcao_simples: prev.opcao_simples ?? d.opcao_simples,
+        opcao_mei: prev.opcao_mei ?? d.opcao_mei,
+        regime_tributario: p("regime_tributario", regime),
+        cep: p("cep", d.cep),
+        logradouro: p("logradouro", d.logradouro),
+        numero: p("numero", d.numero),
+        complemento: p("complemento", d.complemento),
+        bairro: p("bairro", d.bairro),
+        cidade: p("cidade", d.cidade),
+        uf: p("uf", d.uf),
+        telefone_principal: p("telefone_principal", d.telefone_principal),
+        email_principal: p("email_principal", d.email_principal),
+        chave_pix: p("chave_pix", d.cnpj ? formatarChavePix(limparCNPJ(d.cnpj)) : undefined),
+        nome: prev.nome || d.nome_fantasia || d.razao_social,
+      };
+    });
+    setCamposSugeridos((prev) => new Set([...prev, ...sugeridosNovos]));
     showToast(tt.toastDadosAplicados, "ok");
     if (d.socios && d.socios.length > 0 && empresa) {
       if (window.confirm(tt.toastConfirmImportarSocios(d.socios.length))) {
-        importarSociosDoQSA(empresa.id, userId!, d.socios).then((qtd) => {
-          showToast(tt.toastSociosImportados(qtd), "ok");
+        importarSociosDoQSA(empresa.id, userId!, d.socios, socios).then(({ importados, ignorados }) => {
+          showToast(ignorados > 0 ? tt.toastSociosImportadosComIgnorados(importados, ignorados) : tt.toastSociosImportados(importados), "ok");
           carregarTudo();
         });
       }
@@ -750,20 +858,52 @@ export default function EmpresaPage() {
 
   async function preencherPorCEP(cepDigitado?: string) {
     const cep = (cepDigitado ?? empresaForm.cep ?? "").replace(/\D/g, "");
-    if (cep.length !== 8) { showToast(tt.toastCepInvalido, "erro"); return; }
+    if (cep.length !== 8) { setErrosCampo((p) => ({ ...p, cep: tt.erroCepInvalido })); return; }
+    if (cep === ultimoCepConsultado) return; // Ressalva do Elias: sem consulta repetida pro mesmo CEP.
     setConsultandoCEP(true);
     const r = await consultarCEP(cep);
     setConsultandoCEP(false);
-    if ("erro" in r) { showToast(r.erro, "erro"); return; }
-    setEmpresaForm((prev: any) => ({
-      ...prev,
-      cep: r.cep || prev.cep,
-      logradouro: r.logradouro || prev.logradouro,
-      bairro: r.bairro || prev.bairro,
-      cidade: r.cidade || prev.cidade,
-      uf: r.uf || prev.uf,
-    }));
+    if ("erro" in r) { showToast(mensagemErroCodigo("cep", r.codigo, r.erro), "erro"); return; }
+    setUltimoCepConsultado(cep);
+    const sugeridosNovos = new Set<string>();
+    setEmpresaForm((prev: any) => {
+      const p = (campo: string, valor: any) => preencherSeVazio(prev, sugeridosNovos, campo, valor);
+      return {
+        ...prev,
+        cep: prev.cep || r.cep,
+        logradouro: p("logradouro", r.logradouro),
+        bairro: p("bairro", r.bairro),
+        cidade: p("cidade", r.cidade),
+        uf: p("uf", r.uf),
+      };
+    });
+    setCamposSugeridos((prev) => new Set([...prev, ...sugeridosNovos]));
     showToast(tt.toastEnderecoPreenchido, "ok");
+  }
+
+  function onBlurCEP() {
+    const cep = (empresaForm.cep || "").replace(/\D/g, "");
+    if (cep.length === 8 && cep !== ultimoCepConsultado) preencherPorCEP(cep);
+  }
+
+  // Sugestões por regra a partir do e-mail principal (domínio) — disparadas
+  // ao sair do campo, nunca sobrescrevem o que já tiver conteúdo.
+  function onBlurEmailPrincipal() {
+    const email = (empresaForm.email_principal || "").trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return;
+    const dominio = email.split("@")[1];
+    const sugeridosNovos = new Set<string>();
+    setEmpresaForm((prev: any) => {
+      const p = (campo: string, valor: any) => preencherSeVazio(prev, sugeridosNovos, campo, valor);
+      return {
+        ...prev,
+        email_financeiro: p("email_financeiro", `financeiro@${dominio}`),
+        email_contabil: p("email_contabil", `contabil@${dominio}`),
+        website: p("website", `https://${dominio}`),
+        chave_pix: p("chave_pix", email),
+      };
+    });
+    setCamposSugeridos((prev) => new Set([...prev, ...sugeridosNovos]));
   }
 
   async function salvarEmpresa() {
@@ -1100,10 +1240,14 @@ export default function EmpresaPage() {
               <CanvasBox cor="#a78bfa">
                 <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.autoCnpjTitulo}</p>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <input value={empresaForm.cnpj || ""} onChange={(e) => setCampo("cnpj", formatarCNPJ(e.target.value))}
-                    placeholder="00.000.000/0000-00" className="flex-1 px-3 py-2.5 rounded-lg text-sm" style={inputStyle} />
+                  <div className="flex-1">
+                    <input value={empresaForm.cnpj || ""} onChange={(e) => onChangeCampo("cnpj", formatarCNPJ(e.target.value))}
+                      onBlur={() => { if (empresaForm.cnpj && !validarCNPJ(limparCNPJ(empresaForm.cnpj))) setErrosCampo((p) => ({ ...p, cnpj: tt.erroCnpjInvalido })); }}
+                      placeholder="00.000.000/0000-00" className="w-full px-3 py-2.5 rounded-lg text-sm" style={inputStyle} />
+                    {errosCampo.cnpj && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{errosCampo.cnpj}</p>}
+                  </div>
                   <button onClick={preencherPorCNPJ} disabled={consultandoCNPJ}
-                    className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50"
+                    className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
                     style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
                     {consultandoCNPJ ? tt.consultando : tt.preencherCnpj}
                   </button>
@@ -1128,25 +1272,32 @@ export default function EmpresaPage() {
                     <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
                   </div>
                   <div className="md:col-span-3 space-y-3">
-                    <FieldLabel label={tt.razaoSocial}>
-                      <input value={empresaForm.razao_social || ""} onChange={(e) => setCampo("razao_social", e.target.value)}
+                    <FieldLabel label={tt.razaoSocial} sugerido={camposSugeridos.has("razao_social")} sugeridoTexto={tt.sugeridoBadge}>
+                      <input value={empresaForm.razao_social || ""} onChange={(e) => onChangeCampo("razao_social", e.target.value)}
                         className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                     </FieldLabel>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <FieldLabel label={tt.nomeFantasia}>
-                        <input value={empresaForm.nome_fantasia || ""} onChange={(e) => setCampo("nome_fantasia", e.target.value)}
+                      <FieldLabel label={tt.nomeFantasia} sugerido={camposSugeridos.has("nome_fantasia")} sugeridoTexto={tt.sugeridoBadge}>
+                        <input value={empresaForm.nome_fantasia || ""} onChange={(e) => onChangeCampo("nome_fantasia", e.target.value)}
                           className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                       </FieldLabel>
                       <FieldLabel label={tt.inscricaoEstadual}>
-                        <input value={empresaForm.inscricao_estadual || ""} onChange={(e) => setCampo("inscricao_estadual", e.target.value)}
+                        <input value={empresaForm.inscricao_estadual || ""} onChange={(e) => onChangeCampo("inscricao_estadual", e.target.value)}
                           className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                       </FieldLabel>
                       <FieldLabel label={tt.inscricaoMunicipal}>
-                        <input value={empresaForm.inscricao_municipal || ""} onChange={(e) => setCampo("inscricao_municipal", e.target.value)}
+                        <input value={empresaForm.inscricao_municipal || ""} onChange={(e) => onChangeCampo("inscricao_municipal", e.target.value)}
                           className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                       </FieldLabel>
-                      <FieldLabel label={tt.porte}>
-                        <select value={empresaForm.porte || ""} onChange={(e) => setCampo("porte", e.target.value)}
+                      <FieldLabel label={tt.porte} sugerido={camposSugeridos.has("porte")} sugeridoTexto={tt.sugeridoBadge}>
+                        <select value={empresaForm.porte || ""} onChange={(e) => {
+                            onChangeCampo("porte", e.target.value);
+                            // Sugestão por porte só entra se o regime ainda estiver vazio — nunca sobrescreve.
+                            if (!empresaForm.regime_tributario) {
+                              const sugestao = sugerirRegimePorPorte(e.target.value);
+                              if (sugestao) { setCampo("regime_tributario", sugestao); setCamposSugeridos((prev) => new Set([...prev, "regime_tributario"])); }
+                            }
+                          }}
                           className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
                           <option value="" style={{ background: "#020810" }}>—</option>
                           {PORTES.map((p) => <option key={p} value={p} style={{ background: "#020810" }}>{p}</option>)}
@@ -1160,37 +1311,43 @@ export default function EmpresaPage() {
               <CanvasBox cor="#34d399">
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.tributario}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FieldLabel label={tt.regimeTributario}>
-                    <select value={empresaForm.regime_tributario || ""} onChange={(e) => setCampo("regime_tributario", e.target.value)}
+                  <FieldLabel label={tt.regimeTributario} sugerido={camposSugeridos.has("regime_tributario")} sugeridoTexto={tt.sugeridoBadge}>
+                    <select value={empresaForm.regime_tributario || ""} onChange={(e) => onChangeCampo("regime_tributario", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
                       <option value="" style={{ background: "#020810" }}>—</option>
                       {REGIMES_TRIBUTARIOS.map((r) => <option key={r.key} value={r.key} style={{ background: "#020810" }}>{r.label}</option>)}
                     </select>
                   </FieldLabel>
-                  <FieldLabel label={tt.cnaePrincipal}>
-                    <input value={empresaForm.cnae_principal || ""} onChange={(e) => setCampo("cnae_principal", e.target.value)}
+                  <FieldLabel label={tt.cnaePrincipal} sugerido={camposSugeridos.has("cnae_principal")} sugeridoTexto={tt.sugeridoBadge}>
+                    <input value={empresaForm.cnae_principal || ""} onChange={(e) => onChangeCampo("cnae_principal", e.target.value)}
                       placeholder="6201-5/01" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
                   <div className="md:col-span-2">
-                    <FieldLabel label={tt.cnaeDescricao}>
-                      <input value={empresaForm.cnae_descricao || ""} onChange={(e) => setCampo("cnae_descricao", e.target.value)}
+                    <FieldLabel label={tt.cnaeDescricao} sugerido={camposSugeridos.has("cnae_descricao")} sugeridoTexto={tt.sugeridoBadge}>
+                      <input value={empresaForm.cnae_descricao || ""} onChange={(e) => onChangeCampo("cnae_descricao", e.target.value)}
                         className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                     </FieldLabel>
                   </div>
-                  <FieldLabel label={tt.naturezaJuridica}>
-                    <input value={empresaForm.natureza_juridica || ""} onChange={(e) => setCampo("natureza_juridica", e.target.value)}
+                  <FieldLabel label={tt.naturezaJuridica} sugerido={camposSugeridos.has("natureza_juridica")} sugeridoTexto={tt.sugeridoBadge}>
+                    <input value={empresaForm.natureza_juridica || ""} onChange={(e) => onChangeCampo("natureza_juridica", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
-                  <FieldLabel label={tt.capitalSocial}>
-                    <input type="number" step="0.01" value={empresaForm.capital_social || ""} onChange={(e) => setCampo("capital_social", parseFloat(e.target.value) || 0)}
+                  <FieldLabel label={tt.capitalSocial} sugerido={camposSugeridos.has("capital_social")} sugeridoTexto={tt.sugeridoBadge}
+                    erro={errosCampo.capital_social}>
+                    <input value={empresaForm.capital_social ? formatarMoedaBR(empresaForm.capital_social) : ""}
+                      onChange={(e) => {
+                        const num = moedaBRParaNumero(e.target.value);
+                        onChangeCampo("capital_social", num);
+                        setErrosCampo((p) => { if (!("capital_social" in p)) return p; const n = { ...p }; delete n.capital_social; return n; });
+                      }}
+                      inputMode="numeric" placeholder="R$ 0,00" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  </FieldLabel>
+                  <FieldLabel label={tt.dataAbertura} sugerido={camposSugeridos.has("data_abertura")} sugeridoTexto={tt.sugeridoBadge}>
+                    <input type="date" value={empresaForm.data_abertura || ""} onChange={(e) => onChangeCampo("data_abertura", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
-                  <FieldLabel label={tt.dataAbertura}>
-                    <input type="date" value={empresaForm.data_abertura || ""} onChange={(e) => setCampo("data_abertura", e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                  </FieldLabel>
-                  <FieldLabel label={tt.situacaoCadastral}>
-                    <select value={empresaForm.situacao_cadastral || ""} onChange={(e) => setCampo("situacao_cadastral", e.target.value)}
+                  <FieldLabel label={tt.situacaoCadastral} sugerido={camposSugeridos.has("situacao_cadastral")} sugeridoTexto={tt.sugeridoBadge}>
+                    <select value={empresaForm.situacao_cadastral || ""} onChange={(e) => onChangeCampo("situacao_cadastral", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
                       <option value="" style={{ background: "#020810" }}>—</option>
                       <option value="ativa" style={{ background: "#020810" }}>{tt.situacaoAtiva}</option>
@@ -1205,46 +1362,63 @@ export default function EmpresaPage() {
               <CanvasBox cor="#fbbf24">
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.endereco}</p>
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                  <div className="md:col-span-2 flex gap-2">
-                    <input value={empresaForm.cep || ""} onChange={(e) => {
-                        const v = formatarCEP(e.target.value);
-                        setCampo("cep", v);
-                        if (v.replace(/\D/g, "").length === 8) preencherPorCEP(v);
-                      }}
-                      placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
-                    <button onClick={() => preencherPorCEP()} disabled={consultandoCEP}
-                      className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
-                      style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>{consultandoCEP ? "..." : "🔍"}</button>
+                  <div className="md:col-span-2">
+                    <div className="flex gap-2">
+                      <input value={empresaForm.cep || ""} onChange={(e) => {
+                          const v = formatarCEP(e.target.value);
+                          onChangeCampo("cep", v);
+                          if (v.replace(/\D/g, "").length === 8) preencherPorCEP(v);
+                        }}
+                        onBlur={onBlurCEP}
+                        placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                      <button onClick={() => preencherPorCEP()} disabled={consultandoCEP}
+                        className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
+                        style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>{consultandoCEP ? "..." : "🔍"}</button>
+                    </div>
+                    {errosCampo.cep && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{errosCampo.cep}</p>}
                   </div>
-                  <div className="md:col-span-3"><input value={empresaForm.logradouro || ""} onChange={(e) => setCampo("logradouro", e.target.value)} placeholder={tt.logradouro} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
-                  <div className="md:col-span-1"><input value={empresaForm.numero || ""} onChange={(e) => setCampo("numero", e.target.value)} placeholder={tt.numero} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
-                  <div className="md:col-span-2"><input value={empresaForm.complemento || ""} onChange={(e) => setCampo("complemento", e.target.value)} placeholder={tt.complemento} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
-                  <div className="md:col-span-2"><input value={empresaForm.bairro || ""} onChange={(e) => setCampo("bairro", e.target.value)} placeholder={tt.bairro} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
-                  <div className="md:col-span-2"><input value={empresaForm.cidade || ""} onChange={(e) => setCampo("cidade", e.target.value)} placeholder={tt.cidade} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
-                  <div className="md:col-span-1"><input value={empresaForm.uf || ""} onChange={(e) => setCampo("uf", e.target.value.toUpperCase().slice(0, 2))} placeholder={tt.uf} maxLength={2} className="w-full px-3 py-2 rounded-lg text-sm uppercase" style={inputStyle} /></div>
+                  <div className="md:col-span-3"><input value={empresaForm.logradouro || ""} onChange={(e) => onChangeCampo("logradouro", e.target.value)} placeholder={tt.logradouro} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
+                  <div className="md:col-span-1"><input value={empresaForm.numero || ""} onChange={(e) => onChangeCampo("numero", e.target.value)} placeholder={tt.numero} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
+                  <div className="md:col-span-2"><input value={empresaForm.complemento || ""} onChange={(e) => onChangeCampo("complemento", e.target.value)} placeholder={tt.complemento} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
+                  <div className="md:col-span-2"><input value={empresaForm.bairro || ""} onChange={(e) => onChangeCampo("bairro", e.target.value)} placeholder={tt.bairro} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
+                  <div className="md:col-span-2"><input value={empresaForm.cidade || ""} onChange={(e) => onChangeCampo("cidade", e.target.value)} placeholder={tt.cidade} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
+                  <div className="md:col-span-1"><input value={empresaForm.uf || ""} onChange={(e) => onChangeCampo("uf", e.target.value.toUpperCase().slice(0, 2))} placeholder={tt.uf} maxLength={2} className="w-full px-3 py-2 rounded-lg text-sm uppercase" style={inputStyle} /></div>
                 </div>
               </CanvasBox>
 
               <CanvasBox cor="#6ab0ff">
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.contato}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FieldLabel label={tt.telefonePrincipal}>
-                    <input value={empresaForm.telefone_principal || ""} onChange={(e) => setCampo("telefone_principal", formatarTelefone(e.target.value))} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  <FieldLabel label={tt.telefonePrincipal} sugerido={camposSugeridos.has("telefone_principal")} sugeridoTexto={tt.sugeridoBadge}>
+                    <input value={empresaForm.telefone_principal || ""} onChange={(e) => onChangeCampo("telefone_principal", formatarTelefone(e.target.value))} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
                   <FieldLabel label={tt.telefoneSecundario}>
-                    <input value={empresaForm.telefone_secundario || ""} onChange={(e) => setCampo("telefone_secundario", formatarTelefone(e.target.value))} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                    <input value={empresaForm.telefone_secundario || ""} onChange={(e) => onChangeCampo("telefone_secundario", formatarTelefone(e.target.value))} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
-                  <FieldLabel label={tt.emailPrincipal}>
-                    <input type="email" value={empresaForm.email_principal || ""} onChange={(e) => setCampo("email_principal", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  <FieldLabel label={tt.emailPrincipal} sugerido={camposSugeridos.has("email_principal")} sugeridoTexto={tt.sugeridoBadge}
+                    erro={errosCampo.email_principal}>
+                    <input type="email" value={empresaForm.email_principal || ""} onChange={(e) => onChangeCampo("email_principal", e.target.value)}
+                      onBlur={() => {
+                        onBlurEmailPrincipal();
+                        const v = (empresaForm.email_principal || "").trim();
+                        if (v && !/^\S+@\S+\.\S+$/.test(v)) setErrosCampo((p) => ({ ...p, email_principal: tt.erroEmailInvalido }));
+                      }}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
-                  <FieldLabel label={tt.emailFinanceiro}>
-                    <input type="email" value={empresaForm.email_financeiro || ""} onChange={(e) => setCampo("email_financeiro", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  <FieldLabel label={tt.emailFinanceiro} sugerido={camposSugeridos.has("email_financeiro")} sugeridoTexto={tt.sugeridoBadge}
+                    erro={errosCampo.email_financeiro}>
+                    <input type="email" value={empresaForm.email_financeiro || ""} onChange={(e) => onChangeCampo("email_financeiro", e.target.value)}
+                      onBlur={() => { const v = (empresaForm.email_financeiro || "").trim(); setErrosCampo((p) => { const n = { ...p }; if (v && !/^\S+@\S+\.\S+$/.test(v)) n.email_financeiro = tt.erroEmailInvalido; else delete n.email_financeiro; return n; }); }}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
-                  <FieldLabel label={tt.emailContabil}>
-                    <input type="email" value={empresaForm.email_contabil || ""} onChange={(e) => setCampo("email_contabil", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  <FieldLabel label={tt.emailContabil} sugerido={camposSugeridos.has("email_contabil")} sugeridoTexto={tt.sugeridoBadge}
+                    erro={errosCampo.email_contabil}>
+                    <input type="email" value={empresaForm.email_contabil || ""} onChange={(e) => onChangeCampo("email_contabil", e.target.value)}
+                      onBlur={() => { const v = (empresaForm.email_contabil || "").trim(); setErrosCampo((p) => { const n = { ...p }; if (v && !/^\S+@\S+\.\S+$/.test(v)) n.email_contabil = tt.erroEmailInvalido; else delete n.email_contabil; return n; }); }}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
-                  <FieldLabel label={tt.website}>
-                    <input value={empresaForm.website || ""} onChange={(e) => setCampo("website", e.target.value)} placeholder="https://" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                  <FieldLabel label={tt.website} sugerido={camposSugeridos.has("website")} sugeridoTexto={tt.sugeridoBadge}>
+                    <input value={empresaForm.website || ""} onChange={(e) => onChangeCampo("website", e.target.value)} placeholder="https://" className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                   </FieldLabel>
                 </div>
               </CanvasBox>
@@ -1252,10 +1426,46 @@ export default function EmpresaPage() {
               <CanvasBox cor="#a78bfa">
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.bancario}</p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <FieldLabel label={tt.banco}><input value={empresaForm.banco_principal || ""} onChange={(e) => setCampo("banco_principal", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
-                  <FieldLabel label={tt.agencia}><input value={empresaForm.agencia || ""} onChange={(e) => setCampo("agencia", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
-                  <FieldLabel label={tt.conta}><input value={empresaForm.conta || ""} onChange={(e) => setCampo("conta", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
-                  <FieldLabel label={tt.chavePix}><input value={empresaForm.chave_pix || ""} onChange={(e) => setCampo("chave_pix", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
+                  <FieldLabel label={tt.banco}>
+                    <div className="relative">
+                      <input value={empresaForm.banco_principal || ""}
+                        onChange={(e) => { onChangeCampo("banco_principal", e.target.value); setBancoDropdownAberto(true); }}
+                        onFocus={() => setBancoDropdownAberto(true)}
+                        onBlur={() => setTimeout(() => setBancoDropdownAberto(false), 150)}
+                        placeholder={tt.buscarBanco} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                      {bancoDropdownAberto && bancos.length > 0 && (() => {
+                        const filtro = (empresaForm.banco_principal || "").toLowerCase();
+                        const encontrados = bancos.filter((b) => !filtro || b.nome.toLowerCase().includes(filtro)).slice(0, 30);
+                        return (
+                          <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg shadow-lg"
+                            style={{ background: "#0a1628", border: "1px solid rgba(106,176,255,0.3)" }}>
+                            {encontrados.length === 0 ? (
+                              <p className="px-3 py-2 text-xs" style={{ color: "#5a7a9a" }}>{tt.nenhumBancoEncontrado}</p>
+                            ) : encontrados.map((b) => (
+                              <button key={b.codigo} type="button" onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => { onChangeCampo("banco_principal", b.nome); setBancoDropdownAberto(false); }}
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: "#c8d8f0" }}>
+                                {b.codigo} - {b.nome}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </FieldLabel>
+                  <FieldLabel label={tt.agencia}><input value={empresaForm.agencia || ""} onChange={(e) => onChangeCampo("agencia", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
+                  <FieldLabel label={tt.conta}><input value={empresaForm.conta || ""} onChange={(e) => onChangeCampo("conta", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
+                  <FieldLabel label={tt.chavePix} sugerido={camposSugeridos.has("chave_pix")} sugeridoTexto={tt.sugeridoBadge}>
+                    <input value={empresaForm.chave_pix || ""}
+                      onChange={(e) => onChangeCampo("chave_pix", e.target.value)}
+                      onBlur={(e) => onChangeCampo("chave_pix", formatarChavePix(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
+                    {empresaForm.chave_pix && detectarTipoChavePix(empresaForm.chave_pix) && (
+                      <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>
+                        {tt.pixTipoDetectado}: {(tt as any)[`pixTipo_${detectarTipoChavePix(empresaForm.chave_pix)}`]}
+                      </p>
+                    )}
+                  </FieldLabel>
                 </div>
               </CanvasBox>
 
@@ -1596,11 +1806,22 @@ export default function EmpresaPage() {
 // COMPONENTES AUXILIARES
 // =============================================================================
 
-function FieldLabel({ label, children }: { label: string; children: any }) {
+function FieldLabel({ label, children, sugerido, sugeridoTexto, erro }: {
+  label: string; children: any; sugerido?: boolean; sugeridoTexto?: string; erro?: string;
+}) {
   return (
     <div>
-      <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{label}</label>
+      <label className="text-[10px] uppercase tracking-wider flex items-center gap-1.5 flex-wrap" style={{ color: "#5a7a9a" }}>
+        {label}
+        {sugerido && (
+          <span className="text-[9px] normal-case font-semibold px-1.5 py-0.5 rounded-full"
+            style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
+            ✨ {sugeridoTexto}
+          </span>
+        )}
+      </label>
       {children}
+      {erro && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{erro}</p>}
     </div>
   );
 }

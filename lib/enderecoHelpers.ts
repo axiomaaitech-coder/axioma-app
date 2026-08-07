@@ -17,26 +17,32 @@ export type DadosCEP = {
   uf?: string;
 };
 
-export async function consultarCEP(cep: string): Promise<DadosCEP | { erro: string }> {
+// Consulta o ViaCEP por dentro da nossa própria rota (app/api/empresa/
+// consulta-cep) — mesmo padrão do CNPJ, ver empresaHelpers.ts. `codigo` no
+// retorno de erro é estável (não muda por idioma) — a tela traduz.
+export async function consultarCEP(cep: string): Promise<DadosCEP | { erro: string; codigo: string }> {
   const c = (cep || "").replace(/\D/g, "");
-  if (c.length !== 8) return { erro: "CEP deve ter 8 dígitos" };
+  if (c.length !== 8) return { erro: "CEP deve ter 8 dígitos", codigo: "invalido" };
 
+  let data: any;
   try {
-    const resp = await fetch(`https://viacep.com.br/ws/${c}/json/`);
-    if (!resp.ok) return { erro: "Erro ao consultar CEP" };
-    const data = await resp.json();
-    if (data.erro) return { erro: "CEP não encontrado" };
-
-    return {
-      cep: formatarCEP(data.cep),
-      logradouro: data.logradouro,
-      bairro: data.bairro,
-      cidade: data.localidade,
-      uf: data.uf,
-    };
-  } catch (err: any) {
-    return { erro: `Erro de conexão: ${err.message}` };
+    const resp = await fetch(`/api/empresa/consulta-cep?cep=${c}`);
+    data = await resp.json();
+  } catch {
+    return { erro: "Erro de conexão", codigo: "indisponivel" };
   }
+
+  if (data.status === "invalido") return { erro: "CEP deve ter 8 dígitos", codigo: "invalido" };
+  if (data.status === "nao_encontrado") return { erro: "CEP não encontrado", codigo: "nao_encontrado" };
+  if (data.status !== "ok") return { erro: "Serviço de consulta indisponível no momento. Tente novamente em instantes.", codigo: "indisponivel" };
+
+  return {
+    cep: formatarCEP(data.cep),
+    logradouro: data.logradouro,
+    bairro: data.bairro,
+    cidade: data.cidade,
+    uf: data.uf,
+  };
 }
 
 // CPF — mesmo padrão de validarCNPJ (empresaHelpers.ts): dígitos verificadores mod-11.
