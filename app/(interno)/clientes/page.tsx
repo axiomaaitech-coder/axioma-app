@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -204,6 +205,10 @@ const T = {
     freqOpcoes: [{ value: "mensal", label: "Mensal" }, { value: "trimestral", label: "Trimestral" }, { value: "anual", label: "Anual" }],
     scoreRecebimentoLbl: "Score de Recebimento", probInadimplenciaLbl: "Probabilidade de Inadimplência", previsaoIaLbl: "Previsão (regra, não IA generativa)",
     selecioneClientePrevisao: "Selecione um cliente e vencimento para ver a previsão.",
+    erroSalvarCliente: "Não foi possível salvar o cliente. Tente novamente.",
+    erroExcluirCliente: "Não foi possível excluir o cliente. Tente novamente.",
+    erroSalvarConta: "Não foi possível salvar a cobrança. Tente novamente.",
+    erroMarcarRecebido: "Não foi possível marcar como recebido. Tente novamente.",
   },
   en: {
     abaCarteira: "📊 Portfolio", abaCliente: "🧬 Client", abaCobrancas: "💳 Receivables",
@@ -274,6 +279,10 @@ const T = {
     freqOpcoes: [{ value: "mensal", label: "Monthly" }, { value: "trimestral", label: "Quarterly" }, { value: "anual", label: "Yearly" }],
     scoreRecebimentoLbl: "Collection Score", probInadimplenciaLbl: "Default Probability", previsaoIaLbl: "Forecast (rule-based, not generative AI)",
     selecioneClientePrevisao: "Select a client and due date to see the forecast.",
+    erroSalvarCliente: "Could not save the client. Try again.",
+    erroExcluirCliente: "Could not delete the client. Try again.",
+    erroSalvarConta: "Could not save the receivable. Try again.",
+    erroMarcarRecebido: "Could not mark as received. Try again.",
   },
   es: {
     abaCarteira: "📊 Cartera", abaCliente: "🧬 Cliente", abaCobrancas: "💳 Cobros",
@@ -344,6 +353,10 @@ const T = {
     freqOpcoes: [{ value: "mensal", label: "Mensual" }, { value: "trimestral", label: "Trimestral" }, { value: "anual", label: "Anual" }],
     scoreRecebimentoLbl: "Score de Cobro", probInadimplenciaLbl: "Probabilidad de Impago", previsaoIaLbl: "Previsión (regla, no IA generativa)",
     selecioneClientePrevisao: "Seleccione un cliente y vencimiento para ver la previsión.",
+    erroSalvarCliente: "No se pudo guardar el cliente. Intente de nuevo.",
+    erroExcluirCliente: "No se pudo eliminar el cliente. Intente de nuevo.",
+    erroSalvarConta: "No se pudo guardar el cobro. Intente de nuevo.",
+    erroMarcarRecebido: "No se pudo marcar como recibido. Intente de nuevo.",
   },
 };
 
@@ -386,6 +399,18 @@ export default function ClientesPage() {
   const [chatCarregando, setChatCarregando] = useState(false);
 
   const [shareAberto, setShareAberto] = useState(false);
+
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  // Reporta falha de escrita no Supabase (erro real, ou RLS bloqueando em
+  // silêncio — 0 linhas afetadas sem erro do Postgres) pro Sentry, com
+  // contexto útil, sem travar a tela.
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
 
   useEffect(() => {
     carregarDados();
@@ -441,15 +466,32 @@ export default function ClientesPage() {
       documentos_links: form.documentosLinks || null,
     };
     if (editandoCliente) {
-      await supabase.from("clientes").update(payload).eq("id", editandoCliente.id);
+      const { data, error } = await supabase.from("clientes").update(payload).eq("id", editandoCliente.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(tt.erroSalvarCliente, "erro");
+        reportarFalhaEscrita("clientes", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoCliente(false);
+        return;
+      }
     } else {
-      await supabase.from("clientes").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+      const { data, error } = await supabase.from("clientes").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(tt.erroSalvarCliente, "erro");
+        reportarFalhaEscrita("clientes", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoCliente(false);
+        return;
+      }
     }
     fecharModalCliente(); setSalvandoCliente(false); carregarDados();
   }
 
   async function excluirCliente(id: string) {
-    await supabase.from("clientes").delete().eq("id", id);
+    const { data, error } = await supabase.from("clientes").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(tt.erroExcluirCliente, "erro");
+      reportarFalhaEscrita("clientes", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     if (clienteSelecionadoId === id) { setClienteSelecionadoId(null); setAba("carteira"); }
     carregarDados();
   }
@@ -459,7 +501,7 @@ export default function ClientesPage() {
     setSalvandoConta(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSalvandoConta(false); return; }
-    await supabase.from("contas_receber").insert({
+    const { data, error } = await supabase.from("contas_receber").insert({
       descricao: formConta.descricao, valor: parseFloat(formConta.valor), data_vencimento: formConta.vencimento,
       data_emissao: formConta.emissao || null, status: "pendente", cliente_id: formConta.clienteId || null,
       numero_documento: formConta.numeroDocumento || null, categoria: formConta.categoria || null,
@@ -475,13 +517,24 @@ export default function ClientesPage() {
       frequencia_recorrencia: formConta.recorrente ? (formConta.frequenciaRecorrencia || null) : null,
       anexo_url: formConta.anexoUrl || null,
       user_id: user.id, empresa_id: empresaId,
-    });
+    }).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(tt.erroSalvarConta, "erro");
+      reportarFalhaEscrita("contas_receber", "insert", error?.message || "0 linhas afetadas (RLS?)");
+      setSalvandoConta(false);
+      return;
+    }
     setModalConta(false); setFormConta(FORM_CONTA_VAZIO);
     setSalvandoConta(false); carregarDados();
   }
 
   async function marcarRecebido(id: string) {
-    await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: new Date().toISOString().split("T")[0] }).eq("id", id);
+    const { data, error } = await supabase.from("contas_receber").update({ status: "recebido", data_recebimento: new Date().toISOString().split("T")[0] }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(tt.erroMarcarRecebido, "erro");
+      reportarFalhaEscrita("contas_receber", "update status recebido", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     carregarDados();
   }
 
@@ -749,6 +802,15 @@ export default function ClientesPage() {
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditandoCliente(null); setForm(FORM_VAZIO); setEtapaCadastro(0); setModalCliente(true); }}
       labelBotao={cl.novoCliente} botaoExtra={<div className="flex gap-2 flex-wrap">{botaoCobranca}{botaoCompartilhar}</div>}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)",
+            color: "#020810", fontWeight: 600, fontSize: 13,
+          }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         {/* Abas */}

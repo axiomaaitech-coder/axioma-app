@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -102,6 +103,18 @@ export default function Precificacao() {
   const [warChoque, setWarChoque] = useState<ChoqueSimulador>({ receitaPct: 0, custoFixoPct: 0, custoVariavelPct: 0, jurosDividaPontos: 0, aporteCapital: 0, retornoMensalAporte: 0 });
   const [warResultado, setWarResultado] = useState<ResultadoCenario[] | null>(null);
 
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  // Reporta falha de escrita no Supabase (erro real, ou RLS bloqueando em
+  // silêncio — 0 linhas afetadas sem erro do Postgres) pro Sentry, com
+  // contexto útil, sem travar a tela.
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
+
   const txt = {
     novo: idioma === "pt" ? "Novo Produto" : idioma === "en" ? "New Product" : "Nuevo Producto",
     editar: idioma === "pt" ? "Editar Produto" : idioma === "en" ? "Edit Product" : "Editar Producto",
@@ -124,6 +137,12 @@ export default function Precificacao() {
     categoriaLabel: idioma === "pt" ? "Categoria" : idioma === "en" ? "Category" : "Categoría",
     unidadesLabel: idioma === "pt" ? "Unidades Vendidas/Mês" : idioma === "en" ? "Units Sold/Month" : "Unidades Vendidas/Mes",
     statusLabel: idioma === "pt" ? "Status" : "Status",
+    erroSalvarProduto: idioma === "pt" ? "Não foi possível salvar o produto. Tente novamente." : idioma === "en" ? "Could not save the product. Try again." : "No se pudo guardar el producto. Intente de nuevo.",
+    erroExcluirProduto: idioma === "pt" ? "Não foi possível excluir o produto. Tente novamente." : idioma === "en" ? "Could not delete the product. Try again." : "No se pudo eliminar el producto. Intente de nuevo.",
+    erroAplicarPreco: idioma === "pt" ? "Não foi possível aplicar o novo preço. Tente novamente." : idioma === "en" ? "Could not apply the new price. Try again." : "No se pudo aplicar el nuevo precio. Intente de nuevo.",
+    erroAdicionarConcorrente: idioma === "pt" ? "Não foi possível adicionar o concorrente. Tente novamente." : idioma === "en" ? "Could not add the competitor. Try again." : "No se pudo agregar el competidor. Intente de nuevo.",
+    erroRemoverConcorrente: idioma === "pt" ? "Não foi possível remover o concorrente. Tente novamente." : idioma === "en" ? "Could not remove the competitor. Try again." : "No se pudo eliminar el competidor. Intente de nuevo.",
+    erroAtualizarResultado: idioma === "pt" ? "Não foi possível salvar o resultado. Tente novamente." : idioma === "en" ? "Could not save the result. Try again." : "No se pudo guardar el resultado. Intente de nuevo.",
     statusAtivo: idioma === "pt" ? "Ativo" : idioma === "en" ? "Active" : "Activo",
     statusDescontinuado: idioma === "pt" ? "Descontinuado" : idioma === "en" ? "Discontinued" : "Descontinuado",
     selecioneProduto: idioma === "pt" ? "Selecione um produto" : idioma === "en" ? "Select a product" : "Seleccione un producto",
@@ -191,16 +210,34 @@ export default function Precificacao() {
       categoria: categoria || null, unidades_vendidas_mes: unidadesVendidasMes ? parseFloat(unidadesVendidasMes) : null, status,
     };
     if (editando) {
-      await supabase.from("precificacao").update(payload).eq("id", editando.id);
+      const { data, error } = await supabase.from("precificacao").update(payload).eq("id", editando.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarProduto, "erro");
+        reportarFalhaEscrita("precificacao", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
+      }
     } else {
       const empresaId = await obterEmpresaAtiva();
       if (!empresaId) { setSalvando(false); return; }
-      await supabase.from("precificacao").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+      const { data, error } = await supabase.from("precificacao").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarProduto, "erro");
+        reportarFalhaEscrita("precificacao", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
+      }
     }
     fecharModal(); setSalvando(false); await carregarTudo();
   }
   async function excluirProduto(id: string) {
-    await supabase.from("precificacao").delete().eq("id", id); await carregarTudo();
+    const { data, error } = await supabase.from("precificacao").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroExcluirProduto, "erro");
+      reportarFalhaEscrita("precificacao", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
+    await carregarTudo();
   }
 
   // ═══════════════════════ DADOS REAIS DA EMPRESA (mesmo padrão de Simulações) ═══════════════════════
@@ -277,12 +314,25 @@ export default function Precificacao() {
     if (!user) return;
     const empresaId = await obterEmpresaAtiva();
     const precoNovo = parseFloat(precoCandidato);
-    await supabase.from("precificacao").update({ preco_sugerido: precoNovo }).eq("id", produtoSelecionado.id);
-    await supabase.from("decisoes_precificacao").insert({
+    const upd = await supabase.from("precificacao").update({ preco_sugerido: precoNovo }).eq("id", produtoSelecionado.id).select("id");
+    if (upd.error || !upd.data || upd.data.length === 0) {
+      showToast(txt.erroAplicarPreco, "erro");
+      reportarFalhaEscrita("precificacao", "update preço", upd.error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
+    const ins = await supabase.from("decisoes_precificacao").insert({
       user_id: user.id, empresa_id: empresaId, produto_id: produtoSelecionado.id,
       preco_anterior: produtoSelecionado.preco_sugerido, preco_novo: precoNovo,
       motivo: "Motor de Precificação por Valor", unidades_no_momento: produtoSelecionado.unidades_vendidas_mes || 0,
-    });
+    }).select("id");
+    if (ins.error || !ins.data || ins.data.length === 0) {
+      showToast(txt.erroAplicarPreco, "erro");
+      reportarFalhaEscrita("decisoes_precificacao", "insert", ins.error?.message || "0 linhas afetadas (RLS?)");
+      // O preço já mudou (passo 1 funcionou) — recarrega pra tela refletir o
+      // estado real do banco, mesmo com o registro da decisão sem gravar.
+      await carregarTudo();
+      return;
+    }
     setPrecoCandidato(""); await carregarTudo();
   }
 
@@ -307,14 +357,27 @@ export default function Precificacao() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const empresaId = await obterEmpresaAtiva();
-    await supabase.from("concorrentes").insert({
+    const { data, error } = await supabase.from("concorrentes").insert({
       user_id: user.id, empresa_id: empresaId, produto_id: produtoSelecionadoId, nome_concorrente: novoConcorrenteNome,
       preco: parseFloat(novoConcorrentePreco), posicionamento: novoConcorrentePosicionamento || null,
-    });
+    }).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroAdicionarConcorrente, "erro");
+      reportarFalhaEscrita("concorrentes", "insert", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     setNovoConcorrenteNome(""); setNovoConcorrentePreco(""); setNovoConcorrentePosicionamento("");
     await carregarTudo();
   }
-  async function removerConcorrente(id: string) { await supabase.from("concorrentes").delete().eq("id", id); await carregarTudo(); }
+  async function removerConcorrente(id: string) {
+    const { data, error } = await supabase.from("concorrentes").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroRemoverConcorrente, "erro");
+      reportarFalhaEscrita("concorrentes", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
+    await carregarTudo();
+  }
 
   // ═══════════════════════ WAR ROOM (reaproveita o motor de Simulações) ═══════════════════════
   function aplicarPresetGuerra(preset: keyof typeof WAR_PRESETS) {
@@ -333,7 +396,11 @@ export default function Precificacao() {
 
   // ═══════════════════════ MEMÓRIA ESTRATÉGICA ═══════════════════════
   async function atualizarResultadoReal(id: string, texto: string) {
-    await supabase.from("decisoes_precificacao").update({ resultado_real: texto }).eq("id", id);
+    const { data, error } = await supabase.from("decisoes_precificacao").update({ resultado_real: texto }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroAtualizarResultado, "erro");
+      reportarFalhaEscrita("decisoes_precificacao", "update resultado_real", error?.message || "0 linhas afetadas (RLS?)");
+    }
   }
 
   // ═══════════════════════ PAINEL DE ESPECIALISTAS + RECOMENDAÇÃO CONSOLIDADA ═══════════════════════
@@ -405,6 +472,15 @@ export default function Precificacao() {
 
   return (
     <ModuloLayout titulo={cx.prcTitulo} subtitulo={cx.prcSubtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)",
+            color: "#020810", fontWeight: 600, fontSize: 13,
+          }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         <div className="flex justify-end">
