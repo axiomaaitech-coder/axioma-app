@@ -1586,10 +1586,10 @@ export default function EstoquePage() {
               onFocus={() => garantirSugestaoColuna("conta_contabil")} lista={sugestoes["col:conta_contabil"]} />
           </div>
 
-          {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo].length > 0 && (
+          {(CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo] || []).length > 0 && (
             <SecaoColapsavel titulo={et.secaoCamposNicho} aberta={secaoCamposNichoAberta} onToggle={() => setSecaoCamposNichoAberta((a) => !a)}>
               <div className="grid grid-cols-3 gap-3">
-                {CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo]
+                {(CAMPOS_CONDICIONAIS_POR_SEGMENTO[segmentoEfetivo] || [])
                   .filter((campo) => !campo.dependeDe || !!(formProduto.atributos_nicho || {})[campo.dependeDe])
                   .map((campo) => {
                   const valorAtual = (formProduto.atributos_nicho || {})[campo.chave];
