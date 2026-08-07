@@ -181,6 +181,11 @@ const T = {
     // Auditoria
     historico: "🔐 Histórico de Alterações",
     auditoriaInfo: "Cada criação/edição/exclusão é registrada com data, hora e detalhes.",
+    auditEmpresa: "Empresa",
+    auditPor: "Por",
+    auditDe: "De",
+    auditPara: "Para",
+    auditValorRedigido: "Alteração registrada — conteúdo não exibido (dado pessoal de terceiro)",
     semAuditoria: "Nenhuma alteração registrada ainda.",
     campo: "Campo",
     // CNPJ modal
@@ -380,6 +385,11 @@ const T = {
     orgaoEmissor: "Issuing authority",
     historico: "🔐 Change History",
     auditoriaInfo: "Every creation/edit/deletion is logged with date, time and details.",
+    auditEmpresa: "Company",
+    auditPor: "By",
+    auditDe: "From",
+    auditPara: "To",
+    auditValorRedigido: "Change logged — content not shown (third party's personal data)",
     semAuditoria: "No changes recorded yet.",
     campo: "Field",
     cnpjResultadoTitulo: "🪄 Data found in Federal Revenue",
@@ -575,6 +585,11 @@ const T = {
     orgaoEmissor: "Órgano emisor",
     historico: "🔐 Historial de Cambios",
     auditoriaInfo: "Cada creación/edición/eliminación queda registrada con fecha, hora y detalles.",
+    auditEmpresa: "Empresa",
+    auditPor: "Por",
+    auditDe: "De",
+    auditPara: "Para",
+    auditValorRedigido: "Cambio registrado — contenido no mostrado (dato personal de tercero)",
     semAuditoria: "Sin cambios registrados todavía.",
     campo: "Campo",
     cnpjResultadoTitulo: "🪄 Datos encontrados en Receita Federal",
@@ -997,7 +1012,7 @@ export default function EmpresaPage() {
   async function removerSocio(socio: any) {
     if (!empresa || !userId) return;
     if (!window.confirm(tt.toastConfirmRemoverSocio(socio.nome))) return;
-    const r = await excluirSocio(socio.id, empresa.id, userId, socio.nome);
+    const r = await excluirSocio(socio.id, empresa.id, userId);
     if (r.erro) { showToast(r.erro, "erro"); return; }
     showToast(tt.toastSocioRemovido, "ok");
     await recarregarSocios();
@@ -1729,7 +1744,22 @@ export default function EmpresaPage() {
                         <span className="text-lg flex-shrink-0">{icon}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm" style={{ color: "#c8d8f0" }}>{a.descricao || `${a.acao} → ${a.tabela}`}</p>
+                          {a.empresa_nome && <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tt.auditEmpresa}: <strong>{a.empresa_nome}</strong></p>}
+                          {(a.autor_nome || a.autor_email) && (
+                            <p className="text-[11px]" style={{ color: "#5a7a9a" }}>
+                              {tt.auditPor}: <strong>{a.autor_nome || a.autor_email}</strong>{a.autor_nome && a.autor_email ? ` (${a.autor_email})` : ""}
+                            </p>
+                          )}
                           {a.campo && <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tt.campo}: <strong>{a.campo}</strong></p>}
+                          {a.campo && (a.valor_antes !== undefined || a.valor_depois !== undefined) && (
+                            a.valor_antes?.redigido || a.valor_depois?.redigido ? (
+                              <p className="text-[11px] italic" style={{ color: "#5a7a9a" }}>{tt.auditValorRedigido}</p>
+                            ) : (
+                              <p className="text-[11px]" style={{ color: "#5a7a9a" }}>
+                                {tt.auditDe}: <strong>{String(a.valor_antes?.[a.campo] ?? "—")}</strong> → {tt.auditPara}: <strong>{String(a.valor_depois?.[a.campo] ?? "—")}</strong>
+                              </p>
+                            )
+                          )}
                           <p className="text-[10px] mt-0.5" style={{ color: "#5a7a9a" }}>{formatDataHora(a.created_at, lang)}</p>
                         </div>
                       </div>

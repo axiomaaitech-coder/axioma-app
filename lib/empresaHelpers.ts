@@ -11,6 +11,19 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Campos que identificam uma PESSOA física de fora da empresa (o contador,
+// não sócio/funcionário) — a auditoria nunca grava o valor real desses
+// campos, só o fato de que mudaram (LGPD: dado pessoal de terceiro sem base
+// legal pra reter no histórico). Usado em criarEmpresa/atualizarEmpresa.
+const CAMPOS_TERCEIRO = new Set(["contador_nome", "contador_email", "contador_telefone", "contador_crc"]);
+function redigirCamposTerceiro(payload: any): any {
+  const limpo = { ...payload };
+  for (const campo of CAMPOS_TERCEIRO) {
+    if (campo in limpo) limpo[campo] = "[redigido]";
+  }
+  return limpo;
+}
+
 // ============================================================================
 // VALIDAÇÃO E FORMATAÇÃO
 // ============================================================================
@@ -316,7 +329,7 @@ export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: s
     tabela: "empresas",
     registroId: data.id,
     acao: "criar",
-    valorDepois: payload,
+    valorDepois: redigirCamposTerceiro(payload),
     descricao: "Empresa cadastrada no sistema",
   });
 
@@ -355,8 +368,10 @@ export async function atualizarEmpresa(
   if (error) return { erro: error.message };
   if (!data || data.length === 0) return { erro: "SEM_PERMISSAO_ESCRITA" };
 
-  // Auditoria: 1 registro por campo alterado
+  // Auditoria: 1 registro por campo alterado. Campo de terceiro (contador)
+  // não grava o valor real — só o fato de que mudou (ver redigirCamposTerceiro).
   for (const campo of camposAlterados) {
+    const redigir = CAMPOS_TERCEIRO.has(campo);
     await registrarAuditoria({
       empresaId,
       userId,
@@ -364,8 +379,8 @@ export async function atualizarEmpresa(
       registroId: empresaId,
       acao: "editar",
       campo,
-      valorAntes: { [campo]: dadosAntes?.[campo] || null },
-      valorDepois: { [campo]: dadosNovos[campo] || null },
+      valorAntes: redigir ? { redigido: true } : { [campo]: dadosAntes?.[campo] || null },
+      valorDepois: redigir ? { redigido: true } : { [campo]: dadosNovos[campo] || null },
     });
   }
 
@@ -386,6 +401,10 @@ export async function carregarSocios(empresaId: string, userId: string): Promise
   return data || [];
 }
 
+// Sócio é dado pessoal de alguém que não é o usuário logado — a auditoria
+// registra a AÇÃO e o id interno do registro, nunca nome/CPF (LGPD). O nome
+// completo fica só na tabela empresa_socios em si (onde precisa existir pra
+// o cadastro funcionar), não no histórico de auditoria.
 export async function criarSocio(empresaId: string, userId: string, dados: any): Promise<{ id?: string; erro?: string }> {
   const payload = { ...dados, empresa_id: empresaId, user_id: userId };
   const { data, error } = await supabase.from("empresa_socios").insert(payload).select("id").single();
@@ -396,8 +415,7 @@ export async function criarSocio(empresaId: string, userId: string, dados: any):
     tabela: "empresa_socios",
     registroId: data.id,
     acao: "criar",
-    valorDepois: payload,
-    descricao: `Sócio adicionado: ${dados.nome}`,
+    descricao: "Sócio adicionado",
   });
   return { id: data.id };
 }
@@ -415,13 +433,12 @@ export async function atualizarSocio(socioId: string, empresaId: string, userId:
     tabela: "empresa_socios",
     registroId: socioId,
     acao: "editar",
-    valorDepois: dados,
-    descricao: `Sócio atualizado: ${dados.nome}`,
+    descricao: "Sócio atualizado",
   });
   return {};
 }
 
-export async function excluirSocio(socioId: string, empresaId: string, userId: string, nome: string): Promise<{ erro?: string }> {
+export async function excluirSocio(socioId: string, empresaId: string, userId: string): Promise<{ erro?: string }> {
   const { error } = await supabase
     .from("empresa_socios")
     .delete()
@@ -434,7 +451,7 @@ export async function excluirSocio(socioId: string, empresaId: string, userId: s
     tabela: "empresa_socios",
     registroId: socioId,
     acao: "excluir",
-    descricao: `Sócio removido: ${nome}`,
+    descricao: "Sócio removido",
   });
   return {};
 }
@@ -478,15 +495,20 @@ export async function importarSociosDoQSA(
     if (!error && data) {
       importados++;
       if (cpfCnpjLimpo) cpfCnpjExistentes.add(cpfCnpjLimpo); else nomesExistentes.add(norm(dados.nome));
-      await registrarAuditoria({
-        empresaId,
-        userId,
-        tabela: "empresa_socios",
-        registroId: data.id,
-        acao: "criar",
-        descricao: `Sócio importado da Receita Federal: ${dados.nome}`,
-      });
     }
+  }
+  // 1 registro de auditoria pro lote inteiro (não 1 por sócio) — a ação e a
+  // quantidade, nunca nomes/CPF de gente sem relação com o usuário logado
+  // (LGPD, ver nota em criarSocio). Só registra se algo de fato entrou.
+  if (importados > 0) {
+    await registrarAuditoria({
+      empresaId,
+      userId,
+      tabela: "empresa_socios",
+      registroId: empresaId,
+      acao: "criar",
+      descricao: `Importados ${importados} sócio(s) do quadro societário da Receita Federal${ignorados > 0 ? ` (${ignorados} já cadastrado(s), ignorado(s))` : ""}`,
+    });
   }
   return { importados, ignorados };
 }
@@ -588,6 +610,11 @@ export async function uploadLogo(file: File, userId: string): Promise<{ url?: st
 // AUDITORIA
 // ============================================================================
 
+// Rastreabilidade real: além do que mudou, registra QUAL empresa e QUEM fez
+// (nome/e-mail de quem estava logado, não só o user_id). Busca os dois na
+// hora — nunca confia num valor que o chamador poderia ter desatualizado em
+// memória. Mesmo fallback de nome já usado no Dashboard
+// (user_metadata.nome → user_metadata.full_name → prefixo do e-mail).
 export async function registrarAuditoria(params: {
   empresaId: string;
   userId: string;
@@ -599,9 +626,23 @@ export async function registrarAuditoria(params: {
   valorDepois?: any;
   descricao?: string;
 }): Promise<void> {
+  const [{ data: authData }, { data: emp }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("empresas").select("nome, razao_social").eq("id", params.empresaId).maybeSingle(),
+  ]);
+  const autorEmail = authData?.user?.email || null;
+  const autorNome =
+    authData?.user?.user_metadata?.nome ||
+    authData?.user?.user_metadata?.full_name ||
+    autorEmail?.split("@")[0] ||
+    null;
+
   await supabase.from("empresa_auditoria").insert({
     empresa_id: params.empresaId,
+    empresa_nome: emp?.razao_social || emp?.nome || null,
     user_id: params.userId,
+    autor_nome: autorNome,
+    autor_email: autorEmail,
     tabela: params.tabela,
     registro_id: params.registroId,
     acao: params.acao,
