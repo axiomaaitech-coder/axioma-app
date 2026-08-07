@@ -1072,7 +1072,8 @@ export default function EstoquePage() {
                   onChange={async (v) => {
                     if (!empresaId) return;
                     setEmpresaSegmentoPadrao(v || null);
-                    await definirSegmentoPadraoEmpresa(empresaId, v);
+                    const { erro } = await definirSegmentoPadraoEmpresa(empresaId, v);
+                    if (erro) mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? et.toastSemPermissaoEscrita : erro, "erro");
                   }}
                   opcoes={SEGMENTOS.map((s) => ({ value: s.value, label: s.label[idioma] }))} />
               </div>
@@ -1661,7 +1662,7 @@ export default function EstoquePage() {
                 const chave = novoCampoNome.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_");
                 const novo = { chave, nome: novoCampoNome.trim(), tipo: novoCampoTipo };
                 const { erro } = await adicionarCampoPersonalizado(empresaId, camposPersonalizados, novo);
-                if (erro) { mostrarToast(erro, "erro"); return; }
+                if (erro) { mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? et.toastSemPermissaoEscrita : erro, "erro"); return; }
                 setCamposPersonalizados((c) => [...c, novo]);
                 setNovoCampoNome(""); setNovoCampoTipo("text"); setMostrarNovoCampo(false);
               }} className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: JADE, color: "#fff" }}>{et.salvarCampo}</button>

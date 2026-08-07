@@ -278,11 +278,17 @@ export async function atualizarEmpresa(
 
   // Qualquer edição do cadastro conta como "usuário preencheu" — some o aviso.
   const payload = { ...dadosNovos, cadastro_completo: true, updated_at: new Date().toISOString() };
-  const { error } = await supabase
+  // .select() força o retorno das linhas afetadas — sem isso, um UPDATE que a
+  // RLS bloqueia silenciosamente (0 linhas, sem erro do Postgres) parecia
+  // sucesso. Ver STATUS-AXIOMA: bug da política de "empresas" só olhar
+  // user_id, não empresa_usuarios.
+  const { data, error } = await supabase
     .from("empresas")
     .update(payload)
-    .eq("id", empresaId);
+    .eq("id", empresaId)
+    .select("id");
   if (error) return { erro: error.message };
+  if (!data || data.length === 0) return { erro: "SEM_PERMISSAO_ESCRITA" };
 
   // Auditoria: 1 registro por campo alterado
   for (const campo of camposAlterados) {

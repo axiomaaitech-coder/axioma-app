@@ -410,15 +410,23 @@ export async function carregarConfigEstoqueEmpresa(empresaId: string): Promise<{
   return { segmentoPadrao: data?.segmento_padrao || null, camposPersonalizados: data?.campos_personalizados_estoque || [] };
 }
 
+// .select() força o retorno das linhas afetadas — sem isso, um UPDATE que a
+// RLS bloqueia silenciosamente (0 linhas, sem erro do Postgres) parecia
+// sucesso. Ver STATUS-AXIOMA: bug da política de "empresas" só olhar
+// user_id, não empresa_usuarios.
 export async function definirSegmentoPadraoEmpresa(empresaId: string, segmento: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("empresas").update({ segmento_padrao: segmento }).eq("id", empresaId);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("empresas").update({ segmento_padrao: segmento }).eq("id", empresaId).select("id");
+  if (error) return { erro: error.message };
+  if (!data || data.length === 0) return { erro: "SEM_PERMISSAO_ESCRITA" };
+  return {};
 }
 
 export async function adicionarCampoPersonalizado(empresaId: string, atuais: CampoPersonalizadoEmpresa[], novo: CampoPersonalizadoEmpresa): Promise<{ erro?: string }> {
   if (atuais.length >= MAX_CAMPOS_PERSONALIZADOS) return { erro: `Limite de ${MAX_CAMPOS_PERSONALIZADOS} campos personalizados atingido` };
-  const { error } = await supabase.from("empresas").update({ campos_personalizados_estoque: [...atuais, novo] }).eq("id", empresaId);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("empresas").update({ campos_personalizados_estoque: [...atuais, novo] }).eq("id", empresaId).select("id");
+  if (error) return { erro: error.message };
+  if (!data || data.length === 0) return { erro: "SEM_PERMISSAO_ESCRITA" };
+  return {};
 }
 
 // Remove a definição do campo (empresas.campos_personalizados_estoque) E a

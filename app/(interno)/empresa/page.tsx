@@ -192,6 +192,7 @@ const T = {
     toastConfirmImportarSocios: (n: number) => `Encontramos ${n} sócio(s) na Receita. Importar para o sistema?`,
     toastDadosSalvos: "Dados salvos!",
     toastErroCarregar: "Erro ao carregar",
+    toastSemPermissaoEscrita: "Não salvou — sua conta não tem permissão de edição para esta empresa. Fale com o proprietário.",
     toastLogoAtualizada: "Logo atualizada (clique em Salvar)",
     toastSocioAdicionado: "Sócio adicionado",
     toastSocioAtualizado: "Sócio atualizado",
@@ -367,6 +368,7 @@ const T = {
     toastConfirmImportarSocios: (n: number) => `Found ${n} partner(s). Import into system?`,
     toastDadosSalvos: "Data saved!",
     toastErroCarregar: "Loading error",
+    toastSemPermissaoEscrita: "Not saved — your account doesn't have edit permission for this company. Contact the owner.",
     toastLogoAtualizada: "Logo updated (click Save)",
     toastSocioAdicionado: "Partner added",
     toastSocioAtualizado: "Partner updated",
@@ -541,6 +543,7 @@ const T = {
     toastConfirmImportarSocios: (n: number) => `Encontramos ${n} socio(s). ¿Importar al sistema?`,
     toastDadosSalvos: "¡Datos guardados!",
     toastErroCarregar: "Error al cargar",
+    toastSemPermissaoEscrita: "No se guardó — su cuenta no tiene permiso de edición para esta empresa. Hable con el propietario.",
     toastLogoAtualizada: "Logo actualizado (haga clic en Guardar)",
     toastSocioAdicionado: "Socio agregado",
     toastSocioAtualizado: "Socio actualizado",
@@ -767,7 +770,7 @@ export default function EmpresaPage() {
     if (!empresa || !userId) return;
     setSalvando(true);
     const r = await atualizarEmpresa(empresa.id, userId, empresa, empresaForm);
-    if (r.erro) showToast(r.erro, "erro");
+    if (r.erro) showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro");
     else { showToast(tt.toastDadosSalvos, "ok"); await carregarTudo(); }
     setSalvando(false);
   }
