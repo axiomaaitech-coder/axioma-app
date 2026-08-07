@@ -97,6 +97,11 @@ export async function GET(req: NextRequest) {
     icms: typeof tributos.icms === "number" ? tributos.icms : undefined,
     pis: typeof tributos.pis === "number" ? tributos.pis : undefined,
     cofins: typeof tributos.cofins === "number" ? tributos.cofins : undefined,
+    // Preço médio de mercado da Cosmos — só referência (preco_sugerido), nunca
+    // grava direto em preco_venda: é média nacional, não o preço que ESTA loja
+    // pratica. Campo novo, aditivo — o cadastro do Estoque não lê esta chave,
+    // segue exatamente como antes.
+    precoSugerido: typeof dados.avg_price === "number" ? dados.avg_price : undefined,
     imagemBase64,
   });
 }

@@ -106,3 +106,39 @@ export async function listarProdutosPdv(empresaId: string, filtro: FiltroProduto
   if (error) return { dados: [], total: 0 };
   return { dados: (data as unknown as ProdutoPdv[]) || [], total: count || 0 };
 }
+
+// ============================================================================
+// FASE 2 — CADASTRO: cascata (camada 3, IA) + checagem de duplicidade
+// ============================================================================
+
+// Camadas 1 (buscarProdutoPorCodigo) e 2 (consultarEan) já existem em
+// estoqueHelpers.ts e são reaproveitadas tal e qual pelo formulário do PDV —
+// só a camada 3 (IA) é nova, porque só ela não existia antes desta fase.
+export type ConsultaIaResposta =
+  | { status: "nao_configurado" }
+  | { status: "nao_encontrado" }
+  | { status: "erro"; mensagem?: string }
+  | { status: "ok"; nome?: string; marca?: string; categoria?: string };
+
+export async function consultarIA(ean: string, idioma: string): Promise<ConsultaIaResposta> {
+  try {
+    const resp = await fetch(`/api/produto/consulta-ia?ean=${encodeURIComponent(ean)}&idioma=${encodeURIComponent(idioma)}`);
+    return await resp.json();
+  } catch {
+    return { status: "erro" };
+  }
+}
+
+// Produto sem código de barras (típico de serviço) não passa pela Camada 1 —
+// única defesa contra duplicar é comparar nome, dentro do mesmo nicho/empresa.
+// ILIKE sem "%" já é comparação exata *case-insensitive* no Postgres — não é
+// busca difusa, é "mesmo nome, ignorando maiúscula/minúscula".
+export async function verificarNomeDuplicado(empresaId: string, segmento: string, nome: string): Promise<{ id: string; nome: string } | null> {
+  const termo = nome.trim();
+  if (!termo) return null;
+  const { data } = await supabase.from("produtos").select("id, nome")
+    .eq("empresa_id", empresaId).eq("segmento", segmento).eq("status", "ativo")
+    .ilike("nome", termo)
+    .limit(1).maybeSingle();
+  return data || null;
+}

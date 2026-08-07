@@ -14,7 +14,9 @@ const supabase = createBrowserClient(
 // Colunas de produtos elegíveis pra sugestão por histórico — mesma lista
 // aceita pela função estoque_sugestoes_coluna() no banco (whitelist lá
 // também, dupla checagem).
-export type ColunaComSugestao = "rua" | "prateleira" | "nivel" | "posicao" | "conta_contabil";
+// "nome"/"marca"/"categoria" usados pelo PDV Fase 2 — precisam da whitelist
+// estendida no banco (PDV-FASE2-SUGESTOES-WHITELIST-SQL.sql) pra funcionar.
+export type ColunaComSugestao = "rua" | "prateleira" | "nivel" | "posicao" | "conta_contabil" | "nome" | "marca" | "categoria";
 
 export type ComboLocalizacao = { rua: string | null; prateleira: string | null; nivel: string | null; posicao: string | null; usos: number };
 

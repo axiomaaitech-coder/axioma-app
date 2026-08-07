@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, Search, ExternalLink, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Search, ExternalLink, Loader2, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -24,6 +25,7 @@ const txt = {
     en: "Browse by niche, category and sub-niche down to the products.",
     es: "Navegue por nicho, categoría y sub-nicho hasta llegar a los productos.",
   },
+  novoProdutoServico: { pt: "+ Novo Produto/Serviço", en: "+ New Product/Service", es: "+ Nuevo Producto/Servicio" },
   operadorTitulo: { pt: "PDV — Ponto de Venda", en: "POS — Point of Sale", es: "PDV — Punto de Venta" },
   operadorSubtitulo: {
     pt: "Frente de caixa em construção.",
@@ -231,7 +233,15 @@ export default function PDV() {
   }
 
   return (
-    <ModuloLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)}>
+    <ModuloLayout
+      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)}
+      botaoExtra={
+        <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+          style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.4)" }}>
+          <Plus size={16} /> {t("novoProdutoServico", lang)}
+        </Link>
+      }
+    >
       <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} onVoltar={voltarPara} />
 
       {erro && (

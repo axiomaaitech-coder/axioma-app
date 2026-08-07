@@ -71,6 +71,10 @@ export type Produto = {
   atributos_nicho: Record<string, any>;
   lead_time_dias: number | null;
   preco_venda: number | null;
+  // false só em produtos/serviços do PDV Fase 2 com nicho de modo serviço —
+  // some da ruptura/baixo estoque/curva ABC/giro (PDV-FASE2-CONTROLA-ESTOQUE-SQL.sql).
+  // Default true no banco: todo produto do Estoque já é true, sem exceção.
+  controla_estoque: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -179,6 +183,13 @@ export async function listarProdutos(empresaId: string, opts: { pagina?: number;
 export async function buscarProdutoPorCodigo(empresaId: string, codigo: string): Promise<Produto | null> {
   const { data } = await supabase.from("produtos").select("*").eq("empresa_id", empresaId)
     .or(`codigo_barras.eq.${codigo},codigo_interno.eq.${codigo},sku.eq.${codigo}`).limit(1).maybeSingle();
+  return data;
+}
+
+// Usado pelo PDV Fase 2 quando o aviso de nome duplicado (sem código de
+// barras) oferece "abrir o existente" — busca por id, não por código.
+export async function buscarProdutoPorId(id: string): Promise<Produto | null> {
+  const { data } = await supabase.from("produtos").select("*").eq("id", id).maybeSingle();
   return data;
 }
 
@@ -611,6 +622,7 @@ export type ConsultaEanResposta =
       nome?: string; marca?: string; categoria?: string; ncm?: string;
       peso?: number; altura?: number; largura?: number; comprimento?: number;
       ipi?: number; icms?: number; pis?: number; cofins?: number;
+      precoSugerido?: number;
       imagemBase64?: string;
     };
 
