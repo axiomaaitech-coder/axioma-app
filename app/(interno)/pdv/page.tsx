@@ -3,13 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Search, ExternalLink, Loader2, Plus } from "lucide-react";
 import { motion } from "framer-motion";
-import ModuloLayout from "../../../components/ModuloLayout";
+import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
 import { useLanguage } from "../../../lib/LanguageContext";
 import type { Idioma } from "../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../lib/empresaHelpers";
 import { carregarContagemPorSegmento, type ContagemSegmento } from "../../../lib/estoqueHelpers";
 import {
-  NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho,
+  NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho, type DivisaoPrimaria,
 } from "../../../lib/pdvCatalogoTaxonomia";
 import {
   listarCategoriasReais, listarSubNichosReais, listarProdutosPdv, SEM_SUBNICHO,
@@ -26,6 +26,7 @@ const txt = {
     es: "Navegue por nicho, categoría y sub-nicho hasta llegar a los productos.",
   },
   novoProdutoServico: { pt: "+ Novo Produto/Serviço", en: "+ New Product/Service", es: "+ Nuevo Producto/Servicio" },
+  importarNfe: { pt: "Importar XML da NF-e", en: "Import NF-e XML", es: "Importar XML de NF-e" },
   operadorTitulo: { pt: "PDV — Ponto de Venda", en: "POS — Point of Sale", es: "PDV — Punto de Venta" },
   operadorSubtitulo: {
     pt: "Frente de caixa em construção.",
@@ -39,6 +40,9 @@ const txt = {
   },
   carregando: { pt: "Carregando…", en: "Loading…", es: "Cargando…" },
   nichos: { pt: "Nichos", en: "Niches", es: "Nichos" },
+  filtroTodos: { pt: "Todos", en: "All", es: "Todos" },
+  filtroAlimentos: { pt: "Alimentos", en: "Food", es: "Alimentos" },
+  filtroNaoAlimentos: { pt: "Não-Alimentos", en: "Non-Food", es: "No Alimentos" },
   modoProduto: { pt: "Modo Produto", en: "Product Mode", es: "Modo Producto" },
   modoMisto: { pt: "Modo Misto", en: "Mixed Mode", es: "Modo Mixto" },
   modoServico: { pt: "Modo Serviço", en: "Service Mode", es: "Modo Servicio" },
@@ -49,15 +53,11 @@ const txt = {
   outrasCategorias: { pt: "Outras categorias cadastradas", en: "Other registered categories", es: "Otras categorías registradas" },
   outrosSubNichos: { pt: "Outros sub-nichos cadastrados", en: "Other registered sub-niches", es: "Otros sub-nichos registrados" },
   buscarPlaceholder: { pt: "Buscar por nome, SKU ou código de barras…", en: "Search by name, SKU or barcode…", es: "Buscar por nombre, SKU o código de barras…" },
-  semProdutos: {
-    pt: "Nenhum produto cadastrado aqui ainda.",
-    en: "No products registered here yet.",
-    es: "Ningún producto registrado aquí todavía.",
-  },
+  semProdutos: { pt: "Nenhum produto cadastrado aqui ainda.", en: "No products registered here yet.", es: "Ningún producto registrado aquí todavía." },
   semProdutosDica: {
-    pt: "O cadastro guiado do PDV chega na próxima fase — por enquanto, cadastre pelo Estoque.",
-    en: "The PDV guided registration arrives in the next phase — for now, register via Inventory.",
-    es: "El registro guiado del PDV llega en la próxima fase — por ahora, registre desde Inventario.",
+    pt: "Cadastre manualmente, importe um XML de NF-e ou bipe um código de barras já conhecido.",
+    en: "Register manually, import an NF-e XML, or scan an already-known barcode.",
+    es: "Registre manualmente, importe un XML de NF-e o escanee un código de barras ya conocido.",
   },
   semCategoriaAinda: { pt: "Nenhuma categoria com produto ainda.", en: "No category with products yet.", es: "Ninguna categoría con productos todavía." },
   verNoEstoque: { pt: "Ver/editar no Estoque", en: "View/edit in Inventory", es: "Ver/editar en Inventario" },
@@ -71,6 +71,7 @@ const txt = {
 };
 
 type Nivel = "nicho" | "categoria" | "subnicho" | "produtos";
+type FiltroDivisao = "todos" | DivisaoPrimaria;
 
 function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string | number>): string {
   let s = txt[chave][lang];
@@ -95,6 +96,7 @@ export default function PDV() {
   const [contagem, setContagem] = useState<ContagemSegmento[]>([]);
 
   const [nivel, setNivel] = useState<Nivel>("nicho");
+  const [filtroDivisao, setFiltroDivisao] = useState<FiltroDivisao>("todos");
   const [nichoSel, setNichoSel] = useState<NichoPdvDef | null>(null);
   const [categoriaSel, setCategoriaSel] = useState<string | null>(null); // label real (curada ou real)
   const [subNichoSel, setSubNichoSel] = useState<string | null>(null); // label real ou SEM_SUBNICHO
@@ -160,11 +162,18 @@ export default function PDV() {
     return mapa;
   }, [contagem]);
 
+  // Alimentos/Não-Alimentos: filtro visual sobre os NICHOS, nunca um nível
+  // novo na árvore (a taxonomia continua com 3 níveis, sem exceção).
+  const nichosFiltrados = useMemo(() => {
+    if (filtroDivisao === "todos") return NICHOS_PDV;
+    return NICHOS_PDV.filter((n) => n.divisaoPrimaria === filtroDivisao);
+  }, [filtroDivisao]);
+
   const nichosPorModo = useMemo(() => {
     const grupos: Record<ModoNicho, NichoPdvDef[]> = { produto: [], misto: [], servico: [] };
-    for (const n of NICHOS_PDV) grupos[n.modo].push(n);
+    for (const n of nichosFiltrados) if (n.value !== "generico") grupos[n.modo].push(n);
     return grupos;
-  }, []);
+  }, [nichosFiltrados]);
 
   async function abrirNicho(nicho: NichoPdvDef) {
     setNichoSel(nicho); setCategoriaSel(null); setSubNichoSel(null);
@@ -213,33 +222,39 @@ export default function PDV() {
   // ============================================================================
   if (carregandoPapel) {
     return (
-      <ModuloLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/dashboard">
         <div className="flex items-center justify-center py-16 gap-2" style={{ color: "#5a7a9a" }}>
           <Loader2 className="animate-spin" size={18} />
           <span className="text-sm">{t("carregando", lang)}</span>
         </div>
-      </ModuloLayout>
+      </PdvLayout>
     );
   }
 
   if (papel === "operador") {
     return (
-      <ModuloLayout titulo={t("operadorTitulo", lang)} subtitulo={t("operadorSubtitulo", lang)}>
+      <PdvLayout titulo={t("operadorTitulo", lang)} subtitulo={t("operadorSubtitulo", lang)}>
         <div className="flex items-center justify-center py-16 px-4">
           <p className="text-sm text-center max-w-md" style={{ color: "#5a7a9a" }}>{t("operadorCorpo", lang)}</p>
         </div>
-      </ModuloLayout>
+      </PdvLayout>
     );
   }
 
   return (
-    <ModuloLayout
-      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)}
+    <PdvLayout
+      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/dashboard"
       botaoExtra={
-        <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.4)" }}>
-          <Plus size={16} /> {t("novoProdutoServico", lang)}
-        </Link>
+        <>
+          <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.4)" }}>
+            <Plus size={16} /> {t("novoProdutoServico", lang)}
+          </Link>
+          <Link href="/pdv/importar-nfe" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(0,255,136,0.08)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.25)" }}>
+            {t("importarNfe", lang)}
+          </Link>
+        </>
       }
     >
       <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} onVoltar={voltarPara} />
@@ -252,24 +267,41 @@ export default function PDV() {
 
       {nivel === "nicho" && (
         <div className="space-y-6">
+          <div className="flex gap-2 flex-wrap">
+            {(["todos", "alimentos", "nao_alimentos"] as FiltroDivisao[]).map((f) => (
+              <button key={f} onClick={() => setFiltroDivisao(f)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold"
+                style={{
+                  background: filtroDivisao === f ? "rgba(0,255,136,0.22)" : "rgba(0,255,136,0.05)",
+                  color: filtroDivisao === f ? VERDE_PDV : "#8fa8c0",
+                  border: `1px solid ${filtroDivisao === f ? "rgba(0,255,136,0.6)" : "rgba(0,255,136,0.15)"}`,
+                }}>
+                {f === "todos" ? t("filtroTodos", lang) : f === "alimentos" ? t("filtroAlimentos", lang) : t("filtroNaoAlimentos", lang)}
+              </button>
+            ))}
+          </div>
           {ORDEM_MODO.map((modo) => (
-            <div key={modo}>
-              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>
-                {modo === "produto" ? t("modoProduto", lang) : modo === "misto" ? t("modoMisto", lang) : t("modoServico", lang)}
-              </h3>
+            nichosPorModo[modo].length > 0 && (
+              <div key={modo}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>
+                  {modo === "produto" ? t("modoProduto", lang) : modo === "misto" ? t("modoMisto", lang) : t("modoServico", lang)}
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {nichosPorModo[modo].map((nicho) => (
+                    <CartaoNicho key={nicho.value} nicho={nicho} lang={lang} qtd={qtdPorSegmento.get(nicho.value) || 0} onClick={() => abrirNicho(nicho)} />
+                  ))}
+                </div>
+              </div>
+            )
+          ))}
+          {filtroDivisao === "todos" && (
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>{t("nichos", lang)}</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {nichosPorModo[modo].map((nicho) => (
-                  <CartaoNicho key={nicho.value} nicho={nicho} lang={lang} qtd={qtdPorSegmento.get(nicho.value) || 0} onClick={() => abrirNicho(nicho)} />
-                ))}
+                <CartaoNicho nicho={buscarNicho("generico")!} lang={lang} qtd={qtdPorSegmento.get("generico") || 0} onClick={() => abrirNicho(buscarNicho("generico")!)} />
               </div>
             </div>
-          ))}
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>{t("nichos", lang)}</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              <CartaoNicho nicho={buscarNicho("generico")!} lang={lang} qtd={qtdPorSegmento.get("generico") || 0} onClick={() => abrirNicho(buscarNicho("generico")!)} />
-            </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -309,18 +341,19 @@ export default function PDV() {
           onPaginaProxima={() => setPagina((p) => p + 1)}
         />
       )}
-    </ModuloLayout>
+    </PdvLayout>
   );
 }
 
 // ============================================================================
-// SUBCOMPONENTES
+// SUBCOMPONENTES — cada um lê o próprio tema via useTemaPdv()
 // ============================================================================
 
 function Breadcrumb({ lang, nivel, nichoSel, categoriaSel, subNichoSel, onVoltar }: {
   lang: Idioma; nivel: Nivel; nichoSel: NichoPdvDef | null; categoriaSel: string | null; subNichoSel: string | null;
   onVoltar: (destino: Nivel) => void;
 }) {
+  const { tokens } = useTemaPdv();
   if (nivel === "nicho") return null;
   const itens: { label: string; destino: Nivel | null }[] = [
     { label: t("nichos", lang), destino: "nicho" },
@@ -333,11 +366,11 @@ function Breadcrumb({ lang, nivel, nichoSel, categoriaSel, subNichoSel, onVoltar
     <div className="flex items-center flex-wrap gap-1 mb-4 text-xs">
       {itens.map((item, i) => (
         <span key={i} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight size={12} style={{ color: "#3a5a7a" }} />}
+          {i > 0 && <ChevronRight size={12} style={{ color: tokens.textoMuted }} />}
           {item.destino ? (
             <button onClick={() => onVoltar(item.destino!)} className="hover:underline" style={{ color: VERDE_PDV }}>{item.label}</button>
           ) : (
-            <span style={{ color: "#8fa8c0" }}>{item.label}</span>
+            <span style={{ color: tokens.textoSecundario }}>{item.label}</span>
           )}
         </span>
       ))}
@@ -346,6 +379,7 @@ function Breadcrumb({ lang, nivel, nichoSel, categoriaSel, subNichoSel, onVoltar
 }
 
 function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: Idioma; qtd: number; onClick: () => void }) {
+  const { tokens } = useTemaPdv();
   return (
     <motion.button
       whileHover={{ scale: 1.02 }}
@@ -354,7 +388,7 @@ function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: 
       className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px]"
       style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.18)" }}
     >
-      <span className="text-sm font-semibold" style={{ color: "#e2ecf7" }}>{nicho.label[lang]}</span>
+      <span className="text-sm font-semibold" style={{ color: tokens.texto }}>{nicho.label[lang]}</span>
       {qtd > 0 && <span className="text-xs" style={{ color: VERDE_PDV }}>{qtd}</span>}
     </motion.button>
   );
@@ -376,6 +410,7 @@ function ListaCarregavel({ carregando, children }: { carregando: boolean; childr
 function GradeCategorias({ lang, nicho, categoriasReais, onSelecionar }: {
   lang: Idioma; nicho: NichoPdvDef; categoriasReais: string[]; onSelecionar: (categoria: string) => void;
 }) {
+  const { tokens } = useTemaPdv();
   const curadas = nicho.categorias.map((c) => c.label[lang]);
   const todasCuradasTextos = nicho.categorias.flatMap((c) => [c.label.pt, c.label.en, c.label.es]);
   const outras = categoriasReais.filter((real) => !todasCuradasTextos.some((c) => c.toLowerCase() === real.toLowerCase()));
@@ -396,7 +431,7 @@ function GradeCategorias({ lang, nicho, categoriasReais, onSelecionar }: {
       </div>
       {outras.length > 0 && (
         <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#8fa8c0" }}>{t("outrasCategorias", lang)}</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: tokens.textoSecundario }}>{t("outrasCategorias", lang)}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {outras.map((label, i) => (
               <BotaoSimples key={i} label={label} onClick={() => onSelecionar(label)} />
@@ -411,6 +446,7 @@ function GradeCategorias({ lang, nicho, categoriasReais, onSelecionar }: {
 function GradeSubNichos({ lang, nicho, categoria, subNichosReais, onSelecionar }: {
   lang: Idioma; nicho: NichoPdvDef; categoria: string; subNichosReais: string[]; onSelecionar: (subNicho: string) => void;
 }) {
+  const { tokens } = useTemaPdv();
   const cat = nicho.categorias.find((c) => c.label.pt === categoria || c.label.en === categoria || c.label.es === categoria);
   const curadas = (cat?.subNichos || []).map((s) => s.label[lang]);
   const todasCuradasTextos = (cat?.subNichos || []).flatMap((s) => [s.label.pt, s.label.en, s.label.es]);
@@ -429,7 +465,7 @@ function GradeSubNichos({ lang, nicho, categoria, subNichosReais, onSelecionar }
       </div>
       {outras.length > 0 && (
         <div>
-          <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#8fa8c0" }}>{t("outrosSubNichos", lang)}</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: tokens.textoSecundario }}>{t("outrosSubNichos", lang)}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {outras.map((label, i) => (
               <BotaoSimples key={i} label={label} onClick={() => onSelecionar(label)} />
@@ -442,6 +478,7 @@ function GradeSubNichos({ lang, nicho, categoria, subNichosReais, onSelecionar }
 }
 
 function BotaoSimples({ label, onClick, apagado }: { label: string; onClick: () => void; apagado?: boolean }) {
+  const { tokens } = useTemaPdv();
   return (
     <motion.button
       whileHover={{ scale: 1.02 }}
@@ -451,7 +488,7 @@ function BotaoSimples({ label, onClick, apagado }: { label: string; onClick: () 
       style={{
         background: apagado ? "rgba(143,168,192,0.06)" : "rgba(0,255,136,0.06)",
         border: `1px solid ${apagado ? "rgba(143,168,192,0.18)" : "rgba(0,255,136,0.18)"}`,
-        color: apagado ? "#8fa8c0" : "#e2ecf7",
+        color: apagado ? tokens.textoSecundario : tokens.texto,
       }}
     >
       {label}
@@ -460,10 +497,11 @@ function BotaoSimples({ label, onClick, apagado }: { label: string; onClick: () 
 }
 
 function EstadoVazio({ texto, dica }: { texto: string; dica?: string }) {
+  const { tokens } = useTemaPdv();
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-1">
-      <p className="text-sm" style={{ color: "#8fa8c0" }}>{texto}</p>
-      {dica && <p className="text-xs max-w-sm" style={{ color: "#5a7a9a" }}>{dica}</p>}
+      <p className="text-sm" style={{ color: tokens.textoSecundario }}>{texto}</p>
+      {dica && <p className="text-xs max-w-sm" style={{ color: tokens.textoMuted }}>{dica}</p>}
     </div>
   );
 }
@@ -472,18 +510,19 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
   lang: Idioma; produtos: ProdutoPdv[]; total: number; pagina: number; carregando: boolean; busca: string;
   onBusca: (v: string) => void; onPaginaAnterior: () => void; onPaginaProxima: () => void;
 }) {
+  const { tokens } = useTemaPdv();
   const totalPaginas = Math.max(1, Math.ceil(total / PDV_PAGE_SIZE));
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl" style={{ background: "rgba(6,15,30,0.6)", border: "1px solid rgba(0,255,136,0.15)" }}>
-        <Search size={16} style={{ color: "#5a7a9a" }} />
+      <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
+        <Search size={16} style={{ color: tokens.textoMuted }} />
         <input
           value={busca}
           onChange={(e) => onBusca(e.target.value)}
           placeholder={t("buscarPlaceholder", lang)}
           className="bg-transparent outline-none text-sm flex-1"
-          style={{ color: "#e2ecf7" }}
+          style={{ color: tokens.texto }}
         />
       </div>
 
@@ -497,14 +536,14 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
         <EstadoVazio texto={t("semProdutos", lang)} dica={t("semProdutosDica", lang)} />
       ) : (
         <>
-          <p className="text-xs mb-3" style={{ color: "#5a7a9a" }}>{t("produtosEncontrados", lang, { n: total })}</p>
+          <p className="text-xs mb-3" style={{ color: tokens.textoMuted }}>{t("produtosEncontrados", lang, { n: total })}</p>
           <div className="space-y-2">
             {produtos.map((p) => (
               <LinhaProduto key={p.id} produto={p} lang={lang} />
             ))}
           </div>
           {totalPaginas > 1 && (
-            <div className="flex items-center justify-between mt-4 text-xs" style={{ color: "#8fa8c0" }}>
+            <div className="flex items-center justify-between mt-4 text-xs" style={{ color: tokens.textoSecundario }}>
               <button onClick={onPaginaAnterior} disabled={pagina === 0} className="px-3 py-2 rounded-lg disabled:opacity-40" style={{ border: "1px solid rgba(0,255,136,0.2)" }}>
                 {t("anterior", lang)}
               </button>
@@ -521,20 +560,21 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
 }
 
 function LinhaProduto({ produto, lang }: { produto: ProdutoPdv; lang: Idioma }) {
+  const { tokens } = useTemaPdv();
   const preco = produto.preco_venda ?? produto.preco_sugerido;
   return (
-    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap" style={{ background: "rgba(6,15,30,0.6)", border: "1px solid rgba(0,255,136,0.12)" }}>
+    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div className="min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: "#e2ecf7" }}>{produto.nome}</p>
-        <p className="text-xs" style={{ color: "#5a7a9a" }}>
+        <p className="text-sm font-medium truncate" style={{ color: tokens.texto }}>{produto.nome}</p>
+        <p className="text-xs" style={{ color: tokens.textoMuted }}>
           {produto.codigo_barras || produto.sku || "—"} · {produto.saldo_disponivel} {t("estoqueDisponivel", lang)}
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm font-semibold" style={{ color: preco ? VERDE_PDV : "#5a7a9a" }}>
+        <span className="text-sm font-semibold" style={{ color: preco ? VERDE_PDV : tokens.textoMuted }}>
           {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
-        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: "#8fa8c0", border: "1px solid rgba(143,168,192,0.2)" }}>
+        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.textoSecundario, border: "1px solid rgba(143,168,192,0.2)" }}>
           {t("verNoEstoque", lang)} <ExternalLink size={12} />
         </a>
       </div>

@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, ScanBarcode, Loader2, Trash2, ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
+import { ScanBarcode, Loader2, Trash2, ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
-import ModuloLayout from "../../../../components/ModuloLayout";
+import PdvLayout from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
@@ -16,6 +15,7 @@ import { CHAVE_PERECIVEL, type CampoNicho } from "../../../../lib/categoriaIntel
 import { buscarSugestoesColuna } from "../../../../lib/sugestaoInteligente";
 import { NICHOS_PDV, type NichoPdvDef, type CategoriaPdv, type SubNichoPdv } from "../../../../lib/pdvCatalogoTaxonomia";
 import { consultarIA, verificarNomeDuplicado } from "../../../../lib/pdvHelpers";
+import { buscarSugestoesSemente } from "../../../../lib/pdvAutocompleteSemente";
 
 const VERDE_PDV = "#00ff88";
 const AMBAR = "#f5b942";
@@ -425,29 +425,26 @@ export default function PDVCadastro() {
   // ============================================================================
   if (carregandoPapel) {
     return (
-      <ModuloLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
         <div className="flex items-center justify-center py-16 gap-2" style={{ color: "#5a7a9a" }}>
           <Loader2 className="animate-spin" size={18} /><span className="text-sm">{t("carregando", lang)}</span>
         </div>
-      </ModuloLayout>
+      </PdvLayout>
     );
   }
 
   if (papel === "operador") {
     return (
-      <ModuloLayout titulo={t("operadorTitulo", lang)} subtitulo="">
+      <PdvLayout titulo={t("operadorTitulo", lang)} subtitulo="">
         <div className="flex items-center justify-center py-16 px-4">
           <p className="text-sm text-center max-w-md" style={{ color: "#5a7a9a" }}>{t("operadorCorpo", lang)}</p>
         </div>
-      </ModuloLayout>
+      </PdvLayout>
     );
   }
 
   return (
-    <ModuloLayout
-      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)}
-      botaoExtra={<Link href="/pdv" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold" style={{ color: VERDE_PDV, border: `1px solid rgba(0,255,136,0.3)` }}><ArrowLeft size={14} />{t("voltarCatalogo", lang)}</Link>}
-    >
+    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
       {toast && (
         <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg"
           style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : toast.tipo === "info" ? "rgba(30,41,59,0.95)" : "rgba(0,255,136,0.95)", color: toast.tipo === "ok" ? "#022" : "#fff" }}>
@@ -505,7 +502,7 @@ export default function PDVCadastro() {
           )}
         </>
       )}
-    </ModuloLayout>
+    </PdvLayout>
   );
 }
 
@@ -686,7 +683,7 @@ function FormularioAvulso({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Campo label={t("campoNome", lang)} value={form.nome} onChange={(v) => onChangeCampo("nome", v)}
-          sugerido={camposSugeridos.has("nome")} lista={sugestoesHistorico.nome} onFocus={() => onGarantirHistorico("nome")} />
+          sugerido={camposSugeridos.has("nome")} lista={buscarSugestoesSemente(subNichoSel?.value, form.nome || "", sugestoesHistorico.nome || [])} onFocus={() => onGarantirHistorico("nome")} />
         <Campo label={t("campoCategoria", lang)} value={form.categoria} onChange={(v) => onChangeCampo("categoria", v)}
           sugerido={camposSugeridos.has("categoria")} lista={sugestoesHistorico.categoria} onFocus={() => onGarantirHistorico("categoria")} />
       </div>
@@ -771,7 +768,7 @@ function BipagemMassa({
             {origemPendente === "ia" && <div className="flex items-center gap-1.5 text-xs" style={{ color: AMBAR }}><Sparkles size={13} /> {t("sugeridoIA", lang)}</div>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Campo label={t("campoNome", lang)} value={cartaoPendente.nome} onChange={(v) => onChangeCartao("nome", v)} sugerido={camposSugeridosPendente.has("nome")} />
+              <Campo label={t("campoNome", lang)} value={cartaoPendente.nome} onChange={(v) => onChangeCartao("nome", v)} sugerido={camposSugeridosPendente.has("nome")} lista={buscarSugestoesSemente(subNichoSel?.value, cartaoPendente.nome || "")} />
               <Campo label={t("campoCategoria", lang)} value={cartaoPendente.categoria} onChange={(v) => onChangeCartao("categoria", v)} sugerido={camposSugeridosPendente.has("categoria")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
