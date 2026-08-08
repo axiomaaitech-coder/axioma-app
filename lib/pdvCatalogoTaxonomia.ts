@@ -298,48 +298,191 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "autopecas", label: L("Autopeças", "Auto Parts", "Autopartes"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("motor", "Motor", "Engine", "Motor", [SUB("filtro", "Filtro", "Filter", "Filtro"), SUB("correia_vela", "Correia/Vela de Ignição", "Belt/Spark Plug", "Correa/Bujía")]),
-      CAT("freios", "Freios", "Brakes", "Frenos", [SUB("pastilha", "Pastilha", "Brake Pad", "Pastilla"), SUB("disco_lona", "Disco/Lona", "Disc/Shoe", "Disco/Balata")]),
-      CAT("suspensao", "Suspensão", "Suspension", "Suspensión", [SUB("amortecedor", "Amortecedor", "Shock Absorber", "Amortiguador"), SUB("mola_bandeja", "Mola/Bandeja", "Spring/Control Arm", "Resorte/Horquilla")]),
-      CAT("eletrica", "Elétrica", "Electrical", "Eléctrica", [SUB("bateria", "Bateria", "Battery", "Batería", [CAMPO_GARANTIA_MESES]), SUB("lampada_farol", "Lâmpada/Farol", "Bulb/Headlight", "Bombilla/Faro")]),
-      CAT("pneus_rodas", "Pneus e Rodas", "Tires & Wheels", "Neumáticos y Ruedas", [SUB("pneu", "Pneu", "Tire", "Neumático", [CAMPO_GARANTIA_MESES]), SUB("roda_calota", "Roda/Calota", "Wheel/Hubcap", "Rueda/Tapacubos")]),
+      CAT("motor", "Motor", "Engine", "Motor", [
+        SUB("filtro_oleo_ar_combustivel", "Filtro (Óleo/Ar/Combustível)", "Oil/Air/Fuel Filter", "Filtro de Aceite/Aire/Combustible"), SUB("correia_dentada_acessorios", "Correia Dentada/Acessórios", "Timing/Accessory Belt", "Correa de Distribución/Accesorios"),
+        SUB("vela_ignicao", "Vela de Ignição", "Spark Plug", "Bujía"), SUB("bomba_agua_motor", "Bomba d'Água", "Water Pump", "Bomba de Agua"),
+        SUB("junta_retentor", "Junta/Retentor", "Gasket/Seal", "Junta/Retén"), SUB("bomba_oleo", "Bomba de Óleo", "Oil Pump", "Bomba de Aceite"),
+      ]),
+      CAT("arrefecimento_escapamento", "Arrefecimento e Escapamento", "Cooling & Exhaust", "Refrigeración y Escape", [
+        SUB("radiador", "Radiador", "Radiator", "Radiador"), SUB("mangueira", "Mangueira", "Hose", "Manguera"),
+        SUB("ventoinha", "Ventoinha", "Cooling Fan", "Electroventilador"), SUB("silencioso_escapamento", "Silencioso/Escapamento", "Muffler/Exhaust Pipe", "Silenciador/Escape"),
+        SUB("catalisador", "Catalisador", "Catalytic Converter", "Catalizador"),
+      ]),
+      CAT("freios", "Freios", "Brakes", "Frenos", [
+        SUB("pastilha_freio", "Pastilha de Freio", "Brake Pad", "Pastilla de Freno"), SUB("disco_freio", "Disco de Freio", "Brake Disc", "Disco de Freno"),
+        SUB("lona_tambor", "Lona/Tambor", "Brake Shoe/Drum", "Balata/Tambor"), SUB("fluido_freio", "Fluido de Freio", "Brake Fluid", "Líquido de Frenos"),
+        SUB("cilindro_pinca", "Cilindro/Pinça", "Cylinder/Caliper", "Cilindro/Mordaza"), SUB("cabo_freio", "Cabo de Freio", "Brake Cable", "Cable de Freno"),
+      ]),
+      CAT("suspensao", "Suspensão e Direção", "Suspension & Steering", "Suspensión y Dirección", [
+        SUB("amortecedor", "Amortecedor", "Shock Absorber", "Amortiguador"), SUB("mola_suspensao", "Mola", "Spring", "Resorte"),
+        SUB("bandeja_braco", "Bandeja/Braço", "Control Arm", "Horquilla/Brazo"), SUB("bucha", "Bucha", "Bushing", "Buje"),
+        SUB("pivo", "Pivô", "Ball Joint", "Rótula"), SUB("rolamento_roda", "Rolamento de Roda", "Wheel Bearing", "Rodamiento de Rueda"),
+        SUB("caixa_direcao", "Caixa de Direção", "Steering Rack", "Caja de Dirección"),
+      ]),
+      CAT("eletrica", "Elétrica e Bateria", "Electrical & Battery", "Eléctrica y Batería", [
+        SUB("bateria", "Bateria", "Battery", "Batería", [CAMPO_GARANTIA_MESES]), SUB("alternador", "Alternador", "Alternator", "Alternador"),
+        SUB("motor_partida", "Motor de Partida", "Starter Motor", "Motor de Arranque"), SUB("lampada_farol", "Lâmpada/Farol", "Bulb/Headlight", "Bombilla/Faro"),
+        SUB("sensor_automotivo", "Sensor", "Sensor", "Sensor"), SUB("chicote_fusivel", "Chicote/Fusível", "Wiring Harness/Fuse", "Mazo de Cables/Fusible"),
+        SUB("modulo_vidro_trava", "Módulo de Vidro/Trava Elétrica", "Power Window/Lock Module", "Módulo de Vidrio/Cierre Eléctrico"),
+      ]),
+      CAT("transmissao_embreagem", "Transmissão e Embreagem", "Transmission & Clutch", "Transmisión y Embrague", [
+        SUB("kit_embreagem", "Kit de Embreagem", "Clutch Kit", "Kit de Embrague"), SUB("cambio_caixa_marcha", "Câmbio/Caixa de Marcha", "Transmission/Gearbox", "Caja de Cambios"),
+        SUB("junta_homocinetica", "Junta Homocinética", "CV Joint", "Junta Homocinética"), SUB("cruzeta", "Cruzeta", "Universal Joint", "Cruceta"),
+        SUB("oleo_cambio", "Óleo de Câmbio", "Transmission Fluid", "Aceite de Caja"),
+      ]),
+      CAT("pneus_rodas", "Pneus e Rodas", "Tires & Wheels", "Neumáticos y Ruedas", [
+        SUB("pneu", "Pneu", "Tire", "Neumático", [CAMPO_GARANTIA_MESES]), SUB("roda_liga_aco", "Roda de Liga/Aço", "Alloy/Steel Wheel", "Rueda de Aleación/Acero"),
+        SUB("calota", "Calota", "Hubcap", "Tapacubos"), SUB("valvula_camara_ar", "Válvula/Câmara de Ar", "Valve/Inner Tube", "Válvula/Cámara de Aire"),
+        SUB("estepe", "Estepe", "Spare Tire", "Rueda de Repuesto"),
+      ]),
+      CAT("fluidos_lubrificantes", "Fluidos e Lubrificantes", "Fluids & Lubricants", "Fluidos y Lubricantes", [
+        SUB("oleo_motor", "Óleo de Motor", "Engine Oil", "Aceite de Motor"), SUB("aditivo_radiador", "Aditivo de Radiador", "Radiator Coolant", "Refrigerante de Radiador"),
+        SUB("fluido_direcao_hidraulica", "Fluido de Direção Hidráulica", "Power Steering Fluid", "Líquido de Dirección Hidráulica"), SUB("aditivo_combustivel", "Aditivo de Combustível", "Fuel Additive", "Aditivo de Combustible"),
+        SUB("graxa", "Graxa", "Grease", "Grasa"), SUB("desengraxante", "Desengraxante", "Degreaser", "Desengrasante"),
+      ]),
       CAT("acessorios_automotivos", "Acessórios Automotivos", "Auto Accessories", "Accesorios Automotrices", [
-        SUB("som_automotivo", "Som Automotivo", "Car Audio", "Audio para Auto", [CAMPO_GARANTIA_MESES]), SUB("tapete_capa_banco", "Tapete/Capa de Banco", "Mats/Seat Covers", "Alfombras/Fundas"), SUB("acessorios_externos", "Acessórios Externos", "Exterior Accessories", "Accesorios Exteriores"),
+        SUB("som_automotivo", "Som Automotivo/Multimídia", "Car Audio/Multimedia", "Audio para Auto/Multimedia", [CAMPO_GARANTIA_MESES]), SUB("tapete_capa_banco", "Tapete/Capa de Banco", "Mats/Seat Covers", "Alfombras/Fundas"),
+        SUB("palheta_limpador", "Palheta de Limpador", "Wiper Blade", "Escobilla Limpiaparabrisas"), SUB("acessorio_externo", "Acessório Externo (Spoiler/Friso)", "Exterior Trim (Spoiler/Molding)", "Accesorio Exterior (Spoiler/Moldura)"),
+        SUB("engate_rack_teto", "Engate/Rack de Teto", "Tow Hitch/Roof Rack", "Enganche/Baca"), SUB("alarme_rastreador", "Alarme/Rastreador", "Alarm/Tracker", "Alarma/Rastreador"),
+        SUB("capa_protetor_veiculo", "Capa/Protetor de Veículo", "Car Cover", "Funda/Cubre Auto"),
+      ]),
+      CAT("ferramentas_automotivas", "Ferramentas Automotivas", "Automotive Tools", "Herramientas Automotrices", [
+        SUB("macaco", "Macaco", "Jack", "Gato Hidráulico"), SUB("chave_roda", "Chave de Roda", "Lug Wrench", "Llave de Cruz"),
+        SUB("kit_ferramenta_multiuso", "Kit Ferramenta Multiuso", "Multi-tool Kit", "Kit de Herramientas Multiuso"), SUB("cabo_carregador_bateria", "Cabo/Carregador de Bateria", "Jumper Cables/Battery Charger", "Cables/Cargador de Batería"),
+        SUB("compressor_ar_portatil", "Compressor de Ar Portátil", "Portable Air Compressor", "Compresor de Aire Portátil"),
       ]),
     ],
   },
   {
     value: "papelaria", label: L("Papelaria", "Stationery", "Papelería"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("escrita", "Escrita", "Writing", "Escritura", [SUB("caneta_lapis", "Caneta/Lápis", "Pen/Pencil", "Bolígrafo/Lápiz"), SUB("marca_texto", "Marca-texto", "Highlighter", "Marcador")]),
-      CAT("cadernos_papel", "Cadernos e Papel", "Notebooks & Paper", "Cuadernos y Papel", [SUB("caderno", "Caderno", "Notebook", "Cuaderno"), SUB("papel_sulfite", "Papel Sulfite", "Printer Paper", "Papel Bond")]),
-      CAT("escritorio", "Escritório", "Office", "Oficina", [SUB("grampeador_clips", "Grampeador/Clips", "Stapler/Clips", "Engrapadora/Clips"), SUB("pasta_envelope", "Pasta/Envelope", "Folder/Envelope", "Carpeta/Sobre")]),
-      CAT("arte_escolar", "Arte e Escolar", "Art & School", "Arte y Escolar", [SUB("tinta_cola_tesoura", "Tinta/Cola/Tesoura", "Paint/Glue/Scissors", "Pintura/Pegamento/Tijera")]),
-      CAT("informatica_basica", "Informática Básica", "Basic Computer Supplies", "Informática Básica", [SUB("cartucho_toner", "Cartucho/Toner", "Ink/Toner Cartridge", "Cartucho/Tóner"), SUB("midia", "Mídia (pendrive, CD/DVD)", "Media (flash drive, CD/DVD)", "Medios (pendrive, CD/DVD)")]),
+      CAT("escrita", "Escrita", "Writing", "Escritura", [
+        SUB("caneta", "Caneta", "Pen", "Bolígrafo"), SUB("lapis", "Lápis", "Pencil", "Lápiz"), SUB("marca_texto", "Marca-texto", "Highlighter", "Marcador"),
+        SUB("lapiseira", "Lapiseira", "Mechanical Pencil", "Portaminas"), SUB("corretivo", "Corretivo", "Correction Fluid/Tape", "Corrector"), SUB("borracha_apontador", "Borracha/Apontador", "Eraser/Sharpener", "Goma/Sacapuntas"),
+      ]),
+      CAT("cadernos_papel", "Cadernos e Papel", "Notebooks & Paper", "Cuadernos y Papel", [
+        SUB("caderno_universitario", "Caderno Universitário", "College Notebook", "Cuaderno Universitario"), SUB("caderno_brochura", "Caderno Brochura", "Composition Notebook", "Cuaderno de Grapas"),
+        SUB("papel_sulfite", "Papel Sulfite", "Printer Paper", "Papel Bond"), SUB("bloco_notas_post_it", "Bloco de Notas/Post-it", "Notepad/Sticky Notes", "Bloc de Notas/Post-it"),
+        SUB("papel_cartao_color_set", "Papel Cartão/Color Set", "Cardstock/Colored Paper", "Cartulina/Papel de Color"), SUB("agenda_planner", "Agenda/Planner", "Planner/Agenda", "Agenda/Planner"),
+      ]),
+      CAT("escritorio", "Escritório", "Office", "Oficina", [
+        SUB("grampeador_clips", "Grampeador/Clips", "Stapler/Clips", "Engrapadora/Clips"), SUB("pasta_envelope", "Pasta/Envelope", "Folder/Envelope", "Carpeta/Sobre"),
+        SUB("fita_adesiva", "Fita Adesiva", "Adhesive Tape", "Cinta Adhesiva"), SUB("furador", "Furador", "Hole Punch", "Perforadora"),
+        SUB("calculadora", "Calculadora", "Calculator", "Calculadora"), SUB("carimbo", "Carimbo", "Rubber Stamp", "Sello"), SUB("organizador_mesa", "Organizador de Mesa", "Desk Organizer", "Organizador de Escritorio"),
+      ]),
+      CAT("arte_escolar", "Arte e Escolar", "Art & School", "Arte y Escolar", [
+        SUB("tinta_guache", "Tinta/Guache", "Paint/Poster Paint", "Pintura/Témpera"), SUB("cola", "Cola", "Glue", "Pegamento"), SUB("tesoura", "Tesoura", "Scissors", "Tijera"),
+        SUB("massinha_argila", "Massinha/Argila", "Modeling Clay", "Plastilina/Arcilla"), SUB("giz_cera_lapis_cor", "Giz de Cera/Lápis de Cor", "Crayons/Colored Pencils", "Crayones/Lápices de Color"),
+        SUB("mochila_estojo", "Mochila/Estojo", "Backpack/Pencil Case", "Mochila/Estuche"), SUB("regua_esquadro", "Régua/Esquadro", "Ruler/Set Square", "Regla/Escuadra"),
+      ]),
+      CAT("informatica_basica", "Informática Básica", "Basic Computer Supplies", "Informática Básica", [
+        SUB("cartucho_toner", "Cartucho/Toner", "Ink/Toner Cartridge", "Cartucho/Tóner"), SUB("midia", "Mídia (Pendrive/CD)", "Media (Flash Drive/CD)", "Medios (Pendrive/CD)"),
+        SUB("mouse_teclado_basico", "Mouse/Teclado Básico", "Basic Mouse/Keyboard", "Mouse/Teclado Básico"), SUB("cabo_adaptador_papelaria", "Cabo/Adaptador", "Cable/Adapter", "Cable/Adaptador"),
+        SUB("papel_fotografico", "Papel Fotográfico", "Photo Paper", "Papel Fotográfico"),
+        SUB("servicos_impressao_copia", "Serviços de Impressão/Cópia", "Printing/Copying Services", "Servicios de Impresión/Copia", CAMPOS_SERVICO_PADRAO, true),
+      ]),
+      CAT("livraria", "Livraria", "Bookstore", "Librería", [
+        SUB("livro_didatico", "Livro Didático", "Textbook", "Libro Didáctico"), SUB("livro_infantil", "Livro Infantil", "Children's Book", "Libro Infantil"),
+        SUB("revista", "Revista", "Magazine", "Revista"), SUB("dicionario_atlas", "Dicionário/Atlas", "Dictionary/Atlas", "Diccionario/Atlas"), SUB("livro_colorir", "Livro de Colorir", "Coloring Book", "Libro para Colorear"),
+      ]),
+      CAT("organizacao_papelaria", "Organização", "Organization", "Organización", [
+        SUB("pasta_suspensa", "Pasta Suspensa", "Hanging Folder", "Carpeta Colgante"), SUB("caixa_arquivo", "Caixa Arquivo", "File Box", "Caja Archivadora"),
+        SUB("etiqueta_marcador_pagina", "Etiqueta/Marcador de Página", "Label/Bookmark", "Etiqueta/Separador"), SUB("porta_documento", "Porta-documento", "Document Holder", "Portadocumentos"),
+      ]),
+      CAT("presentes_papelaria_fina", "Presentes e Papelaria Fina", "Gifts & Fine Stationery", "Regalos y Papelería Fina", [
+        SUB("cartao_comemorativo", "Cartão Comemorativo", "Greeting Card", "Tarjeta de Felicitación"), SUB("papel_presente", "Papel de Presente", "Gift Wrap", "Papel de Regalo"),
+        SUB("vela_balao", "Vela/Balão", "Candle/Balloon", "Vela/Globo"), SUB("convite", "Convite", "Invitation", "Invitación"), SUB("album_fotos", "Álbum de Fotos", "Photo Album", "Álbum de Fotos"),
+      ]),
+      CAT("artesanato", "Artesanato", "Crafts", "Manualidades", [
+        SUB("eva", "EVA", "Foam Sheet (EVA)", "Goma EVA"), SUB("bijuteria_micanga", "Bijuteria/Miçanga", "Beading/Costume Jewelry Supplies", "Bijutería/Mostacilla"),
+        SUB("scrapbook", "Scrapbook", "Scrapbooking", "Scrapbook"), SUB("tinta_tecido", "Tinta para Tecido", "Fabric Paint", "Pintura para Tela"),
+      ]),
     ],
   },
   {
     value: "pet", label: L("Pet", "Pet", "Mascotas"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("racao", "Ração", "Pet Food", "Alimento para Mascotas", [
-        SUB("cao", "Cão", "Dog", "Perro", [CAMPO_PERECIVEL]), SUB("gato", "Gato", "Cat", "Gato", [CAMPO_PERECIVEL]), SUB("outros", "Outros", "Other", "Otro", [CAMPO_PERECIVEL]),
+      CAT("racao", "Ração e Alimentação", "Food", "Alimento para Mascotas", [
+        SUB("racao_cao", "Ração Cão", "Dog Food", "Alimento para Perro", [CAMPO_PERECIVEL]), SUB("racao_gato", "Ração Gato", "Cat Food", "Alimento para Gato", [CAMPO_PERECIVEL]),
+        SUB("racao_filhote", "Ração Filhote", "Puppy/Kitten Food", "Alimento para Cachorro", [CAMPO_PERECIVEL]), SUB("racao_prescrita_veterinaria", "Ração Prescrita/Veterinária", "Prescription/Veterinary Food", "Alimento Prescrito/Veterinario", [CAMPO_PERECIVEL]),
+        SUB("petisco_snack_pet", "Petisco/Snack", "Treats/Snacks", "Snack/Premio", [CAMPO_PERECIVEL]), SUB("alimento_umido_sache", "Alimento Úmido (Sachê)", "Wet Food (Pouch)", "Alimento Húmedo (Sobre)", [CAMPO_PERECIVEL]),
+        SUB("alimento_natural_cru", "Alimento Natural/Cru", "Natural/Raw Food", "Alimento Natural/Crudo", [CAMPO_PERECIVEL]),
       ]),
-      CAT("higiene_pet", "Higiene Pet", "Pet Hygiene", "Higiene para Mascotas", [SUB("shampoo_pet", "Shampoo Pet", "Pet Shampoo", "Champú Mascota"), SUB("areia_sanitaria", "Areia Sanitária", "Litter", "Arena Sanitaria")]),
-      CAT("acessorios_pet", "Acessórios Pet", "Pet Accessories", "Accesorios para Mascotas", [SUB("coleira_guia", "Coleira/Guia", "Collar/Leash", "Collar/Correa"), SUB("brinquedo", "Brinquedo", "Toy", "Juguete")]),
-      CAT("saude_pet", "Saúde Pet", "Pet Health", "Salud para Mascotas", [SUB("antipulgas_vermifugo", "Antipulgas/Vermífugo", "Flea/Dewormer", "Antipulgas/Desparasitante", [CAMPO_PERECIVEL])]),
-      CAT("aquarismo_outros", "Aquarismo/Outros Animais", "Fishkeeping/Other Animals", "Acuarismo/Otros Animales", [SUB("peixe_aquario", "Peixe/Aquário", "Fish/Aquarium", "Pez/Acuario"), SUB("roedor_ave", "Roedor/Ave", "Rodent/Bird", "Roedor/Ave")]),
+      CAT("higiene_pet", "Higiene Pet", "Pet Hygiene", "Higiene para Mascotas", [
+        SUB("shampoo_condicionador_pet", "Shampoo/Condicionador Pet", "Pet Shampoo/Conditioner", "Champú/Acondicionador Mascota"), SUB("areia_sanitaria", "Areia Sanitária", "Litter", "Arena Sanitaria"),
+        SUB("tapete_higienico", "Tapete Higiênico", "Pee Pad", "Tapete Higiénico"), SUB("perfume_colonia_pet", "Perfume/Colônia Pet", "Pet Perfume/Cologne", "Perfume/Colonia Mascota"),
+        SUB("escova_cortador_unha_pet", "Escova/Cortador de Unha", "Brush/Nail Clipper", "Cepillo/Cortaúñas"), SUB("fralda_pet", "Fralda Pet", "Pet Diaper", "Pañal Mascota"),
+        SUB("banho_tosa", "Banho e Tosa", "Bath & Grooming", "Baño y Peluquería", CAMPOS_SERVICO_PADRAO, true),
+      ]),
+      CAT("saude_pet", "Saúde Pet", "Pet Health", "Salud para Mascotas", [
+        SUB("antipulgas_carrapaticida", "Antipulgas/Carrapaticida", "Flea/Tick Treatment", "Antipulgas/Garrapaticida", [CAMPO_PERECIVEL]), SUB("vermifugo", "Vermífugo", "Dewormer", "Desparasitante", [CAMPO_PERECIVEL]),
+        SUB("suplemento_vitamina_pet", "Suplemento/Vitamina", "Supplement/Vitamin", "Suplemento/Vitamina", [CAMPO_PERECIVEL]), SUB("curativo_pomada_pet", "Curativo/Pomada", "Bandage/Ointment", "Curita/Pomada"),
+        SUB("racao_terapeutica", "Ração Terapêutica", "Therapeutic Food", "Alimento Terapéutico", [CAMPO_PERECIVEL]), SUB("contraceptivo_pet", "Contraceptivo Pet", "Pet Contraceptive", "Anticonceptivo Mascota"),
+      ]),
+      CAT("acessorios_pet", "Acessórios Pet", "Pet Accessories", "Accesorios para Mascotas", [
+        SUB("coleira_guia_peitoral", "Coleira/Guia/Peitoral", "Collar/Leash/Harness", "Collar/Correa/Pechera"), SUB("comedouro_bebedouro", "Comedouro/Bebedouro", "Feeder/Waterer", "Comedero/Bebedero"),
+        SUB("brinquedo_pet", "Brinquedo", "Toy", "Juguete"), SUB("roupa_pet", "Roupa Pet", "Pet Clothing", "Ropa para Mascota"),
+        SUB("caixa_transporte", "Caixa de Transporte", "Carrier", "Transportadora"), SUB("placa_identificacao", "Placa de Identificação", "ID Tag", "Placa de Identificación"),
+      ]),
+      CAT("habitacao_conforto_pet", "Habitação e Conforto", "Housing & Comfort", "Habitación y Confort", [
+        SUB("cama_almofada_pet", "Cama/Almofada", "Bed/Cushion", "Cama/Almohadón"), SUB("casinha", "Casinha", "Pet House", "Casita"),
+        SUB("arranhador", "Arranhador (Gato)", "Scratching Post (Cat)", "Rascador (Gato)"), SUB("cerca_grade_pet", "Cerca/Grade", "Fence/Gate", "Cerca/Reja"),
+        SUB("tapete_cercadinho", "Tapete/Cercadinho", "Playpen Mat", "Corral/Tapete"),
+      ]),
+      CAT("aquarismo_outros", "Aquarismo e Outros Animais", "Fishkeeping & Other Animals", "Acuarismo y Otros Animales", [
+        SUB("peixe_ornamental", "Peixe Ornamental", "Ornamental Fish", "Pez Ornamental"), SUB("racao_peixe", "Ração para Peixe", "Fish Food", "Alimento para Peces"),
+        SUB("aquario_kit", "Aquário/Kit", "Aquarium/Kit", "Acuario/Kit"), SUB("roedor_racao_gaiola", "Roedor (Ração/Gaiola)", "Rodent (Food/Cage)", "Roedor (Alimento/Jaula)"),
+        SUB("ave_racao_gaiola", "Ave (Ração/Gaiola)", "Bird (Food/Cage)", "Ave (Alimento/Jaula)"), SUB("reptil_racao_terrario", "Réptil (Ração/Terrário)", "Reptile (Food/Terrarium)", "Reptil (Alimento/Terrario)"),
+      ]),
     ],
   },
   {
     value: "eletronicos", label: L("Eletrônicos", "Electronics", "Electrónica"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
       CAT("celulares_acessorios", "Celulares e Acessórios", "Phones & Accessories", "Celulares y Accesorios", [
-        SUB("celular", "Celular", "Phone", "Celular", [CAMPO_GARANTIA_MESES]), SUB("acessorio", "Capinha/Carregador/Fone", "Case/Charger/Headphone", "Funda/Cargador/Audífono"),
+        SUB("celular", "Celular/Smartphone", "Cell Phone/Smartphone", "Celular/Smartphone", [CAMPO_GARANTIA_MESES]), SUB("capinha", "Capinha", "Phone Case", "Funda"),
+        SUB("pelicula_vidro", "Película/Vidro", "Screen Protector", "Protector de Pantalla"), SUB("carregador_cabo", "Carregador/Cabo", "Charger/Cable", "Cargador/Cable"),
+        SUB("fone_ouvido", "Fone de Ouvido", "Headphones", "Audífonos"), SUB("power_bank", "Power Bank", "Power Bank", "Batería Portátil"),
       ]),
-      CAT("informatica", "Informática", "Computers", "Informática", [SUB("notebook_pc", "Notebook/PC", "Laptop/PC", "Notebook/PC", [CAMPO_GARANTIA_MESES]), SUB("periferico", "Periférico", "Peripheral", "Periférico")]),
-      CAT("audio_video", "Áudio e Vídeo", "Audio & Video", "Audio y Video", [SUB("som_fone", "Caixa de Som/Fone", "Speaker/Headphone", "Altavoz/Audífono", [CAMPO_GARANTIA_MESES]), SUB("tv", "Televisão", "TV", "Televisor", [CAMPO_GARANTIA_MESES])]),
-      CAT("eletrodomesticos", "Eletrodomésticos", "Home Appliances", "Electrodomésticos", [SUB("linha_branca", "Linha Branca", "Major Appliance", "Línea Blanca", [CAMPO_GARANTIA_MESES]), SUB("pequenos_eletros", "Pequenos Eletros", "Small Appliance", "Pequeño Electrodoméstico", [CAMPO_GARANTIA_MESES])]),
-      CAT("games", "Games", "Games", "Videojuegos", [SUB("console", "Console", "Console", "Consola", [CAMPO_GARANTIA_MESES]), SUB("jogo_acessorio", "Jogo/Acessório de Game", "Game/Gaming Accessory", "Juego/Accesorio de Videojuego")]),
+      CAT("informatica", "Informática", "Computers", "Informática", [
+        SUB("notebook", "Notebook", "Laptop", "Notebook", [CAMPO_GARANTIA_MESES]), SUB("pc_desktop", "PC/Desktop", "PC/Desktop", "PC/Escritorio", [CAMPO_GARANTIA_MESES]),
+        SUB("monitor", "Monitor", "Monitor", "Monitor", [CAMPO_GARANTIA_MESES]), SUB("mouse_teclado", "Mouse/Teclado", "Mouse/Keyboard", "Mouse/Teclado"),
+        SUB("impressora", "Impressora", "Printer", "Impresora", [CAMPO_GARANTIA_MESES]), SUB("armazenamento", "Armazenamento (HD/SSD/Pendrive)", "Storage (HD/SSD/Flash Drive)", "Almacenamiento (HD/SSD/Pendrive)"),
+      ]),
+      CAT("audio_video", "Áudio e Vídeo", "Audio & Video", "Audio y Video", [
+        SUB("caixa_som_portatil", "Caixa de Som Portátil", "Portable Speaker", "Parlante Portátil"), SUB("televisao", "Televisão", "Television", "Televisor", [CAMPO_GARANTIA_MESES]),
+        SUB("home_theater_soundbar", "Home Theater/Soundbar", "Home Theater/Soundbar", "Home Theater/Soundbar", [CAMPO_GARANTIA_MESES]), SUB("radio_micro_system", "Rádio/Micro System", "Radio/Micro System", "Radio/Micro System"),
+        SUB("microfone", "Microfone", "Microphone", "Micrófono"), SUB("antena", "Antena", "Antenna", "Antena"),
+      ]),
+      CAT("eletrodomesticos", "Eletrodomésticos", "Home Appliances", "Electrodomésticos", [
+        SUB("linha_branca", "Linha Branca", "Major Appliances", "Línea Blanca", [CAMPO_GARANTIA_MESES]), SUB("pequenos_eletros", "Pequenos Eletros", "Small Appliances", "Pequeños Electrodomésticos", [CAMPO_GARANTIA_MESES]),
+        SUB("climatizacao", "Climatização", "Climate Control", "Climatización", [CAMPO_GARANTIA_MESES]), SUB("ferro_passar", "Ferro de Passar", "Iron", "Plancha", [CAMPO_GARANTIA_MESES]),
+        SUB("aspirador_po", "Aspirador de Pó", "Vacuum Cleaner", "Aspiradora", [CAMPO_GARANTIA_MESES]), SUB("micro_ondas", "Micro-ondas", "Microwave", "Microondas", [CAMPO_GARANTIA_MESES]),
+      ]),
+      CAT("games", "Games", "Games", "Videojuegos", [
+        SUB("console", "Console", "Console", "Consola", [CAMPO_GARANTIA_MESES]), SUB("jogo_fisico_digital", "Jogo Físico/Digital", "Physical/Digital Game", "Juego Físico/Digital"),
+        SUB("controle_acessorio_game", "Controle/Acessório de Game", "Game Controller/Accessory", "Control/Accesorio de Videojuego"), SUB("cadeira_gamer", "Cadeira Gamer", "Gaming Chair", "Silla Gamer"),
+        SUB("headset_gamer", "Headset Gamer", "Gaming Headset", "Auricular Gamer"),
+      ]),
+      CAT("seguranca_eletronica", "Segurança Eletrônica", "Electronic Security", "Seguridad Electrónica", [
+        SUB("camera_seguranca", "Câmera de Segurança", "Security Camera", "Cámara de Seguridad", [CAMPO_GARANTIA_MESES]), SUB("dvr_nvr", "DVR/NVR", "DVR/NVR", "DVR/NVR", [CAMPO_GARANTIA_MESES]),
+        SUB("sensor_presenca", "Sensor de Presença", "Motion Sensor", "Sensor de Presencia"), SUB("fechadura_eletronica", "Fechadura Eletrônica", "Electronic Lock", "Cerradura Electrónica", [CAMPO_GARANTIA_MESES]),
+        SUB("interfone", "Interfone", "Intercom", "Portero Eléctrico"),
+      ]),
+      CAT("automacao_casa_inteligente", "Automação e Casa Inteligente", "Home Automation & Smart Home", "Automatización y Hogar Inteligente", [
+        SUB("tomada_inteligente", "Tomada Inteligente", "Smart Plug", "Enchufe Inteligente"), SUB("lampada_inteligente", "Lâmpada Inteligente", "Smart Bulb", "Lámpara Inteligente"),
+        SUB("assistente_virtual", "Assistente Virtual", "Virtual Assistant", "Asistente Virtual"), SUB("fechadura_inteligente", "Fechadura Inteligente", "Smart Lock", "Cerradura Inteligente", [CAMPO_GARANTIA_MESES]),
+        SUB("central_automacao", "Central de Automação", "Automation Hub", "Central de Automatización"),
+      ]),
+      CAT("pilhas_baterias_energia", "Pilhas, Baterias e Energia", "Batteries & Power", "Pilas, Baterías y Energía", [
+        SUB("pilha_alcalina", "Pilha Alcalina", "Alkaline Battery", "Pila Alcalina"), SUB("bateria_recarregavel", "Bateria Recarregável", "Rechargeable Battery", "Batería Recargable"),
+        SUB("carregador_pilha", "Carregador de Pilha", "Battery Charger", "Cargador de Pilas"), SUB("nobreak_estabilizador", "No-break/Estabilizador", "UPS/Voltage Stabilizer", "UPS/Estabilizador"),
+        SUB("filtro_linha", "Filtro de Linha", "Power Strip/Surge Protector", "Zapatilla/Protector de Picos"),
+      ]),
+      CAT("cabos_adaptadores", "Cabos e Adaptadores", "Cables & Adapters", "Cables y Adaptadores", [
+        SUB("cabo_hdmi_usb", "Cabo HDMI/USB", "HDMI/USB Cable", "Cable HDMI/USB"), SUB("adaptador_tomada", "Adaptador de Tomada", "Plug Adapter", "Adaptador de Enchufe"),
+        SUB("extensao_eletrica", "Extensão Elétrica", "Extension Cord", "Extensión Eléctrica"), SUB("hub_usb", "Hub USB", "USB Hub", "Hub USB"),
+      ]),
     ],
   },
 
@@ -679,10 +822,47 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "cosmeticos_perfumaria", label: L("Cosméticos/Perfumaria", "Cosmetics/Perfumery", "Cosméticos/Perfumería"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("maquiagem", "Maquiagem", "Makeup", "Maquillaje", [SUB("rosto", "Rosto", "Face", "Rostro", [CAMPO_PERECIVEL]), SUB("olhos_labios", "Olhos/Lábios", "Eyes/Lips", "Ojos/Labios", [CAMPO_PERECIVEL])]),
-      CAT("perfumaria_cosm", "Perfumaria", "Fragrance", "Perfumería", [SUB("perfume", "Perfume", "Perfume", "Perfume"), SUB("colonia", "Colônia", "Cologne", "Colonia")]),
-      CAT("skincare", "Skincare", "Skincare", "Cuidado de la Piel", [SUB("hidratante_skincare", "Hidratante", "Moisturizer", "Hidratante", [CAMPO_PERECIVEL]), SUB("protetor_solar_skincare", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL])]),
-      CAT("cabelo_cosm", "Cabelo", "Hair", "Cabello", [SUB("shampoo_condicionador", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador"), SUB("finalizador", "Finalizador", "Styling Product", "Finalizador")]),
+      CAT("maquiagem", "Maquiagem", "Makeup", "Maquillaje", [
+        SUB("base_corretivo", "Base/Corretivo", "Foundation/Concealer", "Base/Corrector", [CAMPO_PERECIVEL]), SUB("po_facial", "Pó Facial", "Face Powder", "Polvo Facial", [CAMPO_PERECIVEL]),
+        SUB("sombra_paleta", "Sombra/Paleta", "Eyeshadow/Palette", "Sombra/Paleta", [CAMPO_PERECIVEL]), SUB("rimel_delineador", "Rímel/Delineador", "Mascara/Eyeliner", "Rímel/Delineador", [CAMPO_PERECIVEL]),
+        SUB("batom_gloss", "Batom/Gloss", "Lipstick/Gloss", "Labial/Gloss", [CAMPO_PERECIVEL]), SUB("blush_iluminador", "Blush/Iluminador", "Blush/Highlighter", "Rubor/Iluminador", [CAMPO_PERECIVEL]),
+        SUB("pincel_esponja", "Pincel/Esponja de Maquiagem", "Makeup Brush/Sponge", "Brocha/Esponja"),
+      ]),
+      CAT("perfumaria_cosm", "Perfumaria", "Fragrance", "Perfumería", [
+        SUB("perfume_feminino", "Perfume Feminino", "Women's Perfume", "Perfume Femenino"), SUB("perfume_masculino", "Perfume Masculino", "Men's Perfume", "Perfume Masculino"),
+        SUB("colonia_body_splash", "Colônia/Body Splash", "Cologne/Body Splash", "Colonia/Body Splash"), SUB("perfume_importado", "Perfume Importado", "Imported Perfume", "Perfume Importado"),
+        SUB("kit_presente_perfumaria", "Kit Presente", "Gift Set", "Kit de Regalo"),
+      ]),
+      CAT("skincare", "Skincare", "Skincare", "Cuidado de la Piel", [
+        SUB("hidratante_facial_skincare", "Hidratante Facial", "Facial Moisturizer", "Hidratante Facial", [CAMPO_PERECIVEL]), SUB("protetor_solar_skincare", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL]),
+        SUB("serum_acido", "Sérum/Ácido", "Serum/Acid", "Sérum/Ácido", [CAMPO_PERECIVEL]), SUB("agua_micelar_demaquilante", "Água Micelar/Demaquilante", "Micellar Water/Makeup Remover", "Agua Micelar/Desmaquillante", [CAMPO_PERECIVEL]),
+        SUB("mascara_facial_skincare", "Máscara Facial", "Face Mask", "Mascarilla Facial", [CAMPO_PERECIVEL]), SUB("anti_idade", "Anti-idade", "Anti-aging", "Antiedad", [CAMPO_PERECIVEL]),
+        SUB("tratamento_acne_skincare", "Tratamento para Acne", "Acne Treatment", "Tratamiento para Acné", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cabelo_cosm", "Cabelo", "Hair", "Cabello", [
+        SUB("shampoo_condicionador", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador"), SUB("mascara_hidratacao_cosm", "Máscara de Hidratação", "Hair Mask", "Mascarilla Capilar"),
+        SUB("creme_pentear_leave_in", "Creme de Pentear/Leave-in", "Leave-in/Combing Cream", "Crema para Peinar/Leave-in"), SUB("oleo_capilar", "Óleo Capilar", "Hair Oil", "Aceite Capilar"),
+        SUB("coloracao_cosm", "Coloração", "Hair Color", "Coloración"), SUB("finalizador", "Finalizador/Modelador", "Styling Product", "Finalizador/Modelador"),
+      ]),
+      CAT("corpo_banho", "Corpo e Banho", "Body & Bath", "Cuerpo y Baño", [
+        SUB("sabonete_cosm", "Sabonete", "Soap", "Jabón"), SUB("hidratante_corporal", "Hidratante Corporal", "Body Lotion", "Hidratante Corporal", [CAMPO_PERECIVEL]),
+        SUB("oleo_creme_banho", "Óleo/Creme de Banho", "Bath Oil/Cream", "Aceite/Crema de Baño", [CAMPO_PERECIVEL]), SUB("esfoliante_corporal", "Esfoliante Corporal", "Body Scrub", "Exfoliante Corporal", [CAMPO_PERECIVEL]),
+        SUB("desodorante_cosm", "Desodorante", "Deodorant", "Desodorante"), SUB("depilacao", "Depilação", "Hair Removal", "Depilación"),
+      ]),
+      CAT("unhas_cosm", "Unhas", "Nails", "Uñas", [
+        SUB("esmalte", "Esmalte", "Nail Polish", "Esmalte"), SUB("acetona_removedor", "Acetona/Removedor", "Acetone/Remover", "Acetona/Removedor"),
+        SUB("alicate_lixa", "Alicate/Lixa", "Clipper/File", "Alicate/Lima"), SUB("unha_postica_adesivo", "Unha Postiça/Adesivo", "Fake Nails/Stickers", "Uña Postiza/Adhesivo"),
+        SUB("fortalecedor_unha", "Fortalecedor de Unha", "Nail Strengthener", "Fortalecedor de Uñas"),
+      ]),
+      CAT("linha_masculina", "Linha Masculina", "Men's Line", "Línea Masculina", [
+        SUB("espuma_gel_barbear", "Espuma/Gel de Barbear", "Shaving Foam/Gel", "Espuma/Gel de Afeitar"), SUB("pos_barba", "Pós-barba", "Aftershave", "Aftershave"),
+        SUB("barbeador_lamina_cosm", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("oleo_cera_barba", "Óleo/Cera para Barba", "Beard Oil/Wax", "Aceite/Cera para Barba"),
+        SUB("desodorante_masculino", "Desodorante Masculino", "Men's Deodorant", "Desodorante Masculino"),
+      ]),
+      CAT("kits_presentes_cosm", "Kits e Presentes", "Gift Sets", "Kits y Regalos", [
+        SUB("kit_presente_feminino", "Kit Presente Feminino", "Women's Gift Set", "Kit de Regalo Femenino"), SUB("kit_presente_masculino", "Kit Presente Masculino", "Men's Gift Set", "Kit de Regalo Masculino"),
+        SUB("necessaire_kit_viagem", "Nécessaire/Kit Viagem", "Toiletry Bag/Travel Kit", "Neceser/Kit de Viaje"),
+      ]),
     ],
   },
   {
