@@ -8,7 +8,7 @@ import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
 import { parseXMLNFe, type ItemNFe } from "../../../../lib/importarParsers";
 import { type Produto, criarProduto, atualizarProduto, criarMovimentacao, buscarProdutoPorCodigo, buscarProdutoPorId } from "../../../../lib/estoqueHelpers";
-import { NICHOS_PDV, type NichoPdvDef } from "../../../../lib/pdvCatalogoTaxonomia";
+import { NICHOS_PDV, type NichoPdvDef, buscarCategoria, subNichoEhServico } from "../../../../lib/pdvCatalogoTaxonomia";
 import {
   nfeJaImportada, registrarNfeImportada, buscarFornecedorPorCnpj, criarFornecedorDaNfe,
   buscarVinculoFornecedor, salvarVinculoFornecedor, converterFardoParaUnidade, precoComMargem, type FornecedorMinimo,
@@ -272,11 +272,15 @@ export default function PDVImportarNFe() {
 
         let produtoId = it.produtoIdExistente;
         if (it.status === "novo") {
+          // subNicho vem gravado por LABEL (mesmo padrão da coluna subcategoria em
+          // todo o PDV), então a busca do sub-nicho real pra saber se é serviço
+          // compara por label, não por value — nunca por nome do produto.
+          const subNichoObj = buscarCategoria(nichoSel.value, it.categoria)?.subNichos.find((s) => s.label[lang] === it.subNicho);
           const { id, erro } = await criarProduto(empresaId, userId, {
             nome: it.nome, categoria: it.categoria, subcategoria: it.subNicho, segmento: nichoSel.value,
             codigo_barras: it.original.ean || null, ncm: it.original.ncm || null, unidade: it.original.unidade || "UN",
             preco_custo: conversao.custoUnitario, preco_venda: Number(it.precoVenda), estoque_minimo: 0,
-            status: "ativo", atributos_nicho: {}, controla_estoque: nichoSel.modo !== "servico",
+            status: "ativo", atributos_nicho: {}, controla_estoque: !subNichoEhServico(nichoSel, subNichoObj),
           });
           if (erro) { falhas.push(`${it.nome}: ${erro}`); continue; }
           produtoId = id;

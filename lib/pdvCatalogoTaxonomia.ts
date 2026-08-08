@@ -41,7 +41,13 @@ import { CHAVE_PERECIVEL, type CampoNicho } from "./categoriaInteligente";
 export type ModoNicho = "produto" | "misto" | "servico";
 export type DivisaoPrimaria = "alimentos" | "nao_alimentos";
 
-export type SubNichoPdv = { value: string; label: Record<Idioma, string>; campos?: CampoNicho[] };
+// ehServico é ADITIVO e por SUB-NICHO: cobre o item vendido dentro de um nicho de
+// produto que na verdade é serviço (ex: "Serviços de Impressão" na Papelaria) e o
+// caminho inverso, produto revendido dentro de nicho de serviço (ex: shampoo no
+// Salão) continua sendo um sub-nicho comum, sem essa flag. Quando ausente, herda
+// o modo do nicho (nichoSel.modo === "servico") — nenhum sub-nicho existente muda
+// de comportamento. Ver subNichoEhServico() abaixo, única forma de ler essa regra.
+export type SubNichoPdv = { value: string; label: Record<Idioma, string>; campos?: CampoNicho[]; ehServico?: boolean };
 export type CategoriaPdv = { value: string; label: Record<Idioma, string>; subNichos: SubNichoPdv[] };
 
 export type NichoPdv =
@@ -54,7 +60,7 @@ export type NichoPdv =
 export type NichoPdvDef = { value: NichoPdv; label: Record<Idioma, string>; modo: ModoNicho; divisaoPrimaria: DivisaoPrimaria; categorias: CategoriaPdv[] };
 
 const L = (pt: string, en: string, es: string): Record<Idioma, string> => ({ pt, en, es });
-const SUB = (value: string, pt: string, en: string, es: string, campos: CampoNicho[] = []): SubNichoPdv => ({ value, label: L(pt, en, es), campos });
+const SUB = (value: string, pt: string, en: string, es: string, campos: CampoNicho[] = [], ehServico?: boolean): SubNichoPdv => ({ value, label: L(pt, en, es), campos, ehServico });
 const CAT = (value: string, pt: string, en: string, es: string, subNichos: SubNichoPdv[]): CategoriaPdv => ({ value, label: L(pt, en, es), subNichos });
 
 // ============================================================================
@@ -85,6 +91,7 @@ const CAMPOS_SERVICO_PADRAO: CampoNicho[] = [
     { value: "fechado", label: L("Valor Fechado", "Flat Rate", "Precio Cerrado") },
     { value: "diaria", label: L("Diária", "Daily Rate", "Diaria") },
     { value: "peca", label: L("Por Peça/Serviço", "Per Piece/Job", "Por Pieza/Servicio") },
+    { value: "m2", label: L("Por Metro Quadrado", "Per Square Meter", "Por Metro Cuadrado") },
   ]),
 ];
 
@@ -416,6 +423,16 @@ export const NICHOS_PDV: NichoPdvDef[] = [
 
 export function buscarNicho(nicho: string): NichoPdvDef | undefined {
   return NICHOS_PDV.find((n) => n.value === nicho);
+}
+
+// Única fonte de verdade de "isso é produto ou serviço" — sub-nicho decide
+// primeiro (ehServico explícito), nicho decide por padrão quando o sub-nicho
+// não declarar nada. Todo lugar que hoje olhava só nicho.modo === "servico"
+// passa a chamar esta função (cadastro do PDV) — comportamento idêntico pra
+// quem não usa a flag nova.
+export function subNichoEhServico(nicho: NichoPdvDef | null | undefined, sub: SubNichoPdv | null | undefined): boolean {
+  if (sub?.ehServico !== undefined) return sub.ehServico;
+  return nicho?.modo === "servico";
 }
 
 export function buscarCategoria(nicho: string, categoria: string): CategoriaPdv | undefined {

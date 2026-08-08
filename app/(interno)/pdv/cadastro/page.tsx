@@ -13,7 +13,7 @@ import {
 } from "../../../../lib/estoqueHelpers";
 import { CHAVE_PERECIVEL, type CampoNicho } from "../../../../lib/categoriaInteligente";
 import { buscarSugestoesColuna } from "../../../../lib/sugestaoInteligente";
-import { NICHOS_PDV, type NichoPdvDef, type CategoriaPdv, type SubNichoPdv } from "../../../../lib/pdvCatalogoTaxonomia";
+import { NICHOS_PDV, type NichoPdvDef, type CategoriaPdv, type SubNichoPdv, subNichoEhServico } from "../../../../lib/pdvCatalogoTaxonomia";
 import { consultarIA, verificarNomeDuplicado } from "../../../../lib/pdvHelpers";
 import { buscarSugestoesSemente } from "../../../../lib/pdvAutocompleteSemente";
 
@@ -159,7 +159,9 @@ export default function PDVCadastro() {
     setCategoriaSel(c); setSubNichoSel(null);
   }
   function selecionarSubNicho(valor: string) {
-    setSubNichoSel(categoriaSel?.subNichos.find((x) => x.value === valor) || null);
+    const s = categoriaSel?.subNichos.find((x) => x.value === valor) || null;
+    setSubNichoSel(s);
+    if (subNichoEhServico(nichoSel, s) && modo === "massa") setModo("avulso");
   }
 
   const pronto = !!(nichoSel && (nichoSel.categorias.length === 0 || (categoriaSel && subNichoSel)));
@@ -284,7 +286,7 @@ export default function PDVCadastro() {
         segmento: nichoSel.value,
         categoria: categoriaSel ? categoriaSel.label[lang] : form.categoria,
         subcategoria: subNichoSel ? subNichoSel.label[lang] : form.subcategoria,
-        controla_estoque: nichoSel.modo !== "servico",
+        controla_estoque: !subNichoEhServico(nichoSel, subNichoSel),
       };
       let produtoId = produtoEditando?.id;
       if (produtoEditando) {
@@ -454,10 +456,10 @@ export default function PDVCadastro() {
         <>
           <div className="flex gap-2 mb-5 mt-4">
             <AbaBotao ativo={modo === "avulso"} onClick={() => setModo("avulso")} texto={t("abaAvulso", lang)} />
-            <AbaBotao ativo={modo === "massa"} onClick={() => nichoSel!.modo !== "servico" && setModo("massa")} texto={t("abaMassa", lang)} desabilitado={nichoSel!.modo === "servico"} />
+            <AbaBotao ativo={modo === "massa"} onClick={() => !subNichoEhServico(nichoSel, subNichoSel) && setModo("massa")} texto={t("abaMassa", lang)} desabilitado={subNichoEhServico(nichoSel, subNichoSel)} />
           </div>
 
-          {modo === "massa" && nichoSel!.modo === "servico" && (
+          {modo === "massa" && subNichoEhServico(nichoSel, subNichoSel) && (
             <p className="text-xs mb-4" style={{ color: AMBAR }}>{t("massaIndisponivelServico", lang)}</p>
           )}
 
@@ -481,7 +483,7 @@ export default function PDVCadastro() {
             />
           )}
 
-          {modo === "massa" && nichoSel!.modo !== "servico" && (
+          {modo === "massa" && !subNichoEhServico(nichoSel, subNichoSel) && (
             <BipagemMassa
               lang={lang} subNichoSel={subNichoSel}
               codigoAtual={codigoAtual} onCodigoChange={setCodigoAtual} onScan={handleScan}
@@ -692,7 +694,7 @@ function FormularioAvulso({
   onSalvar: () => void; onCriarMesmoAssim: () => void; onAbrirExistente: () => void; onLoteChange: (c: string, v: string) => void; onFecharDuplicado: () => void;
 }) {
   const { tokens } = useTemaPdv();
-  const ehServico = nichoSel.modo === "servico";
+  const ehServico = subNichoEhServico(nichoSel, subNichoSel);
   const perecivel = !!(form.atributos_nicho || {})[CHAVE_PERECIVEL];
 
   return (
