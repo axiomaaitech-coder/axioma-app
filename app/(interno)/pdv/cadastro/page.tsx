@@ -548,7 +548,7 @@ function Selecao({ label, value, onChange, opcoes, desabilitado }: { label: stri
       <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{label}</label>
       <select value={value} disabled={desabilitado} onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg text-sm disabled:opacity-40"
-        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.texto }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.inputTexto }}>
         <option value="">—</option>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -561,7 +561,12 @@ function AbaBotao({ ativo, onClick, texto, desabilitado }: { ativo: boolean; onC
   return (
     <button onClick={onClick} disabled={desabilitado}
       className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-30"
-      style={{ background: ativo ? tokens.acentoSuaveBorda : tokens.cardBg, color: ativo ? tokens.acento : tokens.textoMuted, border: `1px solid ${ativo ? tokens.acento : tokens.cardBorda}` }}>
+      style={{
+        background: ativo ? tokens.acaoBg : tokens.cardBg,
+        color: ativo ? tokens.acaoTexto : tokens.cardTexto,
+        border: `1px solid ${ativo ? tokens.acaoBg : tokens.cardBorda}`,
+        opacity: ativo ? 1 : 0.75,
+      }}>
       {texto}
     </button>
   );
@@ -570,35 +575,35 @@ function AbaBotao({ ativo, onClick, texto, desabilitado }: { ativo: boolean; onC
 // ============================================================================
 // CAMPOS COMUNS (input básico, select, campo de nicho dinâmico)
 // ============================================================================
-function Campo({ label, value, onChange, tipo = "text", sugerido, lista, onFocus }: {
+function Campo({ label, value, onChange, tipo = "text", sugerido, lista, onFocus, emCard }: {
   label: string; value: any; onChange: (v: any) => void; tipo?: "text" | "number" | "date";
-  sugerido?: boolean; lista?: string[]; onFocus?: () => void;
+  sugerido?: boolean; lista?: string[]; onFocus?: () => void; emCard?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   const listId = useRef(`dl-${Math.random().toString(36).slice(2)}`).current;
   return (
     <div>
-      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : tokens.textoSecundario }}>
+      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : emCard ? tokens.cardTexto : tokens.textoSecundario }}>
         {label} {sugerido && <Sparkles size={11} />}
       </label>
       <input
         type={tipo} value={value ?? ""} onFocus={onFocus} list={lista ? listId : undefined}
         onChange={(e) => onChange(tipo === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.texto }}
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}
       />
       {lista && <datalist id={listId}>{lista.map((v, i) => <option key={i} value={v} />)}</datalist>}
     </div>
   );
 }
 
-function CampoSelectSimples({ label, value, onChange, opcoes, sugerido }: { label: string; value: any; onChange: (v: any) => void; opcoes: { value: string; label: string }[]; sugerido?: boolean }) {
+function CampoSelectSimples({ label, value, onChange, opcoes, sugerido, emCard }: { label: string; value: any; onChange: (v: any) => void; opcoes: { value: string; label: string }[]; sugerido?: boolean; emCard?: boolean }) {
   const { tokens } = useTemaPdv();
   return (
     <div>
-      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : tokens.textoSecundario }}>{label} {sugerido && <Sparkles size={11} />}</label>
+      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : emCard ? tokens.cardTexto : tokens.textoSecundario }}>{label} {sugerido && <Sparkles size={11} />}</label>
       <select value={value || ""} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.texto }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}>
         <option value="">—</option>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -606,14 +611,14 @@ function CampoSelectSimples({ label, value, onChange, opcoes, sugerido }: { labe
   );
 }
 
-function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos }: {
-  lang: Lang; campos: CampoNicho[]; atributos: Record<string, any>; onChange: (chave: string, v: any) => void; sugeridos?: Set<string>;
+function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos, emCard }: {
+  lang: Lang; campos: CampoNicho[]; atributos: Record<string, any>; onChange: (chave: string, v: any) => void; sugeridos?: Set<string>; emCard?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   if (campos.length === 0) return null;
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: tokens.acento }}>{t("camposEspecificos", lang)}</p>
+      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: emCard ? tokens.cardTexto : tokens.acento }}>{t("camposEspecificos", lang)}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {campos.filter((c) => !c.dependeDe || !!atributos[c.dependeDe]).map((campo) => {
           const valor = atributos[campo.chave];
@@ -622,15 +627,15 @@ function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos }: {
             return (
               <label key={campo.chave} className="flex items-center gap-2 cursor-pointer select-none py-2">
                 <input type="checkbox" checked={!!valor} onChange={(e) => onChange(campo.chave, e.target.checked)} className="w-4 h-4 rounded" />
-                <span className="text-xs font-semibold" style={{ color: tokens.texto }}>{campo.label[lang]}</span>
+                <span className="text-xs font-semibold" style={{ color: emCard ? tokens.cardTexto : tokens.texto }}>{campo.label[lang]}</span>
               </label>
             );
           }
           if (campo.tipo === "select") {
             return <CampoSelectSimples key={campo.chave} label={campo.label[lang]} value={valor} onChange={(v) => onChange(campo.chave, v)}
-              opcoes={(campo.opcoes || []).map((o) => ({ value: o.value, label: o.label[lang] }))} sugerido={sugerido} />;
+              opcoes={(campo.opcoes || []).map((o) => ({ value: o.value, label: o.label[lang] }))} sugerido={sugerido} emCard={emCard} />;
           }
-          return <Campo key={campo.chave} label={campo.label[lang]} value={valor} tipo={campo.tipo === "number" ? "number" : "text"} onChange={(v) => onChange(campo.chave, v)} sugerido={sugerido} />;
+          return <Campo key={campo.chave} label={campo.label[lang]} value={valor} tipo={campo.tipo === "number" ? "number" : "text"} onChange={(v) => onChange(campo.chave, v)} sugerido={sugerido} emCard={emCard} />;
         })}
       </div>
     </div>
@@ -650,7 +655,7 @@ function AvisoDuplicado({ lang, nome, onAbrirExistente, onCriarMesmoAssim, onFec
       <p className="text-xs mb-3" style={{ color: tokens.texto }}>"{nome}"</p>
       <div className="flex gap-2 flex-wrap">
         <button onClick={onAbrirExistente} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,185,66,0.2)", color: AMBAR }}>{t("abrirExistente", lang)}</button>
-        <button onClick={onCriarMesmoAssim} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: tokens.acentoSuaveBorda, color: tokens.acento }}>{t("criarMesmoAssim", lang)}</button>
+        <button onClick={onCriarMesmoAssim} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>{t("criarMesmoAssim", lang)}</button>
         <button onClick={onFechar} className="px-3 py-2 rounded-lg text-xs" style={{ color: tokens.textoMuted }}>✕</button>
       </div>
     </div>
@@ -775,7 +780,7 @@ function BipagemMassa({
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onScan(); } }}
           placeholder={t("bipeAqui", lang)}
           className="bg-transparent outline-none text-sm flex-1 disabled:opacity-40"
-          style={{ color: tokens.texto }}
+          style={{ color: tokens.inputTexto }}
         />
         {processando && <Loader2 className="animate-spin" size={16} style={{ color: tokens.acento }} />}
       </div>
@@ -784,23 +789,23 @@ function BipagemMassa({
         {cartaoPendente && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="p-4 rounded-xl space-y-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-            <p className="text-xs" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : tokens.textoSecundario }}>
+            <p className="text-xs font-semibold" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : tokens.cardTexto }}>
               {cartaoPendente.nome && cartaoPendente.categoria ? t("precoParaSalvar", lang) : t("faltaCompletar", lang)}
             </p>
 
-            {origemPendente === "cosmos" && <div className="flex items-center gap-1.5 text-xs" style={{ color: tokens.acento }}><CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}</div>}
+            {origemPendente === "cosmos" && <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: tokens.cardTexto }}><CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}</div>}
             {origemPendente === "ia" && <div className="flex items-center gap-1.5 text-xs" style={{ color: AMBAR }}><Sparkles size={13} /> {t("sugeridoIA", lang)}</div>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Campo label={t("campoNome", lang)} value={cartaoPendente.nome} onChange={(v) => onChangeCartao("nome", v)} sugerido={camposSugeridosPendente.has("nome")} lista={buscarSugestoesSemente(subNichoSel?.value, cartaoPendente.nome || "")} />
-              <Campo label={t("campoCategoria", lang)} value={cartaoPendente.categoria} onChange={(v) => onChangeCartao("categoria", v)} sugerido={camposSugeridosPendente.has("categoria")} />
+              <Campo emCard label={t("campoNome", lang)} value={cartaoPendente.nome} onChange={(v) => onChangeCartao("nome", v)} sugerido={camposSugeridosPendente.has("nome")} lista={buscarSugestoesSemente(subNichoSel?.value, cartaoPendente.nome || "")} />
+              <Campo emCard label={t("campoCategoria", lang)} value={cartaoPendente.categoria} onChange={(v) => onChangeCartao("categoria", v)} sugerido={camposSugeridosPendente.has("categoria")} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Campo label={t("campoMarca", lang)} value={cartaoPendente.marca} onChange={(v) => onChangeCartao("marca", v)} sugerido={camposSugeridosPendente.has("marca")} />
-              <Campo label={t("campoPrecoVenda", lang)} tipo="number" value={cartaoPendente.preco_venda} onChange={(v) => onChangeCartao("preco_venda", v)} />
+              <Campo emCard label={t("campoMarca", lang)} value={cartaoPendente.marca} onChange={(v) => onChangeCartao("marca", v)} sugerido={camposSugeridosPendente.has("marca")} />
+              <Campo emCard label={t("campoPrecoVenda", lang)} tipo="number" value={cartaoPendente.preco_venda} onChange={(v) => onChangeCartao("preco_venda", v)} />
             </div>
 
-            <CamposDoSubNicho lang={lang} campos={subNichoSel?.campos || []} atributos={cartaoPendente.atributos_nicho || {}} onChange={onChangeAtributoCartao} />
+            <CamposDoSubNicho emCard lang={lang} campos={subNichoSel?.campos || []} atributos={cartaoPendente.atributos_nicho || {}} onChange={onChangeAtributoCartao} />
 
             {!cartaoPendente.nome && (
               <button onClick={onDispararIa} disabled={consultandoIa}
@@ -814,7 +819,7 @@ function BipagemMassa({
                 className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-60" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
                 {salvandoPendente ? t("salvando", lang) : t("salvar", lang)}
               </button>
-              <button onClick={onPular} className="px-4 py-2.5 rounded-lg text-sm" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.cardBorda}` }}>{t("pular", lang)}</button>
+              <button onClick={onPular} className="px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ color: tokens.cardTexto, border: `1px solid ${tokens.cardTexto}`, opacity: 0.85 }}>{t("pular", lang)}</button>
             </div>
           </motion.div>
         )}
@@ -828,9 +833,9 @@ function BipagemMassa({
           <div className="space-y-1.5">
             {sessaoItens.map((item) => (
               <div key={item.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-                <span className="text-xs truncate" style={{ color: tokens.texto }}>{item.nome}</span>
+                <span className="text-xs font-medium truncate" style={{ color: tokens.cardTexto }}>{item.nome}</span>
                 <div className="flex items-center gap-1 shrink-0">
-                  <a href="/estoque" className="p-1.5 rounded-lg" style={{ color: tokens.textoSecundario }} title={t("editar", lang)}><ExternalLink size={13} /></a>
+                  <a href="/estoque" className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85 }} title={t("editar", lang)}><ExternalLink size={13} /></a>
                   <button onClick={() => onDesfazer(item)} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg" style={{ color: "#f87171" }}>
                     <Trash2 size={13} /> {t("desfazer", lang)}
                   </button>

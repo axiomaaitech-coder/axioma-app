@@ -3,15 +3,12 @@
 // NUNCA importa nem altera components/ModuloLayout.tsx — decisão explícita
 // do Elias pra não arriscar nenhum outro módulo.
 //
-// Paleta alinhada à identidade REAL do resto do Axioma (Dashboard/MEI/Open
-// Finance — não inventada). Tema 1 (escuro, padrão) — APROVADO, não mudar:
-// fundo #020810, cards em glass azul-arroxeado (mesmo gradiente do
-// Dashboard), acento indigo/azul claro #6ab0ff (mesmo do CanvasBox/Open
-// Finance), verde neon (#00ff88) só no botão de ação (tokens.acaoBg).
-// Temas 2 e 3 (intermediário/claro) — REFEITOS: verde SAI por completo,
-// vira azul forte + texto branco nos botões de ação também (ver paleta
-// "AZUL AXIOMA" logo abaixo). O botão PDV da TopNav (outro arquivo) segue
-// verde sempre — é a identidade do módulo no menu, fora do escopo daqui.
+// Tema 1 (escuro, padrão) — APROVADO, não mudar: #020810, cards em glass
+// azul-arroxeado, verde neon só no botão de ação (tokens.acaoBg).
+//
+// Temas 2 e 3 — hex FIXOS, sem interpretação (ver paleta abaixo). Zero
+// verde, zero preto, zero cinza neutro em qualquer um dos dois. Texto
+// escuro é sempre AZUL-NOITE (#0E0763); texto claro é sempre branco.
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sun, Moon, Contrast } from "lucide-react";
@@ -20,80 +17,93 @@ import { motion } from "framer-motion";
 export type TemaPdv = "escuro" | "intermediario" | "claro";
 
 export type TokensPdv = {
-  fundo: string; fundoContainer: string; bordaContainer: string; acentoTopo: string;
+  fundo: string;
+  // Barra superior (onde título/seta/seletor de tema vivem) — cor PRÓPRIA,
+  // pode ser diferente do fundo da página (é o caso do tema claro: fundo
+  // branco, barra azul-marca). No tema escuro/intermediário, barra === fundo.
+  barraBg: string; barraTexto: string; barraAcentoBg: string; barraAcentoTexto: string;
+  fundoContainer: string; bordaContainer: string; acentoTopo: string;
   texto: string; textoSecundario: string; textoMuted: string;
-  cardBg: string; cardBorda: string; inputBg: string; inputBorda: string;
-  // Acento azul/roxo do sistema — usado em label de seção, breadcrumb ativo,
-  // badge, chip selecionado.
+  // Texto DENTRO de um card (cardBg) pode precisar ser diferente do texto
+  // solto no painel — cardBg é uma cor cheia própria, não necessariamente a
+  // mesma leitura clara/escura do fundoContainer.
+  cardBg: string; cardTexto: string; cardBorda: string;
+  inputBg: string; inputTexto: string; inputBorda: string;
   acento: string; acentoSuaveBg: string; acentoSuaveBorda: string;
-  // Botão de AÇÃO (Salvar/Confirmar/+Novo/Consultar) — só aqui o verde
-  // ainda existe, e só no tema escuro. Nos temas 2 e 3 vira azul forte +
-  // texto branco (exigência do Elias: "verde sai dos temas 2 e 3 por
-  // completo"). Toda tela do PDV usa ESTES 2 tokens pros botões de ação,
-  // nunca cor fixa — é o que garante nunca mais verde-sobre-claro invisível.
+  // Botão de AÇÃO (Salvar/Confirmar/+Novo/Consultar) — verde só no tema
+  // escuro; nos temas 2 e 3 é sempre AZUL-ELETRICO + texto branco.
   acaoBg: string; acaoTexto: string;
+  // Chips de filtro (Todos/Alimentos/Não-Alimentos) — ativo e inativo têm
+  // pares cor+texto PRÓPRIOS por tema (não são sempre a mesma combinação
+  // "acento/acentoSuave" genérica).
+  filtroAtivoBg: string; filtroAtivoTexto: string; filtroAtivoBorda: string;
+  filtroInativoBg: string; filtroInativoTexto: string; filtroInativoBorda: string;
 };
 
 // ============================================================================
-// PALETA "AZUL AXIOMA" — 7 tons, derivados das cores que o resto do sistema
-// já usa (Dashboard/Open Finance/CanvasBox), nunca ad hoc por componente.
-// Reaproveitada em TODOS os tokens de "intermediario" e "claro" abaixo.
-//   AXIOMA_900 #0f2249 — azul-marinho mais escuro (texto forte, botão de
-//     ação no tema intermediário — precisa ser mais escuro que o fundo azul)
-//   AXIOMA_700 #1a3a8f — azul Axioma "oficial" (já é o início do gradiente
-//     de botão do Open Finance) — fundo do tema intermediário, moldura e
-//     acento do tema claro, botão de ação do tema claro
-//   #2a5fd4 (rgb 42,95,212) — azul vibrante (já é o fim do gradiente do
-//     Open Finance) — usado no acentoTopo do tema claro, mesma família
-//   AXIOMA_400 #6ab0ff — azul claro (já é o accent do CanvasBox/sistema)
-//   AXIOMA_200 #cfe4ff — azul bebê (tint claro derivado de #6ab0ff) — fundo
-//     de card no tema claro, acento no tema intermediário
-//   AXIOMA_050 #f6f9fc — quase-branco (mantido do ajuste anterior)
+// PALETA OFICIAL (temas 2 e 3) — hex fixos, usar SOMENTE estes valores.
+//   AZUL-ELETRICO #371AE5 — botões de ação, botão de filtro ativo
+//   AZUL-PROFUNDO #2914BA — cards no tema intermediário, hover
+//   AZUL-MARCA    #1B0D8E — barra superior, superfície principal do tema
+//                           intermediário, barra superior do tema claro
+//   AZUL-NOITE    #0E0763 — texto sobre fundos claros, títulos (NUNCA preto)
+//   BRANCO-GELO   #FAFAEA — fundo em volta dos cards no tema intermediário
+//   BRANCO-PURO   #FFFFFF — fundo geral do tema claro / texto sobre azul
+//   MARFIM        #F8F8DF — cards no tema claro
+// Regra de contraste: #FFFFFF só sobre AZUL-ELETRICO/PROFUNDO/MARCA/NOITE.
+// #0E0763 só sobre BRANCO-PURO/BRANCO-GELO/MARFIM. Nunca claro-sobre-claro
+// nem escuro-sobre-escuro.
 // ============================================================================
-const AXIOMA_900 = "#0f2249";
-const AXIOMA_700 = "#1a3a8f";
-const AXIOMA_400 = "#6ab0ff";
-const AXIOMA_200 = "#cfe4ff";
-const AXIOMA_050 = "#f6f9fc";
+const AZUL_ELETRICO = "#371AE5";
+const AZUL_PROFUNDO = "#2914BA";
+const AZUL_MARCA = "#1B0D8E";
+const AZUL_NOITE = "#0E0763";
+const BRANCO_GELO = "#FAFAEA";
+const BRANCO_PURO = "#FFFFFF";
+const MARFIM = "#F8F8DF";
 
 const TOKENS: Record<TemaPdv, TokensPdv> = {
-  // TEMA 1 (padrão) — APROVADO, NÃO TOCAR na aparência. Mesmo #020810 do
-  // resto do Axioma, cards em glass azul-arroxeado (mesmo gradiente do
-  // Dashboard), verde neon só no botão de ação.
+  // TEMA 1 (padrão) — APROVADO, NÃO TOCAR na aparência.
   escuro: {
-    fundo: "#020810", fundoContainer: "linear-gradient(160deg, rgba(20,15,55,0.5), rgba(10,8,32,0.6))", bordaContainer: "rgba(99,102,241,0.16)",
+    fundo: "#020810",
+    barraBg: "#020810", barraTexto: "#e2ecf7", barraAcentoBg: "rgba(106,176,255,0.1)", barraAcentoTexto: "#6ab0ff",
+    fundoContainer: "linear-gradient(160deg, rgba(20,15,55,0.5), rgba(10,8,32,0.6))", bordaContainer: "rgba(99,102,241,0.16)",
     acentoTopo: "linear-gradient(90deg, rgba(99,102,241,0.55), rgba(106,176,255,0.3) 50%, transparent)",
     texto: "#e2ecf7", textoSecundario: "#c8d8f0", textoMuted: "#5a7a9a",
-    cardBg: "linear-gradient(160deg, rgba(22,20,50,0.75), rgba(14,14,34,0.8))", cardBorda: "rgba(106,176,255,0.16)",
-    inputBg: "rgba(10,16,32,0.7)", inputBorda: "rgba(106,176,255,0.22)",
-    acento: AXIOMA_400, acentoSuaveBg: "rgba(106,176,255,0.08)", acentoSuaveBorda: "rgba(106,176,255,0.22)",
+    cardBg: "linear-gradient(160deg, rgba(22,20,50,0.75), rgba(14,14,34,0.8))", cardTexto: "#e2ecf7", cardBorda: "rgba(106,176,255,0.16)",
+    inputBg: "rgba(10,16,32,0.7)", inputTexto: "#e2ecf7", inputBorda: "rgba(106,176,255,0.22)",
+    acento: "#6ab0ff", acentoSuaveBg: "rgba(106,176,255,0.08)", acentoSuaveBorda: "rgba(106,176,255,0.22)",
     acaoBg: "linear-gradient(135deg, #00cc6a, #00ff88)", acaoTexto: "#022",
+    filtroAtivoBg: "rgba(106,176,255,0.22)", filtroAtivoTexto: "#6ab0ff", filtroAtivoBorda: "#6ab0ff",
+    filtroInativoBg: "rgba(106,176,255,0.08)", filtroInativoTexto: "#5a7a9a", filtroInativoBorda: "rgba(106,176,255,0.22)",
   },
-  // TEMA 2 — REFEITO: azul + branco, zero verde. Fundo é um azul saturado
-  // e sóbrio de verdade (não o azul-clarinho que sumia) — texto branco pra
-  // ter contraste. Cards em vidro branco translúcido "no mesmo tom da
-  // barra" (mesma base azul, só com uma camada de luz por cima). Botão de
-  // ação no tom MAIS ESCURO da paleta — precisa destacar mesmo sobre o
-  // fundo azul.
+  // TEMA 2 — azul-marca de fundo/barra, painel branco-gelo, cards azul-profundo.
   intermediario: {
-    fundo: AXIOMA_700, fundoContainer: "rgba(255,255,255,0.07)", bordaContainer: "rgba(255,255,255,0.18)",
-    acentoTopo: "linear-gradient(90deg, rgba(255,255,255,0.55), rgba(207,228,255,0.3) 50%, transparent)",
-    texto: "#ffffff", textoSecundario: "rgba(255,255,255,0.82)", textoMuted: "rgba(255,255,255,0.6)",
-    cardBg: "rgba(255,255,255,0.1)", cardBorda: "rgba(255,255,255,0.24)",
-    inputBg: "rgba(255,255,255,0.12)", inputBorda: "rgba(255,255,255,0.3)",
-    acento: AXIOMA_200, acentoSuaveBg: "rgba(255,255,255,0.12)", acentoSuaveBorda: "rgba(255,255,255,0.28)",
-    acaoBg: AXIOMA_900, acaoTexto: "#ffffff",
+    fundo: AZUL_MARCA,
+    barraBg: AZUL_MARCA, barraTexto: BRANCO_PURO, barraAcentoBg: "rgba(255,255,255,0.14)", barraAcentoTexto: BRANCO_PURO,
+    fundoContainer: BRANCO_GELO, bordaContainer: "rgba(55,26,229,0.25)",
+    acentoTopo: `linear-gradient(90deg, rgba(55,26,229,0.55), rgba(41,20,186,0.3) 50%, transparent)`,
+    texto: AZUL_NOITE, textoSecundario: AZUL_NOITE, textoMuted: "rgba(14,7,99,0.68)",
+    cardBg: AZUL_PROFUNDO, cardTexto: BRANCO_PURO, cardBorda: "rgba(55,26,229,0.4)",
+    inputBg: BRANCO_GELO, inputTexto: AZUL_NOITE, inputBorda: "rgba(55,26,229,0.35)",
+    acento: AZUL_ELETRICO, acentoSuaveBg: BRANCO_GELO, acentoSuaveBorda: "rgba(55,26,229,0.3)",
+    acaoBg: AZUL_ELETRICO, acaoTexto: BRANCO_PURO,
+    filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
+    filtroInativoBg: AZUL_MARCA, filtroInativoTexto: BRANCO_PURO, filtroInativoBorda: AZUL_MARCA,
   },
-  // TEMA 3 — REFEITO: hierarquia de 3 tons pedida pelo Elias — fundo BRANCO
-  // (mantido) → card em azul bebê MÉDIO (visível de cara, não o quase-branco
-  // de antes) → moldura/acento em azul Axioma mais escuro. Zero verde.
+  // TEMA 3 — fundo branco-puro, barra azul-marca (casa com tema 2), cards marfim.
   claro: {
-    fundo: AXIOMA_050, fundoContainer: "#ffffff", bordaContainer: "rgba(26,58,143,0.35)",
-    acentoTopo: "linear-gradient(90deg, rgba(26,58,143,0.5), rgba(42,95,212,0.3) 50%, transparent)",
-    texto: AXIOMA_900, textoSecundario: "#2c4066", textoMuted: "#5a6f92",
-    cardBg: AXIOMA_200, cardBorda: "rgba(26,58,143,0.3)", inputBg: "#ffffff", inputBorda: "rgba(26,58,143,0.3)",
-    acento: AXIOMA_700, acentoSuaveBg: AXIOMA_200, acentoSuaveBorda: "rgba(26,58,143,0.32)",
-    acaoBg: AXIOMA_700, acaoTexto: "#ffffff",
+    fundo: BRANCO_PURO,
+    barraBg: AZUL_MARCA, barraTexto: BRANCO_PURO, barraAcentoBg: "rgba(255,255,255,0.14)", barraAcentoTexto: BRANCO_PURO,
+    fundoContainer: BRANCO_PURO, bordaContainer: "rgba(55,26,229,0.25)",
+    acentoTopo: `linear-gradient(90deg, rgba(55,26,229,0.5), rgba(41,20,186,0.3) 50%, transparent)`,
+    texto: AZUL_NOITE, textoSecundario: AZUL_NOITE, textoMuted: "rgba(14,7,99,0.68)",
+    cardBg: MARFIM, cardTexto: AZUL_NOITE, cardBorda: AZUL_ELETRICO,
+    inputBg: MARFIM, inputTexto: AZUL_NOITE, inputBorda: AZUL_ELETRICO,
+    acento: AZUL_ELETRICO, acentoSuaveBg: MARFIM, acentoSuaveBorda: AZUL_ELETRICO,
+    acaoBg: AZUL_ELETRICO, acaoTexto: BRANCO_PURO,
+    filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
+    filtroInativoBg: MARFIM, filtroInativoTexto: AZUL_NOITE, filtroInativoBorda: AZUL_ELETRICO,
   },
 };
 
@@ -105,7 +115,8 @@ const TemaContext = createContext<{ tema: TemaPdv; tokens: TokensPdv; setTema: (
 
 // Qualquer tela do PDV chama isso pra pintar seus próprios cards/inputs de
 // acordo com o tema ativo — não precisa reimplementar persistência nem
-// estado, só consumir os tokens já resolvidos.
+// estado, só consumir os tokens já resolvidos. NENHUM componente define cor
+// própria fora daqui — é o que impede o retrabalho de cor se repetir.
 export function useTemaPdv() {
   return useContext(TemaContext);
 }
@@ -128,11 +139,11 @@ function SeletorTema({ tema, setTema, tokens }: { tema: TemaPdv; setTema: (t: Te
     { valor: "escuro", Icone: Moon }, { valor: "intermediario", Icone: Contrast }, { valor: "claro", Icone: Sun },
   ];
   return (
-    <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+    <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: tokens.barraAcentoBg }}>
       {opcoes.map(({ valor, Icone }) => (
         <button key={valor} onClick={() => setTema(valor)}
           className="p-1.5 rounded-lg transition-colors"
-          style={{ background: tema === valor ? tokens.acentoSuaveBorda : "transparent", color: tema === valor ? tokens.acento : tokens.textoMuted }}>
+          style={{ background: tema === valor ? "rgba(255,255,255,0.25)" : "transparent", color: tokens.barraTexto, opacity: tema === valor ? 1 : 0.6 }}>
           <Icone size={14} />
         </button>
       ))}
@@ -159,12 +170,13 @@ interface PdvLayoutProps {
 export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, botaoExtra, children }: PdvLayoutProps) {
   const { tema, tokens, setTema } = useProviderTema();
 
-  const estiloSeta: React.CSSProperties = { background: tokens.acentoSuaveBg, color: tokens.acento, border: `1px solid ${tokens.acentoSuaveBorda}` };
+  const estiloSeta: React.CSSProperties = { background: tokens.barraAcentoBg, color: tokens.barraAcentoTexto };
 
   return (
     <TemaContext.Provider value={{ tema, tokens, setTema }}>
       <div className="min-h-screen p-4 md:p-8" style={{ background: tokens.fundo }}>
-        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }} className="mb-6 md:mb-8">
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}
+          className="mb-6 md:mb-8 rounded-2xl p-4 md:p-6" style={{ background: tokens.barraBg }}>
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-start gap-3 min-w-0">
               {aoVoltar ? (
@@ -177,8 +189,8 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
                 </Link>
               ) : null}
               <div className="min-w-0">
-                <h2 className="text-xl md:text-2xl font-bold mb-1 truncate" style={{ color: tokens.texto }}>{titulo}</h2>
-                <p className="text-sm" style={{ color: tokens.textoMuted }}>{subtitulo}</p>
+                <h2 className="text-xl md:text-2xl font-bold mb-1 truncate" style={{ color: tokens.barraTexto }}>{titulo}</h2>
+                <p className="text-sm" style={{ color: tokens.barraTexto, opacity: 0.8 }}>{subtitulo}</p>
               </div>
             </div>
             <SeletorTema tema={tema} setTema={setTema} tokens={tokens} />

@@ -323,9 +323,7 @@ export default function PDVImportarNFe() {
   if (carregandoPapel) {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
-        <div className="flex items-center justify-center py-16 gap-2" style={{ color: "#5a7a9a" }}>
-          <Loader2 className="animate-spin" size={18} /><span className="text-sm">{t("carregando", lang)}</span>
-        </div>
+        <EstadoCarregando lang={lang} />
       </PdvLayout>
     );
   }
@@ -333,9 +331,7 @@ export default function PDVImportarNFe() {
   if (papel === "operador") {
     return (
       <PdvLayout titulo={t("operadorTitulo", lang)} subtitulo="">
-        <div className="flex items-center justify-center py-16 px-4">
-          <p className="text-sm text-center max-w-md" style={{ color: "#5a7a9a" }}>{t("operadorCorpo", lang)}</p>
-        </div>
+        <AvisoOperador lang={lang} />
       </PdvLayout>
     );
   }
@@ -355,11 +351,7 @@ export default function PDVImportarNFe() {
               onArquivo={(f) => handleArquivo(f)} />
           )}
 
-          {resolvendoItens && (
-            <div className="flex items-center gap-2 py-6 justify-center" style={{ color: "#8fa8c0" }}>
-              <Loader2 className="animate-spin" size={16} /><span className="text-sm">{t("resolvendoItens", lang)}</span>
-            </div>
-          )}
+          {resolvendoItens && <SpinnerResolvendoItens lang={lang} />}
 
           {fornecedorInfo && itens && !resolvendoItens && (
             <FornecedorCard lang={lang} info={fornecedorInfo} />
@@ -382,6 +374,33 @@ export default function PDVImportarNFe() {
 // SUBCOMPONENTES
 // ============================================================================
 
+function EstadoCarregando({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
+      <Loader2 className="animate-spin" size={18} /><span className="text-sm">{t("carregando", lang)}</span>
+    </div>
+  );
+}
+
+function AvisoOperador({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center justify-center py-16 px-4">
+      <p className="text-sm text-center max-w-md" style={{ color: tokens.textoMuted }}>{t("operadorCorpo", lang)}</p>
+    </div>
+  );
+}
+
+function SpinnerResolvendoItens({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center gap-2 py-6 justify-center" style={{ color: tokens.textoSecundario }}>
+      <Loader2 className="animate-spin" size={16} /><span className="text-sm">{t("resolvendoItens", lang)}</span>
+    </div>
+  );
+}
+
 function ToastPdv({ msg, tipo }: { msg: string; tipo: "ok" | "erro" | "info" }) {
   const { tokens } = useTemaPdv();
   return (
@@ -402,7 +421,7 @@ function SeletorNichoSimples({ lang, nichoSel, onSelecionar }: { lang: Lang; nic
       <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{t("escolhaNicho", lang)}</label>
       <select value={nichoSel?.value || ""} onChange={(e) => onSelecionar(e.target.value)}
         className="w-full sm:w-80 px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.texto }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.inputTexto }}>
         <option value="">{t("selecione", lang)}</option>
         {NICHOS_PDV.filter((n) => n.modo !== "servico" && n.value !== "generico").map((n) => (
           <option key={n.value} value={n.value}>{n.label[lang]}</option>
@@ -420,10 +439,10 @@ function AreaUpload({ lang, inputRef, processando, erro, onArquivo }: {
     <div>
       <button onClick={() => inputRef.current?.click()} disabled={processando}
         className="w-full flex flex-col items-center justify-center gap-2 py-12 rounded-xl border-2 border-dashed disabled:opacity-60"
-        style={{ borderColor: tokens.acentoSuaveBorda, background: tokens.cardBg }}>
-        {processando ? <Loader2 className="animate-spin" size={28} style={{ color: tokens.acento }} /> : <Upload size={28} style={{ color: tokens.acento }} />}
-        <span className="text-sm font-semibold" style={{ color: tokens.texto }}>{processando ? t("processando", lang) : t("enviarArquivo", lang)}</span>
-        <span className="text-xs" style={{ color: tokens.textoMuted }}>{t("arrastarSolte", lang)}</span>
+        style={{ borderColor: tokens.cardBorda, background: tokens.cardBg }}>
+        {processando ? <Loader2 className="animate-spin" size={28} style={{ color: tokens.cardTexto }} /> : <Upload size={28} style={{ color: tokens.cardTexto }} />}
+        <span className="text-sm font-semibold" style={{ color: tokens.cardTexto }}>{processando ? t("processando", lang) : t("enviarArquivo", lang)}</span>
+        <span className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("arrastarSolte", lang)}</span>
       </button>
       <input ref={inputRef} type="file" accept=".xml" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onArquivo(f); }} />
       {erro && (
@@ -440,10 +459,10 @@ function FornecedorCard({ lang, info }: { lang: Lang; info: { existente: Fornece
   return (
     <div className="p-4 rounded-xl flex items-center justify-between flex-wrap gap-2" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.acento }}>{t("fornecedorTitulo", lang)}</p>
-        <p className="text-sm" style={{ color: tokens.texto }}>{info.existente?.nome || info.fantasia || info.razaoSocial || info.cnpj}</p>
+        <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("fornecedorTitulo", lang)}</p>
+        <p className="text-sm" style={{ color: tokens.cardTexto }}>{info.existente?.nome || info.fantasia || info.razaoSocial || info.cnpj}</p>
       </div>
-      <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: info.existente ? tokens.acentoSuaveBg : "rgba(245,185,66,0.15)", color: info.existente ? tokens.acento : AMBAR }}>
+      <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: info.existente ? "rgba(255,255,255,0.18)" : "rgba(245,185,66,0.15)", color: info.existente ? tokens.cardTexto : AMBAR }}>
         {info.existente ? t("fornecedorExistente", lang) : t("fornecedorNovo", lang)}
       </span>
     </div>
@@ -471,9 +490,9 @@ function TabelaConferencia({ lang, nicho, itens, classificando, margemPct, onMar
 
       <div className="flex items-end gap-2 flex-wrap p-3 rounded-xl" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         <div>
-          <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{t("margemLabel", lang)}</label>
+          <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("margemLabel", lang)}</label>
           <input type="number" value={margemPct} onChange={(e) => onMargemChange(e.target.value)}
-            className="w-28 px-3 py-2 rounded-lg text-sm" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.texto }} />
+            className="w-28 px-3 py-2 rounded-lg text-sm" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.inputTexto }} />
         </div>
         <button onClick={onAplicarMargem} className="px-3.5 py-2 rounded-lg text-xs font-semibold" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
           {t("aplicarMargem", lang)}
@@ -481,7 +500,7 @@ function TabelaConferencia({ lang, nicho, itens, classificando, margemPct, onMar
       </div>
 
       <div className="space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: tokens.acento }}>{t("itensTitulo", lang)} ({itens.length})</p>
+        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: tokens.texto }}>{t("itensTitulo", lang)} ({itens.length})</p>
         {itens.map((it, idx) => (
           <ItemConferenciaCard key={idx} lang={lang} item={it} opcoesCategoria={opcoesCategoria} onAtualizar={(campo, v) => onAtualizarItem(idx, campo, v)} />
         ))}
@@ -511,15 +530,15 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <input type="checkbox" checked={item.incluir} onChange={(e) => onAtualizar("incluir", e.target.checked)} className="w-4 h-4 rounded shrink-0" />
-          <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: item.status === "novo" ? "rgba(245,185,66,0.18)" : tokens.acentoSuaveBg, color: item.status === "novo" ? AMBAR : tokens.acento }}>
+          <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0" style={{ background: item.status === "novo" ? "rgba(245,185,66,0.18)" : "rgba(255,255,255,0.18)", color: item.status === "novo" ? AMBAR : tokens.cardTexto }}>
             {item.status === "novo" ? t("statusNovo", lang) : t("statusExistente", lang)}
           </span>
           {item.sugeridoIA && <span className="flex items-center gap-1 text-xs" style={{ color: AMBAR }}><Sparkles size={11} /> {t("sugestaoAutomaticaBadge", lang)}</span>}
         </div>
-        <Package size={15} style={{ color: tokens.textoMuted }} />
+        <Package size={15} style={{ color: tokens.cardTexto, opacity: 0.75 }} />
       </div>
 
-      <p className="text-xs" style={{ color: tokens.textoMuted }}>{t("colDescricaoOriginal", lang)}: {item.original.descricao}</p>
+      <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("colDescricaoOriginal", lang)}: {item.original.descricao}</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CampoTexto label={t("colNome", lang)} value={item.nome} onChange={(v) => onAtualizar("nome", v)} />
@@ -533,15 +552,15 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
         <CampoTexto label={t("colPrecoVenda", lang)} tipo="number" value={item.precoVenda} onChange={(v) => onAtualizar("precoVenda", v)} />
       </div>
 
-      <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: tokens.textoSecundario }}>
+      <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>
         <span>{t("colQuantidade", lang)}: {conversao.quantidadeUnidades} {item.original.unidade || ""}</span>
         <span>{t("colCusto", lang)}: {conversao.custoUnitario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-        {item.original.numeroLote && <span style={{ color: tokens.acento }}>{t("loteValidadeDetectado", lang)}: {item.original.numeroLote}{item.original.dataValidade ? ` · ${item.original.dataValidade}` : ""}</span>}
+        {item.original.numeroLote && <span style={{ color: tokens.cardTexto, opacity: 1 }}>{t("loteValidadeDetectado", lang)}: {item.original.numeroLote}{item.original.dataValidade ? ` · ${item.original.dataValidade}` : ""}</span>}
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer select-none">
         <input type="checkbox" checked={item.usaFardo} onChange={(e) => onAtualizar("usaFardo", e.target.checked)} className="w-4 h-4 rounded" />
-        <span className="text-xs" style={{ color: tokens.textoSecundario }}>{t("vemEmFardo", lang)}</span>
+        <span className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{t("vemEmFardo", lang)}</span>
       </label>
       {item.usaFardo && (
         <CampoTexto label={t("unidadesPorFardo", lang)} tipo="number" value={item.unidadesPorFardo} onChange={(v) => onAtualizar("unidadesPorFardo", v)} />
@@ -554,9 +573,9 @@ function CampoTexto({ label, value, onChange, tipo = "text" }: { label: string; 
   const { tokens } = useTemaPdv();
   return (
     <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.8 }}>{label}</label>
       <input type={tipo} value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.texto }} />
+        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.inputTexto }} />
     </div>
   );
 }
@@ -565,9 +584,9 @@ function CampoSelect({ label, value, onChange, opcoes, disabled }: { label: stri
   const { tokens } = useTemaPdv();
   return (
     <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.8 }}>{label}</label>
       <select value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm disabled:opacity-50"
-        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.texto }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.inputTexto }}>
         <option value="">—</option>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -589,7 +608,7 @@ function ResumoFinal({ lang, resumo, onImportarOutra }: { lang: Lang; resumo: { 
       )}
       <div className="flex gap-2 justify-center flex-wrap">
         <button onClick={onImportarOutra} className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>{t("importarOutra", lang)}</button>
-        <a href="/pdv" className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ color: tokens.textoSecundario, border: "1px solid rgba(143,168,192,0.2)" }}>{t("irParaCatalogo", lang)}</a>
+        <a href="/pdv" className="px-4 py-2.5 rounded-xl text-sm font-semibold" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.bordaContainer}` }}>{t("irParaCatalogo", lang)}</a>
       </div>
     </div>
   );

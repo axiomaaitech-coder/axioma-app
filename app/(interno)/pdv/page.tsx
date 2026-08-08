@@ -364,9 +364,9 @@ function SecaoNichos({ lang, filtroDivisao, onFiltroChange, nichosPorModo, qtdPo
           <button key={f} onClick={() => onFiltroChange(f)}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold"
             style={{
-              background: filtroDivisao === f ? tokens.acentoSuaveBorda : tokens.acentoSuaveBg,
-              color: filtroDivisao === f ? tokens.acento : tokens.textoMuted,
-              border: `1px solid ${filtroDivisao === f ? tokens.acento : tokens.acentoSuaveBorda}`,
+              background: filtroDivisao === f ? tokens.filtroAtivoBg : tokens.filtroInativoBg,
+              color: filtroDivisao === f ? tokens.filtroAtivoTexto : tokens.filtroInativoTexto,
+              border: `1px solid ${filtroDivisao === f ? tokens.filtroAtivoBorda : tokens.filtroInativoBorda}`,
             }}>
             {f === "todos" ? t("filtroTodos", lang) : f === "alimentos" ? t("filtroAlimentos", lang) : t("filtroNaoAlimentos", lang)}
           </button>
@@ -435,10 +435,10 @@ function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: 
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px]"
-      style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}
+      style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
     >
-      <span className="text-sm font-semibold" style={{ color: tokens.texto }}>{nicho.label[lang]}</span>
-      {qtd > 0 && <span className="text-xs font-semibold" style={{ color: tokens.acento }}>{qtd}</span>}
+      <span className="text-sm font-semibold" style={{ color: tokens.cardTexto }}>{nicho.label[lang]}</span>
+      {qtd > 0 && <span className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{qtd}</span>}
     </motion.button>
   );
 }
@@ -449,7 +449,7 @@ function ListaCarregavel({ carregando, children }: { carregando: boolean; childr
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="animate-pulse h-16 rounded-xl" style={{ background: tokens.acentoSuaveBg }} />
+          <div key={i} className="animate-pulse h-16 rounded-xl" style={{ background: tokens.cardBg, opacity: 0.4 }} />
         ))}
       </div>
     );
@@ -536,9 +536,9 @@ function BotaoSimples({ label, onClick, apagado }: { label: string; onClick: () 
       onClick={onClick}
       className="p-3.5 rounded-xl text-left text-sm font-medium min-h-[52px]"
       style={{
-        background: apagado ? tokens.cardBg : tokens.acentoSuaveBg,
-        border: `1px solid ${apagado ? tokens.cardBorda : tokens.acentoSuaveBorda}`,
-        color: apagado ? tokens.textoSecundario : tokens.texto,
+        background: apagado ? tokens.fundoContainer : tokens.cardBg,
+        border: `1px solid ${apagado ? tokens.bordaContainer : tokens.cardBorda}`,
+        color: apagado ? tokens.textoMuted : tokens.cardTexto,
       }}
     >
       {label}
@@ -566,20 +566,20 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
   return (
     <div>
       <div className="flex items-center gap-2 mb-4 px-3 py-2.5 rounded-xl" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
-        <Search size={16} style={{ color: tokens.textoMuted }} />
+        <Search size={16} style={{ color: tokens.inputTexto, opacity: 0.7 }} />
         <input
           value={busca}
           onChange={(e) => onBusca(e.target.value)}
           placeholder={t("buscarPlaceholder", lang)}
           className="bg-transparent outline-none text-sm flex-1"
-          style={{ color: tokens.texto }}
+          style={{ color: tokens.inputTexto }}
         />
       </div>
 
       {carregando ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="animate-pulse h-14 rounded-xl" style={{ background: tokens.acentoSuaveBg }} />
+            <div key={i} className="animate-pulse h-14 rounded-xl" style={{ background: tokens.cardBg, opacity: 0.4 }} />
           ))}
         </div>
       ) : produtos.length === 0 ? (
@@ -615,16 +615,16 @@ function LinhaProduto({ produto, lang }: { produto: ProdutoPdv; lang: Idioma }) 
   return (
     <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div className="min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: tokens.texto }}>{produto.nome}</p>
-        <p className="text-xs" style={{ color: tokens.textoMuted }}>
+        <p className="text-sm font-medium truncate" style={{ color: tokens.cardTexto }}>{produto.nome}</p>
+        <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.72 }}>
           {produto.codigo_barras || produto.sku || "—"} · {produto.saldo_disponivel} {t("estoqueDisponivel", lang)}
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm font-semibold" style={{ color: preco ? tokens.acento : tokens.textoMuted }}>
+        <span className="text-sm font-bold" style={{ color: tokens.cardTexto, opacity: preco ? 1 : 0.6 }}>
           {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
-        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.cardBorda}` }}>
+        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
           {t("verNoEstoque", lang)} <ExternalLink size={12} />
         </a>
       </div>
