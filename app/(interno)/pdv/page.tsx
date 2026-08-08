@@ -17,11 +17,9 @@ import {
   PDV_PAGE_SIZE, type ProdutoPdv,
 } from "../../../lib/pdvHelpers";
 
-// Verde neon reservado só pro botão PDV na TopNav (intocado, outro arquivo)
-// e pra ação/destaque pontual AQUI DENTRO (botão principal, preço). Cards,
-// bordas, labels de seção e navegação usam o acento azul/roxo do tema
-// (tokens.acento) — nunca card/borda/superfície inteira em verde.
-const VERDE_PDV = "#00ff88";
+// Botões de ação e preço usam tokens.acaoBg/acento (verde só sobrevive no
+// tema escuro, via tokens — ver components/PdvLayout.tsx). Nenhuma cor fixa
+// aqui: cards, bordas, labels de seção e navegação seguem o tema inteiro.
 
 const txt = {
   titulo: { pt: "PDV — Catálogo", en: "POS — Catalog", es: "PDV — Catálogo" },
@@ -326,16 +324,17 @@ export default function PDV() {
 // ============================================================================
 
 function BotoesHeader({ lang }: { lang: Idioma }) {
-  // Únicos 2 elementos da tela que ficam em verde de propósito — são a
-  // ação principal do módulo (criar/importar), não superfície de navegação.
+  // Botão de ação — verde só no tema escuro (tokens.acaoBg já resolve isso).
+  // Nos temas 2/3 vira azul forte + texto branco, nunca verde sobre claro.
+  const { tokens } = useTemaPdv();
   return (
     <>
       <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-        style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.4)" }}>
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         <Plus size={16} /> {t("novoProdutoServico", lang)}
       </Link>
       <Link href="/pdv/importar-nfe" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-        style={{ background: "rgba(0,255,136,0.08)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.25)" }}>
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto, opacity: 0.88 }}>
         {t("importarNfe", lang)}
       </Link>
     </>
@@ -622,7 +621,7 @@ function LinhaProduto({ produto, lang }: { produto: ProdutoPdv; lang: Idioma }) 
         </p>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm font-semibold" style={{ color: preco ? VERDE_PDV : tokens.textoMuted }}>
+        <span className="text-sm font-semibold" style={{ color: preco ? tokens.acento : tokens.textoMuted }}>
           {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
         <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.cardBorda}` }}>

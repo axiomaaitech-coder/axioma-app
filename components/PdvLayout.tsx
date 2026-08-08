@@ -4,14 +4,14 @@
 // do Elias pra não arriscar nenhum outro módulo.
 //
 // Paleta alinhada à identidade REAL do resto do Axioma (Dashboard/MEI/Open
-// Finance — não inventada): fundo #020810, cards em glass azul-arroxeado
-// (linear-gradient 160deg rgba(20,15,55,.94)→rgba(10,8,32,.97), mesmo tom
-// usado no Dashboard), acento indigo rgba(99,102,241,*) e azul claro
-// #6ab0ff (o mesmo do CanvasBox/Open Finance) — nunca verde. O verde neon
-// (#00ff88, ver lib/pdvCatalogoTaxonomia visual em cada tela) fica reservado
-// só pro botão PDV na TopNav (intocado) e pra ação/destaque pontual dentro
-// do próprio módulo (botão principal de salvar/confirmar) — nunca em
-// card, borda ou superfície inteira.
+// Finance — não inventada). Tema 1 (escuro, padrão) — APROVADO, não mudar:
+// fundo #020810, cards em glass azul-arroxeado (mesmo gradiente do
+// Dashboard), acento indigo/azul claro #6ab0ff (mesmo do CanvasBox/Open
+// Finance), verde neon (#00ff88) só no botão de ação (tokens.acaoBg).
+// Temas 2 e 3 (intermediário/claro) — REFEITOS: verde SAI por completo,
+// vira azul forte + texto branco nos botões de ação também (ver paleta
+// "AZUL AXIOMA" logo abaixo). O botão PDV da TopNav (outro arquivo) segue
+// verde sempre — é a identidade do módulo no menu, fora do escopo daqui.
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Sun, Moon, Contrast } from "lucide-react";
@@ -24,38 +24,76 @@ export type TokensPdv = {
   texto: string; textoSecundario: string; textoMuted: string;
   cardBg: string; cardBorda: string; inputBg: string; inputBorda: string;
   // Acento azul/roxo do sistema — usado em label de seção, breadcrumb ativo,
-  // badge, chip selecionado. NUNCA verde (esse fica só pro botão de ação
-  // principal, ver VERDE_PDV nas telas).
+  // badge, chip selecionado.
   acento: string; acentoSuaveBg: string; acentoSuaveBorda: string;
+  // Botão de AÇÃO (Salvar/Confirmar/+Novo/Consultar) — só aqui o verde
+  // ainda existe, e só no tema escuro. Nos temas 2 e 3 vira azul forte +
+  // texto branco (exigência do Elias: "verde sai dos temas 2 e 3 por
+  // completo"). Toda tela do PDV usa ESTES 2 tokens pros botões de ação,
+  // nunca cor fixa — é o que garante nunca mais verde-sobre-claro invisível.
+  acaoBg: string; acaoTexto: string;
 };
 
+// ============================================================================
+// PALETA "AZUL AXIOMA" — 7 tons, derivados das cores que o resto do sistema
+// já usa (Dashboard/Open Finance/CanvasBox), nunca ad hoc por componente.
+// Reaproveitada em TODOS os tokens de "intermediario" e "claro" abaixo.
+//   AXIOMA_900 #0f2249 — azul-marinho mais escuro (texto forte, botão de
+//     ação no tema intermediário — precisa ser mais escuro que o fundo azul)
+//   AXIOMA_700 #1a3a8f — azul Axioma "oficial" (já é o início do gradiente
+//     de botão do Open Finance) — fundo do tema intermediário, moldura e
+//     acento do tema claro, botão de ação do tema claro
+//   #2a5fd4 (rgb 42,95,212) — azul vibrante (já é o fim do gradiente do
+//     Open Finance) — usado no acentoTopo do tema claro, mesma família
+//   AXIOMA_400 #6ab0ff — azul claro (já é o accent do CanvasBox/sistema)
+//   AXIOMA_200 #cfe4ff — azul bebê (tint claro derivado de #6ab0ff) — fundo
+//     de card no tema claro, acento no tema intermediário
+//   AXIOMA_050 #f6f9fc — quase-branco (mantido do ajuste anterior)
+// ============================================================================
+const AXIOMA_900 = "#0f2249";
+const AXIOMA_700 = "#1a3a8f";
+const AXIOMA_400 = "#6ab0ff";
+const AXIOMA_200 = "#cfe4ff";
+const AXIOMA_050 = "#f6f9fc";
+
 const TOKENS: Record<TemaPdv, TokensPdv> = {
-  // Mesmo #020810 do resto do Axioma. Cards em glass azul-arroxeado (mesmo
-  // gradiente do Dashboard), um tom acima do fundo pra separar visualmente.
+  // TEMA 1 (padrão) — APROVADO, NÃO TOCAR na aparência. Mesmo #020810 do
+  // resto do Axioma, cards em glass azul-arroxeado (mesmo gradiente do
+  // Dashboard), verde neon só no botão de ação.
   escuro: {
     fundo: "#020810", fundoContainer: "linear-gradient(160deg, rgba(20,15,55,0.5), rgba(10,8,32,0.6))", bordaContainer: "rgba(99,102,241,0.16)",
     acentoTopo: "linear-gradient(90deg, rgba(99,102,241,0.55), rgba(106,176,255,0.3) 50%, transparent)",
     texto: "#e2ecf7", textoSecundario: "#c8d8f0", textoMuted: "#5a7a9a",
     cardBg: "linear-gradient(160deg, rgba(22,20,50,0.75), rgba(14,14,34,0.8))", cardBorda: "rgba(106,176,255,0.16)",
     inputBg: "rgba(10,16,32,0.7)", inputBorda: "rgba(106,176,255,0.22)",
-    acento: "#6ab0ff", acentoSuaveBg: "rgba(106,176,255,0.08)", acentoSuaveBorda: "rgba(106,176,255,0.22)",
+    acento: AXIOMA_400, acentoSuaveBg: "rgba(106,176,255,0.08)", acentoSuaveBorda: "rgba(106,176,255,0.22)",
+    acaoBg: "linear-gradient(135deg, #00cc6a, #00ff88)", acaoTexto: "#022",
   },
-  // Azul claro + branco + azul escuro, sem verde em superfície nenhuma.
+  // TEMA 2 — REFEITO: azul + branco, zero verde. Fundo é um azul saturado
+  // e sóbrio de verdade (não o azul-clarinho que sumia) — texto branco pra
+  // ter contraste. Cards em vidro branco translúcido "no mesmo tom da
+  // barra" (mesma base azul, só com uma camada de luz por cima). Botão de
+  // ação no tom MAIS ESCURO da paleta — precisa destacar mesmo sobre o
+  // fundo azul.
   intermediario: {
-    fundo: "#dde9f9", fundoContainer: "rgba(255,255,255,0.85)", bordaContainer: "rgba(26,58,143,0.16)",
-    acentoTopo: "linear-gradient(90deg, rgba(26,58,143,0.5), rgba(42,95,212,0.3) 50%, transparent)",
-    texto: "#0f2249", textoSecundario: "#2c4066", textoMuted: "#5a6f92",
-    cardBg: "#ffffff", cardBorda: "rgba(26,58,143,0.18)", inputBg: "#ffffff", inputBorda: "rgba(26,58,143,0.22)",
-    acento: "#1a3a8f", acentoSuaveBg: "rgba(26,58,143,0.08)", acentoSuaveBorda: "rgba(26,58,143,0.22)",
+    fundo: AXIOMA_700, fundoContainer: "rgba(255,255,255,0.07)", bordaContainer: "rgba(255,255,255,0.18)",
+    acentoTopo: "linear-gradient(90deg, rgba(255,255,255,0.55), rgba(207,228,255,0.3) 50%, transparent)",
+    texto: "#ffffff", textoSecundario: "rgba(255,255,255,0.82)", textoMuted: "rgba(255,255,255,0.6)",
+    cardBg: "rgba(255,255,255,0.1)", cardBorda: "rgba(255,255,255,0.24)",
+    inputBg: "rgba(255,255,255,0.12)", inputBorda: "rgba(255,255,255,0.3)",
+    acento: AXIOMA_200, acentoSuaveBg: "rgba(255,255,255,0.12)", acentoSuaveBorda: "rgba(255,255,255,0.28)",
+    acaoBg: AXIOMA_900, acaoTexto: "#ffffff",
   },
-  // Fundo quase branco, cards brancos com borda cinza-azulada suave. Zero
-  // verde-menta — era o problema relatado (contraste fraco, aparência frágil).
+  // TEMA 3 — REFEITO: hierarquia de 3 tons pedida pelo Elias — fundo BRANCO
+  // (mantido) → card em azul bebê MÉDIO (visível de cara, não o quase-branco
+  // de antes) → moldura/acento em azul Axioma mais escuro. Zero verde.
   claro: {
-    fundo: "#f6f9fc", fundoContainer: "rgba(255,255,255,0.9)", bordaContainer: "rgba(90,111,146,0.16)",
-    acentoTopo: "linear-gradient(90deg, rgba(26,58,143,0.4), rgba(90,111,146,0.25) 50%, transparent)",
-    texto: "#0f2249", textoSecundario: "#3b4f70", textoMuted: "#64789a",
-    cardBg: "#ffffff", cardBorda: "rgba(90,111,146,0.2)", inputBg: "#ffffff", inputBorda: "rgba(90,111,146,0.25)",
-    acento: "#1a3a8f", acentoSuaveBg: "rgba(26,58,143,0.06)", acentoSuaveBorda: "rgba(26,58,143,0.18)",
+    fundo: AXIOMA_050, fundoContainer: "#ffffff", bordaContainer: "rgba(26,58,143,0.35)",
+    acentoTopo: "linear-gradient(90deg, rgba(26,58,143,0.5), rgba(42,95,212,0.3) 50%, transparent)",
+    texto: AXIOMA_900, textoSecundario: "#2c4066", textoMuted: "#5a6f92",
+    cardBg: AXIOMA_200, cardBorda: "rgba(26,58,143,0.3)", inputBg: "#ffffff", inputBorda: "rgba(26,58,143,0.3)",
+    acento: AXIOMA_700, acentoSuaveBg: AXIOMA_200, acentoSuaveBorda: "rgba(26,58,143,0.32)",
+    acaoBg: AXIOMA_700, acaoTexto: "#ffffff",
   },
 };
 

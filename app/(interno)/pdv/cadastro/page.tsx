@@ -17,10 +17,9 @@ import { NICHOS_PDV, type NichoPdvDef, type CategoriaPdv, type SubNichoPdv } fro
 import { consultarIA, verificarNomeDuplicado } from "../../../../lib/pdvHelpers";
 import { buscarSugestoesSemente } from "../../../../lib/pdvAutocompleteSemente";
 
-// Verde neon reservado pra ação principal (Salvar/Consultar) — cards,
-// bordas, labels de seção e chips seguem o acento azul/roxo do tema
-// (tokens.acento), nunca card/borda inteira em verde.
-const VERDE_PDV = "#00ff88";
+// Botões de ação (Salvar/Consultar) usam tokens.acaoBg/acaoTexto — verde só
+// sobrevive no tema escuro (ver components/PdvLayout.tsx). Âmbar continua
+// fixo nos dois temas: é cor de status (sugestão/alerta), não identidade.
 const AMBAR = "#f5b942";
 
 const txt = {
@@ -448,12 +447,7 @@ export default function PDVCadastro() {
 
   return (
     <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg"
-          style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : toast.tipo === "info" ? "rgba(30,41,59,0.95)" : "rgba(0,255,136,0.95)", color: toast.tipo === "ok" ? "#022" : "#fff" }}>
-          {toast.msg}
-        </div>
-      )}
+      {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
 
       <SeletorNicho lang={lang} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel}
         onNicho={selecionarNicho} onCategoria={selecionarCategoria} onSubNicho={selecionarSubNicho} />
@@ -506,6 +500,19 @@ export default function PDVCadastro() {
         </>
       )}
     </PdvLayout>
+  );
+}
+
+function ToastPdv({ msg, tipo }: { msg: string; tipo: "ok" | "erro" | "info" }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl text-sm font-medium shadow-lg"
+      style={{
+        background: tipo === "erro" ? "rgba(239,68,68,0.95)" : tipo === "info" ? "rgba(30,41,59,0.95)" : tokens.acaoBg,
+        color: tipo === "ok" ? tokens.acaoTexto : "#fff",
+      }}>
+      {msg}
+    </div>
   );
 }
 
@@ -691,7 +698,7 @@ function FormularioAvulso({
           </div>
           <button onClick={onConsultar} disabled={consultando || !form.codigo_barras}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-40"
-            style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV }}>
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
             {consultando ? <Loader2 className="animate-spin" size={15} /> : <ScanBarcode size={15} />} {t("consultar", lang)}
           </button>
         </div>
@@ -734,7 +741,7 @@ function FormularioAvulso({
 
       <button onClick={onSalvar} disabled={salvando}
         className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-        style={{ background: `linear-gradient(135deg, #00cc6a, ${VERDE_PDV})`, color: "#022" }}>
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {salvando ? t("salvando", lang) : t("salvar", lang)}
       </button>
     </div>
@@ -804,7 +811,7 @@ function BipagemMassa({
 
             <div className="flex gap-2">
               <button onClick={onSalvarPendente} disabled={salvandoPendente}
-                className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, #00cc6a, ${VERDE_PDV})`, color: "#022" }}>
+                className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-60" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
                 {salvandoPendente ? t("salvando", lang) : t("salvar", lang)}
               </button>
               <button onClick={onPular} className="px-4 py-2.5 rounded-lg text-sm" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.cardBorda}` }}>{t("pular", lang)}</button>
