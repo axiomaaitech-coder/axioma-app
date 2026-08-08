@@ -1032,32 +1032,152 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "lanchonete", label: L("Lanchonete", "Snack Bar", "Cafetería"), modo: "misto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("insumos_lanchonete", "Insumos", "Raw Ingredients", "Insumos", [SUB("pao_carne_queijo", "Pão/Carne/Queijo", "Bread/Meat/Cheese", "Pan/Carne/Queso", [CAMPO_PERECIVEL])]),
-      CAT("bebidas_lanchonete", "Bebidas", "Beverages", "Bebidas", [SUB("refrigerante_suco", "Refrigerante/Suco", "Soda/Juice", "Refresco/Jugo", [CAMPO_PERECIVEL])]),
-      CAT("descartaveis_lanchonete", "Descartáveis", "Disposables", "Desechables", [SUB("embalagem_guardanapo", "Embalagem/Guardanapo", "Packaging/Napkin", "Empaque/Servilleta")]),
+      CAT("insumos_paes_massas_lanchonete", "Insumos — Pães e Massas", "Ingredients — Bread & Dough", "Insumos — Panes y Masas", [
+        SUB("pao_hamburguer", "Pão de Hambúrguer", "Burger Bun", "Pan de Hamburguesa", [CAMPO_PERECIVEL]), SUB("pao_frances_sanduiche_lanchonete", "Pão Francês/Sanduíche", "French/Sandwich Bread", "Pan Francés/Sándwich", [CAMPO_PERECIVEL]),
+        SUB("pao_cachorro_quente", "Pão de Cachorro-quente", "Hot Dog Bun", "Pan de Pancho", [CAMPO_PERECIVEL]), SUB("massa_salgado_lanchonete", "Massa de Salgado", "Savory Pastry Dough", "Masa de Salado", [CAMPO_PERECIVEL]),
+        SUB("torrada_fatia_pao", "Torrada/Fatia de Pão", "Toast/Bread Slice", "Tostada/Rebanada de Pan"),
+      ]),
+      CAT("insumos_proteinas_lanchonete", "Insumos — Proteínas", "Ingredients — Proteins", "Insumos — Proteínas", [
+        SUB("carne_hamburguer", "Carne para Hambúrguer", "Burger Patty Meat", "Carne para Hamburguesa", [CAMPO_PERECIVEL]), SUB("frango_file_desfiado", "Frango (Filé/Desfiado)", "Chicken (Fillet/Shredded)", "Pollo (Filete/Desmenuzado)", [CAMPO_PERECIVEL]),
+        SUB("salsicha_linguica_lanchonete", "Salsicha/Linguiça", "Sausage", "Salchicha/Longaniza", [CAMPO_PERECIVEL]), SUB("bacon_lanchonete", "Bacon", "Bacon", "Tocino", [CAMPO_PERECIVEL]),
+        SUB("ovo_lanchonete", "Ovo", "Egg", "Huevo", [CAMPO_PERECIVEL]), SUB("presunto_mortadela", "Presunto/Mortadela", "Ham/Bologna", "Jamón/Mortadela", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_queijos_laticinios_lanchonete", "Insumos — Queijos e Laticínios", "Ingredients — Cheese & Dairy", "Insumos — Quesos y Lácteos", [
+        SUB("queijo_cheddar_mussarela", "Queijo Cheddar/Mussarela", "Cheddar/Mozzarella Cheese", "Queso Cheddar/Muzzarella", [CAMPO_PERECIVEL]), SUB("catupiry_cream_cheese", "Catupiry/Cream Cheese", "Catupiry/Cream Cheese", "Catupiry/Queso Crema", [CAMPO_PERECIVEL]),
+        SUB("maionese", "Maionese", "Mayonnaise", "Mayonesa", [CAMPO_PERECIVEL]), SUB("manteiga_margarina_lanchonete", "Manteiga/Margarina", "Butter/Margarine", "Mantequilla/Margarina", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_hortifruti_molhos_lanchonete", "Insumos — Hortifruti e Molhos", "Ingredients — Produce & Sauces", "Insumos — Verduras y Salsas", [
+        SUB("alface_tomate_cebola", "Alface/Tomate/Cebola", "Lettuce/Tomato/Onion", "Lechuga/Tomate/Cebolla", [CAMPO_PERECIVEL]), SUB("batata_palito_congelada", "Batata (Palito/Congelada)", "Potato (Fries/Frozen)", "Papa (Bastón/Congelada)", [CAMPO_PERECIVEL]),
+        SUB("molho_tomate_barbecue", "Molho de Tomate/Barbecue", "Ketchup/BBQ Sauce", "Salsa de Tomate/BBQ", [CAMPO_PERECIVEL]), SUB("molho_especial_casa", "Molho Especial da Casa", "House Special Sauce", "Salsa Especial de la Casa", [CAMPO_PERECIVEL]),
+        SUB("picles_cebola_crispy", "Picles/Cebola Crispy", "Pickles/Crispy Onion", "Pepinillos/Cebolla Crocante", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_bebidas_preparo_lanchonete", "Insumos — Bebidas para Preparo", "Ingredients — Beverage Prep", "Insumos — Bebidas para Preparar", [
+        SUB("xarope_concentrado_lanchonete", "Xarope/Concentrado", "Syrup/Concentrate", "Jarabe/Concentrado", [CAMPO_PERECIVEL]), SUB("gelo_lanchonete", "Gelo", "Ice", "Hielo"),
+        SUB("copo_guarnicao_suco", "Copo/Guarnição para Suco", "Cup/Juice Garnish", "Vaso/Guarnición para Jugo"),
+      ]),
+      CAT("cardapio_sanduiches_hamburgueres", "Cardápio — Sanduíches e Hambúrgueres", "Menu — Sandwiches & Burgers", "Menú — Sándwiches y Hamburguesas", [
+        SUB("hamburguer_artesanal", "Hambúrguer Artesanal", "Artisanal Burger", "Hamburguesa Artesanal", [CAMPO_PERECIVEL]), SUB("x_salada_x_bacon", "X-Salada/X-Bacon", "Cheeseburger/Bacon Burger", "X-Salada/X-Bacon", [CAMPO_PERECIVEL]),
+        SUB("cachorro_quente", "Cachorro-quente", "Hot Dog", "Pancho/Hot Dog", [CAMPO_PERECIVEL]), SUB("sanduiche_natural_lanchonete", "Sanduíche Natural", "Natural Sandwich", "Sándwich Natural", [CAMPO_PERECIVEL]),
+        SUB("misto_quente", "Misto Quente", "Grilled Ham & Cheese", "Mixto Caliente", [CAMPO_PERECIVEL]), SUB("hamburguer_especial_casa", "Hambúrguer Especial da Casa", "House Special Burger", "Hamburguesa Especial de la Casa", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_porcoes_petiscos", "Cardápio — Porções e Petiscos", "Menu — Sides & Appetizers", "Menú — Porciones y Picoteos", [
+        SUB("batata_frita_lanchonete", "Batata Frita", "French Fries", "Papas Fritas", [CAMPO_PERECIVEL]), SUB("porcao_frango", "Porção de Frango", "Chicken Bites", "Porción de Pollo", [CAMPO_PERECIVEL]),
+        SUB("isca_peixe", "Isca de Peixe", "Fish Strips", "Bastones de Pescado", [CAMPO_PERECIVEL]), SUB("aneis_cebola", "Anéis de Cebola", "Onion Rings", "Aros de Cebolla", [CAMPO_PERECIVEL]),
+        SUB("petisco_misto", "Petisco Misto", "Mixed Appetizer Platter", "Picoteo Mixto", [CAMPO_PERECIVEL]), SUB("pastel_salgado_frito", "Pastel/Salgado Frito", "Pastel/Fried Snack", "Pastel/Salado Frito", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_bebidas_prontas_lanchonete", "Cardápio — Bebidas Prontas", "Menu — Ready-to-drink Beverages", "Menú — Bebidas Listas", [
+        SUB("suco_natural_lanchonete", "Suco Natural", "Fresh Juice", "Jugo Natural", [CAMPO_PERECIVEL]), SUB("refrigerante_lanchonete", "Refrigerante", "Soda", "Refresco", [CAMPO_PERECIVEL]),
+        SUB("milk_shake", "Milk-shake", "Milkshake", "Milkshake", [CAMPO_PERECIVEL]), SUB("vitamina_lanchonete", "Vitamina", "Smoothie", "Batido/Vitamina", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("descartaveis_lanchonete", "Descartáveis e Embalagens", "Disposables & Packaging", "Desechables y Empaques", [
+        SUB("embalagem_viagem", "Embalagem para Viagem", "Take-out Container", "Envase para Llevar"), SUB("guardanapo_lanchonete", "Guardanapo", "Napkin", "Servilleta"),
+        SUB("copo_descartavel_lanchonete", "Copo Descartável", "Disposable Cup", "Vaso Descartable"), SUB("canudo", "Canudo", "Straw", "Sorbete"),
+        SUB("sacola_lanchonete", "Sacola", "Bag", "Bolsa"),
+      ]),
     ],
   },
   {
     value: "pizzaria", label: L("Pizzaria", "Pizzeria", "Pizzería"), modo: "misto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("insumos_pizzaria", "Insumos", "Raw Ingredients", "Insumos", [SUB("massa_molho_queijo", "Massa/Molho/Queijo", "Dough/Sauce/Cheese", "Masa/Salsa/Queso", [CAMPO_PERECIVEL])]),
-      CAT("embalagens_pizzaria", "Embalagens", "Packaging", "Empaques", [SUB("caixa_pizza", "Caixa de Pizza", "Pizza Box", "Caja de Pizza")]),
+      CAT("insumos_massa_base_pizzaria", "Insumos — Massa e Base", "Ingredients — Dough & Base", "Insumos — Masa y Base", [
+        SUB("massa_pizza_pronta", "Massa de Pizza Pronta", "Ready Pizza Dough", "Masa de Pizza Lista", [CAMPO_PERECIVEL]), SUB("farinha_massa_pizzaria", "Farinha para Massa", "Dough Flour", "Harina para Masa"),
+        SUB("fermento", "Fermento", "Yeast", "Levadura"), SUB("pre_assada_broa", "Pré-assada/Broa", "Pre-baked Crust", "Prehorneada", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_molhos_queijos_pizzaria", "Insumos — Molhos e Queijos", "Ingredients — Sauces & Cheese", "Insumos — Salsas y Quesos", [
+        SUB("molho_tomate_pizzaria", "Molho de Tomate", "Tomato Sauce", "Salsa de Tomate", [CAMPO_PERECIVEL]), SUB("mussarela_bloco_ralada", "Mussarela em Bloco/Ralada", "Block/Shredded Mozzarella", "Muzzarella en Bloque/Rallada", [CAMPO_PERECIVEL]),
+        SUB("queijos_especiais_pizzaria", "Queijos Especiais", "Specialty Cheeses", "Quesos Especiales", [CAMPO_PERECIVEL]), SUB("catupiry_pizzaria", "Catupiry", "Catupiry", "Catupiry", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_recheios_pizzaria", "Insumos — Recheios", "Ingredients — Toppings", "Insumos — Rellenos", [
+        SUB("calabresa_pizzaria", "Calabresa", "Pepperoni-style Sausage", "Longaniza", [CAMPO_PERECIVEL]), SUB("frango_desfiado_pizzaria", "Frango Desfiado", "Shredded Chicken", "Pollo Desmenuzado", [CAMPO_PERECIVEL]),
+        SUB("presunto_pizzaria", "Presunto", "Ham", "Jamón", [CAMPO_PERECIVEL]), SUB("bacon_pizzaria", "Bacon", "Bacon", "Tocino", [CAMPO_PERECIVEL]),
+        SUB("palmito_azeitona_milho_ervilha", "Palmito/Azeitona/Milho/Ervilha", "Palm Heart/Olives/Corn/Peas", "Palmito/Aceituna/Choclo/Arveja", [CAMPO_PERECIVEL]), SUB("camarao_pizzaria", "Camarão", "Shrimp", "Camarón", [CAMPO_PERECIVEL]),
+        SUB("chocolate_frutas_pizzaria", "Chocolate/Frutas", "Chocolate/Fruit", "Chocolate/Frutas", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_pizzas_salgadas", "Cardápio — Pizzas Salgadas", "Menu — Savory Pizzas", "Menú — Pizzas Saladas", [
+        SUB("mussarela_pizza", "Mussarela", "Cheese", "Muzzarella", [CAMPO_PERECIVEL]), SUB("calabresa_pizza", "Calabresa", "Pepperoni-style", "Calabresa", [CAMPO_PERECIVEL]),
+        SUB("portuguesa", "Portuguesa", "Portuguese", "Portuguesa", [CAMPO_PERECIVEL]), SUB("frango_catupiry", "Frango com Catupiry", "Chicken with Catupiry", "Pollo con Catupiry", [CAMPO_PERECIVEL]),
+        SUB("quatro_queijos", "Quatro Queijos", "Four Cheese", "Cuatro Quesos", [CAMPO_PERECIVEL]), SUB("especial_casa_pizza", "Especial da Casa", "House Special", "Especial de la Casa", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_pizzas_doces", "Cardápio — Pizzas Doces", "Menu — Sweet Pizzas", "Menú — Pizzas Dulces", [
+        SUB("chocolate_pizza", "Chocolate", "Chocolate", "Chocolate", [CAMPO_PERECIVEL]), SUB("romeu_julieta", "Romeu e Julieta", "Romeu e Julieta (Cheese & Guava)", "Romeu e Julieta", [CAMPO_PERECIVEL]),
+        SUB("banana_canela", "Banana com Canela", "Banana with Cinnamon", "Banana con Canela", [CAMPO_PERECIVEL]), SUB("nutella_pizza", "Nutella", "Nutella", "Nutella", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("esfiha_similares", "Esfiha e Similares", "Esfiha & Similar Items", "Esfiha y Similares", [
+        SUB("esfiha_aberta", "Esfiha Aberta", "Open Esfiha", "Esfiha Abierta", [CAMPO_PERECIVEL]), SUB("esfiha_fechada", "Esfiha Fechada", "Closed Esfiha", "Esfiha Cerrada", [CAMPO_PERECIVEL]),
+        SUB("beirute_lanche_forno", "Beirute/Lanche de Forno", "Beirute/Baked Sandwich", "Beirute/Sándwich al Horno", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("bebidas_acompanhamentos_pizzaria", "Cardápio — Bebidas e Acompanhamentos", "Menu — Beverages & Sides", "Menú — Bebidas y Acompañamientos", [
+        SUB("refrigerante_pizzaria", "Refrigerante", "Soda", "Refresco", [CAMPO_PERECIVEL]), SUB("suco_pizzaria", "Suco", "Juice", "Jugo", [CAMPO_PERECIVEL]),
+        SUB("pao_alho_pizzaria", "Pão de Alho", "Garlic Bread", "Pan de Ajo", [CAMPO_PERECIVEL]), SUB("borda_recheada", "Borda Recheada", "Stuffed Crust", "Borde Relleno", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("embalagens_pizzaria", "Embalagens", "Packaging", "Empaques", [
+        SUB("caixa_pizza", "Caixa de Pizza", "Pizza Box", "Caja de Pizza"), SUB("sacola_termica_pizzaria", "Sacola Térmica", "Thermal Bag", "Bolsa Térmica"),
+        SUB("guardanapo_talher_pizzaria", "Guardanapo/Talher Descartável", "Napkin/Disposable Cutlery", "Servilleta/Cubiertos Descartables"),
+      ]),
     ],
   },
   {
     value: "sorveteria_acai", label: L("Sorveteria/Açaí", "Ice Cream/Açaí Shop", "Heladería/Açaí"), modo: "misto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("insumos_sorveteria", "Insumos", "Raw Ingredients", "Insumos", [
-        SUB("sorvete_acai_base", "Sorvete/Açaí Base", "Ice Cream/Açaí Base", "Helado/Açaí Base", [CAMPO_PERECIVEL]), SUB("cobertura_complemento", "Cobertura/Complemento", "Topping", "Cobertura/Complemento", [CAMPO_PERECIVEL]),
+      CAT("insumos_base_sorveteria", "Insumos — Base", "Ingredients — Base", "Insumos — Base", [
+        SUB("acai_batido_polpa", "Açaí Batido/Polpa", "Açaí Puree/Pulp", "Açaí Batido/Pulpa", [CAMPO_PERECIVEL]), SUB("sorvete_base", "Sorvete Base", "Ice Cream Base", "Base de Helado", [CAMPO_PERECIVEL]),
+        SUB("sorbet_base", "Sorbet Base", "Sorbet Base", "Base de Sorbete", [CAMPO_PERECIVEL]), SUB("iogurte_base", "Iogurte Base", "Yogurt Base", "Base de Yogur", [CAMPO_PERECIVEL]),
       ]),
-      CAT("descartaveis_sorveteria", "Descartáveis", "Disposables", "Desechables", [SUB("copo_casquinha", "Copo/Casquinha", "Cup/Cone", "Vaso/Cono")]),
+      CAT("insumos_frutas_complementos_sorveteria", "Insumos — Frutas e Complementos", "Ingredients — Fruit & Toppings", "Insumos — Frutas y Complementos", [
+        SUB("banana_sorveteria", "Banana", "Banana", "Banana", [CAMPO_PERECIVEL]), SUB("morango_sorveteria", "Morango", "Strawberry", "Frutilla", [CAMPO_PERECIVEL]),
+        SUB("frutas_diversas_sorveteria", "Frutas Diversas", "Assorted Fruit", "Frutas Variadas", [CAMPO_PERECIVEL]), SUB("granola_cereal", "Granola/Cereal", "Granola/Cereal", "Granola/Cereal"),
+        SUB("leite_po_condensado", "Leite em Pó/Condensado", "Powdered/Condensed Milk", "Leche en Polvo/Condensada"),
+      ]),
+      CAT("insumos_coberturas_xaropes", "Insumos — Coberturas e Xaropes", "Ingredients — Toppings & Syrups", "Insumos — Coberturas y Jarabes", [
+        SUB("chocolate_cobertura", "Chocolate (Cobertura)", "Chocolate Topping", "Cobertura de Chocolate"), SUB("mel_agave", "Mel/Agave", "Honey/Agave", "Miel/Agave"),
+        SUB("confetes_granulado", "Confetes/Granulado", "Sprinkles", "Confites/Granulado"), SUB("pacoca_castanha", "Paçoca/Castanha", "Peanut Candy/Nuts", "Paçoca/Castañas"),
+        SUB("xarope_diversos_sabores", "Xarope Diversos Sabores", "Assorted Flavor Syrup", "Jarabe de Sabores Varios"),
+      ]),
+      CAT("cardapio_acai_sorvete_montado", "Cardápio — Açaí e Sorvete Montado", "Menu — Assembled Açaí & Ice Cream", "Menú — Açaí y Helado Armado", [
+        SUB("acai_copo", "Açaí no Copo", "Açaí in a Cup", "Açaí en Vaso", [CAMPO_PERECIVEL]), SUB("acai_tigela", "Açaí na Tigela", "Açaí Bowl", "Açaí en Bowl", [CAMPO_PERECIVEL]),
+        SUB("casquinha", "Casquinha", "Ice Cream Cone", "Cucurucho", [CAMPO_PERECIVEL]), SUB("milk_shake_sorveteria", "Milk-shake", "Milkshake", "Milkshake", [CAMPO_PERECIVEL]),
+        SUB("sundae", "Sundae", "Sundae", "Sundae", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_copos_combos", "Cardápio — Copos e Combos Prontos", "Menu — Ready Cups & Combos", "Menú — Vasos y Combos Listos", [
+        SUB("copo_montado_padrao", "Copo Montado Padrão", "Standard Assembled Cup", "Vaso Armado Estándar", [CAMPO_PERECIVEL]), SUB("combo_familia", "Combo Família", "Family Combo", "Combo Familiar", [CAMPO_PERECIVEL]),
+        SUB("copo_fitness_sem_acucar", "Copo Fitness/Sem Açúcar", "Fitness/Sugar-free Cup", "Vaso Fitness/Sin Azúcar", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("descartaveis_sorveteria", "Descartáveis", "Disposables", "Desechables", [
+        SUB("copo_tigela_descartavel", "Copo/Tigela Descartável", "Disposable Cup/Bowl", "Vaso/Bowl Descartable"), SUB("colher_sorveteria", "Colher", "Spoon", "Cuchara"),
+        SUB("tampa_sorveteria", "Tampa", "Lid", "Tapa"), SUB("sacola_termica_sorveteria", "Sacola Térmica", "Thermal Bag", "Bolsa Térmica"),
+      ]),
     ],
   },
   {
     value: "marmita_comida_pronta", label: L("Marmita/Comida Pronta", "Meal Prep/Ready Food", "Vianda/Comida Preparada"), modo: "misto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("insumos_marmita", "Insumos", "Raw Ingredients", "Insumos", [SUB("proteina_guarnicao", "Proteína/Guarnição", "Protein/Side", "Proteína/Guarnición", [CAMPO_PERECIVEL])]),
-      CAT("embalagens_marmita", "Embalagens", "Packaging", "Empaques", [SUB("marmita_talher", "Marmita/Talher Descartável", "Container/Disposable Cutlery", "Vianda/Cubiertos Desechables")]),
+      CAT("insumos_proteinas_marmita", "Insumos — Proteínas", "Ingredients — Proteins", "Insumos — Proteínas", [
+        SUB("frango_marmita", "Frango", "Chicken", "Pollo", [CAMPO_PERECIVEL]), SUB("carne_bovina_marmita", "Carne Bovina", "Beef", "Carne de Res", [CAMPO_PERECIVEL]),
+        SUB("peixe_marmita", "Peixe", "Fish", "Pescado", [CAMPO_PERECIVEL]), SUB("ovo_marmita", "Ovo", "Egg", "Huevo", [CAMPO_PERECIVEL]),
+        SUB("proteina_vegetal", "Proteína Vegetal", "Plant-based Protein", "Proteína Vegetal", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_guarnicoes_graos", "Insumos — Guarnições e Grãos", "Ingredients — Sides & Grains", "Insumos — Guarniciones y Granos", [
+        SUB("arroz_marmita", "Arroz", "Rice", "Arroz"), SUB("feijao_marmita", "Feijão", "Beans", "Frijoles"),
+        SUB("macarrao_marmita", "Macarrão", "Pasta", "Fideos"), SUB("legumes_marmita", "Legumes", "Vegetables", "Verduras", [CAMPO_PERECIVEL]),
+        SUB("farofa_marmita", "Farofa", "Farofa", "Farofa", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("insumos_temperos_molhos_marmita", "Insumos — Temperos e Molhos", "Ingredients — Seasonings & Sauces", "Insumos — Condimentos y Salsas", [
+        SUB("tempero_base_marmita", "Tempero Base", "Base Seasoning", "Condimento Base"), SUB("molho_marmita", "Molho para Marmita", "Meal Prep Sauce", "Salsa para Vianda"),
+        SUB("oleo_azeite_marmita", "Óleo/Azeite", "Oil", "Aceite"),
+      ]),
+      CAT("cardapio_marmitas_montadas", "Cardápio — Marmitas Montadas", "Menu — Assembled Meals", "Menú — Viandas Armadas", [
+        SUB("marmita_tradicional", "Marmita Tradicional (P/M/G)", "Traditional Meal (S/M/L)", "Vianda Tradicional (P/M/G)", [CAMPO_PERECIVEL]), SUB("marmita_fitness", "Marmita Fitness", "Fitness Meal", "Vianda Fitness", [CAMPO_PERECIVEL]),
+        SUB("marmita_vegetariana", "Marmita Vegetariana", "Vegetarian Meal", "Vianda Vegetariana", [CAMPO_PERECIVEL]), SUB("marmita_congelada", "Marmita Congelada", "Frozen Meal", "Vianda Congelada", [CAMPO_PERECIVEL]),
+        SUB("marmita_executiva", "Marmita Executiva", "Executive Meal", "Vianda Ejecutiva", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_porcoes_avulsas", "Cardápio — Porções Avulsas", "Menu — Individual Portions", "Menú — Porciones Sueltas", [
+        SUB("porcao_extra_proteina", "Porção Extra de Proteína", "Extra Protein Portion", "Porción Extra de Proteína", [CAMPO_PERECIVEL]), SUB("porcao_extra_guarnicao", "Porção Extra de Guarnição", "Extra Side Portion", "Porción Extra de Guarnición", [CAMPO_PERECIVEL]),
+        SUB("sobremesa_dia", "Sobremesa do Dia", "Dessert of the Day", "Postre del Día", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("embalagens_marmita", "Embalagens", "Packaging", "Empaques", [
+        SUB("marmita_aluminio", "Marmita de Alumínio", "Aluminum Container", "Vianda de Aluminio"), SUB("marmita_isopor_plastico", "Marmita de Isopor/Plástico", "Styrofoam/Plastic Container", "Vianda de Telgopor/Plástico"),
+        SUB("marmita_congelamento", "Marmita para Congelamento", "Freezer-safe Container", "Vianda para Congelar"), SUB("talher_descartavel_marmita", "Talher Descartável", "Disposable Cutlery", "Cubiertos Descartables"),
+      ]),
     ],
   },
 
@@ -1067,32 +1187,162 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "salao_barbearia", label: L("Salão/Barbearia", "Salon/Barbershop", "Salón/Barbería"), modo: "servico", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("corte", "Corte", "Haircut", "Corte", [SUB("corte_masculino", "Corte Masculino", "Men's Haircut", "Corte Masculino", CAMPOS_SERVICO_PADRAO), SUB("corte_feminino", "Corte Feminino", "Women's Haircut", "Corte Femenino", CAMPOS_SERVICO_PADRAO)]),
-      CAT("coloracao", "Coloração", "Coloring", "Coloración", [SUB("tintura", "Tintura", "Hair Dye", "Tintura", CAMPOS_SERVICO_PADRAO), SUB("luzes_mechas", "Luzes/Mechas", "Highlights", "Luces/Mechas", CAMPOS_SERVICO_PADRAO)]),
-      CAT("barba", "Barba", "Beard", "Barba", [SUB("barba_completa", "Barba Completa", "Full Beard Service", "Barba Completa", CAMPOS_SERVICO_PADRAO)]),
+      CAT("corte", "Corte", "Haircut", "Corte", [
+        SUB("corte_feminino_salao", "Corte Feminino", "Women's Haircut", "Corte Femenino", CAMPOS_SERVICO_PADRAO), SUB("corte_masculino_salao", "Corte Masculino", "Men's Haircut", "Corte Masculino", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_infantil_salao", "Corte Infantil", "Kids' Haircut", "Corte Infantil", CAMPOS_SERVICO_PADRAO), SUB("corte_barba_combo", "Corte + Barba (Combo)", "Haircut + Beard (Combo)", "Corte + Barba (Combo)", CAMPOS_SERVICO_PADRAO),
+        SUB("acabamento_pezinho", "Acabamento/Pezinho", "Neckline Trim", "Perfilado de Nuca", CAMPOS_SERVICO_PADRAO), SUB("pacote_plano_mensal", "Pacote/Plano Mensal", "Monthly Package/Plan", "Paquete/Plan Mensual", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("coloracao_quimica", "Coloração e Química", "Coloring & Chemical Treatments", "Coloración y Química", [
+        SUB("coloracao_tintura_salao", "Coloração/Tintura", "Hair Color/Dye", "Coloración/Tintura", CAMPOS_SERVICO_PADRAO), SUB("luzes_mechas", "Luzes/Mechas", "Highlights", "Luces/Mechas", CAMPOS_SERVICO_PADRAO),
+        SUB("alisamento_progressiva", "Alisamento/Progressiva", "Straightening/Keratin Treatment", "Alisado/Keratina", CAMPOS_SERVICO_PADRAO), SUB("relaxamento", "Relaxamento", "Relaxer", "Relajado", CAMPOS_SERVICO_PADRAO),
+        SUB("descoloracao", "Descoloração", "Bleaching", "Decoloración", CAMPOS_SERVICO_PADRAO), SUB("reconstrucao_capilar", "Reconstrução Capilar", "Hair Reconstruction", "Reconstrucción Capilar", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("tratamentos_capilares", "Tratamentos Capilares", "Hair Treatments", "Tratamientos Capilares", [
+        SUB("hidratacao_salao", "Hidratação", "Deep Conditioning", "Hidratación", CAMPOS_SERVICO_PADRAO), SUB("cauterizacao", "Cauterização", "Cauterization", "Cauterización", CAMPOS_SERVICO_PADRAO),
+        SUB("botox_capilar", "Botox Capilar", "Hair Botox", "Botox Capilar", CAMPOS_SERVICO_PADRAO), SUB("cronograma_capilar", "Cronograma Capilar", "Hair Care Schedule", "Cronograma Capilar", CAMPOS_SERVICO_PADRAO),
+        SUB("escova_chapinha", "Escova/Chapinha", "Blowout/Flat Iron", "Brushing/Planchado", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("barba", "Barba", "Beard", "Barba", [
+        SUB("barba_completa", "Barba Completa", "Full Beard Service", "Barba Completa", CAMPOS_SERVICO_PADRAO), SUB("barboterapia", "Barboterapia", "Beard Therapy", "Barboterapia", CAMPOS_SERVICO_PADRAO),
+        SUB("desenho_barba", "Desenho de Barba", "Beard Design", "Diseño de Barba", CAMPOS_SERVICO_PADRAO), SUB("sobrancelha_masculina", "Sobrancelha Masculina", "Men's Eyebrow", "Cejas Masculinas", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("penteado_finalizacao", "Penteado e Finalização", "Hairstyling & Finishing", "Peinado y Finalización", [
+        SUB("penteado_festa_noiva", "Penteado (Festa/Noiva)", "Hairstyling (Party/Bridal)", "Peinado (Fiesta/Novia)", CAMPOS_SERVICO_PADRAO), SUB("escova_modelada", "Escova Modelada", "Blowout Styling", "Brushing Modelado", CAMPOS_SERVICO_PADRAO),
+        SUB("tranca", "Trança", "Braid", "Trenza", CAMPOS_SERVICO_PADRAO), SUB("maquiagem_salao", "Maquiagem", "Makeup", "Maquillaje", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("depilacao_sobrancelha_salao", "Depilação e Sobrancelha", "Hair Removal & Eyebrows", "Depilación y Cejas", [
+        SUB("depilacao_cera", "Depilação com Cera", "Wax Hair Removal", "Depilación con Cera", CAMPOS_SERVICO_PADRAO), SUB("depilacao_linha", "Depilação com Linha", "Threading", "Depilación con Hilo", CAMPOS_SERVICO_PADRAO),
+        SUB("design_sobrancelha_salao", "Design de Sobrancelha", "Eyebrow Design", "Diseño de Cejas", CAMPOS_SERVICO_PADRAO), SUB("henna_sobrancelha_salao", "Henna de Sobrancelha", "Eyebrow Henna", "Henna de Cejas", CAMPOS_SERVICO_PADRAO),
+        SUB("depilacao_laser", "Depilação a Laser", "Laser Hair Removal", "Depilación Láser", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("massagem_bem_estar", "Massagem e Bem-estar", "Massage & Wellness", "Masaje y Bienestar", [
+        SUB("massagem_relaxante", "Massagem Relaxante", "Relaxing Massage", "Masaje Relajante", CAMPOS_SERVICO_PADRAO), SUB("massagem_capilar", "Massagem Capilar", "Scalp Massage", "Masaje Capilar", CAMPOS_SERVICO_PADRAO),
+        SUB("drenagem_facial_salao", "Drenagem Facial", "Facial Drainage", "Drenaje Facial", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("revenda_produtos_salao", "Revenda de Produtos", "Product Resale", "Reventa de Productos", [
+        SUB("shampoo_condicionador_profissional", "Shampoo/Condicionador Profissional", "Professional Shampoo/Conditioner", "Champú/Acondicionador Profesional"),
+        SUB("finalizador_leave_in_salao", "Finalizador/Leave-in", "Styling/Leave-in Product", "Finalizador/Leave-in"),
+        SUB("mascara_tratamento_salao", "Máscara de Tratamento", "Treatment Mask", "Mascarilla de Tratamiento"), SUB("oleo_capilar_salao", "Óleo Capilar", "Hair Oil", "Aceite Capilar"),
+        SUB("produto_coloracao_casa", "Produto de Coloração para Casa", "At-home Coloring Product", "Producto de Coloración para Casa"), SUB("kit_presente_salao", "Kit Presente", "Gift Set", "Kit de Regalo"),
+      ]),
     ],
   },
   {
     value: "manicure_estetica", label: L("Manicure/Estética", "Nail Care/Aesthetics", "Manicura/Estética"), modo: "servico", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("manicure_pedicure", "Manicure/Pedicure", "Manicure/Pedicure", "Manicura/Pedicura", [
-        SUB("manicure_simples", "Manicure Simples", "Basic Manicure", "Manicura Simple", CAMPOS_SERVICO_PADRAO), SUB("pedicure_simples", "Pedicure Simples", "Basic Pedicure", "Pedicura Simple", CAMPOS_SERVICO_PADRAO),
+      CAT("manicure", "Manicure", "Manicure", "Manicura", [
+        SUB("manicure_simples", "Manicure Simples", "Basic Manicure", "Manicura Simple", CAMPOS_SERVICO_PADRAO), SUB("manicure_esmaltacao_gel", "Manicure + Esmaltação em Gel", "Manicure + Gel Polish", "Manicura + Esmaltado en Gel", CAMPOS_SERVICO_PADRAO),
+        SUB("troca_esmalte", "Troca de Esmalte", "Polish Change", "Cambio de Esmalte", CAMPOS_SERVICO_PADRAO), SUB("alongamento_unha", "Alongamento de Unha", "Nail Extension", "Alargamiento de Uñas", CAMPOS_SERVICO_PADRAO),
+        SUB("manutencao_alongamento", "Manutenção de Alongamento", "Extension Maintenance", "Mantenimiento de Alargamiento", CAMPOS_SERVICO_PADRAO),
       ]),
-      CAT("estetica_facial", "Estética Facial", "Facial Aesthetics", "Estética Facial", [SUB("limpeza_pele", "Limpeza de Pele", "Facial Cleansing", "Limpieza Facial", CAMPOS_SERVICO_PADRAO)]),
+      CAT("pedicure", "Pedicure", "Pedicure", "Pedicura", [
+        SUB("pedicure_simples", "Pedicure Simples", "Basic Pedicure", "Pedicura Simple", CAMPOS_SERVICO_PADRAO), SUB("pedicure_esmaltacao_gel", "Pedicure + Esmaltação em Gel", "Pedicure + Gel Polish", "Pedicura + Esmaltado en Gel", CAMPOS_SERVICO_PADRAO),
+        SUB("spa_pes", "Spa dos Pés", "Foot Spa", "Spa de Pies", CAMPOS_SERVICO_PADRAO), SUB("remocao_calo", "Remoção de Calo", "Callus Removal", "Remoción de Callos", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("design_nail_art", "Design e Nail Art", "Nail Design & Art", "Diseño y Nail Art", [
+        SUB("nail_art_desenho", "Nail Art/Desenho", "Nail Art", "Nail Art/Diseño", CAMPOS_SERVICO_PADRAO), SUB("unha_francesinha", "Unha Francesinha", "French Manicure", "Uña Francesa", CAMPOS_SERVICO_PADRAO),
+        SUB("unha_decorada_pedraria", "Unha Decorada com Pedraria", "Rhinestone Nail Design", "Uña Decorada con Piedras", CAMPOS_SERVICO_PADRAO), SUB("blindagem_unha", "Blindagem de Unha", "Nail Strengthening (Shielding)", "Blindaje de Uñas", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("sobrancelha_cilios", "Sobrancelha e Cílios", "Eyebrows & Eyelashes", "Cejas y Pestañas", [
+        SUB("design_sobrancelha_manicure", "Design de Sobrancelha", "Eyebrow Design", "Diseño de Cejas", CAMPOS_SERVICO_PADRAO), SUB("henna_sobrancelha_manicure", "Henna de Sobrancelha", "Eyebrow Henna", "Henna de Cejas", CAMPOS_SERVICO_PADRAO),
+        SUB("micropigmentacao", "Micropigmentação", "Micropigmentation", "Micropigmentación", CAMPOS_SERVICO_PADRAO), SUB("extensao_cilios", "Extensão de Cílios", "Eyelash Extension", "Extensión de Pestañas", CAMPOS_SERVICO_PADRAO),
+        SUB("lash_lifting", "Lash Lifting", "Lash Lifting", "Lifting de Pestañas", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("estetica_facial", "Estética Facial", "Facial Aesthetics", "Estética Facial", [
+        SUB("limpeza_pele", "Limpeza de Pele", "Facial Cleansing", "Limpieza Facial", CAMPOS_SERVICO_PADRAO), SUB("peeling", "Peeling", "Peeling", "Peeling", CAMPOS_SERVICO_PADRAO),
+        SUB("hidratacao_facial", "Hidratação Facial", "Facial Hydration", "Hidratación Facial", CAMPOS_SERVICO_PADRAO), SUB("massagem_facial", "Massagem Facial", "Facial Massage", "Masaje Facial", CAMPOS_SERVICO_PADRAO),
+        SUB("microagulhamento", "Microagulhamento", "Microneedling", "Microagujas", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("estetica_corporal", "Estética Corporal", "Body Aesthetics", "Estética Corporal", [
+        SUB("massagem_modeladora", "Massagem Modeladora", "Body Contouring Massage", "Masaje Modelador", CAMPOS_SERVICO_PADRAO), SUB("drenagem_linfatica", "Drenagem Linfática", "Lymphatic Drainage", "Drenaje Linfático", CAMPOS_SERVICO_PADRAO),
+        SUB("depilacao_manicure", "Depilação", "Hair Removal", "Depilación", CAMPOS_SERVICO_PADRAO), SUB("bronzeamento_artificial", "Bronzeamento Artificial", "Spray Tan", "Bronceado Artificial", CAMPOS_SERVICO_PADRAO),
+        SUB("esfoliacao_corporal", "Esfoliação Corporal", "Body Exfoliation", "Exfoliación Corporal", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("revenda_produtos_manicure", "Revenda de Produtos", "Product Resale", "Reventa de Productos", [
+        SUB("esmalte", "Esmalte", "Nail Polish", "Esmalte"), SUB("base_fortalecedor_unha", "Base/Fortalecedor de Unha", "Base Coat/Nail Strengthener", "Base/Fortalecedor de Uñas"),
+        SUB("oleo_cuticular", "Óleo Cuticular", "Cuticle Oil", "Aceite de Cutículas"), SUB("kit_manicure", "Kit de Manicure", "Manicure Kit", "Kit de Manicura"),
+        SUB("cosmetico_skincare_manicure", "Cosmético de Skincare", "Skincare Product", "Cosmético de Skincare"),
+      ]),
     ],
   },
   {
     value: "servicos_tecnicos", label: L("Serviços Técnicos", "Technical Services", "Servicios Técnicos"), modo: "servico", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("eletrica_servico", "Elétrica", "Electrical", "Eléctrica", [SUB("instalacao_reparo_eletrico", "Instalação/Reparo", "Installation/Repair", "Instalación/Reparación", CAMPOS_SERVICO_PADRAO)]),
-      CAT("hidraulica_servico", "Hidráulica", "Plumbing", "Plomería", [SUB("instalacao_reparo_hidraulico", "Instalação/Reparo", "Installation/Repair", "Instalación/Reparación", CAMPOS_SERVICO_PADRAO)]),
+      CAT("eletrica_servico", "Elétrica", "Electrical", "Eléctrica", [
+        SUB("instalacao_reparo_ponto_eletrico", "Instalação/Reparo de Ponto Elétrico", "Electrical Outlet Installation/Repair", "Instalación/Reparación de Punto Eléctrico", CAMPOS_SERVICO_PADRAO),
+        SUB("troca_disjuntor_quadro", "Troca de Disjuntor/Quadro", "Breaker/Panel Replacement", "Cambio de Disyuntor/Tablero", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_chuveiro", "Instalação de Chuveiro", "Shower Heater Installation", "Instalación de Calefón/Ducha", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_ventilador_luminaria", "Instalação de Ventilador/Luminária", "Fan/Light Fixture Installation", "Instalación de Ventilador/Luminaria", CAMPOS_SERVICO_PADRAO),
+        SUB("laudo_vistoria_eletrica", "Laudo/Vistoria Elétrica", "Electrical Inspection Report", "Informe/Inspección Eléctrica", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("hidraulica_servico", "Hidráulica", "Plumbing", "Plomería", [
+        SUB("reparo_vazamento", "Reparo de Vazamento", "Leak Repair", "Reparación de Fuga", CAMPOS_SERVICO_PADRAO), SUB("desentupimento", "Desentupimento", "Drain Unclogging", "Destape de Cañería", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_torneira_registro", "Instalação de Torneira/Registro", "Faucet/Valve Installation", "Instalación de Grifo/Llave", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_caixa_agua_aquecedor", "Instalação de Caixa d'Água/Aquecedor", "Water Tank/Heater Installation", "Instalación de Tanque de Agua/Calentador", CAMPOS_SERVICO_PADRAO),
+        SUB("troca_vaso_sanitario_servico", "Troca de Vaso Sanitário", "Toilet Replacement", "Cambio de Inodoro", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("eletrodomesticos_eletronicos_servico", "Eletrodomésticos e Eletrônicos", "Appliances & Electronics", "Electrodomésticos y Electrónicos", [
+        SUB("conserto_geladeira_maquina_lavar", "Conserto de Geladeira/Máquina de Lavar", "Refrigerator/Washer Repair", "Reparación de Heladera/Lavarropas", CAMPOS_SERVICO_PADRAO),
+        SUB("conserto_tv_som", "Conserto de TV/Som", "TV/Audio Repair", "Reparación de TV/Audio", CAMPOS_SERVICO_PADRAO),
+        SUB("manutencao_celular_servico", "Manutenção de Celular", "Phone Repair", "Reparación de Celular", CAMPOS_SERVICO_PADRAO),
+        SUB("manutencao_computador_servico", "Manutenção de Computador", "Computer Maintenance", "Mantenimiento de Computadora", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_ar_condicionado", "Instalação de Ar-condicionado", "AC Installation", "Instalación de Aire Acondicionado", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("montagem_marcenaria_servico", "Montagem e Marcenaria", "Assembly & Woodworking", "Armado y Carpintería", [
+        SUB("montagem_moveis", "Montagem de Móveis", "Furniture Assembly", "Armado de Muebles", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_prateleira_suporte", "Instalação de Prateleira/Suporte", "Shelf/Bracket Installation", "Instalación de Estante/Soporte", CAMPOS_SERVICO_PADRAO),
+        SUB("conserto_porta_fechadura_servico", "Conserto de Porta/Fechadura", "Door/Lock Repair", "Reparación de Puerta/Cerradura", CAMPOS_SERVICO_PADRAO),
+        SUB("marcenaria_sob_medida", "Marcenaria sob Medida", "Custom Woodworking", "Carpintería a Medida", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("chaveiro", "Chaveiro", "Locksmith", "Cerrajería", [
+        SUB("abertura_fechadura", "Abertura de Fechadura", "Lock Opening", "Apertura de Cerradura", CAMPOS_SERVICO_PADRAO), SUB("copia_chave", "Cópia de Chave", "Key Copy", "Copia de Llave", CAMPOS_SERVICO_PADRAO),
+        SUB("troca_fechadura_segredo", "Troca de Fechadura/Segredo", "Lock/Cylinder Replacement", "Cambio de Cerradura/Combinación", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("visita_tecnica_diagnostico", "Visita Técnica e Diagnóstico", "Technical Visit & Diagnosis", "Visita Técnica y Diagnóstico", [
+        SUB("visita_tecnica_orcamento", "Visita Técnica/Orçamento", "Technical Visit/Quote", "Visita Técnica/Presupuesto", CAMPOS_SERVICO_PADRAO),
+        SUB("vistoria_laudo_tecnico", "Vistoria/Laudo Técnico", "Inspection/Technical Report", "Inspección/Informe Técnico", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("manutencao_preventiva_contrato", "Manutenção Preventiva/Contrato", "Preventive Maintenance/Contract", "Mantenimiento Preventivo/Contrato", [
+        SUB("contrato_mensal_manutencao", "Contrato Mensal de Manutenção", "Monthly Maintenance Contract", "Contrato Mensual de Mantenimiento", CAMPOS_SERVICO_PADRAO),
+        SUB("limpeza_ar_condicionado", "Limpeza de Ar-condicionado", "AC Cleaning", "Limpieza de Aire Acondicionado", CAMPOS_SERVICO_PADRAO),
+        SUB("revisao_eletrica_periodica", "Revisão Elétrica Periódica", "Periodic Electrical Checkup", "Revisión Eléctrica Periódica", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("revenda_pecas_materiais", "Revenda de Peças e Materiais", "Parts & Materials Resale", "Reventa de Piezas y Materiales", [
+        SUB("disjuntor_tomada_avulsa", "Disjuntor/Tomada Avulsa", "Individual Breaker/Outlet", "Disyuntor/Toma Suelto"), SUB("torneira_sifao", "Torneira/Sifão", "Faucet/Trap", "Grifo/Sifón"),
+        SUB("fechadura_chave_branco", "Fechadura/Chave em Branco", "Lock/Blank Key", "Cerradura/Llave en Blanco"), SUB("cabo_adaptador_servico", "Cabo/Adaptador", "Cable/Adapter", "Cable/Adaptador"),
+        SUB("kit_reparo", "Kit de Reparo", "Repair Kit", "Kit de Reparación"),
+      ]),
     ],
   },
   {
     value: "servicos_domesticos", label: L("Serviços Domésticos", "Domestic Services", "Servicios Domésticos"), modo: "servico", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      CAT("diarista", "Diarista", "House Cleaning", "Limpieza del Hogar", [SUB("diaria_padrao", "Diária Padrão", "Standard Day Rate", "Tarifa Diaria Estándar", CAMPOS_SERVICO_PADRAO)]),
-      CAT("costura", "Costura", "Sewing", "Costura", [SUB("ajuste_reparo", "Ajuste/Reparo", "Alteration/Repair", "Ajuste/Reparación", CAMPOS_SERVICO_PADRAO)]),
+      CAT("limpeza_residencial", "Limpeza Residencial", "House Cleaning", "Limpieza del Hogar", [
+        SUB("diaria_padrao", "Diária Padrão", "Standard Day Rate", "Tarifa Diaria Estándar", CAMPOS_SERVICO_PADRAO), SUB("faxina_completa_pesada", "Faxina Completa/Pesada", "Deep Cleaning", "Limpieza Profunda", CAMPOS_SERVICO_PADRAO),
+        SUB("limpeza_pos_obra", "Limpeza Pós-obra", "Post-construction Cleaning", "Limpieza Posobra", CAMPOS_SERVICO_PADRAO), SUB("limpeza_estofados_tapete", "Limpeza de Estofados/Tapete", "Upholstery/Carpet Cleaning", "Limpieza de Tapizados/Alfombras", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("passadoria", "Passadoria", "Ironing", "Planchado", [
+        SUB("passadoria_peca", "Passadoria por Peça", "Ironing per Item", "Planchado por Prenda", CAMPOS_SERVICO_PADRAO), SUB("passadoria_cesto_kg", "Passadoria por Cesto/Kg", "Ironing per Basket/Kg", "Planchado por Canasto/Kg", CAMPOS_SERVICO_PADRAO),
+        SUB("passadoria_domicilio", "Passadoria a Domicílio", "In-home Ironing", "Planchado a Domicilio", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("jardinagem", "Jardinagem", "Gardening", "Jardinería", [
+        SUB("manutencao_jardim_diaria", "Manutenção de Jardim (Diária)", "Garden Maintenance (Day Rate)", "Mantenimiento de Jardín (Diaria)", CAMPOS_SERVICO_PADRAO),
+        SUB("poda_corte_grama", "Poda/Corte de Grama", "Pruning/Lawn Mowing", "Poda/Corte de Césped", CAMPOS_SERVICO_PADRAO),
+        SUB("paisagismo_pontual", "Paisagismo Pontual", "One-time Landscaping", "Paisajismo Puntual", CAMPOS_SERVICO_PADRAO), SUB("manutencao_mensal_jardim", "Manutenção Mensal", "Monthly Maintenance", "Mantenimiento Mensual", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("cuidados_companhia", "Cuidados e Companhia", "Care & Companionship", "Cuidados y Compañía", [
+        SUB("cuidador_idoso_diaria", "Cuidador de Idoso (Diária)", "Elderly Caregiver (Day Rate)", "Cuidador de Adulto Mayor (Diaria)", CAMPOS_SERVICO_PADRAO),
+        SUB("cuidador_idoso_plantao", "Cuidador de Idoso (Período/Plantão)", "Elderly Caregiver (Shift)", "Cuidador de Adulto Mayor (Turno)", CAMPOS_SERVICO_PADRAO),
+        SUB("baba", "Babá", "Babysitter", "Niñera", CAMPOS_SERVICO_PADRAO), SUB("acompanhante_hospitalar", "Acompanhante Hospitalar", "Hospital Companion", "Acompañante Hospitalario", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("costura", "Costura e Ajustes", "Sewing & Alterations", "Costura y Ajustes", [
+        SUB("ajuste_roupa", "Ajuste de Roupa", "Clothing Alteration", "Ajuste de Ropa", CAMPOS_SERVICO_PADRAO), SUB("reparo_conserto", "Reparo/Conserto", "Repair/Mending", "Reparación/Arreglo", CAMPOS_SERVICO_PADRAO),
+        SUB("costura_sob_medida", "Costura sob Medida", "Custom Sewing", "Costura a Medida", CAMPOS_SERVICO_PADRAO), SUB("bordado_personalizado", "Bordado Personalizado", "Custom Embroidery", "Bordado Personalizado", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("revenda_produtos_domesticos", "Revenda de Produtos", "Product Resale", "Reventa de Productos", [
+        SUB("kit_limpeza", "Kit de Limpeza", "Cleaning Kit", "Kit de Limpieza"), SUB("aviamento_linha_costura", "Aviamento/Linha para Costura", "Sewing Notions/Thread", "Mercería/Hilo para Costura"),
+        SUB("produto_passadoria_amido", "Produto de Passadoria (Amido/Goma)", "Ironing Product (Starch)", "Producto de Planchado (Almidón)"), SUB("organizador_domestico", "Organizador Doméstico", "Home Organizer", "Organizador Doméstico"),
+      ]),
     ],
   },
 
