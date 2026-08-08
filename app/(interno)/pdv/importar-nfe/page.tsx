@@ -389,7 +389,7 @@ export default function PDVImportarNFe() {
 function SeletorNichoSimples({ lang, nichoSel, onSelecionar }: { lang: Lang; nichoSel: NichoPdvDef | null; onSelecionar: (v: string) => void }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="p-4 rounded-xl" style={{ background: "rgba(0,255,136,0.05)", border: "1px solid rgba(0,255,136,0.15)" }}>
+    <div className="p-4 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
       <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{t("escolhaNicho", lang)}</label>
       <select value={nichoSel?.value || ""} onChange={(e) => onSelecionar(e.target.value)}
         className="w-full sm:w-80 px-3 py-2.5 rounded-lg text-sm"
@@ -411,8 +411,8 @@ function AreaUpload({ lang, inputRef, processando, erro, onArquivo }: {
     <div>
       <button onClick={() => inputRef.current?.click()} disabled={processando}
         className="w-full flex flex-col items-center justify-center gap-2 py-12 rounded-xl border-2 border-dashed disabled:opacity-60"
-        style={{ borderColor: "rgba(0,255,136,0.3)", background: tokens.cardBg }}>
-        {processando ? <Loader2 className="animate-spin" size={28} style={{ color: VERDE_PDV }} /> : <Upload size={28} style={{ color: VERDE_PDV }} />}
+        style={{ borderColor: tokens.acentoSuaveBorda, background: tokens.cardBg }}>
+        {processando ? <Loader2 className="animate-spin" size={28} style={{ color: tokens.acento }} /> : <Upload size={28} style={{ color: tokens.acento }} />}
         <span className="text-sm font-semibold" style={{ color: tokens.texto }}>{processando ? t("processando", lang) : t("enviarArquivo", lang)}</span>
         <span className="text-xs" style={{ color: tokens.textoMuted }}>{t("arrastarSolte", lang)}</span>
       </button>
@@ -431,7 +431,7 @@ function FornecedorCard({ lang, info }: { lang: Lang; info: { existente: Fornece
   return (
     <div className="p-4 rounded-xl flex items-center justify-between flex-wrap gap-2" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: VERDE_PDV }}>{t("fornecedorTitulo", lang)}</p>
+        <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.acento }}>{t("fornecedorTitulo", lang)}</p>
         <p className="text-sm" style={{ color: tokens.texto }}>{info.existente?.nome || info.fantasia || info.razaoSocial || info.cnpj}</p>
       </div>
       <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: info.existente ? "rgba(0,255,136,0.15)" : "rgba(245,185,66,0.15)", color: info.existente ? VERDE_PDV : AMBAR }}>
@@ -472,7 +472,7 @@ function TabelaConferencia({ lang, nicho, itens, classificando, margemPct, onMar
       </div>
 
       <div className="space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: VERDE_PDV }}>{t("itensTitulo", lang)} ({itens.length})</p>
+        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: tokens.acento }}>{t("itensTitulo", lang)} ({itens.length})</p>
         {itens.map((it, idx) => (
           <ItemConferenciaCard key={idx} lang={lang} item={it} opcoesCategoria={opcoesCategoria} onAtualizar={(campo, v) => onAtualizarItem(idx, campo, v)} />
         ))}
@@ -527,7 +527,7 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
       <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: tokens.textoSecundario }}>
         <span>{t("colQuantidade", lang)}: {conversao.quantidadeUnidades} {item.original.unidade || ""}</span>
         <span>{t("colCusto", lang)}: {conversao.custoUnitario.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-        {item.original.numeroLote && <span style={{ color: VERDE_PDV }}>{t("loteValidadeDetectado", lang)}: {item.original.numeroLote}{item.original.dataValidade ? ` · ${item.original.dataValidade}` : ""}</span>}
+        {item.original.numeroLote && <span style={{ color: tokens.acento }}>{t("loteValidadeDetectado", lang)}: {item.original.numeroLote}{item.original.dataValidade ? ` · ${item.original.dataValidade}` : ""}</span>}
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer select-none">

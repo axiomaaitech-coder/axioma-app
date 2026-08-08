@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ScanBarcode, Loader2, Trash2, ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
-import PdvLayout from "../../../../components/PdvLayout";
+import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
@@ -17,6 +17,9 @@ import { NICHOS_PDV, type NichoPdvDef, type CategoriaPdv, type SubNichoPdv } fro
 import { consultarIA, verificarNomeDuplicado } from "../../../../lib/pdvHelpers";
 import { buscarSugestoesSemente } from "../../../../lib/pdvAutocompleteSemente";
 
+// Verde neon reservado pra ação principal (Salvar/Consultar) — cards,
+// bordas, labels de seção e chips seguem o acento azul/roxo do tema
+// (tokens.acento), nunca card/borda inteira em verde.
 const VERDE_PDV = "#00ff88";
 const AMBAR = "#f5b942";
 
@@ -456,7 +459,7 @@ export default function PDVCadastro() {
         onNicho={selecionarNicho} onCategoria={selecionarCategoria} onSubNicho={selecionarSubNicho} />
 
       {!pronto ? (
-        <p className="text-sm text-center py-10" style={{ color: "#8fa8c0" }}>{t("escolhaNicho", lang)}</p>
+        <TextoEscolhaNicho lang={lang} />
       ) : (
         <>
           <div className="flex gap-2 mb-5 mt-4">
@@ -513,8 +516,9 @@ function SeletorNicho({ lang, nichoSel, categoriaSel, subNichoSel, onNicho, onCa
   lang: Lang; nichoSel: NichoPdvDef | null; categoriaSel: CategoriaPdv | null; subNichoSel: SubNichoPdv | null;
   onNicho: (v: string) => void; onCategoria: (v: string) => void; onSubNicho: (v: string) => void;
 }) {
+  const { tokens } = useTemaPdv();
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl" style={{ background: "rgba(0,255,136,0.05)", border: "1px solid rgba(0,255,136,0.15)" }}>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
       <Selecao label={t("nicho", lang)} value={nichoSel?.value || ""} onChange={onNicho}
         opcoes={NICHOS_PDV.map((n) => ({ value: n.value, label: n.label[lang] }))} />
       <Selecao label={t("categoria", lang)} value={categoriaSel?.value || ""} onChange={onCategoria}
@@ -525,13 +529,19 @@ function SeletorNicho({ lang, nichoSel, categoriaSel, subNichoSel, onNicho, onCa
   );
 }
 
+function TextoEscolhaNicho({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return <p className="text-sm text-center py-10" style={{ color: tokens.textoSecundario }}>{t("escolhaNicho", lang)}</p>;
+}
+
 function Selecao({ label, value, onChange, opcoes, desabilitado }: { label: string; value: string; onChange: (v: string) => void; opcoes: { value: string; label: string }[]; desabilitado?: boolean }) {
+  const { tokens } = useTemaPdv();
   return (
     <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: "#8fa8c0" }}>{label}</label>
+      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.textoSecundario }}>{label}</label>
       <select value={value} disabled={desabilitado} onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg text-sm disabled:opacity-40"
-        style={{ background: "rgba(6,15,30,0.7)", border: "1px solid rgba(0,255,136,0.2)", color: "#e2ecf7" }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.texto }}>
         <option value="">—</option>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -540,10 +550,11 @@ function Selecao({ label, value, onChange, opcoes, desabilitado }: { label: stri
 }
 
 function AbaBotao({ ativo, onClick, texto, desabilitado }: { ativo: boolean; onClick: () => void; texto: string; desabilitado?: boolean }) {
+  const { tokens } = useTemaPdv();
   return (
     <button onClick={onClick} disabled={desabilitado}
       className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-30"
-      style={{ background: ativo ? "rgba(0,255,136,0.22)" : "rgba(6,15,30,0.6)", color: ativo ? VERDE_PDV : "#8fa8c0", border: `1px solid ${ativo ? "rgba(0,255,136,0.6)" : "rgba(0,255,136,0.15)"}` }}>
+      style={{ background: ativo ? tokens.acentoSuaveBorda : tokens.cardBg, color: ativo ? tokens.acento : tokens.textoMuted, border: `1px solid ${ativo ? tokens.acento : tokens.cardBorda}` }}>
       {texto}
     </button>
   );
@@ -556,17 +567,18 @@ function Campo({ label, value, onChange, tipo = "text", sugerido, lista, onFocus
   label: string; value: any; onChange: (v: any) => void; tipo?: "text" | "number" | "date";
   sugerido?: boolean; lista?: string[]; onFocus?: () => void;
 }) {
+  const { tokens } = useTemaPdv();
   const listId = useRef(`dl-${Math.random().toString(36).slice(2)}`).current;
   return (
     <div>
-      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : "#8fa8c0" }}>
+      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : tokens.textoSecundario }}>
         {label} {sugerido && <Sparkles size={11} />}
       </label>
       <input
         type={tipo} value={value ?? ""} onFocus={onFocus} list={lista ? listId : undefined}
         onChange={(e) => onChange(tipo === "number" ? (e.target.value === "" ? null : Number(e.target.value)) : e.target.value)}
         className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: "rgba(6,15,30,0.7)", border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : "rgba(0,255,136,0.2)"}`, color: "#e2ecf7" }}
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.texto }}
       />
       {lista && <datalist id={listId}>{lista.map((v, i) => <option key={i} value={v} />)}</datalist>}
     </div>
@@ -574,11 +586,12 @@ function Campo({ label, value, onChange, tipo = "text", sugerido, lista, onFocus
 }
 
 function CampoSelectSimples({ label, value, onChange, opcoes, sugerido }: { label: string; value: any; onChange: (v: any) => void; opcoes: { value: string; label: string }[]; sugerido?: boolean }) {
+  const { tokens } = useTemaPdv();
   return (
     <div>
-      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : "#8fa8c0" }}>{label} {sugerido && <Sparkles size={11} />}</label>
+      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : tokens.textoSecundario }}>{label} {sugerido && <Sparkles size={11} />}</label>
       <select value={value || ""} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm"
-        style={{ background: "rgba(6,15,30,0.7)", border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : "rgba(0,255,136,0.2)"}`, color: "#e2ecf7" }}>
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.texto }}>
         <option value="">—</option>
         {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -589,10 +602,11 @@ function CampoSelectSimples({ label, value, onChange, opcoes, sugerido }: { labe
 function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos }: {
   lang: Lang; campos: CampoNicho[]; atributos: Record<string, any>; onChange: (chave: string, v: any) => void; sugeridos?: Set<string>;
 }) {
+  const { tokens } = useTemaPdv();
   if (campos.length === 0) return null;
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: VERDE_PDV }}>{t("camposEspecificos", lang)}</p>
+      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: tokens.acento }}>{t("camposEspecificos", lang)}</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {campos.filter((c) => !c.dependeDe || !!atributos[c.dependeDe]).map((campo) => {
           const valor = atributos[campo.chave];
@@ -601,7 +615,7 @@ function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos }: {
             return (
               <label key={campo.chave} className="flex items-center gap-2 cursor-pointer select-none py-2">
                 <input type="checkbox" checked={!!valor} onChange={(e) => onChange(campo.chave, e.target.checked)} className="w-4 h-4 rounded" />
-                <span className="text-xs font-semibold" style={{ color: "#c8d8f0" }}>{campo.label[lang]}</span>
+                <span className="text-xs font-semibold" style={{ color: tokens.texto }}>{campo.label[lang]}</span>
               </label>
             );
           }
@@ -622,14 +636,15 @@ function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos }: {
 function AvisoDuplicado({ lang, nome, onAbrirExistente, onCriarMesmoAssim, onFechar }: {
   lang: Lang; nome: string; onAbrirExistente: () => void; onCriarMesmoAssim: () => void; onFechar: () => void;
 }) {
+  const { tokens } = useTemaPdv();
   return (
     <div className="p-4 rounded-xl mb-4" style={{ background: "rgba(245,185,66,0.1)", border: "1px solid rgba(245,185,66,0.4)" }}>
       <p className="text-sm font-semibold mb-1" style={{ color: AMBAR }}>{t("nomeDuplicadoTitulo", lang)}</p>
-      <p className="text-xs mb-3" style={{ color: "#c8d8f0" }}>"{nome}"</p>
+      <p className="text-xs mb-3" style={{ color: tokens.texto }}>"{nome}"</p>
       <div className="flex gap-2 flex-wrap">
         <button onClick={onAbrirExistente} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(245,185,66,0.2)", color: AMBAR }}>{t("abrirExistente", lang)}</button>
-        <button onClick={onCriarMesmoAssim} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: "rgba(0,255,136,0.15)", color: VERDE_PDV }}>{t("criarMesmoAssim", lang)}</button>
-        <button onClick={onFechar} className="px-3 py-2 rounded-lg text-xs" style={{ color: "#8fa8c0" }}>✕</button>
+        <button onClick={onCriarMesmoAssim} className="px-3 py-2 rounded-lg text-xs font-semibold" style={{ background: tokens.acentoSuaveBorda, color: tokens.acento }}>{t("criarMesmoAssim", lang)}</button>
+        <button onClick={onFechar} className="px-3 py-2 rounded-lg text-xs" style={{ color: tokens.textoMuted }}>✕</button>
       </div>
     </div>
   );
@@ -650,6 +665,7 @@ function FormularioAvulso({
   onConsultar: () => void; onGarantirHistorico: (c: "nome" | "marca" | "categoria") => void;
   onSalvar: () => void; onCriarMesmoAssim: () => void; onAbrirExistente: () => void; onLoteChange: (c: string, v: string) => void; onFecharDuplicado: () => void;
 }) {
+  const { tokens } = useTemaPdv();
   const ehServico = nichoSel.modo === "servico";
   const perecivel = !!(form.atributos_nicho || {})[CHAVE_PERECIVEL];
 
@@ -663,7 +679,7 @@ function FormularioAvulso({
         </div>
       )}
       {origemSugestao === "cosmos" && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "rgba(0,255,136,0.08)", color: VERDE_PDV }}>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
           <CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}
         </div>
       )}
@@ -707,7 +723,7 @@ function FormularioAvulso({
 
       {!ehServico && !produtoEditando && perecivel && (
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: VERDE_PDV }}>{t("blocoLote", lang)}</p>
+          <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: tokens.acento }}>{t("blocoLote", lang)}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Campo label={t("campoNumeroLote", lang)} value={loteInicial.numero_lote} onChange={(v) => onLoteChange("numero_lote", v)} />
             <Campo label={t("campoValidade", lang)} tipo="date" value={loteInicial.data_validade} onChange={(v) => onLoteChange("data_validade", v)} />
@@ -741,30 +757,31 @@ function BipagemMassa({
   onDispararIa: () => void; onSalvarPendente: () => void; onPular: () => void;
   sessaoItens: { id: string; nome: string; precoVenda: number | null }[]; onDesfazer: (item: { id: string; nome: string; precoVenda: number | null }) => void;
 }) {
+  const { tokens } = useTemaPdv();
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.2)" }}>
-        <ScanBarcode size={18} style={{ color: VERDE_PDV }} />
+      <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <ScanBarcode size={18} style={{ color: tokens.acento }} />
         <input
           ref={inputRef} autoFocus value={codigoAtual} disabled={!!cartaoPendente}
           onChange={(e) => onCodigoChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onScan(); } }}
           placeholder={t("bipeAqui", lang)}
           className="bg-transparent outline-none text-sm flex-1 disabled:opacity-40"
-          style={{ color: "#e2ecf7" }}
+          style={{ color: tokens.texto }}
         />
-        {processando && <Loader2 className="animate-spin" size={16} style={{ color: VERDE_PDV }} />}
+        {processando && <Loader2 className="animate-spin" size={16} style={{ color: tokens.acento }} />}
       </div>
 
       <AnimatePresence>
         {cartaoPendente && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="p-4 rounded-xl space-y-3" style={{ background: "rgba(6,15,30,0.8)", border: "1px solid rgba(0,255,136,0.3)" }}>
-            <p className="text-xs" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : "#8fa8c0" }}>
+            className="p-4 rounded-xl space-y-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            <p className="text-xs" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : tokens.textoSecundario }}>
               {cartaoPendente.nome && cartaoPendente.categoria ? t("precoParaSalvar", lang) : t("faltaCompletar", lang)}
             </p>
 
-            {origemPendente === "cosmos" && <div className="flex items-center gap-1.5 text-xs" style={{ color: VERDE_PDV }}><CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}</div>}
+            {origemPendente === "cosmos" && <div className="flex items-center gap-1.5 text-xs" style={{ color: tokens.acento }}><CheckCircle2 size={13} /> {t("sugeridoCosmos", lang)}</div>}
             {origemPendente === "ia" && <div className="flex items-center gap-1.5 text-xs" style={{ color: AMBAR }}><Sparkles size={13} /> {t("sugeridoIA", lang)}</div>}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -790,23 +807,23 @@ function BipagemMassa({
                 className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, #00cc6a, ${VERDE_PDV})`, color: "#022" }}>
                 {salvandoPendente ? t("salvando", lang) : t("salvar", lang)}
               </button>
-              <button onClick={onPular} className="px-4 py-2.5 rounded-lg text-sm" style={{ color: "#8fa8c0", border: "1px solid rgba(143,168,192,0.2)" }}>{t("pular", lang)}</button>
+              <button onClick={onPular} className="px-4 py-2.5 rounded-lg text-sm" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.cardBorda}` }}>{t("pular", lang)}</button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: VERDE_PDV }}>{t("sessaoTitulo", lang)} ({sessaoItens.length})</p>
+        <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: tokens.acento }}>{t("sessaoTitulo", lang)} ({sessaoItens.length})</p>
         {sessaoItens.length === 0 ? (
-          <p className="text-xs" style={{ color: "#5a7a9a" }}>{t("sessaoVazia", lang)}</p>
+          <p className="text-xs" style={{ color: tokens.textoMuted }}>{t("sessaoVazia", lang)}</p>
         ) : (
           <div className="space-y-1.5">
             {sessaoItens.map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: "rgba(6,15,30,0.5)", border: "1px solid rgba(0,255,136,0.1)" }}>
-                <span className="text-xs truncate" style={{ color: "#c8d8f0" }}>{item.nome}</span>
+              <div key={item.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+                <span className="text-xs truncate" style={{ color: tokens.texto }}>{item.nome}</span>
                 <div className="flex items-center gap-1 shrink-0">
-                  <a href="/estoque" className="p-1.5 rounded-lg" style={{ color: "#8fa8c0" }} title={t("editar", lang)}><ExternalLink size={13} /></a>
+                  <a href="/estoque" className="p-1.5 rounded-lg" style={{ color: tokens.textoSecundario }} title={t("editar", lang)}><ExternalLink size={13} /></a>
                   <button onClick={() => onDesfazer(item)} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg" style={{ color: "#f87171" }}>
                     <Trash2 size={13} /> {t("desfazer", lang)}
                   </button>

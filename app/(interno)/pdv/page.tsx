@@ -17,6 +17,10 @@ import {
   PDV_PAGE_SIZE, type ProdutoPdv,
 } from "../../../lib/pdvHelpers";
 
+// Verde neon reservado só pro botão PDV na TopNav (intocado, outro arquivo)
+// e pra ação/destaque pontual AQUI DENTRO (botão principal, preço). Cards,
+// bordas, labels de seção e navegação usam o acento azul/roxo do tema
+// (tokens.acento) — nunca card/borda/superfície inteira em verde.
 const VERDE_PDV = "#00ff88";
 
 const txt = {
@@ -262,65 +266,17 @@ export default function PDV() {
   return (
     <PdvLayout
       titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} aoVoltar={handleSetaTopo}
-      botaoExtra={
-        <>
-          <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.4)" }}>
-            <Plus size={16} /> {t("novoProdutoServico", lang)}
-          </Link>
-          <Link href="/pdv/importar-nfe" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(0,255,136,0.08)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.25)" }}>
-            {t("importarNfe", lang)}
-          </Link>
-        </>
-      }
+      botaoExtra={<BotoesHeader lang={lang} />}
     >
       <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} onVoltar={voltarPara} />
 
-      {erro && (
-        <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
-          {erro}
-        </div>
-      )}
+      {erro && <AvisoErro texto={erro} />}
 
       {nivel === "nicho" && (
-        <div className="space-y-6">
-          <div className="flex gap-2 flex-wrap">
-            {(["todos", "alimentos", "nao_alimentos"] as FiltroDivisao[]).map((f) => (
-              <button key={f} onClick={() => setFiltroDivisao(f)}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold"
-                style={{
-                  background: filtroDivisao === f ? "rgba(0,255,136,0.22)" : "rgba(0,255,136,0.05)",
-                  color: filtroDivisao === f ? VERDE_PDV : "#8fa8c0",
-                  border: `1px solid ${filtroDivisao === f ? "rgba(0,255,136,0.6)" : "rgba(0,255,136,0.15)"}`,
-                }}>
-                {f === "todos" ? t("filtroTodos", lang) : f === "alimentos" ? t("filtroAlimentos", lang) : t("filtroNaoAlimentos", lang)}
-              </button>
-            ))}
-          </div>
-          {ORDEM_MODO.map((modo) => (
-            nichosPorModo[modo].length > 0 && (
-              <div key={modo}>
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>
-                  {modo === "produto" ? t("modoProduto", lang) : modo === "misto" ? t("modoMisto", lang) : t("modoServico", lang)}
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {nichosPorModo[modo].map((nicho) => (
-                    <CartaoNicho key={nicho.value} nicho={nicho} lang={lang} qtd={qtdPorSegmento.get(nicho.value) || 0} onClick={() => abrirNicho(nicho)} />
-                  ))}
-                </div>
-              </div>
-            )
-          ))}
-          {filtroDivisao === "todos" && (
-            <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>{t("nichos", lang)}</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                <CartaoNicho nicho={buscarNicho("generico")!} lang={lang} qtd={qtdPorSegmento.get("generico") || 0} onClick={() => abrirNicho(buscarNicho("generico")!)} />
-              </div>
-            </div>
-          )}
-        </div>
+        <SecaoNichos
+          lang={lang} filtroDivisao={filtroDivisao} onFiltroChange={setFiltroDivisao}
+          nichosPorModo={nichosPorModo} qtdPorSegmento={qtdPorSegmento} onAbrirNicho={abrirNicho}
+        />
       )}
 
       {nivel === "categoria" && nichoSel && (
@@ -364,8 +320,84 @@ export default function PDV() {
 }
 
 // ============================================================================
-// SUBCOMPONENTES — cada um lê o próprio tema via useTemaPdv()
+// SUBCOMPONENTES — cada um lê o próprio tema via useTemaPdv() (só funciona
+// corretamente sendo componente próprio: é renderizado DENTRO da árvore do
+// PdvLayout/Provider, diferente de JSX solto no corpo de PDV()).
 // ============================================================================
+
+function BotoesHeader({ lang }: { lang: Idioma }) {
+  // Únicos 2 elementos da tela que ficam em verde de propósito — são a
+  // ação principal do módulo (criar/importar), não superfície de navegação.
+  return (
+    <>
+      <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+        style={{ background: "rgba(0,255,136,0.18)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.4)" }}>
+        <Plus size={16} /> {t("novoProdutoServico", lang)}
+      </Link>
+      <Link href="/pdv/importar-nfe" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+        style={{ background: "rgba(0,255,136,0.08)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.25)" }}>
+        {t("importarNfe", lang)}
+      </Link>
+    </>
+  );
+}
+
+function AvisoErro({ texto }: { texto: string }) {
+  const { tema } = useTemaPdv();
+  const claro = tema !== "escuro";
+  return (
+    <div className="mb-4 px-4 py-3 rounded-xl text-sm"
+      style={{ background: claro ? "rgba(220,38,38,0.08)" : "rgba(239,68,68,0.12)", color: claro ? "#b91c1c" : "#fca5a5", border: `1px solid ${claro ? "rgba(220,38,38,0.25)" : "rgba(239,68,68,0.3)"}` }}>
+      {texto}
+    </div>
+  );
+}
+
+function SecaoNichos({ lang, filtroDivisao, onFiltroChange, nichosPorModo, qtdPorSegmento, onAbrirNicho }: {
+  lang: Idioma; filtroDivisao: FiltroDivisao; onFiltroChange: (f: FiltroDivisao) => void;
+  nichosPorModo: Record<ModoNicho, NichoPdvDef[]>; qtdPorSegmento: Map<string, number>; onAbrirNicho: (n: NichoPdvDef) => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="space-y-6">
+      <div className="flex gap-2 flex-wrap">
+        {(["todos", "alimentos", "nao_alimentos"] as FiltroDivisao[]).map((f) => (
+          <button key={f} onClick={() => onFiltroChange(f)}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold"
+            style={{
+              background: filtroDivisao === f ? tokens.acentoSuaveBorda : tokens.acentoSuaveBg,
+              color: filtroDivisao === f ? tokens.acento : tokens.textoMuted,
+              border: `1px solid ${filtroDivisao === f ? tokens.acento : tokens.acentoSuaveBorda}`,
+            }}>
+            {f === "todos" ? t("filtroTodos", lang) : f === "alimentos" ? t("filtroAlimentos", lang) : t("filtroNaoAlimentos", lang)}
+          </button>
+        ))}
+      </div>
+      {ORDEM_MODO.map((modo) => (
+        nichosPorModo[modo].length > 0 && (
+          <div key={modo}>
+            <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: tokens.acento }}>
+              {modo === "produto" ? t("modoProduto", lang) : modo === "misto" ? t("modoMisto", lang) : t("modoServico", lang)}
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {nichosPorModo[modo].map((nicho) => (
+                <CartaoNicho key={nicho.value} nicho={nicho} lang={lang} qtd={qtdPorSegmento.get(nicho.value) || 0} onClick={() => onAbrirNicho(nicho)} />
+              ))}
+            </div>
+          </div>
+        )
+      ))}
+      {filtroDivisao === "todos" && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: tokens.acento }}>{t("nichos", lang)}</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            <CartaoNicho nicho={buscarNicho("generico")!} lang={lang} qtd={qtdPorSegmento.get("generico") || 0} onClick={() => onAbrirNicho(buscarNicho("generico")!)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Breadcrumb({ lang, nivel, nichoSel, categoriaSel, subNichoSel, onVoltar }: {
   lang: Idioma; nivel: Nivel; nichoSel: NichoPdvDef | null; categoriaSel: string | null; subNichoSel: string | null;
@@ -386,7 +418,7 @@ function Breadcrumb({ lang, nivel, nichoSel, categoriaSel, subNichoSel, onVoltar
         <span key={i} className="flex items-center gap-1">
           {i > 0 && <ChevronRight size={12} style={{ color: tokens.textoMuted }} />}
           {item.destino ? (
-            <button onClick={() => onVoltar(item.destino!)} className="hover:underline" style={{ color: VERDE_PDV }}>{item.label}</button>
+            <button onClick={() => onVoltar(item.destino!)} className="hover:underline font-medium" style={{ color: tokens.acento }}>{item.label}</button>
           ) : (
             <span style={{ color: tokens.textoSecundario }}>{item.label}</span>
           )}
@@ -404,20 +436,21 @@ function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: 
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
       className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px]"
-      style={{ background: "rgba(0,255,136,0.06)", border: "1px solid rgba(0,255,136,0.18)" }}
+      style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}
     >
       <span className="text-sm font-semibold" style={{ color: tokens.texto }}>{nicho.label[lang]}</span>
-      {qtd > 0 && <span className="text-xs" style={{ color: VERDE_PDV }}>{qtd}</span>}
+      {qtd > 0 && <span className="text-xs font-semibold" style={{ color: tokens.acento }}>{qtd}</span>}
     </motion.button>
   );
 }
 
 function ListaCarregavel({ carregando, children }: { carregando: boolean; children: React.ReactNode }) {
+  const { tokens } = useTemaPdv();
   if (carregando) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="animate-pulse h-16 rounded-xl" style={{ background: "rgba(0,255,136,0.05)" }} />
+          <div key={i} className="animate-pulse h-16 rounded-xl" style={{ background: tokens.acentoSuaveBg }} />
         ))}
       </div>
     );
@@ -440,7 +473,7 @@ function GradeCategorias({ lang, nicho, categoriasReais, onSelecionar }: {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>{t("categorias", lang)}</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: tokens.acento }}>{t("categorias", lang)}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {curadas.map((label, i) => (
             <BotaoSimples key={i} label={label} onClick={() => onSelecionar(label)} />
@@ -473,7 +506,7 @@ function GradeSubNichos({ lang, nicho, categoria, subNichosReais, onSelecionar }
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: VERDE_PDV }}>{t("subNichos", lang)}</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: tokens.acento }}>{t("subNichos", lang)}</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {curadas.map((label, i) => (
             <BotaoSimples key={i} label={label} onClick={() => onSelecionar(label)} />
@@ -504,8 +537,8 @@ function BotaoSimples({ label, onClick, apagado }: { label: string; onClick: () 
       onClick={onClick}
       className="p-3.5 rounded-xl text-left text-sm font-medium min-h-[52px]"
       style={{
-        background: apagado ? "rgba(143,168,192,0.06)" : "rgba(0,255,136,0.06)",
-        border: `1px solid ${apagado ? "rgba(143,168,192,0.18)" : "rgba(0,255,136,0.18)"}`,
+        background: apagado ? tokens.cardBg : tokens.acentoSuaveBg,
+        border: `1px solid ${apagado ? tokens.cardBorda : tokens.acentoSuaveBorda}`,
         color: apagado ? tokens.textoSecundario : tokens.texto,
       }}
     >
@@ -547,7 +580,7 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
       {carregando ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="animate-pulse h-14 rounded-xl" style={{ background: "rgba(0,255,136,0.05)" }} />
+            <div key={i} className="animate-pulse h-14 rounded-xl" style={{ background: tokens.acentoSuaveBg }} />
           ))}
         </div>
       ) : produtos.length === 0 ? (
@@ -562,11 +595,11 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
           </div>
           {totalPaginas > 1 && (
             <div className="flex items-center justify-between mt-4 text-xs" style={{ color: tokens.textoSecundario }}>
-              <button onClick={onPaginaAnterior} disabled={pagina === 0} className="px-3 py-2 rounded-lg disabled:opacity-40" style={{ border: "1px solid rgba(0,255,136,0.2)" }}>
+              <button onClick={onPaginaAnterior} disabled={pagina === 0} className="px-3 py-2 rounded-lg disabled:opacity-40" style={{ border: `1px solid ${tokens.cardBorda}` }}>
                 {t("anterior", lang)}
               </button>
               <span>{t("paginaDe", lang, { a: pagina + 1, b: totalPaginas })}</span>
-              <button onClick={onPaginaProxima} disabled={pagina + 1 >= totalPaginas} className="px-3 py-2 rounded-lg disabled:opacity-40" style={{ border: "1px solid rgba(0,255,136,0.2)" }}>
+              <button onClick={onPaginaProxima} disabled={pagina + 1 >= totalPaginas} className="px-3 py-2 rounded-lg disabled:opacity-40" style={{ border: `1px solid ${tokens.cardBorda}` }}>
                 {t("proxima", lang)}
               </button>
             </div>
@@ -592,7 +625,7 @@ function LinhaProduto({ produto, lang }: { produto: ProdutoPdv; lang: Idioma }) 
         <span className="text-sm font-semibold" style={{ color: preco ? VERDE_PDV : tokens.textoMuted }}>
           {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
-        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.textoSecundario, border: "1px solid rgba(143,168,192,0.2)" }}>
+        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.textoSecundario, border: `1px solid ${tokens.cardBorda}` }}>
           {t("verNoEstoque", lang)} <ExternalLink size={12} />
         </a>
       </div>
