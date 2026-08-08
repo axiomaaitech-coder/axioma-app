@@ -428,9 +428,7 @@ export default function PDVCadastro() {
   if (carregandoPapel) {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
-        <div className="flex items-center justify-center py-16 gap-2" style={{ color: "#5a7a9a" }}>
-          <Loader2 className="animate-spin" size={18} /><span className="text-sm">{t("carregando", lang)}</span>
-        </div>
+        <EstadoCarregando lang={lang} />
       </PdvLayout>
     );
   }
@@ -438,9 +436,7 @@ export default function PDVCadastro() {
   if (papel === "operador") {
     return (
       <PdvLayout titulo={t("operadorTitulo", lang)} subtitulo="">
-        <div className="flex items-center justify-center py-16 px-4">
-          <p className="text-sm text-center max-w-md" style={{ color: "#5a7a9a" }}>{t("operadorCorpo", lang)}</p>
-        </div>
+        <AvisoOperador lang={lang} />
       </PdvLayout>
     );
   }
@@ -500,6 +496,24 @@ export default function PDVCadastro() {
         </>
       )}
     </PdvLayout>
+  );
+}
+
+function EstadoCarregando({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
+      <Loader2 className="animate-spin" size={18} /><span className="text-sm">{t("carregando", lang)}</span>
+    </div>
+  );
+}
+
+function AvisoOperador({ lang }: { lang: Lang }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center justify-center py-16 px-4">
+      <p className="text-sm text-center max-w-md" style={{ color: tokens.textoMuted }}>{t("operadorCorpo", lang)}</p>
+    </div>
   );
 }
 
