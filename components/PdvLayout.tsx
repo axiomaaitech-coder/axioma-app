@@ -87,13 +87,23 @@ function SeletorTema({ tema, setTema }: { tema: TemaPdv; setTema: (t: TemaPdv) =
 interface PdvLayoutProps {
   titulo: string;
   subtitulo: string;
-  voltarPara?: string; // href — seta de voltar sempre visível quando informado
+  // href estático — pra telas SEM navegação interna própria (Cadastro,
+  // Importar NF-e: "voltar" sempre significa "voltar pro Catálogo").
+  voltarPara?: string;
+  // handler customizado — pra telas COM navegação interna em níveis (o
+  // Catálogo: sub-nicho→categoria→nicho). Quando informado, tem PRIORIDADE
+  // sobre voltarPara — a própria tela decide o que "voltar" significa a
+  // partir do nível atual, reaproveitando o mesmo estado que já move o
+  // breadcrumb (nunca um controle de navegação paralelo).
+  aoVoltar?: () => void;
   botaoExtra?: ReactNode;
   children: ReactNode;
 }
 
-export default function PdvLayout({ titulo, subtitulo, voltarPara, botaoExtra, children }: PdvLayoutProps) {
+export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, botaoExtra, children }: PdvLayoutProps) {
   const { tema, tokens, setTema } = useProviderTema();
+
+  const estiloSeta: React.CSSProperties = { background: "rgba(0,255,136,0.1)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.25)" };
 
   return (
     <TemaContext.Provider value={{ tema, tokens, setTema }}>
@@ -101,11 +111,15 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, botaoExtra, c
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }} className="mb-6 md:mb-8">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-start gap-3 min-w-0">
-              {voltarPara && (
-                <Link href={voltarPara} className="mt-1 p-2 rounded-xl shrink-0" style={{ background: "rgba(0,255,136,0.1)", color: VERDE_PDV, border: "1px solid rgba(0,255,136,0.25)" }} aria-label="Voltar">
+              {aoVoltar ? (
+                <button onClick={aoVoltar} className="mt-1 p-2 rounded-xl shrink-0" style={estiloSeta} aria-label="Voltar">
+                  <ArrowLeft size={18} />
+                </button>
+              ) : voltarPara ? (
+                <Link href={voltarPara} className="mt-1 p-2 rounded-xl shrink-0" style={estiloSeta} aria-label="Voltar">
                   <ArrowLeft size={18} />
                 </Link>
-              )}
+              ) : null}
               <div className="min-w-0">
                 <h2 className="text-xl md:text-2xl font-bold mb-1 truncate" style={{ color: tokens.texto }}>{titulo}</h2>
                 <p className="text-sm" style={{ color: tokens.textoMuted }}>{subtitulo}</p>

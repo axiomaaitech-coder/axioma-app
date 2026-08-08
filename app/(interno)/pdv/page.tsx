@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronRight, Search, ExternalLink, Loader2, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
@@ -89,6 +90,7 @@ const ORDEM_MODO: ModoNicho[] = ["produto", "misto", "servico"];
 export default function PDV() {
   const { idioma } = useLanguage();
   const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
+  const router = useRouter();
 
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [papel, setPapel] = useState<string | null>(null);
@@ -216,6 +218,22 @@ export default function PDV() {
     else if (destino === "subnicho") { setSubNichoSel(null); setNivel("subnicho"); }
   }
 
+  // Seta de voltar do topo (PdvLayout) — sobe exatamente UM nível da
+  // navegação do catálogo, reaproveitando o MESMO estado (`nivel` + a
+  // própria voltarPara) que já move o breadcrumb. Nunca um controle
+  // paralelo. Só na raiz ("nicho") sai do PDV de verdade.
+  function handleSetaTopo() {
+    if (nivel === "categoria") { voltarPara("nicho"); return; }
+    if (nivel === "subnicho") { voltarPara("categoria"); return; }
+    if (nivel === "produtos") {
+      // Nicho sem categoria (ex: genérico) pula direto nicho→produtos —
+      // voltar daqui tem que pular direto de volta pra nicho também.
+      voltarPara(nichoSel && nichoSel.categorias.length > 0 ? "subnicho" : "nicho");
+      return;
+    }
+    router.push("/dashboard"); // já está na raiz (nivel === "nicho")
+  }
+
   // ============================================================================
   // GATE — operador não navega catálogo nesta fase (decisão registrada:
   // liberação de leitura pro balconista fica pra Fase 3, junto da venda).
@@ -243,7 +261,7 @@ export default function PDV() {
 
   return (
     <PdvLayout
-      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/dashboard"
+      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} aoVoltar={handleSetaTopo}
       botaoExtra={
         <>
           <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
