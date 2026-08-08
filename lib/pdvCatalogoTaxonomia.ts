@@ -167,23 +167,84 @@ export const NICHOS_PDV: NichoPdvDef[] = [
     value: "farmacia", label: L("Farmácia", "Pharmacy", "Farmacia"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
       CAT("medicamentos", "Medicamentos", "Medications", "Medicamentos", [
-        SUB("isento_receita", "Isento de Receita", "Over-the-counter", "Sin Receta", [CAMPO_PERECIVEL]), SUB("com_retencao", "Com Retenção (tarja)", "Prescription Retained", "Con Retención", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
-        SUB("controlado", "Controlado (SNGPC)", "Controlled (SNGPC)", "Controlado (SNGPC)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
+        SUB("mip_isento", "MIP (Isento de Receita)", "OTC (No Prescription)", "MIP (Sin Receta)", [CAMPO_PERECIVEL]),
+        SUB("generico_tarja_amarela", "Genérico (Tarja Amarela)", "Generic (Yellow Stripe)", "Genérico (Franja Amarilla)", [CAMPO_PERECIVEL]),
+        SUB("similar", "Similar", "Similar (Branded Generic)", "Similar", [CAMPO_PERECIVEL]),
+        SUB("referencia_marca", "Referência/Marca", "Reference/Brand-name", "Referencia/Marca", [CAMPO_PERECIVEL]),
+        SUB("tarja_vermelha", "Tarja Vermelha (Controle Simples)", "Red Stripe (Simple Control)", "Franja Roja (Control Simple)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
+        SUB("tarja_preta_controlado", "Tarja Preta/Controlado (SNGPC)", "Black Stripe/Controlled (SNGPC)", "Franja Negra/Controlado (SNGPC)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
+      ]),
+      CAT("saude_bucal", "Saúde Bucal", "Oral Health", "Salud Bucal", [
+        SUB("creme_dental", "Creme Dental", "Toothpaste", "Crema Dental"), SUB("escova_dente", "Escova de Dente", "Toothbrush", "Cepillo de Dientes"),
+        SUB("fio_dental", "Fio Dental", "Dental Floss", "Hilo Dental"), SUB("enxaguante_bucal", "Enxaguante Bucal", "Mouthwash", "Enjuague Bucal"),
+        SUB("fixador_dentadura", "Fixador de Dentadura", "Denture Adhesive", "Fijador de Dentadura"), SUB("clareamento_dental", "Clareamento Dental", "Teeth Whitening", "Blanqueamiento Dental"),
       ]),
       CAT("dermocosmetico", "Dermocosmético", "Dermocosmetics", "Dermocosmética", [
-        SUB("protetor_solar", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL]), SUB("hidratante_antirrugas", "Hidratante/Antirrugas", "Moisturizer/Anti-aging", "Hidratante/Antiarrugas", [CAMPO_PERECIVEL]),
+        SUB("protetor_solar", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL]),
+        SUB("hidratante_facial_corporal", "Hidratante Facial/Corporal", "Facial/Body Moisturizer", "Hidratante Facial/Corporal", [CAMPO_PERECIVEL]),
+        SUB("antirrugas_antiidade", "Antirrugas/Anti-idade", "Anti-wrinkle/Anti-aging", "Antiarrugas/Antiedad", [CAMPO_PERECIVEL]),
+        SUB("agua_micelar", "Água Micelar", "Micellar Water", "Agua Micelar", [CAMPO_PERECIVEL]),
+        SUB("sabonete_facial", "Sabonete Facial", "Facial Cleanser", "Jabón Facial", [CAMPO_PERECIVEL]),
+        SUB("tratamento_acne_manchas", "Tratamento para Acne/Manchas", "Acne/Blemish Treatment", "Tratamiento para Acné/Manchas", [CAMPO_PERECIVEL]),
       ]),
-      CAT("higiene_beleza", "Higiene e Beleza", "Beauty & Care", "Higiene y Belleza", [
-        SUB("sabonete_shampoo", "Sabonete/Shampoo", "Soap/Shampoo", "Jabón/Champú"), SUB("fralda_absorvente", "Fralda/Absorvente", "Diaper/Pad", "Pañal/Toalla"), SUB("perfumaria", "Perfumaria", "Fragrance", "Perfumería"),
+      CAT("cabelo_farmacia", "Cabelo", "Hair Care", "Cabello", [
+        SUB("shampoo_condicionador_farmacia", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador"),
+        SUB("mascara_hidratacao_farmacia", "Máscara de Hidratação", "Hydrating Hair Mask", "Mascarilla Hidratante"),
+        SUB("creme_pentear_farmacia", "Creme de Pentear", "Leave-in/Combing Cream", "Crema para Peinar"),
+        SUB("oleo_reparador", "Óleo Reparador", "Repair Hair Oil", "Aceite Reparador"),
+        SUB("coloracao_tintura", "Coloração/Tintura", "Hair Color/Dye", "Coloración/Tinte"),
+        SUB("tratamento_antiqueda", "Tratamento Antiqueda", "Anti-hair-loss Treatment", "Tratamiento Anticaída"),
       ]),
-      CAT("vitaminas_suplementos", "Vitaminas/Suplementos", "Vitamins/Supplements", "Vitaminas/Suplementos", [
-        SUB("vitamina_mineral", "Vitamina/Mineral", "Vitamin/Mineral", "Vitamina/Mineral", [CAMPO_PERECIVEL]), SUB("suplemento_esportivo", "Suplemento Esportivo", "Sports Supplement", "Suplemento Deportivo", [CAMPO_PERECIVEL]),
+      CAT("higiene_pessoal_farmacia", "Higiene Pessoal", "Personal Hygiene", "Higiene Personal", [
+        SUB("sabonete_farmacia", "Sabonete", "Soap", "Jabón"), SUB("desodorante_farmacia", "Desodorante", "Deodorant", "Desodorante"),
+        SUB("papel_higienico_farmacia", "Papel Higiênico", "Toilet Paper", "Papel Higiénico"), SUB("cotonete_algodao", "Cotonete/Algodão", "Cotton Swabs/Cotton Balls", "Hisopos/Algodón"),
+        SUB("barbeador_lamina", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("sabonete_intimo", "Sabonete Íntimo", "Intimate Wash", "Jabón Íntimo"),
       ]),
-      CAT("ortopedia", "Ortopedia", "Orthopedics", "Ortopedia", [
-        SUB("meias_compressao", "Meias de Compressão", "Compression Socks", "Medias de Compresión"), SUB("orteses_apoios", "Órteses/Apoios", "Orthotics/Braces", "Órtesis/Soportes"),
+      CAT("perfumaria_farmacia", "Perfumaria", "Fragrance", "Perfumería", [
+        SUB("perfume_farmacia", "Perfume", "Perfume", "Perfume"), SUB("colonia_farmacia", "Colônia", "Cologne", "Colonia"),
+        SUB("body_splash", "Body Splash", "Body Splash", "Body Splash"), SUB("kit_presente_farmacia", "Kit Presente", "Gift Set", "Kit de Regalo"),
+      ]),
+      CAT("vitaminas_suplementos", "Vitaminas, Suplementos e Nutrição", "Vitamins, Supplements & Nutrition", "Vitaminas, Suplementos y Nutrición", [
+        SUB("vitamina_mineral", "Vitamina/Mineral Isolado", "Isolated Vitamin/Mineral", "Vitamina/Mineral Aislado", [CAMPO_PERECIVEL]),
+        SUB("polivitaminico", "Polivitamínico", "Multivitamin", "Polivitamínico", [CAMPO_PERECIVEL]),
+        SUB("suplemento_esportivo", "Suplemento Esportivo/Whey", "Sports Supplement/Whey", "Suplemento Deportivo/Whey", [CAMPO_PERECIVEL]),
+        SUB("omega_3", "Ômega 3", "Omega 3", "Omega 3", [CAMPO_PERECIVEL]), SUB("colageno", "Colágeno", "Collagen", "Colágeno", [CAMPO_PERECIVEL]),
+        SUB("probiotico", "Probiótico", "Probiotic", "Probiótico", [CAMPO_PERECIVEL]),
+        SUB("barra_proteina_cereal", "Barra de Proteína/Cereal", "Protein/Cereal Bar", "Barra de Proteína/Cereal", [CAMPO_PERECIVEL]),
+        SUB("adocante_diet", "Adoçante/Produto Diet", "Sweetener/Diet Product", "Edulcorante/Producto Diet", [CAMPO_PERECIVEL]),
       ]),
       CAT("materno_infantil_farmacia", "Materno-Infantil", "Mother & Baby", "Materno-Infantil", [
-        SUB("fralda_geriatrica", "Fralda Geriátrica", "Adult Diaper", "Pañal Geriátrico"), SUB("leite_formula_infantil", "Leite/Fórmula Infantil", "Baby Formula", "Leche/Fórmula Infantil", [CAMPO_PERECIVEL]),
+        SUB("fralda_infantil", "Fralda Infantil", "Baby Diaper", "Pañal Infantil"), SUB("lenco_umedecido", "Lenço Umedecido", "Wet Wipes", "Toallitas Húmedas"),
+        SUB("leite_formula_infantil", "Fórmula/Leite Infantil", "Baby Formula/Milk", "Fórmula/Leche Infantil", [CAMPO_PERECIVEL]),
+        SUB("mamadeira_bico", "Mamadeira/Bico", "Baby Bottle/Nipple", "Biberón/Chupón"), SUB("higiene_bebe", "Higiene do Bebê", "Baby Care", "Higiene del Bebé"),
+        SUB("chupeta_acessorios", "Chupeta/Acessórios", "Pacifier/Accessories", "Chupete/Accesorios"),
+      ]),
+      CAT("saude_feminina_intima", "Saúde Feminina e Íntima", "Women's & Intimate Health", "Salud Femenina e Íntima", [
+        SUB("absorvente_externo", "Absorvente Externo", "External Pad", "Toalla Femenina Externa"), SUB("absorvente_interno", "Absorvente Interno", "Tampon", "Tampón"),
+        SUB("protetor_diario", "Protetor Diário", "Panty Liner", "Protector Diario"), SUB("coletor_menstrual", "Coletor Menstrual", "Menstrual Cup", "Copa Menstrual"),
+        SUB("teste_gravidez", "Teste de Gravidez", "Pregnancy Test", "Prueba de Embarazo"), SUB("preservativo", "Preservativo", "Condom", "Preservativo"),
+        SUB("lubrificante_intimo", "Lubrificante Íntimo", "Intimate Lubricant", "Lubricante Íntimo"),
+      ]),
+      CAT("geriatria", "Geriatria", "Geriatric Care", "Geriatría", [
+        SUB("fralda_geriatrica", "Fralda Geriátrica", "Adult Diaper", "Pañal Geriátrico"), SUB("fixador_dentadura_geriatria", "Fixador de Dentadura", "Denture Adhesive", "Fijador de Dentadura"),
+        SUB("suplemento_geriatrico", "Suplemento Geriátrico", "Geriatric Supplement", "Suplemento Geriátrico", [CAMPO_PERECIVEL]),
+        SUB("andador_apoio", "Andador/Apoio de Mobilidade", "Walker/Mobility Aid", "Andador/Apoyo de Movilidad"), SUB("cadeira_banho", "Cadeira de Banho", "Shower Chair", "Silla de Baño"),
+      ]),
+      CAT("ortopedia", "Ortopedia", "Orthopedics", "Ortopedia", [
+        SUB("meias_compressao", "Meia de Compressão", "Compression Socks", "Medias de Compresión"), SUB("orteses_talas", "Órtese/Tala", "Orthosis/Splint", "Órtesis/Férula"),
+        SUB("muleta_bengala", "Muleta/Bengala", "Crutch/Cane", "Muleta/Bastón"), SUB("colar_cervical", "Colar Cervical", "Cervical Collar", "Collar Cervical"),
+        SUB("joelheira_tornozeleira", "Joelheira/Tornozeleira", "Knee/Ankle Brace", "Rodillera/Tobillera"),
+      ]),
+      CAT("primeiros_socorros_mips", "Primeiros Socorros e MIPs", "First Aid & OTC", "Primeros Auxilios y MIPs", [
+        SUB("curativo_bandagem", "Curativo/Bandagem", "Bandage/Wound Dressing", "Curita/Vendaje"), SUB("gaze_esparadrapo", "Gaze/Esparadrapo", "Gauze/Adhesive Tape", "Gasa/Esparadrapo"),
+        SUB("antisseptico_alcool", "Antisséptico/Álcool", "Antiseptic/Alcohol", "Antiséptico/Alcohol"), SUB("analgesico_antitermico", "Analgésico/Antitérmico", "Pain Reliever/Fever Reducer", "Analgésico/Antitérmico"),
+        SUB("antiacido_digestivo", "Antiácido/Digestivo", "Antacid/Digestive", "Antiácido/Digestivo"), SUB("repelente", "Repelente", "Insect Repellent", "Repelente"),
+        SUB("termometro_medidor_pressao", "Termômetro/Medidor de Pressão", "Thermometer/Blood Pressure Monitor", "Termómetro/Tensiómetro"),
+      ]),
+      CAT("conveniencia_farmacia", "Conveniência de Farmácia", "Pharmacy Convenience", "Conveniencia de Farmacia", [
+        SUB("pilha_farmacia", "Pilha", "Batteries", "Pilas"), SUB("isqueiro_acessorios", "Isqueiro/Acessórios", "Lighter/Accessories", "Encendedor/Accesorios"),
+        SUB("chocolate_doce", "Chocolate/Doce", "Chocolate/Candy", "Chocolate/Dulce", [CAMPO_PERECIVEL]), SUB("bebida_nao_alcoolica_farmacia", "Bebida Não Alcoólica", "Non-alcoholic Beverage", "Bebida Sin Alcohol", [CAMPO_PERECIVEL]),
+        SUB("snack_biscoito", "Snack/Biscoito", "Snack/Cookie", "Snack/Galleta", [CAMPO_PERECIVEL]), SUB("lembrancinha_embalagem", "Lembrancinha/Embalagem de Presente", "Small Gift/Gift Wrap", "Detalle/Envoltorio de Regalo"),
       ]),
     ],
   },
@@ -241,9 +302,66 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "padaria_confeitaria", label: L("Padaria/Confeitaria", "Bakery/Pastry Shop", "Panadería/Pastelería"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("paes", "Pães", "Bread", "Panes", [SUB("pao_frances", "Pão Francês", "French Bread", "Pan Francés", [CAMPO_PERECIVEL]), SUB("pao_doce_especial", "Pão Doce/Especial", "Sweet/Specialty Bread", "Pan Dulce/Especial", [CAMPO_PERECIVEL])]),
-      CAT("confeitaria", "Confeitaria", "Pastry", "Pastelería", [SUB("bolo", "Bolo", "Cake", "Torta", [CAMPO_PERECIVEL]), SUB("salgado", "Salgado", "Savory Pastry", "Salado", [CAMPO_PERECIVEL])]),
-      CAT("bebidas_consumo_local", "Bebidas", "Beverages", "Bebidas", [SUB("cafe_suco", "Café/Suco", "Coffee/Juice", "Café/Jugo", [CAMPO_PERECIVEL])]),
+      CAT("paes", "Pães", "Bread", "Panes", [
+        SUB("pao_frances_tradicional", "Pão Francês/Tradicional", "French/Traditional Bread", "Pan Francés/Tradicional", [CAMPO_PERECIVEL]),
+        SUB("pao_forma_sovado", "Pão de Forma/Sovado", "Sliced/Soft White Bread", "Pan de Molde/Sobado", [CAMPO_PERECIVEL]),
+        SUB("pao_integral_multigraos", "Pão Integral/Multigrãos", "Whole Wheat/Multigrain Bread", "Pan Integral/Multigrano", [CAMPO_PERECIVEL]),
+        SUB("pao_fermentacao_natural", "Pão de Fermentação Natural", "Sourdough Bread", "Pan de Masa Madre", [CAMPO_PERECIVEL]),
+        SUB("pao_especial", "Pão Especial (Ciabatta/Australiano/Centeio/Focaccia/Sírio)", "Specialty Bread (Ciabatta/Rye/Focaccia/Pita)", "Pan Especial (Chapata/Centeno/Focaccia/Sirio)", [CAMPO_PERECIVEL]),
+        SUB("pao_de_queijo", "Pão de Queijo", "Cheese Bread", "Pan de Queso", [CAMPO_PERECIVEL]),
+        SUB("pao_doce", "Pão Doce (Brioche/Rosca/Sonho)", "Sweet Bread (Brioche/Sweet Roll/Filled Doughnut)", "Pan Dulce (Brioche/Rosca/Berlinesa)", [CAMPO_PERECIVEL]),
+        SUB("pao_lanche", "Pão para Lanche (Hambúrguer/Cachorro-quente)", "Sandwich Bread (Burger/Hot Dog)", "Pan para Sándwich (Hamburguesa/Hot Dog)", [CAMPO_PERECIVEL]),
+        SUB("pao_sazonal_festivo", "Pão Sazonal/Festivo (Panetone/Colomba)", "Seasonal/Holiday Bread (Panettone/Colomba)", "Pan de Temporada (Panetón/Colomba)", [CAMPO_PERECIVEL]),
+        SUB("torrada_pao_fatiado", "Torrada/Pão Fatiado Torrado", "Toast/Sliced Toasted Bread", "Tostada/Pan Tostado en Rebanadas"),
+      ]),
+      CAT("salgados_assados", "Salgados Assados", "Baked Savory Pastries", "Salados Horneados", [
+        SUB("esfiha", "Esfiha", "Esfiha", "Esfiha", [CAMPO_PERECIVEL]), SUB("empada", "Empada", "Empanada Pie (Empada)", "Empanada al Horno (Empada)", [CAMPO_PERECIVEL]),
+        SUB("quiche", "Quiche", "Quiche", "Quiche", [CAMPO_PERECIVEL]), SUB("calzone", "Calzone", "Calzone", "Calzone", [CAMPO_PERECIVEL]),
+        SUB("croissant_salgado", "Croissant Salgado", "Savory Croissant", "Croissant Salado", [CAMPO_PERECIVEL]), SUB("pao_batata", "Pão de Batata", "Potato Bread Roll", "Pan de Papa", [CAMPO_PERECIVEL]),
+        SUB("bauru", "Bauru", "Bauru Sandwich", "Bauru", [CAMPO_PERECIVEL]), SUB("enroladinho_salsicha", "Enroladinho de Salsicha", "Sausage Roll", "Enrollado de Salchicha", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("salgados_fritos", "Salgados Fritos", "Fried Savory Pastries", "Salados Fritos", [
+        SUB("coxinha", "Coxinha", "Coxinha (Chicken Croquette)", "Coxinha", [CAMPO_PERECIVEL]), SUB("pastel", "Pastel", "Pastel (Fried Pastry)", "Pastel Frito", [CAMPO_PERECIVEL]),
+        SUB("risole", "Risole", "Risole", "Risol", [CAMPO_PERECIVEL]), SUB("croquete", "Croquete", "Croquette", "Croqueta", [CAMPO_PERECIVEL]),
+        SUB("bolinha_queijo", "Bolinha de Queijo", "Cheese Ball", "Bolita de Queso", [CAMPO_PERECIVEL]), SUB("kibe", "Kibe", "Kibbeh", "Kibe", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("lanches_naturais", "Lanches Naturais", "Natural Sandwiches", "Sándwiches Naturales", [
+        SUB("sanduiche_natural", "Sanduíche Natural", "Natural Sandwich", "Sándwich Natural", [CAMPO_PERECIVEL]), SUB("wrap", "Wrap", "Wrap", "Wrap", [CAMPO_PERECIVEL]),
+        SUB("salada_individual", "Salada Individual", "Individual Salad", "Ensalada Individual", [CAMPO_PERECIVEL]), SUB("suco_detox_funcional", "Suco Detox/Funcional", "Detox/Functional Juice", "Jugo Detox/Funcional", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("confeitaria_fina", "Confeitaria Fina", "Fine Pastry", "Pastelería Fina", [
+        SUB("macaron", "Macaron", "Macaron", "Macaron", [CAMPO_PERECIVEL]), SUB("trufa", "Trufa", "Truffle", "Trufa", [CAMPO_PERECIVEL]),
+        SUB("brigadeiro_gourmet", "Brigadeiro Gourmet", "Gourmet Brigadeiro", "Brigadeiro Gourmet", [CAMPO_PERECIVEL]), SUB("bombom_artesanal", "Bombom Artesanal", "Artisanal Bonbon", "Bombón Artesanal", [CAMPO_PERECIVEL]),
+        SUB("petit_four", "Petit Four", "Petit Four", "Petit Four", [CAMPO_PERECIVEL]), SUB("financier_mini_doce", "Financier/Mini Doce Francês", "Financier/Mini French Pastry", "Financier/Mini Dulce Francés", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("bolos_tortas", "Bolos e Tortas", "Cakes & Pies", "Tortas y Pasteles", [
+        SUB("bolo_caseiro_fatia", "Bolo Caseiro (Fatia)", "Homemade Cake (Slice)", "Torta Casera (Porción)", [CAMPO_PERECIVEL]),
+        SUB("bolo_personalizado", "Bolo Personalizado/Decorado", "Custom/Decorated Cake", "Torta Personalizada/Decorada", [CAMPO_PERECIVEL]),
+        SUB("torta_doce", "Torta Doce", "Sweet Pie", "Tarta Dulce", [CAMPO_PERECIVEL]), SUB("torta_salgada", "Torta Salgada", "Savory Pie", "Tarta Salada", [CAMPO_PERECIVEL]),
+        SUB("cheesecake", "Cheesecake", "Cheesecake", "Cheesecake", [CAMPO_PERECIVEL]), SUB("bolo_especial", "Bolo Especial (Red Velvet etc.)", "Specialty Cake (Red Velvet etc.)", "Torta Especial (Red Velvet, etc.)", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("doces_sobremesas", "Doces e Sobremesas", "Sweets & Desserts", "Dulces y Postres", [
+        SUB("pudim", "Pudim", "Pudding (Flan)", "Pudín (Flan)", [CAMPO_PERECIVEL]), SUB("mousse", "Mousse", "Mousse", "Mousse", [CAMPO_PERECIVEL]),
+        SUB("brigadeiro_tradicional", "Brigadeiro Tradicional", "Traditional Brigadeiro", "Brigadeiro Tradicional", [CAMPO_PERECIVEL]), SUB("cocada", "Cocada", "Cocada (Coconut Candy)", "Cocada", [CAMPO_PERECIVEL]),
+        SUB("doce_em_calda", "Doce em Calda", "Fruit in Syrup", "Dulce en Almíbar", [CAMPO_PERECIVEL]), SUB("sobremesa_copo", "Sobremesa em Copo", "Cup Dessert", "Postre en Vaso", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cafeteria", "Café/Cafeteria", "Coffee/Café", "Café/Cafetería", [
+        SUB("espresso", "Espresso", "Espresso", "Espresso"), SUB("cafe_com_leite", "Café com Leite", "Coffee with Milk", "Café con Leche"),
+        SUB("cappuccino", "Cappuccino", "Cappuccino", "Capuchino"), SUB("chocolate_quente", "Chocolate Quente", "Hot Chocolate", "Chocolate Caliente"),
+        SUB("suco_natural_cafeteria", "Suco Natural", "Fresh Juice", "Jugo Natural"), SUB("cha", "Chá", "Tea", "Té"),
+      ]),
+      CAT("frios_laticinios_padaria", "Frios e Laticínios", "Deli & Dairy", "Fiambres y Lácteos", [
+        SUB("queijo_fatiado", "Queijo Fatiado", "Sliced Cheese", "Queso en Fetas", [CAMPO_PERECIVEL]), SUB("presunto_embutido_padaria", "Presunto/Embutido", "Ham/Cold Cuts", "Jamón/Fiambre", [CAMPO_PERECIVEL]),
+        SUB("manteiga_margarina", "Manteiga/Margarina", "Butter/Margarine", "Mantequilla/Margarina", [CAMPO_PERECIVEL]), SUB("iogurte_padaria", "Iogurte", "Yogurt", "Yogur", [CAMPO_PERECIVEL]),
+        SUB("requeijao", "Requeijão", "Cream Cheese Spread (Requeijão)", "Requesón (Requeijão)", [CAMPO_PERECIVEL]), SUB("leite_padaria", "Leite", "Milk", "Leche", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("congelados_padaria", "Congelados", "Frozen", "Congelados", [
+        SUB("prato_pronto_congelado_padaria", "Prato Pronto Congelado", "Frozen Ready Meal", "Comida Congelada Lista", [CAMPO_PERECIVEL]),
+        SUB("massa_pizza_pastel_congelada", "Massa de Pizza/Pastel Congelada", "Frozen Pizza/Pastel Dough", "Masa de Pizza/Pastel Congelada", [CAMPO_PERECIVEL]),
+        SUB("sorvete_acai_padaria", "Sorvete/Açaí", "Ice Cream/Açaí", "Helado/Açaí", [CAMPO_PERECIVEL]),
+        SUB("polpa_fruta_congelada_padaria", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL]),
+        SUB("pao_queijo_congelado", "Pão de Queijo Congelado (Pacote)", "Frozen Cheese Bread (Bag)", "Pan de Queso Congelado (Bolsa)", [CAMPO_PERECIVEL]),
+      ]),
     ],
   },
   {
@@ -258,9 +376,75 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "hortifruti_sacolao", label: L("Hortifruti/Sacolão", "Produce Market", "Verdulería"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("frutas_hf", "Frutas", "Fruit", "Frutas", [SUB("fruta_nacional", "Fruta Nacional", "Domestic Fruit", "Fruta Nacional", [CAMPO_PERECIVEL]), SUB("fruta_importada", "Fruta Importada", "Imported Fruit", "Fruta Importada", [CAMPO_PERECIVEL])]),
-      CAT("verduras_legumes_hf", "Verduras e Legumes", "Vegetables", "Verduras y Legumbres", [SUB("verdura_folhosa", "Verdura Folhosa", "Leafy Greens", "Verdura de Hoja", [CAMPO_PERECIVEL]), SUB("legume", "Legume", "Vegetable", "Legumbre", [CAMPO_PERECIVEL])]),
-      CAT("temperos_ovos_hf", "Temperos Frescos e Ovos", "Fresh Herbs & Eggs", "Condimentos Frescos y Huevos", [SUB("tempero_fresco", "Tempero Fresco", "Fresh Herbs", "Condimento Fresco", [CAMPO_PERECIVEL]), SUB("ovos_hf", "Ovos", "Eggs", "Huevos", [CAMPO_PERECIVEL])]),
+      CAT("frutas_nacionais", "Frutas Nacionais", "Domestic Fruit", "Frutas Nacionales", [
+        SUB("citricas", "Cítricas", "Citrus Fruits", "Cítricos", [CAMPO_PERECIVEL]), SUB("tropicais", "Tropicais", "Tropical Fruits", "Frutas Tropicales", [CAMPO_PERECIVEL]),
+        SUB("frutas_caroco", "Frutas de Caroço", "Stone Fruits", "Frutas de Hueso", [CAMPO_PERECIVEL]), SUB("melancia_melao", "Melancia/Melão", "Watermelon/Melon", "Sandía/Melón", [CAMPO_PERECIVEL]),
+        SUB("uva_nacional", "Uva Nacional", "Domestic Grapes", "Uva Nacional", [CAMPO_PERECIVEL]), SUB("frutas_vermelhas_silvestres", "Frutas Vermelhas/Silvestres", "Berries", "Frutos Rojos/Silvestres", [CAMPO_PERECIVEL]),
+        SUB("coco", "Coco", "Coconut", "Coco", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("frutas_importadas", "Frutas Importadas", "Imported Fruit", "Frutas Importadas", [
+        SUB("maca_importada", "Maçã Importada", "Imported Apple", "Manzana Importada", [CAMPO_PERECIVEL]), SUB("pera_importada", "Pera Importada", "Imported Pear", "Pera Importada", [CAMPO_PERECIVEL]),
+        SUB("uva_importada", "Uva Importada", "Imported Grapes", "Uva Importada", [CAMPO_PERECIVEL]), SUB("kiwi", "Kiwi", "Kiwi", "Kiwi", [CAMPO_PERECIVEL]),
+        SUB("frutas_exoticas_importadas", "Frutas Exóticas Importadas", "Imported Exotic Fruits", "Frutas Exóticas Importadas", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("verduras_folhosas", "Verduras/Folhosas", "Leafy Greens", "Verduras de Hoja", [
+        SUB("alface", "Alface", "Lettuce", "Lechuga", [CAMPO_PERECIVEL]), SUB("rucula", "Rúcula", "Arugula", "Rúcula", [CAMPO_PERECIVEL]),
+        SUB("agriao", "Agrião", "Watercress", "Berro", [CAMPO_PERECIVEL]), SUB("couve", "Couve", "Collard Greens", "Col Rizada", [CAMPO_PERECIVEL]),
+        SUB("espinafre", "Espinafre", "Spinach", "Espinaca", [CAMPO_PERECIVEL]), SUB("acelga", "Acelga", "Swiss Chard", "Acelga", [CAMPO_PERECIVEL]),
+        SUB("almeirao_catalonha", "Almeirão/Catalonha", "Chicory/Escarole", "Achicoria/Escarola", [CAMPO_PERECIVEL]), SUB("repolho", "Repolho", "Cabbage", "Repollo", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("legumes_hf", "Legumes", "Vegetables", "Legumbres", [
+        SUB("tomate", "Tomate", "Tomato", "Tomate", [CAMPO_PERECIVEL]), SUB("pepino", "Pepino", "Cucumber", "Pepino", [CAMPO_PERECIVEL]),
+        SUB("abobrinha", "Abobrinha", "Zucchini", "Calabacín", [CAMPO_PERECIVEL]), SUB("berinjela", "Berinjela", "Eggplant", "Berenjena", [CAMPO_PERECIVEL]),
+        SUB("pimentao", "Pimentão", "Bell Pepper", "Pimiento", [CAMPO_PERECIVEL]), SUB("chuchu", "Chuchu", "Chayote", "Chayote", [CAMPO_PERECIVEL]),
+        SUB("quiabo", "Quiabo", "Okra", "Quimbombó", [CAMPO_PERECIVEL]), SUB("vagem", "Vagem", "Green Beans", "Ejote", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("raizes_tuberculos", "Raízes e Tubérculos", "Roots & Tubers", "Raíces y Tubérculos", [
+        SUB("batata_inglesa", "Batata Inglesa", "White Potato", "Papa", [CAMPO_PERECIVEL]), SUB("batata_doce", "Batata Doce", "Sweet Potato", "Batata/Camote", [CAMPO_PERECIVEL]),
+        SUB("mandioca_aipim", "Mandioca/Aipim", "Cassava", "Yuca/Mandioca", [CAMPO_PERECIVEL]), SUB("inhame", "Inhame", "Yam", "Ñame", [CAMPO_PERECIVEL]),
+        SUB("cenoura", "Cenoura", "Carrot", "Zanahoria", [CAMPO_PERECIVEL]), SUB("beterraba", "Beterraba", "Beet", "Remolacha", [CAMPO_PERECIVEL]),
+        SUB("gengibre", "Gengibre", "Ginger", "Jengibre", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("bulbos", "Bulbos", "Bulbs", "Bulbos", [
+        SUB("cebola_nacional", "Cebola Nacional", "Domestic Onion", "Cebolla Nacional", [CAMPO_PERECIVEL]), SUB("cebola_roxa", "Cebola Roxa", "Red Onion", "Cebolla Morada", [CAMPO_PERECIVEL]),
+        SUB("alho_nacional", "Alho Nacional", "Domestic Garlic", "Ajo Nacional", [CAMPO_PERECIVEL]), SUB("alho_importado", "Alho Importado", "Imported Garlic", "Ajo Importado", [CAMPO_PERECIVEL]),
+        SUB("alho_poro", "Alho-poró", "Leek", "Puerro", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("temperos_frescos_hf", "Temperos Frescos", "Fresh Herbs", "Condimentos Frescos", [
+        SUB("manjericao", "Manjericão", "Basil", "Albahaca", [CAMPO_PERECIVEL]), SUB("hortela", "Hortelã", "Mint", "Menta", [CAMPO_PERECIVEL]),
+        SUB("salsa_cebolinha", "Salsa/Cebolinha", "Parsley/Chives", "Perejil/Cebollín", [CAMPO_PERECIVEL]), SUB("coentro", "Coentro", "Cilantro", "Cilantro", [CAMPO_PERECIVEL]),
+        SUB("alecrim_tomilho_salvia", "Alecrim/Tomilho/Sálvia", "Rosemary/Thyme/Sage", "Romero/Tomillo/Salvia", [CAMPO_PERECIVEL]), SUB("pimenta_fresca", "Pimenta Fresca", "Fresh Chili Pepper", "Ají/Chile Fresco", [CAMPO_PERECIVEL]),
+        SUB("louro", "Louro", "Bay Leaf", "Laurel", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("ovos_hf", "Ovos", "Eggs", "Huevos", [
+        SUB("ovo_branco", "Ovo Branco", "White Egg", "Huevo Blanco", [CAMPO_PERECIVEL]), SUB("ovo_caipira_colonial", "Ovo Caipira/Colonial", "Free-range Egg", "Huevo de Campo", [CAMPO_PERECIVEL]),
+        SUB("ovo_codorna", "Ovo de Codorna", "Quail Egg", "Huevo de Codorniz", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("graos_granel", "Grãos e Granel", "Grains & Bulk Foods", "Granos a Granel", [
+        SUB("castanhas", "Castanhas", "Nuts (Brazil/Cashew)", "Castañas (Pará/Marañón)"), SUB("nozes_macadamia", "Nozes/Macadâmia", "Walnuts/Macadamia", "Nueces/Macadamia"),
+        SUB("graos_a_granel", "Grãos a Granel", "Bulk Grains", "Granos a Granel"), SUB("farinhas_a_granel", "Farinhas a Granel", "Bulk Flours", "Harinas a Granel"),
+        SUB("frutas_secas", "Frutas Secas", "Dried Fruit", "Frutas Secas"), SUB("mix_castanhas", "Mix de Castanhas", "Nut Mix", "Mix de Frutos Secos"),
+      ]),
+      CAT("polpas_congelados_fruta", "Polpas e Congelados de Fruta", "Fruit Pulp & Frozen Fruit", "Pulpas y Congelados de Fruta", [
+        SUB("polpa_fruta_congelada_hf", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL]),
+        SUB("fruta_congelada", "Fruta Congelada", "Frozen Fruit", "Fruta Congelada", [CAMPO_PERECIVEL]),
+        SUB("suco_natural_engarrafado", "Suco Natural Engarrafado", "Bottled Fresh Juice", "Jugo Natural Embotellado", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("minimamente_processados", "Minimamente Processados", "Minimally Processed", "Mínimamente Procesados", [
+        SUB("salada_pronta_higienizada", "Salada Pronta Higienizada", "Ready-to-eat Washed Salad", "Ensalada Lista Higienizada", [CAMPO_PERECIVEL]),
+        SUB("legume_cortado_descascado", "Legume Cortado/Descascado", "Cut/Peeled Vegetables", "Verdura Cortada/Pelada", [CAMPO_PERECIVEL]),
+        SUB("fruta_picada_embalada", "Fruta Picada Embalada", "Packaged Cut Fruit", "Fruta Picada Envasada", [CAMPO_PERECIVEL]),
+        SUB("suco_detox_prensado_frio", "Suco Detox Prensado a Frio", "Cold-pressed Detox Juice", "Jugo Detox Prensado en Frío", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cogumelos_especiais", "Cogumelos e Especiais", "Mushrooms & Specialty Items", "Hongos y Especiales", [
+        SUB("cogumelo", "Cogumelo (Paris/Shitake/Shimeji)", "Mushroom (Button/Shiitake/Shimeji)", "Hongo (Champiñón/Shitake/Shimeji)", [CAMPO_PERECIVEL]),
+        SUB("palmito_fresco", "Palmito Fresco", "Fresh Heart of Palm", "Palmito Fresco", [CAMPO_PERECIVEL]),
+        SUB("broto", "Broto (Feijão/Alfafa)", "Sprouts (Bean/Alfalfa)", "Brotes (Frijol/Alfalfa)", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("flores_plantas", "Flores e Plantas", "Flowers & Plants", "Flores y Plantas", [
+        SUB("flor_corte", "Flor de Corte", "Cut Flowers", "Flor de Corte", [CAMPO_PERECIVEL]), SUB("vaso_muda", "Vaso/Muda", "Potted Plant/Seedling", "Maceta/Plantín"),
+        SUB("terra_adubo", "Terra/Adubo", "Soil/Fertilizer", "Tierra/Abono"),
+      ]),
     ],
   },
   {
