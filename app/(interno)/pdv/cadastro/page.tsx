@@ -443,8 +443,13 @@ export default function PDVCadastro() {
     );
   }
 
+  // Correção 2: título grande reflete o caminho escolhido (nicho > categoria >
+  // sub-nicho), mesmo padrão do Catálogo — antes ficava sempre "PDV — Cadastro".
+  const tituloCadastro = subNichoSel?.label[lang] || categoriaSel?.label[lang] || nichoSel?.label[lang] || t("titulo", lang);
+  const subtituloCadastro = [nichoSel?.label[lang], categoriaSel?.label[lang], subNichoSel?.label[lang]].filter(Boolean).join(" › ") || t("subtitulo", lang);
+
   return (
-    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
+    <PdvLayout titulo={tituloCadastro} subtitulo={subtituloCadastro} voltarPara="/pdv">
       {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
 
       <SeletorNicho lang={lang} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel}

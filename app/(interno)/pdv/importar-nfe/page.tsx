@@ -340,8 +340,12 @@ export default function PDVImportarNFe() {
     );
   }
 
+  // Correção 2: título grande reflete o nicho escolhido pra importação, mesmo
+  // padrão do Catálogo/Cadastro — antes ficava sempre "PDV — Importar XML da NF-e".
+  const tituloImportar = nichoSel?.label[lang] || t("titulo", lang);
+
   return (
-    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
+    <PdvLayout titulo={tituloImportar} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
       {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
 
       {resumo ? (

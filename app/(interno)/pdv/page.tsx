@@ -160,6 +160,27 @@ export default function PDV() {
     }).catch(() => { setErro(t("erroCarregar", lang)); setCarregandoNivel(false); });
   }, [nivel, empresaId, nichoSel, categoriaSel, subNichoSel, buscaDebounced, pagina, lang]);
 
+  // Correção 2 (2026-08): o header do PdvLayout já é um título grande — só que
+  // ficava sempre travado em "PDV — Catálogo", então o usuário não via em que
+  // nível da navegação estava sem olhar o breadcrumb pequeno. Agora o título
+  // muda com o nível, o breadcrumb continua existindo por baixo (clicável),
+  // não é substituído.
+  const tituloAtual = useMemo(() => {
+    if (nivel === "categoria") return nichoSel?.label[lang] || t("titulo", lang);
+    if (nivel === "subnicho") return categoriaSel || nichoSel?.label[lang] || t("titulo", lang);
+    if (nivel === "produtos") {
+      if (subNichoSel && subNichoSel !== SEM_SUBNICHO) return subNichoSel;
+      return categoriaSel || nichoSel?.label[lang] || t("titulo", lang);
+    }
+    return t("titulo", lang);
+  }, [nivel, nichoSel, categoriaSel, subNichoSel, lang]);
+
+  const subtituloAtual = useMemo(() => {
+    if (nivel === "nicho") return t("subtitulo", lang);
+    const partes = [nichoSel?.label[lang], categoriaSel, subNichoSel && subNichoSel !== SEM_SUBNICHO ? subNichoSel : null].filter(Boolean) as string[];
+    return partes.join(" › ");
+  }, [nivel, nichoSel, categoriaSel, subNichoSel, lang]);
+
   const qtdPorSegmento = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const c of contagem) mapa.set(c.segmento, c.qtd_ativo);
@@ -258,7 +279,7 @@ export default function PDV() {
 
   return (
     <PdvLayout
-      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} aoVoltar={handleSetaTopo}
+      titulo={tituloAtual} subtitulo={subtituloAtual} aoVoltar={handleSetaTopo}
       botaoExtra={<BotoesHeader lang={lang} />}
     >
       <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} onVoltar={voltarPara} />
