@@ -1201,13 +1201,26 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "salao_barbearia", label: L("Salão/Barbearia", "Salon/Barbershop", "Salón/Barbería"), modo: "servico", divisaoPrimaria: "nao_alimentos",
     categorias: [
+      // Correção 3 (2026-08): Corte/Coloração/Tratamentos/Barba aprofundados com
+      // o vocabulário real de barbearia (navalhado, degradê/fade, militar,
+      // americano, undercut, platinado, luzes masculinas, barba na navalha,
+      // pigmentação capilar) — antes só tinha "Corte Masculino" genérico.
       CAT("corte", "Corte", "Haircut", "Corte", [
-        SUB("corte_feminino_salao", "Corte Feminino", "Women's Haircut", "Corte Femenino", CAMPOS_SERVICO_PADRAO), SUB("corte_masculino_salao", "Corte Masculino", "Men's Haircut", "Corte Masculino", CAMPOS_SERVICO_PADRAO),
-        SUB("corte_infantil_salao", "Corte Infantil", "Kids' Haircut", "Corte Infantil", CAMPOS_SERVICO_PADRAO), SUB("corte_barba_combo", "Corte + Barba (Combo)", "Haircut + Beard (Combo)", "Corte + Barba (Combo)", CAMPOS_SERVICO_PADRAO),
-        SUB("acabamento_pezinho", "Acabamento/Pezinho", "Neckline Trim", "Perfilado de Nuca", CAMPOS_SERVICO_PADRAO), SUB("pacote_plano_mensal", "Pacote/Plano Mensal", "Monthly Package/Plan", "Paquete/Plan Mensual", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_feminino_salao", "Corte Feminino", "Women's Haircut", "Corte Femenino", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_social_masculino", "Corte Social Masculino", "Men's Classic/Social Haircut", "Corte Social Masculino", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_degrade_fade", "Corte Degradê/Fade", "Fade Haircut", "Corte Degradê/Fade", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_navalhado", "Corte Navalhado", "Skin Fade (Razor)", "Corte a Navaja/Skin Fade", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_militar", "Corte Militar", "Military/Buzz Cut", "Corte Militar", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_americano", "Corte Americano", "American Crew Cut", "Corte Americano", CAMPOS_SERVICO_PADRAO),
+        SUB("undercut", "Undercut", "Undercut", "Undercut", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_infantil_salao", "Corte Infantil", "Kids' Haircut", "Corte Infantil", CAMPOS_SERVICO_PADRAO),
+        SUB("corte_barba_combo", "Corte + Barba (Combo)", "Haircut + Beard (Combo)", "Corte + Barba (Combo)", CAMPOS_SERVICO_PADRAO),
+        SUB("acabamento_pezinho", "Acabamento/Pezinho", "Neckline Trim", "Perfilado de Nuca", CAMPOS_SERVICO_PADRAO),
+        SUB("pacote_plano_mensal", "Pacote/Plano Mensal", "Monthly Package/Plan", "Paquete/Plan Mensual", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("coloracao_quimica", "Coloração e Química", "Coloring & Chemical Treatments", "Coloración y Química", [
         SUB("coloracao_tintura_salao", "Coloração/Tintura", "Hair Color/Dye", "Coloración/Tintura", CAMPOS_SERVICO_PADRAO), SUB("luzes_mechas", "Luzes/Mechas", "Highlights", "Luces/Mechas", CAMPOS_SERVICO_PADRAO),
+        SUB("luzes_masculinas", "Luzes Masculinas", "Men's Highlights", "Luces Masculinas", CAMPOS_SERVICO_PADRAO), SUB("platinado", "Platinado", "Platinum Bleach/Toning", "Platinado", CAMPOS_SERVICO_PADRAO),
         SUB("alisamento_progressiva", "Alisamento/Progressiva", "Straightening/Keratin Treatment", "Alisado/Keratina", CAMPOS_SERVICO_PADRAO), SUB("relaxamento", "Relaxamento", "Relaxer", "Relajado", CAMPOS_SERVICO_PADRAO),
         SUB("descoloracao", "Descoloração", "Bleaching", "Decoloración", CAMPOS_SERVICO_PADRAO), SUB("reconstrucao_capilar", "Reconstrução Capilar", "Hair Reconstruction", "Reconstrucción Capilar", CAMPOS_SERVICO_PADRAO),
       ]),
@@ -1215,10 +1228,15 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("hidratacao_salao", "Hidratação", "Deep Conditioning", "Hidratación", CAMPOS_SERVICO_PADRAO), SUB("cauterizacao", "Cauterização", "Cauterization", "Cauterización", CAMPOS_SERVICO_PADRAO),
         SUB("botox_capilar", "Botox Capilar", "Hair Botox", "Botox Capilar", CAMPOS_SERVICO_PADRAO), SUB("cronograma_capilar", "Cronograma Capilar", "Hair Care Schedule", "Cronograma Capilar", CAMPOS_SERVICO_PADRAO),
         SUB("escova_chapinha", "Escova/Chapinha", "Blowout/Flat Iron", "Brushing/Planchado", CAMPOS_SERVICO_PADRAO),
+        SUB("pigmentacao_capilar", "Pigmentação Capilar (Micropigmentação)", "Scalp Pigmentation (Micropigmentation)", "Pigmentación Capilar (Micropigmentación)", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("barba", "Barba", "Beard", "Barba", [
-        SUB("barba_completa", "Barba Completa", "Full Beard Service", "Barba Completa", CAMPOS_SERVICO_PADRAO), SUB("barboterapia", "Barboterapia", "Beard Therapy", "Barboterapia", CAMPOS_SERVICO_PADRAO),
-        SUB("desenho_barba", "Desenho de Barba", "Beard Design", "Diseño de Barba", CAMPOS_SERVICO_PADRAO), SUB("sobrancelha_masculina", "Sobrancelha Masculina", "Men's Eyebrow", "Cejas Masculinas", CAMPOS_SERVICO_PADRAO),
+        SUB("barba_completa", "Barba Completa", "Full Beard Service", "Barba Completa", CAMPOS_SERVICO_PADRAO),
+        SUB("barba_navalha", "Barba na Navalha", "Straight Razor Beard Shave", "Barba a la Navaja", CAMPOS_SERVICO_PADRAO),
+        SUB("barboterapia", "Barboterapia", "Beard Therapy", "Barboterapia", CAMPOS_SERVICO_PADRAO),
+        SUB("desenho_barba", "Desenho de Barba", "Beard Design", "Diseño de Barba", CAMPOS_SERVICO_PADRAO),
+        SUB("relaxamento_barba", "Relaxamento de Barba", "Beard Relaxing", "Relajado de Barba", CAMPOS_SERVICO_PADRAO),
+        SUB("sobrancelha_masculina", "Sobrancelha Masculina", "Men's Eyebrow", "Cejas Masculinas", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("penteado_finalizacao", "Penteado e Finalização", "Hairstyling & Finishing", "Peinado y Finalización", [
         SUB("penteado_festa_noiva", "Penteado (Festa/Noiva)", "Hairstyling (Party/Bridal)", "Peinado (Fiesta/Novia)", CAMPOS_SERVICO_PADRAO), SUB("escova_modelada", "Escova Modelada", "Blowout Styling", "Brushing Modelado", CAMPOS_SERVICO_PADRAO),
@@ -1244,14 +1262,29 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "manicure_estetica", label: L("Manicure/Estética", "Nail Care/Aesthetics", "Manicura/Estética"), modo: "servico", divisaoPrimaria: "nao_alimentos",
     categorias: [
+      // Correção 3: unha ganha as técnicas reais do setor (gel, fibra de vidro,
+      // acrigel, porcelana são MATERIAIS diferentes, não sinônimos — cada um com
+      // durabilidade e preço próprios) e estética facial/corporal ganham os
+      // procedimentos reais de clínica de estética pesquisados.
       CAT("manicure", "Manicure", "Manicure", "Manicura", [
-        SUB("manicure_simples", "Manicure Simples", "Basic Manicure", "Manicura Simple", CAMPOS_SERVICO_PADRAO), SUB("manicure_esmaltacao_gel", "Manicure + Esmaltação em Gel", "Manicure + Gel Polish", "Manicura + Esmaltado en Gel", CAMPOS_SERVICO_PADRAO),
-        SUB("troca_esmalte", "Troca de Esmalte", "Polish Change", "Cambio de Esmalte", CAMPOS_SERVICO_PADRAO), SUB("alongamento_unha", "Alongamento de Unha", "Nail Extension", "Alargamiento de Uñas", CAMPOS_SERVICO_PADRAO),
-        SUB("manutencao_alongamento", "Manutenção de Alongamento", "Extension Maintenance", "Mantenimiento de Alargamiento", CAMPOS_SERVICO_PADRAO),
+        SUB("manicure_simples", "Manicure Simples", "Basic Manicure", "Manicura Simple", CAMPOS_SERVICO_PADRAO),
+        SUB("esmaltacao_gel", "Esmaltação em Gel", "Gel Polish", "Esmaltado en Gel", CAMPOS_SERVICO_PADRAO),
+        SUB("spa_unhas", "Spa das Unhas", "Nail Spa", "Spa de Uñas", CAMPOS_SERVICO_PADRAO),
+        SUB("troca_esmalte", "Troca de Esmalte", "Polish Change", "Cambio de Esmalte", CAMPOS_SERVICO_PADRAO),
+        SUB("remocao_esmalte_gel", "Remoção de Esmaltação em Gel", "Gel Polish Removal", "Remoción de Esmaltado en Gel", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("pedicure", "Pedicure", "Pedicure", "Pedicura", [
         SUB("pedicure_simples", "Pedicure Simples", "Basic Pedicure", "Pedicura Simple", CAMPOS_SERVICO_PADRAO), SUB("pedicure_esmaltacao_gel", "Pedicure + Esmaltação em Gel", "Pedicure + Gel Polish", "Pedicura + Esmaltado en Gel", CAMPOS_SERVICO_PADRAO),
         SUB("spa_pes", "Spa dos Pés", "Foot Spa", "Spa de Pies", CAMPOS_SERVICO_PADRAO), SUB("remocao_calo", "Remoção de Calo", "Callus Removal", "Remoción de Callos", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("alongamento_unha", "Alongamento de Unha", "Nail Extensions", "Alargamiento de Uñas", [
+        SUB("alongamento_gel", "Alongamento em Gel", "Gel Extension", "Alargamiento en Gel", CAMPOS_SERVICO_PADRAO),
+        SUB("alongamento_fibra_vidro", "Alongamento em Fibra de Vidro", "Fiberglass Extension", "Alargamiento en Fibra de Vidrio", CAMPOS_SERVICO_PADRAO),
+        SUB("alongamento_acrigel", "Alongamento em Acrigel", "Acrygel Extension", "Alargamiento en Acrigel", CAMPOS_SERVICO_PADRAO),
+        SUB("alongamento_porcelana", "Alongamento em Porcelana", "Acrylic (Porcelain) Extension", "Alargamiento en Porcelana", CAMPOS_SERVICO_PADRAO),
+        SUB("alongamento_molde_tips", "Alongamento com Molde/Tips", "Nail Form/Tip Extension", "Alargamiento con Molde/Tips", CAMPOS_SERVICO_PADRAO),
+        SUB("manutencao_alongamento", "Manutenção de Alongamento", "Extension Maintenance", "Mantenimiento de Alargamiento", CAMPOS_SERVICO_PADRAO),
+        SUB("remocao_alongamento", "Remoção de Alongamento", "Extension Removal", "Remoción de Alargamiento", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("design_nail_art", "Design e Nail Art", "Nail Design & Art", "Diseño y Nail Art", [
         SUB("nail_art_desenho", "Nail Art/Desenho", "Nail Art", "Nail Art/Diseño", CAMPOS_SERVICO_PADRAO), SUB("unha_francesinha", "Unha Francesinha", "French Manicure", "Uña Francesa", CAMPOS_SERVICO_PADRAO),
@@ -1263,14 +1296,24 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("lash_lifting", "Lash Lifting", "Lash Lifting", "Lifting de Pestañas", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("estetica_facial", "Estética Facial", "Facial Aesthetics", "Estética Facial", [
-        SUB("limpeza_pele", "Limpeza de Pele", "Facial Cleansing", "Limpieza Facial", CAMPOS_SERVICO_PADRAO), SUB("peeling", "Peeling", "Peeling", "Peeling", CAMPOS_SERVICO_PADRAO),
-        SUB("hidratacao_facial", "Hidratação Facial", "Facial Hydration", "Hidratación Facial", CAMPOS_SERVICO_PADRAO), SUB("massagem_facial", "Massagem Facial", "Facial Massage", "Masaje Facial", CAMPOS_SERVICO_PADRAO),
+        SUB("limpeza_pele", "Limpeza de Pele", "Facial Cleansing", "Limpieza Facial", CAMPOS_SERVICO_PADRAO),
+        SUB("peeling_quimico", "Peeling Químico", "Chemical Peel", "Peeling Químico", CAMPOS_SERVICO_PADRAO),
+        SUB("peeling_diamante", "Peeling de Diamante", "Diamond Peel", "Peeling de Diamante", CAMPOS_SERVICO_PADRAO),
+        SUB("hidratacao_facial", "Hidratação Facial", "Facial Hydration", "Hidratación Facial", CAMPOS_SERVICO_PADRAO),
+        SUB("massagem_facial", "Massagem Facial", "Facial Massage", "Masaje Facial", CAMPOS_SERVICO_PADRAO),
         SUB("microagulhamento", "Microagulhamento", "Microneedling", "Microagujas", CAMPOS_SERVICO_PADRAO),
+        SUB("radiofrequencia_facial", "Radiofrequência Facial", "Facial Radiofrequency", "Radiofrecuencia Facial", CAMPOS_SERVICO_PADRAO),
+        SUB("jato_plasma", "Jato de Plasma", "Plasma Jet Peel", "Jet de Plasma", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("estetica_corporal", "Estética Corporal", "Body Aesthetics", "Estética Corporal", [
-        SUB("massagem_modeladora", "Massagem Modeladora", "Body Contouring Massage", "Masaje Modelador", CAMPOS_SERVICO_PADRAO), SUB("drenagem_linfatica", "Drenagem Linfática", "Lymphatic Drainage", "Drenaje Linfático", CAMPOS_SERVICO_PADRAO),
-        SUB("depilacao_manicure", "Depilação", "Hair Removal", "Depilación", CAMPOS_SERVICO_PADRAO), SUB("bronzeamento_artificial", "Bronzeamento Artificial", "Spray Tan", "Bronceado Artificial", CAMPOS_SERVICO_PADRAO),
+        SUB("massagem_modeladora", "Massagem Modeladora", "Body Contouring Massage", "Masaje Modelador", CAMPOS_SERVICO_PADRAO),
+        SUB("massagem_relaxante_corporal", "Massagem Relaxante", "Relaxing Massage", "Masaje Relajante", CAMPOS_SERVICO_PADRAO),
+        SUB("drenagem_linfatica", "Drenagem Linfática", "Lymphatic Drainage", "Drenaje Linfático", CAMPOS_SERVICO_PADRAO),
+        SUB("depilacao_manicure", "Depilação", "Hair Removal", "Depilación", CAMPOS_SERVICO_PADRAO),
+        SUB("bronzeamento_artificial", "Bronzeamento Artificial", "Spray Tan", "Bronceado Artificial", CAMPOS_SERVICO_PADRAO),
         SUB("esfoliacao_corporal", "Esfoliação Corporal", "Body Exfoliation", "Exfoliación Corporal", CAMPOS_SERVICO_PADRAO),
+        SUB("pressoterapia", "Pressoterapia", "Pressotherapy", "Presoterapia", CAMPOS_SERVICO_PADRAO),
+        SUB("radiofrequencia_corporal", "Radiofrequência Corporal", "Body Radiofrequency", "Radiofrecuencia Corporal", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("revenda_produtos_manicure", "Revenda de Produtos", "Product Resale", "Reventa de Productos", [
         SUB("esmalte", "Esmalte", "Nail Polish", "Esmalte"), SUB("base_fortalecedor_unha", "Base/Fortalecedor de Unha", "Base Coat/Nail Strengthener", "Base/Fortalecedor de Uñas"),
@@ -1307,6 +1350,13 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("instalacao_prateleira_suporte", "Instalação de Prateleira/Suporte", "Shelf/Bracket Installation", "Instalación de Estante/Soporte", CAMPOS_SERVICO_PADRAO),
         SUB("conserto_porta_fechadura_servico", "Conserto de Porta/Fechadura", "Door/Lock Repair", "Reparación de Puerta/Cerradura", CAMPOS_SERVICO_PADRAO),
         SUB("marcenaria_sob_medida", "Marcenaria sob Medida", "Custom Woodworking", "Carpintería a Medida", CAMPOS_SERVICO_PADRAO),
+      ]),
+      CAT("vidracaria_energia_solar", "Vidraçaria e Energia Solar", "Glass & Solar Energy", "Vidriería y Energía Solar", [
+        SUB("instalacao_box_banheiro", "Instalação de Box de Banheiro", "Shower Enclosure Installation", "Instalación de Mampara de Baño", CAMPOS_SERVICO_PADRAO),
+        SUB("fechamento_sacada_varanda", "Fechamento de Sacada/Varanda", "Balcony Glass Enclosure", "Cerramiento de Balcón", CAMPOS_SERVICO_PADRAO),
+        SUB("troca_vidro_temperado_servico", "Troca de Vidro Temperado", "Tempered Glass Replacement", "Cambio de Vidrio Templado", CAMPOS_SERVICO_PADRAO),
+        SUB("instalacao_painel_solar", "Instalação de Painel Solar Fotovoltaico", "Solar Panel Installation", "Instalación de Panel Solar", CAMPOS_SERVICO_PADRAO),
+        SUB("manutencao_sistema_solar", "Manutenção de Sistema Solar", "Solar System Maintenance", "Mantenimiento de Sistema Solar", CAMPOS_SERVICO_PADRAO),
       ]),
       CAT("chaveiro", "Chaveiro", "Locksmith", "Cerrajería", [
         SUB("abertura_fechadura", "Abertura de Fechadura", "Lock Opening", "Apertura de Cerradura", CAMPOS_SERVICO_PADRAO), SUB("copia_chave", "Cópia de Chave", "Key Copy", "Copia de Llave", CAMPOS_SERVICO_PADRAO),
