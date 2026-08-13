@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X, Share2, Sparkles, Zap, ShieldAlert, MessageSquareText } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -74,6 +75,22 @@ export default function FluxoCaixa() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
 
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  // Reporta falha de escrita no Supabase (erro real, ou RLS bloqueando em
+  // silêncio — 0 linhas afetadas sem erro do Postgres) pro Sentry, com
+  // contexto útil, sem travar a tela.
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
+  const txt = {
+    erroSalvarLancamento: idioma === "pt" ? "Não foi possível salvar o lançamento. Tente novamente." : idioma === "en" ? "Could not save the entry. Try again." : "No se pudo guardar el movimiento. Intente de nuevo.",
+    erroExcluirLancamento: idioma === "pt" ? "Não foi possível excluir o lançamento. Tente novamente." : idioma === "en" ? "Could not delete the entry. Try again." : "No se pudo eliminar el movimiento. Intente de nuevo.",
+  };
+
   const [lancamentos, setLancamentos] = useState<LancamentoFC[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [modalAberto, setModalAberto] = useState(false);
@@ -141,18 +158,35 @@ export default function FluxoCaixa() {
     if (!user) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, tipo: novo.tipo, valor: parseFloat(novo.valor), data: novo.data, status: novo.status };
     if (editando) {
-      await supabase.from("fluxo_caixa").update(payload).eq("id", editando.id);
+      const { data, error } = await supabase.from("fluxo_caixa").update(payload).eq("id", editando.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarLancamento, "erro");
+        reportarFalhaEscrita("fluxo_caixa", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
+      }
     } else {
       const empresaId = await obterEmpresaAtiva();
       if (!empresaId) { setSalvando(false); return; }
-      await supabase.from("fluxo_caixa").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+      const { data, error } = await supabase.from("fluxo_caixa").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarLancamento, "erro");
+        reportarFalhaEscrita("fluxo_caixa", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
+      }
     }
     fecharModal(); await carregarTudo(); setSalvando(false);
   };
 
   const excluir = async (id: string) => {
-    await supabase.from("fluxo_caixa").delete().eq("id", id);
-    setLancamentos(lancamentos.filter(l => l.id !== id));
+    const { data, error } = await supabase.from("fluxo_caixa").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroExcluirLancamento, "erro");
+      reportarFalhaEscrita("fluxo_caixa", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
+    await carregarTudo();
   };
 
   const totalEntradas = lancamentos.filter(l => l.tipo === "entrada").reduce((acc, l) => acc + l.valor, 0);
@@ -346,6 +380,15 @@ export default function FluxoCaixa() {
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" }); setModalAberto(true); }}
       labelBotao={t.fluxoCaixa.novoLancamento}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)",
+            color: "#020810", fontWeight: 600, fontSize: 13,
+          }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">

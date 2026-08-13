@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap, ShieldCheck, Clock, Sliders } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -59,6 +60,22 @@ export default function Endividamento() {
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
+
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  // Reporta falha de escrita no Supabase (erro real, ou RLS bloqueando em
+  // silêncio — 0 linhas afetadas sem erro do Postgres) pro Sentry, com
+  // contexto útil, sem travar a tela.
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
+  const txt = {
+    erroSalvarDivida: idioma === "pt" ? "Não foi possível salvar a dívida. Tente novamente." : idioma === "en" ? "Could not save the debt. Try again." : "No se pudo guardar la deuda. Intente de nuevo.",
+    erroExcluirDivida: idioma === "pt" ? "Não foi possível excluir a dívida. Tente novamente." : idioma === "en" ? "Could not delete the debt. Try again." : "No se pudo eliminar la deuda. Intente de nuevo.",
+  };
 
   const [dividas, setDividas] = useState<Divida[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -138,18 +155,35 @@ export default function Endividamento() {
       taxa_juros: parseFloat(novo.taxa_juros || "0"),
     };
     if (editando) {
-      await supabase.from("dividas").update(payload).eq("id", editando.id);
+      const { data, error } = await supabase.from("dividas").update(payload).eq("id", editando.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarDivida, "erro");
+        reportarFalhaEscrita("dividas", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
+      }
     } else {
       const empresaId = await obterEmpresaAtiva();
       if (!empresaId) { setSalvando(false); return; }
-      await supabase.from("dividas").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
+      const { data, error } = await supabase.from("dividas").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarDivida, "erro");
+        reportarFalhaEscrita("dividas", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
+      }
     }
     fecharModal(); await carregarTudo(); setSalvando(false);
   };
 
   const excluir = async (id: string) => {
-    await supabase.from("dividas").delete().eq("id", id);
-    setDividas(dividas.filter(d => d.id !== id));
+    const { data, error } = await supabase.from("dividas").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroExcluirDivida, "erro");
+      reportarFalhaEscrita("dividas", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
+    await carregarTudo();
   };
 
   const dividasFiltradas = dividas.filter(d => d.descricao.toLowerCase().includes(busca.toLowerCase()));
@@ -341,6 +375,15 @@ export default function Endividamento() {
     <ModuloLayout titulo={t.endividamento.titulo} subtitulo={t.endividamento.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.endividamento.novaDivida}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: tipos[0], valor_total: "", valor_pago: "", parcelas: "", vencimento: "", taxa_juros: "" }); setModalAberto(true); }}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)",
+            color: "#020810", fontWeight: 600, fontSize: 13,
+          }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
