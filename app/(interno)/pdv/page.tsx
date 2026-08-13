@@ -197,11 +197,12 @@ export default function PDV() {
   // muda com o nível, o breadcrumb continua existindo por baixo (clicável),
   // não é substituído.
   const tituloAtual = useMemo(() => {
-    if (nivel === "categoria") return nichoSel?.label[lang] || t("titulo", lang);
-    if (nivel === "subnicho") return categoriaSel || nichoSel?.label[lang] || t("titulo", lang);
+    if (!nichoSel) return t("titulo", lang);
+    if (nivel === "categoria") return nichoSel.label[lang];
+    if (nivel === "subnicho") return categoriaSel ? `${nichoSel.label[lang]} › ${categoriaSel}` : nichoSel.label[lang];
     if (nivel === "produtos") {
-      if (subNichoSel && subNichoSel !== SEM_SUBNICHO) return subNichoSel;
-      return categoriaSel || nichoSel?.label[lang] || t("titulo", lang);
+      const cadeia = [nichoSel.label[lang], categoriaSel, subNichoSel && subNichoSel !== SEM_SUBNICHO ? subNichoSel : null].filter(Boolean);
+      return cadeia.join(" › ");
     }
     return t("titulo", lang);
   }, [nivel, nichoSel, categoriaSel, subNichoSel, lang]);

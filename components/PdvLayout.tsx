@@ -189,7 +189,7 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
                 </Link>
               ) : null}
               <div className="min-w-0">
-                <h2 className="text-xl md:text-2xl font-bold mb-1 truncate" style={{ color: tokens.barraTexto }}>{titulo}</h2>
+                <h2 className="text-2xl md:text-3xl font-extrabold mb-1 truncate" style={{ color: tokens.barraTexto }}>{titulo}</h2>
                 <p className="text-sm" style={{ color: tokens.barraTexto, opacity: 0.8 }}>{subtitulo}</p>
               </div>
             </div>
