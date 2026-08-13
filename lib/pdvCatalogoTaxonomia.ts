@@ -56,7 +56,7 @@ export type NichoPdv =
   | "lanchonete" | "pizzaria" | "sorveteria_acai" | "marmita_comida_pronta"
   | "salao_barbearia" | "manicure_estetica" | "servicos_tecnicos" | "servicos_domesticos"
   | "acougue" | "hortifruti_sacolao" | "materiais_construcao"
-  | "lingerie" | "praia" | "moda_fitness";
+  | "lingerie" | "praia" | "moda_fitness" | "acessorios_moda";
 
 export type NichoPdvDef = { value: NichoPdv; label: Record<Idioma, string>; modo: ModoNicho; divisaoPrimaria: DivisaoPrimaria; categorias: CategoriaPdv[] };
 
@@ -122,6 +122,34 @@ const CAMPO_TECNOLOGIA_TECIDO_FITNESS: CampoNicho = CB("tecnologiaTecido", "sele
   { value: "termico", label: L("Térmico", "Thermal", "Térmico") },
   { value: "poliamida_elastano", label: L("Poliamida/Elastano", "Polyamide/Spandex", "Poliamida/Elastano") },
   { value: "algodao", label: L("Algodão", "Cotton", "Algodón") },
+]);
+
+// Acessórios de Moda — cada tipo de acessório tem material próprio (couro
+// de bolsa/cinto/carteira ≠ material de pulseira de relógio ≠ material de
+// joia), nunca Tecido genérico (óculos e joia não têm tecido).
+const CAMPO_MATERIAL_ACESSORIO: CampoNicho = CB("materialAcessorio", "select", "Material", "Material", "Material", [
+  { value: "couro", label: L("Couro", "Leather", "Cuero") },
+  { value: "sintetico", label: L("Sintético", "Synthetic", "Sintético") },
+  { value: "nylon_lona", label: L("Nylon/Lona", "Nylon/Canvas", "Nylon/Lona") },
+  { value: "metal", label: L("Metal", "Metal", "Metal") },
+  { value: "tecido_acessorio", label: L("Tecido", "Fabric", "Tela") },
+]);
+const CAMPO_DIMENSAO: CampoNicho = CB("dimensao", "text", "Dimensão (AxLxP)", "Dimensions (HxWxD)", "Dimensión (AxAnxP)");
+const CAMPO_TIPO_OCULOS: CampoNicho = CB("tipoOculos", "select", "Tipo", "Type", "Tipo", [
+  { value: "sol", label: L("Sol", "Sunglasses", "Sol") },
+  { value: "grau", label: L("Grau", "Prescription", "Graduado") },
+]);
+const CAMPO_MATERIAL_PULSEIRA: CampoNicho = CB("materialPulseira", "select", "Material da Pulseira", "Strap Material", "Material de la Correa", [
+  { value: "couro_pulseira", label: L("Couro", "Leather", "Cuero") },
+  { value: "metal_aco", label: L("Metal/Aço", "Metal/Steel", "Metal/Acero") },
+  { value: "silicone_borracha", label: L("Silicone/Borracha", "Silicone/Rubber", "Silicona/Goma") },
+  { value: "nylon_pulseira", label: L("Nylon", "Nylon", "Nylon") },
+]);
+const CAMPO_MATERIAL_JOIA: CampoNicho = CB("materialJoia", "select", "Material", "Material", "Material", [
+  { value: "folheado_ouro", label: L("Folheado a Ouro", "Gold-plated", "Bañado en Oro") },
+  { value: "prata_925", label: L("Prata 925", "925 Silver", "Plata 925") },
+  { value: "aco_inoxidavel", label: L("Aço Inoxidável", "Stainless Steel", "Acero Inoxidable") },
+  { value: "ouro_18k", label: L("Ouro 18k", "18k Gold", "Oro 18k") },
 ]);
 
 // Modo serviço: duração + forma de cobrança, universal aos 4 nichos de
@@ -1227,6 +1255,54 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("agasalho_esportivo_masculino_fitness", "Agasalho Esportivo", "Tracksuit", "Conjunto Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
         SUB("legging_termica_masculina", "Legging Térmica/Compressão", "Thermal/Compression Tights", "Calza Térmica/Compresión", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
         SUB("calca_fitness_masculina", "Calça Fitness/Jogger", "Jogger Pants", "Pantalón Jogger Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+      ]),
+    ],
+  },
+  // Não usa gênero por categoria — acessório é unissex ou o gênero já está
+  // no próprio item (carteira feminina/masculina já nasce separada). Aqui a
+  // navegação é por TIPO de acessório, cada um com campo próprio de ramo.
+  {
+    value: "acessorios_moda", label: L("Acessórios de Moda", "Fashion Accessories", "Accesorios de Moda"), modo: "produto", divisaoPrimaria: "nao_alimentos",
+    categorias: [
+      CAT("bolsas_malas_acessorio", "Bolsas e Malas", "Bags & Luggage", "Bolsos y Maletas", [
+        SUB("bolsa_feminina_acessorio", "Bolsa Feminina", "Women's Handbag", "Bolso Femenino", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_DIMENSAO]),
+        SUB("bolsa_transversal_crossbody", "Bolsa Transversal/Crossbody", "Crossbody Bag", "Bolso Cruzado", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_DIMENSAO]),
+        SUB("clutch_festa", "Clutch de Festa", "Clutch", "Cartera de Fiesta", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_DIMENSAO]),
+        SUB("mochila_acessorio", "Mochila", "Backpack", "Mochila", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_DIMENSAO]),
+        SUB("mala_viagem_acessorio", "Mala de Viagem", "Suitcase", "Maleta de Viaje", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_DIMENSAO]),
+        SUB("necessaire_acessorio", "Nécessaire", "Toiletry Bag", "Neceser", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_DIMENSAO]),
+      ]),
+      CAT("cintos_acessorio", "Cintos", "Belts", "Cinturones", [
+        SUB("cinto_couro_acessorio", "Cinto de Couro", "Leather Belt", "Cinturón de Cuero", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+        SUB("cinto_sintetico_tecido_acessorio", "Cinto Sintético/Tecido", "Synthetic/Fabric Belt", "Cinturón Sintético/Tela", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+        SUB("cinto_fivela_grande", "Cinto Fivela Grande", "Statement Buckle Belt", "Cinturón Hebilla Grande", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+      ]),
+      CAT("oculos_acessorio", "Óculos", "Eyewear", "Anteojos", [
+        SUB("oculos_sol_acessorio", "Óculos de Sol", "Sunglasses", "Gafas de Sol", [CAMPO_TIPO_OCULOS, CAMPO_PROTECAO_UV, CAMPO_COR]),
+        SUB("oculos_grau_acessorio", "Óculos de Grau", "Prescription Glasses", "Anteojos Graduados", [CAMPO_TIPO_OCULOS, CAMPO_COR]),
+      ]),
+      CAT("relogios_acessorio", "Relógios", "Watches", "Relojes", [
+        SUB("relogio_analogico", "Relógio Analógico", "Analog Watch", "Reloj Analógico", [CAMPO_MATERIAL_PULSEIRA, CAMPO_COR]),
+        SUB("relogio_digital", "Relógio Digital", "Digital Watch", "Reloj Digital", [CAMPO_MATERIAL_PULSEIRA, CAMPO_COR]),
+        SUB("relogio_smartwatch", "Smartwatch", "Smartwatch", "Smartwatch", [CAMPO_MATERIAL_PULSEIRA, CAMPO_COR]),
+      ]),
+      CAT("bijuteria_joias_acessorio", "Bijuteria e Joias", "Costume & Fine Jewelry", "Bijutería y Joyas", [
+        SUB("colar_bijuteria_acessorio", "Colar", "Necklace", "Collar", [CAMPO_MATERIAL_JOIA]),
+        SUB("brinco_bijuteria_acessorio", "Brinco", "Earrings", "Aretes", [CAMPO_MATERIAL_JOIA]),
+        SUB("pulseira_bijuteria_acessorio", "Pulseira", "Bracelet", "Pulsera", [CAMPO_MATERIAL_JOIA]),
+        SUB("anel_bijuteria_acessorio", "Anel", "Ring", "Anillo", [CAMPO_MATERIAL_JOIA]),
+      ]),
+      CAT("bones_chapeus_acessorio", "Bonés e Chapéus", "Caps & Hats", "Gorras y Sombreros", [
+        SUB("bone_aba_reta_acessorio", "Boné Aba Reta", "Flat Brim Cap", "Gorra Visera Plana", [CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+        SUB("bone_aba_curva_acessorio", "Boné Aba Curva", "Curved Brim Cap", "Gorra Visera Curva", [CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+        SUB("chapeu_bucket_acessorio", "Chapéu Bucket", "Bucket Hat", "Sombrero Bucket", [CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+        SUB("chapeu_panama_acessorio", "Chapéu Panamá", "Panama Hat", "Sombrero Panamá", [CAMPO_COR, CAMPO_TAMANHO_ROUPA_PLUS]),
+      ]),
+      CAT("carteiras_acessorio", "Carteiras e Porta-documentos", "Wallets & Document Holders", "Billeteras y Portadocumentos", [
+        SUB("carteira_feminina_acessorio", "Carteira Feminina", "Women's Wallet", "Billetera Femenina", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
+        SUB("carteira_masculina_acessorio", "Carteira Masculina", "Men's Wallet", "Billetera Masculina", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
+        SUB("porta_cartao_acessorio", "Porta-cartão", "Card Holder", "Tarjetero", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
+        SUB("porta_passaporte_documentos", "Porta-passaporte/Documentos", "Passport/Document Holder", "Portapasaporte/Documentos", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
       ]),
     ],
   },
