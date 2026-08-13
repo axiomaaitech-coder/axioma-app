@@ -2,13 +2,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Search, ExternalLink, Loader2, Plus } from "lucide-react";
+import { ChevronRight, Search, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
 import { useLanguage } from "../../../lib/LanguageContext";
 import type { Idioma } from "../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../lib/empresaHelpers";
-import { carregarContagemPorSegmento, type ContagemSegmento } from "../../../lib/estoqueHelpers";
+import { carregarContagemPorSegmento, excluirProduto, type ContagemSegmento } from "../../../lib/estoqueHelpers";
 import {
   NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho, type DivisaoPrimaria,
 } from "../../../lib/pdvCatalogoTaxonomia";
@@ -63,7 +63,6 @@ const txt = {
     es: "Registre manualmente, importe un XML de NF-e o escanee un código de barras ya conocido.",
   },
   semCategoriaAinda: { pt: "Nenhuma categoria com produto ainda.", en: "No category with products yet.", es: "Ninguna categoría con productos todavía." },
-  verNoEstoque: { pt: "Ver/editar no Estoque", en: "View/edit in Inventory", es: "Ver/editar en Inventario" },
   estoqueDisponivel: { pt: "em estoque", en: "in stock", es: "en stock" },
   precoNaoDefinido: { pt: "preço não definido", en: "price not set", es: "precio no definido" },
   anterior: { pt: "Anterior", en: "Previous", es: "Anterior" },
@@ -71,6 +70,20 @@ const txt = {
   paginaDe: { pt: "Página {a} de {b}", en: "Page {a} of {b}", es: "Página {a} de {b}" },
   produtosEncontrados: { pt: "{n} produto(s)", en: "{n} product(s)", es: "{n} producto(s)" },
   erroCarregar: { pt: "Não foi possível carregar. Tente novamente.", en: "Could not load. Try again.", es: "No se pudo cargar. Intente de nuevo." },
+  editar: { pt: "Editar", en: "Edit", es: "Editar" },
+  excluir: { pt: "Excluir", en: "Delete", es: "Eliminar" },
+  confirmarExclusao: {
+    pt: "Excluir \"{nome}\"? Essa ação não pode ser desfeita.",
+    en: "Delete \"{nome}\"? This action cannot be undone.",
+    es: "¿Eliminar \"{nome}\"? Esta acción no se puede deshacer.",
+  },
+  produtoExcluido: { pt: "Excluído: {nome}", en: "Deleted: {nome}", es: "Eliminado: {nome}" },
+  produtoInativado: {
+    pt: "\"{nome}\" já tem movimentações — marcado como inativo em vez de excluído.",
+    en: "\"{nome}\" already has movements — marked inactive instead of deleted.",
+    es: "\"{nome}\" ya tiene movimientos — marcado como inactivo en lugar de eliminado.",
+  },
+  erroExcluir: { pt: "Não foi possível excluir. Tente novamente.", en: "Could not delete. Try again.", es: "No se pudo eliminar. Intente de nuevo." },
 };
 
 type Nivel = "nicho" | "categoria" | "subnicho" | "produtos";
@@ -115,6 +128,13 @@ export default function PDV() {
   const [pagina, setPagina] = useState(0);
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
+  const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
+  const [recarregarTick, setRecarregarTick] = useState(0);
+
+  function mostrarToast(msg: string, tipo: "ok" | "erro" | "info" = "ok") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 3500);
+  }
 
   // Cache em memória da sessão — nunca refaz a mesma consulta ao voltar.
   const cacheCategorias = useRef(new Map<string, string[]>());
@@ -158,7 +178,18 @@ export default function PDV() {
       setTotalProdutos(total);
       setCarregandoNivel(false);
     }).catch(() => { setErro(t("erroCarregar", lang)); setCarregandoNivel(false); });
-  }, [nivel, empresaId, nichoSel, categoriaSel, subNichoSel, buscaDebounced, pagina, lang]);
+  }, [nivel, empresaId, nichoSel, categoriaSel, subNichoSel, buscaDebounced, pagina, lang, recarregarTick]);
+
+  async function excluirProdutoHandler(produto: ProdutoPdv) {
+    if (!confirm(t("confirmarExclusao", lang, { nome: produto.nome }))) return;
+    const { erro: erroExclusao, inativadoEmVezDeExcluir } = await excluirProduto(produto.id);
+    if (erroExclusao) { mostrarToast(t("erroExcluir", lang), "erro"); return; }
+    mostrarToast(
+      inativadoEmVezDeExcluir ? t("produtoInativado", lang, { nome: produto.nome }) : t("produtoExcluido", lang, { nome: produto.nome }),
+      "info",
+    );
+    setRecarregarTick((tk) => tk + 1);
+  }
 
   // Correção 2 (2026-08): o header do PdvLayout já é um título grande — só que
   // ficava sempre travado em "PDV — Catálogo", então o usuário não via em que
@@ -327,7 +358,15 @@ export default function PDV() {
           onBusca={setBusca}
           onPaginaAnterior={() => setPagina((p) => Math.max(0, p - 1))}
           onPaginaProxima={() => setPagina((p) => p + 1)}
+          onExcluir={excluirProdutoHandler}
         />
+      )}
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
       )}
     </PdvLayout>
   );
@@ -591,9 +630,9 @@ function EstadoVazio({ texto, dica }: { texto: string; dica?: string }) {
   );
 }
 
-function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBusca, onPaginaAnterior, onPaginaProxima }: {
+function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBusca, onPaginaAnterior, onPaginaProxima, onExcluir }: {
   lang: Idioma; produtos: ProdutoPdv[]; total: number; pagina: number; carregando: boolean; busca: string;
-  onBusca: (v: string) => void; onPaginaAnterior: () => void; onPaginaProxima: () => void;
+  onBusca: (v: string) => void; onPaginaAnterior: () => void; onPaginaProxima: () => void; onExcluir: (p: ProdutoPdv) => void;
 }) {
   const { tokens } = useTemaPdv();
   const totalPaginas = Math.max(1, Math.ceil(total / PDV_PAGE_SIZE));
@@ -624,7 +663,7 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
           <p className="text-xs mb-3" style={{ color: tokens.textoMuted }}>{t("produtosEncontrados", lang, { n: total })}</p>
           <div className="space-y-2">
             {produtos.map((p) => (
-              <LinhaProduto key={p.id} produto={p} lang={lang} />
+              <LinhaProduto key={p.id} produto={p} lang={lang} onExcluir={onExcluir} />
             ))}
           </div>
           {totalPaginas > 1 && (
@@ -644,7 +683,7 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
   );
 }
 
-function LinhaProduto({ produto, lang }: { produto: ProdutoPdv; lang: Idioma }) {
+function LinhaProduto({ produto, lang, onExcluir }: { produto: ProdutoPdv; lang: Idioma; onExcluir: (p: ProdutoPdv) => void }) {
   const { tokens } = useTemaPdv();
   const preco = produto.preco_venda ?? produto.preco_sugerido;
   return (
@@ -659,9 +698,12 @@ function LinhaProduto({ produto, lang }: { produto: ProdutoPdv; lang: Idioma }) 
         <span className="text-sm font-bold" style={{ color: tokens.cardTexto, opacity: preco ? 1 : 0.6 }}>
           {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
-        <a href="/estoque" className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
-          {t("verNoEstoque", lang)} <ExternalLink size={12} />
+        <a href="/estoque" title={t("editar", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
+          <Pencil size={14} />
         </a>
+        <button onClick={() => onExcluir(produto)} title={t("excluir", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
   );
