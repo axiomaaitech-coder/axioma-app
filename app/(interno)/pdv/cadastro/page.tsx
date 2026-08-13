@@ -656,7 +656,7 @@ function CamposDoSubNicho({ lang, campos, atributos, onChange, sugeridos, emCard
             return <CampoSelectSimples key={campo.chave} label={campo.label[lang]} value={valor} onChange={(v) => onChange(campo.chave, v)}
               opcoes={(campo.opcoes || []).map((o) => ({ value: o.value, label: o.label[lang] }))} sugerido={sugerido} emCard={emCard} />;
           }
-          return <Campo key={campo.chave} label={campo.label[lang]} value={valor} tipo={campo.tipo === "number" ? "number" : "text"} onChange={(v) => onChange(campo.chave, v)} sugerido={sugerido} emCard={emCard} />;
+          return <Campo key={campo.chave} label={campo.label[lang]} value={valor} tipo={campo.tipo === "number" ? "number" : campo.tipo === "date" ? "date" : "text"} onChange={(v) => onChange(campo.chave, v)} sugerido={sugerido} emCard={emCard} />;
         })}
       </div>
     </div>

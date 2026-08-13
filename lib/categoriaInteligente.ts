@@ -96,7 +96,7 @@ export const DICIONARIO_SEGMENTOS: Record<Segmento, RegraCategoria[]> = {
 
 // Campos condicionais por segmento — ficam dentro de produtos.atributos_nicho,
 // nunca viram coluna nova.
-export type TipoCampoNicho = "boolean" | "text" | "number" | "select";
+export type TipoCampoNicho = "boolean" | "text" | "number" | "select" | "date";
 export type CampoNicho = {
   chave: string; label: Record<Idioma, string>; tipo: TipoCampoNicho; opcoes?: { value: string; label: Record<Idioma, string> }[];
   // se preenchido, este campo só aparece quando o campo boolean de chave

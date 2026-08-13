@@ -1610,7 +1610,7 @@ export default function EstoquePage() {
                     );
                   }
                   return (
-                    <Campo key={campo.chave} label={campo.label[idioma]} tipo={campo.tipo === "number" ? "number" : "text"} value={String(valorAtual ?? "")}
+                    <Campo key={campo.chave} label={campo.label[idioma]} tipo={campo.tipo === "number" ? "number" : campo.tipo === "date" ? "date" : "text"} value={String(valorAtual ?? "")}
                       onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))}
                       onFocus={campo.tipo === "text" ? () => garantirSugestaoAtributo(campo.chave) : undefined}
                       lista={campo.tipo === "text" ? sugestoes[`attr:${campo.chave}`] : undefined} />
