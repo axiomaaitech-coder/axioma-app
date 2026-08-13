@@ -56,7 +56,7 @@ export type NichoPdv =
   | "lanchonete" | "pizzaria" | "sorveteria_acai" | "marmita_comida_pronta"
   | "salao_barbearia" | "manicure_estetica" | "servicos_tecnicos" | "servicos_domesticos"
   | "acougue" | "hortifruti_sacolao" | "materiais_construcao"
-  | "lingerie" | "praia" | "moda_fitness" | "acessorios_moda";
+  | "lingerie" | "praia" | "moda_fitness" | "acessorios_moda" | "infantil";
 
 export type NichoPdvDef = { value: NichoPdv; label: Record<Idioma, string>; modo: ModoNicho; divisaoPrimaria: DivisaoPrimaria; categorias: CategoriaPdv[] };
 
@@ -150,6 +150,16 @@ const CAMPO_MATERIAL_JOIA: CampoNicho = CB("materialJoia", "select", "Material",
   { value: "prata_925", label: L("Prata 925", "925 Silver", "Plata 925") },
   { value: "aco_inoxidavel", label: L("Aço Inoxidável", "Stainless Steel", "Acero Inoxidable") },
   { value: "ouro_18k", label: L("Ouro 18k", "18k Gold", "Oro 18k") },
+]);
+
+// Infantil usa idade, nunca PP–XG (grade adulta) — roupa de bebê/criança
+// não se mede assim. Calçado infantil usa numeração própria (16–34),
+// nunca a numeração adulta.
+const CAMPO_TAMANHO_INFANTIL: CampoNicho = CB("tamanhoInfantil", "select", "Tamanho (Idade)", "Size (Age)", "Talla (Edad)", [
+  ...["RN", "1-3m", "3-6m", "6-9m", "9-12m", "1-2a", "3-4a", "5-6a", "7-8a", "9-10a", "11-12a", "13-14a"].map((t) => ({ value: t, label: L(t, t, t) })),
+]);
+const CAMPO_NUMERACAO_INFANTIL: CampoNicho = CB("numeracaoInfantil", "select", "Numeração Infantil", "Kids' Shoe Size", "Numeración Infantil", [
+  ...Array.from({ length: 19 }, (_, i) => String(16 + i)).map((t) => ({ value: t, label: L(t, t, t) })),
 ]);
 
 // Modo serviço: duração + forma de cobrança, universal aos 4 nichos de
@@ -1303,6 +1313,42 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("carteira_masculina_acessorio", "Carteira Masculina", "Men's Wallet", "Billetera Masculina", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
         SUB("porta_cartao_acessorio", "Porta-cartão", "Card Holder", "Tarjetero", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
         SUB("porta_passaporte_documentos", "Porta-passaporte/Documentos", "Passport/Document Holder", "Portapasaporte/Documentos", [CAMPO_MATERIAL_ACESSORIO, CAMPO_COR]),
+      ]),
+    ],
+  },
+  // Fecha o compromisso do Commit 1: Infantil segmentado Menino/Menina/
+  // Unissex(bebê). moda_infantil (dentro de Roupas) e calcados_infantis
+  // (dentro de Calçados) continuam sem gênero, servindo a loja generalista
+  // — este nicho é o caminho completo pra quem só vende roupa/calçado de
+  // criança, roupa e calçado juntos (como a loja infantil real vende).
+  {
+    value: "infantil", label: L("Moda Infantil", "Kidswear", "Moda Infantil"), modo: "produto", divisaoPrimaria: "nao_alimentos",
+    categorias: [
+      CAT("infantil_menino", "Menino", "Boys", "Niño", [
+        SUB("camiseta_menino", "Camiseta", "T-Shirt", "Camiseta", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_menino", "Calça", "Pants", "Pantalón", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("bermuda_short_menino", "Bermuda/Short", "Shorts/Bermuda", "Bermuda/Short", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_menino", "Conjunto", "Outfit Set", "Conjunto", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_menino", "Agasalho", "Tracksuit/Jacket", "Conjunto Deportivo/Campera", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("pijama_menino", "Pijama", "Pajamas", "Pijama", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("tenis_infantil_menino", "Tênis Infantil", "Kids' Sneakers", "Zapatilla Infantil", [CAMPO_NUMERACAO_INFANTIL, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sandalia_infantil_menino", "Sandália Infantil", "Kids' Sandals", "Sandalia Infantil", [CAMPO_NUMERACAO_INFANTIL, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+      ]),
+      CAT("infantil_menina", "Menina", "Girls", "Niña", [
+        SUB("camiseta_menina", "Camiseta", "T-Shirt", "Camiseta", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("vestido_infantil_menina", "Vestido Infantil", "Kids' Dress", "Vestido Infantil", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_menina", "Calça", "Pants", "Pantalón", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_menina", "Conjunto", "Outfit Set", "Conjunto", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_menina", "Agasalho", "Tracksuit/Jacket", "Conjunto Deportivo/Campera", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("pijama_menina", "Pijama", "Pajamas", "Pijama", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("tenis_infantil_menina", "Tênis Infantil", "Kids' Sneakers", "Zapatilla Infantil", [CAMPO_NUMERACAO_INFANTIL, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sandalia_infantil_menina", "Sandália Infantil", "Kids' Sandals", "Sandalia Infantil", [CAMPO_NUMERACAO_INFANTIL, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+      ]),
+      CAT("infantil_unissex_bebe", "Unissex (Bebê)", "Unisex (Baby)", "Unisex (Bebé)", [
+        SUB("body_bebe_infantil", "Body", "Bodysuit", "Body", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("macacao_bebe_infantil", "Macacão", "Onesie", "Mameluco", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_bebe_unissex", "Conjunto Bebê", "Baby Outfit Set", "Conjunto Bebé", [CAMPO_TAMANHO_INFANTIL, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("sapatinho_bebe", "Sapatinho", "Baby Soft Shoes", "Zapatito de Bebé", [CAMPO_NUMERACAO_INFANTIL, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
     ],
   },
