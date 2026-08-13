@@ -56,7 +56,7 @@ export type NichoPdv =
   | "lanchonete" | "pizzaria" | "sorveteria_acai" | "marmita_comida_pronta"
   | "salao_barbearia" | "manicure_estetica" | "servicos_tecnicos" | "servicos_domesticos"
   | "acougue" | "hortifruti_sacolao" | "materiais_construcao"
-  | "lingerie";
+  | "lingerie" | "praia";
 
 export type NichoPdvDef = { value: NichoPdv; label: Record<Idioma, string>; modo: ModoNicho; divisaoPrimaria: DivisaoPrimaria; categorias: CategoriaPdv[] };
 
@@ -113,6 +113,7 @@ const CAMPO_TAMANHO_ROUPA_PLUS: CampoNicho = CB("tamanho", "select", "Tamanho", 
 const CAMPO_NUMERACAO_SUTIA: CampoNicho = CB("numeracaoSutia", "select", "Numeração (Busto)", "Size (Bust)", "Talla (Busto)", [
   ...["38", "40", "42", "44", "46", "48"].map((t) => ({ value: t, label: L(t, t, t) })),
 ]);
+const CAMPO_PROTECAO_UV: CampoNicho = { chave: "protecaoUv", tipo: "boolean", label: L("Proteção UV", "UV Protection", "Protección UV") };
 
 // Modo serviço: duração + forma de cobrança, universal aos 4 nichos de
 // serviço — é exatamente o que o Elias pediu, nunca o modelo de produto.
@@ -1170,6 +1171,27 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("pijama_masculino_lingerie", "Pijama Masculino", "Men's Pajamas", "Pijama Masculino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("robe_masculino_lingerie", "Robe Masculino", "Men's Robe", "Bata Masculina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("meia_masculina_lingerie", "Meia Masculina", "Men's Socks", "Media Masculina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+      ]),
+    ],
+  },
+  {
+    value: "praia", label: L("Moda Praia", "Beachwear", "Moda Playa"), modo: "produto", divisaoPrimaria: "nao_alimentos",
+    categorias: [
+      CAT("praia_feminina", "Praia Feminina", "Women's Beachwear", "Playa Femenina", [
+        SUB("biquini_padrao", "Biquíni", "Bikini", "Bikini", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO, CAMPO_PROTECAO_UV]),
+        SUB("maio_feminino_praia", "Maiô", "One-piece Swimsuit", "Traje de Baño Entero", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO, CAMPO_PROTECAO_UV]),
+        SUB("short_praia_feminino", "Short de Praia/Beachwear", "Beach Shorts/Beachwear", "Short de Playa/Beachwear", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("saida_praia_feminina", "Saída de Praia", "Beach Cover-up", "Salida de Playa", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("macaquinho_praia_feminino", "Macaquinho Praia", "Beach Romper", "Enterito de Playa", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO, CAMPO_PROTECAO_UV]),
+        SUB("canga_praia", "Canga", "Sarong", "Pareo", [CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+      ]),
+      CAT("praia_masculina", "Praia Masculina", "Men's Beachwear", "Playa Masculina", [
+        SUB("sunga_praia_masculina", "Sunga", "Swim Trunks", "Sunga/Bañador", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("short_praia_masculino", "Short de Praia/Beachwear", "Beach Shorts/Beachwear", "Short de Playa/Beachwear", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisa_praia_masculina", "Camisa de Praia", "Beach Shirt", "Camisa de Playa", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO, CAMPO_PROTECAO_UV]),
+      ]),
+      CAT("praia_unissex", "Praia Unissex", "Unisex Beachwear", "Playa Unisex", [
+        SUB("chapeu_bone_praia_unissex", "Chapéu/Boné de Praia", "Beach Hat/Cap", "Sombrero/Gorra de Playa", [CAMPO_COR, CAMPO_PROTECAO_UV]),
       ]),
     ],
   },
