@@ -56,7 +56,7 @@ export type NichoPdv =
   | "lanchonete" | "pizzaria" | "sorveteria_acai" | "marmita_comida_pronta"
   | "salao_barbearia" | "manicure_estetica" | "servicos_tecnicos" | "servicos_domesticos"
   | "acougue" | "hortifruti_sacolao" | "materiais_construcao"
-  | "lingerie" | "praia";
+  | "lingerie" | "praia" | "moda_fitness";
 
 export type NichoPdvDef = { value: NichoPdv; label: Record<Idioma, string>; modo: ModoNicho; divisaoPrimaria: DivisaoPrimaria; categorias: CategoriaPdv[] };
 
@@ -114,6 +114,15 @@ const CAMPO_NUMERACAO_SUTIA: CampoNicho = CB("numeracaoSutia", "select", "Numera
   ...["38", "40", "42", "44", "46", "48"].map((t) => ({ value: t, label: L(t, t, t) })),
 ]);
 const CAMPO_PROTECAO_UV: CampoNicho = { chave: "protecaoUv", tipo: "boolean", label: L("Proteção UV", "UV Protection", "Protección UV") };
+// Substitui o Tecido/Composição genérico só no ramo fitness — o lojista
+// desse ramo pensa em tecnologia do tecido, não em composição têxtil comum.
+const CAMPO_TECNOLOGIA_TECIDO_FITNESS: CampoNicho = CB("tecnologiaTecido", "select", "Tecido/Tecnologia", "Fabric/Technology", "Tejido/Tecnología", [
+  { value: "dryfit", label: L("Dry-fit", "Dry-fit", "Dry-fit") },
+  { value: "compressao", label: L("Compressão", "Compression", "Compresión") },
+  { value: "termico", label: L("Térmico", "Thermal", "Térmico") },
+  { value: "poliamida_elastano", label: L("Poliamida/Elastano", "Polyamide/Spandex", "Poliamida/Elastano") },
+  { value: "algodao", label: L("Algodão", "Cotton", "Algodón") },
+]);
 
 // Modo serviço: duração + forma de cobrança, universal aos 4 nichos de
 // serviço — é exatamente o que o Elias pediu, nunca o modelo de produto.
@@ -1192,6 +1201,32 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       ]),
       CAT("praia_unissex", "Praia Unissex", "Unisex Beachwear", "Playa Unisex", [
         SUB("chapeu_bone_praia_unissex", "Chapéu/Boné de Praia", "Beach Hat/Cap", "Sombrero/Gorra de Playa", [CAMPO_COR, CAMPO_PROTECAO_UV]),
+      ]),
+    ],
+  },
+  {
+    value: "moda_fitness", label: L("Moda Fitness/Esportiva", "Activewear", "Moda Fitness/Deportiva"), modo: "produto", divisaoPrimaria: "nao_alimentos",
+    categorias: [
+      CAT("fitness_feminina", "Fitness Feminina", "Women's Activewear", "Fitness Femenina", [
+        SUB("top_fitness_feminino", "Top Fitness", "Sports Bra", "Top Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("legging_fitness_feminina", "Legging", "Leggings", "Calza/Legging", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("short_fitness_feminino", "Short Fitness", "Athletic Shorts", "Short Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("camiseta_dryfit_feminina", "Camiseta Dry-fit", "Dry-fit T-Shirt", "Camiseta Dry-fit", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("regata_fitness_feminina", "Regata Fitness", "Athletic Tank Top", "Musculosa Deportiva", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("jaqueta_corta_vento_feminina", "Jaqueta Corta-vento", "Windbreaker Jacket", "Campera Cortavientos", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("macaquinho_fitness_feminino", "Macaquinho Fitness", "Athletic Romper", "Enterito Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("agasalho_esportivo_feminino_fitness", "Agasalho Esportivo", "Tracksuit", "Conjunto Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("bermuda_termica_feminina", "Bermuda Térmica", "Thermal Bermuda Shorts", "Bermuda Térmica", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+      ]),
+      CAT("fitness_masculina", "Fitness Masculina", "Men's Activewear", "Fitness Masculina", [
+        SUB("camiseta_dryfit_masculina", "Camiseta Dry-fit", "Dry-fit T-Shirt", "Camiseta Dry-fit", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("regata_fitness_masculina", "Regata Fitness", "Athletic Tank Top", "Musculosa Deportiva", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("short_fitness_masculino", "Short Fitness", "Athletic Shorts", "Short Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("bermuda_termica_masculina", "Bermuda Térmica", "Thermal Bermuda Shorts", "Bermuda Térmica", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("jaqueta_corta_vento_masculina", "Jaqueta Corta-vento", "Windbreaker Jacket", "Campera Cortavientos", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("agasalho_esportivo_masculino_fitness", "Agasalho Esportivo", "Tracksuit", "Conjunto Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("legging_termica_masculina", "Legging Térmica/Compressão", "Thermal/Compression Tights", "Calza Térmica/Compresión", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
+        SUB("calca_fitness_masculina", "Calça Fitness/Jogger", "Jogger Pants", "Pantalón Jogger Deportivo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECNOLOGIA_TECIDO_FITNESS]),
       ]),
     ],
   },
