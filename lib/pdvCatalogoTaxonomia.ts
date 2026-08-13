@@ -82,6 +82,21 @@ const CAMPO_NUMERACAO_CALCADO: CampoNicho = CB("numeracao", "text", "Numeração
 const CAMPO_GARANTIA_MESES: CampoNicho = CB("garantiaMeses", "number", "Garantia (meses)", "Warranty (months)", "Garantía (meses)");
 const CAMPO_NECESSITA_RECEITA: CampoNicho = CB("necessitaReceita", "boolean", "Necessita Receita", "Requires Prescription", "Requiere Receta");
 
+// Moda (Roupas/Calçados) — campo de tecido é só das peças de vestuário
+// (nunca calçado); tamanho numérico é só de calça (jeans/alfaiataria/social),
+// as demais peças seguem PP–XG via CAMPO_TAMANHO_ROUPA; material é só de
+// calçado (nunca vestuário) — nenhum campo é aplicado fora do ramo certo.
+const CAMPO_TECIDO_COMPOSICAO: CampoNicho = CB("tecidoComposicao", "text", "Tecido/Composição", "Fabric/Composition", "Tejido/Composición");
+const CAMPO_TAMANHO_CALCA_NUMERICO: CampoNicho = CB("tamanhoNumerico", "select", "Tamanho (Numeração)", "Size (Numeric)", "Talla (Numérica)", [
+  ...["36", "38", "40", "42", "44", "46", "48", "50", "52", "54", "56"].map((t) => ({ value: t, label: L(t, t, t) })),
+]);
+const CAMPO_MATERIAL_CALCADO: CampoNicho = CB("materialCalcado", "select", "Material", "Material", "Material", [
+  { value: "couro", label: L("Couro", "Leather", "Cuero") },
+  { value: "sintetico", label: L("Sintético", "Synthetic", "Sintético") },
+  { value: "tecido_lona", label: L("Tecido/Lona", "Fabric/Canvas", "Tela/Lona") },
+  { value: "camurca", label: L("Camurça", "Suede", "Gamuza") },
+]);
+
 // Modo serviço: duração + forma de cobrança, universal aos 4 nichos de
 // serviço — é exatamente o que o Elias pediu, nunca o modelo de produto.
 const CAMPOS_SERVICO_PADRAO: CampoNicho[] = [
@@ -689,59 +704,95 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       // que antes eram categoria própria viram sub-nicho dentro do público certo,
       // sem criar 4º nível e sem duplicar o mesmo tipo de peça em 2 categorias.
       CAT("moda_feminina", "Moda Feminina", "Women's Fashion", "Moda Femenina", [
-        SUB("camiseta_blusa_feminina", "Camiseta/Blusa Feminina", "Women's T-Shirt/Top", "Camiseta/Blusa Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("camisa_social_feminina", "Camisa Social Feminina", "Women's Dress Shirt", "Camisa Formal Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("calca_feminina", "Calça Feminina", "Women's Pants", "Pantalón Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("saia", "Saia", "Skirt", "Falda", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("short_bermuda_feminino", "Short/Bermuda Feminino", "Women's Shorts/Bermuda", "Short/Bermuda Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("vestido_casual", "Vestido Casual", "Casual Dress", "Vestido Casual", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("vestido_festa", "Vestido Festa", "Party Dress", "Vestido de Fiesta", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("moletom_jaqueta_casaco_feminino", "Moletom/Jaqueta/Casaco Feminino", "Women's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("conjunto_fitness_feminino", "Conjunto Fitness/Legging Esportiva", "Fitness Set/Athletic Leggings", "Conjunto Fitness/Legging Deportiva", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
+        SUB("camiseta_blusa_feminina", "Camiseta/Blusa Feminina", "Women's T-Shirt/Top", "Camiseta/Blusa Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisa_social_feminina", "Camisa Social Feminina", "Women's Dress Shirt", "Camisa Formal Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_feminina", "Calça Feminina", "Women's Pants", "Pantalón Femenino", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("saia", "Saia", "Skirt", "Falda", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("short_bermuda_feminino", "Short/Bermuda Feminino", "Women's Shorts/Bermuda", "Short/Bermuda Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("vestido_casual", "Vestido Casual", "Casual Dress", "Vestido Casual", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("vestido_festa", "Vestido Festa", "Party Dress", "Vestido de Fiesta", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("moletom_jaqueta_casaco_feminino", "Moletom/Jaqueta/Casaco Feminino", "Women's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_fitness_feminino", "Conjunto Fitness/Legging Esportiva", "Fitness Set/Athletic Leggings", "Conjunto Fitness/Legging Deportiva", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("blusa_cropped_feminina", "Blusa Cropped", "Cropped Top", "Blusa Cropped", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("regata_feminina", "Regata", "Tank Top", "Musculosa", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisao_feminino", "Camisão", "Long/Oversized Shirt", "Camisa Larga/Oversize", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("blazer_feminino", "Blazer", "Blazer", "Blazer", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("casaco_feminino", "Casaco", "Coat", "Abrigo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("colete_feminino", "Colete", "Vest", "Chaleco", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_jeans_feminina", "Calça Jeans", "Jeans", "Pantalón de Mezclilla/Jean", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_alfaiataria_feminina", "Calça Alfaiataria", "Tailored Trousers", "Pantalón de Sastrería", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_moletom_feminina", "Calça Moletom", "Sweatpants", "Pantalón de Buzo/Jogger", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("legging_feminina", "Legging", "Leggings", "Calza/Legging", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("macacao_feminino", "Macacão", "Jumpsuit", "Mono/Enterizo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_conjunto_feminino", "Agasalho/Conjunto Esportivo", "Tracksuit/Sport Set", "Conjunto Deportivo/Chándal", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
       CAT("moda_masculina", "Moda Masculina", "Men's Fashion", "Moda Masculina", [
-        SUB("camiseta_masculina", "Camiseta Masculina", "Men's T-Shirt", "Camiseta Masculina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("camisa_social_masculina", "Camisa Social Masculina", "Men's Dress Shirt", "Camisa Formal Masculina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("polo", "Polo", "Polo Shirt", "Polo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("calca_masculina", "Calça Masculina", "Men's Pants", "Pantalón Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("bermuda_short_masculino", "Bermuda/Short Masculino", "Men's Shorts/Bermuda", "Bermuda/Short Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("moletom_jaqueta_casaco_masculino", "Moletom/Jaqueta/Casaco Masculino", "Men's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("conjunto_fitness_masculino", "Conjunto Fitness/Dry-fit", "Fitness Set/Dry-fit", "Conjunto Fitness/Dry-fit", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
+        SUB("camiseta_masculina", "Camiseta Masculina", "Men's T-Shirt", "Camiseta Masculina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisa_social_masculina", "Camisa Social Masculina", "Men's Dress Shirt", "Camisa Formal Masculina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("polo", "Polo", "Polo Shirt", "Polo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_masculina", "Calça Masculina", "Men's Pants", "Pantalón Masculino", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("bermuda_short_masculino", "Bermuda/Short Masculino", "Men's Shorts/Bermuda", "Bermuda/Short Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("moletom_jaqueta_casaco_masculino", "Moletom/Jaqueta/Casaco Masculino", "Men's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_fitness_masculino", "Conjunto Fitness/Dry-fit", "Fitness Set/Dry-fit", "Conjunto Fitness/Dry-fit", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("regata_masculina", "Regata", "Tank Top", "Musculosa", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisao_masculino", "Camisão", "Long/Oversized Shirt", "Camisa Larga/Oversize", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("blazer_masculino", "Blazer", "Blazer", "Blazer", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("casaco_masculino", "Casaco", "Coat", "Abrigo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("colete_masculino", "Colete", "Vest", "Chaleco", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_jeans_masculina", "Calça Jeans", "Jeans", "Pantalón de Mezclilla/Jean", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_alfaiataria_masculina", "Calça Alfaiataria/Social", "Tailored/Dress Trousers", "Pantalón de Sastrería/Vestir", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_moletom_masculina", "Calça Moletom", "Sweatpants", "Pantalón de Buzo/Jogger", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_conjunto_masculino", "Agasalho/Conjunto Esportivo", "Tracksuit/Sport Set", "Conjunto Deportivo/Chándal", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
+      // Unissex: só o que é genuinamente vendido como peça única pros dois
+      // públicos (mesma modelagem, mesma grade de tamanho) — nunca duplicata
+      // de item já coberto em Feminina/Masculina.
+      CAT("moda_unissex", "Moda Unissex", "Unisex Fashion", "Moda Unisex", [
+        SUB("camiseta_basica_unissex", "Camiseta Básica Unissex", "Unisex Basic T-Shirt", "Camiseta Básica Unisex", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("moletom_basico_unissex", "Moletom Básico Unissex", "Unisex Basic Sweatshirt", "Buzo Básico Unisex", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_conjunto_unissex", "Agasalho/Conjunto Unissex", "Unisex Tracksuit/Sport Set", "Conjunto Deportivo Unisex", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+      ]),
+      // Infantil fica como está neste commit — segmentação Menino/Menina/
+      // Unissex(bebê) entra no Commit 2 (decisão registrada, não improvisada
+      // aqui). Só recebe o retrofit de campo (Cor/Tecido) igual ao resto do
+      // ramo Roupas.
       CAT("moda_infantil", "Moda Infantil", "Kidswear", "Moda Infantil", [
-        SUB("camiseta_calca_infantil", "Camiseta/Calça Infantil", "Kids' T-Shirt/Pants", "Camiseta/Pantalón Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("body_macacao_bebe", "Body/Macacão Bebê", "Baby Bodysuit/Onesie", "Body/Mameluco Bebé", [CAMPO_TAMANHO_ROUPA]),
-        SUB("conjunto_infantil", "Conjunto Infantil", "Kids' Outfit Set", "Conjunto Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("vestido_infantil", "Vestido Infantil", "Kids' Dress", "Vestido Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("uniforme_escolar", "Uniforme Escolar", "School Uniform", "Uniforme Escolar", [CAMPO_TAMANHO_ROUPA]),
-        SUB("pijama_infantil", "Pijama Infantil", "Kids' Pajamas", "Pijama Infantil", [CAMPO_TAMANHO_ROUPA]),
-        SUB("fantasia", "Fantasia", "Costume", "Disfraz", [CAMPO_TAMANHO_ROUPA]),
-        SUB("roupa_banho_infantil", "Roupa de Banho Infantil", "Kids' Swimwear", "Traje de Baño Infantil", [CAMPO_TAMANHO_ROUPA]),
+        SUB("camiseta_calca_infantil", "Camiseta/Calça Infantil", "Kids' T-Shirt/Pants", "Camiseta/Pantalón Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("body_macacao_bebe", "Body/Macacão Bebê", "Baby Bodysuit/Onesie", "Body/Mameluco Bebé", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_infantil", "Conjunto Infantil", "Kids' Outfit Set", "Conjunto Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("vestido_infantil", "Vestido Infantil", "Kids' Dress", "Vestido Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("uniforme_escolar", "Uniforme Escolar", "School Uniform", "Uniforme Escolar", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("pijama_infantil", "Pijama Infantil", "Kids' Pajamas", "Pijama Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("fantasia", "Fantasia", "Costume", "Disfraz", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("roupa_banho_infantil", "Roupa de Banho Infantil", "Kids' Swimwear", "Traje de Baño Infantil", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
       CAT("moda_intima", "Moda Íntima", "Intimates", "Ropa Íntima", [
-        SUB("sutia", "Sutiã", "Bra", "Sujetador", [CAMPO_TAMANHO_ROUPA]),
-        SUB("calcinha", "Calcinha", "Panties", "Bombacha/Calzón", [CAMPO_TAMANHO_ROUPA]),
-        SUB("cueca", "Cueca", "Men's Underwear (Briefs)", "Calzoncillo", [CAMPO_TAMANHO_ROUPA]),
-        SUB("body", "Body", "Bodysuit", "Body", [CAMPO_TAMANHO_ROUPA]),
-        SUB("pijama_camisola", "Pijama/Camisola", "Pajamas/Nightgown", "Pijama/Camisón", [CAMPO_TAMANHO_ROUPA]),
-        SUB("meia_calca", "Meia-calça", "Tights", "Panty Medias", [CAMPO_TAMANHO_ROUPA]),
-        SUB("cinta_modeladora", "Cinta Modeladora", "Shapewear", "Faja Moldeadora", [CAMPO_TAMANHO_ROUPA]),
-        SUB("meia_masculina_feminina", "Meia Masculina/Feminina", "Men's/Women's Socks", "Media Masculina/Femenina"),
+        SUB("sutia", "Sutiã", "Bra", "Sujetador", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calcinha", "Calcinha", "Panties", "Bombacha/Calzón", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("cueca", "Cueca", "Men's Underwear (Briefs)", "Calzoncillo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("body", "Body", "Bodysuit", "Body", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("pijama_camisola", "Pijama/Camisola", "Pajamas/Nightgown", "Pijama/Camisón", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("meia_calca", "Meia-calça", "Tights", "Panty Medias", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("cinta_modeladora", "Cinta Modeladora", "Shapewear", "Faja Moldeadora", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("meia_masculina_feminina", "Meia Masculina/Feminina", "Men's/Women's Socks", "Media Masculina/Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
       CAT("moda_praia", "Moda Praia", "Swimwear", "Moda de Playa", [
-        SUB("biquini", "Biquíni", "Bikini", "Bikini", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("maio", "Maiô", "One-piece Swimsuit", "Traje de Baño Entero", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("sunga", "Sunga", "Swim Trunks", "Sunga/Bañador", [CAMPO_TAMANHO_ROUPA, CAMPO_COR]),
-        SUB("saida_praia_canga", "Saída de Praia/Canga", "Beach Cover-up/Sarong", "Pareo/Salida de Playa", [CAMPO_COR]),
-        SUB("bone_chapeu_praia", "Boné/Chapéu de Praia", "Beach Cap/Hat", "Gorra/Sombrero de Playa", [CAMPO_COR]),
+        SUB("biquini", "Biquíni", "Bikini", "Bikini", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("maio", "Maiô", "One-piece Swimsuit", "Traje de Baño Entero", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("sunga", "Sunga", "Swim Trunks", "Sunga/Bañador", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("saida_praia_canga", "Saída de Praia/Canga", "Beach Cover-up/Sarong", "Pareo/Salida de Playa", [CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("bone_chapeu_praia", "Boné/Chapéu de Praia", "Beach Cap/Hat", "Gorra/Sombrero de Playa", [CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
+      // Itens desta categoria são CALÇADO (não vestuário) mesmo estando
+      // dentro do nicho Roupas — por isso levam o campo Material do ramo
+      // calçado, nunca Tecido/Composição.
       CAT("calcados_roupas", "Calçados", "Footwear", "Calzado", [
-        SUB("tenis_roupas", "Tênis", "Sneakers", "Zapatillas", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("sapato_social_roupas", "Sapato Social", "Dress Shoes", "Zapato Formal", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("sandalia_chinelo_roupas", "Sandália/Chinelo", "Sandals/Flip-flops", "Sandalia/Chancla", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("bota_roupas", "Bota", "Boots", "Bota", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("calcado_infantil_roupas", "Calçado Infantil", "Kids' Shoes", "Calzado Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("sapatilha_rasteirinha", "Sapatilha/Rasteirinha", "Flats/Ballet Flats", "Balerina/Chata", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("tenis_roupas", "Tênis", "Sneakers", "Zapatillas", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sapato_social_roupas", "Sapato Social", "Dress Shoes", "Zapato Formal", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sandalia_chinelo_roupas", "Sandália/Chinelo", "Sandals/Flip-flops", "Sandalia/Chancla", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_roupas", "Bota", "Boots", "Bota", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("calcado_infantil_roupas", "Calçado Infantil", "Kids' Shoes", "Calzado Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sapatilha_rasteirinha", "Sapatilha/Rasteirinha", "Flats/Ballet Flats", "Balerina/Chata", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("bolsas_malas", "Bolsas e Malas", "Bags & Luggage", "Bolsos y Maletas", [
         SUB("bolsa_feminina", "Bolsa Feminina", "Women's Handbag", "Bolso Femenino", [CAMPO_COR]),
@@ -764,66 +815,93 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "calcados_tenis", label: L("Calçados/Tênis", "Footwear", "Calzado"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
-      // Tênis e Sapato Social viram categorias POR PÚBLICO (Masculino/Feminino/
-      // Unissex) — mesmo padrão de Nike/Centauro, que filtram calçado por gênero
-      // como facet principal. Sandálias, Botas e Infantis já tinham gênero
-      // resolvido nos sub-nichos, não precisaram mudar.
+      // Tênis, Sapato, Sandália e Bota são categorias POR PÚBLICO (Masculino/
+      // Feminino/Unissex) — mesmo padrão de Nike/Centauro, que filtram calçado
+      // por gênero como facet principal. Infantil já tinha gênero resolvido
+      // (não segmenta por público neste commit — ver Commit 2).
       CAT("tenis_masculino", "Tênis Masculino", "Men's Sneakers", "Zapatillas Masculinas", [
-        SUB("tenis_esportivo_corrida_masc", "Esportivo/Corrida", "Running/Athletic", "Deportivo/Running", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_casual_streetwear_masc", "Casual/Streetwear", "Casual/Streetwear", "Casual/Urbano", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_skate_masc", "Skate", "Skate", "Skate", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_basquete_cano_alto_masc", "Basquete/Cano Alto", "High-top Basketball", "Baloncesto Caña Alta", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_slip_on_masc", "Slip-on", "Slip-on", "Slip-on", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("chuteira_futsal", "Chuteira/Futsal", "Soccer/Futsal Cleats", "Botín de Fútbol/Futsal", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("tenis_esportivo_corrida_masc", "Esportivo/Corrida", "Running/Athletic", "Deportivo/Running", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_casual_streetwear_masc", "Casual/Streetwear", "Casual/Streetwear", "Casual/Urbano", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_skate_masc", "Skate", "Skate", "Skate", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_basquete_cano_alto_masc", "Basquete/Cano Alto", "High-top Basketball", "Baloncesto Caña Alta", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_slip_on_masc", "Slip-on", "Slip-on", "Slip-on", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("chuteira_futsal", "Chuteira/Futsal", "Soccer/Futsal Cleats", "Botín de Fútbol/Futsal", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("tenis_feminino", "Tênis Feminino", "Women's Sneakers", "Zapatillas Femeninas", [
-        SUB("tenis_esportivo_corrida_fem", "Esportivo/Corrida", "Running/Athletic", "Deportivo/Running", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_casual_streetwear_fem", "Casual/Streetwear", "Casual/Streetwear", "Casual/Urbano", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_plataforma", "Plataforma", "Platform Sneakers", "Plataforma", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_cano_alto_bota_fem", "Cano Alto/Bota Tênis", "High-top/Boot Sneaker", "Bota Tenis/Caña Alta", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_slip_on_fem", "Slip-on", "Slip-on", "Slip-on", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("tenis_esportivo_corrida_fem", "Esportivo/Corrida", "Running/Athletic", "Deportivo/Running", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_casual_streetwear_fem", "Casual/Streetwear", "Casual/Streetwear", "Casual/Urbano", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_plataforma", "Plataforma", "Platform Sneakers", "Plataforma", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_cano_alto_bota_fem", "Cano Alto/Bota Tênis", "High-top/Boot Sneaker", "Bota Tenis/Caña Alta", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_slip_on_fem", "Slip-on", "Slip-on", "Slip-on", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_skate_fem", "Skate", "Skate", "Skate", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("tenis_unissex", "Tênis Unissex", "Unisex Sneakers", "Zapatillas Unisex", [
-        SUB("tenis_esportivo_corrida_uni", "Esportivo/Corrida", "Running/Athletic", "Deportivo/Running", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_casual_streetwear_uni", "Casual/Streetwear", "Casual/Streetwear", "Casual/Urbano", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_skate_uni", "Skate", "Skate", "Skate", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("tenis_slip_on_uni", "Slip-on", "Slip-on", "Slip-on", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("tenis_esportivo_corrida_uni", "Esportivo/Corrida", "Running/Athletic", "Deportivo/Running", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_casual_streetwear_uni", "Casual/Streetwear", "Casual/Streetwear", "Casual/Urbano", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_skate_uni", "Skate", "Skate", "Skate", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tenis_slip_on_uni", "Slip-on", "Slip-on", "Slip-on", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("sapato_masculino", "Sapato Masculino", "Men's Dress Shoes", "Zapato Formal Masculino", [
-        SUB("sapato_social_masculino", "Sapato Social", "Dress Shoe", "Zapato Formal", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("mocassim_masc", "Mocassim", "Loafer", "Mocasín", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("oxford_derby_masc", "Oxford/Derby", "Oxford/Derby", "Oxford/Derby", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("casual_couro_masc", "Casual de Couro", "Leather Casual Shoe", "Zapato Casual de Cuero", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("sapato_social_masculino", "Sapato Social", "Dress Shoe", "Zapato Formal", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("mocassim_masc", "Mocassim", "Loafer", "Mocasín", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("oxford_derby_masc", "Oxford/Derby", "Oxford/Derby", "Oxford/Derby", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("casual_couro_masc", "Casual de Couro", "Leather Casual Shoe", "Zapato Casual de Cuero", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sapatenis_masculino", "Sapatênis", "Casual Dress Sneaker", "Zapato Casual Deportivo", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("sapato_feminino", "Sapato Feminino", "Women's Dress Shoes", "Zapato Formal Femenino", [
-        SUB("sapato_social_scarpin", "Sapato Social/Scarpin", "Dress Shoe/Pump", "Zapato Formal/Stiletto", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("mocassim_fem", "Mocassim", "Loafer", "Mocasín", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("oxford_derby_fem", "Oxford/Derby", "Oxford/Derby", "Oxford/Derby", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("sapatilha_rasteirinha_sapato", "Sapatilha/Rasteirinha", "Flats/Ballet Flats", "Balerina/Chata", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("plataforma_anabela", "Plataforma/Anabela", "Platform/Wedge", "Plataforma/Cuña", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("sapato_social_scarpin", "Sapato Social/Scarpin", "Dress Shoe/Pump", "Zapato Formal/Stiletto", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("mocassim_fem", "Mocassim", "Loafer", "Mocasín", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("oxford_derby_fem", "Oxford/Derby", "Oxford/Derby", "Oxford/Derby", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sapatilha_rasteirinha_sapato", "Sapatilha/Rasteirinha", "Flats/Ballet Flats", "Balerina/Chata", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("plataforma_anabela", "Plataforma/Anabela", "Platform/Wedge", "Plataforma/Cuña", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("scarpin_feminino", "Scarpin", "Pump (Scarpin)", "Stiletto (Scarpin)", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("salto_alto_feminino", "Salto Alto", "High Heel", "Tacón Alto", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
+      // Pesquisa de mercado (varejo BR: Netshoes, Centauro, Rider, Kenner,
+      // Democrata) antes de decidir profundidade masculina — real, não
+      // suposição: sandália masculina tem linha própria em couro e em
+      // papete/slide (marca dedicada, preço e giro diferentes da genérica);
+      // bota masculina tem Chelsea e trabalho/segurança como categorias
+      // reais de alto volume (a última é item de EPI, mercado grande).
       CAT("sandalias_masculino", "Sandálias Masculinas", "Men's Sandals", "Sandalias Masculinas", [
-        SUB("sandalia_masculina", "Sandália Masculina", "Men's Sandals", "Sandalia Masculina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("sandalia_masculina", "Sandália Masculina", "Men's Sandals", "Sandalia Masculina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sandalia_papete_slide_masculina", "Papete/Slide Masculina", "Men's Slide Sandal", "Sandalia Slide Masculina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sandalia_couro_masculina", "Sandália em Couro Masculina", "Men's Leather Sandal", "Sandalia de Cuero Masculina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("sandalias_feminino", "Sandálias Femininas", "Women's Sandals", "Sandalias Femeninas", [
-        SUB("sandalia_feminina", "Sandália Feminina", "Women's Sandals", "Sandalia Femenina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("sandalia_feminina", "Sandália Feminina", "Women's Sandals", "Sandalia Femenina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("rasteira_feminina", "Rasteira", "Flat Sandal", "Sandalia Rasteira", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("tamanco_feminino", "Tamanco", "Clog", "Zueco", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("sandalias_unissex", "Sandálias/Chinelos Unissex", "Unisex Sandals/Flip-flops", "Sandalias/Chancletas Unisex", [
-        SUB("chinelo_dedo", "Chinelo de Dedo", "Flip-flops", "Chancla de Dedo", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("papete_slide", "Papete/Slide", "Slides", "Sandalia Slide", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("chinelo_dedo", "Chinelo de Dedo", "Flip-flops", "Chancla de Dedo", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("papete_slide", "Papete/Slide", "Slides", "Sandalia Slide", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
-      CAT("botas", "Botas", "Boots", "Botas", [
-        SUB("coturno", "Coturno", "Combat Boots", "Borceguí", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("bota_chuva_galocha", "Bota de Chuva/Galocha", "Rain Boots", "Bota de Lluvia", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("bota_country", "Bota Country", "Western Boots", "Bota Country", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("bota_feminina_salto", "Bota Feminina Salto", "Women's Heeled Boots", "Bota Femenina con Taco", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+      // Botas segue a mesma regra da família — vira 3 categorias por gênero
+      // (era 1 categoria única). Os 4 sub-nichos que já existiam só MUDAM de
+      // categoria — value e label intactos.
+      CAT("bota_masculino", "Bota Masculina", "Men's Boots", "Bota Masculina", [
+        SUB("bota_country", "Bota Country", "Western Boots", "Bota Country", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_casual_couro_masculina", "Bota Casual de Couro", "Casual Leather Boot", "Bota Casual de Cuero", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_chelsea_masculina", "Bota Chelsea", "Chelsea Boot", "Bota Chelsea", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_trabalho_seguranca_masculina", "Bota de Trabalho/Segurança", "Work/Safety Boot", "Bota de Trabajo/Seguridad", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+      ]),
+      CAT("bota_feminino", "Bota Feminina", "Women's Boots", "Bota Femenina", [
+        SUB("bota_feminina_salto", "Bota Feminina Salto", "Women's Heeled Boots", "Bota Femenina con Taco", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_cano_alto_feminina", "Bota Cano Alto/Over-the-Knee", "Over-the-Knee Boot", "Bota Alta/Over-the-Knee", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_country_feminina", "Bota Country Feminina", "Women's Western Boot", "Bota Country Femenina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_chelsea_feminina", "Bota Chelsea Feminina", "Women's Chelsea Boot", "Bota Chelsea Femenina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+      ]),
+      CAT("bota_unissex", "Bota Unissex", "Unisex Boots", "Bota Unisex", [
+        SUB("coturno", "Coturno", "Combat Boots", "Borceguí", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_chuva_galocha", "Bota de Chuva/Galocha", "Rain Boots", "Bota de Lluvia", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("calcados_infantis", "Calçados Infantis", "Kids' Shoes", "Calzado Infantil", [
-        SUB("tenis_infantil", "Tênis Infantil", "Kids' Sneakers", "Zapatilla Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("sandalia_infantil", "Sandália Infantil", "Kids' Sandals", "Sandalia Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("bota_infantil", "Bota Infantil", "Kids' Boots", "Bota Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("chinelo_infantil", "Chinelo Infantil", "Kids' Flip-flops", "Chancla Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
-        SUB("calcado_escolar_primeiros_passos", "Calçado Escolar/Primeiros Passos", "School/First Walker Shoes", "Calzado Escolar/Primeros Pasos", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+        SUB("tenis_infantil", "Tênis Infantil", "Kids' Sneakers", "Zapatilla Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("sandalia_infantil", "Sandália Infantil", "Kids' Sandals", "Sandalia Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("bota_infantil", "Bota Infantil", "Kids' Boots", "Bota Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("chinelo_infantil", "Chinelo Infantil", "Kids' Flip-flops", "Chancla Infantil", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
+        SUB("calcado_escolar_primeiros_passos", "Calçado Escolar/Primeiros Passos", "School/First Walker Shoes", "Calzado Escolar/Primeros Pasos", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR, CAMPO_MATERIAL_CALCADO]),
       ]),
       CAT("meias_palmilhas", "Meias e Palmilhas", "Socks & Insoles", "Medias y Plantillas", [
         SUB("meia_social", "Meia Social", "Dress Socks", "Media Formal"), SUB("meia_esportiva", "Meia Esportiva", "Athletic Socks", "Media Deportiva"),
