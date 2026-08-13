@@ -55,7 +55,8 @@ export type NichoPdv =
   | "roupas" | "calcados_tenis" | "padaria_confeitaria" | "cosmeticos_perfumaria" | "bebidas_adega"
   | "lanchonete" | "pizzaria" | "sorveteria_acai" | "marmita_comida_pronta"
   | "salao_barbearia" | "manicure_estetica" | "servicos_tecnicos" | "servicos_domesticos"
-  | "acougue" | "hortifruti_sacolao" | "materiais_construcao";
+  | "acougue" | "hortifruti_sacolao" | "materiais_construcao"
+  | "lingerie";
 
 export type NichoPdvDef = { value: NichoPdv; label: Record<Idioma, string>; modo: ModoNicho; divisaoPrimaria: DivisaoPrimaria; categorias: CategoriaPdv[] };
 
@@ -95,6 +96,22 @@ const CAMPO_MATERIAL_CALCADO: CampoNicho = CB("materialCalcado", "select", "Mate
   { value: "sintetico", label: L("Sintético", "Synthetic", "Sintético") },
   { value: "tecido_lona", label: L("Tecido/Lona", "Fabric/Canvas", "Tela/Lona") },
   { value: "camurca", label: L("Camurça", "Suede", "Gamuza") },
+]);
+
+// Plus size é GRADE ESTENDIDA, nunca nicho — mesmo campo (chave "tamanho")
+// do CAMPO_TAMANHO_ROUPA, só com G1–G4 a mais. Construído por SPREAD do
+// array original (nunca retipado à mão) pra garantir por construção que
+// nenhum valor PP/P/M/G/GG/XG/Único da grade antiga se perde — qualquer
+// produto já cadastrado com um desses tamanhos continua válido.
+const CAMPO_TAMANHO_ROUPA_PLUS: CampoNicho = CB("tamanho", "select", "Tamanho", "Size", "Talla", [
+  ...CAMPO_TAMANHO_ROUPA.opcoes!.slice(0, -1), // PP..XG, idênticos à grade original
+  ...["G1", "G2", "G3", "G4"].map((t) => ({ value: t, label: L(t, t, t) })),
+  CAMPO_TAMANHO_ROUPA.opcoes!.slice(-1)[0], // "Único", sempre por último
+]);
+// Numeração de sutiã é busto/base (38–48), nunca a grade de peça (P–GG) —
+// campo próprio, só pra sub-nichos de sutiã.
+const CAMPO_NUMERACAO_SUTIA: CampoNicho = CB("numeracaoSutia", "select", "Numeração (Busto)", "Size (Bust)", "Talla (Busto)", [
+  ...["38", "40", "42", "44", "46", "48"].map((t) => ({ value: t, label: L(t, t, t) })),
 ]);
 
 // Modo serviço: duração + forma de cobrança, universal aos 4 nichos de
@@ -704,53 +721,53 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       // que antes eram categoria própria viram sub-nicho dentro do público certo,
       // sem criar 4º nível e sem duplicar o mesmo tipo de peça em 2 categorias.
       CAT("moda_feminina", "Moda Feminina", "Women's Fashion", "Moda Femenina", [
-        SUB("camiseta_blusa_feminina", "Camiseta/Blusa Feminina", "Women's T-Shirt/Top", "Camiseta/Blusa Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("camisa_social_feminina", "Camisa Social Feminina", "Women's Dress Shirt", "Camisa Formal Femenina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camiseta_blusa_feminina", "Camiseta/Blusa Feminina", "Women's T-Shirt/Top", "Camiseta/Blusa Femenina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisa_social_feminina", "Camisa Social Feminina", "Women's Dress Shirt", "Camisa Formal Femenina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("calca_feminina", "Calça Feminina", "Women's Pants", "Pantalón Femenino", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("saia", "Saia", "Skirt", "Falda", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("short_bermuda_feminino", "Short/Bermuda Feminino", "Women's Shorts/Bermuda", "Short/Bermuda Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("vestido_casual", "Vestido Casual", "Casual Dress", "Vestido Casual", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("vestido_festa", "Vestido Festa", "Party Dress", "Vestido de Fiesta", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("moletom_jaqueta_casaco_feminino", "Moletom/Jaqueta/Casaco Feminino", "Women's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Femenino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("conjunto_fitness_feminino", "Conjunto Fitness/Legging Esportiva", "Fitness Set/Athletic Leggings", "Conjunto Fitness/Legging Deportiva", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("blusa_cropped_feminina", "Blusa Cropped", "Cropped Top", "Blusa Cropped", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("regata_feminina", "Regata", "Tank Top", "Musculosa", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("camisao_feminino", "Camisão", "Long/Oversized Shirt", "Camisa Larga/Oversize", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("blazer_feminino", "Blazer", "Blazer", "Blazer", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("casaco_feminino", "Casaco", "Coat", "Abrigo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("colete_feminino", "Colete", "Vest", "Chaleco", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("saia", "Saia", "Skirt", "Falda", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("short_bermuda_feminino", "Short/Bermuda Feminino", "Women's Shorts/Bermuda", "Short/Bermuda Femenino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("vestido_casual", "Vestido Casual", "Casual Dress", "Vestido Casual", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("vestido_festa", "Vestido Festa", "Party Dress", "Vestido de Fiesta", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("moletom_jaqueta_casaco_feminino", "Moletom/Jaqueta/Casaco Feminino", "Women's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Femenino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_fitness_feminino", "Conjunto Fitness/Legging Esportiva", "Fitness Set/Athletic Leggings", "Conjunto Fitness/Legging Deportiva", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("blusa_cropped_feminina", "Blusa Cropped", "Cropped Top", "Blusa Cropped", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("regata_feminina", "Regata", "Tank Top", "Musculosa", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisao_feminino", "Camisão", "Long/Oversized Shirt", "Camisa Larga/Oversize", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("blazer_feminino", "Blazer", "Blazer", "Blazer", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("casaco_feminino", "Casaco", "Coat", "Abrigo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("colete_feminino", "Colete", "Vest", "Chaleco", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("calca_jeans_feminina", "Calça Jeans", "Jeans", "Pantalón de Mezclilla/Jean", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("calca_alfaiataria_feminina", "Calça Alfaiataria", "Tailored Trousers", "Pantalón de Sastrería", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("calca_moletom_feminina", "Calça Moletom", "Sweatpants", "Pantalón de Buzo/Jogger", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("legging_feminina", "Legging", "Leggings", "Calza/Legging", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("macacao_feminino", "Macacão", "Jumpsuit", "Mono/Enterizo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("agasalho_conjunto_feminino", "Agasalho/Conjunto Esportivo", "Tracksuit/Sport Set", "Conjunto Deportivo/Chándal", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_moletom_feminina", "Calça Moletom", "Sweatpants", "Pantalón de Buzo/Jogger", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("legging_feminina", "Legging", "Leggings", "Calza/Legging", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("macacao_feminino", "Macacão", "Jumpsuit", "Mono/Enterizo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_conjunto_feminino", "Agasalho/Conjunto Esportivo", "Tracksuit/Sport Set", "Conjunto Deportivo/Chándal", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
       CAT("moda_masculina", "Moda Masculina", "Men's Fashion", "Moda Masculina", [
-        SUB("camiseta_masculina", "Camiseta Masculina", "Men's T-Shirt", "Camiseta Masculina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("camisa_social_masculina", "Camisa Social Masculina", "Men's Dress Shirt", "Camisa Formal Masculina", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("polo", "Polo", "Polo Shirt", "Polo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camiseta_masculina", "Camiseta Masculina", "Men's T-Shirt", "Camiseta Masculina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisa_social_masculina", "Camisa Social Masculina", "Men's Dress Shirt", "Camisa Formal Masculina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("polo", "Polo", "Polo Shirt", "Polo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("calca_masculina", "Calça Masculina", "Men's Pants", "Pantalón Masculino", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("bermuda_short_masculino", "Bermuda/Short Masculino", "Men's Shorts/Bermuda", "Bermuda/Short Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("moletom_jaqueta_casaco_masculino", "Moletom/Jaqueta/Casaco Masculino", "Men's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Masculino", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("conjunto_fitness_masculino", "Conjunto Fitness/Dry-fit", "Fitness Set/Dry-fit", "Conjunto Fitness/Dry-fit", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("regata_masculina", "Regata", "Tank Top", "Musculosa", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("camisao_masculino", "Camisão", "Long/Oversized Shirt", "Camisa Larga/Oversize", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("blazer_masculino", "Blazer", "Blazer", "Blazer", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("casaco_masculino", "Casaco", "Coat", "Abrigo", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("colete_masculino", "Colete", "Vest", "Chaleco", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("bermuda_short_masculino", "Bermuda/Short Masculino", "Men's Shorts/Bermuda", "Bermuda/Short Masculino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("moletom_jaqueta_casaco_masculino", "Moletom/Jaqueta/Casaco Masculino", "Men's Sweatshirt/Jacket/Coat", "Buzo/Campera/Abrigo Masculino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_fitness_masculino", "Conjunto Fitness/Dry-fit", "Fitness Set/Dry-fit", "Conjunto Fitness/Dry-fit", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("regata_masculina", "Regata", "Tank Top", "Musculosa", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisao_masculino", "Camisão", "Long/Oversized Shirt", "Camisa Larga/Oversize", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("blazer_masculino", "Blazer", "Blazer", "Blazer", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("casaco_masculino", "Casaco", "Coat", "Abrigo", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("colete_masculino", "Colete", "Vest", "Chaleco", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("calca_jeans_masculina", "Calça Jeans", "Jeans", "Pantalón de Mezclilla/Jean", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
         SUB("calca_alfaiataria_masculina", "Calça Alfaiataria/Social", "Tailored/Dress Trousers", "Pantalón de Sastrería/Vestir", [CAMPO_TAMANHO_CALCA_NUMERICO, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("calca_moletom_masculina", "Calça Moletom", "Sweatpants", "Pantalón de Buzo/Jogger", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("agasalho_conjunto_masculino", "Agasalho/Conjunto Esportivo", "Tracksuit/Sport Set", "Conjunto Deportivo/Chándal", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calca_moletom_masculina", "Calça Moletom", "Sweatpants", "Pantalón de Buzo/Jogger", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_conjunto_masculino", "Agasalho/Conjunto Esportivo", "Tracksuit/Sport Set", "Conjunto Deportivo/Chándal", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
       // Unissex: só o que é genuinamente vendido como peça única pros dois
       // públicos (mesma modelagem, mesma grade de tamanho) — nunca duplicata
       // de item já coberto em Feminina/Masculina.
       CAT("moda_unissex", "Moda Unissex", "Unisex Fashion", "Moda Unisex", [
-        SUB("camiseta_basica_unissex", "Camiseta Básica Unissex", "Unisex Basic T-Shirt", "Camiseta Básica Unisex", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("moletom_basico_unissex", "Moletom Básico Unissex", "Unisex Basic Sweatshirt", "Buzo Básico Unisex", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
-        SUB("agasalho_conjunto_unissex", "Agasalho/Conjunto Unissex", "Unisex Tracksuit/Sport Set", "Conjunto Deportivo Unisex", [CAMPO_TAMANHO_ROUPA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camiseta_basica_unissex", "Camiseta Básica Unissex", "Unisex Basic T-Shirt", "Camiseta Básica Unisex", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("moletom_basico_unissex", "Moletom Básico Unissex", "Unisex Basic Sweatshirt", "Buzo Básico Unisex", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("agasalho_conjunto_unissex", "Agasalho/Conjunto Unissex", "Unisex Tracksuit/Sport Set", "Conjunto Deportivo Unisex", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
       // Infantil fica como está neste commit — segmentação Menino/Menina/
       // Unissex(bebê) entra no Commit 2 (decisão registrada, não improvisada
@@ -1118,6 +1135,41 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       CAT("limpeza_manutencao_pos_obra", "Limpeza e Manutenção Pós-obra", "Post-construction Cleaning & Maintenance", "Limpieza y Mantenimiento Posobra", [
         SUB("removedor_solvente", "Removedor/Solvente", "Remover/Solvent", "Removedor/Solvente"), SUB("limpa_pedra_acido_muriatico", "Limpa-pedra/Ácido Muriático", "Stone Cleaner/Muriatic Acid", "Limpiapisos/Ácido Muriático"),
         SUB("vassoura_rodo_balde", "Vassoura/Rodo/Balde", "Broom/Squeegee/Bucket", "Escoba/Secador/Balde"), SUB("lona_saco_entulho", "Lona/Saco de Entulho", "Tarp/Debris Bag", "Lona/Bolsa de Escombro"),
+      ]),
+    ],
+  },
+
+  // ============================================================================
+  // MODO PRODUTO — família Moda (Commit 2): nichos STANDALONE, pro lojista
+  // que só vende aquilo (boutique de lingerie, loja de biquíni, etc.) — mesma
+  // lógica de Açougue/Hortifruti/Padaria, que já existem como categoria
+  // DENTRO de um nicho maior E como nicho PRÓPRIO. As categorias homônimas
+  // dentro de "roupas" (moda_intima, moda_praia, moda_infantil) continuam
+  // exatamente como estão, servindo a loja generalista — nada aqui as toca.
+  // ============================================================================
+  {
+    value: "lingerie", label: L("Moda Íntima/Lingerie", "Intimates/Lingerie", "Ropa Íntima/Lencería"), modo: "produto", divisaoPrimaria: "nao_alimentos",
+    categorias: [
+      CAT("intima_feminina", "Íntima Feminina", "Women's Intimates", "Íntima Femenina", [
+        SUB("sutia_com_bojo", "Sutiã Com Bojo", "Padded Bra", "Sujetador Con Relleno", [CAMPO_NUMERACAO_SUTIA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("sutia_sem_bojo", "Sutiã Sem Bojo/Nadador", "Unpadded/Bralette Bra", "Sujetador Sin Relleno/Deportivo", [CAMPO_NUMERACAO_SUTIA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("calcinha_lingerie", "Calcinha", "Panties", "Bombacha/Calzón", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("conjunto_intimo_feminino", "Conjunto Íntimo (Sutiã+Calcinha)", "Bra & Panty Set", "Conjunto Íntimo (Sujetador+Calzón)", [CAMPO_NUMERACAO_SUTIA, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("modeladora_cinta_lingerie", "Modeladora/Cinta", "Shapewear", "Faja Moldeadora", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camisola_lingerie", "Camisola", "Nightgown", "Camisón", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("robe_feminino_lingerie", "Robe Feminino", "Women's Robe", "Bata Femenina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("pijama_feminino_lingerie", "Pijama Feminino", "Women's Pajamas", "Pijama Femenino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("meia_calca_lingerie", "Meia-calça", "Tights", "Panty Medias", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("meia_feminina_lingerie", "Meia Feminina", "Women's Socks", "Media Femenina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+      ]),
+      CAT("intima_masculina", "Íntima Masculina", "Men's Intimates", "Íntima Masculina", [
+        SUB("cueca_boxer_lingerie", "Cueca Boxer", "Boxer Briefs", "Bóxer", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("cueca_slip_lingerie", "Cueca Slip", "Briefs", "Slip", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("cueca_sunga_lingerie", "Cueca Sunga", "Trunk Briefs", "Calzoncillo Tipo Sunga", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("camiseta_regata_interior_masculina", "Camiseta/Regata Interior", "Undershirt/Tank", "Camiseta/Musculosa Interior", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("pijama_masculino_lingerie", "Pijama Masculino", "Men's Pajamas", "Pijama Masculino", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("robe_masculino_lingerie", "Robe Masculino", "Men's Robe", "Bata Masculina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
+        SUB("meia_masculina_lingerie", "Meia Masculina", "Men's Socks", "Media Masculina", [CAMPO_TAMANHO_ROUPA_PLUS, CAMPO_COR, CAMPO_TECIDO_COMPOSICAO]),
       ]),
     ],
   },
