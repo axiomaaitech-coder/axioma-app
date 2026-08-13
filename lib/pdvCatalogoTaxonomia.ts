@@ -802,9 +802,13 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("sapatilha_rasteirinha_sapato", "Sapatilha/Rasteirinha", "Flats/Ballet Flats", "Balerina/Chata", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
         SUB("plataforma_anabela", "Plataforma/Anabela", "Platform/Wedge", "Plataforma/Cuña", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
       ]),
-      CAT("sandalias_chinelos", "Sandálias e Chinelos", "Sandals & Flip-flops", "Sandalias y Chancletas", [
-        SUB("sandalia_feminina", "Sandália Feminina", "Women's Sandals", "Sandalia Femenina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+      CAT("sandalias_masculino", "Sandálias Masculinas", "Men's Sandals", "Sandalias Masculinas", [
         SUB("sandalia_masculina", "Sandália Masculina", "Men's Sandals", "Sandalia Masculina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+      ]),
+      CAT("sandalias_feminino", "Sandálias Femininas", "Women's Sandals", "Sandalias Femeninas", [
+        SUB("sandalia_feminina", "Sandália Feminina", "Women's Sandals", "Sandalia Femenina", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
+      ]),
+      CAT("sandalias_unissex", "Sandálias/Chinelos Unissex", "Unisex Sandals/Flip-flops", "Sandalias/Chancletas Unisex", [
         SUB("chinelo_dedo", "Chinelo de Dedo", "Flip-flops", "Chancla de Dedo", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
         SUB("papete_slide", "Papete/Slide", "Slides", "Sandalia Slide", [CAMPO_NUMERACAO_CALCADO, CAMPO_COR]),
       ]),
