@@ -101,6 +101,7 @@ const CAMPO_UNIDADE_VENDA: CampoNicho = CB("unidadeVenda", "select", "Unidade de
   { value: "litro", label: L("Litro (L)", "Liter (L)", "Litro (L)") },
   { value: "fardo", label: L("Fardo", "Bale/Case", "Fardo") },
   { value: "peca", label: L("Peça", "Piece", "Pieza") },
+  { value: "engradado", label: L("Engradado", "Crate", "Cajón Retornable") },
 ]);
 const CAMPO_VALIDADE_DATA: CampoNicho = { chave: "validadeData", tipo: "date", label: L("Validade", "Expiration Date", "Vencimiento") };
 
@@ -349,6 +350,24 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("vinho_mesa_mercado", "Vinho de Mesa", "Table Wine", "Vino de Mesa", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
         SUB("agua_coco_mercado", "Água de Coco", "Coconut Water", "Agua de Coco", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
         SUB("bebida_soja_vegetal", "Bebida à Base de Soja/Vegetal", "Soy/Plant-based Drink", "Bebida a Base de Soja/Vegetal", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("agua_com_gas_mercado", "Água com Gás", "Sparkling Water", "Agua con Gas", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("agua_saborizada_mercado", "Água Saborizada", "Flavored Water", "Agua Saborizada", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("refrigerante_zero_diet_mercado", "Refrigerante Zero/Diet", "Diet/Zero Soda", "Refresco Zero/Diet", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("suco_integral_mercado", "Suco Integral", "100% Juice", "Jugo Integral", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("suco_concentrado_polpa_mercado", "Suco Concentrado/Polpa", "Concentrated Juice/Pulp", "Jugo Concentrado/Pulpa", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("refresco_po_mercado", "Refresco/Suco em Pó", "Powdered Drink Mix", "Refresco en Polvo", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+        SUB("cha_mate_mercado", "Chá Mate", "Yerba Mate Tea", "Té Mate", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("cafe_cappuccino_pronto_mercado", "Café/Cappuccino Pronto", "Ready-to-drink Coffee/Cappuccino", "Café/Capuchino Listo", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("achocolatado_liquido_beb", "Achocolatado Líquido", "Liquid Chocolate Milk", "Achocolatado Líquido", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("leite_caixinha_beb", "Leite de Caixinha", "Boxed Milk (UHT)", "Leche en Caja (UHT)", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("bebida_lactea_beb", "Bebida Láctea", "Dairy Drink", "Bebida Láctea", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("iogurte_liquido_beb", "Iogurte Líquido", "Drinkable Yogurt", "Yogur Líquido", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("cerveja_artesanal_especial_mercado", "Cerveja Artesanal/Especial", "Craft/Specialty Beer", "Cerveza Artesanal/Especial", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_VALIDADE_DATA]),
+        SUB("cerveja_sem_alcool_mercado", "Cerveja Sem Álcool", "Non-alcoholic Beer", "Cerveza Sin Alcohol", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("vinho_espumante_mercado", "Vinho Espumante/Prosecco", "Sparkling Wine/Prosecco", "Vino Espumante/Prosecco", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("cachaca_mercado", "Cachaça", "Cachaça", "Cachaça", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("vodka_mercado", "Vodka", "Vodka", "Vodka", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("whisky_mercado", "Whisky", "Whisky", "Whisky", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("gin_mercado", "Gin", "Gin", "Gin", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("rum_mercado", "Rum", "Rum", "Ron", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("tequila_mercado", "Tequila", "Tequila", "Tequila", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("licor_aperitivo_mercado", "Licor/Aperitivo", "Liqueur/Aperitif", "Licor/Aperitivo", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("sangria_coquetel_pronto_mercado", "Sangria/Coquetel Pronto", "Ready-to-drink Sangria/Cocktail", "Sangría/Cóctel Listo", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_VALIDADE_DATA]),
+        SUB("gelo_mercado", "Gelo", "Ice", "Hielo", [CAMPO_UNIDADE_VENDA]),
+        SUB("xarope_concentrado_refresco_mercado", "Xarope/Concentrado para Refresco", "Syrup/Drink Concentrate", "Jarabe/Concentrado para Refresco", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("agua_tonica_mercado", "Água Tônica", "Tonic Water", "Agua Tónica", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("higiene", "Higiene", "Personal Care", "Higiene", [
         SUB("sabonete", "Sabonete", "Soap", "Jabón"), SUB("higiene_bucal", "Higiene Bucal", "Oral Care", "Higiene Bucal"),
