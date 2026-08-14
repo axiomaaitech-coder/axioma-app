@@ -131,6 +131,34 @@ const CAMPO_TIPO_RECEITA: CampoNicho = CB("tipoReceita", "select", "Tipo de Rece
 ]);
 const CAMPO_PRINCIPIO_ATIVO: CampoNicho = CB("principioAtivo", "text", "Princípio Ativo", "Active Ingredient", "Principio Activo");
 
+// Cosméticos/Perfumaria — tipo de pele e tipo de cabelo são eixos de
+// indicação de uso (skincare/base de maquiagem e produtos capilares),
+// gênero de fragrância é só de perfumaria. Marca não tem campo próprio —
+// já é campo base do produto.
+const CAMPO_TIPO_PELE: CampoNicho = CB("tipoPele", "select", "Tipo de Pele", "Skin Type", "Tipo de Piel", [
+  { value: "oleosa", label: L("Oleosa", "Oily", "Grasa") },
+  { value: "seca", label: L("Seca", "Dry", "Seca") },
+  { value: "mista", label: L("Mista", "Combination", "Mixta") },
+  { value: "sensivel", label: L("Sensível", "Sensitive", "Sensible") },
+  { value: "acneica", label: L("Acneica", "Acne-prone", "Acneica") },
+  { value: "normal_equilibrada", label: L("Normal/Equilibrada", "Normal/Balanced", "Normal/Equilibrada") },
+]);
+const CAMPO_TIPO_CABELO: CampoNicho = CB("tipoCabelo", "select", "Tipo de Cabelo", "Hair Type", "Tipo de Cabello", [
+  { value: "liso", label: L("Liso", "Straight", "Liso") },
+  { value: "ondulado", label: L("Ondulado", "Wavy", "Ondulado") },
+  { value: "cacheado", label: L("Cacheado", "Curly", "Rizado") },
+  { value: "crespo", label: L("Crespo", "Coily", "Crespo") },
+  { value: "oleoso_cabelo", label: L("Oleoso", "Oily", "Graso") },
+  { value: "seco_cabelo", label: L("Seco", "Dry", "Seco") },
+  { value: "danificado", label: L("Danificado", "Damaged", "Dañado") },
+  { value: "quimicamente_tratado", label: L("Quimicamente Tratado", "Chemically Treated", "Tratado Químicamente") },
+]);
+const CAMPO_GENERO_FRAGRANCIA: CampoNicho = CB("generoFragrancia", "select", "Gênero da Fragrância", "Fragrance Gender", "Género de la Fragancia", [
+  { value: "feminino", label: L("Feminino", "Women's", "Femenino") },
+  { value: "masculino", label: L("Masculino", "Men's", "Masculino") },
+  { value: "unissex_fragrancia", label: L("Unissex", "Unisex", "Unisex") },
+]);
+
 // Moda (Roupas/Calçados) — campo de tecido é só das peças de vestuário
 // (nunca calçado); tamanho numérico é só de calça (jeans/alfaiataria/social),
 // as demais peças seguem PP–XG via CAMPO_TAMANHO_ROUPA; material é só de
@@ -1042,31 +1070,33 @@ export const NICHOS_PDV: NichoPdvDef[] = [
     value: "cosmeticos_perfumaria", label: L("Cosméticos/Perfumaria", "Cosmetics/Perfumery", "Cosméticos/Perfumería"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
       CAT("maquiagem", "Maquiagem", "Makeup", "Maquillaje", [
-        SUB("base_corretivo", "Base/Corretivo", "Foundation/Concealer", "Base/Corrector", [CAMPO_PERECIVEL]), SUB("po_facial", "Pó Facial", "Face Powder", "Polvo Facial", [CAMPO_PERECIVEL]),
+        SUB("base_corretivo", "Base/Corretivo", "Foundation/Concealer", "Base/Corrector", [CAMPO_PERECIVEL, CAMPO_TIPO_PELE]), SUB("po_facial", "Pó Facial", "Face Powder", "Polvo Facial", [CAMPO_PERECIVEL, CAMPO_TIPO_PELE]),
         SUB("sombra_paleta", "Sombra/Paleta", "Eyeshadow/Palette", "Sombra/Paleta", [CAMPO_PERECIVEL]), SUB("rimel_delineador", "Rímel/Delineador", "Mascara/Eyeliner", "Rímel/Delineador", [CAMPO_PERECIVEL]),
         SUB("batom_gloss", "Batom/Gloss", "Lipstick/Gloss", "Labial/Gloss", [CAMPO_PERECIVEL]), SUB("blush_iluminador", "Blush/Iluminador", "Blush/Highlighter", "Rubor/Iluminador", [CAMPO_PERECIVEL]),
+        SUB("sobrancelha_maquiagem", "Sobrancelha", "Eyebrow", "Cejas", [CAMPO_PERECIVEL]),
         SUB("pincel_esponja", "Pincel/Esponja de Maquiagem", "Makeup Brush/Sponge", "Brocha/Esponja"),
       ]),
       CAT("perfumaria_cosm", "Perfumaria", "Fragrance", "Perfumería", [
-        SUB("perfume_feminino", "Perfume Feminino", "Women's Perfume", "Perfume Femenino"), SUB("perfume_masculino", "Perfume Masculino", "Men's Perfume", "Perfume Masculino"),
-        SUB("colonia_body_splash", "Colônia/Body Splash", "Cologne/Body Splash", "Colonia/Body Splash"), SUB("perfume_importado", "Perfume Importado", "Imported Perfume", "Perfume Importado"),
-        SUB("kit_presente_perfumaria", "Kit Presente", "Gift Set", "Kit de Regalo"),
+        SUB("perfume_feminino", "Perfume Feminino", "Women's Perfume", "Perfume Femenino", [CAMPO_VOLUME, CAMPO_GENERO_FRAGRANCIA]), SUB("perfume_masculino", "Perfume Masculino", "Men's Perfume", "Perfume Masculino", [CAMPO_VOLUME, CAMPO_GENERO_FRAGRANCIA]),
+        SUB("perfume_unissex", "Perfume Unissex", "Unisex Perfume", "Perfume Unisex", [CAMPO_VOLUME, CAMPO_GENERO_FRAGRANCIA]),
+        SUB("colonia_body_splash", "Colônia/Body Splash", "Cologne/Body Splash", "Colonia/Body Splash", [CAMPO_VOLUME, CAMPO_GENERO_FRAGRANCIA]), SUB("perfume_importado", "Perfume Importado", "Imported Perfume", "Perfume Importado", [CAMPO_VOLUME, CAMPO_GENERO_FRAGRANCIA]),
+        SUB("kit_presente_perfumaria", "Kit Presente", "Gift Set", "Kit de Regalo", [CAMPO_GENERO_FRAGRANCIA]),
       ]),
       CAT("skincare", "Skincare", "Skincare", "Cuidado de la Piel", [
-        SUB("hidratante_facial_skincare", "Hidratante Facial", "Facial Moisturizer", "Hidratante Facial", [CAMPO_PERECIVEL]), SUB("protetor_solar_skincare", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL]),
-        SUB("serum_acido", "Sérum/Ácido", "Serum/Acid", "Sérum/Ácido", [CAMPO_PERECIVEL]), SUB("agua_micelar_demaquilante", "Água Micelar/Demaquilante", "Micellar Water/Makeup Remover", "Agua Micelar/Desmaquillante", [CAMPO_PERECIVEL]),
-        SUB("mascara_facial_skincare", "Máscara Facial", "Face Mask", "Mascarilla Facial", [CAMPO_PERECIVEL]), SUB("anti_idade", "Anti-idade", "Anti-aging", "Antiedad", [CAMPO_PERECIVEL]),
-        SUB("tratamento_acne_skincare", "Tratamento para Acne", "Acne Treatment", "Tratamiento para Acné", [CAMPO_PERECIVEL]),
+        SUB("hidratante_facial_skincare", "Hidratante Facial", "Facial Moisturizer", "Hidratante Facial", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]), SUB("protetor_solar_skincare", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]),
+        SUB("serum_acido", "Sérum/Ácido", "Serum/Acid", "Sérum/Ácido", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]), SUB("agua_micelar_demaquilante", "Água Micelar/Demaquilante", "Micellar Water/Makeup Remover", "Agua Micelar/Desmaquillante", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]),
+        SUB("mascara_facial_skincare", "Máscara Facial", "Face Mask", "Mascarilla Facial", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]), SUB("anti_idade", "Anti-idade", "Anti-aging", "Antiedad", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]),
+        SUB("tratamento_acne_skincare", "Tratamento para Acne", "Acne Treatment", "Tratamiento para Acné", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TIPO_PELE]),
       ]),
       CAT("cabelo_cosm", "Cabelo", "Hair", "Cabello", [
-        SUB("shampoo_condicionador", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador"), SUB("mascara_hidratacao_cosm", "Máscara de Hidratação", "Hair Mask", "Mascarilla Capilar"),
-        SUB("creme_pentear_leave_in", "Creme de Pentear/Leave-in", "Leave-in/Combing Cream", "Crema para Peinar/Leave-in"), SUB("oleo_capilar", "Óleo Capilar", "Hair Oil", "Aceite Capilar"),
-        SUB("coloracao_cosm", "Coloração", "Hair Color", "Coloración"), SUB("finalizador", "Finalizador/Modelador", "Styling Product", "Finalizador/Modelador"),
+        SUB("shampoo_condicionador", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador", [CAMPO_VOLUME, CAMPO_TIPO_CABELO]), SUB("mascara_hidratacao_cosm", "Máscara de Hidratação", "Hair Mask", "Mascarilla Capilar", [CAMPO_VOLUME, CAMPO_TIPO_CABELO]),
+        SUB("creme_pentear_leave_in", "Creme de Pentear/Leave-in", "Leave-in/Combing Cream", "Crema para Peinar/Leave-in", [CAMPO_VOLUME, CAMPO_TIPO_CABELO]), SUB("oleo_capilar", "Óleo Capilar", "Hair Oil", "Aceite Capilar", [CAMPO_VOLUME, CAMPO_TIPO_CABELO]),
+        SUB("coloracao_cosm", "Coloração", "Hair Color", "Coloración", [CAMPO_VOLUME, CAMPO_TIPO_CABELO]), SUB("finalizador", "Finalizador/Modelador", "Styling Product", "Finalizador/Modelador", [CAMPO_VOLUME, CAMPO_TIPO_CABELO]),
       ]),
       CAT("corpo_banho", "Corpo e Banho", "Body & Bath", "Cuerpo y Baño", [
-        SUB("sabonete_cosm", "Sabonete", "Soap", "Jabón"), SUB("hidratante_corporal", "Hidratante Corporal", "Body Lotion", "Hidratante Corporal", [CAMPO_PERECIVEL]),
-        SUB("oleo_creme_banho", "Óleo/Creme de Banho", "Bath Oil/Cream", "Aceite/Crema de Baño", [CAMPO_PERECIVEL]), SUB("esfoliante_corporal", "Esfoliante Corporal", "Body Scrub", "Exfoliante Corporal", [CAMPO_PERECIVEL]),
-        SUB("desodorante_cosm", "Desodorante", "Deodorant", "Desodorante"), SUB("depilacao", "Depilação", "Hair Removal", "Depilación"),
+        SUB("sabonete_cosm", "Sabonete", "Soap", "Jabón", [CAMPO_VOLUME]), SUB("hidratante_corporal", "Hidratante Corporal", "Body Lotion", "Hidratante Corporal", [CAMPO_PERECIVEL, CAMPO_VOLUME]),
+        SUB("oleo_creme_banho", "Óleo/Creme de Banho", "Bath Oil/Cream", "Aceite/Crema de Baño", [CAMPO_PERECIVEL, CAMPO_VOLUME]), SUB("esfoliante_corporal", "Esfoliante Corporal", "Body Scrub", "Exfoliante Corporal", [CAMPO_PERECIVEL, CAMPO_VOLUME]),
+        SUB("desodorante_cosm", "Desodorante", "Deodorant", "Desodorante", [CAMPO_VOLUME]), SUB("depilacao", "Depilação", "Hair Removal", "Depilación", [CAMPO_VOLUME]),
       ]),
       // "esmalte" também existe em manicure_estetica>revenda_produtos_manicure —
       // value duplicado ENTRE NICHOS de propósito (mesmo produto, dois negócios
