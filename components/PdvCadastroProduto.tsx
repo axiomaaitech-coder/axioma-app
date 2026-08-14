@@ -9,6 +9,7 @@
 // inteligência do Axioma (Etapa 4) e a proteção contra falha silenciosa no
 // salvamento vivem só aqui — corrigir num lugar corrige nos dois.
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { ScanBarcode, Loader2, Sparkles, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTemaPdv } from "./PdvLayout";
@@ -684,15 +685,15 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
       <AnimatePresence>
         {aberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+            className="fixed left-0 right-0 bottom-0 top-14 md:top-16 z-50 flex items-center justify-center p-3 sm:p-4"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl p-4 flex flex-col"
-              style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "90vh", height: "min(640px, 90vh)" }}>
+              style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "100%", height: "min(640px, 100%)" }}>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div className="flex items-center gap-1.5">
-                  <Sparkles size={15} style={{ color: tokens.acento }} />
+                  <Image src="/logo-aitech.png" alt="Axioma" width={18} height={18} className="object-contain" />
                   <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("assistenteTitulo", lang)}</h3>
                 </div>
                 <div className="flex items-center gap-3">
@@ -711,10 +712,10 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
                 )}
                 {historico.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className="text-xs px-3 py-2 rounded-lg max-w-[85%]"
+                    <div className="text-base px-3 py-2 rounded-lg max-w-[85%]"
                       style={m.role === "user"
                         ? { background: tokens.acaoBg, color: tokens.acaoTexto }
-                        : { background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                        : { background: "#eef4ff", border: "1px solid #dbeafe", color: "#0f172a" }}>
                       {m.content}
                     </div>
                   </div>
