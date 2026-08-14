@@ -9,7 +9,7 @@
 // inteligência do Axioma (Etapa 4) e a proteção contra falha silenciosa no
 // salvamento vivem só aqui — corrigir num lugar corrige nos dois.
 import { useEffect, useRef, useState } from "react";
-import { ScanBarcode, Loader2, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ScanBarcode, Loader2, Sparkles, CheckCircle2, AlertTriangle, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTemaPdv } from "./PdvLayout";
 import { precoPorDivisor, margemReal, lucroPorUnidade, situacaoMargem, type SituacaoMargem } from "../lib/cfoCore";
@@ -31,6 +31,11 @@ import { buscarSugestoesSemente } from "../lib/pdvAutocompleteSemente";
 // sobrevive no tema escuro (ver components/PdvLayout.tsx). Âmbar continua
 // fixo nos dois temas: é cor de status (sugestão/alerta), não identidade.
 const AMBAR = "#f5b942";
+
+// Botão do assistente é widget de suporte (estilo WhatsApp/Intercom) — cor
+// fixa de destaque, não segue os tokens de tema (precisa saltar aos olhos
+// nos 3 temas igualmente).
+const VERDE_SUPORTE = "#22c55e";
 
 // Etapa 4 — teto de perguntas por sessão de cadastro (protege o crédito da
 // OpenAI). Conta só perguntas que de fato chegaram à OpenAI (ver AssistenteAxioma).
@@ -123,7 +128,7 @@ const txt = {
   btnSalvarMesmoAssim: { pt: "Salvar mesmo assim", en: "Save anyway", es: "Guardar de todas formas" },
 
   // ---- Etapa 4 — Assistente da inteligência do Axioma (chat contextual) ----
-  assistenteBotao: { pt: "Ajuda da inteligência do Axioma", en: "Help from Axioma's intelligence", es: "Ayuda de la inteligencia de Axioma" },
+  assistenteBotao: { pt: "Assistente Axioma", en: "Axioma Assistant", es: "Asistente Axioma" },
   assistenteTitulo: { pt: "Inteligência do Axioma", en: "Axioma's intelligence", es: "Inteligencia de Axioma" },
   assistenteVazio: {
     pt: "Pergunte sobre como preencher, margem do ramo ou boas práticas de cadastro.",
@@ -132,6 +137,7 @@ const txt = {
   },
   assistentePlaceholder: { pt: "Digite sua pergunta...", en: "Type your question...", es: "Escribe tu pregunta..." },
   assistenteEnviar: { pt: "Enviar", en: "Send", es: "Enviar" },
+  assistenteLimparConversa: { pt: "Limpar conversa", en: "Clear conversation", es: "Limpiar conversación" },
   assistenteLimiteAtingido: {
     pt: "Limite de perguntas desta sessão atingido. Recarregue a página para continuar.",
     en: "Question limit for this session reached. Reload the page to continue.",
@@ -660,32 +666,46 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
     }
   }
 
+  function limparConversa() {
+    setHistorico([]);
+    setErro(null);
+  }
+
   return (
     <>
-      <button onClick={() => setAberto(true)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold mb-4"
-        style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
-        <Sparkles size={13} /> {t("assistenteBotao", lang)}
-      </button>
+      {!aberto && (
+        <button onClick={() => setAberto(true)}
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 pl-4 pr-5 py-3.5 rounded-full text-sm font-bold text-white"
+          style={{ background: VERDE_SUPORTE, boxShadow: `0 4px 24px ${VERDE_SUPORTE}80, 0 2px 8px rgba(0,0,0,0.25)` }}>
+          <MessageCircle size={20} /> {t("assistenteBotao", lang)}
+        </button>
+      )}
 
       <AnimatePresence>
         {aberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
             style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="w-full max-w-sm rounded-2xl p-4 flex flex-col"
-              style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "80vh" }}>
+              className="w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl p-4 flex flex-col"
+              style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "90vh", height: "min(640px, 90vh)" }}>
               <div className="flex items-center justify-between mb-3 shrink-0">
                 <div className="flex items-center gap-1.5">
                   <Sparkles size={15} style={{ color: tokens.acento }} />
                   <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("assistenteTitulo", lang)}</h3>
                 </div>
-                <button onClick={() => setAberto(false)} className="text-xs px-2 py-1" style={{ color: tokens.textoMuted }}>✕</button>
+                <div className="flex items-center gap-3">
+                  {historico.length > 0 && (
+                    <button onClick={limparConversa} className="text-xs underline" style={{ color: tokens.textoMuted }}>
+                      {t("assistenteLimparConversa", lang)}
+                    </button>
+                  )}
+                  <button onClick={() => setAberto(false)} className="text-xs px-2 py-1" style={{ color: tokens.textoMuted }}>✕</button>
+                </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-2 mb-3" style={{ minHeight: 80 }}>
+              <div className="flex-1 overflow-y-auto space-y-2 mb-3" style={{ minHeight: 220 }}>
                 {historico.length === 0 && !pensando && (
                   <p className="text-xs" style={{ color: tokens.textoMuted }}>{t("assistenteVazio", lang)}</p>
                 )}
