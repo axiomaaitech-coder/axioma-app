@@ -104,6 +104,33 @@ const CAMPO_UNIDADE_VENDA: CampoNicho = CB("unidadeVenda", "select", "Unidade de
 ]);
 const CAMPO_VALIDADE_DATA: CampoNicho = { chave: "validadeData", tipo: "date", label: L("Validade", "Expiration Date", "Vencimiento") };
 
+// ============================================================================
+// LIMITE REGULATÓRIO — Farmácia (campos abaixo: CAMPO_TARJA, CAMPO_GENERICO,
+// CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO).
+//
+// São campos INFORMATIVOS de catálogo/precificação, só isso. O PDV NUNCA
+// bloqueia nem autoriza uma venda com base neles — não existe, em nenhum
+// lugar do código, uma checagem que impeça o balcão de vender um item por
+// causa do valor desses campos. Não há retenção de receita, não há
+// cadastro de CPF do comprador, não há transmissão ao SNGPC/ANVISA.
+// Controle sanitário real de dispensação (SNGPC, receita retida, sistema
+// validado pela ANVISA) seria um módulo à parte, completamente fora do
+// escopo do PDV — este é só o cadastro/preço do produto na prateleira.
+// ============================================================================
+const CAMPO_TARJA: CampoNicho = CB("tarja", "select", "Tarja", "Prescription Stripe", "Franja", [
+  { value: "sem_tarja_mip", label: L("Sem Tarja / MIP", "No Stripe / OTC", "Sin Franja / Venta Libre") },
+  { value: "tarja_vermelha", label: L("Tarja Vermelha", "Red Stripe", "Franja Roja") },
+  { value: "tarja_preta", label: L("Tarja Preta", "Black Stripe", "Franja Negra") },
+]);
+const CAMPO_GENERICO: CampoNicho = { chave: "generico", tipo: "boolean", label: L("Genérico", "Generic", "Genérico") };
+const CAMPO_TIPO_RECEITA: CampoNicho = CB("tipoReceita", "select", "Tipo de Receita", "Prescription Type", "Tipo de Receta", [
+  { value: "nao_se_aplica", label: L("Não se aplica", "Not applicable", "No aplica") },
+  { value: "comum_sem_retencao", label: L("Comum sem retenção", "Standard, not retained", "Común sin retención") },
+  { value: "retida_simples", label: L("Retida simples", "Simple retention", "Retención simple") },
+  { value: "controle_especial", label: L("Controle especial", "Special control", "Control especial") },
+]);
+const CAMPO_PRINCIPIO_ATIVO: CampoNicho = CB("principioAtivo", "text", "Princípio Ativo", "Active Ingredient", "Principio Activo");
+
 // Moda (Roupas/Calçados) — campo de tecido é só das peças de vestuário
 // (nunca calçado); tamanho numérico é só de calça (jeans/alfaiataria/social),
 // as demais peças seguem PP–XG via CAMPO_TAMANHO_ROUPA; material é só de
@@ -314,68 +341,74 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "farmacia", label: L("Farmácia", "Pharmacy", "Farmacia"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
+      // Os 6 sub-nichos abaixo continuam sendo a "prateleira" de navegação —
+      // nenhum foi renomeado. O que resolve a mistura genérico/tarja são os
+      // campos: CAMPO_GENERICO e CAMPO_TARJA são eixos independentes,
+      // preenchidos com o valor real do produto em qualquer um dos 6 (ex: um
+      // antibiótico genérico é Genérico=Sim + Tarja=Vermelha, não importa em
+      // qual sub-nicho o lojista navegou pra cadastrá-lo).
       CAT("medicamentos", "Medicamentos", "Medications", "Medicamentos", [
-        SUB("mip_isento", "MIP (Isento de Receita)", "OTC (No Prescription)", "MIP (Sin Receta)", [CAMPO_PERECIVEL]),
-        SUB("generico_tarja_amarela", "Genérico (Tarja Amarela)", "Generic (Yellow Stripe)", "Genérico (Franja Amarilla)", [CAMPO_PERECIVEL]),
-        SUB("similar", "Similar", "Similar (Branded Generic)", "Similar", [CAMPO_PERECIVEL]),
-        SUB("referencia_marca", "Referência/Marca", "Reference/Brand-name", "Referencia/Marca", [CAMPO_PERECIVEL]),
-        SUB("tarja_vermelha", "Tarja Vermelha (Controle Simples)", "Red Stripe (Simple Control)", "Franja Roja (Control Simple)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
-        SUB("tarja_preta_controlado", "Tarja Preta/Controlado (SNGPC)", "Black Stripe/Controlled (SNGPC)", "Franja Negra/Controlado (SNGPC)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
+        SUB("mip_isento", "MIP (Isento de Receita)", "OTC (No Prescription)", "MIP (Sin Receta)", [CAMPO_PERECIVEL, CAMPO_TARJA, CAMPO_GENERICO, CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA]),
+        SUB("generico_tarja_amarela", "Genérico (Tarja Amarela)", "Generic (Yellow Stripe)", "Genérico (Franja Amarilla)", [CAMPO_PERECIVEL, CAMPO_TARJA, CAMPO_GENERICO, CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA]),
+        SUB("similar", "Similar", "Similar (Branded Generic)", "Similar", [CAMPO_PERECIVEL, CAMPO_TARJA, CAMPO_GENERICO, CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA]),
+        SUB("referencia_marca", "Referência/Marca", "Reference/Brand-name", "Referencia/Marca", [CAMPO_PERECIVEL, CAMPO_TARJA, CAMPO_GENERICO, CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA]),
+        SUB("tarja_vermelha", "Tarja Vermelha (Controle Simples)", "Red Stripe (Simple Control)", "Franja Roja (Control Simple)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA, CAMPO_TARJA, CAMPO_GENERICO, CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA]),
+        SUB("tarja_preta_controlado", "Tarja Preta/Controlado (SNGPC)", "Black Stripe/Controlled (SNGPC)", "Franja Negra/Controlado (SNGPC)", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA, CAMPO_TARJA, CAMPO_GENERICO, CAMPO_TIPO_RECEITA, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("saude_bucal", "Saúde Bucal", "Oral Health", "Salud Bucal", [
-        SUB("creme_dental", "Creme Dental", "Toothpaste", "Crema Dental"), SUB("escova_dente", "Escova de Dente", "Toothbrush", "Cepillo de Dientes"),
-        SUB("fio_dental", "Fio Dental", "Dental Floss", "Hilo Dental"), SUB("enxaguante_bucal", "Enxaguante Bucal", "Mouthwash", "Enjuague Bucal"),
-        SUB("fixador_dentadura", "Fixador de Dentadura", "Denture Adhesive", "Fijador de Dentadura"), SUB("clareamento_dental", "Clareamento Dental", "Teeth Whitening", "Blanqueamiento Dental"),
+        SUB("creme_dental", "Creme Dental", "Toothpaste", "Crema Dental", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("escova_dente", "Escova de Dente", "Toothbrush", "Cepillo de Dientes", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("fio_dental", "Fio Dental", "Dental Floss", "Hilo Dental", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("enxaguante_bucal", "Enxaguante Bucal", "Mouthwash", "Enjuague Bucal", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("fixador_dentadura", "Fixador de Dentadura", "Denture Adhesive", "Fijador de Dentadura", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("clareamento_dental", "Clareamento Dental", "Teeth Whitening", "Blanqueamiento Dental", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("dermocosmetico", "Dermocosmético", "Dermocosmetics", "Dermocosmética", [
-        SUB("protetor_solar", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL]),
-        SUB("hidratante_facial_corporal", "Hidratante Facial/Corporal", "Facial/Body Moisturizer", "Hidratante Facial/Corporal", [CAMPO_PERECIVEL]),
-        SUB("antirrugas_antiidade", "Antirrugas/Anti-idade", "Anti-wrinkle/Anti-aging", "Antiarrugas/Antiedad", [CAMPO_PERECIVEL]),
-        SUB("agua_micelar", "Água Micelar", "Micellar Water", "Agua Micelar", [CAMPO_PERECIVEL]),
-        SUB("sabonete_facial", "Sabonete Facial", "Facial Cleanser", "Jabón Facial", [CAMPO_PERECIVEL]),
-        SUB("tratamento_acne_manchas", "Tratamento para Acne/Manchas", "Acne/Blemish Treatment", "Tratamiento para Acné/Manchas", [CAMPO_PERECIVEL]),
+        SUB("protetor_solar", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("hidratante_facial_corporal", "Hidratante Facial/Corporal", "Facial/Body Moisturizer", "Hidratante Facial/Corporal", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("antirrugas_antiidade", "Antirrugas/Anti-idade", "Anti-wrinkle/Anti-aging", "Antiarrugas/Antiedad", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("agua_micelar", "Água Micelar", "Micellar Water", "Agua Micelar", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("sabonete_facial", "Sabonete Facial", "Facial Cleanser", "Jabón Facial", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("tratamento_acne_manchas", "Tratamento para Acne/Manchas", "Acne/Blemish Treatment", "Tratamiento para Acné/Manchas", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("cabelo_farmacia", "Cabelo", "Hair Care", "Cabello", [
-        SUB("shampoo_condicionador_farmacia", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador"),
-        SUB("mascara_hidratacao_farmacia", "Máscara de Hidratação", "Hydrating Hair Mask", "Mascarilla Hidratante"),
-        SUB("creme_pentear_farmacia", "Creme de Pentear", "Leave-in/Combing Cream", "Crema para Peinar"),
-        SUB("oleo_reparador", "Óleo Reparador", "Repair Hair Oil", "Aceite Reparador"),
-        SUB("coloracao_tintura", "Coloração/Tintura", "Hair Color/Dye", "Coloración/Tinte"),
-        SUB("tratamento_antiqueda", "Tratamento Antiqueda", "Anti-hair-loss Treatment", "Tratamiento Anticaída"),
+        SUB("shampoo_condicionador_farmacia", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("mascara_hidratacao_farmacia", "Máscara de Hidratação", "Hydrating Hair Mask", "Mascarilla Hidratante", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("creme_pentear_farmacia", "Creme de Pentear", "Leave-in/Combing Cream", "Crema para Peinar", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("oleo_reparador", "Óleo Reparador", "Repair Hair Oil", "Aceite Reparador", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("coloracao_tintura", "Coloração/Tintura", "Hair Color/Dye", "Coloración/Tinte", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("tratamento_antiqueda", "Tratamento Antiqueda", "Anti-hair-loss Treatment", "Tratamiento Anticaída", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("higiene_pessoal_farmacia", "Higiene Pessoal", "Personal Hygiene", "Higiene Personal", [
-        SUB("sabonete_farmacia", "Sabonete", "Soap", "Jabón"), SUB("desodorante_farmacia", "Desodorante", "Deodorant", "Desodorante"),
+        SUB("sabonete_farmacia", "Sabonete", "Soap", "Jabón", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("desodorante_farmacia", "Desodorante", "Deodorant", "Desodorante", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
         SUB("papel_higienico_farmacia", "Papel Higiênico", "Toilet Paper", "Papel Higiénico"), SUB("cotonete_algodao", "Cotonete/Algodão", "Cotton Swabs/Cotton Balls", "Hisopos/Algodón"),
-        SUB("barbeador_lamina", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("sabonete_intimo", "Sabonete Íntimo", "Intimate Wash", "Jabón Íntimo"),
+        SUB("barbeador_lamina", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("sabonete_intimo", "Sabonete Íntimo", "Intimate Wash", "Jabón Íntimo", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("perfumaria_farmacia", "Perfumaria", "Fragrance", "Perfumería", [
-        SUB("perfume_farmacia", "Perfume", "Perfume", "Perfume"), SUB("colonia_farmacia", "Colônia", "Cologne", "Colonia"),
-        SUB("body_splash", "Body Splash", "Body Splash", "Body Splash"), SUB("kit_presente_farmacia", "Kit Presente", "Gift Set", "Kit de Regalo"),
+        SUB("perfume_farmacia", "Perfume", "Perfume", "Perfume", [CAMPO_VOLUME]), SUB("colonia_farmacia", "Colônia", "Cologne", "Colonia", [CAMPO_VOLUME]),
+        SUB("body_splash", "Body Splash", "Body Splash", "Body Splash", [CAMPO_VOLUME]), SUB("kit_presente_farmacia", "Kit Presente", "Gift Set", "Kit de Regalo"),
       ]),
       CAT("vitaminas_suplementos", "Vitaminas, Suplementos e Nutrição", "Vitamins, Supplements & Nutrition", "Vitaminas, Suplementos y Nutrición", [
-        SUB("vitamina_mineral", "Vitamina/Mineral Isolado", "Isolated Vitamin/Mineral", "Vitamina/Mineral Aislado", [CAMPO_PERECIVEL]),
-        SUB("polivitaminico", "Polivitamínico", "Multivitamin", "Polivitamínico", [CAMPO_PERECIVEL]),
-        SUB("suplemento_esportivo", "Suplemento Esportivo/Whey", "Sports Supplement/Whey", "Suplemento Deportivo/Whey", [CAMPO_PERECIVEL]),
-        SUB("omega_3", "Ômega 3", "Omega 3", "Omega 3", [CAMPO_PERECIVEL]), SUB("colageno", "Colágeno", "Collagen", "Colágeno", [CAMPO_PERECIVEL]),
-        SUB("probiotico", "Probiótico", "Probiotic", "Probiótico", [CAMPO_PERECIVEL]),
-        SUB("barra_proteina_cereal", "Barra de Proteína/Cereal", "Protein/Cereal Bar", "Barra de Proteína/Cereal", [CAMPO_PERECIVEL]),
-        SUB("adocante_diet", "Adoçante/Produto Diet", "Sweetener/Diet Product", "Edulcorante/Producto Diet", [CAMPO_PERECIVEL]),
+        SUB("vitamina_mineral", "Vitamina/Mineral Isolado", "Isolated Vitamin/Mineral", "Vitamina/Mineral Aislado", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("polivitaminico", "Polivitamínico", "Multivitamin", "Polivitamínico", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("suplemento_esportivo", "Suplemento Esportivo/Whey", "Sports Supplement/Whey", "Suplemento Deportivo/Whey", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("omega_3", "Ômega 3", "Omega 3", "Omega 3", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]), SUB("colageno", "Colágeno", "Collagen", "Colágeno", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("probiotico", "Probiótico", "Probiotic", "Probiótico", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("barra_proteina_cereal", "Barra de Proteína/Cereal", "Protein/Cereal Bar", "Barra de Proteína/Cereal", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("adocante_diet", "Adoçante/Produto Diet", "Sweetener/Diet Product", "Edulcorante/Producto Diet", [CAMPO_PERECIVEL, CAMPO_PRINCIPIO_ATIVO, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("materno_infantil_farmacia", "Materno-Infantil", "Mother & Baby", "Materno-Infantil", [
-        SUB("fralda_infantil", "Fralda Infantil", "Baby Diaper", "Pañal Infantil"), SUB("lenco_umedecido", "Lenço Umedecido", "Wet Wipes", "Toallitas Húmedas"),
-        SUB("leite_formula_infantil", "Fórmula/Leite Infantil", "Baby Formula/Milk", "Fórmula/Leche Infantil", [CAMPO_PERECIVEL]),
-        SUB("mamadeira_bico", "Mamadeira/Bico", "Baby Bottle/Nipple", "Biberón/Chupón"), SUB("higiene_bebe", "Higiene do Bebê", "Baby Care", "Higiene del Bebé"),
+        SUB("fralda_infantil", "Fralda Infantil", "Baby Diaper", "Pañal Infantil"), SUB("lenco_umedecido", "Lenço Umedecido", "Wet Wipes", "Toallitas Húmedas", [CAMPO_VALIDADE_DATA]),
+        SUB("leite_formula_infantil", "Fórmula/Leite Infantil", "Baby Formula/Milk", "Fórmula/Leche Infantil", [CAMPO_PERECIVEL, CAMPO_VALIDADE_DATA]),
+        SUB("mamadeira_bico", "Mamadeira/Bico", "Baby Bottle/Nipple", "Biberón/Chupón"), SUB("higiene_bebe", "Higiene do Bebê", "Baby Care", "Higiene del Bebé", [CAMPO_VALIDADE_DATA]),
         SUB("chupeta_acessorios", "Chupeta/Acessórios", "Pacifier/Accessories", "Chupete/Accesorios"),
       ]),
       CAT("saude_feminina_intima", "Saúde Feminina e Íntima", "Women's & Intimate Health", "Salud Femenina e Íntima", [
         SUB("absorvente_externo", "Absorvente Externo", "External Pad", "Toalla Femenina Externa"), SUB("absorvente_interno", "Absorvente Interno", "Tampon", "Tampón"),
         SUB("protetor_diario", "Protetor Diário", "Panty Liner", "Protector Diario"), SUB("coletor_menstrual", "Coletor Menstrual", "Menstrual Cup", "Copa Menstrual"),
-        SUB("teste_gravidez", "Teste de Gravidez", "Pregnancy Test", "Prueba de Embarazo"), SUB("preservativo", "Preservativo", "Condom", "Preservativo"),
-        SUB("lubrificante_intimo", "Lubrificante Íntimo", "Intimate Lubricant", "Lubricante Íntimo"),
+        SUB("teste_gravidez", "Teste de Gravidez", "Pregnancy Test", "Prueba de Embarazo", [CAMPO_VALIDADE_DATA]), SUB("preservativo", "Preservativo", "Condom", "Preservativo", [CAMPO_VALIDADE_DATA]),
+        SUB("lubrificante_intimo", "Lubrificante Íntimo", "Intimate Lubricant", "Lubricante Íntimo", [CAMPO_VALIDADE_DATA]),
       ]),
       CAT("geriatria", "Geriatria", "Geriatric Care", "Geriatría", [
         SUB("fralda_geriatrica", "Fralda Geriátrica", "Adult Diaper", "Pañal Geriátrico"), SUB("fixador_dentadura_geriatria", "Fixador de Dentadura", "Denture Adhesive", "Fijador de Dentadura"),
-        SUB("suplemento_geriatrico", "Suplemento Geriátrico", "Geriatric Supplement", "Suplemento Geriátrico", [CAMPO_PERECIVEL]),
+        SUB("suplemento_geriatrico", "Suplemento Geriátrico", "Geriatric Supplement", "Suplemento Geriátrico", [CAMPO_PERECIVEL, CAMPO_VALIDADE_DATA]),
         SUB("andador_apoio", "Andador/Apoio de Mobilidade", "Walker/Mobility Aid", "Andador/Apoyo de Movilidad"), SUB("cadeira_banho", "Cadeira de Banho", "Shower Chair", "Silla de Baño"),
       ]),
       CAT("ortopedia", "Ortopedia", "Orthopedics", "Ortopedia", [
@@ -384,15 +417,15 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("joelheira_tornozeleira", "Joelheira/Tornozeleira", "Knee/Ankle Brace", "Rodillera/Tobillera"),
       ]),
       CAT("primeiros_socorros_mips", "Primeiros Socorros e MIPs", "First Aid & OTC", "Primeros Auxilios y MIPs", [
-        SUB("curativo_bandagem", "Curativo/Bandagem", "Bandage/Wound Dressing", "Curita/Vendaje"), SUB("gaze_esparadrapo", "Gaze/Esparadrapo", "Gauze/Adhesive Tape", "Gasa/Esparadrapo"),
-        SUB("antisseptico_alcool", "Antisséptico/Álcool", "Antiseptic/Alcohol", "Antiséptico/Alcohol"), SUB("analgesico_antitermico", "Analgésico/Antitérmico", "Pain Reliever/Fever Reducer", "Analgésico/Antitérmico"),
-        SUB("antiacido_digestivo", "Antiácido/Digestivo", "Antacid/Digestive", "Antiácido/Digestivo"), SUB("repelente", "Repelente", "Insect Repellent", "Repelente"),
+        SUB("curativo_bandagem", "Curativo/Bandagem", "Bandage/Wound Dressing", "Curita/Vendaje", [CAMPO_VALIDADE_DATA]), SUB("gaze_esparadrapo", "Gaze/Esparadrapo", "Gauze/Adhesive Tape", "Gasa/Esparadrapo", [CAMPO_VALIDADE_DATA]),
+        SUB("antisseptico_alcool", "Antisséptico/Álcool", "Antiseptic/Alcohol", "Antiséptico/Alcohol", [CAMPO_VALIDADE_DATA]), SUB("analgesico_antitermico", "Analgésico/Antitérmico", "Pain Reliever/Fever Reducer", "Analgésico/Antitérmico", [CAMPO_VALIDADE_DATA]),
+        SUB("antiacido_digestivo", "Antiácido/Digestivo", "Antacid/Digestive", "Antiácido/Digestivo", [CAMPO_VALIDADE_DATA]), SUB("repelente", "Repelente", "Insect Repellent", "Repelente", [CAMPO_VALIDADE_DATA]),
         SUB("termometro_medidor_pressao", "Termômetro/Medidor de Pressão", "Thermometer/Blood Pressure Monitor", "Termómetro/Tensiómetro"),
       ]),
       CAT("conveniencia_farmacia", "Conveniência de Farmácia", "Pharmacy Convenience", "Conveniencia de Farmacia", [
         SUB("pilha_farmacia", "Pilha", "Batteries", "Pilas"), SUB("isqueiro_acessorios", "Isqueiro/Acessórios", "Lighter/Accessories", "Encendedor/Accesorios"),
-        SUB("chocolate_doce", "Chocolate/Doce", "Chocolate/Candy", "Chocolate/Dulce", [CAMPO_PERECIVEL]), SUB("bebida_nao_alcoolica_farmacia", "Bebida Não Alcoólica", "Non-alcoholic Beverage", "Bebida Sin Alcohol", [CAMPO_PERECIVEL]),
-        SUB("snack_biscoito", "Snack/Biscoito", "Snack/Cookie", "Snack/Galleta", [CAMPO_PERECIVEL]), SUB("lembrancinha_embalagem", "Lembrancinha/Embalagem de Presente", "Small Gift/Gift Wrap", "Detalle/Envoltorio de Regalo"),
+        SUB("chocolate_doce", "Chocolate/Doce", "Chocolate/Candy", "Chocolate/Dulce", [CAMPO_PERECIVEL, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]), SUB("bebida_nao_alcoolica_farmacia", "Bebida Não Alcoólica", "Non-alcoholic Beverage", "Bebida Sin Alcohol", [CAMPO_PERECIVEL, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+        SUB("snack_biscoito", "Snack/Biscoito", "Snack/Cookie", "Snack/Galleta", [CAMPO_PERECIVEL, CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]), SUB("lembrancinha_embalagem", "Lembrancinha/Embalagem de Presente", "Small Gift/Gift Wrap", "Detalle/Envoltorio de Regalo"),
       ]),
     ],
   },
