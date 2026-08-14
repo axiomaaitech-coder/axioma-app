@@ -4,18 +4,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Search, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { createBrowserClient } from "@supabase/ssr";
 import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
 import { useLanguage } from "../../../lib/LanguageContext";
 import type { Idioma } from "../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../lib/empresaHelpers";
 import { carregarContagemPorSegmento, excluirProduto, type ContagemSegmento } from "../../../lib/estoqueHelpers";
 import {
-  NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho, type DivisaoPrimaria,
+  NICHOS_PDV, buscarNicho, type NichoPdvDef, type ModoNicho, type DivisaoPrimaria, type CategoriaPdv, type SubNichoPdv,
 } from "../../../lib/pdvCatalogoTaxonomia";
 import {
   listarCategoriasReais, listarSubNichosReais, listarProdutosPdv, SEM_SUBNICHO,
   PDV_PAGE_SIZE, type ProdutoPdv,
 } from "../../../lib/pdvHelpers";
+import { FormularioCadastroPdv, encontrarCategoriaPorLabel, encontrarSubNichoPorLabel } from "../../../components/PdvCadastroProduto";
 
 // Botões de ação e preço usam tokens.acaoBg/acento (verde só sobrevive no
 // tema escuro, via tokens — ver components/PdvLayout.tsx). Nenhuma cor fixa
@@ -107,7 +109,9 @@ export default function PDV() {
   const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
   const router = useRouter();
 
+  const supabase = useMemo(() => createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!), []);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [papel, setPapel] = useState<string | null>(null);
   const [carregandoPapel, setCarregandoPapel] = useState(true);
   const [contagem, setContagem] = useState<ContagemSegmento[]>([]);
@@ -142,6 +146,8 @@ export default function PDV() {
 
   useEffect(() => {
     (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
       const id = await obterEmpresaAtiva();
       setEmpresaId(id);
       if (!id) { setCarregandoPapel(false); return; }
@@ -153,7 +159,7 @@ export default function PDV() {
       setContagem(contagemSegmentos);
       setCarregandoPapel(false);
     })();
-  }, []);
+  }, [supabase]);
 
   // Debounce da busca (300ms), só reseta paginação quando o termo muda de verdade.
   useEffect(() => {
@@ -212,6 +218,19 @@ export default function PDV() {
     const partes = [nichoSel?.label[lang], categoriaSel, subNichoSel && subNichoSel !== SEM_SUBNICHO ? subNichoSel : null].filter(Boolean) as string[];
     return partes.join(" › ");
   }, [nivel, nichoSel, categoriaSel, subNichoSel, lang]);
+
+  // Resolve os labels navegados (categoriaSel/subNichoSel são texto, curado
+  // ou real) pros objetos da taxonomia — mesmo critério de casar por label
+  // nos 3 idiomas usado em pdv/cadastro/page.tsx — pra alimentar o formulário
+  // inline no nível "produtos" com os mesmos tipos que ele espera.
+  const categoriaObjSel = useMemo(
+    () => (nichoSel && categoriaSel ? encontrarCategoriaPorLabel(nichoSel, categoriaSel) : null),
+    [nichoSel, categoriaSel],
+  );
+  const subNichoObjSel = useMemo(
+    () => (categoriaObjSel && subNichoSel && subNichoSel !== SEM_SUBNICHO ? encontrarSubNichoPorLabel(categoriaObjSel, subNichoSel) : null),
+    [categoriaObjSel, subNichoSel],
+  );
 
   const qtdPorSegmento = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -349,18 +368,31 @@ export default function PDV() {
       )}
 
       {nivel === "produtos" && nichoSel && (
-        <ListaProdutos
-          lang={lang}
-          produtos={produtos}
-          total={totalProdutos}
-          pagina={pagina}
-          carregando={carregandoNivel}
-          busca={busca}
-          onBusca={setBusca}
-          onPaginaAnterior={() => setPagina((p) => Math.max(0, p - 1))}
-          onPaginaProxima={() => setPagina((p) => p + 1)}
-          onExcluir={excluirProdutoHandler}
-        />
+        <>
+          {/* Cadastro inline — formulário em cima, lista embaixo. Fonte única
+              (components/PdvCadastroProduto.tsx), mesma usada pela página
+              cheia /pdv/cadastro. onSalvo reaproveita o recarregarTick que já
+              dispara o useEffect de listagem, sem duplicar lógica de reload. */}
+          <div className="mb-6">
+            <FormularioCadastroPdv
+              empresaId={empresaId} userId={userId} lang={lang}
+              nichoSel={nichoSel} categoriaSel={categoriaObjSel} subNichoSel={subNichoObjSel}
+              mostrarToast={mostrarToast} onSalvo={() => setRecarregarTick((tk) => tk + 1)}
+            />
+          </div>
+          <ListaProdutos
+            lang={lang}
+            produtos={produtos}
+            total={totalProdutos}
+            pagina={pagina}
+            carregando={carregandoNivel}
+            busca={busca}
+            onBusca={setBusca}
+            onPaginaAnterior={() => setPagina((p) => Math.max(0, p - 1))}
+            onPaginaProxima={() => setPagina((p) => p + 1)}
+            onExcluir={excluirProdutoHandler}
+          />
+        </>
       )}
 
       {toast && (
