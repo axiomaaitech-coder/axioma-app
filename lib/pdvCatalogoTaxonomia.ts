@@ -270,6 +270,77 @@ const CAMPOS_SERVICO_PADRAO: CampoNicho[] = [
   ]),
 ];
 
+// ============================================================================
+// SUB-NICHOS COMPARTILHADOS — Padaria: fonte única entre a categoria "Padaria"
+// do nicho mercado e o nicho próprio "padaria_confeitaria" (loja de bairro).
+// Editar aqui reflete nos dois lugares. Os 6 values antigos genéricos que já
+// existiam na categoria do mercado (pao_do_dia, pao_forma_industrializado,
+// confeitaria_doces, torrada_biscoito_padaria, bolo_padaria_mercado,
+// salgado_assado_frito_mercado) NÃO existem nesta lista completa — foram
+// preservados à parte, no fim do array da categoria, por poderem ter produto
+// cadastrado. Nunca renomeados/removidos.
+// ============================================================================
+const SUBNICHOS_PADARIA_PAES: SubNichoPdv[] = [
+  SUB("pao_frances_tradicional", "Pão Francês/Tradicional", "French/Traditional Bread", "Pan Francés/Tradicional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("pao_forma_sovado", "Pão de Forma/Sovado", "Sliced/Soft White Bread", "Pan de Molde/Sobado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("pao_integral_multigraos", "Pão Integral/Multigrãos", "Whole Wheat/Multigrain Bread", "Pan Integral/Multigrano", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("pao_fermentacao_natural", "Pão de Fermentação Natural", "Sourdough Bread", "Pan de Masa Madre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("pao_especial", "Pão Especial (Ciabatta/Australiano/Centeio/Focaccia/Sírio)", "Specialty Bread (Ciabatta/Rye/Focaccia/Pita)", "Pan Especial (Chapata/Centeno/Focaccia/Sirio)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("pao_de_queijo", "Pão de Queijo", "Cheese Bread", "Pan de Queso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("pao_doce", "Pão Doce (Brioche/Rosca/Sonho)", "Sweet Bread (Brioche/Sweet Roll/Filled Doughnut)", "Pan Dulce (Brioche/Rosca/Berlinesa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("pao_lanche", "Pão para Lanche (Hambúrguer/Cachorro-quente)", "Sandwich Bread (Burger/Hot Dog)", "Pan para Sándwich (Hamburguesa/Hot Dog)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("pao_sazonal_festivo", "Pão Sazonal/Festivo (Panetone/Colomba)", "Seasonal/Holiday Bread (Panettone/Colomba)", "Pan de Temporada (Panetón/Colomba)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("torrada_pao_fatiado", "Torrada/Pão Fatiado Torrado", "Toast/Sliced Toasted Bread", "Tostada/Pan Tostado en Rebanadas", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_PADARIA_SALGADOS_ASSADOS: SubNichoPdv[] = [
+  SUB("esfiha", "Esfiha", "Esfiha", "Esfiha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("empada", "Empada", "Empanada Pie (Empada)", "Empanada al Horno (Empada)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("quiche", "Quiche", "Quiche", "Quiche", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("calzone", "Calzone", "Calzone", "Calzone", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("croissant_salgado", "Croissant Salgado", "Savory Croissant", "Croissant Salado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("pao_batata", "Pão de Batata", "Potato Bread Roll", "Pan de Papa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("bauru", "Bauru", "Bauru Sandwich", "Bauru", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("enroladinho_salsicha", "Enroladinho de Salsicha", "Sausage Roll", "Enrollado de Salchicha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_SALGADOS_FRITOS: SubNichoPdv[] = [
+  SUB("coxinha", "Coxinha", "Coxinha (Chicken Croquette)", "Coxinha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("pastel", "Pastel", "Pastel (Fried Pastry)", "Pastel Frito", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("risole", "Risole", "Risole", "Risol", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("croquete", "Croquete", "Croquette", "Croqueta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("bolinha_queijo", "Bolinha de Queijo", "Cheese Ball", "Bolita de Queso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("kibe", "Kibe", "Kibbeh", "Kibe", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_LANCHES_NATURAIS: SubNichoPdv[] = [
+  SUB("sanduiche_natural", "Sanduíche Natural", "Natural Sandwich", "Sándwich Natural", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("wrap", "Wrap", "Wrap", "Wrap", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("salada_individual", "Salada Individual", "Individual Salad", "Ensalada Individual", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("suco_detox_funcional", "Suco Detox/Funcional", "Detox/Functional Juice", "Jugo Detox/Funcional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_CONFEITARIA_FINA: SubNichoPdv[] = [
+  SUB("macaron", "Macaron", "Macaron", "Macaron", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("trufa", "Trufa", "Truffle", "Trufa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("brigadeiro_gourmet", "Brigadeiro Gourmet", "Gourmet Brigadeiro", "Brigadeiro Gourmet", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("bombom_artesanal", "Bombom Artesanal", "Artisanal Bonbon", "Bombón Artesanal", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("petit_four", "Petit Four", "Petit Four", "Petit Four", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("financier_mini_doce", "Financier/Mini Doce Francês", "Financier/Mini French Pastry", "Financier/Mini Dulce Francés", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_BOLOS_TORTAS: SubNichoPdv[] = [
+  SUB("bolo_caseiro_fatia", "Bolo Caseiro (Fatia)", "Homemade Cake (Slice)", "Torta Casera (Porción)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("bolo_personalizado", "Bolo Personalizado/Decorado", "Custom/Decorated Cake", "Torta Personalizada/Decorada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("torta_doce", "Torta Doce", "Sweet Pie", "Tarta Dulce", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("torta_salgada", "Torta Salgada", "Savory Pie", "Tarta Salada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("cheesecake", "Cheesecake", "Cheesecake", "Cheesecake", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("bolo_especial", "Bolo Especial (Red Velvet etc.)", "Specialty Cake (Red Velvet etc.)", "Torta Especial (Red Velvet, etc.)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_DOCES_SOBREMESAS: SubNichoPdv[] = [
+  SUB("pudim", "Pudim", "Pudding (Flan)", "Pudín (Flan)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("mousse", "Mousse", "Mousse", "Mousse", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("brigadeiro_tradicional", "Brigadeiro Tradicional", "Traditional Brigadeiro", "Brigadeiro Tradicional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("cocada", "Cocada", "Cocada (Coconut Candy)", "Cocada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+  SUB("doce_em_calda", "Doce em Calda", "Fruit in Syrup", "Dulce en Almíbar", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("sobremesa_copo", "Sobremesa em Copo", "Cup Dessert", "Postre en Vaso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_CAFETERIA: SubNichoPdv[] = [
+  SUB("espresso", "Espresso", "Espresso", "Espresso", [CAMPO_UNIDADE_VENDA]), SUB("cafe_com_leite", "Café com Leite", "Coffee with Milk", "Café con Leche", [CAMPO_UNIDADE_VENDA]),
+  SUB("cappuccino", "Cappuccino", "Cappuccino", "Capuchino", [CAMPO_UNIDADE_VENDA]), SUB("chocolate_quente", "Chocolate Quente", "Hot Chocolate", "Chocolate Caliente", [CAMPO_UNIDADE_VENDA]),
+  SUB("suco_natural_cafeteria", "Suco Natural", "Fresh Juice", "Jugo Natural", [CAMPO_UNIDADE_VENDA]), SUB("cha", "Chá", "Tea", "Té", [CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_PADARIA_FRIOS_LATICINIOS: SubNichoPdv[] = [
+  SUB("queijo_fatiado", "Queijo Fatiado", "Sliced Cheese", "Queso en Fetas", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("presunto_embutido_padaria", "Presunto/Embutido", "Ham/Cold Cuts", "Jamón/Fiambre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("manteiga_margarina", "Manteiga/Margarina", "Butter/Margarine", "Mantequilla/Margarina", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("iogurte_padaria", "Iogurte", "Yogurt", "Yogur", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("requeijao", "Requeijão", "Cream Cheese Spread (Requeijão)", "Requesón (Requeijão)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("leite_padaria", "Leite", "Milk", "Leche", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_PADARIA_CONGELADOS: SubNichoPdv[] = [
+  SUB("prato_pronto_congelado_padaria", "Prato Pronto Congelado", "Frozen Ready Meal", "Comida Congelada Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("massa_pizza_pastel_congelada", "Massa de Pizza/Pastel Congelada", "Frozen Pizza/Pastel Dough", "Masa de Pizza/Pastel Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("sorvete_acai_padaria", "Sorvete/Açaí", "Ice Cream/Açaí", "Helado/Açaí", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("polpa_fruta_congelada_padaria", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("pao_queijo_congelado", "Pão de Queijo Congelado (Pacote)", "Frozen Cheese Bread (Bag)", "Pan de Queso Congelado (Bolsa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+
 export const NICHOS_PDV: NichoPdvDef[] = [
   // ============================================================================
   // MODO PRODUTO — reaproveitam o segmento existente do Estoque (dado real)
@@ -298,6 +369,11 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("bacalhau_salgado", "Bacalhau/Salgado", "Salted Cod/Dried Fish", "Bacalao/Salado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("sushi_preparado", "Sushi/Preparado", "Sushi/Prepared", "Sushi/Preparado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("padaria_mercado", "Padaria", "Bakery", "Panadería", [
+        ...SUBNICHOS_PADARIA_PAES, ...SUBNICHOS_PADARIA_SALGADOS_ASSADOS, ...SUBNICHOS_PADARIA_SALGADOS_FRITOS,
+        ...SUBNICHOS_PADARIA_LANCHES_NATURAIS, ...SUBNICHOS_PADARIA_CONFEITARIA_FINA, ...SUBNICHOS_PADARIA_BOLOS_TORTAS,
+        ...SUBNICHOS_PADARIA_DOCES_SOBREMESAS, ...SUBNICHOS_PADARIA_CAFETERIA, ...SUBNICHOS_PADARIA_FRIOS_LATICINIOS,
+        ...SUBNICHOS_PADARIA_CONGELADOS,
+        // legado — 6 values antigos da categoria do mercado, preservados (produto pode estar cadastrado neles)
         SUB("pao_do_dia", "Pão do Dia", "Daily Bread", "Pan del Día", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("pao_forma_industrializado", "Pão de Forma Industrializado", "Packaged Sliced Bread", "Pan de Molde Industrial", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("confeitaria_doces", "Confeitaria/Doces", "Pastry/Sweets", "Pastelería/Dulces", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("torrada_biscoito_padaria", "Torrada/Biscoito de Padaria", "Toast/Bakery Cookies", "Tostada/Galleta de Panadería", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("bolo_padaria_mercado", "Bolo de Padaria", "Bakery Cake", "Torta de Panadería", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("salgado_assado_frito_mercado", "Salgado Assado/Frito", "Baked/Fried Savory Pastry", "Salado Horneado/Frito", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
@@ -707,66 +783,16 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "padaria_confeitaria", label: L("Padaria/Confeitaria", "Bakery/Pastry Shop", "Panadería/Pastelería"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("paes", "Pães", "Bread", "Panes", [
-        SUB("pao_frances_tradicional", "Pão Francês/Tradicional", "French/Traditional Bread", "Pan Francés/Tradicional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("pao_forma_sovado", "Pão de Forma/Sovado", "Sliced/Soft White Bread", "Pan de Molde/Sobado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("pao_integral_multigraos", "Pão Integral/Multigrãos", "Whole Wheat/Multigrain Bread", "Pan Integral/Multigrano", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("pao_fermentacao_natural", "Pão de Fermentação Natural", "Sourdough Bread", "Pan de Masa Madre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("pao_especial", "Pão Especial (Ciabatta/Australiano/Centeio/Focaccia/Sírio)", "Specialty Bread (Ciabatta/Rye/Focaccia/Pita)", "Pan Especial (Chapata/Centeno/Focaccia/Sirio)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("pao_de_queijo", "Pão de Queijo", "Cheese Bread", "Pan de Queso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("pao_doce", "Pão Doce (Brioche/Rosca/Sonho)", "Sweet Bread (Brioche/Sweet Roll/Filled Doughnut)", "Pan Dulce (Brioche/Rosca/Berlinesa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("pao_lanche", "Pão para Lanche (Hambúrguer/Cachorro-quente)", "Sandwich Bread (Burger/Hot Dog)", "Pan para Sándwich (Hamburguesa/Hot Dog)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("pao_sazonal_festivo", "Pão Sazonal/Festivo (Panetone/Colomba)", "Seasonal/Holiday Bread (Panettone/Colomba)", "Pan de Temporada (Panetón/Colomba)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("torrada_pao_fatiado", "Torrada/Pão Fatiado Torrado", "Toast/Sliced Toasted Bread", "Tostada/Pan Tostado en Rebanadas", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("salgados_assados", "Salgados Assados", "Baked Savory Pastries", "Salados Horneados", [
-        SUB("esfiha", "Esfiha", "Esfiha", "Esfiha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("empada", "Empada", "Empanada Pie (Empada)", "Empanada al Horno (Empada)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("quiche", "Quiche", "Quiche", "Quiche", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("calzone", "Calzone", "Calzone", "Calzone", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("croissant_salgado", "Croissant Salgado", "Savory Croissant", "Croissant Salado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("pao_batata", "Pão de Batata", "Potato Bread Roll", "Pan de Papa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("bauru", "Bauru", "Bauru Sandwich", "Bauru", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("enroladinho_salsicha", "Enroladinho de Salsicha", "Sausage Roll", "Enrollado de Salchicha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("salgados_fritos", "Salgados Fritos", "Fried Savory Pastries", "Salados Fritos", [
-        SUB("coxinha", "Coxinha", "Coxinha (Chicken Croquette)", "Coxinha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("pastel", "Pastel", "Pastel (Fried Pastry)", "Pastel Frito", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("risole", "Risole", "Risole", "Risol", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("croquete", "Croquete", "Croquette", "Croqueta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("bolinha_queijo", "Bolinha de Queijo", "Cheese Ball", "Bolita de Queso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("kibe", "Kibe", "Kibbeh", "Kibe", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("lanches_naturais", "Lanches Naturais", "Natural Sandwiches", "Sándwiches Naturales", [
-        SUB("sanduiche_natural", "Sanduíche Natural", "Natural Sandwich", "Sándwich Natural", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("wrap", "Wrap", "Wrap", "Wrap", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("salada_individual", "Salada Individual", "Individual Salad", "Ensalada Individual", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("suco_detox_funcional", "Suco Detox/Funcional", "Detox/Functional Juice", "Jugo Detox/Funcional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("confeitaria_fina", "Confeitaria Fina", "Fine Pastry", "Pastelería Fina", [
-        SUB("macaron", "Macaron", "Macaron", "Macaron", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("trufa", "Trufa", "Truffle", "Trufa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("brigadeiro_gourmet", "Brigadeiro Gourmet", "Gourmet Brigadeiro", "Brigadeiro Gourmet", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("bombom_artesanal", "Bombom Artesanal", "Artisanal Bonbon", "Bombón Artesanal", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("petit_four", "Petit Four", "Petit Four", "Petit Four", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("financier_mini_doce", "Financier/Mini Doce Francês", "Financier/Mini French Pastry", "Financier/Mini Dulce Francés", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("bolos_tortas", "Bolos e Tortas", "Cakes & Pies", "Tortas y Pasteles", [
-        SUB("bolo_caseiro_fatia", "Bolo Caseiro (Fatia)", "Homemade Cake (Slice)", "Torta Casera (Porción)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("bolo_personalizado", "Bolo Personalizado/Decorado", "Custom/Decorated Cake", "Torta Personalizada/Decorada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("torta_doce", "Torta Doce", "Sweet Pie", "Tarta Dulce", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("torta_salgada", "Torta Salgada", "Savory Pie", "Tarta Salada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("cheesecake", "Cheesecake", "Cheesecake", "Cheesecake", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("bolo_especial", "Bolo Especial (Red Velvet etc.)", "Specialty Cake (Red Velvet etc.)", "Torta Especial (Red Velvet, etc.)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("doces_sobremesas", "Doces e Sobremesas", "Sweets & Desserts", "Dulces y Postres", [
-        SUB("pudim", "Pudim", "Pudding (Flan)", "Pudín (Flan)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("mousse", "Mousse", "Mousse", "Mousse", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("brigadeiro_tradicional", "Brigadeiro Tradicional", "Traditional Brigadeiro", "Brigadeiro Tradicional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("cocada", "Cocada", "Cocada (Coconut Candy)", "Cocada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-        SUB("doce_em_calda", "Doce em Calda", "Fruit in Syrup", "Dulce en Almíbar", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]), SUB("sobremesa_copo", "Sobremesa em Copo", "Cup Dessert", "Postre en Vaso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("cafeteria", "Café/Cafeteria", "Coffee/Café", "Café/Cafetería", [
-        SUB("espresso", "Espresso", "Espresso", "Espresso", [CAMPO_UNIDADE_VENDA]), SUB("cafe_com_leite", "Café com Leite", "Coffee with Milk", "Café con Leche", [CAMPO_UNIDADE_VENDA]),
-        SUB("cappuccino", "Cappuccino", "Cappuccino", "Capuchino", [CAMPO_UNIDADE_VENDA]), SUB("chocolate_quente", "Chocolate Quente", "Hot Chocolate", "Chocolate Caliente", [CAMPO_UNIDADE_VENDA]),
-        SUB("suco_natural_cafeteria", "Suco Natural", "Fresh Juice", "Jugo Natural", [CAMPO_UNIDADE_VENDA]), SUB("cha", "Chá", "Tea", "Té", [CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("frios_laticinios_padaria", "Frios e Laticínios", "Deli & Dairy", "Fiambres y Lácteos", [
-        SUB("queijo_fatiado", "Queijo Fatiado", "Sliced Cheese", "Queso en Fetas", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("presunto_embutido_padaria", "Presunto/Embutido", "Ham/Cold Cuts", "Jamón/Fiambre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("manteiga_margarina", "Manteiga/Margarina", "Butter/Margarine", "Mantequilla/Margarina", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("iogurte_padaria", "Iogurte", "Yogurt", "Yogur", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("requeijao", "Requeijão", "Cream Cheese Spread (Requeijão)", "Requesón (Requeijão)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("leite_padaria", "Leite", "Milk", "Leche", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("congelados_padaria", "Congelados", "Frozen", "Congelados", [
-        SUB("prato_pronto_congelado_padaria", "Prato Pronto Congelado", "Frozen Ready Meal", "Comida Congelada Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("massa_pizza_pastel_congelada", "Massa de Pizza/Pastel Congelada", "Frozen Pizza/Pastel Dough", "Masa de Pizza/Pastel Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("sorvete_acai_padaria", "Sorvete/Açaí", "Ice Cream/Açaí", "Helado/Açaí", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("polpa_fruta_congelada_padaria", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("pao_queijo_congelado", "Pão de Queijo Congelado (Pacote)", "Frozen Cheese Bread (Bag)", "Pan de Queso Congelado (Bolsa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
+      CAT("paes", "Pães", "Bread", "Panes", SUBNICHOS_PADARIA_PAES),
+      CAT("salgados_assados", "Salgados Assados", "Baked Savory Pastries", "Salados Horneados", SUBNICHOS_PADARIA_SALGADOS_ASSADOS),
+      CAT("salgados_fritos", "Salgados Fritos", "Fried Savory Pastries", "Salados Fritos", SUBNICHOS_PADARIA_SALGADOS_FRITOS),
+      CAT("lanches_naturais", "Lanches Naturais", "Natural Sandwiches", "Sándwiches Naturales", SUBNICHOS_PADARIA_LANCHES_NATURAIS),
+      CAT("confeitaria_fina", "Confeitaria Fina", "Fine Pastry", "Pastelería Fina", SUBNICHOS_PADARIA_CONFEITARIA_FINA),
+      CAT("bolos_tortas", "Bolos e Tortas", "Cakes & Pies", "Tortas y Pasteles", SUBNICHOS_PADARIA_BOLOS_TORTAS),
+      CAT("doces_sobremesas", "Doces e Sobremesas", "Sweets & Desserts", "Dulces y Postres", SUBNICHOS_PADARIA_DOCES_SOBREMESAS),
+      CAT("cafeteria", "Café/Cafeteria", "Coffee/Café", "Café/Cafetería", SUBNICHOS_PADARIA_CAFETERIA),
+      CAT("frios_laticinios_padaria", "Frios e Laticínios", "Deli & Dairy", "Fiambres y Lácteos", SUBNICHOS_PADARIA_FRIOS_LATICINIOS),
+      CAT("congelados_padaria", "Congelados", "Frozen", "Congelados", SUBNICHOS_PADARIA_CONGELADOS),
     ],
   },
   {
