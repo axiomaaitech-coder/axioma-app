@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
+import * as Sentry from '@sentry/nextjs'
 import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -115,6 +116,18 @@ export default function ContasReceber() {
   const { idioma } = useLanguage()
   const lang = idioma as Idioma3
   const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
+
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 4000)
+  }
+  // Reporta falha de escrita no Supabase (erro real, ou RLS bloqueando em
+  // silêncio — 0 linhas afetadas sem erro do Postgres) pro Sentry, com
+  // contexto útil, sem travar a tela.
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
+  }
 
   const [contas, setContas] = useState<Conta[]>([])
   const [clientes, setClientes] = useState<ClienteRow[]>([])
@@ -339,27 +352,37 @@ export default function ContasReceber() {
       status, empresa_id: empresaId,
     }
 
-    async function tentarSalvar(payload: any): Promise<{ error: any }> {
-      if (editando) return supabase.from('contas_receber').update(payload).eq('id', editando.id)
-      return supabase.from('contas_receber').insert({ ...payload, user_id: userId, empresa_id: empresaId })
+    async function tentarSalvar(payload: any): Promise<{ data: any; error: any }> {
+      if (editando) return supabase.from('contas_receber').update(payload).eq('id', editando.id).select('id')
+      return supabase.from('contas_receber').insert({ ...payload, user_id: userId, empresa_id: empresaId }).select('id')
     }
 
-    let { error } = await tentarSalvar(payloadCompleto)
+    let { data, error } = await tentarSalvar(payloadCompleto)
     if (error && error.code === '42703') {
       const payloadReduzido = { ...payloadCompleto }
       COLUNAS_PENDENTES_SQL.forEach((k) => delete payloadReduzido[k])
       const retry = await tentarSalvar(payloadReduzido)
-      error = retry.error
+      data = retry.data; error = retry.error
       if (!error) setAvisoSchema(true)
     }
 
-    if (error) { setErroSalvar(error.message); setSalvando(false); return }
+    if (error || !data || data.length === 0) {
+      setErroSalvar(L('Não foi possível salvar a conta. Tente novamente.', 'Could not save the bill. Try again.', 'No se pudo guardar la cuenta. Intente de nuevo.'))
+      reportarFalhaEscrita('contas_receber', editando ? 'update' : 'insert', error?.message || '0 linhas afetadas (RLS?)')
+      setSalvando(false)
+      return
+    }
     fecharModal(); setSalvando(false); carregar()
   }
 
   async function excluir(id: string) {
-    await supabase.from('contas_receber').delete().eq('id', id)
-    setContas(contas.filter((c) => c.id !== id))
+    const { data, error } = await supabase.from('contas_receber').delete().eq('id', id).select('id')
+    if (error || !data || data.length === 0) {
+      showToast(L('Não foi possível excluir a conta. Tente novamente.', 'Could not delete the bill. Try again.', 'No se pudo eliminar la cuenta. Intente de nuevo.'), 'erro')
+      reportarFalhaEscrita('contas_receber', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+      return
+    }
+    carregar()
   }
 
   function abrirReceber(c: Conta) {
@@ -373,10 +396,16 @@ export default function ContasReceber() {
     setRecebendo(true)
     const novoRecebido = (contaReceber.valor_recebido || 0) + parseFloat(valorReceber || '0')
     const status = calcStatus(contaReceber.valor, novoRecebido, contaReceber.data_vencimento)
-    await supabase.from('contas_receber').update({
+    const { data, error } = await supabase.from('contas_receber').update({
       valor_recebido: novoRecebido, status,
       data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : contaReceber.data_recebimento || null,
-    }).eq('id', contaReceber.id)
+    }).eq('id', contaReceber.id).select('id')
+    if (error || !data || data.length === 0) {
+      showToast(L('Não foi possível confirmar o recebimento. Tente novamente.', 'Could not confirm the payment. Try again.', 'No se pudo confirmar el cobro. Intente de nuevo.'), 'erro')
+      reportarFalhaEscrita('contas_receber', 'update recebimento', error?.message || '0 linhas afetadas (RLS?)')
+      setRecebendo(false)
+      return
+    }
     setModalReceber(false); setContaReceber(null); setValorReceber(''); setRecebendo(false); carregar()
   }
 
@@ -669,6 +698,15 @@ export default function ContasReceber() {
         </motion.button>
       }
     >
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)',
+            color: '#020810', fontWeight: 600, fontSize: 13,
+          }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-6">
 
         {avisoSchema && (
