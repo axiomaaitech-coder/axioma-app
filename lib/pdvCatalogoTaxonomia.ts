@@ -1088,9 +1088,9 @@ export const NICHOS_PDV: NichoPdvDef[] = [
     value: "cosmeticos_perfumaria", label: L("Cosméticos/Perfumaria", "Cosmetics/Perfumery", "Cosméticos/Perfumería"), modo: "produto", divisaoPrimaria: "nao_alimentos",
     categorias: [
       CAT("maquiagem", "Maquiagem", "Makeup", "Maquillaje", [
-        SUB("base_corretivo", "Base/Corretivo", "Foundation/Concealer", "Base/Corrector", [CAMPO_PERECIVEL, CAMPO_TIPO_PELE]), SUB("po_facial", "Pó Facial", "Face Powder", "Polvo Facial", [CAMPO_PERECIVEL, CAMPO_TIPO_PELE]),
+        SUB("base_corretivo", "Base/Corretivo", "Foundation/Concealer", "Base/Corrector", [CAMPO_PERECIVEL, CAMPO_TIPO_PELE, CAMPO_VOLUME]), SUB("po_facial", "Pó Facial", "Face Powder", "Polvo Facial", [CAMPO_PERECIVEL, CAMPO_TIPO_PELE]),
         SUB("sombra_paleta", "Sombra/Paleta", "Eyeshadow/Palette", "Sombra/Paleta", [CAMPO_PERECIVEL]), SUB("rimel_delineador", "Rímel/Delineador", "Mascara/Eyeliner", "Rímel/Delineador", [CAMPO_PERECIVEL]),
-        SUB("batom_gloss", "Batom/Gloss", "Lipstick/Gloss", "Labial/Gloss", [CAMPO_PERECIVEL]), SUB("blush_iluminador", "Blush/Iluminador", "Blush/Highlighter", "Rubor/Iluminador", [CAMPO_PERECIVEL]),
+        SUB("batom_gloss", "Batom/Gloss", "Lipstick/Gloss", "Labial/Gloss", [CAMPO_PERECIVEL, CAMPO_VOLUME]), SUB("blush_iluminador", "Blush/Iluminador", "Blush/Highlighter", "Rubor/Iluminador", [CAMPO_PERECIVEL]),
         SUB("sobrancelha_maquiagem", "Sobrancelha", "Eyebrow", "Cejas", [CAMPO_PERECIVEL]),
         SUB("pincel_esponja", "Pincel/Esponja de Maquiagem", "Makeup Brush/Sponge", "Brocha/Esponja"),
       ]),
@@ -1121,13 +1121,13 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       // diferentes: aqui é venda direta de cosmético, lá é revenda dentro do
       // salão). Nunca comparado entre nichos em nenhum lugar do código — seguro.
       CAT("unhas_cosm", "Unhas", "Nails", "Uñas", [
-        SUB("esmalte", "Esmalte", "Nail Polish", "Esmalte"), SUB("acetona_removedor", "Acetona/Removedor", "Acetone/Remover", "Acetona/Removedor"),
+        SUB("esmalte", "Esmalte", "Nail Polish", "Esmalte", [CAMPO_VOLUME]), SUB("acetona_removedor", "Acetona/Removedor", "Acetone/Remover", "Acetona/Removedor", [CAMPO_VOLUME]),
         SUB("alicate_lixa", "Alicate/Lixa", "Clipper/File", "Alicate/Lima"), SUB("unha_postica_adesivo", "Unha Postiça/Adesivo", "Fake Nails/Stickers", "Uña Postiza/Adhesivo"),
-        SUB("fortalecedor_unha", "Fortalecedor de Unha", "Nail Strengthener", "Fortalecedor de Uñas"),
+        SUB("fortalecedor_unha", "Fortalecedor de Unha", "Nail Strengthener", "Fortalecedor de Uñas", [CAMPO_VOLUME]),
       ]),
       CAT("linha_masculina", "Linha Masculina", "Men's Line", "Línea Masculina", [
-        SUB("espuma_gel_barbear", "Espuma/Gel de Barbear", "Shaving Foam/Gel", "Espuma/Gel de Afeitar"), SUB("pos_barba", "Pós-barba", "Aftershave", "Aftershave"),
-        SUB("barbeador_lamina_cosm", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("oleo_cera_barba", "Óleo/Cera para Barba", "Beard Oil/Wax", "Aceite/Cera para Barba"),
+        SUB("espuma_gel_barbear", "Espuma/Gel de Barbear", "Shaving Foam/Gel", "Espuma/Gel de Afeitar", [CAMPO_VOLUME]), SUB("pos_barba", "Pós-barba", "Aftershave", "Aftershave", [CAMPO_VOLUME]),
+        SUB("barbeador_lamina_cosm", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("oleo_cera_barba", "Óleo/Cera para Barba", "Beard Oil/Wax", "Aceite/Cera para Barba", [CAMPO_VOLUME]),
         SUB("desodorante_masculino", "Desodorante Masculino", "Men's Deodorant", "Desodorante Masculino"),
       ]),
       CAT("kits_presentes_cosm", "Kits e Presentes", "Gift Sets", "Kits y Regalos", [
