@@ -107,6 +107,10 @@ const CAMPO_UNIDADE_VENDA: CampoNicho = CB("unidadeVenda", "select", "Unidade de
   { value: "fardo", label: L("Fardo", "Bale/Case", "Fardo") },
   { value: "peca", label: L("Peça", "Piece", "Pieza") },
   { value: "engradado", label: L("Engradado", "Crate", "Cajón Retornable") },
+  { value: "saco", label: L("Saco", "Sack", "Saco") },
+  { value: "metro", label: L("Metro (m)", "Meter (m)", "Metro (m)") },
+  { value: "barra", label: L("Barra", "Bar/Rod", "Barra") },
+  { value: "m2", label: L("Metro Quadrado (m²)", "Square Meter (m²)", "Metro Cuadrado (m²)") },
 ]);
 const CAMPO_VALIDADE_DATA: CampoNicho = { chave: "validadeData", tipo: "date", label: L("Validade", "Expiration Date", "Vencimiento") };
 
@@ -1398,6 +1402,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("cal_massa_pronta", "Cal/Massa Pronta", "Lime/Ready Mix", "Cal/Mezcla Lista"), SUB("areia", "Areia", "Sand", "Arena"),
         SUB("pedra_brita", "Pedra/Brita", "Gravel/Crushed Stone", "Piedra/Grava"), SUB("ferro_vergalhao", "Ferro/Vergalhão", "Rebar", "Varilla/Hierro"),
         SUB("bloco_tijolo", "Bloco/Tijolo", "Block/Brick", "Bloque/Ladrillo"),
+        SUB("viga_premoldada", "Viga Pré-moldada", "Precast Beam", "Viga Prefabricada", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("hidraulica", "Hidráulica", "Plumbing", "Plomería", [
         SUB("tubos_conexoes_pvc", "Tubos e Conexões PVC", "PVC Pipes & Fittings", "Tubos y Conexiones PVC"),
@@ -1405,6 +1410,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("registros_valvulas", "Registros e Válvulas", "Valves", "Llaves y Válvulas"), SUB("torneira_area_tanque", "Torneira de Área/Tanque", "Utility/Laundry Faucet", "Grifo de Patio/Lavadero"),
         SUB("caixa_agua", "Caixa d'Água", "Water Tank", "Tanque de Agua"), SUB("bomba_agua", "Bomba d'Água", "Water Pump", "Bomba de Agua"),
         SUB("aquecedor_agua", "Aquecedor de Água", "Water Heater", "Calentador de Agua"), SUB("conexoes_esgoto", "Conexões de Esgoto", "Sewage Fittings", "Conexiones de Desagüe"),
+        SUB("sifao_pia", "Sifão de Pia", "Sink Trap/Siphon", "Sifón de Lavabo", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("eletrica_construcao", "Elétrica", "Electrical", "Eléctrica", [
         SUB("fios_cabos", "Fios e Cabos", "Wires & Cables", "Cables"), SUB("disjuntores", "Disjuntores", "Circuit Breakers", "Disyuntores"),
@@ -1454,6 +1460,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("dobradicas", "Dobradiças", "Hinges", "Bisagras"), SUB("fechaduras_cadeados", "Fechaduras e Cadeados", "Locks & Padlocks", "Cerraduras y Candados"),
         SUB("puxadores_macanetas", "Puxadores e Maçanetas", "Handles & Doorknobs", "Tiradores y Manijas"), SUB("trilhos_corredicas", "Trilhos e Corrediças", "Tracks & Slides", "Rieles y Correderas"),
         SUB("corda_arame", "Corda/Arame", "Rope/Wire", "Soga/Alambre"),
+        SUB("cola_contato_geral", "Cola de Contato/Adesivo Geral", "Contact Cement/General Adhesive", "Pegamento de Contacto/Adhesivo General", [CAMPO_UNIDADE_VENDA, CAMPO_VOLUME]),
       ]),
       CAT("cobertura_telhados", "Cobertura e Telhados", "Roofing", "Cubiertas y Techos", [
         SUB("telha_ceramica", "Telha Cerâmica", "Ceramic Roof Tile", "Teja Cerámica"), SUB("telha_concreto", "Telha de Concreto", "Concrete Roof Tile", "Teja de Concreto"),
