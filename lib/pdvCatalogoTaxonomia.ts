@@ -912,17 +912,25 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("racao_filhote", "Ração Filhote", "Puppy/Kitten Food", "Alimento para Cachorro", [CAMPO_PERECIVEL]), SUB("racao_prescrita_veterinaria", "Ração Prescrita/Veterinária", "Prescription/Veterinary Food", "Alimento Prescrito/Veterinario", [CAMPO_PERECIVEL]),
         SUB("petisco_snack_pet", "Petisco/Snack", "Treats/Snacks", "Snack/Premio", [CAMPO_PERECIVEL]), SUB("alimento_umido_sache", "Alimento Úmido (Sachê)", "Wet Food (Pouch)", "Alimento Húmedo (Sobre)", [CAMPO_PERECIVEL]),
         SUB("alimento_natural_cru", "Alimento Natural/Cru", "Natural/Raw Food", "Alimento Natural/Crudo", [CAMPO_PERECIVEL]),
+        SUB("racao_senior_pet", "Ração Sênior", "Senior Pet Food", "Alimento para Mascota Sénior", [CAMPO_PERECIVEL]),
+        SUB("osso_mordedor_pet", "Osso/Mordedor", "Chew Bone/Toy", "Hueso/Mordedor", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("higiene_pet", "Higiene Pet", "Pet Hygiene", "Higiene para Mascotas", [
         SUB("shampoo_condicionador_pet", "Shampoo/Condicionador Pet", "Pet Shampoo/Conditioner", "Champú/Acondicionador Mascota"), SUB("areia_sanitaria", "Areia Sanitária", "Litter", "Arena Sanitaria"),
         SUB("tapete_higienico", "Tapete Higiênico", "Pee Pad", "Tapete Higiénico"), SUB("perfume_colonia_pet", "Perfume/Colônia Pet", "Pet Perfume/Cologne", "Perfume/Colonia Mascota"),
         SUB("escova_cortador_unha_pet", "Escova/Cortador de Unha", "Brush/Nail Clipper", "Cepillo/Cortaúñas"), SUB("fralda_pet", "Fralda Pet", "Pet Diaper", "Pañal Mascota"),
         SUB("banho_tosa", "Banho e Tosa", "Bath & Grooming", "Baño y Peluquería", CAMPOS_SERVICO_PADRAO, true),
+        SUB("saco_cata_caca_pet", "Sacola Cata-Caca", "Poop Bags", "Bolsas para Excremento", [CAMPO_UNIDADE_VENDA]),
+        SUB("lenco_umedecido_pet", "Lenço Umedecido Pet", "Pet Wet Wipes", "Toallitas Húmedas para Mascota", [CAMPO_UNIDADE_VENDA]),
       ]),
+      // Medicamento veterinário: campo informativo de catálogo/preço, só isso —
+      // mesmo tratamento da Farmácia (ver CAMPO_TARJA acima). Nunca bloqueia
+      // venda nem controla dispensação.
       CAT("saude_pet", "Saúde Pet", "Pet Health", "Salud para Mascotas", [
         SUB("antipulgas_carrapaticida", "Antipulgas/Carrapaticida", "Flea/Tick Treatment", "Antipulgas/Garrapaticida", [CAMPO_PERECIVEL]), SUB("vermifugo", "Vermífugo", "Dewormer", "Desparasitante", [CAMPO_PERECIVEL]),
         SUB("suplemento_vitamina_pet", "Suplemento/Vitamina", "Supplement/Vitamin", "Suplemento/Vitamina", [CAMPO_PERECIVEL]), SUB("curativo_pomada_pet", "Curativo/Pomada", "Bandage/Ointment", "Curita/Pomada"),
         SUB("racao_terapeutica", "Ração Terapêutica", "Therapeutic Food", "Alimento Terapéutico", [CAMPO_PERECIVEL]), SUB("contraceptivo_pet", "Contraceptivo Pet", "Pet Contraceptive", "Anticonceptivo Mascota"),
+        SUB("medicamento_veterinario_pet", "Medicamento Veterinário", "Veterinary Medicine", "Medicamento Veterinario", [CAMPO_PERECIVEL, CAMPO_NECESSITA_RECEITA]),
       ]),
       CAT("acessorios_pet", "Acessórios Pet", "Pet Accessories", "Accesorios para Mascotas", [
         SUB("coleira_guia_peitoral", "Coleira/Guia/Peitoral", "Collar/Leash/Harness", "Collar/Correa/Pechera"), SUB("comedouro_bebedouro", "Comedouro/Bebedouro", "Feeder/Waterer", "Comedero/Bebedero"),
@@ -938,6 +946,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("peixe_ornamental", "Peixe Ornamental", "Ornamental Fish", "Pez Ornamental"), SUB("racao_peixe", "Ração para Peixe", "Fish Food", "Alimento para Peces"),
         SUB("aquario_kit", "Aquário/Kit", "Aquarium/Kit", "Acuario/Kit"), SUB("roedor_racao_gaiola", "Roedor (Ração/Gaiola)", "Rodent (Food/Cage)", "Roedor (Alimento/Jaula)"),
         SUB("ave_racao_gaiola", "Ave (Ração/Gaiola)", "Bird (Food/Cage)", "Ave (Alimento/Jaula)"), SUB("reptil_racao_terrario", "Réptil (Ração/Terrário)", "Reptile (Food/Terrarium)", "Reptil (Alimento/Terrario)"),
+        SUB("acessorio_aquario_pet", "Acessório de Aquário (Filtro/Bomba/Decoração)", "Aquarium Accessory (Filter/Pump/Decor)", "Accesorio de Acuario (Filtro/Bomba/Decoración)"),
       ]),
     ],
   },
