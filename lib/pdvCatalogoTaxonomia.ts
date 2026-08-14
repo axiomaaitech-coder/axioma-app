@@ -82,6 +82,11 @@ const CAMPO_COR: CampoNicho = CB("cor", "text", "Cor", "Color", "Color");
 const CAMPO_NUMERACAO_CALCADO: CampoNicho = CB("numeracao", "text", "Numeração", "Size (shoe)", "Numeración");
 const CAMPO_GARANTIA_MESES: CampoNicho = CB("garantiaMeses", "number", "Garantia (meses)", "Warranty (months)", "Garantía (meses)");
 const CAMPO_NECESSITA_RECEITA: CampoNicho = CB("necessitaReceita", "boolean", "Necessita Receita", "Requires Prescription", "Requiere Receta");
+// Autopeças — compatibilidade não tem estrutura própria no tipo, então vira
+// mais um CampoNicho comum (texto livre), igual a qualquer outro campo do
+// arquivo: cai automaticamente em atributos_nicho pela mesma mecânica
+// genérica já usada por CamposDoSubNicho, sem inventar campo/tabela nova.
+const CAMPO_APLICACAO_VEICULO: CampoNicho = CB("aplicacaoVeiculo", "text", "Aplicação/Compatibilidade (Marca/Modelo/Ano)", "Application/Compatibility (Make/Model/Year)", "Aplicación/Compatibilidad (Marca/Modelo/Año)");
 
 // Alimento (Mercado/Padaria/Açougue/Hortifruti) — complementam CAMPO_PERECIVEL,
 // nunca o substituem. UNIDADE_VENDA é um único select reaproveitado (mesmo
@@ -807,6 +812,8 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("filtro_oleo_ar_combustivel", "Filtro (Óleo/Ar/Combustível)", "Oil/Air/Fuel Filter", "Filtro de Aceite/Aire/Combustible"), SUB("correia_dentada_acessorios", "Correia Dentada/Acessórios", "Timing/Accessory Belt", "Correa de Distribución/Accesorios"),
         SUB("vela_ignicao", "Vela de Ignição", "Spark Plug", "Bujía"), SUB("bomba_agua_motor", "Bomba d'Água", "Water Pump", "Bomba de Agua"),
         SUB("junta_retentor", "Junta/Retentor", "Gasket/Seal", "Junta/Retén"), SUB("bomba_oleo", "Bomba de Óleo", "Oil Pump", "Bomba de Aceite"),
+        SUB("filtro_cabine_autopecas", "Filtro de Cabine (Ar-condicionado)", "Cabin Air Filter", "Filtro de Cabina (Aire Acondicionado)", [CAMPO_APLICACAO_VEICULO]),
+        SUB("bico_injetor", "Bico Injetor", "Fuel Injector", "Inyector de Combustible", [CAMPO_APLICACAO_VEICULO]),
       ]),
       CAT("arrefecimento_escapamento", "Arrefecimento e Escapamento", "Cooling & Exhaust", "Refrigeración y Escape", [
         SUB("radiador", "Radiador", "Radiator", "Radiador"), SUB("mangueira", "Mangueira", "Hose", "Manguera"),
@@ -823,12 +830,15 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("bandeja_braco", "Bandeja/Braço", "Control Arm", "Horquilla/Brazo"), SUB("bucha", "Bucha", "Bushing", "Buje"),
         SUB("pivo", "Pivô", "Ball Joint", "Rótula"), SUB("rolamento_roda", "Rolamento de Roda", "Wheel Bearing", "Rodamiento de Rueda"),
         SUB("caixa_direcao", "Caixa de Direção", "Steering Rack", "Caja de Dirección"),
+        SUB("terminal_direcao", "Terminal de Direção", "Tie Rod End", "Terminal de Dirección", [CAMPO_APLICACAO_VEICULO]),
+        SUB("coxim_motor", "Coxim de Motor/Câmbio", "Engine/Transmission Mount", "Soporte de Motor/Caja", [CAMPO_APLICACAO_VEICULO]),
       ]),
       CAT("eletrica", "Elétrica e Bateria", "Electrical & Battery", "Eléctrica y Batería", [
         SUB("bateria", "Bateria", "Battery", "Batería", [CAMPO_GARANTIA_MESES]), SUB("alternador", "Alternador", "Alternator", "Alternador"),
         SUB("motor_partida", "Motor de Partida", "Starter Motor", "Motor de Arranque"), SUB("lampada_farol", "Lâmpada/Farol", "Bulb/Headlight", "Bombilla/Faro"),
         SUB("sensor_automotivo", "Sensor", "Sensor", "Sensor"), SUB("chicote_fusivel", "Chicote/Fusível", "Wiring Harness/Fuse", "Mazo de Cables/Fusible"),
         SUB("modulo_vidro_trava", "Módulo de Vidro/Trava Elétrica", "Power Window/Lock Module", "Módulo de Vidrio/Cierre Eléctrico"),
+        SUB("rele_automotivo", "Relé Automotivo", "Automotive Relay", "Relé Automotriz", [CAMPO_APLICACAO_VEICULO]),
       ]),
       CAT("transmissao_embreagem", "Transmissão e Embreagem", "Transmission & Clutch", "Transmisión y Embrague", [
         SUB("kit_embreagem", "Kit de Embreagem", "Clutch Kit", "Kit de Embrague"), SUB("cambio_caixa_marcha", "Câmbio/Caixa de Marcha", "Transmission/Gearbox", "Caja de Cambios"),
