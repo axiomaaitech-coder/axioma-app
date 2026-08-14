@@ -1682,15 +1682,31 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("hamburguer_artesanal", "Hambúrguer Artesanal", "Artisanal Burger", "Hamburguesa Artesanal", [CAMPO_PERECIVEL]), SUB("x_salada_x_bacon", "X-Salada/X-Bacon", "Cheeseburger/Bacon Burger", "X-Salada/X-Bacon", [CAMPO_PERECIVEL]),
         SUB("cachorro_quente", "Cachorro-quente", "Hot Dog", "Pancho/Hot Dog", [CAMPO_PERECIVEL]), SUB("sanduiche_natural_lanchonete", "Sanduíche Natural", "Natural Sandwich", "Sándwich Natural", [CAMPO_PERECIVEL]),
         SUB("misto_quente", "Misto Quente", "Grilled Ham & Cheese", "Mixto Caliente", [CAMPO_PERECIVEL]), SUB("hamburguer_especial_casa", "Hambúrguer Especial da Casa", "House Special Burger", "Hamburguesa Especial de la Casa", [CAMPO_PERECIVEL]),
+        SUB("x_tudo_completo_lanchonete", "X-Tudo Completo", "Fully-loaded Burger (X-Tudo)", "Hamburguesa Completa (X-Tudo)", [CAMPO_PERECIVEL]),
+        SUB("wrap_lanchonete", "Wrap", "Wrap", "Wrap", [CAMPO_PERECIVEL]),
+        SUB("combo_lanche_bebida_lanchonete", "Combo (Lanche + Bebida)", "Combo (Meal + Drink)", "Combo (Comida + Bebida)", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_salgados_lanchonete", "Cardápio — Salgados", "Menu — Savory Snacks", "Menú — Salados", [
+        SUB("coxinha_lanchonete", "Coxinha", "Coxinha (Chicken Croquette)", "Coxinha", [CAMPO_PERECIVEL]), SUB("esfiha_lanchonete", "Esfiha", "Esfiha", "Esfiha", [CAMPO_PERECIVEL]),
+        SUB("kibe_lanchonete", "Kibe", "Kibbeh", "Kibe", [CAMPO_PERECIVEL]), SUB("empada_lanchonete", "Empada", "Empanada Pie (Empada)", "Empanada al Horno (Empada)", [CAMPO_PERECIVEL]),
+        SUB("enroladinho_lanchonete", "Enroladinho", "Savory Roll", "Enrollado", [CAMPO_PERECIVEL]), SUB("pao_queijo_lanchonete", "Pão de Queijo", "Cheese Bread", "Pan de Queso", [CAMPO_PERECIVEL]),
+        SUB("pizza_fatia_lanchonete", "Pizza — Fatia", "Pizza — Slice", "Pizza — Porción", [CAMPO_PERECIVEL]),
       ]),
       CAT("cardapio_porcoes_petiscos", "Cardápio — Porções e Petiscos", "Menu — Sides & Appetizers", "Menú — Porciones y Picoteos", [
         SUB("batata_frita_lanchonete", "Batata Frita", "French Fries", "Papas Fritas", [CAMPO_PERECIVEL]), SUB("porcao_frango", "Porção de Frango", "Chicken Bites", "Porción de Pollo", [CAMPO_PERECIVEL]),
         SUB("isca_peixe", "Isca de Peixe", "Fish Strips", "Bastones de Pescado", [CAMPO_PERECIVEL]), SUB("aneis_cebola", "Anéis de Cebola", "Onion Rings", "Aros de Cebolla", [CAMPO_PERECIVEL]),
         SUB("petisco_misto", "Petisco Misto", "Mixed Appetizer Platter", "Picoteo Mixto", [CAMPO_PERECIVEL]), SUB("pastel_salgado_frito", "Pastel/Salgado Frito", "Pastel/Fried Snack", "Pastel/Salado Frito", [CAMPO_PERECIVEL]),
+        SUB("porcao_calabresa_lanchonete", "Porção de Calabresa", "Sausage Appetizer Platter", "Porción de Longaniza", [CAMPO_PERECIVEL]),
+      ]),
+      CAT("cardapio_doces_sobremesas_lanchonete", "Cardápio — Doces e Sobremesas", "Menu — Sweets & Desserts", "Menú — Dulces y Postres", [
+        SUB("bolo_fatia_lanchonete", "Bolo — Fatia", "Cake — Slice", "Torta — Porción", [CAMPO_PERECIVEL]), SUB("brigadeiro_lanchonete", "Brigadeiro", "Brigadeiro", "Brigadeiro", [CAMPO_PERECIVEL]),
+        SUB("sonho_lanchonete", "Sonho", "Filled Doughnut (Sonho)", "Berlinesa Rellena (Sonho)", [CAMPO_PERECIVEL]), SUB("pudim_lanchonete", "Pudim", "Pudding (Flan)", "Pudín (Flan)", [CAMPO_PERECIVEL]),
+        SUB("acai_lanchonete", "Açaí", "Açaí", "Açaí", [CAMPO_PERECIVEL]), SUB("sorvete_lanchonete", "Sorvete", "Ice Cream", "Helado", [CAMPO_PERECIVEL]),
       ]),
       CAT("cardapio_bebidas_prontas_lanchonete", "Cardápio — Bebidas Prontas", "Menu — Ready-to-drink Beverages", "Menú — Bebidas Listas", [
         SUB("suco_natural_lanchonete", "Suco Natural", "Fresh Juice", "Jugo Natural", [CAMPO_PERECIVEL]), SUB("refrigerante_lanchonete", "Refrigerante", "Soda", "Refresco", [CAMPO_PERECIVEL]),
         SUB("milk_shake", "Milk-shake", "Milkshake", "Milkshake", [CAMPO_PERECIVEL]), SUB("vitamina_lanchonete", "Vitamina", "Smoothie", "Batido/Vitamina", [CAMPO_PERECIVEL]),
+        SUB("cafe_lanchonete", "Café", "Coffee", "Café", [CAMPO_PERECIVEL]), SUB("agua_lanchonete", "Água", "Water", "Agua", [CAMPO_PERECIVEL]),
       ]),
       CAT("descartaveis_lanchonete", "Descartáveis e Embalagens", "Disposables & Packaging", "Desechables y Empaques", [
         SUB("embalagem_viagem", "Embalagem para Viagem", "Take-out Container", "Envase para Llevar"), SUB("guardanapo_lanchonete", "Guardanapo", "Napkin", "Servilleta"),
