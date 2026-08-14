@@ -980,21 +980,30 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("celular", "Celular/Smartphone", "Cell Phone/Smartphone", "Celular/Smartphone", [CAMPO_GARANTIA_MESES]), SUB("capinha", "Capinha", "Phone Case", "Funda"),
         SUB("pelicula_vidro", "Película/Vidro", "Screen Protector", "Protector de Pantalla"), SUB("carregador_cabo", "Carregador/Cabo", "Charger/Cable", "Cargador/Cable"),
         SUB("fone_ouvido", "Fone de Ouvido", "Headphones", "Audífonos"), SUB("power_bank", "Power Bank", "Power Bank", "Batería Portátil"),
+        SUB("suporte_celular", "Suporte para Celular/Tablet", "Phone/Tablet Stand", "Soporte para Celular/Tablet", [CAMPO_UNIDADE_VENDA]),
+        SUB("chip_celular", "Chip/SIM Card", "SIM Card", "Chip/Tarjeta SIM", [CAMPO_UNIDADE_VENDA]),
+        SUB("relogio_inteligente", "Relógio Inteligente/Smartwatch", "Smartwatch", "Reloj Inteligente/Smartwatch", [CAMPO_GARANTIA_MESES]),
       ]),
       CAT("informatica", "Informática", "Computers", "Informática", [
         SUB("notebook", "Notebook", "Laptop", "Notebook", [CAMPO_GARANTIA_MESES]), SUB("pc_desktop", "PC/Desktop", "PC/Desktop", "PC/Escritorio", [CAMPO_GARANTIA_MESES]),
         SUB("monitor", "Monitor", "Monitor", "Monitor", [CAMPO_GARANTIA_MESES]), SUB("mouse_teclado", "Mouse/Teclado", "Mouse/Keyboard", "Mouse/Teclado"),
         SUB("impressora", "Impressora", "Printer", "Impresora", [CAMPO_GARANTIA_MESES]), SUB("armazenamento", "Armazenamento (HD/SSD/Pendrive)", "Storage (HD/SSD/Flash Drive)", "Almacenamiento (HD/SSD/Pendrive)"),
+        SUB("webcam", "Webcam", "Webcam", "Webcam", [CAMPO_GARANTIA_MESES]),
+        SUB("cartao_memoria", "Cartão de Memória (SD/Micro SD)", "Memory Card (SD/Micro SD)", "Tarjeta de Memoria (SD/Micro SD)", [CAMPO_UNIDADE_VENDA]),
+        SUB("roteador_wifi", "Roteador Wi-Fi", "Wi-Fi Router", "Router Wi-Fi", [CAMPO_GARANTIA_MESES]),
       ]),
       CAT("audio_video", "Áudio e Vídeo", "Audio & Video", "Audio y Video", [
         SUB("caixa_som_portatil", "Caixa de Som Portátil", "Portable Speaker", "Parlante Portátil"), SUB("televisao", "Televisão", "Television", "Televisor", [CAMPO_GARANTIA_MESES]),
         SUB("home_theater_soundbar", "Home Theater/Soundbar", "Home Theater/Soundbar", "Home Theater/Soundbar", [CAMPO_GARANTIA_MESES]), SUB("radio_micro_system", "Rádio/Micro System", "Radio/Micro System", "Radio/Micro System"),
         SUB("microfone", "Microfone", "Microphone", "Micrófono"), SUB("antena", "Antena", "Antenna", "Antena"),
+        SUB("controle_remoto_universal", "Controle Remoto Universal", "Universal Remote Control", "Control Remoto Universal", [CAMPO_GARANTIA_MESES]),
+        SUB("receptor_tv", "Receptor de TV/Satélite", "TV/Satellite Receiver", "Receptor de TV/Satélite", [CAMPO_GARANTIA_MESES]),
       ]),
       CAT("eletrodomesticos", "Eletrodomésticos", "Home Appliances", "Electrodomésticos", [
         SUB("linha_branca", "Linha Branca", "Major Appliances", "Línea Blanca", [CAMPO_GARANTIA_MESES]), SUB("pequenos_eletros", "Pequenos Eletros", "Small Appliances", "Pequeños Electrodomésticos", [CAMPO_GARANTIA_MESES]),
         SUB("climatizacao", "Climatização", "Climate Control", "Climatización", [CAMPO_GARANTIA_MESES]), SUB("ferro_passar", "Ferro de Passar", "Iron", "Plancha", [CAMPO_GARANTIA_MESES]),
         SUB("aspirador_po", "Aspirador de Pó", "Vacuum Cleaner", "Aspiradora", [CAMPO_GARANTIA_MESES]), SUB("micro_ondas", "Micro-ondas", "Microwave", "Microondas", [CAMPO_GARANTIA_MESES]),
+        SUB("ventilador_usb", "Ventilador USB", "USB Fan", "Ventilador USB", [CAMPO_GARANTIA_MESES]),
       ]),
       CAT("games", "Games", "Games", "Videojuegos", [
         SUB("console", "Console", "Console", "Consola", [CAMPO_GARANTIA_MESES]), SUB("jogo_fisico_digital", "Jogo Físico/Digital", "Physical/Digital Game", "Juego Físico/Digital"),
@@ -1010,6 +1019,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("tomada_inteligente", "Tomada Inteligente", "Smart Plug", "Enchufe Inteligente"), SUB("lampada_inteligente", "Lâmpada Inteligente", "Smart Bulb", "Lámpara Inteligente"),
         SUB("assistente_virtual", "Assistente Virtual", "Virtual Assistant", "Asistente Virtual"), SUB("fechadura_inteligente", "Fechadura Inteligente", "Smart Lock", "Cerradura Inteligente", [CAMPO_GARANTIA_MESES]),
         SUB("central_automacao", "Central de Automação", "Automation Hub", "Central de Automatización"),
+        SUB("fita_led_eletronicos", "Fita LED (RGB/Decorativa)", "LED Strip (RGB/Decorative)", "Cinta LED (RGB/Decorativa)", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("pilhas_baterias_energia", "Pilhas, Baterias e Energia", "Batteries & Power", "Pilas, Baterías y Energía", [
         SUB("pilha_alcalina", "Pilha Alcalina", "Alkaline Battery", "Pila Alcalina"), SUB("bateria_recarregavel", "Bateria Recarregável", "Rechargeable Battery", "Batería Recargable"),
