@@ -743,9 +743,11 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
               className="w-full max-w-sm sm:max-w-md md:max-w-lg rounded-2xl p-4 flex flex-col"
               style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "100%", height: "min(640px, 100%)" }}>
               <div className="flex items-center justify-between mb-3 shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <Image src="/logo-aitech.png" alt="Axioma" width={18} height={18} className="object-contain" />
-                  <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("assistenteTitulo", lang)}</h3>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="relative shrink-0 w-6 h-6">
+                    <Image src="/logo-aitech.png" alt="Axioma" fill className="object-contain" />
+                  </div>
+                  <h3 className="text-sm font-bold truncate" style={{ color: tokens.cardTexto }}>{t("assistenteTitulo", lang)}</h3>
                 </div>
                 <div className="flex items-center gap-3">
                   {historico.length > 0 && (
