@@ -625,9 +625,59 @@ export function ModalConfirmacao({ aberto, titulo, mensagem, valorDestaque, text
 // de chegar na rota) — isso mede tentativa de custo real, não clique do botão.
 // ============================================================================
 type MensagemAssistente = { role: "user" | "assistant"; content: string };
+type CampoContextoAssistente = { label: string; tipo?: string; preenchido: boolean; valor?: string };
 
-export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLabel, tipo }: {
+// Etapa 5 — traduz o form atual (campos fixos + atributos_nicho do sub-nicho)
+// numa lista estruturada {label, tipo, preenchido[, valor]} pro chat guiar
+// campo a campo sem precisar de print. Só Nome e Categoria vão com valor —
+// o resto é só um booleano (preenchido ou não), nunca o dado em si.
+function montarCamposParaAssistente(args: {
+  lang: Lang; ehServico: boolean; form: FormPdv; despesasPct: string; margemDesejadaPct: string;
+  loteInicial: { numero_lote: string; data_validade: string; quantidade: string };
+  emEdicao: boolean; camposSubNicho: CampoNicho[];
+}): CampoContextoAssistente[] {
+  const { lang, ehServico, form, despesasPct, margemDesejadaPct, loteInicial, emEdicao, camposSubNicho } = args;
+  const atributos = form.atributos_nicho || {};
+  const preenchido = (v: any) => v !== undefined && v !== null && v !== "" && v !== 0;
+  const lista: CampoContextoAssistente[] = [];
+  const add = (label: string, valor: any, comValor = false) => {
+    const ok = preenchido(valor);
+    lista.push({ label, preenchido: ok, valor: comValor && ok ? String(valor).slice(0, 80) : undefined });
+  };
+
+  if (!ehServico) add(t("campoCodigoBarras", lang), form.codigo_barras);
+  add(t("campoNome", lang), form.nome, true);
+  add(t("campoCategoria", lang), form.categoria, true);
+  if (!ehServico) {
+    add(t("campoMarca", lang), form.marca);
+    add(t("campoUnidade", lang), form.unidade);
+    add(t("campoEstoqueMinimo", lang), form.estoque_minimo);
+    add(t("campoCustoCompra", lang), form.preco_custo);
+    add(t("campoDespesasVariaveis", lang), despesasPct);
+    add(t("campoMargemDesejada", lang), margemDesejadaPct);
+  }
+  add(t("campoPrecoVenda", lang), form.preco_venda);
+  add(t("campoStatus", lang), form.status);
+
+  for (const campo of camposSubNicho) {
+    if (campo.dependeDe && !atributos[campo.dependeDe]) continue;
+    lista.push({ label: campo.label[lang], tipo: campo.tipo, preenchido: preenchido(atributos[campo.chave]) });
+  }
+
+  if (!ehServico && !emEdicao && !!atributos[CHAVE_PERECIVEL]) {
+    add(t("campoNumeroLote", lang), loteInicial.numero_lote);
+    add(t("campoValidade", lang), loteInicial.data_validade);
+    add(t("campoQuantidade", lang), loteInicial.quantidade);
+  }
+
+  return lista;
+}
+
+export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLabel, tipo, form, despesasPct, margemDesejadaPct, loteInicial, emEdicao, camposSubNicho }: {
   lang: Lang; nichoLabel: string; categoriaLabel: string | null; subNichoLabel: string | null; tipo: "produto" | "servico";
+  form: FormPdv; despesasPct: string; margemDesejadaPct: string;
+  loteInicial: { numero_lote: string; data_validade: string; quantidade: string };
+  emEdicao: boolean; camposSubNicho: CampoNicho[];
 }) {
   const { tokens } = useTemaPdv();
   const [aberto, setAberto] = useState(false);
@@ -642,12 +692,13 @@ export function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLab
     const texto = pergunta.trim();
     if (!texto || pensando || limiteAtingido) return;
     const historicoNoEnvio = historico;
+    const campos = montarCamposParaAssistente({ lang, ehServico: tipo === "servico", form, despesasPct, margemDesejadaPct, loteInicial, emEdicao, camposSubNicho });
     setPergunta(""); setErro(null); setPensando(true);
     setHistorico((h) => [...h, { role: "user", content: texto }]);
     try {
       const resp = await fetch("/api/pdv/assistente-cadastro", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mensagem: texto, historico: historicoNoEnvio, nicho: nichoLabel, categoria: categoriaLabel, subNicho: subNichoLabel, tipo, idioma: lang }),
+        body: JSON.stringify({ mensagem: texto, historico: historicoNoEnvio, nicho: nichoLabel, categoria: categoriaLabel, subNicho: subNichoLabel, tipo, idioma: lang, campos }),
       });
       if (!resp.ok) { setErro(resp.status === 429 ? t("assistenteLimiteRede", lang) : t("assistenteErro", lang)); return; }
       const dados = await resp.json();
@@ -1017,6 +1068,8 @@ export function FormularioCadastroPdv({
       <AssistenteAxioma
         lang={lang} nichoLabel={nichoSel.label[lang]} categoriaLabel={categoriaSel?.label[lang] || null}
         subNichoLabel={subNichoSel?.label[lang] || null} tipo={subNichoEhServico(nichoSel, subNichoSel) ? "servico" : "produto"}
+        form={c.form} despesasPct={c.despesasPct} margemDesejadaPct={c.margemDesejadaPct} loteInicial={c.loteInicial}
+        emEdicao={!!c.produtoEditando} camposSubNicho={subNichoSel?.campos || []}
       />
 
       <FormularioAvulso

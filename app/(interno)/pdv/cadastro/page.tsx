@@ -388,6 +388,9 @@ function PDVCadastroInner() {
               <AssistenteAxioma
                 lang={lang} nichoLabel={nichoSel!.label[lang]} categoriaLabel={categoriaSel?.label[lang] || null}
                 subNichoLabel={subNichoSel?.label[lang] || null} tipo={subNichoEhServico(nichoSel, subNichoSel) ? "servico" : "produto"}
+                form={formVazio(nichoSel!.value)} despesasPct="" margemDesejadaPct=""
+                loteInicial={{ numero_lote: "", data_validade: "", quantidade: "" }}
+                emEdicao={false} camposSubNicho={subNichoSel?.campos || []}
               />
               {subNichoEhServico(nichoSel, subNichoSel) && (
                 <p className="text-xs mb-4" style={{ color: AMBAR }}>{t("massaIndisponivelServico", lang)}</p>
