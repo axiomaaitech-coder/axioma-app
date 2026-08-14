@@ -1076,6 +1076,20 @@ Tela nova (`/mei/cockpit`) que junta o resultado das 7 telas do MEI (Faturamento
 
 **Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. Não testado clicando na tela nesta sessão — depende do SQL rodar primeiro.
 
+## 3-AT. PDV — cadastro inline no nível "produtos" do Catálogo (2026-08-14)
+
+Até aqui, cadastrar um produto novo dentro da navegação do Catálogo (nicho → categoria → sub-nicho) exigia clicar em "+ Novo Produto/Serviço" e sair pra uma página separada (`/pdv/cadastro`). Pedido: o formulário aparecer direto na tela final da navegação, sem esse clique extra.
+
+**Antes de mexer, extraí a lógica pra não duplicar** (o formulário de Cadastro Único — campos, calculadora de precificação com alerta de prejuízo, sugestões inteligentes da Etapa 3, chat "Ajuda da inteligência do Axioma" da Etapa 4 — vivia inteiro dentro de `pdv/cadastro/page.tsx`): criei `components/PdvCadastroProduto.tsx` com o hook `useCadastroProdutoPdv` (todo o estado e as regras) + o componente `<FormularioCadastroPdv>` (a UI pronta), e os dois lugares agora chamam a mesma fonte:
+- **`pdv/cadastro/page.tsx`** (página cheia) — continua existindo, com o picker manual de nicho/categoria/sub-nicho, edição por `?id=` (link "Editar" do Catálogo) e a Bipagem em Massa (que só faz sentido aqui, não entrou no componente compartilhado). Só troca a implementação duplicada do Cadastro Único pela chamada ao componente novo.
+- **`pdv/page.tsx`** (nível "produtos" do Catálogo) — agora renderiza `<FormularioCadastroPdv>` direto no topo da tela final da navegação, com a lista de produtos embaixo. A página precisou passar a buscar `userId` também (antes só buscava `empresaId`); `categoriaSel`/`subNichoSel` (que ali são só texto, vindos da navegação) são resolvidos pro objeto real da taxonomia via `encontrarCategoriaPorLabel`/`encontrarSubNichoPorLabel` (mesmo critério — casar por label nos 3 idiomas — já usado na edição por id). Salvar um produto dispara o mesmo `recarregarTick` que já recarrega a lista, sem duplicar lógica de reload.
+
+Navegação/breadcrumb/título/níveis do Catálogo não foram tocados — só o bloco `{nivel === "produtos"}`. O botão "+ Novo Produto" do cabeçalho continua existindo e levando pra página cheia (fluxo alternativo, útil quando o lojista já sabe o nicho de cabeça).
+
+**Verificação feita:** `tsc --noEmit` limpo no projeto inteiro. `next build` — `✓ Compiled successfully in 4.1min` — o build só falha depois disso, no mesmo ponto de sempre e sem relação (`/api/pluggy/webhook`, falta `SUPABASE_SERVICE_ROLE_KEY` local). **Não testado clicando na tela nesta sessão** (sem navegador logado) — recomendo testar os dois fluxos antes de considerar fechado: (1) abrir `/pdv`, navegar até um sub-nicho e cadastrar um produto direto ali; (2) abrir `/pdv/cadastro` (página cheia) e confirmar que Cadastro Único, edição por id e Bipagem em Massa continuam funcionando como antes.
+
+**Arquivos:** `components/PdvCadastroProduto.tsx` (novo), `app/(interno)/pdv/cadastro/page.tsx` (reescrita — mesmo comportamento, sem duplicar lógica), `app/(interno)/pdv/page.tsx` (bloco do nível "produtos" + busca de `userId`).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
