@@ -1,10 +1,11 @@
 "use client";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ScanBarcode, Loader2, Trash2, ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
+import { ScanBarcode, Loader2, Trash2, ExternalLink, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
+import { precoPorDivisor, margemReal, lucroPorUnidade, situacaoMargem, type SituacaoMargem } from "../../../../lib/cfoCore";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
@@ -97,6 +98,40 @@ const txt = {
     en: "Product not found or doesn't belong to your company. Choose a niche below to register a new one.",
     es: "Producto no encontrado o no pertenece a su empresa. Elija el nicho abajo para registrar uno nuevo.",
   },
+
+  precificacaoTitulo: { pt: "Precificação", en: "Pricing", es: "Precificación" },
+  campoCustoCompra: { pt: "Custo de Compra (R$)", en: "Purchase Cost (R$)", es: "Costo de Compra (R$)" },
+  campoDespesasVariaveis: { pt: "Despesas Variáveis (%)", en: "Variable Expenses (%)", es: "Gastos Variables (%)" },
+  campoMargemDesejada: { pt: "Margem Desejada (%)", en: "Desired Margin (%)", es: "Margen Deseado (%)" },
+  labelMargemReal: { pt: "Margem Real", en: "Real Margin", es: "Margen Real" },
+  labelLucroUnidade: { pt: "Lucro por Unidade", en: "Profit per Unit", es: "Ganancia por Unidad" },
+  avisoDivisorInvalido: {
+    pt: "Despesas + margem somam 100% ou mais — impossível calcular um preço. Reduza os percentuais.",
+    en: "Expenses + margin add up to 100% or more — impossible to calculate a price. Reduce the percentages.",
+    es: "Gastos + margen suman 100% o más — imposible calcular un precio. Reduzca los porcentajes.",
+  },
+  alertaPrejuizoTitulo: { pt: "Prejuízo por Unidade", en: "Loss per Unit", es: "Pérdida por Unidad" },
+  alertaPrejuizoTexto: {
+    pt: "Vendendo a esse preço, você perde {v} em cada unidade.",
+    en: "At this price, you lose {v} on every unit sold.",
+    es: "Vendiendo a este precio, pierde {v} en cada unidad.",
+  },
+  alertaMargemApertadaTitulo: { pt: "Margem Apertada", en: "Tight Margin", es: "Margen Ajustado" },
+  alertaMargemApertadaTexto: {
+    pt: "Margem real de {v}% — considere revisar o preço ou o custo.",
+    en: "Real margin of {v}% — consider reviewing the price or cost.",
+    es: "Margen real de {v}% — considere revisar el precio o el costo.",
+  },
+  alertaMargemSaudavel: { pt: "Margem saudável: {v}%", en: "Healthy margin: {v}%", es: "Margen saludable: {v}%" },
+  confirmarPrejuizoTitulo: { pt: "Salvar mesmo com prejuízo?", en: "Save even at a loss?", es: "¿Guardar aunque esté con pérdida?" },
+  confirmarPrejuizoTexto: {
+    pt: "Vender abaixo do custo + despesas dá prejuízo real, não só margem baixa.",
+    en: "Selling below cost + expenses is a real loss, not just a thin margin.",
+    es: "Vender por debajo del costo + gastos genera una pérdida real, no solo un margen bajo.",
+  },
+  confirmarPrejuizoValor: { pt: "{v} de prejuízo por unidade", en: "{v} loss per unit", es: "{v} de pérdida por unidad" },
+  btnCancelar: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
+  btnSalvarMesmoAssim: { pt: "Salvar mesmo assim", en: "Save anyway", es: "Guardar de todas formas" },
 };
 
 type Lang = Idioma;
@@ -104,6 +139,10 @@ function t(chave: keyof typeof txt, lang: Lang, vars?: Record<string, string | n
   let s = txt[chave][lang];
   if (vars) for (const k of Object.keys(vars)) s = s.replace(`{${k}}`, String(vars[k]));
   return s;
+}
+
+function moeda(v: number): string {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 type OrigemSugestao = "base" | "cosmos" | "ia" | null;
@@ -278,12 +317,26 @@ function PDVCadastroInner() {
   const [loteInicial, setLoteInicial] = useState({ numero_lote: "", data_validade: "", quantidade: "" });
   const [sugestoesHistorico, setSugestoesHistorico] = useState<Record<string, string[]>>({});
 
+  // ---- Precificação (custo, despesas%, margem desejada%) — despesas%/margem
+  // desejada% não têm coluna em produtos (só preco_custo/preco_venda são
+  // reais), então ficam só em estado local, resetam a cada cadastro.
+  const [despesasPct, setDespesasPct] = useState("");
+  const [margemDesejadaPct, setMargemDesejadaPct] = useState("");
+  // true só depois que o lojista mexe em Custo/Despesas%/Margem% — sem isso,
+  // abrir um produto existente pra editar sobrescreveria o preço já salvo
+  // com "custo ÷ 1" no instante em que a tela carrega (despesas/margem
+  // sempre começam vazias, mesmo em produto já precificado).
+  const [calculadoraTocada, setCalculadoraTocada] = useState(false);
+  const [modalPrejuizoAberto, setModalPrejuizoAberto] = useState(false);
+  const [forcarCriacaoPendente, setForcarCriacaoPendente] = useState(false);
+
   useEffect(() => {
     if (!nichoSel) return;
     if (cargaProgramaticaRef.current) { cargaProgramaticaRef.current = false; return; }
     setForm(formVazio(nichoSel.value));
     setProdutoEditando(null); setCamposSugeridos(new Set()); setOrigemSugestao(null); setDuplicado(null);
     setLoteInicial({ numero_lote: "", data_validade: "", quantidade: "" });
+    setDespesasPct(""); setMargemDesejadaPct(""); setCalculadoraTocada(false);
   }, [nichoSel?.value, categoriaSel?.value, subNichoSel?.value]);
 
   // ---- Edição por id (link "Editar" da lista do Catálogo) — carrega o
@@ -313,6 +366,40 @@ function PDVCadastroInner() {
     })();
   }, [empresaId]);
 
+  // ---- Cálculo de precificação — fórmula do divisor e margem real vêm do
+  // cfoCore (fonte única), nunca reimplementadas aqui. lucroPorUnidade já
+  // desconta despesas variáveis; margemReal sozinha não vê despesa nenhuma.
+  const custoNum = Number(form.preco_custo) || 0;
+  const despesasFracao = (Number(despesasPct) || 0) / 100;
+  const margemFracao = (Number(margemDesejadaPct) || 0) / 100;
+  const divisorInvalido = despesasFracao + margemFracao >= 1;
+  const precoSugerido = divisorInvalido ? 0 : precoPorDivisor(custoNum, [despesasFracao, margemFracao]);
+  const margemRealPct = margemReal(Number(form.preco_venda) || 0, custoNum);
+  const lucroUnidade = lucroPorUnidade(Number(form.preco_venda) || 0, custoNum, despesasFracao);
+  const situacaoAtual: SituacaoMargem | null = custoNum > 0 ? situacaoMargem(lucroUnidade, margemRealPct) : null;
+
+  // Só preenche "Preço de Venda" depois que o lojista mexeu na calculadora —
+  // o campo continua 100% editável por cima a qualquer momento; só volta a
+  // ser recalculado se ele mexer em Custo/Despesas/Margem de novo.
+  useEffect(() => {
+    if (!calculadoraTocada || custoNum <= 0 || divisorInvalido) return;
+    setForm((f) => ({ ...f, preco_venda: Number(precoSugerido.toFixed(2)) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [custoNum, despesasFracao, margemFracao, calculadoraTocada]);
+
+  function onChangeCusto(v: any) {
+    setCalculadoraTocada(true);
+    onChangeCampo("preco_custo", v);
+  }
+  function onChangeDespesasPct(v: any) {
+    setCalculadoraTocada(true);
+    setDespesasPct(v);
+  }
+  function onChangeMargemDesejadaPct(v: any) {
+    setCalculadoraTocada(true);
+    setMargemDesejadaPct(v);
+  }
+
   function onChangeCampo(campo: string, valor: any) {
     setForm((f) => ({ ...f, [campo]: valor }));
     setCamposSugeridos((s) => { if (!s.has(campo)) return s; const n = new Set(s); n.delete(campo); return n; });
@@ -337,6 +424,7 @@ function PDVCadastroInner() {
       if (jaExiste) {
         setProdutoEditando(jaExiste); setForm({ ...jaExiste, atributos_nicho: jaExiste.atributos_nicho || {} });
         setOrigemSugestao(null); setCamposSugeridos(new Set());
+        setDespesasPct(""); setMargemDesejadaPct(""); setCalculadoraTocada(false);
         mostrarToast(t("produtoJaCadastrado", lang), "info");
         return;
       }
@@ -359,9 +447,15 @@ function PDVCadastroInner() {
     }
   }
 
-  async function salvarAvulso(forcarCriacao = false) {
+  async function salvarAvulso(forcarCriacao = false, confirmadoPrejuizo = false) {
     if (!empresaId || !userId || !nichoSel) return;
     if (!form.nome?.trim()) { mostrarToast(t("toastNomeObrigatorio", lang), "erro"); return; }
+
+    if (!subNichoEhServico(nichoSel, subNichoSel) && situacaoAtual === "prejuizo" && !confirmadoPrejuizo) {
+      setForcarCriacaoPendente(forcarCriacao);
+      setModalPrejuizoAberto(true);
+      return;
+    }
 
     if (!produtoEditando && !form.codigo_barras && !forcarCriacao) {
       const achado = await verificarNomeDuplicado(empresaId, nichoSel.value, form.nome);
@@ -398,6 +492,7 @@ function PDVCadastroInner() {
       }
       setForm(formVazio(nichoSel.value)); setProdutoEditando(null); setCamposSugeridos(new Set()); setOrigemSugestao(null);
       setLoteInicial({ numero_lote: "", data_validade: "", quantidade: "" });
+      setDespesasPct(""); setMargemDesejadaPct(""); setCalculadoraTocada(false);
     } finally {
       setSalvando(false);
     }
@@ -545,6 +640,16 @@ function PDVCadastroInner() {
           {erroProdutoId}
         </div>
       )}
+      <ModalConfirmacao
+        aberto={modalPrejuizoAberto}
+        titulo={t("confirmarPrejuizoTitulo", lang)}
+        mensagem={t("confirmarPrejuizoTexto", lang)}
+        valorDestaque={t("confirmarPrejuizoValor", lang, { v: moeda(Math.abs(lucroUnidade)) })}
+        textoCancelar={t("btnCancelar", lang)}
+        textoConfirmar={t("btnSalvarMesmoAssim", lang)}
+        onCancelar={() => setModalPrejuizoAberto(false)}
+        onConfirmar={() => { setModalPrejuizoAberto(false); salvarAvulso(forcarCriacaoPendente, true); }}
+      />
 
       <SeletorNicho lang={lang} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel}
         onNicho={selecionarNicho} onCategoria={selecionarCategoria} onSubNicho={selecionarSubNicho} />
@@ -579,6 +684,9 @@ function PDVCadastroInner() {
               }}
               onLoteChange={(campo, v) => setLoteInicial((l) => ({ ...l, [campo]: v }))}
               onFecharDuplicado={() => setDuplicado(null)}
+              despesasPct={despesasPct} margemDesejadaPct={margemDesejadaPct} divisorInvalido={divisorInvalido}
+              margemRealPct={margemRealPct} lucroUnidade={lucroUnidade} situacaoAtual={situacaoAtual}
+              onChangeCusto={onChangeCusto} onChangeDespesasPct={onChangeDespesasPct} onChangeMargemDesejadaPct={onChangeMargemDesejadaPct}
             />
           )}
 
@@ -778,11 +886,60 @@ function AvisoDuplicado({ lang, nome, onAbrirExistente, onCriarMesmoAssim, onFec
 }
 
 // ============================================================================
+// MODAL DE CONFIRMAÇÃO — genérico (título/mensagem/valor em destaque/
+// callbacks), pra servir futuras confirmações do PDV além desta.
+// ============================================================================
+function ModalConfirmacao({ aberto, titulo, mensagem, valorDestaque, textoCancelar, textoConfirmar, onCancelar, onConfirmar }: {
+  aberto: boolean; titulo: string; mensagem: string; valorDestaque?: string;
+  textoCancelar: string; textoConfirmar: string; onCancelar: () => void; onConfirmar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <AnimatePresence>
+      {aberto && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+          <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-full max-w-sm rounded-2xl p-5" style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}` }}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="p-2 rounded-xl shrink-0" style={{ background: "rgba(239,68,68,0.15)" }}>
+                <AlertTriangle size={20} style={{ color: "#f87171" }} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{titulo}</h3>
+                <p className="text-xs mt-1" style={{ color: tokens.textoSecundario }}>{mensagem}</p>
+              </div>
+            </div>
+            {valorDestaque && (
+              <p className="text-lg font-black text-center py-2.5 mb-4 rounded-xl" style={{ color: "#f87171", background: "rgba(239,68,68,0.1)" }}>
+                {valorDestaque}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button onClick={onCancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ color: tokens.cardTexto, border: `1px solid ${tokens.cardTexto}`, opacity: 0.85 }}>
+                {textoCancelar}
+              </button>
+              <button onClick={onConfirmar} className="flex-1 py-2.5 rounded-xl text-sm font-bold" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+                {textoConfirmar}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
 // FORMULÁRIO AVULSO
 // ============================================================================
 function FormularioAvulso({
   lang, nichoSel, subNichoSel, form, produtoEditando, camposSugeridos, origemSugestao, consultando, duplicado, salvando, loteInicial,
   sugestoesHistorico, onChangeCampo, onChangeAtributo, onConsultar, onGarantirHistorico, onSalvar, onCriarMesmoAssim, onAbrirExistente, onLoteChange, onFecharDuplicado,
+  despesasPct, margemDesejadaPct, divisorInvalido, margemRealPct, lucroUnidade, situacaoAtual,
+  onChangeCusto, onChangeDespesasPct, onChangeMargemDesejadaPct,
 }: {
   lang: Lang; nichoSel: NichoPdvDef; subNichoSel: SubNichoPdv | null; form: FormPdv; produtoEditando: Produto | null;
   camposSugeridos: Set<string>; origemSugestao: OrigemSugestao; consultando: boolean; duplicado: { id: string; nome: string } | null; salvando: boolean;
@@ -791,6 +948,8 @@ function FormularioAvulso({
   onChangeCampo: (c: string, v: any) => void; onChangeAtributo: (c: string, v: any) => void;
   onConsultar: () => void; onGarantirHistorico: (c: "nome" | "marca" | "categoria") => void;
   onSalvar: () => void; onCriarMesmoAssim: () => void; onAbrirExistente: () => void; onLoteChange: (c: string, v: string) => void; onFecharDuplicado: () => void;
+  despesasPct: string; margemDesejadaPct: string; divisorInvalido: boolean; margemRealPct: number; lucroUnidade: number; situacaoAtual: SituacaoMargem | null;
+  onChangeCusto: (v: any) => void; onChangeDespesasPct: (v: any) => void; onChangeMargemDesejadaPct: (v: any) => void;
 }) {
   const { tokens } = useTemaPdv();
   const ehServico = subNichoEhServico(nichoSel, subNichoSel);
@@ -840,6 +999,14 @@ function FormularioAvulso({
         </div>
       )}
 
+      {!ehServico && (
+        <BlocoPrecificacao
+          lang={lang} custo={form.preco_custo} despesasPct={despesasPct} margemDesejadaPct={margemDesejadaPct}
+          divisorInvalido={divisorInvalido} margemRealPct={margemRealPct} lucroUnidade={lucroUnidade} situacao={situacaoAtual}
+          onChangeCusto={onChangeCusto} onChangeDespesasPct={onChangeDespesasPct} onChangeMargemDesejadaPct={onChangeMargemDesejadaPct}
+        />
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Campo label={t("campoPrecoVenda", lang)} tipo="number" value={form.preco_venda} onChange={(v) => onChangeCampo("preco_venda", v)} sugerido={camposSugeridos.has("preco_venda")} />
         <CampoSelectSimples label={t("campoStatus", lang)} value={form.status} onChange={(v) => onChangeCampo("status", v)}
@@ -864,6 +1031,77 @@ function FormularioAvulso({
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {salvando ? t("salvando", lang) : t("salvar", lang)}
       </button>
+    </div>
+  );
+}
+
+// ============================================================================
+// PRECIFICAÇÃO — custo, despesas%, margem desejada%, sugestão de preço e
+// alerta de prejuízo. Só produto (nunca serviço — o chamador já filtra com
+// !ehServico). Cálculo vem inteiro do cfoCore (precoPorDivisor/margemReal/
+// lucroPorUnidade/situacaoMargem) — aqui só monta a tela.
+// ============================================================================
+function BlocoPrecificacao({
+  lang, custo, despesasPct, margemDesejadaPct, divisorInvalido, margemRealPct, lucroUnidade, situacao,
+  onChangeCusto, onChangeDespesasPct, onChangeMargemDesejadaPct,
+}: {
+  lang: Lang; custo: number | null | undefined; despesasPct: string; margemDesejadaPct: string;
+  divisorInvalido: boolean; margemRealPct: number; lucroUnidade: number; situacao: SituacaoMargem | null;
+  onChangeCusto: (v: any) => void; onChangeDespesasPct: (v: any) => void; onChangeMargemDesejadaPct: (v: any) => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const temCusto = !!custo && custo > 0;
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: tokens.acento }}>{t("precificacaoTitulo", lang)}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Campo label={t("campoCustoCompra", lang)} tipo="number" value={custo} onChange={onChangeCusto} />
+        <Campo label={t("campoDespesasVariaveis", lang)} tipo="number" value={despesasPct} onChange={onChangeDespesasPct} />
+        <Campo label={t("campoMargemDesejada", lang)} tipo="number" value={margemDesejadaPct} onChange={onChangeMargemDesejadaPct} />
+      </div>
+
+      {divisorInvalido && (
+        <p className="text-xs" style={{ color: "#f87171" }}>{t("avisoDivisorInvalido", lang)}</p>
+      )}
+
+      {temCusto && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-xl" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+              <p className="text-[10px] uppercase tracking-wide" style={{ color: tokens.textoMuted }}>{t("labelMargemReal", lang)}</p>
+              <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{margemRealPct.toFixed(1)}%</p>
+            </div>
+            <div className="p-3 rounded-xl" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+              <p className="text-[10px] uppercase tracking-wide" style={{ color: tokens.textoMuted }}>{t("labelLucroUnidade", lang)}</p>
+              <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{moeda(lucroUnidade)}</p>
+            </div>
+          </div>
+
+          {situacao === "prejuizo" && (
+            <div className="p-3 rounded-xl flex items-start gap-2.5" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}>
+              <AlertTriangle size={18} style={{ color: "#f87171", flexShrink: 0, marginTop: 1 }} />
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: "#f87171" }}>{t("alertaPrejuizoTitulo", lang)}</p>
+                <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{t("alertaPrejuizoTexto", lang, { v: moeda(Math.abs(lucroUnidade)) })}</p>
+              </div>
+            </div>
+          )}
+          {situacao === "apertada" && (
+            <div className="p-3 rounded-xl flex items-start gap-2.5" style={{ background: "rgba(245,185,66,0.12)", border: "1px solid rgba(245,185,66,0.35)" }}>
+              <AlertTriangle size={18} style={{ color: AMBAR, flexShrink: 0, marginTop: 1 }} />
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: AMBAR }}>{t("alertaMargemApertadaTitulo", lang)}</p>
+                <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{t("alertaMargemApertadaTexto", lang, { v: margemRealPct.toFixed(1) })}</p>
+              </div>
+            </div>
+          )}
+          {situacao === "saudavel" && (
+            <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: "#34d399" }}>
+              <CheckCircle2 size={15} /> {t("alertaMargemSaudavel", lang, { v: margemRealPct.toFixed(1) })}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

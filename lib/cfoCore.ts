@@ -667,6 +667,20 @@ export function margemReal(precoVenda: number, custo: number): number {
   return ((precoVenda - custo) / precoVenda) * 100;
 }
 
+// Lucro líquido por unidade, já descontando despesas variáveis (impostos,
+// comissão, taxa de cartão — % sobre o preço de venda). margemReal() sozinha
+// não enxerga despesa nenhuma (só compara preço×custo) — por isso o alerta de
+// prejuízo do PDV usa lucroPorUnidade, não margemReal, pra decidir "prejuízo".
+export function lucroPorUnidade(precoVenda: number, custo: number, despesasFracao: number): number {
+  return precoVenda - custo - (precoVenda * despesasFracao);
+}
+
+export type SituacaoMargem = "prejuizo" | "apertada" | "saudavel";
+export function situacaoMargem(lucroUnidade: number, margemRealPct: number, limiarApertadaPct: number = 10): SituacaoMargem {
+  if (lucroUnidade <= 0) return "prejuizo";
+  return margemRealPct < limiarApertadaPct ? "apertada" : "saudavel";
+}
+
 // Margem de segurança: quanto a receita atual pode cair antes do prejuízo (%)
 export function margemSeguranca(receitaAtual: number, pontoEquilibrioValor: number | null): number | null {
   if (pontoEquilibrioValor === null || receitaAtual <= 0) return null;
