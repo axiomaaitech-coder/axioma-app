@@ -655,6 +655,12 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("desodorante_mercado", "Desodorante", "Deodorant", "Desodorante"), SUB("shampoo_condicionador_mercado", "Shampoo/Condicionador", "Shampoo/Conditioner", "Champú/Acondicionador"),
         SUB("cotonete_algodao_mercado", "Cotonete/Algodão", "Cotton Swabs/Cotton Balls", "Hisopos/Algodón"),
         SUB("barbeador_lamina_mercado", "Barbeador/Lâmina", "Razor/Blade", "Rastrillo/Cuchilla"), SUB("lenco_papel", "Lenço de Papel", "Facial Tissue", "Pañuelo de Papel"),
+        SUB("creme_capilar_finalizador_mercado", "Creme Capilar/Finalizador", "Hair Cream/Styling Product", "Crema Capilar/Finalizador", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("espuma_gel_barbear_mercado", "Espuma/Gel de Barbear", "Shaving Foam/Gel", "Espuma/Gel de Afeitar", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("sabonete_intimo_mercado", "Sabonete Íntimo", "Intimate Soap", "Jabón Íntimo", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("hidratante_corporal_mercado", "Hidratante Corporal", "Body Lotion", "Crema Hidratante Corporal", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("protetor_solar_mercado", "Protetor Solar", "Sunscreen", "Protector Solar", [CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+        SUB("cera_creme_depilatorio_mercado", "Cera/Creme Depilatório", "Wax/Depilatory Cream", "Cera/Crema Depilatoria", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("limpeza", "Limpeza", "Cleaning", "Limpieza", [
         SUB("detergente", "Detergente", "Detergent", "Detergente"), SUB("desinfetante_amaciante", "Desinfetante/Amaciante", "Disinfectant/Softener", "Desinfectante/Suavizante"),
