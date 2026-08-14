@@ -422,6 +422,69 @@ const SUBNICHOS_HORTIFRUTI_FLORES_PLANTAS: SubNichoPdv[] = [
   SUB("terra_adubo", "Terra/Adubo", "Soil/Fertilizer", "Tierra/Abono", [CAMPO_UNIDADE_VENDA]),
 ];
 
+// ============================================================================
+// SUB-NICHOS COMPARTILHADOS — Açougue: fonte única entre a categoria
+// "Açougue" do nicho mercado e o nicho próprio "acougue" (loja de bairro).
+// Editar aqui reflete nos dois lugares. Os 8 values antigos genéricos que já
+// existiam na categoria do mercado (carne_bovina_primeira_mercado,
+// carne_bovina_segunda_mercado, carne_suina_mercado, aves_mercado,
+// embutidos_frescos_mercado, carne_temperada_pronta_mercado, linguica_mercado,
+// carne_moida_mercado) NÃO existem nesta lista completa — foram preservados
+// à parte, no fim do array da categoria, por poderem ter produto cadastrado.
+// Nunca renomeados/removidos.
+// ============================================================================
+const SUBNICHOS_ACOUGUE_CORTES_BOVINOS_PRIMEIRA: SubNichoPdv[] = [
+  SUB("picanha", "Picanha", "Picanha (Rump Cap)", "Picanha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("alcatra", "Alcatra", "Top Sirloin", "Colita de Cuadril", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("contrafile", "Contrafilé", "Ribeye/Striploin", "Bife Angosto/Ancho", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("file_mignon", "Filé Mignon", "Filet Mignon", "Lomo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("maminha", "Maminha", "Tri-tip", "Tapa de Cuadril", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("fraldinha", "Fraldinha", "Flank Steak", "Vacío", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("coxao_mole_duro", "Coxão Mole/Duro", "Top/Bottom Round", "Peceto/Nalga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_CORTES_BOVINOS_SEGUNDA_TERCEIRA: SubNichoPdv[] = [
+  SUB("acem", "Acém", "Chuck", "Paleta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("peito_bovino", "Peito", "Brisket", "Pecho", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("costela_bovina", "Costela", "Short Rib", "Costilla", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("musculo", "Músculo", "Shank", "Osobuco/Garrón", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("pescoco", "Pescoço", "Neck", "Cogote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_CARNES_SUINAS: SubNichoPdv[] = [
+  SUB("pernil", "Pernil", "Ham (Fresh)", "Pernil", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("lombo_suino", "Lombo", "Pork Loin", "Lomo de Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("costela_suina", "Costela Suína", "Pork Ribs", "Costilla de Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("bisteca", "Bisteca", "Pork Chop", "Bife de Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("barriga_bacon_fresco", "Barriga/Bacon Fresco", "Pork Belly/Fresh Bacon", "Panceta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pe_rabo_suino", "Pé/Rabo", "Feet/Tail", "Pata/Rabo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_AVES: SubNichoPdv[] = [
+  SUB("frango_inteiro", "Frango Inteiro", "Whole Chicken", "Pollo Entero", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("peito_frango", "Peito de Frango", "Chicken Breast", "Pechuga de Pollo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("coxa_sobrecoxa", "Coxa/Sobrecoxa", "Thigh/Drumstick", "Muslo/Contramuslo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("asa_frango", "Asa de Frango", "Chicken Wing", "Ala de Pollo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("outras_aves", "Outras Aves", "Other Poultry", "Otras Aves", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+// "hamburguer_artesanal" também existe em lanchonete>cardapio_sanduiches_hamburgueres
+// — value duplicado ENTRE NICHOS de propósito (mesmo produto, dois negócios
+// diferentes: aqui é carne moída pra levar, lá é item pronto de cardápio).
+// Nunca comparado entre nichos em nenhum lugar do código — seguro.
+const SUBNICHOS_ACOUGUE_EMBUTIDOS_FRESCOS: SubNichoPdv[] = [
+  SUB("linguica_toscana", "Linguiça Toscana", "Tuscan Sausage", "Longaniza Toscana", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("linguica_calabresa", "Linguiça Calabresa", "Calabrese Sausage", "Longaniza Calabresa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("linguica_artesanal", "Linguiça Artesanal", "Artisanal Sausage", "Longaniza Artesanal", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("salsicha_acougue", "Salsicha", "Hot Dog Sausage", "Salchicha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("hamburguer_artesanal", "Hambúrguer Artesanal", "Artisanal Burger", "Hamburguesa Artesanal", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("kafta_almondega", "Kafta/Almôndega", "Kafta/Meatball", "Kafta/Albóndiga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_DEFUMADOS: SubNichoPdv[] = [
+  SUB("bacon_manta", "Bacon em Manta", "Sliced Bacon", "Tocino en Lonjas", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("costela_defumada", "Costela Defumada", "Smoked Ribs", "Costilla Ahumada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("linguica_defumada", "Linguiça Defumada", "Smoked Sausage", "Longaniza Ahumada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("paio", "Paio", "Paio Sausage", "Paio", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("copa_defumada", "Copa Defumada", "Smoked Pork Shoulder", "Bondiola Ahumada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_PREMIUM: SubNichoPdv[] = [
+  SUB("alta_marmorizacao", "Carne com Alta Marmorização", "Highly Marbled Beef (Wagyu/Angus)", "Carne de Alto Marmoleo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("cortes_maturados", "Cortes Maturados", "Aged Cuts", "Cortes Madurados", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("cordeiro", "Cordeiro", "Lamb", "Cordero", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("frutos_do_mar_acougue", "Frutos do Mar", "Seafood", "Mariscos", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("carne_organica_certificada", "Carne Orgânica/Certificada", "Organic/Certified Beef", "Carne Orgánica/Certificada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_TEMPERADOS_CHURRASCO: SubNichoPdv[] = [
+  SUB("carne_temperada", "Carne Temperada", "Marinated Meat", "Carne Condimentada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("espetinho_pronto", "Espetinho Pronto", "Ready Skewers", "Brochette Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("kit_churrasco", "Kit Churrasco", "Barbecue Kit", "Kit Parrillada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("frango_temperado", "Frango Temperado", "Marinated Chicken", "Pollo Condimentado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("costela_ripa_janela", "Costela Ripa/Janela", "Ribbon-cut/Flanken Ribs", "Costilla en Tira/Flanken", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_ACOUGUE_ACOMPANHAMENTOS_CHURRASCO: SubNichoPdv[] = [
+  SUB("carvao", "Carvão", "Charcoal", "Carbón", [CAMPO_UNIDADE_VENDA]), SUB("sal_grosso", "Sal Grosso", "Coarse Salt", "Sal Gruesa", [CAMPO_UNIDADE_VENDA]),
+  SUB("espeto", "Espeto (Madeira/Metal)", "Skewer (Wood/Metal)", "Pincho (Madera/Metal)", [CAMPO_UNIDADE_VENDA]), SUB("farofa_pronta", "Farofa Pronta", "Ready Farofa", "Farofa Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("pao_alho_acougue", "Pão de Alho", "Garlic Bread", "Pan de Ajo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("vinagrete_pronto", "Vinagrete Pronto", "Ready Vinaigrette", "Vinagreta Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("queijo_coalho_provolone", "Queijo Coalho/Provolone", "Coalho/Provolone Cheese", "Queso Coalho/Provolone", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+
 export const NICHOS_PDV: NichoPdvDef[] = [
   // ============================================================================
   // MODO PRODUTO — reaproveitam o segmento existente do Estoque (dado real)
@@ -442,6 +505,10 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("ovos_mercado", "Ovos", "Eggs", "Huevos", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("fruta_verdura_higienizada", "Fruta/Verdura Higienizada", "Washed Fruit/Vegetable (Ready-to-eat)", "Fruta/Verdura Higienizada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
       ]),
       CAT("acougue_mercado", "Açougue", "Butcher", "Carnicería", [
+        ...SUBNICHOS_ACOUGUE_CORTES_BOVINOS_PRIMEIRA, ...SUBNICHOS_ACOUGUE_CORTES_BOVINOS_SEGUNDA_TERCEIRA, ...SUBNICHOS_ACOUGUE_CARNES_SUINAS,
+        ...SUBNICHOS_ACOUGUE_AVES, ...SUBNICHOS_ACOUGUE_EMBUTIDOS_FRESCOS, ...SUBNICHOS_ACOUGUE_DEFUMADOS,
+        ...SUBNICHOS_ACOUGUE_PREMIUM, ...SUBNICHOS_ACOUGUE_TEMPERADOS_CHURRASCO, ...SUBNICHOS_ACOUGUE_ACOMPANHAMENTOS_CHURRASCO,
+        // legado — 8 values antigos da categoria do mercado, preservados (produto pode estar cadastrado neles)
         SUB("carne_bovina_primeira_mercado", "Carne Bovina de Primeira", "Premium Beef Cuts", "Carne de Res de Primera", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("carne_bovina_segunda_mercado", "Carne Bovina de Segunda", "Standard Beef Cuts", "Carne de Res de Segunda", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("carne_suina_mercado", "Carne Suína", "Pork", "Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("aves_mercado", "Aves", "Poultry", "Aves", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
@@ -885,57 +952,15 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "acougue", label: L("Açougue", "Butcher Shop", "Carnicería"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("cortes_bovinos_primeira", "Cortes Bovinos de Primeira", "Premium Beef Cuts", "Cortes de Res de Primera", [
-        SUB("picanha", "Picanha", "Picanha (Rump Cap)", "Picanha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("alcatra", "Alcatra", "Top Sirloin", "Colita de Cuadril", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("contrafile", "Contrafilé", "Ribeye/Striploin", "Bife Angosto/Ancho", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("file_mignon", "Filé Mignon", "Filet Mignon", "Lomo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("maminha", "Maminha", "Tri-tip", "Tapa de Cuadril", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("fraldinha", "Fraldinha", "Flank Steak", "Vacío", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("coxao_mole_duro", "Coxão Mole/Duro", "Top/Bottom Round", "Peceto/Nalga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("cortes_bovinos_segunda_terceira", "Cortes Bovinos de Segunda e Terceira", "Standard Beef Cuts", "Cortes de Res de Segunda y Tercera", [
-        SUB("acem", "Acém", "Chuck", "Paleta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("peito_bovino", "Peito", "Brisket", "Pecho", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("costela_bovina", "Costela", "Short Rib", "Costilla", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("musculo", "Músculo", "Shank", "Osobuco/Garrón", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("pescoco", "Pescoço", "Neck", "Cogote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("carnes_suinas", "Carne Suína", "Pork", "Cerdo", [
-        SUB("pernil", "Pernil", "Ham (Fresh)", "Pernil", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("lombo_suino", "Lombo", "Pork Loin", "Lomo de Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("costela_suina", "Costela Suína", "Pork Ribs", "Costilla de Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("bisteca", "Bisteca", "Pork Chop", "Bife de Cerdo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("barriga_bacon_fresco", "Barriga/Bacon Fresco", "Pork Belly/Fresh Bacon", "Panceta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pe_rabo_suino", "Pé/Rabo", "Feet/Tail", "Pata/Rabo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("aves_acougue", "Aves", "Poultry", "Aves", [
-        SUB("frango_inteiro", "Frango Inteiro", "Whole Chicken", "Pollo Entero", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("peito_frango", "Peito de Frango", "Chicken Breast", "Pechuga de Pollo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("coxa_sobrecoxa", "Coxa/Sobrecoxa", "Thigh/Drumstick", "Muslo/Contramuslo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("asa_frango", "Asa de Frango", "Chicken Wing", "Ala de Pollo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("outras_aves", "Outras Aves", "Other Poultry", "Otras Aves", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      // "hamburguer_artesanal" também existe em lanchonete>cardapio_sanduiches_hamburgueres
-      // — value duplicado ENTRE NICHOS de propósito (mesmo produto, dois negócios
-      // diferentes: aqui é carne moída pra levar, lá é item pronto de cardápio).
-      // Nunca comparado entre nichos em nenhum lugar do código — seguro.
-      CAT("embutidos_frescos_acougue", "Embutidos e Frescos", "Fresh Sausages & Ground Meat", "Embutidos y Frescos", [
-        SUB("linguica_toscana", "Linguiça Toscana", "Tuscan Sausage", "Longaniza Toscana", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("linguica_calabresa", "Linguiça Calabresa", "Calabrese Sausage", "Longaniza Calabresa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("linguica_artesanal", "Linguiça Artesanal", "Artisanal Sausage", "Longaniza Artesanal", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("salsicha_acougue", "Salsicha", "Hot Dog Sausage", "Salchicha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("hamburguer_artesanal", "Hambúrguer Artesanal", "Artisanal Burger", "Hamburguesa Artesanal", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("kafta_almondega", "Kafta/Almôndega", "Kafta/Meatball", "Kafta/Albóndiga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("defumados", "Defumados", "Smoked Meats", "Ahumados", [
-        SUB("bacon_manta", "Bacon em Manta", "Sliced Bacon", "Tocino en Lonjas", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("costela_defumada", "Costela Defumada", "Smoked Ribs", "Costilla Ahumada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("linguica_defumada", "Linguiça Defumada", "Smoked Sausage", "Longaniza Ahumada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("paio", "Paio", "Paio Sausage", "Paio", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("copa_defumada", "Copa Defumada", "Smoked Pork Shoulder", "Bondiola Ahumada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("carnes_especiais_premium", "Carnes Especiais e Premium", "Premium & Specialty Meats", "Carnes Especiales y Premium", [
-        SUB("alta_marmorizacao", "Carne com Alta Marmorização", "Highly Marbled Beef (Wagyu/Angus)", "Carne de Alto Marmoleo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("cortes_maturados", "Cortes Maturados", "Aged Cuts", "Cortes Madurados", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("cordeiro", "Cordeiro", "Lamb", "Cordero", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("frutos_do_mar_acougue", "Frutos do Mar", "Seafood", "Mariscos", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("carne_organica_certificada", "Carne Orgânica/Certificada", "Organic/Certified Beef", "Carne Orgánica/Certificada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("temperados_prontos_churrasco", "Temperados e Prontos para Churrasco", "Marinated & Barbecue-ready", "Condimentados y Listos para Parrilla", [
-        SUB("carne_temperada", "Carne Temperada", "Marinated Meat", "Carne Condimentada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("espetinho_pronto", "Espetinho Pronto", "Ready Skewers", "Brochette Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("kit_churrasco", "Kit Churrasco", "Barbecue Kit", "Kit Parrillada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("frango_temperado", "Frango Temperado", "Marinated Chicken", "Pollo Condimentado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("costela_ripa_janela", "Costela Ripa/Janela", "Ribbon-cut/Flanken Ribs", "Costilla en Tira/Flanken", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("acompanhamentos_churrasco", "Acompanhamentos de Churrasco", "Barbecue Sides", "Acompañamientos de Parrillada", [
-        SUB("carvao", "Carvão", "Charcoal", "Carbón", [CAMPO_UNIDADE_VENDA]), SUB("sal_grosso", "Sal Grosso", "Coarse Salt", "Sal Gruesa", [CAMPO_UNIDADE_VENDA]),
-        SUB("espeto", "Espeto (Madeira/Metal)", "Skewer (Wood/Metal)", "Pincho (Madera/Metal)", [CAMPO_UNIDADE_VENDA]), SUB("farofa_pronta", "Farofa Pronta", "Ready Farofa", "Farofa Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("pao_alho_acougue", "Pão de Alho", "Garlic Bread", "Pan de Ajo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("vinagrete_pronto", "Vinagrete Pronto", "Ready Vinaigrette", "Vinagreta Lista", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("queijo_coalho_provolone", "Queijo Coalho/Provolone", "Coalho/Provolone Cheese", "Queso Coalho/Provolone", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
+      CAT("cortes_bovinos_primeira", "Cortes Bovinos de Primeira", "Premium Beef Cuts", "Cortes de Res de Primera", SUBNICHOS_ACOUGUE_CORTES_BOVINOS_PRIMEIRA),
+      CAT("cortes_bovinos_segunda_terceira", "Cortes Bovinos de Segunda e Terceira", "Standard Beef Cuts", "Cortes de Res de Segunda y Tercera", SUBNICHOS_ACOUGUE_CORTES_BOVINOS_SEGUNDA_TERCEIRA),
+      CAT("carnes_suinas", "Carne Suína", "Pork", "Cerdo", SUBNICHOS_ACOUGUE_CARNES_SUINAS),
+      CAT("aves_acougue", "Aves", "Poultry", "Aves", SUBNICHOS_ACOUGUE_AVES),
+      CAT("embutidos_frescos_acougue", "Embutidos e Frescos", "Fresh Sausages & Ground Meat", "Embutidos y Frescos", SUBNICHOS_ACOUGUE_EMBUTIDOS_FRESCOS),
+      CAT("defumados", "Defumados", "Smoked Meats", "Ahumados", SUBNICHOS_ACOUGUE_DEFUMADOS),
+      CAT("carnes_especiais_premium", "Carnes Especiais e Premium", "Premium & Specialty Meats", "Carnes Especiales y Premium", SUBNICHOS_ACOUGUE_PREMIUM),
+      CAT("temperados_prontos_churrasco", "Temperados e Prontos para Churrasco", "Marinated & Barbecue-ready", "Condimentados y Listos para Parrilla", SUBNICHOS_ACOUGUE_TEMPERADOS_CHURRASCO),
+      CAT("acompanhamentos_churrasco", "Acompanhamentos de Churrasco", "Barbecue Sides", "Acompañamientos de Parrillada", SUBNICHOS_ACOUGUE_ACOMPANHAMENTOS_CHURRASCO),
     ],
   },
   {
