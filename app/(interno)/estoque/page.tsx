@@ -612,8 +612,10 @@ export default function EstoquePage() {
       }
       if (arquivoImagem && produtoId) {
         const { path, erro } = await uploadImagemProduto(arquivoImagem, empresaId, produtoId);
-        if (path) await atualizarProduto(produtoId, { imagem_principal: path });
+        let erroVinculo: string | undefined;
+        if (path) { const r = await atualizarProduto(produtoId, { imagem_principal: path }); erroVinculo = r.erro; }
         if (erro) mostrarToast(`${et.toastImagemFalhou}: ${erro}`, "info");
+        else if (erroVinculo) mostrarToast(`${et.toastImagemVinculoFalhou}: ${erroVinculo}`, "info");
       }
       // Produto perecível novo com lote preenchido: registra a primeira entrada
       // reaproveitando criarMovimentacao() (mesmo caminho de "Nova Movimentação").
