@@ -532,6 +532,22 @@ export async function carregarComparativoFornecedores(empresaId: string): Promis
   return data || [];
 }
 
+// Última entrada real (tipo "entrada", já confirmada, com custo preenchido)
+// de um produto específico — base da sugestão de custo de compra do PDV
+// Cadastro. produto_id é FK obrigatória em estoque_movimentacoes, então só
+// existe resultado pra produto que já foi salvo pelo menos uma vez.
+export type UltimaCompraProduto = { custoUnitario: number; dataHora: string };
+
+export async function buscarUltimaCompraProduto(empresaId: string, produtoId: string): Promise<UltimaCompraProduto | null> {
+  const { data } = await supabase.from("estoque_movimentacoes")
+    .select("custo_unitario, data_hora")
+    .eq("empresa_id", empresaId).eq("produto_id", produtoId).eq("tipo", "entrada").eq("status_recebimento", "confirmada")
+    .not("custo_unitario", "is", null)
+    .order("data_hora", { ascending: false }).limit(1).maybeSingle();
+  if (!data || data.custo_unitario == null) return null;
+  return { custoUnitario: Number(data.custo_unitario), dataHora: data.data_hora };
+}
+
 // Ponto de reposição e previsão de ruptura — cálculo simples em cima de dados
 // já agregados no banco (vw_estoque_giro), não é soma de tabela crua.
 export type AlertaReposicao = { produto_id: string; nome: string; saldo_disponivel: number; velocidade_consumo_diaria: number; leadTimeDias: number; pontoReposicao: number; diasRestantes: number | null; emRisco: boolean };

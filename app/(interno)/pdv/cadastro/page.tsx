@@ -12,6 +12,9 @@ import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers
 import {
   type Produto, criarProduto, atualizarProduto, excluirProduto, buscarProdutoPorCodigo, buscarProdutoPorId,
   criarMovimentacao, consultarEan, type ConsultaEanResposta,
+  buscarUltimaCompraProduto, type UltimaCompraProduto,
+  carregarRentabilidadePorCategoria, type ItemRentabilidade,
+  carregarComparativoFornecedores, type FornecedorComparativo,
 } from "../../../../lib/estoqueHelpers";
 import { CHAVE_PERECIVEL, type CampoNicho } from "../../../../lib/categoriaInteligente";
 import { buscarSugestoesColuna } from "../../../../lib/sugestaoInteligente";
@@ -110,6 +113,25 @@ const txt = {
     en: "Expenses + margin add up to 100% or more — impossible to calculate a price. Reduce the percentages.",
     es: "Gastos + margen suman 100% o más — imposible calcular un precio. Reduzca los porcentajes.",
   },
+  usarEsteValor: { pt: "Usar este valor", en: "Use this value", es: "Usar este valor" },
+  sugCustoCarregando: { pt: "Buscando última compra…", en: "Looking up last purchase…", es: "Buscando última compra…" },
+  sugCustoComDado: { pt: "Última compra: {valor} em {data}", en: "Last purchase: {valor} on {data}", es: "Última compra: {valor} el {data}" },
+  sugCustoSemDado: { pt: "Ainda sem histórico de compra deste produto.", en: "No purchase history for this product yet.", es: "Aún sin historial de compra de este producto." },
+  sugMargemCarregando: { pt: "Calculando margem sugerida da categoria…", en: "Calculating suggested category margin…", es: "Calculando margen sugerido de la categoría…" },
+  sugMargemComDado: {
+    pt: "Margem média de {categoria}, com base no preço sugerido do catálogo: {v}%",
+    en: "Average margin for {categoria}, based on the catalog's suggested price: {v}%",
+    es: "Margen medio de {categoria}, basado en el precio sugerido del catálogo: {v}%",
+  },
+  sugMargemSemDado: { pt: "Ainda sem dado de margem para esta categoria.", en: "No margin data for this category yet.", es: "Aún sin dato de margen para esta categoría." },
+  sugFornecedorCarregando: { pt: "Buscando dados do fornecedor…", en: "Looking up supplier data…", es: "Buscando datos del proveedor…" },
+  sugFornecedorComDado: {
+    pt: "Fornecedor vinculado a este produto: {fornecedor} — preço médio {valor}, {n} entregas, última em {data}",
+    en: "Supplier linked to this product: {fornecedor} — average price {valor}, {n} deliveries, last on {data}",
+    es: "Proveedor vinculado a este producto: {fornecedor} — precio medio {valor}, {n} entregas, última el {data}",
+  },
+  sugFornecedorSemVinculo: { pt: "Nenhum fornecedor vinculado a este produto.", en: "No supplier linked to this product.", es: "Ningún proveedor vinculado a este producto." },
+  sugFornecedorSemDado: { pt: "Fornecedor vinculado, mas ainda sem histórico de compras.", en: "Supplier linked, but no purchase history yet.", es: "Proveedor vinculado, pero aún sin historial de compras." },
   alertaPrejuizoTitulo: { pt: "Prejuízo por Unidade", en: "Loss per Unit", es: "Pérdida por Unidad" },
   alertaPrejuizoTexto: {
     pt: "Vendendo a esse preço, você perde {v} em cada unidade.",
@@ -143,6 +165,10 @@ function t(chave: keyof typeof txt, lang: Lang, vars?: Record<string, string | n
 
 function moeda(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function dataCurta(iso: string): string {
+  return new Date(iso).toLocaleDateString("pt-BR");
 }
 
 type OrigemSugestao = "base" | "cosmos" | "ia" | null;
@@ -330,6 +356,16 @@ function PDVCadastroInner() {
   const [modalPrejuizoAberto, setModalPrejuizoAberto] = useState(false);
   const [forcarCriacaoPendente, setForcarCriacaoPendente] = useState(false);
 
+  // ---- Sugestões inteligentes (Etapa 3) — só leitura de dados que já
+  // existem (estoque_movimentacoes / views de rentabilidade e fornecedores).
+  // Regra de ouro: sem histórico real, nunca inventa dado — cada uma tem
+  // estado vazio honesto próprio, mostrado abaixo em BlocoPrecificacao.
+  const [sugestaoCusto, setSugestaoCusto] = useState<UltimaCompraProduto | null>(null);
+  const [sugestaoFornecedor, setSugestaoFornecedor] = useState<FornecedorComparativo | null>(null);
+  const [carregandoSugestaoProduto, setCarregandoSugestaoProduto] = useState(false);
+  const [sugestaoMargem, setSugestaoMargem] = useState<ItemRentabilidade | null>(null);
+  const [carregandoSugestaoMargem, setCarregandoSugestaoMargem] = useState(false);
+
   useEffect(() => {
     if (!nichoSel) return;
     if (cargaProgramaticaRef.current) { cargaProgramaticaRef.current = false; return; }
@@ -365,6 +401,41 @@ function PDVCadastroInner() {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     })();
   }, [empresaId]);
+
+  // ---- Sugestão de Custo + Fornecedor (Etapa 3) — só produto já salvo
+  // (produtoEditando), porque estoque_movimentacoes.produto_id e
+  // produtos.fornecedor_id só existem depois do primeiro save. As duas
+  // sugestões compartilham essa mesma leva de consulta, disparada junto.
+  useEffect(() => {
+    setSugestaoCusto(null); setSugestaoFornecedor(null);
+    if (!empresaId || !produtoEditando) return;
+    setCarregandoSugestaoProduto(true);
+    (async () => {
+      const [ultimaCompra, fornecedores] = await Promise.all([
+        buscarUltimaCompraProduto(empresaId, produtoEditando.id),
+        produtoEditando.fornecedor_id ? carregarComparativoFornecedores(empresaId) : Promise.resolve([] as FornecedorComparativo[]),
+      ]);
+      setSugestaoCusto(ultimaCompra);
+      setSugestaoFornecedor(fornecedores.find((f) => f.fornecedor_id === produtoEditando.fornecedor_id) || null);
+      setCarregandoSugestaoProduto(false);
+    })();
+  }, [empresaId, produtoEditando?.id]);
+
+  // ---- Sugestão de Margem por Categoria (Etapa 3) — roda em produto novo e
+  // em edição, porque só depende da categoria escolhida, não de produto
+  // salvo. Casa por label nos 3 idiomas (mesmo critério de encontrarCategoriaPorLabel),
+  // porque produtos.categoria já salvos podem estar em qualquer um dos 3.
+  useEffect(() => {
+    setSugestaoMargem(null);
+    if (!empresaId || !categoriaSel) return;
+    setCarregandoSugestaoMargem(true);
+    (async () => {
+      const lista = await carregarRentabilidadePorCategoria(empresaId);
+      const labels = [categoriaSel.label.pt, categoriaSel.label.en, categoriaSel.label.es].map((l) => l.toLowerCase());
+      setSugestaoMargem(lista.find((i) => labels.includes((i.chave || "").toLowerCase())) || null);
+      setCarregandoSugestaoMargem(false);
+    })();
+  }, [empresaId, categoriaSel?.value]);
 
   // ---- Cálculo de precificação — fórmula do divisor e margem real vêm do
   // cfoCore (fonte única), nunca reimplementadas aqui. lucroPorUnidade já
@@ -687,6 +758,9 @@ function PDVCadastroInner() {
               despesasPct={despesasPct} margemDesejadaPct={margemDesejadaPct} divisorInvalido={divisorInvalido}
               margemRealPct={margemRealPct} lucroUnidade={lucroUnidade} situacaoAtual={situacaoAtual}
               onChangeCusto={onChangeCusto} onChangeDespesasPct={onChangeDespesasPct} onChangeMargemDesejadaPct={onChangeMargemDesejadaPct}
+              categoriaLabel={categoriaSel?.label[lang] || null} temProdutoSalvo={!!produtoEditando} produtoTemFornecedor={!!produtoEditando?.fornecedor_id}
+              sugestaoCusto={sugestaoCusto} sugestaoFornecedor={sugestaoFornecedor} carregandoSugestaoProduto={carregandoSugestaoProduto}
+              sugestaoMargem={sugestaoMargem} carregandoSugestaoMargem={carregandoSugestaoMargem}
             />
           )}
 
@@ -940,6 +1014,7 @@ function FormularioAvulso({
   sugestoesHistorico, onChangeCampo, onChangeAtributo, onConsultar, onGarantirHistorico, onSalvar, onCriarMesmoAssim, onAbrirExistente, onLoteChange, onFecharDuplicado,
   despesasPct, margemDesejadaPct, divisorInvalido, margemRealPct, lucroUnidade, situacaoAtual,
   onChangeCusto, onChangeDespesasPct, onChangeMargemDesejadaPct,
+  categoriaLabel, temProdutoSalvo, produtoTemFornecedor, sugestaoCusto, sugestaoFornecedor, carregandoSugestaoProduto, sugestaoMargem, carregandoSugestaoMargem,
 }: {
   lang: Lang; nichoSel: NichoPdvDef; subNichoSel: SubNichoPdv | null; form: FormPdv; produtoEditando: Produto | null;
   camposSugeridos: Set<string>; origemSugestao: OrigemSugestao; consultando: boolean; duplicado: { id: string; nome: string } | null; salvando: boolean;
@@ -950,6 +1025,9 @@ function FormularioAvulso({
   onSalvar: () => void; onCriarMesmoAssim: () => void; onAbrirExistente: () => void; onLoteChange: (c: string, v: string) => void; onFecharDuplicado: () => void;
   despesasPct: string; margemDesejadaPct: string; divisorInvalido: boolean; margemRealPct: number; lucroUnidade: number; situacaoAtual: SituacaoMargem | null;
   onChangeCusto: (v: any) => void; onChangeDespesasPct: (v: any) => void; onChangeMargemDesejadaPct: (v: any) => void;
+  categoriaLabel: string | null; temProdutoSalvo: boolean; produtoTemFornecedor: boolean;
+  sugestaoCusto: UltimaCompraProduto | null; sugestaoFornecedor: FornecedorComparativo | null; carregandoSugestaoProduto: boolean;
+  sugestaoMargem: ItemRentabilidade | null; carregandoSugestaoMargem: boolean;
 }) {
   const { tokens } = useTemaPdv();
   const ehServico = subNichoEhServico(nichoSel, subNichoSel);
@@ -1004,6 +1082,9 @@ function FormularioAvulso({
           lang={lang} custo={form.preco_custo} despesasPct={despesasPct} margemDesejadaPct={margemDesejadaPct}
           divisorInvalido={divisorInvalido} margemRealPct={margemRealPct} lucroUnidade={lucroUnidade} situacao={situacaoAtual}
           onChangeCusto={onChangeCusto} onChangeDespesasPct={onChangeDespesasPct} onChangeMargemDesejadaPct={onChangeMargemDesejadaPct}
+          categoriaLabel={categoriaLabel} temProdutoSalvo={temProdutoSalvo} produtoTemFornecedor={produtoTemFornecedor}
+          sugestaoCusto={sugestaoCusto} sugestaoFornecedor={sugestaoFornecedor} carregandoSugestaoProduto={carregandoSugestaoProduto}
+          sugestaoMargem={sugestaoMargem} carregandoSugestaoMargem={carregandoSugestaoMargem}
         />
       )}
 
@@ -1041,13 +1122,31 @@ function FormularioAvulso({
 // !ehServico). Cálculo vem inteiro do cfoCore (precoPorDivisor/margemReal/
 // lucroPorUnidade/situacaoMargem) — aqui só monta a tela.
 // ============================================================================
+// Uma linha por sugestão — ícone Sparkles (achou dado) ou Loader2
+// (carregando), texto e botão "Usar" opcional. Sem cor de status (o dado
+// ainda não foi aplicado, então não é nem alerta nem confirmação).
+function LinhaSugestao({ carregando, texto, onUsar, textoUsar }: { carregando?: boolean; texto: string; onUsar?: () => void; textoUsar?: string }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      {carregando ? <Loader2 className="animate-spin shrink-0" size={12} style={{ color: tokens.textoMuted }} /> : <Sparkles className="shrink-0" size={12} style={{ color: AMBAR }} />}
+      <span className="flex-1 min-w-0" style={{ color: tokens.textoSecundario }}>{texto}</span>
+      {onUsar && <button onClick={onUsar} className="shrink-0 underline font-semibold" style={{ color: tokens.acento }}>{textoUsar}</button>}
+    </div>
+  );
+}
+
 function BlocoPrecificacao({
   lang, custo, despesasPct, margemDesejadaPct, divisorInvalido, margemRealPct, lucroUnidade, situacao,
   onChangeCusto, onChangeDespesasPct, onChangeMargemDesejadaPct,
+  categoriaLabel, temProdutoSalvo, produtoTemFornecedor, sugestaoCusto, sugestaoFornecedor, carregandoSugestaoProduto, sugestaoMargem, carregandoSugestaoMargem,
 }: {
   lang: Lang; custo: number | null | undefined; despesasPct: string; margemDesejadaPct: string;
   divisorInvalido: boolean; margemRealPct: number; lucroUnidade: number; situacao: SituacaoMargem | null;
   onChangeCusto: (v: any) => void; onChangeDespesasPct: (v: any) => void; onChangeMargemDesejadaPct: (v: any) => void;
+  categoriaLabel: string | null; temProdutoSalvo: boolean; produtoTemFornecedor: boolean;
+  sugestaoCusto: UltimaCompraProduto | null; sugestaoFornecedor: FornecedorComparativo | null; carregandoSugestaoProduto: boolean;
+  sugestaoMargem: ItemRentabilidade | null; carregandoSugestaoMargem: boolean;
 }) {
   const { tokens } = useTemaPdv();
   const temCusto = !!custo && custo > 0;
@@ -1059,6 +1158,47 @@ function BlocoPrecificacao({
         <Campo label={t("campoDespesasVariaveis", lang)} tipo="number" value={despesasPct} onChange={onChangeDespesasPct} />
         <Campo label={t("campoMargemDesejada", lang)} tipo="number" value={margemDesejadaPct} onChange={onChangeMargemDesejadaPct} />
       </div>
+
+      {(temProdutoSalvo || categoriaLabel) && (
+        <div className="space-y-1.5">
+          {temProdutoSalvo && (
+            carregandoSugestaoProduto ? (
+              <LinhaSugestao carregando texto={t("sugCustoCarregando", lang)} />
+            ) : sugestaoCusto ? (
+              <LinhaSugestao texto={t("sugCustoComDado", lang, { valor: moeda(sugestaoCusto.custoUnitario), data: dataCurta(sugestaoCusto.dataHora) })}
+                onUsar={() => onChangeCusto(sugestaoCusto.custoUnitario)} textoUsar={t("usarEsteValor", lang)} />
+            ) : (
+              <LinhaSugestao texto={t("sugCustoSemDado", lang)} />
+            )
+          )}
+
+          {categoriaLabel && (
+            carregandoSugestaoMargem ? (
+              <LinhaSugestao carregando texto={t("sugMargemCarregando", lang)} />
+            ) : sugestaoMargem?.margem_media != null ? (
+              <LinhaSugestao texto={t("sugMargemComDado", lang, { categoria: categoriaLabel, v: sugestaoMargem.margem_media.toFixed(1) })}
+                onUsar={() => onChangeMargemDesejadaPct(sugestaoMargem.margem_media!.toFixed(1))} textoUsar={t("usarEsteValor", lang)} />
+            ) : (
+              <LinhaSugestao texto={t("sugMargemSemDado", lang)} />
+            )
+          )}
+
+          {temProdutoSalvo && (
+            carregandoSugestaoProduto ? (
+              <LinhaSugestao carregando texto={t("sugFornecedorCarregando", lang)} />
+            ) : sugestaoFornecedor ? (
+              <LinhaSugestao texto={t("sugFornecedorComDado", lang, {
+                fornecedor: sugestaoFornecedor.fornecedor_nome,
+                valor: sugestaoFornecedor.preco_medio_compra != null ? moeda(sugestaoFornecedor.preco_medio_compra) : "—",
+                n: String(sugestaoFornecedor.frequencia_entregas),
+                data: sugestaoFornecedor.ultima_entrada ? dataCurta(sugestaoFornecedor.ultima_entrada) : "—",
+              })} />
+            ) : (
+              <LinhaSugestao texto={t(produtoTemFornecedor ? "sugFornecedorSemDado" : "sugFornecedorSemVinculo", lang)} />
+            )
+          )}
+        </div>
+      )}
 
       {divisorInvalido && (
         <p className="text-xs" style={{ color: "#f87171" }}>{t("avisoDivisorInvalido", lang)}</p>
