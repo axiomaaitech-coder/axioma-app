@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ScanBarcode, Loader2, Trash2, ExternalLink, Sparkles, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -115,7 +116,17 @@ function preencherSeVazio<T extends Record<string, any>>(prev: T, sugeridos: Set
   return valor;
 }
 
+// useSearchParams exige Suspense no App Router (mesmo padrão já usado em
+// components/PostHogPageView.tsx, aqui só que local à página).
 export default function PDVCadastro() {
+  return (
+    <Suspense fallback={null}>
+      <PDVCadastroInner />
+    </Suspense>
+  );
+}
+
+function PDVCadastroInner() {
   const { idioma } = useLanguage();
   const lang: Lang = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Lang;
   const supabase = useMemo(() => createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!), []);
@@ -165,6 +176,35 @@ export default function PDVCadastro() {
   }
 
   const pronto = !!(nichoSel && (nichoSel.categorias.length === 0 || (categoriaSel && subNichoSel)));
+
+  // ---- Herda nicho/categoria/sub-nicho da navegação (query params do link
+  // "+ Novo Produto/Serviço" do Catálogo) — só na montagem. segmento casa por
+  // value (slug estável); categoria/subnicho casam por label nos 3 idiomas,
+  // porque é isso que o Catálogo manda (categoria "real"/não-curada não tem
+  // value na taxonomia). Se um param não existir ou não bater com nada, essa
+  // etapa fica como estava — o lojista escolhe manual, sem quebrar nada.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const segmentoParam = searchParams.get("segmento");
+    if (!segmentoParam) return;
+    const nicho = NICHOS_PDV.find((n) => n.value === segmentoParam);
+    if (!nicho) return;
+    setNichoSel(nicho);
+
+    const categoriaParam = searchParams.get("categoria");
+    if (!categoriaParam) return;
+    const categoria = nicho.categorias.find((c) =>
+      [c.label.pt, c.label.en, c.label.es].some((l) => l.toLowerCase() === categoriaParam.toLowerCase()));
+    if (!categoria) return;
+    setCategoriaSel(categoria);
+
+    const subNichoParam = searchParams.get("subnicho");
+    if (!subNichoParam) return;
+    const sub = categoria.subNichos.find((s) =>
+      [s.label.pt, s.label.en, s.label.es].some((l) => l.toLowerCase() === subNichoParam.toLowerCase()));
+    if (sub) setSubNichoSel(sub);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ============================================================================
   // CASCATA — camadas 1+2 (base própria + Cosmos), reaproveitadas sem mudança.

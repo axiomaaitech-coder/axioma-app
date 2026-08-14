@@ -312,7 +312,7 @@ export default function PDV() {
   return (
     <PdvLayout
       titulo={tituloAtual} subtitulo={subtituloAtual} aoVoltar={handleSetaTopo}
-      botaoExtra={<BotoesHeader lang={lang} />}
+      botaoExtra={<BotoesHeader lang={lang} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} />}
     >
       <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} onVoltar={voltarPara} />
 
@@ -398,13 +398,26 @@ function AvisoOperador({ lang }: { lang: Idioma }) {
   );
 }
 
-function BotoesHeader({ lang }: { lang: Idioma }) {
+function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
+  lang: Idioma; nichoSel: NichoPdvDef | null; categoriaSel: string | null; subNichoSel: string | null;
+}) {
   // Botão de ação — verde só no tema escuro (tokens.acaoBg já resolve isso).
   // Nos temas 2/3 vira azul forte + texto branco, nunca verde sobre claro.
   const { tokens } = useTemaPdv();
+  // Herda o caminho navegado pro cadastro — categoria/subnicho vão como texto
+  // do label (é o que o estado guarda aqui, curado ou real), o cadastro casa
+  // por label nos 3 idiomas; se não bater (ex: categoria "outra" sem entrada
+  // curada na taxonomia), cai no comportamento normal de escolher manual.
+  const hrefCadastro = useMemo(() => {
+    if (!nichoSel) return "/pdv/cadastro";
+    const params = new URLSearchParams({ segmento: nichoSel.value });
+    if (categoriaSel) params.set("categoria", categoriaSel);
+    if (subNichoSel && subNichoSel !== SEM_SUBNICHO) params.set("subnicho", subNichoSel);
+    return `/pdv/cadastro?${params.toString()}`;
+  }, [nichoSel, categoriaSel, subNichoSel]);
   return (
     <>
-      <Link href="/pdv/cadastro" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+      <Link href={hrefCadastro} className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         <Plus size={16} /> {t("novoProdutoServico", lang)}
       </Link>
