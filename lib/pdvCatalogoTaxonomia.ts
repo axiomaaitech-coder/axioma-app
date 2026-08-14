@@ -159,6 +159,24 @@ const CAMPO_GENERO_FRAGRANCIA: CampoNicho = CB("generoFragrancia", "select", "G�
   { value: "unissex_fragrancia", label: L("Unissex", "Unisex", "Unisex") },
 ]);
 
+// Bebidas/Adega — refinamento (Volume/Teor Alcoólico/Perecível já cobrem o
+// essencial, nicho mais maduro dos 4). País/uva/temperatura só em vinho;
+// estilo só em cerveja — nenhum aplicado fora do ramo certo.
+const CAMPO_PAIS_REGIAO: CampoNicho = CB("paisRegiao", "text", "País/Região", "Country/Region", "País/Región");
+const CAMPO_UVA_VARIETAL: CampoNicho = CB("uvaVarietal", "text", "Uva/Varietal", "Grape/Varietal", "Uva/Varietal");
+const CAMPO_TEMPERATURA_SERVICO: CampoNicho = CB("temperaturaServico", "text", "Temperatura de Serviço", "Serving Temperature", "Temperatura de Servicio");
+const CAMPO_ESTILO_CERVEJA: CampoNicho = CB("estiloCerveja", "select", "Estilo", "Style", "Estilo", [
+  { value: "pilsen", label: L("Pilsen", "Pilsen", "Pilsen") },
+  { value: "ipa", label: L("IPA", "IPA", "IPA") },
+  { value: "stout", label: L("Stout", "Stout", "Stout") },
+  { value: "weiss", label: L("Weiss", "Weiss", "Weiss") },
+  { value: "lager", label: L("Lager", "Lager", "Lager") },
+  { value: "witbier", label: L("Witbier", "Witbier", "Witbier") },
+  { value: "apa", label: L("APA", "APA", "APA") },
+  { value: "porter", label: L("Porter", "Porter", "Porter") },
+  { value: "outro_estilo_cerveja", label: L("Outro", "Other", "Otro") },
+]);
+
 // Moda (Roupas/Calçados) — campo de tecido é só das peças de vestuário
 // (nunca calçado); tamanho numérico é só de calça (jeans/alfaiataria/social),
 // as demais peças seguem PP–XG via CAMPO_TAMANHO_ROUPA; material é só de
@@ -1122,17 +1140,17 @@ export const NICHOS_PDV: NichoPdvDef[] = [
     value: "bebidas_adega", label: L("Bebidas/Adega", "Beverages/Wine Shop", "Bebidas/Vinoteca"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
       CAT("vinhos_tintos", "Vinhos Tintos", "Red Wines", "Vinos Tintos", [
-        SUB("tinto_nacional", "Tinto Nacional", "Domestic Red", "Tinto Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("tinto_argentino", "Tinto Argentino", "Argentine Red", "Tinto Argentino", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
-        SUB("tinto_chileno", "Tinto Chileno", "Chilean Red", "Tinto Chileno", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("tinto_portugues", "Tinto Português", "Portuguese Red", "Tinto Portugués", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
-        SUB("tinto_italiano_frances", "Tinto Italiano/Francês", "Italian/French Red", "Tinto Italiano/Francés", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("tinto_suave_frisante", "Tinto Suave/Frisante", "Sweet/Frizzante Red", "Tinto Suave/Frizzante", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("tinto_nacional", "Tinto Nacional", "Domestic Red", "Tinto Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("tinto_argentino", "Tinto Argentino", "Argentine Red", "Tinto Argentino", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
+        SUB("tinto_chileno", "Tinto Chileno", "Chilean Red", "Tinto Chileno", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("tinto_portugues", "Tinto Português", "Portuguese Red", "Tinto Portugués", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
+        SUB("tinto_italiano_frances", "Tinto Italiano/Francês", "Italian/French Red", "Tinto Italiano/Francés", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("tinto_suave_frisante", "Tinto Suave/Frisante", "Sweet/Frizzante Red", "Tinto Suave/Frizzante", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
       ]),
       CAT("vinhos_brancos_rose", "Vinhos Brancos e Rosé", "White & Rosé Wines", "Vinos Blancos y Rosados", [
-        SUB("branco_nacional", "Branco Nacional", "Domestic White", "Blanco Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("branco_importado", "Branco Importado", "Imported White", "Blanco Importado", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
-        SUB("rose", "Rosé", "Rosé", "Rosado", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("vinho_suave_branco", "Vinho Suave Branco", "Sweet White Wine", "Vino Blanco Suave", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("branco_nacional", "Branco Nacional", "Domestic White", "Blanco Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("branco_importado", "Branco Importado", "Imported White", "Blanco Importado", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
+        SUB("rose", "Rosé", "Rosé", "Rosado", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("vinho_suave_branco", "Vinho Suave Branco", "Sweet White Wine", "Vino Blanco Suave", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
       ]),
       CAT("espumantes_champagne", "Espumantes e Champagne", "Sparkling Wines & Champagne", "Espumantes y Champán", [
-        SUB("espumante_nacional", "Espumante Nacional", "Domestic Sparkling Wine", "Espumante Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("prosecco", "Prosecco", "Prosecco", "Prosecco", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
-        SUB("champagne", "Champagne", "Champagne", "Champán", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("espumante_rose", "Espumante Rosé", "Rosé Sparkling Wine", "Espumante Rosado", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("espumante_nacional", "Espumante Nacional", "Domestic Sparkling Wine", "Espumante Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("prosecco", "Prosecco", "Prosecco", "Prosecco", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
+        SUB("champagne", "Champagne", "Champagne", "Champán", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]), SUB("espumante_rose", "Espumante Rosé", "Rosé Sparkling Wine", "Espumante Rosado", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_PAIS_REGIAO, CAMPO_UVA_VARIETAL, CAMPO_TEMPERATURA_SERVICO]),
       ]),
       CAT("whisky", "Whisky", "Whisky", "Whisky", [
         SUB("whisky_escoces", "Whisky Escocês", "Scotch Whisky", "Whisky Escocés", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("whisky_nacional", "Whisky Nacional", "Domestic Whisky", "Whisky Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
@@ -1155,10 +1173,10 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("conhaque_brandy", "Conhaque/Brandy", "Cognac/Brandy", "Coñac/Brandy", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
       ]),
       CAT("cerveja_adega", "Cerveja", "Beer", "Cerveza", [
-        SUB("artesanal_nacional", "Artesanal Nacional", "Domestic Craft", "Artesanal Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("comercial", "Comercial (Pilsen/Lager)", "Mainstream (Pilsen/Lager)", "Comercial (Pilsen/Lager)", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
-        SUB("importada", "Importada", "Imported", "Importada", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("puro_malte", "Puro Malte", "All-malt", "Puro Malta", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
-        SUB("trigo_weiss", "De Trigo/Weiss", "Wheat/Weiss", "De Trigo/Weiss", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]), SUB("sem_alcool_cerveja", "Sem Álcool", "Non-alcoholic", "Sin Alcohol", [CAMPO_VOLUME]),
-        SUB("growler_chopp", "Growler/Chopp", "Growler/Draft", "Growler/Chopp", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO]),
+        SUB("artesanal_nacional", "Artesanal Nacional", "Domestic Craft", "Artesanal Nacional", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_ESTILO_CERVEJA]), SUB("comercial", "Comercial (Pilsen/Lager)", "Mainstream (Pilsen/Lager)", "Comercial (Pilsen/Lager)", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_ESTILO_CERVEJA]),
+        SUB("importada", "Importada", "Imported", "Importada", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_ESTILO_CERVEJA]), SUB("puro_malte", "Puro Malte", "All-malt", "Puro Malta", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_ESTILO_CERVEJA]),
+        SUB("trigo_weiss", "De Trigo/Weiss", "Wheat/Weiss", "De Trigo/Weiss", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_ESTILO_CERVEJA]), SUB("sem_alcool_cerveja", "Sem Álcool", "Non-alcoholic", "Sin Alcohol", [CAMPO_VOLUME, CAMPO_ESTILO_CERVEJA]),
+        SUB("growler_chopp", "Growler/Chopp", "Growler/Draft", "Growler/Chopp", [CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_ESTILO_CERVEJA]),
       ]),
       CAT("nao_alcoolicas_premium", "Não Alcoólicos e Energéticos", "Non-alcoholic & Energy Drinks", "No Alcohólicas y Energéticas", [
         SUB("agua_com_sem_gas", "Água com/sem Gás", "Sparkling/Still Water", "Agua con/sin Gas", [CAMPO_VOLUME]), SUB("agua_tonica", "Água Tônica", "Tonic Water", "Agua Tónica", [CAMPO_VOLUME]),
