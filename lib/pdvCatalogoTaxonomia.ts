@@ -341,6 +341,87 @@ const SUBNICHOS_PADARIA_CONGELADOS: SubNichoPdv[] = [
   SUB("pao_queijo_congelado", "Pão de Queijo Congelado (Pacote)", "Frozen Cheese Bread (Bag)", "Pan de Queso Congelado (Bolsa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
 ];
 
+// ============================================================================
+// SUB-NICHOS COMPARTILHADOS — Hortifruti: fonte única entre a categoria
+// "Hortifruti" do nicho mercado e o nicho próprio "hortifruti_sacolao" (loja
+// de bairro). Editar aqui reflete nos dois lugares. Os 8 values antigos
+// genéricos que já existiam na categoria do mercado (fruta_nacional_mercado,
+// fruta_importada_mercado, verdura_folhosa_mercado, legume_mercado,
+// raiz_tuberculo_mercado, tempero_fresco_mercado, ovos_mercado,
+// fruta_verdura_higienizada) NÃO existem nesta lista completa — foram
+// preservados à parte, no fim do array da categoria, por poderem ter produto
+// cadastrado. Nunca renomeados/removidos.
+// ============================================================================
+const SUBNICHOS_HORTIFRUTI_FRUTAS_NACIONAIS: SubNichoPdv[] = [
+  SUB("citricas", "Cítricas", "Citrus Fruits", "Cítricos", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("tropicais", "Tropicais", "Tropical Fruits", "Frutas Tropicales", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("frutas_caroco", "Frutas de Caroço", "Stone Fruits", "Frutas de Hueso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("melancia_melao", "Melancia/Melão", "Watermelon/Melon", "Sandía/Melón", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("uva_nacional", "Uva Nacional", "Domestic Grapes", "Uva Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("frutas_vermelhas_silvestres", "Frutas Vermelhas/Silvestres", "Berries", "Frutos Rojos/Silvestres", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("coco", "Coco", "Coconut", "Coco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_FRUTAS_IMPORTADAS: SubNichoPdv[] = [
+  SUB("maca_importada", "Maçã Importada", "Imported Apple", "Manzana Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pera_importada", "Pera Importada", "Imported Pear", "Pera Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("uva_importada", "Uva Importada", "Imported Grapes", "Uva Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("kiwi", "Kiwi", "Kiwi", "Kiwi", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("frutas_exoticas_importadas", "Frutas Exóticas Importadas", "Imported Exotic Fruits", "Frutas Exóticas Importadas", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_VERDURAS_FOLHOSAS: SubNichoPdv[] = [
+  SUB("alface", "Alface", "Lettuce", "Lechuga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("rucula", "Rúcula", "Arugula", "Rúcula", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("agriao", "Agrião", "Watercress", "Berro", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("couve", "Couve", "Collard Greens", "Col Rizada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("espinafre", "Espinafre", "Spinach", "Espinaca", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("acelga", "Acelga", "Swiss Chard", "Acelga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("almeirao_catalonha", "Almeirão/Catalonha", "Chicory/Escarole", "Achicoria/Escarola", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("repolho", "Repolho", "Cabbage", "Repollo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_LEGUMES: SubNichoPdv[] = [
+  SUB("tomate", "Tomate", "Tomato", "Tomate", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pepino", "Pepino", "Cucumber", "Pepino", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("abobrinha", "Abobrinha", "Zucchini", "Calabacín", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("berinjela", "Berinjela", "Eggplant", "Berenjena", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("pimentao", "Pimentão", "Bell Pepper", "Pimiento", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("chuchu", "Chuchu", "Chayote", "Chayote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("quiabo", "Quiabo", "Okra", "Quimbombó", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("vagem", "Vagem", "Green Beans", "Ejote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_RAIZES_TUBERCULOS: SubNichoPdv[] = [
+  SUB("batata_inglesa", "Batata Inglesa", "White Potato", "Papa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("batata_doce", "Batata Doce", "Sweet Potato", "Batata/Camote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("mandioca_aipim", "Mandioca/Aipim", "Cassava", "Yuca/Mandioca", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("inhame", "Inhame", "Yam", "Ñame", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("cenoura", "Cenoura", "Carrot", "Zanahoria", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("beterraba", "Beterraba", "Beet", "Remolacha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("gengibre", "Gengibre", "Ginger", "Jengibre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_BULBOS: SubNichoPdv[] = [
+  SUB("cebola_nacional", "Cebola Nacional", "Domestic Onion", "Cebolla Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("cebola_roxa", "Cebola Roxa", "Red Onion", "Cebolla Morada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("alho_nacional", "Alho Nacional", "Domestic Garlic", "Ajo Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("alho_importado", "Alho Importado", "Imported Garlic", "Ajo Importado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("alho_poro", "Alho-poró", "Leek", "Puerro", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_TEMPEROS_FRESCOS: SubNichoPdv[] = [
+  SUB("manjericao", "Manjericão", "Basil", "Albahaca", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("hortela", "Hortelã", "Mint", "Menta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("salsa_cebolinha", "Salsa/Cebolinha", "Parsley/Chives", "Perejil/Cebollín", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("coentro", "Coentro", "Cilantro", "Cilantro", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("alecrim_tomilho_salvia", "Alecrim/Tomilho/Sálvia", "Rosemary/Thyme/Sage", "Romero/Tomillo/Salvia", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pimenta_fresca", "Pimenta Fresca", "Fresh Chili Pepper", "Ají/Chile Fresco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("louro", "Louro", "Bay Leaf", "Laurel", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_OVOS: SubNichoPdv[] = [
+  SUB("ovo_branco", "Ovo Branco", "White Egg", "Huevo Blanco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("ovo_caipira_colonial", "Ovo Caipira/Colonial", "Free-range Egg", "Huevo de Campo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("ovo_codorna", "Ovo de Codorna", "Quail Egg", "Huevo de Codorniz", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_GRAOS_GRANEL: SubNichoPdv[] = [
+  SUB("castanhas", "Castanhas", "Nuts (Brazil/Cashew)", "Castañas (Pará/Marañón)", [CAMPO_UNIDADE_VENDA]), SUB("nozes_macadamia", "Nozes/Macadâmia", "Walnuts/Macadamia", "Nueces/Macadamia", [CAMPO_UNIDADE_VENDA]),
+  SUB("graos_a_granel", "Grãos a Granel", "Bulk Grains", "Granos a Granel", [CAMPO_UNIDADE_VENDA]), SUB("farinhas_a_granel", "Farinhas a Granel", "Bulk Flours", "Harinas a Granel", [CAMPO_UNIDADE_VENDA]),
+  SUB("frutas_secas", "Frutas Secas", "Dried Fruit", "Frutas Secas", [CAMPO_UNIDADE_VENDA]), SUB("mix_castanhas", "Mix de Castanhas", "Nut Mix", "Mix de Frutos Secos", [CAMPO_UNIDADE_VENDA]),
+];
+const SUBNICHOS_HORTIFRUTI_POLPAS_CONGELADOS: SubNichoPdv[] = [
+  SUB("polpa_fruta_congelada_hf", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("fruta_congelada", "Fruta Congelada", "Frozen Fruit", "Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("suco_natural_engarrafado", "Suco Natural Engarrafado", "Bottled Fresh Juice", "Jugo Natural Embotellado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_MINIMAMENTE_PROCESSADOS: SubNichoPdv[] = [
+  SUB("salada_pronta_higienizada", "Salada Pronta Higienizada", "Ready-to-eat Washed Salad", "Ensalada Lista Higienizada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("legume_cortado_descascado", "Legume Cortado/Descascado", "Cut/Peeled Vegetables", "Verdura Cortada/Pelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("fruta_picada_embalada", "Fruta Picada Embalada", "Packaged Cut Fruit", "Fruta Picada Envasada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("suco_detox_prensado_frio", "Suco Detox Prensado a Frio", "Cold-pressed Detox Juice", "Jugo Detox Prensado en Frío", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_COGUMELOS_ESPECIAIS: SubNichoPdv[] = [
+  SUB("cogumelo", "Cogumelo (Paris/Shitake/Shimeji)", "Mushroom (Button/Shiitake/Shimeji)", "Hongo (Champiñón/Shitake/Shimeji)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("palmito_fresco", "Palmito Fresco", "Fresh Heart of Palm", "Palmito Fresco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+  SUB("broto", "Broto (Feijão/Alfafa)", "Sprouts (Bean/Alfalfa)", "Brotes (Frijol/Alfalfa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+];
+const SUBNICHOS_HORTIFRUTI_FLORES_PLANTAS: SubNichoPdv[] = [
+  SUB("flor_corte", "Flor de Corte", "Cut Flowers", "Flor de Corte", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("vaso_muda", "Vaso/Muda", "Potted Plant/Seedling", "Maceta/Plantín", [CAMPO_UNIDADE_VENDA]),
+  SUB("terra_adubo", "Terra/Adubo", "Soil/Fertilizer", "Tierra/Abono", [CAMPO_UNIDADE_VENDA]),
+];
+
 export const NICHOS_PDV: NichoPdvDef[] = [
   // ============================================================================
   // MODO PRODUTO — reaproveitam o segmento existente do Estoque (dado real)
@@ -349,6 +430,12 @@ export const NICHOS_PDV: NichoPdvDef[] = [
     value: "mercado", label: L("Mercado/Mercearia", "Grocery Store", "Mercado/Almacén"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
       CAT("hortifruti", "Hortifruti", "Produce", "Frutas y Verduras", [
+        ...SUBNICHOS_HORTIFRUTI_FRUTAS_NACIONAIS, ...SUBNICHOS_HORTIFRUTI_FRUTAS_IMPORTADAS, ...SUBNICHOS_HORTIFRUTI_VERDURAS_FOLHOSAS,
+        ...SUBNICHOS_HORTIFRUTI_LEGUMES, ...SUBNICHOS_HORTIFRUTI_RAIZES_TUBERCULOS, ...SUBNICHOS_HORTIFRUTI_BULBOS,
+        ...SUBNICHOS_HORTIFRUTI_TEMPEROS_FRESCOS, ...SUBNICHOS_HORTIFRUTI_OVOS, ...SUBNICHOS_HORTIFRUTI_GRAOS_GRANEL,
+        ...SUBNICHOS_HORTIFRUTI_POLPAS_CONGELADOS, ...SUBNICHOS_HORTIFRUTI_MINIMAMENTE_PROCESSADOS, ...SUBNICHOS_HORTIFRUTI_COGUMELOS_ESPECIAIS,
+        ...SUBNICHOS_HORTIFRUTI_FLORES_PLANTAS,
+        // legado — 8 values antigos da categoria do mercado, preservados (produto pode estar cadastrado neles)
         SUB("fruta_nacional_mercado", "Fruta Nacional", "Domestic Fruit", "Fruta Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("fruta_importada_mercado", "Fruta Importada", "Imported Fruit", "Fruta Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("verdura_folhosa_mercado", "Verdura Folhosa", "Leafy Greens", "Verdura de Hoja", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("legume_mercado", "Legume", "Vegetable", "Legumbre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("raiz_tuberculo_mercado", "Raiz/Tubérculo", "Root/Tuber", "Raíz/Tubérculo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("tempero_fresco_mercado", "Tempero Fresco", "Fresh Herbs", "Condimento Fresco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
@@ -854,75 +941,19 @@ export const NICHOS_PDV: NichoPdvDef[] = [
   {
     value: "hortifruti_sacolao", label: L("Hortifruti/Sacolão", "Produce Market", "Verdulería"), modo: "produto", divisaoPrimaria: "alimentos",
     categorias: [
-      CAT("frutas_nacionais", "Frutas Nacionais", "Domestic Fruit", "Frutas Nacionales", [
-        SUB("citricas", "Cítricas", "Citrus Fruits", "Cítricos", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("tropicais", "Tropicais", "Tropical Fruits", "Frutas Tropicales", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("frutas_caroco", "Frutas de Caroço", "Stone Fruits", "Frutas de Hueso", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("melancia_melao", "Melancia/Melão", "Watermelon/Melon", "Sandía/Melón", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("uva_nacional", "Uva Nacional", "Domestic Grapes", "Uva Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("frutas_vermelhas_silvestres", "Frutas Vermelhas/Silvestres", "Berries", "Frutos Rojos/Silvestres", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("coco", "Coco", "Coconut", "Coco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("frutas_importadas", "Frutas Importadas", "Imported Fruit", "Frutas Importadas", [
-        SUB("maca_importada", "Maçã Importada", "Imported Apple", "Manzana Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pera_importada", "Pera Importada", "Imported Pear", "Pera Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("uva_importada", "Uva Importada", "Imported Grapes", "Uva Importada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("kiwi", "Kiwi", "Kiwi", "Kiwi", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("frutas_exoticas_importadas", "Frutas Exóticas Importadas", "Imported Exotic Fruits", "Frutas Exóticas Importadas", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("verduras_folhosas", "Verduras/Folhosas", "Leafy Greens", "Verduras de Hoja", [
-        SUB("alface", "Alface", "Lettuce", "Lechuga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("rucula", "Rúcula", "Arugula", "Rúcula", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("agriao", "Agrião", "Watercress", "Berro", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("couve", "Couve", "Collard Greens", "Col Rizada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("espinafre", "Espinafre", "Spinach", "Espinaca", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("acelga", "Acelga", "Swiss Chard", "Acelga", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("almeirao_catalonha", "Almeirão/Catalonha", "Chicory/Escarole", "Achicoria/Escarola", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("repolho", "Repolho", "Cabbage", "Repollo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("legumes_hf", "Legumes", "Vegetables", "Legumbres", [
-        SUB("tomate", "Tomate", "Tomato", "Tomate", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pepino", "Pepino", "Cucumber", "Pepino", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("abobrinha", "Abobrinha", "Zucchini", "Calabacín", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("berinjela", "Berinjela", "Eggplant", "Berenjena", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("pimentao", "Pimentão", "Bell Pepper", "Pimiento", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("chuchu", "Chuchu", "Chayote", "Chayote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("quiabo", "Quiabo", "Okra", "Quimbombó", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("vagem", "Vagem", "Green Beans", "Ejote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("raizes_tuberculos", "Raízes e Tubérculos", "Roots & Tubers", "Raíces y Tubérculos", [
-        SUB("batata_inglesa", "Batata Inglesa", "White Potato", "Papa", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("batata_doce", "Batata Doce", "Sweet Potato", "Batata/Camote", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("mandioca_aipim", "Mandioca/Aipim", "Cassava", "Yuca/Mandioca", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("inhame", "Inhame", "Yam", "Ñame", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("cenoura", "Cenoura", "Carrot", "Zanahoria", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("beterraba", "Beterraba", "Beet", "Remolacha", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("gengibre", "Gengibre", "Ginger", "Jengibre", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("bulbos", "Bulbos", "Bulbs", "Bulbos", [
-        SUB("cebola_nacional", "Cebola Nacional", "Domestic Onion", "Cebolla Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("cebola_roxa", "Cebola Roxa", "Red Onion", "Cebolla Morada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("alho_nacional", "Alho Nacional", "Domestic Garlic", "Ajo Nacional", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("alho_importado", "Alho Importado", "Imported Garlic", "Ajo Importado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("alho_poro", "Alho-poró", "Leek", "Puerro", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("temperos_frescos_hf", "Temperos Frescos", "Fresh Herbs", "Condimentos Frescos", [
-        SUB("manjericao", "Manjericão", "Basil", "Albahaca", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("hortela", "Hortelã", "Mint", "Menta", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("salsa_cebolinha", "Salsa/Cebolinha", "Parsley/Chives", "Perejil/Cebollín", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("coentro", "Coentro", "Cilantro", "Cilantro", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("alecrim_tomilho_salvia", "Alecrim/Tomilho/Sálvia", "Rosemary/Thyme/Sage", "Romero/Tomillo/Salvia", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("pimenta_fresca", "Pimenta Fresca", "Fresh Chili Pepper", "Ají/Chile Fresco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("louro", "Louro", "Bay Leaf", "Laurel", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("ovos_hf", "Ovos", "Eggs", "Huevos", [
-        SUB("ovo_branco", "Ovo Branco", "White Egg", "Huevo Blanco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("ovo_caipira_colonial", "Ovo Caipira/Colonial", "Free-range Egg", "Huevo de Campo", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("ovo_codorna", "Ovo de Codorna", "Quail Egg", "Huevo de Codorniz", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("graos_granel", "Grãos e Granel", "Grains & Bulk Foods", "Granos a Granel", [
-        SUB("castanhas", "Castanhas", "Nuts (Brazil/Cashew)", "Castañas (Pará/Marañón)", [CAMPO_UNIDADE_VENDA]), SUB("nozes_macadamia", "Nozes/Macadâmia", "Walnuts/Macadamia", "Nueces/Macadamia", [CAMPO_UNIDADE_VENDA]),
-        SUB("graos_a_granel", "Grãos a Granel", "Bulk Grains", "Granos a Granel", [CAMPO_UNIDADE_VENDA]), SUB("farinhas_a_granel", "Farinhas a Granel", "Bulk Flours", "Harinas a Granel", [CAMPO_UNIDADE_VENDA]),
-        SUB("frutas_secas", "Frutas Secas", "Dried Fruit", "Frutas Secas", [CAMPO_UNIDADE_VENDA]), SUB("mix_castanhas", "Mix de Castanhas", "Nut Mix", "Mix de Frutos Secos", [CAMPO_UNIDADE_VENDA]),
-      ]),
-      CAT("polpas_congelados_fruta", "Polpas e Congelados de Fruta", "Fruit Pulp & Frozen Fruit", "Pulpas y Congelados de Fruta", [
-        SUB("polpa_fruta_congelada_hf", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("fruta_congelada", "Fruta Congelada", "Frozen Fruit", "Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("suco_natural_engarrafado", "Suco Natural Engarrafado", "Bottled Fresh Juice", "Jugo Natural Embotellado", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("minimamente_processados", "Minimamente Processados", "Minimally Processed", "Mínimamente Procesados", [
-        SUB("salada_pronta_higienizada", "Salada Pronta Higienizada", "Ready-to-eat Washed Salad", "Ensalada Lista Higienizada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("legume_cortado_descascado", "Legume Cortado/Descascado", "Cut/Peeled Vegetables", "Verdura Cortada/Pelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("fruta_picada_embalada", "Fruta Picada Embalada", "Packaged Cut Fruit", "Fruta Picada Envasada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("suco_detox_prensado_frio", "Suco Detox Prensado a Frio", "Cold-pressed Detox Juice", "Jugo Detox Prensado en Frío", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("cogumelos_especiais", "Cogumelos e Especiais", "Mushrooms & Specialty Items", "Hongos y Especiales", [
-        SUB("cogumelo", "Cogumelo (Paris/Shitake/Shimeji)", "Mushroom (Button/Shiitake/Shimeji)", "Hongo (Champiñón/Shitake/Shimeji)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("palmito_fresco", "Palmito Fresco", "Fresh Heart of Palm", "Palmito Fresco", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-        SUB("broto", "Broto (Feijão/Alfafa)", "Sprouts (Bean/Alfalfa)", "Brotes (Frijol/Alfalfa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
-      ]),
-      CAT("flores_plantas", "Flores e Plantas", "Flowers & Plants", "Flores y Plantas", [
-        SUB("flor_corte", "Flor de Corte", "Cut Flowers", "Flor de Corte", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]), SUB("vaso_muda", "Vaso/Muda", "Potted Plant/Seedling", "Maceta/Plantín", [CAMPO_UNIDADE_VENDA]),
-        SUB("terra_adubo", "Terra/Adubo", "Soil/Fertilizer", "Tierra/Abono", [CAMPO_UNIDADE_VENDA]),
-      ]),
+      CAT("frutas_nacionais", "Frutas Nacionais", "Domestic Fruit", "Frutas Nacionales", SUBNICHOS_HORTIFRUTI_FRUTAS_NACIONAIS),
+      CAT("frutas_importadas", "Frutas Importadas", "Imported Fruit", "Frutas Importadas", SUBNICHOS_HORTIFRUTI_FRUTAS_IMPORTADAS),
+      CAT("verduras_folhosas", "Verduras/Folhosas", "Leafy Greens", "Verduras de Hoja", SUBNICHOS_HORTIFRUTI_VERDURAS_FOLHOSAS),
+      CAT("legumes_hf", "Legumes", "Vegetables", "Legumbres", SUBNICHOS_HORTIFRUTI_LEGUMES),
+      CAT("raizes_tuberculos", "Raízes e Tubérculos", "Roots & Tubers", "Raíces y Tubérculos", SUBNICHOS_HORTIFRUTI_RAIZES_TUBERCULOS),
+      CAT("bulbos", "Bulbos", "Bulbs", "Bulbos", SUBNICHOS_HORTIFRUTI_BULBOS),
+      CAT("temperos_frescos_hf", "Temperos Frescos", "Fresh Herbs", "Condimentos Frescos", SUBNICHOS_HORTIFRUTI_TEMPEROS_FRESCOS),
+      CAT("ovos_hf", "Ovos", "Eggs", "Huevos", SUBNICHOS_HORTIFRUTI_OVOS),
+      CAT("graos_granel", "Grãos e Granel", "Grains & Bulk Foods", "Granos a Granel", SUBNICHOS_HORTIFRUTI_GRAOS_GRANEL),
+      CAT("polpas_congelados_fruta", "Polpas e Congelados de Fruta", "Fruit Pulp & Frozen Fruit", "Pulpas y Congelados de Fruta", SUBNICHOS_HORTIFRUTI_POLPAS_CONGELADOS),
+      CAT("minimamente_processados", "Minimamente Processados", "Minimally Processed", "Mínimamente Procesados", SUBNICHOS_HORTIFRUTI_MINIMAMENTE_PROCESSADOS),
+      CAT("cogumelos_especiais", "Cogumelos e Especiais", "Mushrooms & Specialty Items", "Hongos y Especiales", SUBNICHOS_HORTIFRUTI_COGUMELOS_ESPECIAIS),
+      CAT("flores_plantas", "Flores e Plantas", "Flowers & Plants", "Flores y Plantas", SUBNICHOS_HORTIFRUTI_FLORES_PLANTAS),
     ],
   },
   {
