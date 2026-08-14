@@ -27,6 +27,10 @@ import { buscarSugestoesSemente } from "../../../../lib/pdvAutocompleteSemente";
 // fixo nos dois temas: é cor de status (sugestão/alerta), não identidade.
 const AMBAR = "#f5b942";
 
+// Etapa 4 — teto de perguntas por sessão de cadastro (protege o crédito da
+// OpenAI). Conta só perguntas que de fato chegaram à OpenAI (ver AssistenteAxioma).
+const LIMITE_PERGUNTAS_ASSISTENTE = 10;
+
 const txt = {
   titulo: { pt: "PDV — Cadastro", en: "POS — Registration", es: "PDV — Registro" },
   subtitulo: {
@@ -154,6 +158,33 @@ const txt = {
   confirmarPrejuizoValor: { pt: "{v} de prejuízo por unidade", en: "{v} loss per unit", es: "{v} de pérdida por unidad" },
   btnCancelar: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
   btnSalvarMesmoAssim: { pt: "Salvar mesmo assim", en: "Save anyway", es: "Guardar de todas formas" },
+
+  // ---- Etapa 4 — Assistente da inteligência do Axioma (chat contextual) ----
+  assistenteBotao: { pt: "Ajuda da inteligência do Axioma", en: "Help from Axioma's intelligence", es: "Ayuda de la inteligencia de Axioma" },
+  assistenteTitulo: { pt: "Inteligência do Axioma", en: "Axioma's intelligence", es: "Inteligencia de Axioma" },
+  assistenteVazio: {
+    pt: "Pergunte sobre como preencher, margem do ramo ou boas práticas de cadastro.",
+    en: "Ask about how to fill in fields, typical margins, or registration best practices.",
+    es: "Pregunta sobre cómo completar, margen del rubro o buenas prácticas de registro.",
+  },
+  assistentePlaceholder: { pt: "Digite sua pergunta...", en: "Type your question...", es: "Escribe tu pregunta..." },
+  assistenteEnviar: { pt: "Enviar", en: "Send", es: "Enviar" },
+  assistenteLimiteAtingido: {
+    pt: "Limite de perguntas desta sessão atingido. Recarregue a página para continuar.",
+    en: "Question limit for this session reached. Reload the page to continue.",
+    es: "Límite de preguntas de esta sesión alcanzado. Recarga la página para continuar.",
+  },
+  assistenteErro: {
+    pt: "Não consegui responder agora. Tente novamente em instantes.",
+    en: "Couldn't answer right now. Try again in a moment.",
+    es: "No pude responder ahora. Intenta de nuevo en unos instantes.",
+  },
+  assistenteIndisponivel: { pt: "Assistente indisponível no momento.", en: "Assistant unavailable right now.", es: "Asistente no disponible en este momento." },
+  assistenteLimiteRede: {
+    pt: "Muitas perguntas em pouco tempo. Aguarde um instante e tente de novo.",
+    en: "Too many questions in a short time. Wait a moment and try again.",
+    es: "Demasiadas preguntas en poco tiempo. Espera un momento e intenta de nuevo.",
+  },
 };
 
 type Lang = Idioma;
@@ -734,6 +765,11 @@ function PDVCadastroInner() {
             <AbaBotao ativo={modo === "massa"} onClick={() => !subNichoEhServico(nichoSel, subNichoSel) && setModo("massa")} texto={t("abaMassa", lang)} desabilitado={subNichoEhServico(nichoSel, subNichoSel)} />
           </div>
 
+          <AssistenteAxioma
+            lang={lang} nichoLabel={nichoSel!.label[lang]} categoriaLabel={categoriaSel?.label[lang] || null}
+            subNichoLabel={subNichoSel?.label[lang] || null} tipo={subNichoEhServico(nichoSel, subNichoSel) ? "servico" : "produto"}
+          />
+
           {modo === "massa" && subNichoEhServico(nichoSel, subNichoSel) && (
             <p className="text-xs mb-4" style={{ color: AMBAR }}>{t("massaIndisponivelServico", lang)}</p>
           )}
@@ -1003,6 +1039,123 @@ function ModalConfirmacao({ aberto, titulo, mensagem, valorDestaque, textoCancel
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ============================================================================
+// ASSISTENTE DA INTELIGÊNCIA DO AXIOMA — chat de ajuda contextual (Etapa 4).
+// Sob demanda: nunca chama a API sozinho, só quando o lojista envia. Cada
+// pergunta soma no contador de sessão (LIMITE_PERGUNTAS_ASSISTENTE) — o
+// contador só sobe quando a pergunta de fato chegou à OpenAI (status "ok" ou
+// "erro"), nunca em "nao_configurado" (nunca tentou) ou 429 (bloqueado antes
+// de chegar na rota) — isso mede tentativa de custo real, não clique do botão.
+// ============================================================================
+type MensagemAssistente = { role: "user" | "assistant"; content: string };
+
+function AssistenteAxioma({ lang, nichoLabel, categoriaLabel, subNichoLabel, tipo }: {
+  lang: Lang; nichoLabel: string; categoriaLabel: string | null; subNichoLabel: string | null; tipo: "produto" | "servico";
+}) {
+  const { tokens } = useTemaPdv();
+  const [aberto, setAberto] = useState(false);
+  const [historico, setHistorico] = useState<MensagemAssistente[]>([]);
+  const [pergunta, setPergunta] = useState("");
+  const [pensando, setPensando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [contador, setContador] = useState(0);
+  const limiteAtingido = contador >= LIMITE_PERGUNTAS_ASSISTENTE;
+
+  async function enviar() {
+    const texto = pergunta.trim();
+    if (!texto || pensando || limiteAtingido) return;
+    const historicoNoEnvio = historico;
+    setPergunta(""); setErro(null); setPensando(true);
+    setHistorico((h) => [...h, { role: "user", content: texto }]);
+    try {
+      const resp = await fetch("/api/pdv/assistente-cadastro", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mensagem: texto, historico: historicoNoEnvio, nicho: nichoLabel, categoria: categoriaLabel, subNicho: subNichoLabel, tipo, idioma: lang }),
+      });
+      if (!resp.ok) { setErro(resp.status === 429 ? t("assistenteLimiteRede", lang) : t("assistenteErro", lang)); return; }
+      const dados = await resp.json();
+      if (dados.status === "ok") {
+        setContador((c) => c + 1);
+        setHistorico((h) => [...h, { role: "assistant", content: dados.resposta }]);
+      } else if (dados.status === "nao_configurado") {
+        setErro(t("assistenteIndisponivel", lang));
+      } else {
+        setContador((c) => c + 1);
+        setErro(t("assistenteErro", lang));
+      }
+    } catch {
+      setErro(t("assistenteErro", lang));
+    } finally {
+      setPensando(false);
+    }
+  }
+
+  return (
+    <>
+      <button onClick={() => setAberto(true)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold mb-4"
+        style={{ background: tokens.acentoSuaveBg, color: tokens.acento }}>
+        <Sparkles size={13} /> {t("assistenteBotao", lang)}
+      </button>
+
+      <AnimatePresence>
+        {aberto && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}>
+            <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="w-full max-w-sm rounded-2xl p-4 flex flex-col"
+              style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, maxHeight: "80vh" }}>
+              <div className="flex items-center justify-between mb-3 shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={15} style={{ color: tokens.acento }} />
+                  <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("assistenteTitulo", lang)}</h3>
+                </div>
+                <button onClick={() => setAberto(false)} className="text-xs px-2 py-1" style={{ color: tokens.textoMuted }}>✕</button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-2 mb-3" style={{ minHeight: 80 }}>
+                {historico.length === 0 && !pensando && (
+                  <p className="text-xs" style={{ color: tokens.textoMuted }}>{t("assistenteVazio", lang)}</p>
+                )}
+                {historico.map((m, i) => (
+                  <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className="text-xs px-3 py-2 rounded-lg max-w-[85%]"
+                      style={m.role === "user"
+                        ? { background: tokens.acaoBg, color: tokens.acaoTexto }
+                        : { background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {pensando && <Loader2 className="animate-spin" size={14} style={{ color: tokens.textoMuted }} />}
+              </div>
+
+              {erro && <p className="text-xs mb-2" style={{ color: "#f87171" }}>{erro}</p>}
+              {limiteAtingido && <p className="text-xs mb-2" style={{ color: AMBAR }}>{t("assistenteLimiteAtingido", lang)}</p>}
+
+              <div className="flex gap-2 shrink-0">
+                <input value={pergunta} onChange={(e) => setPergunta(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); enviar(); } }}
+                  disabled={pensando || limiteAtingido}
+                  placeholder={t("assistentePlaceholder", lang)}
+                  className="flex-1 min-w-0 px-3 py-2 rounded-lg text-xs outline-none disabled:opacity-50"
+                  style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}`, color: tokens.inputTexto }} />
+                <button onClick={enviar} disabled={pensando || limiteAtingido || !pergunta.trim()}
+                  className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-40 shrink-0"
+                  style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+                  {pensando ? <Loader2 className="animate-spin" size={13} /> : t("assistenteEnviar", lang)}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
