@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -695,6 +696,25 @@ export default function Fornecedores() {
   const lang = (idioma === "en" || idioma === "es" ? idioma : "pt") as "pt" | "en" | "es";
   const tt = T[lang];
 
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  // Reporta falha de escrita no Supabase (erro real, ou RLS bloqueando em
+  // silêncio — 0 linhas afetadas sem erro do Postgres) pro Sentry, com
+  // contexto útil, sem travar a tela.
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
+  const txt = {
+    erroSalvarFornecedor: idioma === "pt" ? "Não foi possível salvar o fornecedor. Tente novamente." : idioma === "en" ? "Could not save the supplier. Try again." : "No se pudo guardar el proveedor. Intente de nuevo.",
+    erroExcluirFornecedor: idioma === "pt" ? "Não foi possível excluir o fornecedor. Tente novamente." : idioma === "en" ? "Could not delete the supplier. Try again." : "No se pudo eliminar el proveedor. Intente de nuevo.",
+    erroSalvarConta: idioma === "pt" ? "Não foi possível salvar a conta a pagar. Tente novamente." : idioma === "en" ? "Could not save the bill. Try again." : "No se pudo guardar la cuenta por pagar. Intente de nuevo.",
+    erroExcluirConta: idioma === "pt" ? "Não foi possível excluir a conta a pagar. Tente novamente." : idioma === "en" ? "Could not delete the bill. Try again." : "No se pudo eliminar la cuenta por pagar. Intente de nuevo.",
+    erroQuitarConta: idioma === "pt" ? "Não foi possível quitar a conta. Tente novamente." : idioma === "en" ? "Could not settle the bill. Try again." : "No se pudo saldar la cuenta. Intente de nuevo.",
+  };
+
   const [aba, setAba] = useState<"fornecedores" | "contas">("fornecedores");
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [contas, setContas] = useState<ContaPagar[]>([]);
@@ -942,10 +962,21 @@ export default function Fornecedores() {
     };
     let id = fornecedorAtualId;
     if (id) {
-      await supabase.from("fornecedores").update(payload).eq("id", id);
+      const { data, error } = await supabase.from("fornecedores").update(payload).eq("id", id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarFornecedor, "erro");
+        reportarFalhaEscrita("fornecedores", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoForn(false);
+        return null;
+      }
     } else {
       const { data, error } = await supabase.from("fornecedores").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
-      if (error || !data) { setSalvandoForn(false); return null; }
+      if (error || !data) {
+        showToast(txt.erroSalvarFornecedor, "erro");
+        reportarFalhaEscrita("fornecedores", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoForn(false);
+        return null;
+      }
       id = data.id;
       setFornecedorAtualId(id);
     }
@@ -983,8 +1014,13 @@ export default function Fornecedores() {
   const excluirForn = async (id: string) => {
     // ponytail: apaga o fornecedor e os registros filhos (cascade no banco), mas não
     // remove os arquivos órfãos do Storage — upgrade futuro se o volume de documentos justificar.
-    await supabase.from("fornecedores").delete().eq("id", id);
-    setFornecedores(fornecedores.filter(f => f.id !== id));
+    const { data, error } = await supabase.from("fornecedores").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroExcluirFornecedor, "erro");
+      reportarFalhaEscrita("fornecedores", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
+    await carregarDados();
   };
 
   // ---------- CONTATOS ----------
@@ -1187,11 +1223,23 @@ export default function Fornecedores() {
       centro_custo_id: nc.centro_custo_id || null,
     };
     if (editandoConta) {
-      await supabase.from("contas_pagar").update(payload).eq("id", editandoConta.id);
+      const { data, error } = await supabase.from("contas_pagar").update(payload).eq("id", editandoConta.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(txt.erroSalvarConta, "erro");
+        reportarFalhaEscrita("contas_pagar", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoConta(false);
+        return;
+      }
       await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
     } else {
-      const { data } = await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id }).select("id").single();
-      if (data) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
+      const { data, error } = await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id }).select("id").single();
+      if (error || !data) {
+        showToast(txt.erroSalvarConta, "erro");
+        reportarFalhaEscrita("contas_pagar", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoConta(false);
+        return;
+      }
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
     }
     fecharModalConta(); await carregarDados(); setSalvandoConta(false);
   };
@@ -1199,15 +1247,25 @@ export default function Fornecedores() {
   const excluirConta = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     const conta = contas.find(c => c.id === id);
-    await supabase.from("contas_pagar").delete().eq("id", id);
+    const { data, error } = await supabase.from("contas_pagar").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroExcluirConta, "erro");
+      reportarFalhaEscrita("contas_pagar", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: conta?.centro_custo_id || null, tabela: "contas_pagar", registroId: id, acao: "excluir", descricao: `Conta a pagar excluída: ${conta?.descricao || id}` });
-    setContas(contas.filter(c => c.id !== id));
+    await carregarDados();
   };
 
   const quitarConta = async (c: ContaPagar) => {
-    await supabase.from("contas_pagar").update({
+    const { data, error } = await supabase.from("contas_pagar").update({
       valor_pago: c.valor_total, status: "pago", data_pagamento: new Date().toISOString().split("T")[0],
-    }).eq("id", c.id);
+    }).eq("id", c.id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(txt.erroQuitarConta, "erro");
+      reportarFalhaEscrita("contas_pagar", "update quitar", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     await carregarDados();
   };
 
@@ -1618,6 +1676,15 @@ export default function Fornecedores() {
       labelBotao={t.fornecedores.novoFornecedor}
       botaoExtra={botaoNovaConta}
     >
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)",
+            color: "#020810", fontWeight: 600, fontSize: 13,
+          }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         {/* ====== DASHBOARD EXECUTIVO (Fase 2) ====== */}
