@@ -712,7 +712,7 @@ function LinhaProduto({ produto, lang, onExcluir }: { produto: ProdutoPdv; lang:
         <span className="text-sm font-bold" style={{ color: tokens.cardTexto, opacity: preco ? 1 : 0.6 }}>
           {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
-        <a href="/estoque" title={t("editar", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
+        <a href={`/pdv/cadastro?id=${produto.id}`} title={t("editar", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
           <Pencil size={14} />
         </a>
         <button onClick={() => onExcluir(produto)} title={t("excluir", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>

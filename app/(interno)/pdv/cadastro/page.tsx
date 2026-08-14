@@ -92,6 +92,11 @@ const txt = {
   pular: { pt: "Pular", en: "Skip", es: "Saltar" },
   precoParaSalvar: { pt: "Confirme o preço para salvar automático", en: "Confirm the price to auto-save", es: "Confirme el precio para guardar automático" },
   faltaCompletar: { pt: "Falta completar — confira e salve", en: "Needs completing — review and save", es: "Falta completar — revise y guarde" },
+  erroProdutoNaoEncontrado: {
+    pt: "Produto não encontrado ou não pertence à sua empresa. Escolha o nicho abaixo para cadastrar um novo.",
+    en: "Product not found or doesn't belong to your company. Choose a niche below to register a new one.",
+    es: "Producto no encontrado o no pertenece a su empresa. Elija el nicho abajo para registrar uno nuevo.",
+  },
 };
 
 type Lang = Idioma;
@@ -106,6 +111,17 @@ type FormPdv = Partial<Produto> & { atributos_nicho: Record<string, any> };
 
 function formVazio(segmento?: string): FormPdv {
   return { unidade: "UN", status: "ativo", estoque_minimo: 0, atributos_nicho: {}, segmento };
+}
+
+// Categoria/sub-nicho não têm value estável fora da taxonomia curada (o
+// Catálogo e o produto salvo só guardam o label) — casa por label nos 3
+// idiomas. Usado tanto pra herdar da navegação (query params) quanto pra
+// reabrir um produto existente em modo edição (produto.categoria/subcategoria).
+function encontrarCategoriaPorLabel(nicho: NichoPdvDef, label: string): CategoriaPdv | null {
+  return nicho.categorias.find((c) => [c.label.pt, c.label.en, c.label.es].some((l) => l.toLowerCase() === label.toLowerCase())) || null;
+}
+function encontrarSubNichoPorLabel(categoria: CategoriaPdv, label: string): SubNichoPdv | null {
+  return categoria.subNichos.find((s) => [s.label.pt, s.label.en, s.label.es].some((l) => l.toLowerCase() === label.toLowerCase())) || null;
 }
 
 function preencherSeVazio<T extends Record<string, any>>(prev: T, sugeridos: Set<string>, campo: string, valor: any) {
@@ -159,6 +175,10 @@ function PDVCadastroInner() {
   const [categoriaSel, setCategoriaSel] = useState<CategoriaPdv | null>(null);
   const [subNichoSel, setSubNichoSel] = useState<SubNichoPdv | null>(null);
   const [modo, setModo] = useState<"avulso" | "massa">("avulso");
+  // true só durante uma carga programática (herdar da navegação ou editar por
+  // id) — impede o efeito de reset (abaixo, na seção AVULSO) de apagar o que
+  // acabamos de carregar só porque nichoSel/categoriaSel/subNichoSel mudaram.
+  const cargaProgramaticaRef = useRef(false);
 
   function selecionarNicho(valor: string) {
     const n = NICHOS_PDV.find((x) => x.value === valor) || null;
@@ -184,24 +204,25 @@ function PDVCadastroInner() {
   // value na taxonomia). Se um param não existir ou não bater com nada, essa
   // etapa fica como estava — o lojista escolhe manual, sem quebrar nada.
   const searchParams = useSearchParams();
+  const [erroProdutoId, setErroProdutoId] = useState<string | null>(null);
   useEffect(() => {
+    if (searchParams.get("id")) return; // edição por id tem o próprio efeito, mais abaixo — não disputa com este
     const segmentoParam = searchParams.get("segmento");
     if (!segmentoParam) return;
     const nicho = NICHOS_PDV.find((n) => n.value === segmentoParam);
     if (!nicho) return;
+    cargaProgramaticaRef.current = true;
     setNichoSel(nicho);
 
     const categoriaParam = searchParams.get("categoria");
     if (!categoriaParam) return;
-    const categoria = nicho.categorias.find((c) =>
-      [c.label.pt, c.label.en, c.label.es].some((l) => l.toLowerCase() === categoriaParam.toLowerCase()));
+    const categoria = encontrarCategoriaPorLabel(nicho, categoriaParam);
     if (!categoria) return;
     setCategoriaSel(categoria);
 
     const subNichoParam = searchParams.get("subnicho");
     if (!subNichoParam) return;
-    const sub = categoria.subNichos.find((s) =>
-      [s.label.pt, s.label.en, s.label.es].some((l) => l.toLowerCase() === subNichoParam.toLowerCase()));
+    const sub = encontrarSubNichoPorLabel(categoria, subNichoParam);
     if (sub) setSubNichoSel(sub);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -259,10 +280,38 @@ function PDVCadastroInner() {
 
   useEffect(() => {
     if (!nichoSel) return;
+    if (cargaProgramaticaRef.current) { cargaProgramaticaRef.current = false; return; }
     setForm(formVazio(nichoSel.value));
     setProdutoEditando(null); setCamposSugeridos(new Set()); setOrigemSugestao(null); setDuplicado(null);
     setLoteInicial({ numero_lote: "", data_validade: "", quantidade: "" });
   }, [nichoSel?.value, categoriaSel?.value, subNichoSel?.value]);
+
+  // ---- Edição por id (link "Editar" da lista do Catálogo) — carrega o
+  // produto real, entra no MESMO modo produtoEditando já usado pelo fluxo de
+  // bipagem (nome duplicado → "abrir existente"), só que por essa porta nova.
+  // Confirma empresa_id do produto contra a empresa ativa (multi-tenant) —
+  // nunca confia só no id da URL. Espera empresaId carregar primeiro.
+  useEffect(() => {
+    const idParam = searchParams.get("id");
+    if (!idParam || !empresaId) return;
+    (async () => {
+      const produto = await buscarProdutoPorId(idParam);
+      if (!produto || produto.empresa_id !== empresaId) {
+        setErroProdutoId(t("erroProdutoNaoEncontrado", lang));
+        return;
+      }
+      const nicho = NICHOS_PDV.find((n) => n.value === produto.segmento) || null;
+      cargaProgramaticaRef.current = true;
+      setNichoSel(nicho);
+      const categoria = nicho && produto.categoria ? encontrarCategoriaPorLabel(nicho, produto.categoria) : null;
+      setCategoriaSel(categoria);
+      const sub = categoria && produto.subcategoria ? encontrarSubNichoPorLabel(categoria, produto.subcategoria) : null;
+      setSubNichoSel(sub);
+      setProdutoEditando(produto);
+      setForm({ ...produto, atributos_nicho: produto.atributos_nicho || {} });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    })();
+  }, [empresaId]);
 
   function onChangeCampo(campo: string, valor: any) {
     setForm((f) => ({ ...f, [campo]: valor }));
@@ -491,6 +540,11 @@ function PDVCadastroInner() {
   return (
     <PdvLayout titulo={tituloCadastro} subtitulo={subtituloCadastro} voltarPara="/pdv">
       {toast && <ToastPdv msg={toast.msg} tipo={toast.tipo} />}
+      {erroProdutoId && (
+        <div className="mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
+          {erroProdutoId}
+        </div>
+      )}
 
       <SeletorNicho lang={lang} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel}
         onNicho={selecionarNicho} onCategoria={selecionarCategoria} onSubNicho={selecionarSubNicho} />
