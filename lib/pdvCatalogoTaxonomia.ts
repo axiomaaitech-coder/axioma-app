@@ -878,11 +878,15 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       CAT("escrita", "Escrita", "Writing", "Escritura", [
         SUB("caneta", "Caneta", "Pen", "Bolígrafo"), SUB("lapis", "Lápis", "Pencil", "Lápiz"), SUB("marca_texto", "Marca-texto", "Highlighter", "Marcador"),
         SUB("lapiseira", "Lapiseira", "Mechanical Pencil", "Portaminas"), SUB("corretivo", "Corretivo", "Correction Fluid/Tape", "Corrector"), SUB("borracha_apontador", "Borracha/Apontador", "Eraser/Sharpener", "Goma/Sacapuntas"),
+        SUB("caneta_permanente_papelaria", "Caneta Permanente", "Permanent Marker", "Marcador Permanente", [CAMPO_UNIDADE_VENDA]),
+        SUB("pincel_atomico", "Pincel Atômico", "Chisel-tip Marker", "Marcador de Punta Biselada", [CAMPO_UNIDADE_VENDA]),
+        SUB("hidrocor_papelaria", "Hidrocor", "Felt-tip Markers", "Marcadores de Punta Fina", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("cadernos_papel", "Cadernos e Papel", "Notebooks & Paper", "Cuadernos y Papel", [
         SUB("caderno_universitario", "Caderno Universitário", "College Notebook", "Cuaderno Universitario"), SUB("caderno_brochura", "Caderno Brochura", "Composition Notebook", "Cuaderno de Grapas"),
         SUB("papel_sulfite", "Papel Sulfite", "Printer Paper", "Papel Bond"), SUB("bloco_notas_post_it", "Bloco de Notas/Post-it", "Notepad/Sticky Notes", "Bloc de Notas/Post-it"),
         SUB("papel_cartao_color_set", "Papel Cartão/Color Set", "Cardstock/Colored Paper", "Cartulina/Papel de Color"), SUB("agenda_planner", "Agenda/Planner", "Planner/Agenda", "Agenda/Planner"),
+        SUB("fichario_refil_papelaria", "Fichário/Refil", "Binder/Refill Sheets", "Fichero/Repuesto de Hojas", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("escritorio", "Escritório", "Office", "Oficina", [
         SUB("grampeador_clips", "Grampeador/Clips", "Stapler/Clips", "Engrapadora/Clips"), SUB("pasta_envelope", "Pasta/Envelope", "Folder/Envelope", "Carpeta/Sobre"),
@@ -893,6 +897,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("tinta_guache", "Tinta/Guache", "Paint/Poster Paint", "Pintura/Témpera"), SUB("cola", "Cola", "Glue", "Pegamento"), SUB("tesoura", "Tesoura", "Scissors", "Tijera"),
         SUB("massinha_argila", "Massinha/Argila", "Modeling Clay", "Plastilina/Arcilla"), SUB("giz_cera_lapis_cor", "Giz de Cera/Lápis de Cor", "Crayons/Colored Pencils", "Crayones/Lápices de Color"),
         SUB("mochila_estojo", "Mochila/Estojo", "Backpack/Pencil Case", "Mochila/Estuche"), SUB("regua_esquadro", "Régua/Esquadro", "Ruler/Set Square", "Regla/Escuadra"),
+        SUB("compasso_papelaria", "Compasso", "Compass", "Compás", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("informatica_basica", "Informática Básica", "Basic Computer Supplies", "Informática Básica", [
         SUB("cartucho_toner", "Cartucho/Toner", "Ink/Toner Cartridge", "Cartucho/Tóner"), SUB("midia", "Mídia (Pendrive/CD)", "Media (Flash Drive/CD)", "Medios (Pendrive/CD)"),
@@ -911,6 +916,10 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       CAT("presentes_papelaria_fina", "Presentes e Papelaria Fina", "Gifts & Fine Stationery", "Regalos y Papelería Fina", [
         SUB("cartao_comemorativo", "Cartão Comemorativo", "Greeting Card", "Tarjeta de Felicitación"), SUB("papel_presente", "Papel de Presente", "Gift Wrap", "Papel de Regalo"),
         SUB("vela_balao", "Vela/Balão", "Candle/Balloon", "Vela/Globo"), SUB("convite", "Convite", "Invitation", "Invitación"), SUB("album_fotos", "Álbum de Fotos", "Photo Album", "Álbum de Fotos"),
+        SUB("laco_fita_presente", "Laço/Fita para Presente", "Ribbon/Bow", "Lazo/Cinta para Regalo", [CAMPO_UNIDADE_VENDA]),
+        SUB("sacola_presente_papelaria", "Sacola de Presente", "Gift Bag", "Bolsa de Regalo", [CAMPO_UNIDADE_VENDA]),
+        SUB("adesivo_decorativo_papelaria", "Adesivo Decorativo", "Decorative Sticker", "Adhesivo Decorativo", [CAMPO_UNIDADE_VENDA]),
+        SUB("glitter_papelaria", "Glitter", "Glitter", "Purpurina", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("artesanato", "Artesanato", "Crafts", "Manualidades", [
         SUB("eva", "EVA", "Foam Sheet (EVA)", "Goma EVA"), SUB("bijuteria_micanga", "Bijuteria/Miçanga", "Beading/Costume Jewelry Supplies", "Bijutería/Mostacilla"),
