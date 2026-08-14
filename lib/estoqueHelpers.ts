@@ -5,6 +5,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as XLSX from "xlsx";
+import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -201,8 +202,13 @@ export async function criarProduto(empresaId: string, userId: string, dados: Par
 }
 
 export async function atualizarProduto(id: string, dados: Partial<Produto>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("produtos").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("produtos").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    Sentry.captureException(new Error(`Falha ao update em produtos: ${motivo}`), { extra: { tabela: "produtos", operacao: "update", produtoId: id, motivo } });
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // Exclusão real só é segura sem movimentação nenhuma (senão perde a base do
