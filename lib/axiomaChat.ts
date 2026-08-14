@@ -35,7 +35,7 @@ export async function perguntarAssistenteAxioma(args: {
       headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODELO_ASSISTENTE,
-        max_tokens: 300, // respostas curtas de propósito — economia de crédito, não limite técnico
+        max_completion_tokens: 300, // respostas curtas de propósito — economia de crédito, não limite técnico
         messages: [
           { role: "system", content: `${args.contexto}\n\n${INSTRUCAO_IDENTIDADE}` },
           ...args.mensagens,
@@ -44,18 +44,13 @@ export async function perguntarAssistenteAxioma(args: {
     });
     clearTimeout(timeout);
 
-    if (!resp.ok) {
-      const corpoErro = await resp.text().catch(() => "(sem corpo)");
-      console.error("[DEBUG TEMP] OpenAI erro", resp.status, corpoErro); // TODO remover após diagnóstico
-      return { status: "erro", mensagem: `OpenAI respondeu ${resp.status}` };
-    }
+    if (!resp.ok) return { status: "erro", mensagem: `OpenAI respondeu ${resp.status}` };
     const dados = await resp.json();
     const texto: string | undefined = dados?.choices?.[0]?.message?.content;
     if (!texto) return { status: "erro", mensagem: "Resposta vazia" };
     return { status: "ok", resposta: texto };
-  } catch (erro) {
+  } catch {
     clearTimeout(timeout);
-    console.error("[DEBUG TEMP] OpenAI exceção", erro); // TODO remover após diagnóstico
     return { status: "erro", mensagem: "Falha de rede ou tempo esgotado" };
   }
 }

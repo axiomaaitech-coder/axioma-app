@@ -49,8 +49,5 @@ export async function POST(req: NextRequest) {
     mensagens: [...historico, { role: "user", content: mensagem }],
     contexto,
   });
-  if (resultado.status === "erro") {
-    console.error("[DEBUG TEMP] assistente-cadastro resultado com erro", resultado); // TODO remover após diagnóstico
-  }
   return NextResponse.json(resultado);
 }
