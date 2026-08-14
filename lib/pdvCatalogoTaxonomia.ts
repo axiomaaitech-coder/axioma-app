@@ -683,6 +683,10 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("alimentacao_infantil", "Alimentação Infantil", "Baby Food", "Alimentación Infantil", [CAMPO_PERECIVEL]),
         SUB("lenco_umedecido_mercado", "Lenço Umedecido", "Wet Wipes", "Toallitas Húmedas"), SUB("formula_infantil_mercado", "Fórmula Infantil", "Baby Formula", "Fórmula Infantil", [CAMPO_PERECIVEL]),
         SUB("chupeta_mamadeira_mercado", "Chupeta/Mamadeira", "Pacifier/Bottle", "Chupete/Biberón"),
+        SUB("pomada_assadura_mercado", "Pomada para Assadura", "Diaper Rash Cream", "Pomada para Rozaduras", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+        SUB("talco_infantil_mercado", "Talco Infantil", "Baby Powder", "Talco Infantil", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+        SUB("cha_suco_infantil_mercado", "Chá/Suco Infantil", "Baby Tea/Juice", "Té/Jugo Infantil", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
+        SUB("algodao_bebe_mercado", "Algodão Bebê", "Baby Cotton Pads", "Algodón para Bebé", [CAMPO_UNIDADE_VENDA]),
       ]),
       CAT("utensilios_domesticos", "Utensílios Domésticos", "Household Goods", "Utensilios Domésticos", [
         SUB("cozinha_utensilios", "Cozinha", "Kitchen", "Cocina"), SUB("organizacao", "Organização", "Organization", "Organización"),
