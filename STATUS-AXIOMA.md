@@ -1090,6 +1090,14 @@ Navegação/breadcrumb/título/níveis do Catálogo não foram tocados — só o
 
 **Arquivos:** `components/PdvCadastroProduto.tsx` (novo), `app/(interno)/pdv/cadastro/page.tsx` (reescrita — mesmo comportamento, sem duplicar lógica), `app/(interno)/pdv/page.tsx` (bloco do nível "produtos" + busca de `userId`).
 
+## 3-AU. PDV Fase 3, Etapa 0 — fundação de segurança pro operador (2026-08-15)
+
+Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fechar um buraco: o operador (papel criado na Fase 0) não pode ver custo/margem/impostos de produto nenhum — só nome, preço de venda, código de barras/SKU, categoria, saldo. Decisão do Elias, já tomada antes desta rodada.
+
+**Entregue nesta rodada:** `PDV-FASE3-ETAPA0-OPERADOR-PRODUTOS-SQL.sql` (novo, raiz do projeto) — cria uma "visão" segura do cadastro de produtos que devolve só as colunas permitidas pro operador, com o mesmo isolamento por empresa de sempre. O corte é feito no banco (não só escondido na tela) — mesmo se o operador abrir o DevTools do navegador, a informação de custo/margem simplesmente não vem na resposta. Não mexe na trava por linha que já existe (cada operador continua só vendo produtos da própria empresa) e não altera nenhum código do app nesta rodada — só o SQL.
+
+**Aguardando:** Elias rodar esse SQL no SQL Editor do Supabase. **Só depois disso** o próximo passo de código entra: trocar, em `lib/pdvHelpers.ts`, a consulta que hoje lê a tabela de produtos direto pra ler essa visão segura quando quem está logado for operador (hoje, sem essa troca, o operador na prática não vê produto nenhum na frente de caixa — a trava por linha já bloqueia). Depois disso vem a Etapa 1 (telas de venda/carrinho), que só começa depois da Etapa 0 estar rodando de ponta a ponta.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
@@ -1216,7 +1224,7 @@ Ordenado do maior risco pro menor (mais dado cruzado × mais registros por empre
 ---
 
 ## 5. FILA DEPOIS (Comercial)
-Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) — completo. **Estoque Fase 1 entregue em 2026-07-27** (seção 3-AI) — pré-requisito de dado real pro módulo **E-commerce/PDV**, que continua na fila (o PDV vai chamar o gancho `baixarEstoquePorVenda()` já preparado em `lib/estoqueDeviceAdapter.ts` em vez de duplicar lógica de baixa de estoque). Também na fila: integração do Dashboard aos dados reais, tela de aceitar convite (seção 12), Estoque Fase 2 (curva ABC, giro, ponto de reposição, Copiloto CFO).
+Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) — completo. **Estoque Fase 1 entregue em 2026-07-27** (seção 3-AI) — pré-requisito de dado real pro módulo **E-commerce/PDV**. PDV Fase 3 (equipe/operador) em andamento: **Etapa 0 entregue em 2026-08-15 (seção 3-AU), aguardando Elias rodar o SQL** — depois disso, próximo passo é ligar `lib/pdvHelpers.ts` na visão segura e então começar a Etapa 1 (telas de venda/carrinho, chamando o gancho `baixarEstoquePorVenda()` já preparado em `lib/estoqueDeviceAdapter.ts` em vez de duplicar lógica de baixa de estoque). Também na fila: integração do Dashboard aos dados reais, tela de aceitar convite (seção 12), Estoque Fase 2 (curva ABC, giro, ponto de reposição, Copiloto CFO).
 
 ---
 
