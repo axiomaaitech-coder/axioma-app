@@ -32,17 +32,7 @@ const txt = {
   },
   novoProdutoServico: { pt: "+ Novo Produto/Serviço", en: "+ New Product/Service", es: "+ Nuevo Producto/Servicio" },
   importarNfe: { pt: "Importar XML da NF-e", en: "Import NF-e XML", es: "Importar XML de NF-e" },
-  operadorTitulo: { pt: "PDV — Ponto de Venda", en: "POS — Point of Sale", es: "PDV — Punto de Venta" },
-  operadorSubtitulo: {
-    pt: "Frente de caixa em construção.",
-    en: "Checkout screen under construction.",
-    es: "Pantalla de venta en construcción.",
-  },
-  operadorCorpo: {
-    pt: "Em breve você vai poder vender por aqui. Volte mais tarde.",
-    en: "Soon you'll be able to sell from here. Check back later.",
-    es: "Pronto podrás vender desde aquí. Vuelve más tarde.",
-  },
+  frenteDeCaixa: { pt: "Frente de Caixa", en: "Checkout", es: "Caja" },
   carregando: { pt: "Carregando…", en: "Loading…", es: "Cargando…" },
   nichos: { pt: "Nichos", en: "Niches", es: "Nichos" },
   filtroTodos: { pt: "Todos", en: "All", es: "Todos" },
@@ -309,21 +299,19 @@ export default function PDV() {
   }
 
   // ============================================================================
-  // GATE — operador não navega catálogo nesta fase (decisão registrada:
-  // liberação de leitura pro balconista fica pra Fase 3, junto da venda).
+  // GATE — operador não gerencia o Catálogo (cadastro/edição/exclusão de
+  // produto continua tarefa do dono). A partir da Fase 3, Etapa 1, o
+  // operador tem destino próprio: a Frente de Caixa (/pdv/venda) — nunca
+  // fica mais numa tela morta "em construção".
   // ============================================================================
-  if (carregandoPapel) {
+  useEffect(() => {
+    if (!carregandoPapel && papel === "operador") router.push("/pdv/venda");
+  }, [carregandoPapel, papel, router]);
+
+  if (carregandoPapel || papel === "operador") {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/dashboard">
         <EstadoCarregando lang={lang} />
-      </PdvLayout>
-    );
-  }
-
-  if (papel === "operador") {
-    return (
-      <PdvLayout titulo={t("operadorTitulo", lang)} subtitulo={t("operadorSubtitulo", lang)}>
-        <AvisoOperador lang={lang} />
       </PdvLayout>
     );
   }
@@ -421,15 +409,6 @@ function EstadoCarregando({ lang }: { lang: Idioma }) {
   );
 }
 
-function AvisoOperador({ lang }: { lang: Idioma }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="flex items-center justify-center py-16 px-4">
-      <p className="text-sm text-center max-w-md" style={{ color: tokens.textoMuted }}>{t("operadorCorpo", lang)}</p>
-    </div>
-  );
-}
-
 function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
   lang: Idioma; nichoSel: NichoPdvDef | null; categoriaSel: string | null; subNichoSel: string | null;
 }) {
@@ -456,6 +435,10 @@ function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
       <Link href="/pdv/importar-nfe" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto, opacity: 0.88 }}>
         {t("importarNfe", lang)}
+      </Link>
+      <Link href="/pdv/venda" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+        style={{ background: "transparent", color: tokens.cardTexto, border: `1px solid ${tokens.cardTexto}` }}>
+        {t("frenteDeCaixa", lang)}
       </Link>
     </>
   );

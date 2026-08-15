@@ -78,21 +78,30 @@ export async function listarSubNichosReais(empresaId: string, segmento: string, 
 // ============================================================================
 
 export type FiltroProdutosPdv = {
-  segmento: string;
+  // Opcional pra busca de venda (frente de caixa procura em todos os
+  // nichos); a navegação do Catálogo sempre passa um segmento.
+  segmento?: string;
   categoria?: string;
   subNicho?: string; // SEM_SUBNICHO pro bucket "sem sub-nicho definido"
   busca?: string;
   pagina?: number;
 };
 
-export async function listarProdutosPdv(empresaId: string, filtro: FiltroProdutosPdv): Promise<{ dados: ProdutoPdv[]; total: number }> {
+// Papel "operador" nunca lê a tabela crua — a RLS de PDV-FASE0 já bloqueia
+// por LINHA (empresas_do_usuario_operacional()), então essa troca de fonte é
+// o que permite ele enxergar produto algum, com as colunas seguras da
+// vw_produtos_seguro (ver PDV-FASE3-ETAPA0-OPERADOR-PRODUTOS-SQL.sql).
+// Qualquer outro papel continua na tabela crua, comportamento inalterado.
+export async function listarProdutosPdv(empresaId: string, filtro: FiltroProdutosPdv, papel?: string | null): Promise<{ dados: ProdutoPdv[]; total: number }> {
   const pagina = filtro.pagina ?? 0;
   const de = pagina * PDV_PAGE_SIZE;
   const ate = de + PDV_PAGE_SIZE - 1;
 
-  let query = supabase.from("produtos").select(COLUNAS_SEGURAS, { count: "exact" })
-    .eq("empresa_id", empresaId).eq("segmento", filtro.segmento).eq("status", "ativo");
+  const fonte = papel === "operador" ? "vw_produtos_seguro" : "produtos";
+  let query = supabase.from(fonte).select(COLUNAS_SEGURAS, { count: "exact" })
+    .eq("empresa_id", empresaId).eq("status", "ativo");
 
+  if (filtro.segmento) query = query.eq("segmento", filtro.segmento);
   if (filtro.categoria) query = query.eq("categoria", filtro.categoria);
   if (filtro.subNicho === SEM_SUBNICHO) query = query.or("subcategoria.is.null,subcategoria.eq.");
   else if (filtro.subNicho) query = query.eq("subcategoria", filtro.subNicho);
