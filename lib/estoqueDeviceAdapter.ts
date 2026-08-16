@@ -29,15 +29,14 @@ export function useLeitorCodigoBarras(onLeitura: (codigo: string) => void) {
 // GANCHOS — NÃO IMPLEMENTADOS NESTA FASE (documentados de propósito)
 // ============================================================================
 
-// PDV — baixa de estoque por venda real. Quando o PDV existir, ele chama isto
-// em vez de duplicar a lógica de movimentação (usar criarMovimentacao de
-// estoqueHelpers.ts com tipo:'saida', origem:'pdv', documento_ref:<nº do cupom>).
-// export async function baixarEstoquePorVenda(itensVendidos: { produtoId: string; quantidade: number }[], documentoRef: string) {
-//   // for (const item of itensVendidos) await criarMovimentacao(empresaId, userId, {
-//   //   produto_id: item.produtoId, tipo: "saida", quantidade: item.quantidade,
-//   //   origem: "pdv", documento_ref: documentoRef,
-//   // });
-// }
+// PDV — baixa de estoque por venda real. IMPLEMENTADO (2026-08-16), não
+// aqui — baixarEstoqueVenda() em lib/pdvVendaHelpers.ts, chamando
+// criarMovimentacao() com tipo:'saida', origem:'pdv', documento_ref:<venda_id>,
+// exatamente como planejado neste gancho. Ficou no módulo do PDV (não como
+// função à parte aqui) porque a orquestração — tentar item a item, marcar
+// venda.estoque_baixado, expor "quais falharam" pra tela — é específica da
+// Frente de Caixa; a chamada de baixo nível (criarMovimentacao) continua
+// sendo a mesma de sempre, sem duplicação nenhuma.
 
 // Impressora ESC/POS (cupom não fiscal, etiqueta de produto) — hardware do
 // PDV, não do Estoque. Quando existir, o adaptador de impressão vive aqui,

@@ -1109,6 +1109,34 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 
 **Aguardando:** Elias revisar o SQL e rodar no Supabase. Só depois disso a Frente de Caixa passa a gravar venda de verdade (próxima etapa).
 
+## 3-AW. PDV Fase 3 — Etapas 1 e 2 aplicadas, Frente de Caixa grava venda de verdade, redesenho completo (2026-08-16)
+
+**Etapa 1 (SQL) — revisada e aplicada.** Antes de rodar, 3 correções pedidas pelo Elias:
+1. **Multi-caixa** — a v1 travava "1 turno aberto por empresa" (quebraria médio/grande porte, vários caixas simultâneos). Nova tabela `caixa` (ponto de venda físico) + trava movida pra "1 turno aberto por CAIXA".
+2. **Armadilha da Fase 0 resolvida nas duas pontas** — `caixa/turno_caixa/venda/item_venda` entraram na lista de exceções PERMANENTE da descoberta dinâmica de `PDV-FASE0-EQUIPE-OPERADOR-SQL.sql`; e o SQL da Etapa 1 passou a reforçar a política certa de forma INCONDICIONAL (dropa e recria), não só "cria se não existir" — não importa a ordem que os dois arquivos rodem depois.
+3. **CPF é dado fiscal, não vínculo de cliente** — `cpf_nota` em `venda` (Nota Fiscal Paulista), texto solto sem FK, separado de `cliente_id`.
+
+**Rodado por Elias em 2026-08-16 — confirmado:** 4 tabelas criadas, 4 políticas `_multi_tenant` ativas, 3 empresas com "Caixa 01" (seed automático).
+
+**Etapa 2 (SQL) — função `finalizar_venda()` + rastreio de baixa.** RPC `SECURITY DEFINER`: grava `venda`+`item_venda` numa transação atômica, lê preço E custo de `produtos` DENTRO da função (client só manda `produto_id`+`quantidade`, nunca preço/custo — fecha de vez a possibilidade de manipular preço ou vazar custo). `venda.estoque_baixado` (`pendente|parcial|concluido`) entra nesse mesmo SQL — garante que uma venda com baixa de estoque incompleta nunca se perde. **Colisão de código de erro achada e corrigida antes de aplicar:** `AX008` já estava em uso (convite duplicado, `lib/empresaHelpers.ts`) — renumerado pra `AX009`-`AX015`. Rodado por Elias — confirmado (`finalizar_venda` com `prosecdef = true`, coluna criada).
+
+**Código — Frente de Caixa grava venda de verdade agora** (`app/(interno)/pdv/venda/page.tsx`, `lib/pdvVendaHelpers.ts`):
+- Abrir turno: escolhe caixa (lembrado por terminal via `localStorage`), abre com fundo de troco ou retoma turno já aberto por outra pessoa no mesmo caixa.
+- Finalizar Venda: chama a RPC, checagem anti-falha-silenciosa completa, só limpa carrinho com `venda_id` real confirmado.
+- Baixa de estoque: reaproveita `criarMovimentacao()` (`lib/estoqueHelpers.ts`) item a item — **não duplicou lógica de FEFO/lote em SQL**, decisão explícita do Elias. Falha parcial vira banner "itens sem baixa" com nomes exatos + botão "tentar novamente", e fica marcada em `venda.estoque_baixado` (sobrevive a fechar a tela).
+
+**Redesenho visual completo** — estrutura de PDV de supermercado real (referência Yzidro): campo de busca grande no topo, destaque do último item bipado, tabela de itens com ajuste de quantidade/remoção na própria linha, rodapé de totais com números grandes (subtotal, tributo aproximado, total a pagar), calculadora de troco no modal de finalizar, atalhos de teclado (Enter/F2/Delete/Esc). **Tema "azul" novo** em `components/PdvLayout.tsx` (navy + ciano), 4º tema ao lado dos 3 existentes, nenhum dos antigos alterado. **Imposto aproximado** (Lei 12.741/2012): percentual fixo nomeado (`PERCENTUAL_TRIBUTO_APROXIMADO`), só exibição — tabela IBPT oficial por NCM fica pra fase fiscal futura.
+
+**Diagnóstico — conflito PDV × Estoque (mesmo produto, dois cadastros diferentes).** Investigado a pedido do Elias: PDV e Estoque escrevem na MESMA tabela `produtos` (não há duplicação de base), mas os dois cadastros preenchem coisas diferentes — Estoque nunca grava `preco_venda` (só `preco_custo`+`preco_sugerido`, calculadora de markup); o cadastro do PDV grava `preco_venda` direto (calculadora de margem). Produto cadastrado no Estoque sempre nascia com `preco_venda = null`, e a busca da Frente de Caixa só olhava esse campo — daí o "preço não definido" reportado. **Decisão do Elias: Opção A, base única** (não duplicar tabela). Resolvido sem bloquear venda: produto sem `preco_venda` continua na busca (mostra `preco_sugerido` como referência), e ao adicionar ao carrinho abre painel pra digitar o preço na hora — grava em `produtos.preco_venda` via `UPDATE` comum, sujeito à MESMA RLS de sempre (só quem tem escrita em `produtos` consegue; operador recebe mensagem clara, não falha silenciosa — **decisão confirmada do Elias: não criar RLS nova pra liberar operador**, decidir preço é do dono/gerente/admin mesmo "na hora").
+
+**Correções extras nesta rodada, a pedido do Elias:**
+- **Contraste real** (não visual — calculado por fórmula WCAG): tema "azul" tinha texto branco sobre gradiente ciano claro demais nos botões de ação (~2,5:1, abaixo do mínimo de texto grande). Corrigido pra ≥4,2:1 em toda a extensão do gradiente.
+- **Zero scroll de verdade**: `PdvLayout` ganhou prop opcional `telaCheia` (trava altura em `calc(100vh - 64px)`, 64px = altura fixa confirmada da `TopNav`) — usada só na Frente de Caixa, as demais telas do PDV não mudam nada. Tabela de itens trocou de `<table>` pra grid CSS (cabeçalho fora do scroll, só as linhas dentro de `overflow-y-auto` — `<thead>`/`<tbody>` não têm scroll independente limpo em HTML puro). Destaque do item e tabela agora ficam SEMPRE montados (com ou sem carrinho), só o conteúdo interno muda.
+- **Margem instantânea** (`components/PdvCadastroProduto.tsx`, calculadora de precificação "Etapa 2"): a % exibida lia `form.preco_venda`, que só é atualizado um ciclo de render DEPOIS do cálculo (via `useEffect`) — sempre um passo atrasada. Agora deriva de um "preço vigente" calculado no mesmo render.
+- **Bug de tooling achado e corrigido**: o ícone `Barcode` do `lucide-react` (usado no campo de busca do redesenho) quebra a compilação do Turbopack nesta versão SEM erro visível — a rota inteira virava 404 silencioso. Isolado por bisseção binária do arquivo (cortar a tela ao meio repetidamente até sobrar só o culpado); trocado por `Search`, que já funcionava.
+
+**Aguardando:** Elias testar clicando na tela (abrir caixa → adicionar produto → finalizar venda de ponta a ponta) — ainda não visto rodando no navegador nesta sessão (sem credencial de login).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
@@ -1235,7 +1263,7 @@ Ordenado do maior risco pro menor (mais dado cruzado × mais registros por empre
 ---
 
 ## 5. FILA DEPOIS (Comercial)
-Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) — completo. **Estoque Fase 1 entregue em 2026-07-27** (seção 3-AI) — pré-requisito de dado real pro módulo **E-commerce/PDV**. PDV Fase 3 (equipe/operador) em andamento: **Etapa 0 rodada e confirmada (seção 3-AU). Etapa 1 — Frente de Caixa (carrinho em memória) entregue em código em 2026-08-15, SQL das tabelas de venda aguardando revisão do Elias (seção 3-AV)** — depois de aplicado, próximo passo é ligar o botão "Finalizar Venda" pra gravar de verdade (turno_caixa/venda/item_venda), chamando o gancho `baixarEstoquePorVenda()` já preparado em `lib/estoqueDeviceAdapter.ts` em vez de duplicar lógica de baixa de estoque. Também na fila: integração do Dashboard aos dados reais, tela de aceitar convite (seção 12), Estoque Fase 2 (curva ABC, giro, ponto de reposição, Copiloto CFO).
+Comercial (Clientes, Fornecedores, Contas a Receber, Inadimplência) — completo. **Estoque Fase 1 entregue em 2026-07-27** (seção 3-AI) — pré-requisito de dado real pro módulo **E-commerce/PDV**. PDV Fase 3 (equipe/operador): **Etapas 0, 1 e 2 aplicadas e confirmadas — Frente de Caixa já grava venda de verdade (turno/venda/item_venda), baixa de estoque, redesenho visual completo, ver seção 3-AW (2026-08-16).** Aguardando Elias testar clicando na tela de ponta a ponta. Próximo passo real depois disso: fechamento de turno de caixa (contagem física, diferença de caixa — estrutura já reservada em `turno_caixa.valor_fechamento`, não implementado ainda de propósito), e decidir se/quando liberar NFC-e (`cpf_nota` já existe no schema, emissão fiscal em si é módulo à parte, exige certificado digital). Também na fila: integração do Dashboard aos dados reais, tela de aceitar convite (seção 12), Estoque Fase 2 (curva ABC, giro, ponto de reposição, Copiloto CFO).
 
 ---
 
