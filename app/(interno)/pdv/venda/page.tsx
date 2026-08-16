@@ -1,8 +1,10 @@
 "use client";
-// 🦅 AXIOMA AI.TECH — PDV Fase 3, Etapa 1: Frente de Caixa (carrinho em
-// memória). Ainda NÃO grava turno_caixa/venda/item_venda — essas tabelas
-// existem só como SQL de revisão (PDV-FASE3-ETAPA1-VENDAS-SQL.sql, não
-// aplicado). "Finalizar Venda" fica desabilitado de propósito nesta etapa.
+// 🦅 AXIOMA AI.TECH — PDV Fase 3, Etapa 1: Frente de Caixa.
+// Sub-etapa "abrir turno de caixa" JÁ grava de verdade em public.caixa/
+// public.turno_caixa (PDV-FASE3-ETAPA1-VENDAS-SQL.sql, aplicado 2026-08-16).
+// O carrinho em si continua em memória — "Finalizar Venda" (gravar venda +
+// item_venda) e a baixa de estoque são as próximas sub-etapas, ainda não
+// implementadas; o botão fica desabilitado de propósito por enquanto.
 //
 // Acessível a qualquer papel com vínculo na empresa (dono vende também em
 // loja pequena) — diferente do Catálogo (/pdv), que é ferramenta de gestão e
@@ -18,6 +20,7 @@ import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
 import { listarProdutosPdv, type ProdutoPdv } from "../../../../lib/pdvHelpers";
+import { listarCaixasAtivos, buscarTurnoAbertoPorCaixa, abrirTurno, type Caixa, type TurnoCaixa } from "../../../../lib/pdvVendaHelpers";
 
 const txt = {
   titulo: { pt: "Frente de Caixa", en: "Checkout", es: "Caja" },
@@ -44,6 +47,31 @@ const txt = {
     es: "El cierre de venta llega en la próxima etapa — por ahora el carrito es solo demostración, nada se guarda.",
   },
   itemAdicionado: { pt: "Adicionado: {nome}", en: "Added: {nome}", es: "Agregado: {nome}" },
+  semCaixaCadastrado: {
+    pt: "Nenhum caixa cadastrado nesta empresa. Fale com o proprietário.",
+    en: "No register set up for this company. Talk to the owner.",
+    es: "Ningún caja registrada en esta empresa. Hable con el propietario.",
+  },
+  escolherCaixaTitulo: { pt: "Qual caixa você está operando?", en: "Which register are you working at?", es: "¿Qué caja está operando?" },
+  escolherCaixaSelecione: { pt: "Selecione um caixa…", en: "Select a register…", es: "Seleccione una caja…" },
+  escolherCaixaConfirmar: { pt: "Confirmar", en: "Confirm", es: "Confirmar" },
+  verificandoCaixa: { pt: "Verificando o caixa…", en: "Checking the register…", es: "Verificando la caja…" },
+  abrirCaixaTitulo: { pt: "Abrir Caixa", en: "Open Register", es: "Abrir Caja" },
+  abrirCaixaSubtitulo: {
+    pt: "Nenhum turno em aberto neste caixa. Informe o fundo de troco pra começar a vender.",
+    en: "No shift open on this register yet. Enter the starting cash to begin selling.",
+    es: "Ningún turno abierto en esta caja. Indique el fondo de caja para empezar a vender.",
+  },
+  fundoTroco: { pt: "Fundo de troco (dinheiro na gaveta)", en: "Starting cash (till float)", es: "Fondo de caja (dinero en la gaveta)" },
+  observacaoOpcional: { pt: "Observação (opcional)", en: "Note (optional)", es: "Observación (opcional)" },
+  abrirCaixaBotao: { pt: "Abrir Caixa", en: "Open Register", es: "Abrir Caja" },
+  abrindoCaixa: { pt: "Abrindo…", en: "Opening…", es: "Abriendo…" },
+  caixaAberto: { pt: "Caixa aberto.", en: "Register open.", es: "Caja abierta." },
+  caixaJaEstavaAberto: { pt: "Esse caixa já estava aberto — retomando o turno em andamento.", en: "This register was already open — resuming the ongoing shift.", es: "Esa caja ya estaba abierta — retomando el turno en curso." },
+  erroAbrirCaixa: { pt: "Não foi possível abrir o caixa. Tente novamente.", en: "Could not open the register. Try again.", es: "No fue posible abrir la caja. Intente de nuevo." },
+  fundoTrocoInvalido: { pt: "Informe um valor de fundo de troco válido (0 ou mais).", en: "Enter a valid starting cash amount (0 or more).", es: "Indique un fondo de caja válido (0 o más)." },
+  caixaLabel: { pt: "Caixa: {nome}", en: "Register: {nome}", es: "Caja: {nome}" },
+  trocarCaixa: { pt: "Trocar caixa", en: "Switch register", es: "Cambiar caja" },
 };
 
 function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string | number>): string {
@@ -66,7 +94,23 @@ export default function PdvVendaPage() {
   const supabase = useMemo(() => createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!), []);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [papel, setPapel] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [carregandoPapel, setCarregandoPapel] = useState(true);
+
+  // Sub-etapa "abrir turno de caixa" — turno é por CAIXA físico (chave em
+  // localStorage por empresa, pensado pra terminal fixo: cada computador do
+  // balcão sempre opera o mesmo caixa), não por usuário. Enquanto não há
+  // turno aberto pro caixa escolhido, a tela mostra o painel de abertura em
+  // vez do carrinho — vender sem turno não é permitido (venda.turno_caixa_id
+  // é NOT NULL).
+  const [caixas, setCaixas] = useState<Caixa[]>([]);
+  const [carregandoCaixas, setCarregandoCaixas] = useState(true);
+  const [caixaId, setCaixaId] = useState<string | null>(null);
+  const [turno, setTurno] = useState<TurnoCaixa | null>(null);
+  const [carregandoTurno, setCarregandoTurno] = useState(false);
+  const [valorAberturaInput, setValorAberturaInput] = useState("");
+  const [observacaoAbertura, setObservacaoAbertura] = useState("");
+  const [abrindoCaixaFlag, setAbrindoCaixaFlag] = useState(false);
 
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
@@ -86,11 +130,74 @@ export default function PdvVendaPage() {
     (async () => {
       const id = await obterEmpresaAtiva();
       setEmpresaId(id);
+      const { data: authData } = await supabase.auth.getUser();
+      setUserId(authData?.user?.id || null);
       if (!id) { setCarregandoPapel(false); return; }
       setPapel(await obterMeuPapel(id));
       setCarregandoPapel(false);
     })();
   }, [supabase]);
+
+  // Carrega os caixas da empresa e retoma o caixa escolhido neste terminal
+  // da última vez (localStorage), se ele ainda estiver ativo.
+  useEffect(() => {
+    if (!empresaId) return;
+    (async () => {
+      setCarregandoCaixas(true);
+      const dados = await listarCaixasAtivos(empresaId);
+      setCaixas(dados);
+      setCarregandoCaixas(false);
+      const salvo = typeof window !== "undefined" ? window.localStorage.getItem(`axioma_pdv_caixa_${empresaId}`) : null;
+      if (salvo && dados.some((c) => c.id === salvo)) setCaixaId(salvo);
+    })();
+  }, [empresaId]);
+
+  // Assim que um caixa está escolhido, verifica se já existe turno aberto
+  // nele (aberto por qualquer pessoa, inclusive outro operador mais cedo).
+  useEffect(() => {
+    if (!caixaId) { setTurno(null); return; }
+    setCarregandoTurno(true);
+    buscarTurnoAbertoPorCaixa(caixaId).then((t) => {
+      setTurno(t);
+      setCarregandoTurno(false);
+    });
+  }, [caixaId]);
+
+  function escolherCaixa(id: string) {
+    setCaixaId(id);
+    if (empresaId && typeof window !== "undefined") window.localStorage.setItem(`axioma_pdv_caixa_${empresaId}`, id);
+  }
+
+  function trocarCaixa() {
+    setCaixaId(null);
+    setTurno(null);
+    if (empresaId && typeof window !== "undefined") window.localStorage.removeItem(`axioma_pdv_caixa_${empresaId}`);
+  }
+
+  async function handleAbrirCaixa() {
+    if (!empresaId || !caixaId || !userId) return;
+    const valor = Number(valorAberturaInput.replace(",", "."));
+    if (isNaN(valor) || valor < 0) { mostrarToast(t("fundoTrocoInvalido", lang), "erro"); return; }
+
+    setAbrindoCaixaFlag(true);
+    const resultado = await abrirTurno(empresaId, caixaId, userId, valor, observacaoAbertura.trim() || undefined);
+    setAbrindoCaixaFlag(false);
+
+    if (resultado.jaAberto) {
+      const existente = await buscarTurnoAbertoPorCaixa(caixaId);
+      setTurno(existente);
+      mostrarToast(t("caixaJaEstavaAberto", lang), "info");
+      return;
+    }
+    if (resultado.erro || !resultado.turno) {
+      mostrarToast(t("erroAbrirCaixa", lang), "erro");
+      return;
+    }
+    setTurno(resultado.turno);
+    setValorAberturaInput("");
+    setObservacaoAbertura("");
+    mostrarToast(t("caixaAberto", lang), "ok");
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setBuscaDebounced(busca), 300);
@@ -143,7 +250,7 @@ export default function PdvVendaPage() {
 
   const voltarPara = papel === "operador" ? "/dashboard" : "/pdv";
 
-  if (carregandoPapel) {
+  if (carregandoPapel || carregandoCaixas) {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
         <EstadoCarregando lang={lang} />
@@ -151,8 +258,52 @@ export default function PdvVendaPage() {
     );
   }
 
+  if (caixas.length === 0) {
+    return (
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+        <p className="text-sm py-8 text-center" style={{ color: "#f87171" }}>{t("semCaixaCadastrado", lang)}</p>
+      </PdvLayout>
+    );
+  }
+
+  if (!caixaId) {
+    return (
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+        <EscolherCaixaPanel lang={lang} caixas={caixas} onEscolher={escolherCaixa} />
+      </PdvLayout>
+    );
+  }
+
+  if (carregandoTurno) {
+    return (
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+        <EstadoCarregando lang={lang} texto={t("verificandoCaixa", lang)} />
+      </PdvLayout>
+    );
+  }
+
+  if (!turno) {
+    return (
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+        <AbrirCaixaPanel
+          lang={lang}
+          valorAberturaInput={valorAberturaInput} onValorAbertura={setValorAberturaInput}
+          observacao={observacaoAbertura} onObservacao={setObservacaoAbertura}
+          abrindo={abrindoCaixaFlag} onAbrir={handleAbrirCaixa}
+        />
+        {toast && <Toast toast={toast} />}
+      </PdvLayout>
+    );
+  }
+
+  const caixaAtual = caixas.find((c) => c.id === caixaId);
+
   return (
     <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+      <div className="flex items-center justify-between mb-4 text-xs">
+        <span style={{ opacity: 0.7 }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
+        <button onClick={trocarCaixa} className="font-semibold underline" style={{ opacity: 0.7 }}>{t("trocarCaixa", lang)}</button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <CampoBusca lang={lang} busca={busca} onBusca={setBusca} inputRef={inputBuscaRef} />
@@ -171,22 +322,83 @@ export default function PdvVendaPage() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      {toast && <Toast toast={toast} />}
     </PdvLayout>
   );
 }
 
-function EstadoCarregando({ lang }: { lang: Idioma }) {
+function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" | "info" } }) {
+  return (
+    <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+      style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+      {toast.msg}
+    </div>
+  );
+}
+
+function EstadoCarregando({ lang, texto }: { lang: Idioma; texto?: string }) {
   const { tokens } = useTemaPdv();
   return (
     <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
       <Loader2 className="animate-spin" size={18} />
-      <span className="text-sm">{t("carregando", lang)}</span>
+      <span className="text-sm">{texto || t("carregando", lang)}</span>
+    </div>
+  );
+}
+
+function EscolherCaixaPanel({ lang, caixas, onEscolher }: { lang: Idioma; caixas: Caixa[]; onEscolher: (id: string) => void }) {
+  const { tokens } = useTemaPdv();
+  const [selecionado, setSelecionado] = useState("");
+  return (
+    <div className="max-w-sm mx-auto rounded-xl p-5 mt-8" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <h3 className="text-sm font-bold mb-3" style={{ color: tokens.texto }}>{t("escolherCaixaTitulo", lang)}</h3>
+      <select value={selecionado} onChange={(e) => setSelecionado(e.target.value)}
+        className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-3"
+        style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+        <option value="">{t("escolherCaixaSelecione", lang)}</option>
+        {caixas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+      </select>
+      <button onClick={() => selecionado && onEscolher(selecionado)} disabled={!selecionado}
+        className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-50"
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+        {t("escolherCaixaConfirmar", lang)}
+      </button>
+    </div>
+  );
+}
+
+function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao, onObservacao, abrindo, onAbrir }: {
+  lang: Idioma; valorAberturaInput: string; onValorAbertura: (v: string) => void;
+  observacao: string; onObservacao: (v: string) => void;
+  abrindo: boolean; onAbrir: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="max-w-sm mx-auto rounded-xl p-5 mt-8" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("abrirCaixaTitulo", lang)}</h3>
+      <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("abrirCaixaSubtitulo", lang)}</p>
+
+      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("fundoTroco", lang)}</label>
+      <input
+        value={valorAberturaInput} onChange={(e) => onValorAbertura(e.target.value)}
+        inputMode="decimal" placeholder="0,00" autoFocus
+        className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-3"
+        style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+      />
+
+      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("observacaoOpcional", lang)}</label>
+      <input
+        value={observacao} onChange={(e) => onObservacao(e.target.value)}
+        className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-4"
+        style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+      />
+
+      <button onClick={onAbrir} disabled={abrindo}
+        className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+        {abrindo && <Loader2 className="animate-spin" size={14} />}
+        {abrindo ? t("abrindoCaixa", lang) : t("abrirCaixaBotao", lang)}
+      </button>
     </div>
   );
 }

@@ -28,11 +28,25 @@
 --      dono na empresa B, ela continua enxergando tudo da empresa B — só a
 --      empresa A some da lista.
 --   4) DESCOBERTA DINÂMICA: acha TODA tabela em public com coluna empresa_id,
---      exceto empresa_usuarios/empresa_equipe (política própria no item 5) e
---      empresas (o operador precisa ler a própria empresa — nome, CNPJ etc.,
---      dado cadastral, não financeiro). Habilita RLS onde não tiver e troca a
---      política de empresas_do_usuario() para empresas_do_usuario_operacional()
+--      exceto a lista de exceções abaixo. Habilita RLS onde não tiver e troca
+--      a política de empresas_do_usuario() para empresas_do_usuario_operacional()
 --      — bloqueio TOTAL do operador nelas (negar por padrão).
+--
+--      LISTA DE EXCEÇÕES (permanente — NUNCA remover uma tabela desta lista
+--      sem decisão explícita nova, mesmo que pareça "sobrar"):
+--        - empresa_usuarios, empresa_equipe: política própria no item 5.
+--        - empresas: o operador precisa ler a própria empresa — nome, CNPJ
+--          etc., dado cadastral, não financeiro.
+--        - caixa, turno_caixa, venda, item_venda (PDV Fase 3, Etapa 1 —
+--          PDV-FASE3-ETAPA1-VENDAS-SQL.sql): é o TRABALHO do operador abrir o
+--          próprio caixa e registrar as próprias vendas — bloqueá-lo aqui
+--          quebraria o PDV pra quem mais usa. Fixado nesta lista de propósito:
+--          se este arquivo rodar de novo no futuro, ele NUNCA pode sobrescrever
+--          a política destas 4 tabelas — a Etapa 1 também reforça a política
+--          correta nelas de forma incondicional (não só "se não existir"),
+--          então mesmo que uma dessas 4 tabelas saia desta lista por engano
+--          algum dia, rodar a Etapa 1 de novo depois conserta. As duas pontas
+--          seguram uma a outra, mas esta lista é a principal — mantenha-a.
 --   5) empresa_usuarios e empresa_equipe ficam com política PRÓPRIA (fora da
 --      descoberta dinâmica): qualquer pessoa continua enxergando SÓ a própria
 --      linha em empresa_usuarios (senão obterEmpresaAtiva() quebra pra todo
@@ -82,7 +96,8 @@ JOIN information_schema.tables t
 WHERE c.table_schema = 'public'
   AND c.column_name = 'empresa_id'
   AND t.table_type = 'BASE TABLE'
-  AND c.table_name NOT IN ('empresa_usuarios', 'empresa_equipe', 'empresas')
+  AND c.table_name NOT IN ('empresa_usuarios', 'empresa_equipe', 'empresas',
+                            'caixa', 'turno_caixa', 'venda', 'item_venda')
 ORDER BY c.table_name;
 
 
@@ -162,7 +177,8 @@ BEGIN
     WHERE c.table_schema = 'public'
       AND c.column_name = 'empresa_id'
       AND t.table_type = 'BASE TABLE'
-      AND c.table_name NOT IN ('empresa_usuarios', 'empresa_equipe', 'empresas')
+      AND c.table_name NOT IN ('empresa_usuarios', 'empresa_equipe', 'empresas',
+                                'caixa', 'turno_caixa', 'venda', 'item_venda')
     ORDER BY c.table_name
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', v_tabela);
@@ -378,18 +394,16 @@ ORDER BY tablename;
 COMMIT;
 
 -- ============================================================================
--- NOTA PARA A PRÓXIMA FASE (NÃO IMPLEMENTADO AGORA):
--- Quando o PDV ganhar tabelas próprias (produtos, vendas, caixa...), cada
--- tabela nova recebe SUA PRÓPRIA política — nunca herdar automaticamente de
--- empresas_do_usuario_operacional() sem decisão explícita nova (mesmo que a
--- descoberta dinâmica do item 4 vá "ver" a tabela nova automaticamente por
--- ela ter empresa_id — se isso NÃO for o que se quer pra uma tabela
--- específica, ela precisa entrar na lista de exceções do item 4/5). Em
--- especial: o operador vai precisar LER produtos pra vender (preço de venda
--- = ok expor), mas custo, CMV e margem são dados sensíveis do dono — decidir
--- explicitamente (provavelmente coluna separada ou view sem esses campos)
--- antes de liberar leitura de produtos pro operador. Não decidir isso sozinho
--- quando chegar a hora.
+-- NOTA PARA A PRÓXIMA FASE (ATUALIZADA — produtos e vendas já resolvidos):
+-- - produtos: resolvido em PDV-FASE3-ETAPA0-OPERADOR-PRODUTOS-SQL.sql (view
+--   vw_produtos_seguro, sem custo/margem/impostos).
+-- - caixa/turno_caixa/venda/item_venda: resolvido em PDV-FASE3-ETAPA1-VENDAS-
+--   SQL.sql, já refletido na lista de exceções do item 4 acima.
+-- Qualquer tabela NOVA além destas continua a regra original: nunca herdar
+-- automaticamente de empresas_do_usuario_operacional() sem decisão explícita
+-- — se a descoberta dinâmica do item 4 não for o que se quer pra uma tabela
+-- nova, ela entra na lista de exceções do item 4/5 antes de rodar este
+-- arquivo de novo. Não decidir isso sozinho quando chegar a hora.
 -- ============================================================================
 
 
