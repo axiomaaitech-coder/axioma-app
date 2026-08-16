@@ -11,10 +11,10 @@
 // escuro é sempre AZUL-NOITE (#0E0763); texto claro é sempre branco.
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Sun, Moon, Contrast } from "lucide-react";
+import { ArrowLeft, Sun, Moon, Contrast, Waves } from "lucide-react";
 import { motion } from "framer-motion";
 
-export type TemaPdv = "escuro" | "intermediario" | "claro";
+export type TemaPdv = "escuro" | "intermediario" | "claro" | "azul";
 
 export type TokensPdv = {
   fundo: string;
@@ -62,6 +62,20 @@ const BRANCO_GELO = "#FAFAEA";
 const BRANCO_PURO = "#FFFFFF";
 const MARFIM = "#F8F8DF";
 
+// ============================================================================
+// TEMA 4 "azul" (novo, PDV Fase 3 — Frente de Caixa) — navy profundo estilo
+// terminal de PDV de supermercado real, texto branco-gelo, acento ciano de
+// alto contraste. Paleta PRÓPRIA, não reaproveita os hex do tema 2/3 (que
+// são AZUL-ELETRICO/marca, mais roxo-azulado) — este é mais "navy/oceano",
+// pensado pra tela cheia usada o dia todo (menos saturado, cansa menos).
+// ============================================================================
+const NAVY_FUNDO = "#0A1B33";
+const NAVY_BARRA = "#0F2444";
+const NAVY_CARD = "#12294B";
+const CERULEO = "#4DA8FF";
+const CERULEO_FORTE = "#2E7BDB";
+const BRANCO_GELO_AZUL = "#EAF2FF";
+
 const TOKENS: Record<TemaPdv, TokensPdv> = {
   // TEMA 1 (padrão) — APROVADO, NÃO TOCAR na aparência.
   escuro: {
@@ -105,6 +119,20 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
     filtroInativoBg: MARFIM, filtroInativoTexto: AZUL_NOITE, filtroInativoBorda: AZUL_ELETRICO,
   },
+  // TEMA 4 — navy profundo, cards em azul-navy, acento ciano. Ver nota acima.
+  azul: {
+    fundo: NAVY_FUNDO,
+    barraBg: NAVY_BARRA, barraTexto: BRANCO_GELO_AZUL, barraAcentoBg: "rgba(77,168,255,0.16)", barraAcentoTexto: CERULEO,
+    fundoContainer: `linear-gradient(160deg, ${NAVY_BARRA}, ${NAVY_FUNDO})`, bordaContainer: "rgba(77,168,255,0.22)",
+    acentoTopo: `linear-gradient(90deg, rgba(77,168,255,0.55), rgba(46,123,219,0.3) 50%, transparent)`,
+    texto: BRANCO_GELO_AZUL, textoSecundario: "#C7D9F2", textoMuted: "#7C93B8",
+    cardBg: NAVY_CARD, cardTexto: BRANCO_GELO_AZUL, cardBorda: "rgba(77,168,255,0.24)",
+    inputBg: NAVY_CARD, inputTexto: BRANCO_GELO_AZUL, inputBorda: "rgba(77,168,255,0.32)",
+    acento: CERULEO, acentoSuaveBg: "rgba(77,168,255,0.1)", acentoSuaveBorda: "rgba(77,168,255,0.28)",
+    acaoBg: `linear-gradient(135deg, ${CERULEO_FORTE}, ${CERULEO})`, acaoTexto: "#FFFFFF",
+    filtroAtivoBg: "rgba(77,168,255,0.24)", filtroAtivoTexto: CERULEO, filtroAtivoBorda: CERULEO,
+    filtroInativoBg: "rgba(77,168,255,0.08)", filtroInativoTexto: "#7C93B8", filtroInativoBorda: "rgba(77,168,255,0.22)",
+  },
 };
 
 const CHAVE_TEMA = "axioma_pdv_tema";
@@ -136,7 +164,7 @@ function useProviderTema() {
 
 function SeletorTema({ tema, setTema, tokens }: { tema: TemaPdv; setTema: (t: TemaPdv) => void; tokens: TokensPdv }) {
   const opcoes: { valor: TemaPdv; Icone: typeof Sun }[] = [
-    { valor: "escuro", Icone: Moon }, { valor: "intermediario", Icone: Contrast }, { valor: "claro", Icone: Sun },
+    { valor: "escuro", Icone: Moon }, { valor: "intermediario", Icone: Contrast }, { valor: "claro", Icone: Sun }, { valor: "azul", Icone: Waves },
   ];
   return (
     <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: tokens.barraAcentoBg }}>
