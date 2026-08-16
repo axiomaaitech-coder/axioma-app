@@ -6,6 +6,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import { criarMovimentacao } from "./estoqueHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,4 +77,89 @@ export async function abrirTurno(
     return { erro: motivo };
   }
   return { turno: data };
+}
+
+// ============================================================================
+// SUB-ETAPA "FINALIZAR VENDA" — grava venda + item_venda via RPC
+// finalizar_venda (SECURITY DEFINER, PDV-FASE3-ETAPA2-FINALIZAR-VENDA-
+// SQL.sql). O client SÓ manda produto_id + quantidade por item — nunca
+// preço nem custo, os dois são lidos de public.produtos DENTRO da função.
+// Erros da função vêm com código AX0xx (ver cabeçalho do SQL) em vez de só
+// texto em português, pra tela poder traduzir sem depender do texto que o
+// Postgres devolve — mesmo padrão já usado em aceitarConvite()/
+// listarEquipe() (lib/empresaHelpers.ts).
+// ============================================================================
+
+export type ItemVendaInput = { produto_id: string; quantidade: number };
+
+export type FinalizarVendaOpcoes = {
+  formaPagamento?: string;
+  descontoTotal?: number;
+  clienteId?: string;
+  cpfNota?: string;
+};
+
+export async function finalizarVenda(
+  turnoCaixaId: string, itens: ItemVendaInput[], opcoes: FinalizarVendaOpcoes = {}
+): Promise<{ vendaId?: string; valorTotal?: number; erro?: string; codigo?: string }> {
+  const { data, error } = await supabase.rpc("finalizar_venda", {
+    p_turno_caixa_id: turnoCaixaId,
+    p_itens: itens,
+    p_forma_pagamento: opcoes.formaPagamento || null,
+    p_desconto_total: opcoes.descontoTotal ?? 0,
+    p_cliente_id: opcoes.clienteId || null,
+    p_cpf_nota: opcoes.cpfNota || null,
+  });
+
+  if (error) {
+    const codigo = (error as any).code;
+    Sentry.captureException(new Error(`Falha ao finalizar venda: ${error.message}`), { extra: { operacao: "rpc:finalizar_venda", turnoCaixaId, motivo: error.message, codigo } });
+    return { erro: error.message, codigo };
+  }
+  // RETURNS TABLE do Postgres sempre chega como array via supabase-js.
+  const linha = Array.isArray(data) ? data[0] : data;
+  if (!linha?.venda_id) {
+    const motivo = "RPC finalizar_venda não devolveu venda_id";
+    Sentry.captureException(new Error(motivo), { extra: { operacao: "rpc:finalizar_venda", turnoCaixaId } });
+    return { erro: motivo };
+  }
+  return { vendaId: linha.venda_id, valorTotal: Number(linha.valor_total) };
+}
+
+// ============================================================================
+// SUB-ETAPA "BAIXA DE ESTOQUE" — reaproveita criarMovimentacao() já
+// existente (lib/estoqueHelpers.ts), sem duplicar lógica de lote/FEFO em
+// lugar nenhum. Cada item é tentado individualmente; falha em um não impede
+// os outros. estoque_baixado em venda é quem garante que uma venda com
+// baixa incompleta nunca se perde — ver PDV-FASE3-ETAPA2-FINALIZAR-VENDA-SQL.sql.
+// ============================================================================
+
+export type ItemBaixaEstoque = { produtoId: string; nome: string; quantidade: number };
+export type StatusBaixaEstoque = "pendente" | "parcial" | "concluido";
+
+export async function baixarEstoqueVenda(
+  empresaId: string, userId: string, vendaId: string, itens: ItemBaixaEstoque[]
+): Promise<{ falhas: ItemBaixaEstoque[] }> {
+  const falhas: ItemBaixaEstoque[] = [];
+  for (const item of itens) {
+    const { erro } = await criarMovimentacao(empresaId, userId, {
+      produto_id: item.produtoId,
+      tipo: "saida",
+      quantidade: item.quantidade,
+      origem: "pdv",
+      documento_ref: vendaId,
+    });
+    if (erro) falhas.push(item);
+  }
+  return { falhas };
+}
+
+export async function atualizarStatusBaixaEstoque(vendaId: string, status: StatusBaixaEstoque): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("venda").update({ estoque_baixado: status }).eq("id", vendaId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    Sentry.captureException(new Error(`Falha ao atualizar estoque_baixado: ${motivo}`), { extra: { tabela: "venda", operacao: "update", vendaId, status, motivo } });
+    return { erro: motivo };
+  }
+  return {};
 }

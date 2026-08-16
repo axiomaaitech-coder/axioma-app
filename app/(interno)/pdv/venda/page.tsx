@@ -20,7 +20,11 @@ import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
 import { listarProdutosPdv, type ProdutoPdv } from "../../../../lib/pdvHelpers";
-import { listarCaixasAtivos, buscarTurnoAbertoPorCaixa, abrirTurno, type Caixa, type TurnoCaixa } from "../../../../lib/pdvVendaHelpers";
+import {
+  listarCaixasAtivos, buscarTurnoAbertoPorCaixa, abrirTurno,
+  finalizarVenda, baixarEstoqueVenda, atualizarStatusBaixaEstoque,
+  type Caixa, type TurnoCaixa, type ItemBaixaEstoque,
+} from "../../../../lib/pdvVendaHelpers";
 
 const txt = {
   titulo: { pt: "Frente de Caixa", en: "Checkout", es: "Caja" },
@@ -41,12 +45,36 @@ const txt = {
   limparCarrinho: { pt: "Limpar carrinho", en: "Clear cart", es: "Vaciar carrito" },
   total: { pt: "Total", en: "Total", es: "Total" },
   finalizarVenda: { pt: "Finalizar Venda", en: "Complete Sale", es: "Finalizar Venta" },
-  finalizarEmBreve: {
-    pt: "Fechamento de venda chega na próxima etapa — por enquanto o carrinho é só demonstração, nada é gravado.",
-    en: "Completing a sale arrives in the next stage — for now the cart is a preview, nothing is saved.",
-    es: "El cierre de venta llega en la próxima etapa — por ahora el carrito es solo demostración, nada se guarda.",
-  },
   itemAdicionado: { pt: "Adicionado: {nome}", en: "Added: {nome}", es: "Agregado: {nome}" },
+  formaPagamentoLabel: { pt: "Forma de pagamento", en: "Payment method", es: "Forma de pago" },
+  formaPagamentoSelecione: { pt: "Selecione…", en: "Select…", es: "Seleccione…" },
+  formaPagamentoDinheiro: { pt: "Dinheiro", en: "Cash", es: "Efectivo" },
+  formaPagamentoDebito: { pt: "Cartão de débito", en: "Debit card", es: "Tarjeta de débito" },
+  formaPagamentoCredito: { pt: "Cartão de crédito", en: "Credit card", es: "Tarjeta de crédito" },
+  formaPagamentoPix: { pt: "Pix", en: "Pix", es: "Pix" },
+  formaPagamentoOutro: { pt: "Outro", en: "Other", es: "Otro" },
+  cpfNotaLabel: { pt: "CPF na nota (opcional)", en: "Tax ID on receipt (optional)", es: "CPF en la nota (opcional)" },
+  cpfNotaPlaceholder: { pt: "Somente números", en: "Numbers only", es: "Solo números" },
+  cpfNotaInvalido: { pt: "CPF inválido — informe 11 números ou deixe em branco.", en: "Invalid tax ID — enter 11 digits or leave it blank.", es: "CPF inválido — indique 11 números o deje en blanco." },
+  formaPagamentoObrigatoria: { pt: "Selecione a forma de pagamento.", en: "Select a payment method.", es: "Seleccione la forma de pago." },
+  confirmarVenda: { pt: "Confirmar Venda", en: "Confirm Sale", es: "Confirmar Venta" },
+  confirmandoVenda: { pt: "Confirmando…", en: "Confirming…", es: "Confirmando…" },
+  cancelarPainel: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
+  vendaConcluida: { pt: "Venda concluída — {valor}", en: "Sale completed — {valor}", es: "Venta concluida — {valor}" },
+  erroFinalizarGenerico: { pt: "Não foi possível finalizar a venda. Tente novamente.", en: "Could not complete the sale. Try again.", es: "No fue posible finalizar la venta. Intente de nuevo." },
+  erroTurnoFechado: { pt: "O turno de caixa não está mais aberto. Atualize a página.", en: "The register shift is no longer open. Refresh the page.", es: "El turno de caja ya no está abierto. Actualice la página." },
+  erroSemItens: { pt: "Adicione ao menos um item ao carrinho.", en: "Add at least one item to the cart.", es: "Agregue al menos un ítem al carrito." },
+  erroProdutoSemPreco: { pt: "Um dos produtos não tem preço de venda definido.", en: "One of the products has no selling price set.", es: "Uno de los productos no tiene precio de venta definido." },
+  baixandoEstoque: { pt: "Atualizando estoque…", en: "Updating stock…", es: "Actualizando stock…" },
+  baixaEstoqueFalhouParcial: {
+    pt: "Venda concluída, mas alguns itens não tiveram o estoque baixado.",
+    en: "Sale completed, but some items did not have their stock deducted.",
+    es: "Venta concluida, pero algunos ítems no tuvieron su stock descontado.",
+  },
+  pendenciaBaixaTitulo: { pt: "Itens sem baixa de estoque", en: "Items with pending stock deduction", es: "Ítems sin descuento de stock" },
+  tentarNovamenteBaixa: { pt: "Tentar novamente", en: "Try again", es: "Intentar de nuevo" },
+  tentandoNovamente: { pt: "Tentando…", en: "Trying…", es: "Intentando…" },
+  baixaEstoqueConcluida: { pt: "Estoque atualizado.", en: "Stock updated.", es: "Stock actualizado." },
   semCaixaCadastrado: {
     pt: "Nenhum caixa cadastrado nesta empresa. Fale com o proprietário.",
     en: "No register set up for this company. Talk to the owner.",
@@ -80,6 +108,22 @@ function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string |
   return s;
 }
 
+// Mapeia o código AX0xx devolvido por finalizar_venda (PDV-FASE3-ETAPA2-
+// FINALIZAR-VENDA-SQL.sql) pra mensagem traduzida — nunca mostra o texto em
+// português que o Postgres devolve. Códigos sem mapeamento específico aqui
+// (AX012 cliente inválido, AX013/AX014 item/produto — não deveriam
+// acontecer nesta tela, que só manda produto_id vindo da própria busca) caem
+// no genérico.
+function mensagemErroFinalizar(codigo: string | undefined, lang: Idioma): string {
+  switch (codigo) {
+    case "AX009": return t("erroTurnoFechado", lang);
+    case "AX010": return t("erroSemItens", lang);
+    case "AX011": return t("cpfNotaInvalido", lang);
+    case "AX015": return t("erroProdutoSemPreco", lang);
+    default: return t("erroFinalizarGenerico", lang);
+  }
+}
+
 function moeda(v: number | null | undefined): string {
   if (v === null || v === undefined) return "—";
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -111,6 +155,19 @@ export default function PdvVendaPage() {
   const [valorAberturaInput, setValorAberturaInput] = useState("");
   const [observacaoAbertura, setObservacaoAbertura] = useState("");
   const [abrindoCaixaFlag, setAbrindoCaixaFlag] = useState(false);
+
+  // Sub-etapa "Finalizar Venda" — painel de confirmação (forma de pagamento
+  // + CPF opcional na nota) e, depois de gravada, a baixa de estoque item a
+  // item. pendenciaBaixa é o que garante que "quais produtos não baixaram"
+  // fica visível na tela até resolver — venda.estoque_baixado (banco) é a
+  // fonte durável, isto aqui é só a projeção na tela da sessão atual.
+  const [painelFinalizarAberto, setPainelFinalizarAberto] = useState(false);
+  const [formaPagamento, setFormaPagamento] = useState("");
+  const [cpfNotaInput, setCpfNotaInput] = useState("");
+  const [finalizandoVenda, setFinalizandoVenda] = useState(false);
+  const [baixandoEstoqueFlag, setBaixandoEstoqueFlag] = useState(false);
+  const [pendenciaBaixa, setPendenciaBaixa] = useState<{ vendaId: string; totalItens: number; itensFalhos: ItemBaixaEstoque[] } | null>(null);
+  const [retentandoBaixa, setRetentandoBaixa] = useState(false);
 
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
@@ -197,6 +254,62 @@ export default function PdvVendaPage() {
     setValorAberturaInput("");
     setObservacaoAbertura("");
     mostrarToast(t("caixaAberto", lang), "ok");
+  }
+
+  async function handleConfirmarVenda() {
+    if (!empresaId || !userId || !turno || carrinho.length === 0) return;
+    if (!formaPagamento) { mostrarToast(t("formaPagamentoObrigatoria", lang), "erro"); return; }
+    const cpfLimpo = cpfNotaInput.replace(/\D/g, "");
+    if (cpfLimpo && cpfLimpo.length !== 11) { mostrarToast(t("cpfNotaInvalido", lang), "erro"); return; }
+
+    setFinalizandoVenda(true);
+    const itensRpc = carrinho.map((i) => ({ produto_id: i.produto.id, quantidade: i.quantidade }));
+    const resultado = await finalizarVenda(turno.id, itensRpc, {
+      formaPagamento, cpfNota: cpfLimpo || undefined,
+    });
+    setFinalizandoVenda(false);
+
+    if (resultado.erro || !resultado.vendaId) {
+      mostrarToast(mensagemErroFinalizar(resultado.codigo, lang), "erro");
+      return; // carrinho intacto — operador pode corrigir e tentar de novo
+    }
+
+    // Venda gravada — daqui pra frente é sucesso real, então já limpa o
+    // carrinho e fecha o painel. Guarda os itens ANTES de limpar, pra baixa
+    // de estoque não depender mais do estado do carrinho.
+    const itensParaBaixa: ItemBaixaEstoque[] = carrinho.map((i) => ({ produtoId: i.produto.id, nome: i.produto.nome, quantidade: i.quantidade }));
+    const vendaId = resultado.vendaId;
+    mostrarToast(t("vendaConcluida", lang, { valor: moeda(resultado.valorTotal) }), "ok");
+    setCarrinho([]);
+    setPainelFinalizarAberto(false);
+    setFormaPagamento("");
+    setCpfNotaInput("");
+
+    setBaixandoEstoqueFlag(true);
+    const { falhas } = await baixarEstoqueVenda(empresaId, userId, vendaId, itensParaBaixa);
+    await atualizarStatusBaixaEstoque(vendaId, falhas.length === 0 ? "concluido" : falhas.length === itensParaBaixa.length ? "pendente" : "parcial");
+    setBaixandoEstoqueFlag(false);
+
+    if (falhas.length > 0) {
+      setPendenciaBaixa({ vendaId, totalItens: itensParaBaixa.length, itensFalhos: falhas });
+      mostrarToast(t("baixaEstoqueFalhouParcial", lang), "erro");
+    }
+  }
+
+  async function handleTentarNovamenteBaixa() {
+    if (!pendenciaBaixa || !empresaId || !userId) return;
+    setRetentandoBaixa(true);
+    const { falhas } = await baixarEstoqueVenda(empresaId, userId, pendenciaBaixa.vendaId, pendenciaBaixa.itensFalhos);
+    await atualizarStatusBaixaEstoque(pendenciaBaixa.vendaId, falhas.length === 0 ? "concluido" : falhas.length === pendenciaBaixa.totalItens ? "pendente" : "parcial");
+    setRetentandoBaixa(false);
+
+    if (falhas.length === 0) {
+      setPendenciaBaixa(null);
+      mostrarToast(t("baixaEstoqueConcluida", lang), "ok");
+    } else {
+      setPendenciaBaixa({ ...pendenciaBaixa, itensFalhos: falhas });
+      mostrarToast(t("baixaEstoqueFalhouParcial", lang), "erro");
+    }
   }
 
   useEffect(() => {
@@ -304,6 +417,11 @@ export default function PdvVendaPage() {
         <span style={{ opacity: 0.7 }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
         <button onClick={trocarCaixa} className="font-semibold underline" style={{ opacity: 0.7 }}>{t("trocarCaixa", lang)}</button>
       </div>
+
+      {pendenciaBaixa && (
+        <PendenciaBaixaBanner lang={lang} pendencia={pendenciaBaixa} tentando={retentandoBaixa} onTentarNovamente={handleTentarNovamenteBaixa} />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <CampoBusca lang={lang} busca={busca} onBusca={setBusca} inputRef={inputBuscaRef} />
@@ -317,10 +435,30 @@ export default function PdvVendaPage() {
             lang={lang} carrinho={carrinho} total={total}
             onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
             onLimpar={() => setCarrinho([])}
-            onFinalizar={() => mostrarToast(t("finalizarEmBreve", lang), "info")}
+            onFinalizar={() => setPainelFinalizarAberto(true)}
           />
         </div>
       </div>
+
+      {painelFinalizarAberto && (
+        <FinalizarVendaModal
+          lang={lang} total={total}
+          formaPagamento={formaPagamento} onFormaPagamento={setFormaPagamento}
+          cpfNotaInput={cpfNotaInput} onCpfNotaInput={setCpfNotaInput}
+          confirmando={finalizandoVenda}
+          onConfirmar={handleConfirmarVenda}
+          onCancelar={() => setPainelFinalizarAberto(false)}
+        />
+      )}
+
+      {baixandoEstoqueFlag && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: "rgba(2,8,16,0.5)" }}>
+          <div className="rounded-xl px-5 py-4 flex items-center gap-2" style={{ background: "#0b1622", color: "#fff" }}>
+            <Loader2 className="animate-spin" size={16} />
+            <span className="text-sm">{t("baixandoEstoque", lang)}</span>
+          </div>
+        </div>
+      )}
 
       {toast && <Toast toast={toast} />}
     </PdvLayout>
@@ -399,6 +537,87 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
         {abrindo && <Loader2 className="animate-spin" size={14} />}
         {abrindo ? t("abrindoCaixa", lang) : t("abrirCaixaBotao", lang)}
       </button>
+    </div>
+  );
+}
+
+function FinalizarVendaModal({
+  lang, total, formaPagamento, onFormaPagamento, cpfNotaInput, onCpfNotaInput, confirmando, onConfirmar, onCancelar,
+}: {
+  lang: Idioma; total: number;
+  formaPagamento: string; onFormaPagamento: (v: string) => void;
+  cpfNotaInput: string; onCpfNotaInput: (v: string) => void;
+  confirmando: boolean; onConfirmar: () => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.5)" }}>
+      <div className="w-full max-w-sm rounded-xl p-5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("finalizarVenda", lang)}</h3>
+          <span className="text-lg font-extrabold" style={{ color: tokens.acento }}>{moeda(total)}</span>
+        </div>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("formaPagamentoLabel", lang)}</label>
+        <select value={formaPagamento} onChange={(e) => onFormaPagamento(e.target.value)}
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-3"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+          <option value="">{t("formaPagamentoSelecione", lang)}</option>
+          <option value="dinheiro">{t("formaPagamentoDinheiro", lang)}</option>
+          <option value="debito">{t("formaPagamentoDebito", lang)}</option>
+          <option value="credito">{t("formaPagamentoCredito", lang)}</option>
+          <option value="pix">{t("formaPagamentoPix", lang)}</option>
+          <option value="outro">{t("formaPagamentoOutro", lang)}</option>
+        </select>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("cpfNotaLabel", lang)}</label>
+        <input
+          value={cpfNotaInput} onChange={(e) => onCpfNotaInput(e.target.value)}
+          placeholder={t("cpfNotaPlaceholder", lang)} inputMode="numeric"
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={confirmando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.cardTexto }}>
+            {t("cancelarPainel", lang)}
+          </button>
+          <button onClick={onConfirmar} disabled={confirmando}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {confirmando && <Loader2 className="animate-spin" size={14} />}
+            {confirmando ? t("confirmandoVenda", lang) : t("confirmarVenda", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PendenciaBaixaBanner({ lang, pendencia, tentando, onTentarNovamente }: {
+  lang: Idioma;
+  pendencia: { vendaId: string; totalItens: number; itensFalhos: ItemBaixaEstoque[] };
+  tentando: boolean;
+  onTentarNovamente: () => void;
+}) {
+  return (
+    <div className="mb-4 rounded-xl p-4" style={{ background: "rgba(248,113,113,0.12)", border: "1px solid rgba(248,113,113,0.4)" }}>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-xs font-bold mb-1" style={{ color: "#f87171" }}>{t("pendenciaBaixaTitulo", lang)}</p>
+          <p className="text-xs" style={{ color: "#f87171", opacity: 0.85 }}>
+            {pendencia.itensFalhos.map((i) => i.nome).join(", ")}
+          </p>
+        </div>
+        <button onClick={onTentarNovamente} disabled={tentando}
+          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50 flex items-center gap-2 shrink-0"
+          style={{ background: "#f87171", color: "#020810" }}>
+          {tentando && <Loader2 className="animate-spin" size={12} />}
+          {tentando ? t("tentandoNovamente", lang) : t("tentarNovamenteBaixa", lang)}
+        </button>
+      </div>
     </div>
   );
 }
