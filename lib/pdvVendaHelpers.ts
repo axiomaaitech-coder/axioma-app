@@ -163,3 +163,31 @@ export async function atualizarStatusBaixaEstoque(vendaId: string, status: Statu
   }
   return {};
 }
+
+// ============================================================================
+// "PREÇO NA HORA DA VENDA" — produto sem preco_venda definido (típico de
+// produto cadastrado no Estoque, que só preenche preco_custo/preco_sugerido,
+// nunca preco_venda — ver diagnóstico do conflito PDV×Estoque) não pode
+// travar a venda. O operador digita o preço no ato; ele é GRAVADO em
+// produtos.preco_venda (não é um valor solto por fora) — dali em diante
+// finalizar_venda() lê esse preço normalmente, igual a qualquer outro
+// produto, e o congela em item_venda.preco_unitario_venda como sempre fez.
+// Nenhuma mudança em finalizar_venda nem no schema: só um UPDATE comum,
+// sujeito à MESMA RLS de sempre (produtos_multi_tenant) — por isso um
+// operador (bloqueado por linha nessa tabela desde a Fase 0) não consegue
+// definir preço; só quem tem acesso de escrita a produtos (dono/admin/
+// financeiro) consegue. Isso é intencional, não um bug: decidir preço de
+// venda é decisão do dono, mesmo quando "na hora".
+export async function definirPrecoVenda(produtoId: string, precoVenda: number): Promise<{ erro?: string; semPermissao?: boolean }> {
+  const { data, error } = await supabase.from("produtos").update({ preco_venda: precoVenda }).eq("id", produtoId).select("id");
+  if (error) {
+    Sentry.captureException(new Error(`Falha ao definir preco_venda: ${error.message}`), { extra: { tabela: "produtos", operacao: "update", produtoId, motivo: error.message } });
+    return { erro: error.message };
+  }
+  if (!data || data.length === 0) {
+    // 0 linhas sem error = RLS bloqueou silenciosamente — a assinatura
+    // exata de um papel sem permissão de escrita em produtos (operador).
+    return { semPermissao: true };
+  }
+  return {};
+}

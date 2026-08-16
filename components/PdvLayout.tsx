@@ -74,6 +74,13 @@ const NAVY_BARRA = "#0F2444";
 const NAVY_CARD = "#12294B";
 const CERULEO = "#4DA8FF";
 const CERULEO_FORTE = "#2E7BDB";
+// AZUL_BOTAO — só pro fundo de botão de ação (acaoBg) com texto branco em
+// cima. CERULEO sozinho (#4DA8FF) é claro DEMAIS pra texto branco: contraste
+// calculado ~2.5:1, abaixo até do mínimo de "texto grande" do WCAG (3:1).
+// AZUL_BOTAO garante >=4.2:1 na extremidade mais clara do gradiente e
+// ~6.7:1 na mais escura — CERULEO continua só como cor de TEXTO/ícone sobre
+// fundo escuro (acento), onde claro-sobre-escuro é o contraste certo.
+const AZUL_BOTAO = "#1D4ED8";
 const BRANCO_GELO_AZUL = "#EAF2FF";
 
 const TOKENS: Record<TemaPdv, TokensPdv> = {
@@ -129,7 +136,7 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     cardBg: NAVY_CARD, cardTexto: BRANCO_GELO_AZUL, cardBorda: "rgba(77,168,255,0.24)",
     inputBg: NAVY_CARD, inputTexto: BRANCO_GELO_AZUL, inputBorda: "rgba(77,168,255,0.32)",
     acento: CERULEO, acentoSuaveBg: "rgba(77,168,255,0.1)", acentoSuaveBorda: "rgba(77,168,255,0.28)",
-    acaoBg: `linear-gradient(135deg, ${CERULEO_FORTE}, ${CERULEO})`, acaoTexto: "#FFFFFF",
+    acaoBg: `linear-gradient(135deg, ${AZUL_BOTAO}, ${CERULEO_FORTE})`, acaoTexto: "#FFFFFF",
     filtroAtivoBg: "rgba(77,168,255,0.24)", filtroAtivoTexto: CERULEO, filtroAtivoBorda: CERULEO,
     filtroInativoBg: "rgba(77,168,255,0.08)", filtroInativoTexto: "#7C93B8", filtroInativoBorda: "rgba(77,168,255,0.22)",
   },

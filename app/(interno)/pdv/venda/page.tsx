@@ -25,7 +25,7 @@ import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers
 import { listarProdutosPdv, type ProdutoPdv } from "../../../../lib/pdvHelpers";
 import {
   listarCaixasAtivos, buscarTurnoAbertoPorCaixa, abrirTurno,
-  finalizarVenda, baixarEstoqueVenda, atualizarStatusBaixaEstoque,
+  finalizarVenda, baixarEstoqueVenda, atualizarStatusBaixaEstoque, definirPrecoVenda,
   type Caixa, type TurnoCaixa, type ItemBaixaEstoque,
 } from "../../../../lib/pdvVendaHelpers";
 
@@ -51,6 +51,23 @@ const txt = {
   semResultado: { pt: "Nenhum produto encontrado.", en: "No product found.", es: "Ningún producto encontrado." },
   estoque: { pt: "estoque", en: "stock", es: "stock" },
   precoNaoDefinido: { pt: "preço não definido", en: "price not set", es: "precio no definido" },
+  precoSugeridoBadge: { pt: "{valor} (sugerido)", en: "{valor} (suggested)", es: "{valor} (sugerido)" },
+  definirPrecoTitulo: { pt: "Definir preço de venda", en: "Set selling price", es: "Definir precio de venta" },
+  definirPrecoSubtitulo: {
+    pt: "Este produto ainda não tem preço de venda cadastrado. Informe o preço pra vender agora — ele fica salvo no produto pras próximas vendas.",
+    en: "This product doesn't have a selling price yet. Enter the price to sell now — it's saved on the product for next time.",
+    es: "Este producto aún no tiene precio de venta. Indique el precio para vender ahora — queda guardado en el producto para las próximas ventas.",
+  },
+  definirPrecoLabel: { pt: "Preço de venda", en: "Selling price", es: "Precio de venta" },
+  definirPrecoConfirmar: { pt: "Confirmar e adicionar", en: "Confirm and add", es: "Confirmar y agregar" },
+  definirPrecoConfirmando: { pt: "Salvando…", en: "Saving…", es: "Guardando…" },
+  definirPrecoInvalido: { pt: "Informe um preço válido, maior que zero.", en: "Enter a valid price greater than zero.", es: "Indique un precio válido, mayor que cero." },
+  definirPrecoSemPermissao: {
+    pt: "Você não tem permissão para definir preço de venda. Peça para o proprietário ou administrador.",
+    en: "You don't have permission to set a selling price. Ask the owner or an administrator.",
+    es: "No tiene permiso para definir el precio de venta. Pida al propietario o administrador.",
+  },
+  definirPrecoErroGenerico: { pt: "Não foi possível salvar o preço. Tente novamente.", en: "Could not save the price. Try again.", es: "No fue posible guardar el precio. Intente de nuevo." },
   itemAdicionado: { pt: "Adicionado: {nome}", en: "Added: {nome}", es: "Agregado: {nome}" },
   idleTitulo: { pt: "Pronto pra vender", en: "Ready to sell", es: "Listo para vender" },
   idleSubtitulo: {
@@ -62,6 +79,7 @@ const txt = {
   valorUnitario: { pt: "Valor unitário", en: "Unit price", es: "Valor unitario" },
   totalDoItem: { pt: "Total do item", en: "Item total", es: "Total del ítem" },
   itensDaVenda: { pt: "Itens da venda", en: "Sale items", es: "Ítems de la venta" },
+  carrinhoVazio: { pt: "Nenhum item ainda. Bipe ou digite pra começar.", en: "No items yet. Scan or type to start.", es: "Ningún ítem todavía. Escanee o escriba para empezar." },
   limparCarrinho: { pt: "Limpar", en: "Clear", es: "Vaciar" },
   colNumero: { pt: "Nº", en: "No.", es: "N.°" },
   colCodigo: { pt: "Código", en: "Code", es: "Código" },
@@ -213,6 +231,14 @@ export default function PdvVendaPage() {
   // Só apresentação (qual linha vira o bloco "Último item" e ganha destaque
   // na tabela) — não influencia nenhum cálculo nem o que é enviado ao banco.
   const [ultimoAdicionadoId, setUltimoAdicionadoId] = useState<string | null>(null);
+  // "Preço na hora da venda" — produto sem preco_venda (típico de produto
+  // cadastrado no Estoque, que só preenche preco_custo/preco_sugerido) abre
+  // este painel em vez de ir direto pro carrinho. Ver definirPrecoVenda()
+  // em lib/pdvVendaHelpers.ts pra por que isso é um UPDATE normal em
+  // produtos, sujeito à mesma RLS de sempre (operador não consegue).
+  const [produtoParaPreco, setProdutoParaPreco] = useState<ProdutoPdv | null>(null);
+  const [precoManualInput, setPrecoManualInput] = useState("");
+  const [definindoPreco, setDefinindoPreco] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
   const inputBuscaRef = useRef<HTMLInputElement>(null);
 
@@ -373,7 +399,10 @@ export default function PdvVendaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buscaDebounced, empresaId, papel]);
 
-  function adicionarAoCarrinho(produto: ProdutoPdv) {
+  // Mutação de verdade do carrinho — só chamada depois que o produto JÁ TEM
+  // preço de venda garantido (existente, ou acabou de ser definido no
+  // painel abaixo). Nunca chamada direto pra um produto sem preço.
+  function adicionarAoCarrinhoDireto(produto: ProdutoPdv) {
     setCarrinho((atual) => {
       const existe = atual.find((i) => i.produto.id === produto.id);
       if (existe) return atual.map((i) => (i.produto.id === produto.id ? { ...i, quantidade: i.quantidade + 1 } : i));
@@ -382,6 +411,33 @@ export default function PdvVendaPage() {
     setUltimoAdicionadoId(produto.id);
     mostrarToast(t("itemAdicionado", lang, { nome: produto.nome }), "ok");
     inputBuscaRef.current?.focus();
+  }
+
+  // Gate: produto sem preco_venda não vai direto pro carrinho — abre o
+  // painel "Definir preço" (pré-preenchido com preco_sugerido, se houver)
+  // pra não perder a venda nem deixar item sem preço entrar no carrinho.
+  function adicionarAoCarrinho(produto: ProdutoPdv) {
+    if (produto.preco_venda != null) { adicionarAoCarrinhoDireto(produto); return; }
+    setProdutoParaPreco(produto);
+    setPrecoManualInput(produto.preco_sugerido != null ? String(produto.preco_sugerido) : "");
+  }
+
+  async function handleConfirmarPrecoManual() {
+    if (!produtoParaPreco) return;
+    const preco = Number(precoManualInput.replace(",", "."));
+    if (!preco || preco <= 0 || isNaN(preco)) { mostrarToast(t("definirPrecoInvalido", lang), "erro"); return; }
+
+    setDefinindoPreco(true);
+    const resultado = await definirPrecoVenda(produtoParaPreco.id, preco);
+    setDefinindoPreco(false);
+
+    if (resultado.semPermissao) { mostrarToast(t("definirPrecoSemPermissao", lang), "erro"); return; }
+    if (resultado.erro) { mostrarToast(t("definirPrecoErroGenerico", lang), "erro"); return; }
+
+    const produtoComPreco: ProdutoPdv = { ...produtoParaPreco, preco_venda: preco };
+    adicionarAoCarrinhoDireto(produtoComPreco);
+    setProdutoParaPreco(null);
+    setPrecoManualInput("");
   }
 
   // Enter no campo de busca adiciona o topo da lista de resultados — o
@@ -534,19 +590,16 @@ export default function PdvVendaPage() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          {carrinho.length === 0 ? (
-            <IdleHero lang={lang} />
-          ) : (
-            <>
-              {itemDestaque && <DestaqueItemAtual lang={lang} item={itemDestaque} />}
-              <TabelaItensVenda
-                lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
-                onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
-                onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
-              />
-            </>
-          )}
+        {/* Estrutura SEMPRE montada, com carrinho vazio ou não — só o
+            conteúdo interno muda. É o que garante "tudo visível desde o
+            início" (destaque + cabeçalho da tabela nunca somem). */}
+        <div className="flex-1 min-h-0 flex flex-col">
+          <DestaqueItemAtual lang={lang} item={itemDestaque} />
+          <TabelaItensVenda
+            lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
+            onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
+            onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
+          />
         </div>
 
         <div className="shrink-0">
@@ -558,6 +611,16 @@ export default function PdvVendaPage() {
           <AtalhosRodape lang={lang} />
         </div>
       </div>
+
+      {produtoParaPreco && (
+        <DefinirPrecoModal
+          lang={lang} produto={produtoParaPreco}
+          precoInput={precoManualInput} onPrecoInput={setPrecoManualInput}
+          confirmando={definindoPreco}
+          onConfirmar={handleConfirmarPrecoManual}
+          onCancelar={() => { setProdutoParaPreco(null); setPrecoManualInput(""); }}
+        />
+      )}
 
       {painelFinalizarAberto && (
         <FinalizarVendaModal
@@ -676,52 +739,58 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
   );
 }
 
-// Tela ociosa (carrinho vazio) — logo grande com respiração sutil (opacidade
-// + escala, 4s, looping). Só existe montada enquanto o carrinho está vazio:
-// assim que o primeiro item entra, este componente desmonta e a animação
-// para sozinha — não precisa de lógica extra pra "pausar ao vender".
-function IdleHero({ lang }: { lang: Idioma }) {
+// Bloco "destaque" SEMPRE montado (mesma altura reservada tenha item ou
+// não) — com item nenhum, mostra um estado ocioso compacto (logo pulsando
+// bem sutil + texto), nunca um hero de tela cheia: o requisito é a
+// ESTRUTURA inteira visível desde o início, não uma tela de boas-vindas
+// separada. A animação já para sozinha assim que item != null, porque o
+// ramo ocioso deixa de renderizar (sem precisar de lógica extra).
+function DestaqueItemAtual({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
   const { tokens } = useTemaPdv();
+
+  if (!item) {
+    return (
+      <div className="shrink-0 rounded-2xl p-4 mb-3 flex items-center gap-3"
+        style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+        <motion.div
+          animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="shrink-0">
+          <Image src="/logo-aitech.png" alt="Axioma" width={36} height={36} />
+        </motion.div>
+        <div className="min-w-0">
+          <p className="text-sm md:text-base font-bold truncate" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
+          <p className="text-xs truncate" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("idleSubtitulo", lang)}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const precoUnit = item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0;
   return (
-    <div className="flex flex-col items-center justify-center h-full py-6 text-center">
-      <motion.div
-        animate={{ opacity: [0.75, 1, 0.75], scale: [1, 1.035, 1] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        style={{ filter: `drop-shadow(0 0 36px ${tokens.acento}66)` }}
-      >
-        <Image src="/logo-aitech.png" alt="Axioma" width={140} height={140} priority />
-      </motion.div>
-      <h3 className="text-xl md:text-2xl font-extrabold mt-6" style={{ color: tokens.texto }}>{t("idleTitulo", lang)}</h3>
-      <p className="text-sm mt-1" style={{ color: tokens.textoMuted }}>{t("idleSubtitulo", lang)}</p>
+    <div className="shrink-0 rounded-2xl p-4 md:p-5 mb-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.acento, opacity: 0.85 }}>{t("ultimoItem", lang)}</p>
+      <p className="text-lg md:text-2xl font-extrabold truncate mb-2" style={{ color: tokens.cardTexto }}>{item.produto.nome}</p>
+      <div className="flex items-end gap-8 flex-wrap">
+        <div>
+          <p className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("valorUnitario", lang)}</p>
+          <p className="text-base md:text-xl font-bold" style={{ color: tokens.cardTexto }}>{moeda(precoUnit)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("totalDoItem", lang)}</p>
+          <p className="text-xl md:text-3xl font-black" style={{ color: tokens.acento }}>{moeda(precoUnit * item.quantidade)}</p>
+        </div>
+      </div>
     </div>
   );
 }
 
-function DestaqueItemAtual({ lang, item }: { lang: Idioma; item: ItemCarrinho }) {
-  const { tokens } = useTemaPdv();
-  const precoUnit = item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0;
-  return (
-    <motion.div
-      key={item.produto.id}
-      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      className="rounded-2xl p-4 md:p-5 mb-3"
-      style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
-    >
-      <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: tokens.acento, opacity: 0.85 }}>{t("ultimoItem", lang)}</p>
-      <p className="text-xl md:text-3xl font-extrabold truncate mb-4" style={{ color: tokens.cardTexto }}>{item.produto.nome}</p>
-      <div className="flex items-end gap-8 flex-wrap">
-        <div>
-          <p className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("valorUnitario", lang)}</p>
-          <p className="text-lg md:text-2xl font-bold" style={{ color: tokens.cardTexto }}>{moeda(precoUnit)}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("totalDoItem", lang)}</p>
-          <p className="text-2xl md:text-4xl font-black" style={{ color: tokens.acento }}>{moeda(precoUnit * item.quantidade)}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+// Grid, não <table> — de propósito: preciso do cabeçalho de colunas FORA
+// da área que rola e só as LINHAS dentro de um flex-1/overflow-y-auto.
+// Com <table>, thead/tbody não têm scroll independente sem truques (duas
+// tabelas separadas, tamanhos de coluna sincronizados à mão — mais frágil
+// que isto). Mesmas colunas via grid-template-columns idêntico no
+// cabeçalho e em cada linha garante alinhamento.
+const COLUNAS_GRID = "44px 96px minmax(0,1fr) 116px 96px 120px";
 
 function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onRemover, onLimpar }: {
   lang: Idioma; carrinho: ItemCarrinho[]; destaqueId: string | null;
@@ -731,56 +800,52 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-2xl overflow-hidden mb-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <div className="flex items-center justify-between px-4 py-3" style={{ background: tokens.acentoSuaveBg }}>
+    <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="shrink-0 flex items-center justify-between px-4 py-2.5" style={{ background: tokens.acentoSuaveBg }}>
         <div className="flex items-center gap-2">
           <ShoppingCart size={16} style={{ color: tokens.acento }} />
           <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("itensDaVenda", lang)} ({carrinho.length})</h3>
         </div>
-        <button onClick={onLimpar} className="text-xs font-semibold" style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
+        <button onClick={onLimpar} disabled={carrinho.length === 0} className="text-xs font-semibold disabled:opacity-40" style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm md:text-base" style={{ color: tokens.cardTexto }}>
-          <thead>
-            <tr className="text-xs uppercase tracking-wide" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
-              <th className="text-left px-4 py-2 font-semibold">{t("colNumero", lang)}</th>
-              <th className="text-left px-2 py-2 font-semibold">{t("colCodigo", lang)}</th>
-              <th className="text-left px-2 py-2 font-semibold">{t("colDescricao", lang)}</th>
-              <th className="text-center px-2 py-2 font-semibold">{t("colQtd", lang)}</th>
-              <th className="text-right px-2 py-2 font-semibold">{t("colValorUnit", lang)}</th>
-              <th className="text-right px-4 py-2 font-semibold">{t("colTotal", lang)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {carrinho.map(({ produto, quantidade }, idx) => {
-              const precoUnit = produto.preco_venda ?? produto.preco_sugerido ?? 0;
-              const emDestaque = produto.id === destaqueId;
-              return (
-                <tr key={produto.id}
-                  style={{ background: emDestaque ? tokens.acentoSuaveBg : "transparent", borderTop: `1px solid ${tokens.cardBorda}` }}>
-                  <td className="px-4 py-3" style={{ opacity: 0.7 }}>{idx + 1}</td>
-                  <td className="px-2 py-3 whitespace-nowrap" style={{ opacity: 0.7 }}>{produto.codigo_barras || produto.sku || "—"}</td>
-                  <td className="px-2 py-3 font-semibold truncate max-w-[220px]">{produto.nome}</td>
-                  <td className="px-2 py-3">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-1.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={13} /></button>
-                      <span className="w-6 text-center font-bold">{quantidade}</span>
-                      <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-1.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={13} /></button>
-                    </div>
-                  </td>
-                  <td className="px-2 py-3 text-right whitespace-nowrap">{moeda(precoUnit)}</td>
-                  <td className="px-4 py-3 text-right font-bold whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
-                      {moeda(precoUnit * quantidade)}
-                      <button onClick={() => onRemover(produto.id)} className="p-1 rounded-md" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={13} /></button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="shrink-0 grid items-center px-4 py-2 text-xs uppercase tracking-wide"
+        style={{ gridTemplateColumns: COLUNAS_GRID, color: tokens.cardTexto, opacity: 0.65, borderBottom: `1px solid ${tokens.cardBorda}` }}>
+        <span>{t("colNumero", lang)}</span>
+        <span>{t("colCodigo", lang)}</span>
+        <span>{t("colDescricao", lang)}</span>
+        <span className="text-center">{t("colQtd", lang)}</span>
+        <span className="text-right">{t("colValorUnit", lang)}</span>
+        <span className="text-right">{t("colTotal", lang)}</span>
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {carrinho.length === 0 ? (
+          <p className="text-sm text-center py-8" style={{ color: tokens.cardTexto, opacity: 0.55 }}>{t("carrinhoVazio", lang)}</p>
+        ) : (
+          carrinho.map(({ produto, quantidade }, idx) => {
+            const precoUnit = produto.preco_venda ?? produto.preco_sugerido ?? 0;
+            const emDestaque = produto.id === destaqueId;
+            return (
+              <div key={produto.id} className="grid items-center px-4 py-2 text-sm md:text-base"
+                style={{ gridTemplateColumns: COLUNAS_GRID, background: emDestaque ? tokens.acentoSuaveBg : "transparent", borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                <span style={{ opacity: 0.7 }}>{idx + 1}</span>
+                <span className="truncate pr-2" style={{ opacity: 0.7 }}>{produto.codigo_barras || produto.sku || "—"}</span>
+                <span className="font-semibold truncate pr-2">{produto.nome}</span>
+                <div className="flex items-center justify-center gap-1.5">
+                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-1 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={12} /></button>
+                  <span className="w-5 text-center font-bold">{quantidade}</span>
+                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-1 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={12} /></button>
+                </div>
+                <span className="text-right whitespace-nowrap">{moeda(precoUnit)}</span>
+                <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                  <span className="font-bold">{moeda(precoUnit * quantidade)}</span>
+                  <button onClick={() => onRemover(produto.id)} className="p-1 rounded-md shrink-0" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={12} /></button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
@@ -921,6 +986,48 @@ function FinalizarVendaModal({
   );
 }
 
+// Nunca mostra custo/margem — ProdutoPdv (lib/pdvHelpers.ts) já não tem
+// esses campos (COLUNAS_SEGURAS), então não tem como vazar aqui mesmo que
+// o operador dispare este painel.
+function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, confirmando, onConfirmar, onCancelar }: {
+  lang: Idioma; produto: ProdutoPdv;
+  precoInput: string; onPrecoInput: (v: string) => void;
+  confirmando: boolean; onConfirmar: () => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("definirPrecoTitulo", lang)}</h3>
+        <p className="text-base font-bold truncate mb-2" style={{ color: tokens.texto }}>{produto.nome}</p>
+        <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("definirPrecoSubtitulo", lang)}</p>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("definirPrecoLabel", lang)}</label>
+        <input
+          value={precoInput} onChange={(e) => onPrecoInput(e.target.value)}
+          inputMode="decimal" placeholder="0,00" autoFocus
+          className="w-full px-3 py-3 rounded-xl text-lg font-bold outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={confirmando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("cancelarPainel", lang)}
+          </button>
+          <button onClick={onConfirmar} disabled={confirmando}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {confirmando && <Loader2 className="animate-spin" size={14} />}
+            {confirmando ? t("definirPrecoConfirmando", lang) : t("definirPrecoConfirmar", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PendenciaBaixaBanner({ lang, pendencia, tentando, onTentarNovamente }: {
   lang: Idioma;
   pendencia: { vendaId: string; totalItens: number; itensFalhos: ItemBaixaEstoque[] };
@@ -994,7 +1101,11 @@ function ResultadosBusca({ lang, termo, resultados, buscando, onAdicionar }: {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-sm font-bold" style={{ color: tokens.acento }}>
-              {produto.preco_venda ? moeda(produto.preco_venda) : t("precoNaoDefinido", lang)}
+              {produto.preco_venda
+                ? moeda(produto.preco_venda)
+                : produto.preco_sugerido
+                  ? t("precoSugeridoBadge", lang, { valor: moeda(produto.preco_sugerido) })
+                  : t("precoNaoDefinido", lang)}
             </span>
             <span className="p-1.5 rounded-lg" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
               <Plus size={14} />
