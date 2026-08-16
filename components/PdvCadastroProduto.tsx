@@ -339,8 +339,18 @@ export function useCadastroProdutoPdv(args: {
   const margemFracao = (Number(margemDesejadaPct) || 0) / 100;
   const divisorInvalido = despesasFracao + margemFracao >= 1;
   const precoSugerido = divisorInvalido ? 0 : precoPorDivisor(custoNum, [despesasFracao, margemFracao]);
-  const margemRealPct = margemReal(Number(form.preco_venda) || 0, custoNum);
-  const lucroUnidade = lucroPorUnidade(Number(form.preco_venda) || 0, custoNum, despesasFracao);
+  // Margem/lucro exibidos vêm do preço "vigente" calculado NESTE MESMO
+  // render — nunca de form.preco_venda direto. form.preco_venda só é
+  // atualizado por um efeito (abaixo), que roda um ciclo DEPOIS do render
+  // que gerou precoSugerido; ler form.preco_venda aqui fazia a % mostrada
+  // ficar sempre um dígito atrasada em relação ao que acabou de ser
+  // digitado (o "não calcula instantâneo" reportado). Enquanto a
+  // calculadora está no comando (custo+despesas+margem preenchidos e
+  // válidos), o preço vigente é o recém-calculado; senão é o que está
+  // escrito no campo Preço de Venda (edição manual).
+  const precoVendaVigente = calculadoraTocada && custoNum > 0 && !divisorInvalido ? precoSugerido : (Number(form.preco_venda) || 0);
+  const margemRealPct = margemReal(precoVendaVigente, custoNum);
+  const lucroUnidade = lucroPorUnidade(precoVendaVigente, custoNum, despesasFracao);
   const situacaoAtual: SituacaoMargem | null = custoNum > 0 ? situacaoMargem(lucroUnidade, margemRealPct) : null;
 
   useEffect(() => {

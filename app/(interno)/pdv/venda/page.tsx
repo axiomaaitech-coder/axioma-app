@@ -459,7 +459,7 @@ export default function PdvVendaPage() {
 
   if (carregandoPapel || carregandoCaixas) {
     return (
-      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
         <EstadoCarregando lang={lang} />
       </PdvLayout>
     );
@@ -467,7 +467,7 @@ export default function PdvVendaPage() {
 
   if (caixas.length === 0) {
     return (
-      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
         <p className="text-sm py-8 text-center" style={{ color: "#f87171" }}>{t("semCaixaCadastrado", lang)}</p>
       </PdvLayout>
     );
@@ -475,7 +475,7 @@ export default function PdvVendaPage() {
 
   if (!caixaId) {
     return (
-      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
         <LogoAxioma tamanho={64} />
         <EscolherCaixaPanel lang={lang} caixas={caixas} onEscolher={escolherCaixa} />
       </PdvLayout>
@@ -484,7 +484,7 @@ export default function PdvVendaPage() {
 
   if (carregandoTurno) {
     return (
-      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
         <EstadoCarregando lang={lang} texto={t("verificandoCaixa", lang)} />
       </PdvLayout>
     );
@@ -492,7 +492,7 @@ export default function PdvVendaPage() {
 
   if (!turno) {
     return (
-      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
         <LogoAxioma tamanho={64} />
         <AbrirCaixaPanel
           lang={lang}
@@ -508,45 +508,56 @@ export default function PdvVendaPage() {
   const caixaAtual = caixas.find((c) => c.id === caixaId);
 
   return (
-    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara}>
-      <div className="flex items-center justify-between mb-4 text-xs">
-        <span style={{ opacity: 0.7 }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
-        <button onClick={trocarCaixa} className="font-semibold underline" style={{ opacity: 0.7 }}>{t("trocarCaixa", lang)}</button>
-      </div>
+    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
+      {/* flex-col h-full: só a faixa do meio (destaque + tabela) rola por
+          dentro — busca, totais e atalhos ficam sempre visíveis, a página
+          inteira nunca precisa de scroll (telaCheia trava a altura em
+          "viewport menos TopNav" lá no PdvLayout). */}
+      <div className="flex flex-col h-full min-h-0">
+        <div className="shrink-0 flex items-center justify-between mb-2 text-xs">
+          <span style={{ opacity: 0.7 }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
+          <button onClick={trocarCaixa} className="font-semibold underline" style={{ opacity: 0.7 }}>{t("trocarCaixa", lang)}</button>
+        </div>
 
-      {pendenciaBaixa && (
-        <PendenciaBaixaBanner lang={lang} pendencia={pendenciaBaixa} tentando={retentandoBaixa} onTentarNovamente={handleTentarNovamenteBaixa} />
-      )}
-
-      <div className="relative mb-6">
-        <CampoBusca lang={lang} busca={busca} onBusca={setBusca} onKeyDown={handleBuscaKeyDown} inputRef={inputBuscaRef} />
-        {busca.trim().length > 0 && (
-          <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
-            <ResultadosBusca lang={lang} termo={buscaDebounced} resultados={resultados} buscando={buscando} onAdicionar={adicionarAoCarrinho} />
+        {pendenciaBaixa && (
+          <div className="shrink-0">
+            <PendenciaBaixaBanner lang={lang} pendencia={pendenciaBaixa} tentando={retentandoBaixa} onTentarNovamente={handleTentarNovamenteBaixa} />
           </div>
         )}
-      </div>
 
-      {carrinho.length === 0 ? (
-        <IdleHero lang={lang} />
-      ) : (
-        <>
-          {itemDestaque && <DestaqueItemAtual lang={lang} item={itemDestaque} />}
-          <TabelaItensVenda
-            lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
-            onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
-            onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
+        <div className="shrink-0 relative mb-3">
+          <CampoBusca lang={lang} busca={busca} onBusca={setBusca} onKeyDown={handleBuscaKeyDown} inputRef={inputBuscaRef} />
+          {busca.trim().length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
+              <ResultadosBusca lang={lang} termo={buscaDebounced} resultados={resultados} buscando={buscando} onAdicionar={adicionarAoCarrinho} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {carrinho.length === 0 ? (
+            <IdleHero lang={lang} />
+          ) : (
+            <>
+              {itemDestaque && <DestaqueItemAtual lang={lang} item={itemDestaque} />}
+              <TabelaItensVenda
+                lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
+                onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
+                onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
+              />
+            </>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          <RodapeTotais
+            lang={lang} subtotal={subtotal} desconto={desconto} tributoAproximado={tributoAproximado} totalAPagar={totalAPagar}
+            carrinhoVazio={carrinho.length === 0}
+            onFinalizar={() => setPainelFinalizarAberto(true)}
           />
-        </>
-      )}
-
-      <RodapeTotais
-        lang={lang} subtotal={subtotal} desconto={desconto} tributoAproximado={tributoAproximado} totalAPagar={totalAPagar}
-        carrinhoVazio={carrinho.length === 0}
-        onFinalizar={() => setPainelFinalizarAberto(true)}
-      />
-
-      <AtalhosRodape lang={lang} />
+          <AtalhosRodape lang={lang} />
+        </div>
+      </div>
 
       {painelFinalizarAberto && (
         <FinalizarVendaModal
@@ -593,10 +604,15 @@ function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" | "info" }
   );
 }
 
-function EstadoCarregando({ lang, texto }: { lang: Idioma; texto?: string }) {
+// cor?: em cima de uma superfície cardBg (dentro de um card), passe
+// tokens.cardTexto explicitamente — tokens.textoMuted (default) só tem
+// contraste correto sobre fundoContainer/acentoSuaveBg, não sobre cardBg
+// (que é uma cor OPOSTA em alguns temas, ex: intermediario tem cardBg
+// escuro com página clara — textoMuted escuro sumiria ali).
+function EstadoCarregando({ lang, texto, cor }: { lang: Idioma; texto?: string; cor?: string }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
+    <div className="flex items-center justify-center py-16 gap-2" style={{ color: cor || tokens.textoMuted }}>
       <Loader2 className="animate-spin" size={18} />
       <span className="text-sm">{texto || t("carregando", lang)}</span>
     </div>
@@ -667,7 +683,7 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
 function IdleHero({ lang }: { lang: Idioma }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="flex flex-col items-center justify-center py-16 md:py-24 text-center">
+    <div className="flex flex-col items-center justify-center h-full py-6 text-center">
       <motion.div
         animate={{ opacity: [0.75, 1, 0.75], scale: [1, 1.035, 1] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
@@ -688,7 +704,7 @@ function DestaqueItemAtual({ lang, item }: { lang: Idioma; item: ItemCarrinho })
     <motion.div
       key={item.produto.id}
       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      className="rounded-2xl p-5 md:p-6 mb-4"
+      className="rounded-2xl p-4 md:p-5 mb-3"
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
     >
       <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: tokens.acento, opacity: 0.85 }}>{t("ultimoItem", lang)}</p>
@@ -715,7 +731,7 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-2xl overflow-hidden mb-4" style={{ border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="rounded-2xl overflow-hidden mb-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div className="flex items-center justify-between px-4 py-3" style={{ background: tokens.acentoSuaveBg }}>
         <div className="flex items-center gap-2">
           <ShoppingCart size={16} style={{ color: tokens.acento }} />
@@ -727,7 +743,7 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
       <div className="overflow-x-auto">
         <table className="w-full text-sm md:text-base" style={{ color: tokens.cardTexto }}>
           <thead>
-            <tr className="text-xs uppercase tracking-wide" style={{ color: tokens.textoMuted }}>
+            <tr className="text-xs uppercase tracking-wide" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
               <th className="text-left px-4 py-2 font-semibold">{t("colNumero", lang)}</th>
               <th className="text-left px-2 py-2 font-semibold">{t("colCodigo", lang)}</th>
               <th className="text-left px-2 py-2 font-semibold">{t("colDescricao", lang)}</th>
@@ -748,9 +764,9 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
                   <td className="px-2 py-3 font-semibold truncate max-w-[220px]">{produto.nome}</td>
                   <td className="px-2 py-3">
                     <div className="flex items-center justify-center gap-1.5">
-                      <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-1.5 rounded-md" style={{ background: tokens.inputBg }}><Minus size={13} /></button>
+                      <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-1.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={13} /></button>
                       <span className="w-6 text-center font-bold">{quantidade}</span>
-                      <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-1.5 rounded-md" style={{ background: tokens.inputBg }}><Plus size={13} /></button>
+                      <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-1.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={13} /></button>
                     </div>
                   </td>
                   <td className="px-2 py-3 text-right whitespace-nowrap">{moeda(precoUnit)}</td>
@@ -776,8 +792,8 @@ function RodapeTotais({ lang, subtotal, desconto, tributoAproximado, totalAPagar
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-2xl p-5 md:p-6" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <div className="flex flex-col gap-1.5 mb-4 text-sm md:text-base" style={{ color: tokens.cardTexto }}>
+    <div className="rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="flex flex-col gap-1 mb-2 text-sm" style={{ color: tokens.cardTexto }}>
         <div className="flex items-center justify-between">
           <span style={{ opacity: 0.75 }}>{t("subtotal", lang)}</span>
           <span className="font-semibold">{moeda(subtotal)}</span>
@@ -794,13 +810,13 @@ function RodapeTotais({ lang, subtotal, desconto, tributoAproximado, totalAPagar
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 pt-4 mb-5 flex-wrap" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <span className="text-lg md:text-xl font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
-        <span className="text-4xl md:text-5xl font-black" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</span>
+      <div className="flex items-center justify-between gap-4 pt-2 mb-3 flex-wrap" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <span className="text-base md:text-lg font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
+        <span className="text-3xl md:text-4xl font-black" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</span>
       </div>
 
       <button onClick={onFinalizar} disabled={carrinhoVazio}
-        className="w-full py-4 rounded-2xl text-base md:text-lg font-black disabled:opacity-40"
+        className="w-full py-3 rounded-2xl text-base md:text-lg font-black disabled:opacity-40"
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {t("finalizarVenda", lang)}
       </button>
@@ -812,7 +828,7 @@ function AtalhosRodape({ lang }: { lang: Idioma }) {
   const { tokens } = useTemaPdv();
   const atalhos: (keyof typeof txt)[] = ["atalhoEnter", "atalhoF2", "atalhoDelete", "atalhoEsc"];
   return (
-    <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-4 text-xs" style={{ color: tokens.textoMuted }}>
+    <div className="shrink-0 flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-2 text-xs" style={{ color: tokens.textoMuted }}>
       {atalhos.map((chave) => <span key={chave}>{t(chave, lang)}</span>)}
     </div>
   );
@@ -890,7 +906,7 @@ function FinalizarVendaModal({
         <div className="flex items-center gap-2">
           <button onClick={onCancelar} disabled={confirmando}
             className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-            style={{ background: tokens.inputBg, color: tokens.cardTexto }}>
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
             {t("cancelarPainel", lang)}
           </button>
           <button onClick={onConfirmar} disabled={confirmando}
@@ -943,7 +959,7 @@ function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef }: {
       <input
         ref={inputRef} autoFocus value={busca} onChange={(e) => onBusca(e.target.value)} onKeyDown={onKeyDown}
         placeholder={t("buscarPlaceholder", lang)}
-        className="w-full pl-12 pr-4 py-5 rounded-2xl text-lg md:text-xl font-semibold outline-none"
+        className="w-full pl-12 pr-4 py-3.5 rounded-2xl text-lg md:text-xl font-semibold outline-none"
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `2px solid ${tokens.inputBorda}` }}
       />
     </div>
@@ -955,10 +971,14 @@ function ResultadosBusca({ lang, termo, resultados, buscando, onAdicionar }: {
 }) {
   const { tokens } = useTemaPdv();
 
+  // Este dropdown sempre fica sobre tokens.cardBg (ver div de fora, embaixo)
+  // — nunca tokens.textoMuted aqui, ele só tem contraste sobre fundoContainer/
+  // acentoSuaveBg. cardBg é uma superfície com brilho OPOSTO ao da página em
+  // alguns temas (ex: intermediario), então o texto certo é sempre cardTexto.
   let conteudo: React.ReactNode;
-  if (buscando) conteudo = <EstadoCarregando lang={lang} />;
-  else if (termo.trim().length < 2) conteudo = <p className="text-sm py-6 text-center" style={{ color: tokens.textoMuted }}>{t("digiteParaBuscar", lang)}</p>;
-  else if (resultados.length === 0) conteudo = <p className="text-sm py-6 text-center" style={{ color: tokens.textoMuted }}>{t("semResultado", lang)}</p>;
+  if (buscando) conteudo = <EstadoCarregando lang={lang} cor={tokens.cardTexto} />;
+  else if (termo.trim().length < 2) conteudo = <p className="text-sm py-6 text-center" style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("digiteParaBuscar", lang)}</p>;
+  else if (resultados.length === 0) conteudo = <p className="text-sm py-6 text-center" style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("semResultado", lang)}</p>;
   else conteudo = (
     <div className="max-h-80 overflow-y-auto">
       {resultados.map((produto) => (

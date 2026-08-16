@@ -193,18 +193,31 @@ interface PdvLayoutProps {
   aoVoltar?: () => void;
   botaoExtra?: ReactNode;
   children: ReactNode;
+  // Opt-in — só a Frente de Caixa usa isso hoje. Troca min-h-screen (a
+  // página cresce pra caber o conteúdo, rola se precisar) por uma altura
+  // TRAVADA em "viewport menos a TopNav fixa" (64px, ver components/
+  // TopNav.tsx — barra fixed + spacer h-16), com paddings mais enxutos e o
+  // container de conteúdo virando flex-column pro filho decidir sozinho o
+  // que rola por dentro (normalmente só a lista de itens) em vez da página
+  // inteira rolar. Default (false/undefined) preserva EXATAMENTE o
+  // comportamento de sempre — Catálogo/Cadastro/Importar NF-e/Equipe etc.
+  // continuam com scroll de página natural, nada muda pra eles.
+  telaCheia?: boolean;
 }
 
-export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, botaoExtra, children }: PdvLayoutProps) {
+export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, botaoExtra, children, telaCheia }: PdvLayoutProps) {
   const { tema, tokens, setTema } = useProviderTema();
 
   const estiloSeta: React.CSSProperties = { background: tokens.barraAcentoBg, color: tokens.barraAcentoTexto };
 
   return (
     <TemaContext.Provider value={{ tema, tokens, setTema }}>
-      <div className="min-h-screen p-4 md:p-8" style={{ background: tokens.fundo }}>
+      <div
+        className={telaCheia ? "flex flex-col p-3 md:p-4 overflow-hidden" : "min-h-screen p-4 md:p-8"}
+        style={{ background: tokens.fundo, ...(telaCheia ? { height: "calc(100vh - 64px)" } : {}) }}
+      >
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}
-          className="mb-6 md:mb-8 rounded-2xl p-4 md:p-6" style={{ background: tokens.barraBg }}>
+          className={telaCheia ? "shrink-0 mb-3 rounded-2xl p-3 md:p-4" : "mb-6 md:mb-8 rounded-2xl p-4 md:p-6"} style={{ background: tokens.barraBg }}>
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-start gap-3 min-w-0">
               {aoVoltar ? (
@@ -217,8 +230,8 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
                 </Link>
               ) : null}
               <div className="min-w-0">
-                <h2 className="text-2xl md:text-3xl font-extrabold mb-1 truncate" style={{ color: tokens.barraTexto }}>{titulo}</h2>
-                <p className="text-sm" style={{ color: tokens.barraTexto, opacity: 0.8 }}>{subtitulo}</p>
+                <h2 className={telaCheia ? "text-lg md:text-xl font-extrabold mb-0.5 truncate" : "text-2xl md:text-3xl font-extrabold mb-1 truncate"} style={{ color: tokens.barraTexto }}>{titulo}</h2>
+                {!telaCheia && <p className="text-sm" style={{ color: tokens.barraTexto, opacity: 0.8 }}>{subtitulo}</p>}
               </div>
             </div>
             <SeletorTema tema={tema} setTema={setTema} tokens={tokens} />
@@ -227,9 +240,10 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: "easeOut", delay: 0.05 }}
-          className="relative rounded-2xl overflow-hidden" style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
+          className={telaCheia ? "relative rounded-2xl overflow-hidden flex-1 min-h-0 flex flex-col" : "relative rounded-2xl overflow-hidden"}
+          style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}`, boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
           <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: tokens.acentoTopo }} />
-          <div className="relative z-10 p-4 md:p-6">{children}</div>
+          <div className={telaCheia ? "relative z-10 p-3 md:p-4 flex-1 min-h-0 flex flex-col" : "relative z-10 p-4 md:p-6"}>{children}</div>
         </motion.div>
       </div>
     </TemaContext.Provider>
