@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
@@ -81,6 +81,8 @@ const txt = {
   labelCodigoBarras: { pt: "Código de barras", en: "Barcode", es: "Código de barras" },
   labelCodigoItem: { pt: "Código", en: "Code", es: "Código" },
   itensDaVenda: { pt: "Lista de Produtos", en: "Product List", es: "Lista de Productos" },
+  telaCheia: { pt: "Tela cheia", en: "Full screen", es: "Pantalla completa" },
+  sairTelaCheia: { pt: "Sair da tela cheia", en: "Exit full screen", es: "Salir de pantalla completa" },
   carrinhoVazio: { pt: "Nenhum item ainda. Bipe ou digite pra começar.", en: "No items yet. Scan or type to start.", es: "Ningún ítem todavía. Escanee o escriba para empezar." },
   limparCarrinho: { pt: "Limpar", en: "Clear", es: "Vaciar" },
   colNumero: { pt: "Nº Item", en: "Item No.", es: "N.° Ítem" },
@@ -247,6 +249,26 @@ export default function PdvVendaPage() {
   const [definindoPreco, setDefinindoPreco] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
   const inputBuscaRef = useRef<HTMLInputElement>(null);
+
+  // Modo tela cheia — Fullscreen API nativa no CONTAINER da Frente de Caixa
+  // (não no <body>): o browser só desenha esse elemento e seus filhos,
+  // então a TopNav e o aviso de cadastro (que vivem FORA dele, em
+  // app/(interno)/layout.tsx) somem sozinhos, sem precisar esconder nada
+  // via CSS/estado global. Esc do navegador já sai sozinho — só precisamos
+  // escutar "fullscreenchange" pra sincronizar o ícone do botão.
+  const pdvContainerRef = useRef<HTMLDivElement>(null);
+  const [fullscreenAtivo, setFullscreenAtivo] = useState(false);
+
+  useEffect(() => {
+    function aoMudarFullscreen() { setFullscreenAtivo(!!document.fullscreenElement); }
+    document.addEventListener("fullscreenchange", aoMudarFullscreen);
+    return () => document.removeEventListener("fullscreenchange", aoMudarFullscreen);
+  }, []);
+
+  function alternarTelaCheia() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else pdvContainerRef.current?.requestFullscreen().catch(() => {});
+  }
 
   function mostrarToast(msg: string, tipo: "ok" | "erro" | "info" = "ok") {
     setToast({ msg, tipo });
@@ -574,16 +596,10 @@ export default function PdvVendaPage() {
 
   return (
     <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara={voltarPara} telaCheia>
-      {/* flex-col h-full: só a faixa do meio (destaque + tabela) rola por
-          dentro — busca, totais e atalhos ficam sempre visíveis, a página
-          inteira nunca precisa de scroll (telaCheia trava a altura em
-          "viewport menos TopNav" lá no PdvLayout). */}
-      <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 flex items-center justify-between mb-1.5 text-[11px]">
-          <span style={{ opacity: 0.7 }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
-          <button onClick={trocarCaixa} className="font-semibold underline" style={{ opacity: 0.7 }}>{t("trocarCaixa", lang)}</button>
-        </div>
-
+      <ConteudoPdv
+        containerRef={pdvContainerRef} fullscreenAtivo={fullscreenAtivo} onAlternarTelaCheia={alternarTelaCheia}
+        lang={lang} caixaAtual={caixaAtual} onTrocarCaixa={trocarCaixa}
+      >
         {pendenciaBaixa && (
           <div className="shrink-0">
             <PendenciaBaixaBanner lang={lang} pendencia={pendenciaBaixa} tentando={retentandoBaixa} onTentarNovamente={handleTentarNovamenteBaixa} />
@@ -595,74 +611,128 @@ export default function PdvVendaPage() {
             (~65%) com a lista de produtos + totais. Tudo SEMPRE montado, com
             carrinho vazio ou não — só o conteúdo interno muda (é o que
             garante "tudo visível desde o início"). ZERO SCROLL é requisito
-            travado: todo bloco da esquerda é shrink-0 (tamanho mínimo já
-            compacto) exceto o logo (flex-1, absorve/cede o que sobra);
-            à direita só as LINHAS da tabela têm overflow-y-auto como rede de
-            segurança pra carrinho com muitos itens — ver nota lá na função. */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[35%_1fr] gap-2">
+            travado (também em tela cheia): todo bloco da esquerda é
+            shrink-0 (tamanho mínimo já compacto) exceto o logo (flex-1,
+            absorve/cede o que sobra); à direita só as LINHAS da tabela têm
+            overflow-y-auto como rede de segurança pra carrinho com muitos
+            itens — ver nota lá na função. `grande` (= tela cheia ativa)
+            troca cada bloco pra uma variante com fonte/padding maiores —
+            sobra espaço real (sem TopNav) pra números grandes e respirados. */}
+        <div className={`flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[35%_1fr] ${fullscreenAtivo ? "gap-4" : "gap-2"}`}>
           {/* COLUNA ESQUERDA */}
-          <div className="min-h-0 flex flex-col gap-1.5">
-            <LogoBoxGrande lang={lang} idle={!itemDestaque} />
+          <div className={`min-h-0 flex flex-col ${fullscreenAtivo ? "gap-2" : "gap-1.5"}`}>
+            <LogoBoxGrande lang={lang} idle={!itemDestaque} grande={fullscreenAtivo} />
             <CampoBuscaBox
               lang={lang} busca={busca} onBusca={setBusca} onKeyDown={handleBuscaKeyDown} inputRef={inputBuscaRef}
               termo={buscaDebounced} resultados={resultados} buscando={buscando} onAdicionar={adicionarAoCarrinho}
+              grande={fullscreenAtivo}
             />
-            <ValorUnitarioBox lang={lang} item={itemDestaque} />
-            <TotalDoItemBox lang={lang} item={itemDestaque} />
-            <CodigoBox lang={lang} item={itemDestaque} />
+            {/* Valor unitário + Total do item lado a lado — quadros compactos
+                e "quadrados" (visor de PDV), não mais 2 tiras compridas
+                empilhadas. */}
+            <div className={`grid grid-cols-2 shrink-0 ${fullscreenAtivo ? "gap-2" : "gap-1.5"}`}>
+              <ValorUnitarioBox lang={lang} item={itemDestaque} grande={fullscreenAtivo} />
+              <TotalDoItemBox lang={lang} item={itemDestaque} grande={fullscreenAtivo} />
+            </div>
+            <CodigoBox lang={lang} item={itemDestaque} grande={fullscreenAtivo} />
           </div>
 
           {/* COLUNA DIREITA */}
-          <div className="min-h-0 flex flex-col gap-1.5">
+          <div className={`min-h-0 flex flex-col ${fullscreenAtivo ? "gap-2" : "gap-1.5"}`}>
             <TabelaItensVenda
               lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
               onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
               onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
+              grande={fullscreenAtivo}
             />
             <RodapeTotais
               lang={lang} subtotal={subtotal} desconto={desconto} tributoAproximado={tributoAproximado} totalAPagar={totalAPagar}
               carrinhoVazio={carrinho.length === 0}
               valorRecebidoInput={valorRecebidoInput} onValorRecebidoInput={setValorRecebidoInput} troco={troco}
               onFinalizar={() => setPainelFinalizarAberto(true)}
+              grande={fullscreenAtivo}
             />
           </div>
         </div>
 
-        <AtalhosRodape lang={lang} />
-      </div>
+        <AtalhosRodape lang={lang} grande={fullscreenAtivo} />
 
-      {produtoParaPreco && (
-        <DefinirPrecoModal
-          lang={lang} produto={produtoParaPreco}
-          precoInput={precoManualInput} onPrecoInput={setPrecoManualInput}
-          confirmando={definindoPreco}
-          onConfirmar={handleConfirmarPrecoManual}
-          onCancelar={() => { setProdutoParaPreco(null); setPrecoManualInput(""); }}
-        />
-      )}
+        {/* Modais/overlays PRECISAM ficar dentro do container de tela cheia:
+            a Fullscreen API só desenha o elemento alvo e seus descendentes —
+            fora dele (mesmo com position:fixed) fica invisível enquanto a
+            tela cheia está ativa. Se ficassem fora, "Finalizar Venda" ou o
+            preço-na-hora sumiriam pro operador nesse modo. */}
+        {produtoParaPreco && (
+          <DefinirPrecoModal
+            lang={lang} produto={produtoParaPreco}
+            precoInput={precoManualInput} onPrecoInput={setPrecoManualInput}
+            confirmando={definindoPreco}
+            onConfirmar={handleConfirmarPrecoManual}
+            onCancelar={() => { setProdutoParaPreco(null); setPrecoManualInput(""); }}
+          />
+        )}
 
-      {painelFinalizarAberto && (
-        <FinalizarVendaModal
-          lang={lang} totalAPagar={totalAPagar} tributoAproximado={tributoAproximado}
-          formaPagamento={formaPagamento} onFormaPagamento={setFormaPagamento}
-          cpfNotaInput={cpfNotaInput} onCpfNotaInput={setCpfNotaInput}
-          confirmando={finalizandoVenda}
-          onConfirmar={handleConfirmarVenda}
-          onCancelar={() => setPainelFinalizarAberto(false)}
-        />
-      )}
+        {painelFinalizarAberto && (
+          <FinalizarVendaModal
+            lang={lang} totalAPagar={totalAPagar} tributoAproximado={tributoAproximado}
+            formaPagamento={formaPagamento} onFormaPagamento={setFormaPagamento}
+            cpfNotaInput={cpfNotaInput} onCpfNotaInput={setCpfNotaInput}
+            confirmando={finalizandoVenda}
+            onConfirmar={handleConfirmarVenda}
+            onCancelar={() => setPainelFinalizarAberto(false)}
+          />
+        )}
 
-      {baixandoEstoqueFlag && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: "rgba(2,8,16,0.5)" }}>
-          <div className="rounded-xl px-5 py-4 flex items-center gap-2" style={{ background: "#0b1622", color: "#fff" }}>
-            <Loader2 className="animate-spin" size={16} />
-            <span className="text-sm">{t("baixandoEstoque", lang)}</span>
+        {baixandoEstoqueFlag && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center" style={{ background: "rgba(2,8,16,0.5)" }}>
+            <div className="rounded-xl px-5 py-4 flex items-center gap-2" style={{ background: "#0b1622", color: "#fff" }}>
+              <Loader2 className="animate-spin" size={16} />
+              <span className="text-sm">{t("baixandoEstoque", lang)}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {toast && <Toast toast={toast} />}
+        {toast && <Toast toast={toast} />}
+      </ConteudoPdv>
     </PdvLayout>
+  );
+}
+
+// Container da Frente de Caixa — é ELE (não a página inteira) quem vira o
+// elemento de tela cheia via Fullscreen API: fora do modo cheio se comporta
+// exatamente como antes (flex-col h-full min-h-0, dentro do card do
+// PdvLayout); no modo cheio vira ele mesmo o viewport inteiro (o browser
+// aplica position:fixed+inset:0 automaticamente sobre :fullscreen) — TopNav,
+// aviso de cadastro e até o cabeçalho/moldura do PdvLayout ficam de fora
+// (são ancestrais do container, não descendentes), então somem sozinhos.
+function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, children }: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  fullscreenAtivo: boolean;
+  onAlternarTelaCheia: () => void;
+  lang: Idioma;
+  caixaAtual: { nome: string } | undefined;
+  onTrocarCaixa: () => void;
+  children: React.ReactNode;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div
+      ref={containerRef}
+      className={fullscreenAtivo ? "flex flex-col h-screen p-3 md:p-4 overflow-hidden" : "flex flex-col h-full min-h-0"}
+      style={fullscreenAtivo ? { background: tokens.fundo } : undefined}
+    >
+      <div className={`shrink-0 flex items-center justify-between mb-1.5 ${fullscreenAtivo ? "text-xs" : "text-[11px]"}`}>
+        <span style={{ opacity: 0.7, color: tokens.texto }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
+        <div className="flex items-center gap-4">
+          <button onClick={onTrocarCaixa} className="font-semibold underline" style={{ opacity: 0.7, color: tokens.texto }}>{t("trocarCaixa", lang)}</button>
+          <button onClick={onAlternarTelaCheia} className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
+            {fullscreenAtivo ? <Minimize2 size={16} /> : <Maximize2 size={13} />}
+            {t(fullscreenAtivo ? "sairTelaCheia" : "telaCheia", lang)}
+          </button>
+        </div>
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -760,14 +830,20 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
 
 // Quadro genérico da coluna esquerda — label pequeno em cima, valor grande
 // embaixo, mesma moldura (cardBg/cardBorda) que o resto do PDV já usa.
-function QuadroValor({ label, valor, corValor, tamanho = "text-lg md:text-xl" }: {
-  label: string; valor: string; corValor?: string; tamanho?: string;
+// grande=true (tela cheia) troca pra padding/fonte bem maiores — sobra
+// espaço de verdade sem a TopNav, e é ali que o visor de PDV tem que ficar
+// grande e respirado.
+function QuadroValor({ label, valor, corValor, grande, tamanho }: {
+  label: string; valor: string; corValor?: string; grande?: boolean; tamanho?: string;
 }) {
   const { tokens } = useTemaPdv();
+  const tamanhoFinal = tamanho ?? (grande ? "text-2xl md:text-3xl" : "text-lg md:text-xl");
   return (
-    <div className="shrink-0 rounded-xl px-2.5 py-1.5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[9px] font-bold uppercase tracking-wide leading-none truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
-      <p className={`${tamanho} font-black truncate leading-tight`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
+    <div className={grande ? "shrink-0 rounded-xl px-3 py-2" : "shrink-0 rounded-xl px-2.5 py-1.5"}
+      style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className={grande ? "text-[10px] font-bold uppercase tracking-wide mb-1 truncate" : "text-[9px] font-bold uppercase tracking-wide leading-none truncate"}
+        style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
+      <p className={`${tamanhoFinal} font-black truncate leading-tight`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
     </div>
   );
 }
@@ -775,26 +851,28 @@ function QuadroValor({ label, valor, corValor, tamanho = "text-lg md:text-xl" }:
 // Quadro grande da logo — ocupa o espaço que no layout de referência seria
 // o carrinho. Brilho sutil só enquanto ocioso (nenhum item em destaque); a
 // animação para sozinha assim que um item entra no carrinho.
-function LogoBoxGrande({ lang, idle }: { lang: Idioma; idle: boolean }) {
+function LogoBoxGrande({ lang, idle, grande }: { lang: Idioma; idle: boolean; grande?: boolean }) {
   const { tokens } = useTemaPdv();
   // ZERO SCROLL é prioridade máxima aqui (acima de deixar o logo grande):
   // é o ÚNICO bloco flex-1 da coluna, então ele quem absorve o espaço que
-  // sobra dos outros 4 (shrink-0). Sem min-height fixo — um número fixo
+  // sobra dos outros (shrink-0). Sem min-height fixo — um número fixo
   // "mentiria" pro flexbox e deixaria conteúdo vazar quando a coluna
   // aperta (foi exatamente isso que cortou o subtítulo antes). idleSubtitulo
-  // agora é truncate (1 linha só, com "…") — altura sempre previsível.
+  // é truncate (1 linha só, com "…") — altura sempre previsível. Em tela
+  // cheia (grande) o logo cresce de verdade — há espaço real pra isso.
+  const tamanhoLogo = grande ? 110 : 56;
   return (
-    <div className="flex-1 min-h-0 rounded-2xl p-2 flex flex-col items-center justify-center gap-1.5 text-center overflow-hidden"
+    <div className={`flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center text-center overflow-hidden ${grande ? "p-4 gap-3" : "p-2 gap-1.5"}`}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <motion.div
         animate={idle ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
         transition={idle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}>
-        <Image src="/logo-aitech.png" alt="Axioma" width={56} height={56} priority />
+        <Image src="/logo-aitech.png" alt="Axioma" width={tamanhoLogo} height={tamanhoLogo} priority />
       </motion.div>
       {idle && (
         <div className="max-w-[90%]">
-          <p className="text-xs font-bold truncate" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
-          <p className="text-[10px] truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleSubtitulo", lang)}</p>
+          <p className={`font-bold truncate ${grande ? "text-xl mb-1" : "text-xs"}`} style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
+          <p className={`truncate ${grande ? "text-sm" : "text-[10px]"}`} style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleSubtitulo", lang)}</p>
         </div>
       )}
     </div>
@@ -804,17 +882,19 @@ function LogoBoxGrande({ lang, idle }: { lang: Idioma; idle: boolean }) {
 // Quadro "Código de barras" — mesma moldura dos demais, com o campo de
 // busca/bipe e o dropdown de resultados por dentro (posição relativa ao
 // próprio quadro, igual ao comportamento de antes).
-function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resultados, buscando, onAdicionar }: {
+function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resultados, buscando, onAdicionar, grande }: {
   lang: Idioma; busca: string; onBusca: (v: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
   termo: string; resultados: ProdutoPdv[]; buscando: boolean; onAdicionar: (p: ProdutoPdv) => void;
+  grande?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="shrink-0 relative rounded-xl px-2.5 py-1.5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
-      <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} />
+    <div className={`shrink-0 relative rounded-xl ${grande ? "px-3 py-2" : "px-2.5 py-1.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className={grande ? "text-[10px] font-bold uppercase tracking-wide mb-1" : "text-[9px] font-bold uppercase tracking-wide leading-none mb-1"}
+        style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
+      <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} grande={grande} />
       {busca.trim().length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
           <ResultadosBusca lang={lang} termo={termo} resultados={resultados} buscando={buscando} onAdicionar={onAdicionar} />
@@ -824,24 +904,24 @@ function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resul
   );
 }
 
-function ValorUnitarioBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+function ValorUnitarioBox({ lang, item, grande }: { lang: Idioma; item: ItemCarrinho | null; grande?: boolean }) {
   const precoUnit = item ? item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0 : 0;
-  return <QuadroValor label={t("valorUnitario", lang)} valor={moeda(precoUnit)} />;
+  return <QuadroValor label={t("valorUnitario", lang)} valor={moeda(precoUnit)} grande={grande} />;
 }
 
-function TotalDoItemBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+function TotalDoItemBox({ lang, item, grande }: { lang: Idioma; item: ItemCarrinho | null; grande?: boolean }) {
   const precoUnit = item ? item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0 : 0;
   const total = item ? precoUnit * item.quantidade : 0;
   // Sem corValor: tokens.acento em cima de tokens.cardBg (o fundo do próprio
   // quadro) não tem contraste garantido em todos os temas — cardTexto
   // (default do QuadroValor) é o único par sempre calibrado pra essa
   // superfície. O destaque vem do tamanho/peso da fonte, não da cor.
-  return <QuadroValor label={t("totalDoItem", lang)} valor={moeda(total)} />;
+  return <QuadroValor label={t("totalDoItem", lang)} valor={moeda(total)} grande={grande} />;
 }
 
-function CodigoBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+function CodigoBox({ lang, item, grande }: { lang: Idioma; item: ItemCarrinho | null; grande?: boolean }) {
   const codigo = item ? item.produto.codigo_barras || item.produto.sku || "—" : "—";
-  return <QuadroValor label={t("labelCodigoItem", lang)} valor={codigo} tamanho="text-lg md:text-xl" />;
+  return <QuadroValor label={t("labelCodigoItem", lang)} valor={codigo} grande={grande} tamanho={grande ? "text-xl md:text-2xl" : "text-lg md:text-xl"} />;
 }
 
 // Grid, não <table> — de propósito: preciso do cabeçalho de colunas FORA
@@ -852,24 +932,25 @@ function CodigoBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) 
 // cabeçalho e em cada linha garante alinhamento.
 const COLUNAS_GRID = "44px 96px minmax(0,1fr) 116px 96px 120px";
 
-function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onRemover, onLimpar }: {
+function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onRemover, onLimpar, grande }: {
   lang: Idioma; carrinho: ItemCarrinho[]; destaqueId: string | null;
   onAlterarQuantidade: (produtoId: string, delta: number) => void;
   onRemover: (produtoId: string) => void;
   onLimpar: () => void;
+  grande?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   return (
     <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <div className="shrink-0 flex items-center justify-between px-3 py-1.5" style={{ background: tokens.acentoSuaveBg }}>
+      <div className={`shrink-0 flex items-center justify-between ${grande ? "px-3 py-2" : "px-3 py-1.5"}`} style={{ background: tokens.acentoSuaveBg }}>
         <div className="flex items-center gap-1.5">
-          <ShoppingCart size={13} style={{ color: tokens.acento }} />
-          <h3 className="text-xs font-bold" style={{ color: tokens.texto }}>{t("itensDaVenda", lang)} ({carrinho.length})</h3>
+          <ShoppingCart size={grande ? 16 : 13} style={{ color: tokens.acento }} />
+          <h3 className={grande ? "text-sm font-bold" : "text-xs font-bold"} style={{ color: tokens.texto }}>{t("itensDaVenda", lang)} ({carrinho.length})</h3>
         </div>
-        <button onClick={onLimpar} disabled={carrinho.length === 0} className="text-[11px] font-semibold disabled:opacity-40" style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
+        <button onClick={onLimpar} disabled={carrinho.length === 0} className={`font-semibold disabled:opacity-40 ${grande ? "text-xs" : "text-[11px]"}`} style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
       </div>
 
-      <div className="shrink-0 grid items-center px-3 py-1 text-[10px] uppercase tracking-wide"
+      <div className={`shrink-0 grid items-center uppercase tracking-wide ${grande ? "px-3 py-1.5 text-[11px]" : "px-3 py-1 text-[10px]"}`}
         style={{ gridTemplateColumns: COLUNAS_GRID, color: tokens.cardTexto, opacity: 0.65, borderBottom: `1px solid ${tokens.cardBorda}` }}>
         <span>{t("colNumero", lang)}</span>
         <span>{t("colCodigo", lang)}</span>
@@ -882,29 +963,30 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
       {/* overflow-y-auto fica como rede de segurança só pro caso extremo de
           carrinho com dezenas de itens que não caibam nem no tamanho mínimo
           de linha legível — com o rodapé compactado, o caso comum (até
-          ~8-10 itens numa tela de notebook) cabe inteiro sem rolar. */}
+          ~8-10 itens numa tela de notebook, mais ainda em tela cheia) cabe
+          inteiro sem rolar. */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {carrinho.length === 0 ? (
-          <p className="text-xs text-center py-4" style={{ color: tokens.cardTexto, opacity: 0.55 }}>{t("carrinhoVazio", lang)}</p>
+          <p className={`text-center ${grande ? "text-sm py-6" : "text-xs py-4"}`} style={{ color: tokens.cardTexto, opacity: 0.55 }}>{t("carrinhoVazio", lang)}</p>
         ) : (
           carrinho.map(({ produto, quantidade }, idx) => {
             const precoUnit = produto.preco_venda ?? produto.preco_sugerido ?? 0;
             const emDestaque = produto.id === destaqueId;
             return (
-              <div key={produto.id} className="grid items-center px-3 py-1 text-xs md:text-sm"
+              <div key={produto.id} className={`grid items-center ${grande ? "px-3 py-1.5 text-sm md:text-base" : "px-3 py-1 text-xs md:text-sm"}`}
                 style={{ gridTemplateColumns: COLUNAS_GRID, background: emDestaque ? tokens.acentoSuaveBg : "transparent", borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
                 <span style={{ opacity: 0.7 }}>{idx + 1}</span>
                 <span className="truncate pr-2" style={{ opacity: 0.7 }}>{produto.codigo_barras || produto.sku || "—"}</span>
                 <span className="font-semibold truncate pr-2">{produto.nome}</span>
-                <div className="flex items-center justify-center gap-1">
-                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-0.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={11} /></button>
-                  <span className="w-4 text-center font-bold">{quantidade}</span>
-                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-0.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={11} /></button>
+                <div className={`flex items-center justify-center ${grande ? "gap-2" : "gap-1"}`}>
+                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className={grande ? "p-1.5 rounded-md" : "p-0.5 rounded-md"} style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={grande ? 15 : 11} /></button>
+                  <span className={grande ? "w-6 text-center font-bold" : "w-4 text-center font-bold"}>{quantidade}</span>
+                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className={grande ? "p-1.5 rounded-md" : "p-0.5 rounded-md"} style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={grande ? 15 : 11} /></button>
                 </div>
                 <span className="text-right whitespace-nowrap">{moeda(precoUnit)}</span>
-                <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                <div className={`flex items-center justify-end whitespace-nowrap ${grande ? "gap-2" : "gap-1.5"}`}>
                   <span className="font-bold">{moeda(precoUnit * quantidade)}</span>
-                  <button onClick={() => onRemover(produto.id)} className="p-0.5 rounded-md shrink-0" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={11} /></button>
+                  <button onClick={() => onRemover(produto.id)} className={grande ? "p-1.5 rounded-md shrink-0" : "p-0.5 rounded-md shrink-0"} style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={grande ? 15 : 11} /></button>
                 </div>
               </div>
             );
@@ -917,67 +999,68 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
 
 function RodapeTotais({
   lang, subtotal, desconto, tributoAproximado, totalAPagar, carrinhoVazio,
-  valorRecebidoInput, onValorRecebidoInput, troco, onFinalizar,
+  valorRecebidoInput, onValorRecebidoInput, troco, onFinalizar, grande,
 }: {
   lang: Idioma; subtotal: number; desconto: number; tributoAproximado: number; totalAPagar: number;
   carrinhoVazio: boolean; valorRecebidoInput: string; onValorRecebidoInput: (v: string) => void; troco: number;
-  onFinalizar: () => void;
+  onFinalizar: () => void; grande?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="shrink-0 rounded-xl p-2 md:p-2.5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className={`shrink-0 rounded-xl ${grande ? "p-3" : "p-2 md:p-2.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       {/* SUBTOTAL */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
-        <span className="text-base font-black" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
+      <div className={`flex items-center justify-between ${grande ? "mb-1.5" : "mb-1"}`}>
+        <span className={grande ? "text-sm font-semibold" : "text-xs font-semibold"} style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
+        <span className={grande ? "text-xl font-black" : "text-base font-black"} style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
       </div>
       {desconto > 0 && (
-        <div className="flex items-center justify-between mb-1 text-xs" style={{ color: tokens.cardTexto }}>
+        <div className={`flex items-center justify-between ${grande ? "mb-1.5 text-sm" : "mb-1 text-xs"}`} style={{ color: tokens.cardTexto }}>
           <span style={{ opacity: 0.75 }}>{t("desconto", lang)}</span>
           <span className="font-semibold">- {moeda(desconto)}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4 pt-1 mb-1" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <span className="text-xs md:text-sm font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
+      <div className={`flex items-center justify-between gap-4 pt-1 ${grande ? "pt-1.5 mb-1.5" : "mb-1"}`} style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <span className={grande ? "text-sm font-bold" : "text-xs md:text-sm font-bold"} style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
         {/* cardTexto, não acento: tokens.acento em cima de tokens.cardBg não
             garante 4.5:1 em todos os temas (no intermediário os dois são
             azuis escuros próximos — quase some). O destaque fica no
             tamanho/peso da fonte, que já é o maior deste bloco. */}
-        <span className="text-xl md:text-2xl font-black" style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
+        <span className={grande ? "text-3xl font-black" : "text-xl md:text-2xl font-black"} style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
       </div>
 
       {/* Tributo aproximado (Lei 12.741) — linha própria, legível, junto do
           Subtotal/Total a pagar (não mais espremida perto do rodapé). */}
-      <div className="flex items-center justify-between gap-3 mb-1.5 text-[11px] font-semibold" style={{ color: tokens.cardTexto }}>
+      <div className={`flex items-center justify-between gap-3 font-semibold ${grande ? "mb-2 text-xs" : "mb-1.5 text-[11px]"}`} style={{ color: tokens.cardTexto }}>
         <span className="truncate">{t("tributosAproximados", lang)}</span>
         <span className="shrink-0">{moeda(tributoAproximado)}</span>
       </div>
 
-      {/* TOTAL RECEBIDO e TROCO — lado a lado. Só de exibição: calculadora
-          de troco pro operador, nunca vai pro finalizar_venda. */}
-      <div className="grid grid-cols-2 gap-2 mb-1.5">
-        <div className="rounded-lg px-2 py-1" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className="text-[9px] font-bold uppercase tracking-wide leading-none mb-0.5 flex items-center gap-1" style={{ color: tokens.cardTexto, opacity: 0.7 }}>
-            <Banknote size={10} />{t("totalRecebido", lang)}
+      {/* TOTAL RECEBIDO e TROCO — lado a lado, curtos/compactos (cara de
+          visor de PDV: pouca altura, número grande). Só de exibição:
+          calculadora de troco pro operador, nunca vai pro finalizar_venda. */}
+      <div className={`grid grid-cols-2 ${grande ? "gap-2 mb-2" : "gap-2 mb-1.5"}`}>
+        <div className={grande ? "rounded-lg px-2.5 py-1.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className={`font-bold uppercase tracking-wide leading-none flex items-center gap-1 ${grande ? "text-[10px] mb-1" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>
+            <Banknote size={grande ? 11 : 10} />{t("totalRecebido", lang)}
           </p>
           <input
             value={valorRecebidoInput} onChange={(e) => onValorRecebidoInput(e.target.value)}
             inputMode="decimal" placeholder="0,00"
-            className="w-full bg-transparent outline-none text-sm md:text-base font-black"
+            className={`w-full bg-transparent outline-none font-black ${grande ? "text-xl" : "text-base md:text-lg"}`}
             style={{ color: tokens.cardTexto }}
           />
         </div>
-        <div className="rounded-lg px-2 py-1" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className="text-[9px] font-bold uppercase tracking-wide leading-none mb-0.5" style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
-          <p className="text-sm md:text-base font-black truncate" style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
+        <div className={grande ? "rounded-lg px-2.5 py-1.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className={`font-bold uppercase tracking-wide leading-none ${grande ? "text-[10px] mb-1" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
+          <p className={`font-black truncate ${grande ? "text-xl" : "text-base md:text-lg"}`} style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
             {troco < 0 ? t("faltam", lang, { valor: moeda(Math.abs(troco)) }) : moeda(troco)}
           </p>
         </div>
       </div>
 
       <button onClick={onFinalizar} disabled={carrinhoVazio}
-        className="w-full py-1.5 rounded-lg text-sm font-black disabled:opacity-40"
+        className={`w-full rounded-lg font-black disabled:opacity-40 ${grande ? "py-2 text-base" : "py-1.5 text-sm"}`}
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {t("finalizarVenda", lang)}
       </button>
@@ -985,11 +1068,11 @@ function RodapeTotais({
   );
 }
 
-function AtalhosRodape({ lang }: { lang: Idioma }) {
+function AtalhosRodape({ lang, grande }: { lang: Idioma; grande?: boolean }) {
   const { tokens } = useTemaPdv();
   const atalhos: (keyof typeof txt)[] = ["atalhoEnter", "atalhoF2", "atalhoDelete", "atalhoEsc"];
   return (
-    <div className="shrink-0 flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-1.5 pt-1.5 text-[11px]"
+    <div className={`shrink-0 flex items-center justify-center flex-wrap ${grande ? "gap-6 mt-2 pt-2 text-xs" : "gap-4 md:gap-6 mt-1.5 pt-1.5 text-[11px]"}`}
       style={{ color: tokens.textoMuted, borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
       {atalhos.map((chave) => <span key={chave}>{t(chave, lang)}</span>)}
     </div>
@@ -1121,19 +1204,20 @@ function PendenciaBaixaBanner({ lang, pendencia, tentando, onTentarNovamente }: 
   );
 }
 
-function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef }: {
+function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef, grande }: {
   lang: Idioma; busca: string; onBusca: (v: string) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  grande?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   return (
     <div className="relative">
-      <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.acento }} />
+      <Search size={grande ? 20 : 18} className={`absolute top-1/2 -translate-y-1/2 ${grande ? "left-3.5" : "left-3"}`} style={{ color: tokens.acento }} />
       <input
         ref={inputRef} autoFocus value={busca} onChange={(e) => onBusca(e.target.value)} onKeyDown={onKeyDown}
         placeholder={t("buscarPlaceholder", lang)}
-        className="w-full pl-9 pr-3 py-2 rounded-xl text-sm md:text-base font-semibold outline-none"
+        className={`w-full font-semibold outline-none rounded-xl ${grande ? "pl-10 pr-3 py-2.5 text-base md:text-lg" : "pl-9 pr-3 py-2 text-sm md:text-base"}`}
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `2px solid ${tokens.inputBorda}` }}
       />
     </div>
