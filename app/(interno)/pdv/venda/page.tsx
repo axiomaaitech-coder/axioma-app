@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { createBrowserClient } from "@supabase/ssr";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
@@ -78,14 +78,16 @@ const txt = {
   ultimoItem: { pt: "Último item", en: "Last item", es: "Último ítem" },
   valorUnitario: { pt: "Valor unitário", en: "Unit price", es: "Valor unitario" },
   totalDoItem: { pt: "Total do item", en: "Item total", es: "Total del ítem" },
-  itensDaVenda: { pt: "Itens da venda", en: "Sale items", es: "Ítems de la venta" },
+  labelCodigoBarras: { pt: "Código de barras", en: "Barcode", es: "Código de barras" },
+  labelCodigoItem: { pt: "Código", en: "Code", es: "Código" },
+  itensDaVenda: { pt: "Lista de Produtos", en: "Product List", es: "Lista de Productos" },
   carrinhoVazio: { pt: "Nenhum item ainda. Bipe ou digite pra começar.", en: "No items yet. Scan or type to start.", es: "Ningún ítem todavía. Escanee o escriba para empezar." },
   limparCarrinho: { pt: "Limpar", en: "Clear", es: "Vaciar" },
-  colNumero: { pt: "Nº", en: "No.", es: "N.°" },
+  colNumero: { pt: "Nº Item", en: "Item No.", es: "N.° Ítem" },
   colCodigo: { pt: "Código", en: "Code", es: "Código" },
   colDescricao: { pt: "Descrição", en: "Description", es: "Descripción" },
   colQtd: { pt: "Qtd", en: "Qty", es: "Cant." },
-  colValorUnit: { pt: "Valor Unit.", en: "Unit Price", es: "Valor Unit." },
+  colValorUnit: { pt: "Vlr. Unit.", en: "Unit Price", es: "Valor Unit." },
   colTotal: { pt: "Total", en: "Total", es: "Total" },
   subtotal: { pt: "Subtotal", en: "Subtotal", es: "Subtotal" },
   desconto: { pt: "Desconto", en: "Discount", es: "Descuento" },
@@ -217,6 +219,10 @@ export default function PdvVendaPage() {
   const [painelFinalizarAberto, setPainelFinalizarAberto] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState("");
   const [cpfNotaInput, setCpfNotaInput] = useState("");
+  // Calculadora de troco — só de exibição (rodapé da coluna direita, sempre
+  // visível), NUNCA enviado ao banco/RPC. finalizar_venda continua sem
+  // receber isto; é puramente informativo pro operador/caixa.
+  const [valorRecebidoInput, setValorRecebidoInput] = useState("");
   const [finalizandoVenda, setFinalizandoVenda] = useState(false);
   const [baixandoEstoqueFlag, setBaixandoEstoqueFlag] = useState(false);
   const [pendenciaBaixa, setPendenciaBaixa] = useState<{ vendaId: string; totalItens: number; itensFalhos: ItemBaixaEstoque[] } | null>(null);
@@ -349,6 +355,7 @@ export default function PdvVendaPage() {
     setPainelFinalizarAberto(false);
     setFormaPagamento("");
     setCpfNotaInput("");
+    setValorRecebidoInput("");
 
     setBaixandoEstoqueFlag(true);
     const { falhas } = await baixarEstoqueVenda(empresaId, userId, vendaId, itensParaBaixa);
@@ -508,6 +515,8 @@ export default function PdvVendaPage() {
   const desconto = 0;
   const totalAPagar = Math.max(subtotal - desconto, 0);
   const tributoAproximado = totalAPagar * PERCENTUAL_TRIBUTO_APROXIMADO;
+  const valorRecebido = Number(valorRecebidoInput.replace(",", ".")) || 0;
+  const troco = valorRecebido - totalAPagar;
 
   const itemDestaque = carrinho.find((i) => i.produto.id === ultimoAdicionadoId) || null;
 
@@ -581,35 +590,42 @@ export default function PdvVendaPage() {
           </div>
         )}
 
-        <div className="shrink-0 relative mb-3">
-          <CampoBusca lang={lang} busca={busca} onBusca={setBusca} onKeyDown={handleBuscaKeyDown} inputRef={inputBuscaRef} />
-          {busca.trim().length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
-              <ResultadosBusca lang={lang} termo={buscaDebounced} resultados={resultados} buscando={buscando} onAdicionar={adicionarAoCarrinho} />
-            </div>
-          )}
+        {/* Estrutura de PDV de supermercado em 2 colunas: esquerda (~35%)
+            com os blocos emoldurados de bipagem/destaque do item; direita
+            (~65%) com a lista de produtos + totais. Tudo SEMPRE montado, com
+            carrinho vazio ou não — só o conteúdo interno muda (é o que
+            garante "tudo visível desde o início"). Nenhuma coluna rola por
+            fora: só as LINHAS da tabela rolam por dentro. */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[35%_1fr] gap-3">
+          {/* COLUNA ESQUERDA */}
+          <div className="min-h-0 flex flex-col gap-2.5">
+            <LogoBoxGrande lang={lang} idle={!itemDestaque} />
+            <CampoBuscaBox
+              lang={lang} busca={busca} onBusca={setBusca} onKeyDown={handleBuscaKeyDown} inputRef={inputBuscaRef}
+              termo={buscaDebounced} resultados={resultados} buscando={buscando} onAdicionar={adicionarAoCarrinho}
+            />
+            <ValorUnitarioBox lang={lang} item={itemDestaque} />
+            <TotalDoItemBox lang={lang} item={itemDestaque} />
+            <CodigoBox lang={lang} item={itemDestaque} />
+          </div>
+
+          {/* COLUNA DIREITA */}
+          <div className="min-h-0 flex flex-col gap-2.5">
+            <TabelaItensVenda
+              lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
+              onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
+              onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
+            />
+            <RodapeTotais
+              lang={lang} subtotal={subtotal} desconto={desconto} tributoAproximado={tributoAproximado} totalAPagar={totalAPagar}
+              carrinhoVazio={carrinho.length === 0}
+              valorRecebidoInput={valorRecebidoInput} onValorRecebidoInput={setValorRecebidoInput} troco={troco}
+              onFinalizar={() => setPainelFinalizarAberto(true)}
+            />
+          </div>
         </div>
 
-        {/* Estrutura SEMPRE montada, com carrinho vazio ou não — só o
-            conteúdo interno muda. É o que garante "tudo visível desde o
-            início" (destaque + cabeçalho da tabela nunca somem). */}
-        <div className="flex-1 min-h-0 flex flex-col">
-          <DestaqueItemAtual lang={lang} item={itemDestaque} />
-          <TabelaItensVenda
-            lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
-            onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
-            onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
-          />
-        </div>
-
-        <div className="shrink-0">
-          <RodapeTotais
-            lang={lang} subtotal={subtotal} desconto={desconto} tributoAproximado={tributoAproximado} totalAPagar={totalAPagar}
-            carrinhoVazio={carrinho.length === 0}
-            onFinalizar={() => setPainelFinalizarAberto(true)}
-          />
-          <AtalhosRodape lang={lang} />
-        </div>
+        <AtalhosRodape lang={lang} />
       </div>
 
       {produtoParaPreco && (
@@ -739,49 +755,81 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
   );
 }
 
-// Bloco "destaque" SEMPRE montado (mesma altura reservada tenha item ou
-// não) — com item nenhum, mostra um estado ocioso compacto (logo pulsando
-// bem sutil + texto), nunca um hero de tela cheia: o requisito é a
-// ESTRUTURA inteira visível desde o início, não uma tela de boas-vindas
-// separada. A animação já para sozinha assim que item != null, porque o
-// ramo ocioso deixa de renderizar (sem precisar de lógica extra).
-function DestaqueItemAtual({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+// Quadro genérico da coluna esquerda — label pequeno em cima, valor grande
+// embaixo, mesma moldura (cardBg/cardBorda) que o resto do PDV já usa.
+function QuadroValor({ label, valor, corValor, tamanho = "text-2xl md:text-3xl" }: {
+  label: string; valor: string; corValor?: string; tamanho?: string;
+}) {
   const { tokens } = useTemaPdv();
-
-  if (!item) {
-    return (
-      <div className="shrink-0 rounded-2xl p-4 mb-3 flex items-center gap-3"
-        style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-        <motion.div
-          animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          className="shrink-0">
-          <Image src="/logo-aitech.png" alt="Axioma" width={36} height={36} />
-        </motion.div>
-        <div className="min-w-0">
-          <p className="text-sm md:text-base font-bold truncate" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
-          <p className="text-xs truncate" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("idleSubtitulo", lang)}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const precoUnit = item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0;
   return (
-    <div className="shrink-0 rounded-2xl p-4 md:p-5 mb-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.acento, opacity: 0.85 }}>{t("ultimoItem", lang)}</p>
-      <p className="text-lg md:text-2xl font-extrabold truncate mb-2" style={{ color: tokens.cardTexto }}>{item.produto.nome}</p>
-      <div className="flex items-end gap-8 flex-wrap">
-        <div>
-          <p className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("valorUnitario", lang)}</p>
-          <p className="text-base md:text-xl font-bold" style={{ color: tokens.cardTexto }}>{moeda(precoUnit)}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("totalDoItem", lang)}</p>
-          <p className="text-xl md:text-3xl font-black" style={{ color: tokens.acento }}>{moeda(precoUnit * item.quantidade)}</p>
-        </div>
-      </div>
+    <div className="shrink-0 rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: tokens.acento, opacity: 0.85 }}>{label}</p>
+      <p className={`${tamanho} font-black truncate`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
     </div>
   );
+}
+
+// Quadro grande da logo — ocupa o espaço que no layout de referência seria
+// o carrinho. Brilho sutil só enquanto ocioso (nenhum item em destaque); a
+// animação para sozinha assim que um item entra no carrinho.
+function LogoBoxGrande({ lang, idle }: { lang: Idioma; idle: boolean }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex-1 min-h-[110px] rounded-2xl p-4 flex flex-col items-center justify-center gap-2 text-center"
+      style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <motion.div
+        animate={idle ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
+        transition={idle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}>
+        <Image src="/logo-aitech.png" alt="Axioma" width={96} height={96} priority />
+      </motion.div>
+      {idle && (
+        <div>
+          <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
+          <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("idleSubtitulo", lang)}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Quadro "Código de barras" — mesma moldura dos demais, com o campo de
+// busca/bipe e o dropdown de resultados por dentro (posição relativa ao
+// próprio quadro, igual ao comportamento de antes).
+function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resultados, buscando, onAdicionar }: {
+  lang: Idioma; busca: string; onBusca: (v: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  termo: string; resultados: ProdutoPdv[]; buscando: boolean; onAdicionar: (p: ProdutoPdv) => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="shrink-0 relative rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tokens.acento, opacity: 0.85 }}>{t("labelCodigoBarras", lang)}</p>
+      <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} />
+      {busca.trim().length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
+          <ResultadosBusca lang={lang} termo={termo} resultados={resultados} buscando={buscando} onAdicionar={onAdicionar} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ValorUnitarioBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+  const precoUnit = item ? item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0 : 0;
+  return <QuadroValor label={t("valorUnitario", lang)} valor={moeda(precoUnit)} />;
+}
+
+function TotalDoItemBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+  const { tokens } = useTemaPdv();
+  const precoUnit = item ? item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0 : 0;
+  const total = item ? precoUnit * item.quantidade : 0;
+  return <QuadroValor label={t("totalDoItem", lang)} valor={moeda(total)} corValor={tokens.acento} />;
+}
+
+function CodigoBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
+  const codigo = item ? item.produto.codigo_barras || item.produto.sku || "—" : "—";
+  return <QuadroValor label={t("labelCodigoItem", lang)} valor={codigo} tamanho="text-lg md:text-xl" />;
 }
 
 // Grid, não <table> — de propósito: preciso do cabeçalho de colunas FORA
@@ -851,33 +899,59 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
   );
 }
 
-function RodapeTotais({ lang, subtotal, desconto, tributoAproximado, totalAPagar, carrinhoVazio, onFinalizar }: {
+function RodapeTotais({
+  lang, subtotal, desconto, tributoAproximado, totalAPagar, carrinhoVazio,
+  valorRecebidoInput, onValorRecebidoInput, troco, onFinalizar,
+}: {
   lang: Idioma; subtotal: number; desconto: number; tributoAproximado: number; totalAPagar: number;
-  carrinhoVazio: boolean; onFinalizar: () => void;
+  carrinhoVazio: boolean; valorRecebidoInput: string; onValorRecebidoInput: (v: string) => void; troco: number;
+  onFinalizar: () => void;
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <div className="flex flex-col gap-1 mb-2 text-sm" style={{ color: tokens.cardTexto }}>
-        <div className="flex items-center justify-between">
-          <span style={{ opacity: 0.75 }}>{t("subtotal", lang)}</span>
-          <span className="font-semibold">{moeda(subtotal)}</span>
+    <div className="shrink-0 rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      {/* SUBTOTAL — bloco grande */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
+        <span className="text-xl md:text-2xl font-black" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
+      </div>
+      {desconto > 0 && (
+        <div className="flex items-center justify-between mb-2 text-sm" style={{ color: tokens.cardTexto }}>
+          <span style={{ opacity: 0.75 }}>{t("desconto", lang)}</span>
+          <span className="font-semibold">- {moeda(desconto)}</span>
         </div>
-        {desconto > 0 && (
-          <div className="flex items-center justify-between">
-            <span style={{ opacity: 0.75 }}>{t("desconto", lang)}</span>
-            <span className="font-semibold">- {moeda(desconto)}</span>
-          </div>
-        )}
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1" style={{ opacity: 0.75 }}><Percent size={13} />{t("tributosAproximados", lang)}</span>
-          <span className="font-semibold">{moeda(tributoAproximado)}</span>
+      )}
+
+      <div className="flex items-center justify-between gap-4 pt-2 mb-3" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <span className="text-base md:text-lg font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
+        <span className="text-3xl md:text-4xl font-black" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</span>
+      </div>
+
+      {/* TOTAL RECEBIDO e TROCO — lado a lado, grandes. Só de exibição:
+          calculadora de troco pro operador, nunca vai pro finalizar_venda. */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="rounded-xl p-2.5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className="text-[11px] font-bold uppercase tracking-wide mb-1 flex items-center gap-1" style={{ color: tokens.cardTexto, opacity: 0.7 }}>
+            <Banknote size={12} />{t("totalRecebido", lang)}
+          </p>
+          <input
+            value={valorRecebidoInput} onChange={(e) => onValorRecebidoInput(e.target.value)}
+            inputMode="decimal" placeholder="0,00"
+            className="w-full bg-transparent outline-none text-xl md:text-2xl font-black"
+            style={{ color: tokens.cardTexto }}
+          />
+        </div>
+        <div className="rounded-xl p-2.5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
+          <p className="text-xl md:text-2xl font-black truncate" style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
+            {troco < 0 ? t("faltam", lang, { valor: moeda(Math.abs(troco)) }) : moeda(troco)}
+          </p>
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 pt-2 mb-3 flex-wrap" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <span className="text-base md:text-lg font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
-        <span className="text-3xl md:text-4xl font-black" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</span>
+      <div className="flex items-center justify-between text-xs mb-3" style={{ color: tokens.cardTexto, opacity: 0.75 }}>
+        <span className="flex items-center gap-1"><Percent size={12} />{t("tributosAproximados", lang)}</span>
+        <span className="font-semibold">{moeda(tributoAproximado)}</span>
       </div>
 
       <button onClick={onFinalizar} disabled={carrinhoVazio}
@@ -908,12 +982,6 @@ function FinalizarVendaModal({
   confirmando: boolean; onConfirmar: () => void; onCancelar: () => void;
 }) {
   const { tokens } = useTemaPdv();
-  // Calculadora de troco — só de exibição, NUNCA enviado ao banco/RPC. O
-  // valor gravado em venda continua vindo só do que finalizar_venda calcula.
-  const [valorRecebidoInput, setValorRecebidoInput] = useState("");
-  const valorRecebido = Number(valorRecebidoInput.replace(",", ".")) || 0;
-  const troco = valorRecebido - totalAPagar;
-  const mostrarTroco = formaPagamento === "dinheiro";
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
@@ -935,30 +1003,6 @@ function FinalizarVendaModal({
           <option value="pix">{t("formaPagamentoPix", lang)}</option>
           <option value="outro">{t("formaPagamentoOutro", lang)}</option>
         </select>
-
-        <AnimatePresence>
-          {mostrarTroco && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              className="grid grid-cols-2 gap-3 mb-3 overflow-hidden">
-              <div>
-                <label className="text-xs font-semibold flex items-center gap-1 mb-1" style={{ color: tokens.texto }}><Banknote size={13} />{t("totalRecebido", lang)}</label>
-                <input
-                  value={valorRecebidoInput} onChange={(e) => setValorRecebidoInput(e.target.value)}
-                  inputMode="decimal" placeholder="0,00" autoFocus
-                  className="w-full px-3 py-3 rounded-xl text-lg font-bold outline-none"
-                  style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("troco", lang)}</label>
-                <div className="w-full px-3 py-3 rounded-xl text-lg font-black"
-                  style={{ background: tokens.inputBg, color: troco < 0 ? "#f87171" : tokens.acento, border: `1px solid ${tokens.inputBorda}` }}>
-                  {troco < 0 ? t("faltam", lang, { valor: moeda(Math.abs(troco)) }) : moeda(troco)}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("cpfNotaLabel", lang)}</label>
         <input
