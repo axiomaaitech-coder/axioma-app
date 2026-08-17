@@ -91,7 +91,7 @@ const txt = {
   colTotal: { pt: "Total", en: "Total", es: "Total" },
   subtotal: { pt: "Subtotal", en: "Subtotal", es: "Subtotal" },
   desconto: { pt: "Desconto", en: "Discount", es: "Descuento" },
-  tributosAproximados: { pt: "Valor aproximado dos tributos", en: "Approximate tax amount", es: "Valor aproximado de tributos" },
+  tributosAproximados: { pt: "Valor aproximado dos tributos (Lei 12.741)", en: "Approximate taxes (Law 12.741)", es: "Valor aproximado de los tributos (Ley 12.741)" },
   totalAPagar: { pt: "Total a pagar", en: "Total due", es: "Total a pagar" },
   finalizarVenda: { pt: "Finalizar Venda", en: "Complete Sale", es: "Finalizar Venta" },
   formaPagamentoLabel: { pt: "Forma de pagamento", en: "Payment method", es: "Forma de pago" },
@@ -763,7 +763,7 @@ function QuadroValor({ label, valor, corValor, tamanho = "text-2xl md:text-3xl" 
   const { tokens } = useTemaPdv();
   return (
     <div className="shrink-0 rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: tokens.acento, opacity: 0.85 }}>{label}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
       <p className={`${tamanho} font-black truncate`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
     </div>
   );
@@ -774,18 +774,23 @@ function QuadroValor({ label, valor, corValor, tamanho = "text-2xl md:text-3xl" 
 // animação para sozinha assim que um item entra no carrinho.
 function LogoBoxGrande({ lang, idle }: { lang: Idioma; idle: boolean }) {
   const { tokens } = useTemaPdv();
+  // min-h precisa ser >= o conteúdo real (logo grande + título + 2 linhas de
+  // subtítulo), senão o flexbox honra o número literal e deixa o texto
+  // vazar pra fora da caixa quando a coluna fica apertada — foi o que
+  // cortava "Bipe o código de barras..." antes (min-h mentia, dizia 110px
+  // com ~230px de conteúdo real).
   return (
-    <div className="flex-1 min-h-[110px] rounded-2xl p-4 flex flex-col items-center justify-center gap-2 text-center"
+    <div className="flex-1 min-h-[220px] rounded-2xl p-4 flex flex-col items-center justify-center gap-3 text-center"
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <motion.div
         animate={idle ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
         transition={idle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}>
-        <Image src="/logo-aitech.png" alt="Axioma" width={96} height={96} priority />
+        <Image src="/logo-aitech.png" alt="Axioma" width={128} height={128} priority />
       </motion.div>
       {idle && (
-        <div>
+        <div className="max-w-[85%]">
           <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
-          <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("idleSubtitulo", lang)}</p>
+          <p className="text-xs leading-relaxed" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleSubtitulo", lang)}</p>
         </div>
       )}
     </div>
@@ -804,7 +809,7 @@ function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resul
   const { tokens } = useTemaPdv();
   return (
     <div className="shrink-0 relative rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tokens.acento, opacity: 0.85 }}>{t("labelCodigoBarras", lang)}</p>
+      <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
       <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} />
       {busca.trim().length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
@@ -821,10 +826,13 @@ function ValorUnitarioBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | n
 }
 
 function TotalDoItemBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
-  const { tokens } = useTemaPdv();
   const precoUnit = item ? item.produto.preco_venda ?? item.produto.preco_sugerido ?? 0 : 0;
   const total = item ? precoUnit * item.quantidade : 0;
-  return <QuadroValor label={t("totalDoItem", lang)} valor={moeda(total)} corValor={tokens.acento} />;
+  // Sem corValor: tokens.acento em cima de tokens.cardBg (o fundo do próprio
+  // quadro) não tem contraste garantido em todos os temas — cardTexto
+  // (default do QuadroValor) é o único par sempre calibrado pra essa
+  // superfície. O destaque vem do tamanho/peso da fonte, não da cor.
+  return <QuadroValor label={t("totalDoItem", lang)} valor={moeda(total)} />;
 }
 
 function CodigoBox({ lang, item }: { lang: Idioma; item: ItemCarrinho | null }) {
@@ -922,9 +930,20 @@ function RodapeTotais({
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4 pt-2 mb-3" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="flex items-center justify-between gap-4 pt-2 mb-2" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <span className="text-base md:text-lg font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
-        <span className="text-3xl md:text-4xl font-black" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</span>
+        {/* cardTexto, não acento: tokens.acento em cima de tokens.cardBg não
+            garante 4.5:1 em todos os temas (no intermediário os dois são
+            azuis escuros próximos — quase some). O destaque fica no
+            tamanho/peso da fonte, que já é o maior da tela. */}
+        <span className="text-3xl md:text-4xl font-black" style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
+      </div>
+
+      {/* Tributo aproximado (Lei 12.741) — linha própria, legível, junto do
+          Subtotal/Total a pagar (não mais espremida perto do rodapé). */}
+      <div className="flex items-center justify-between gap-3 mb-3 text-sm font-semibold" style={{ color: tokens.cardTexto }}>
+        <span>{t("tributosAproximados", lang)}</span>
+        <span>{moeda(tributoAproximado)}</span>
       </div>
 
       {/* TOTAL RECEBIDO e TROCO — lado a lado, grandes. Só de exibição:
@@ -949,11 +968,6 @@ function RodapeTotais({
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-xs mb-3" style={{ color: tokens.cardTexto, opacity: 0.75 }}>
-        <span className="flex items-center gap-1"><Percent size={12} />{t("tributosAproximados", lang)}</span>
-        <span className="font-semibold">{moeda(tributoAproximado)}</span>
-      </div>
-
       <button onClick={onFinalizar} disabled={carrinhoVazio}
         className="w-full py-3 rounded-2xl text-base md:text-lg font-black disabled:opacity-40"
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
@@ -967,7 +981,8 @@ function AtalhosRodape({ lang }: { lang: Idioma }) {
   const { tokens } = useTemaPdv();
   const atalhos: (keyof typeof txt)[] = ["atalhoEnter", "atalhoF2", "atalhoDelete", "atalhoEsc"];
   return (
-    <div className="shrink-0 flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-2 text-xs" style={{ color: tokens.textoMuted }}>
+    <div className="shrink-0 flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-4 pt-3 pb-1 text-xs"
+      style={{ color: tokens.textoMuted, borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
       {atalhos.map((chave) => <span key={chave}>{t(chave, lang)}</span>)}
     </div>
   );
@@ -1144,7 +1159,7 @@ function ResultadosBusca({ lang, termo, resultados, buscando, onAdicionar }: {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm font-bold" style={{ color: tokens.acento }}>
+            <span className="text-sm font-bold" style={{ color: tokens.cardTexto }}>
               {produto.preco_venda
                 ? moeda(produto.preco_venda)
                 : produto.preco_sugerido
