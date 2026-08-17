@@ -579,7 +579,7 @@ export default function PdvVendaPage() {
           inteira nunca precisa de scroll (telaCheia trava a altura em
           "viewport menos TopNav" lá no PdvLayout). */}
       <div className="flex flex-col h-full min-h-0">
-        <div className="shrink-0 flex items-center justify-between mb-2 text-xs">
+        <div className="shrink-0 flex items-center justify-between mb-1.5 text-[11px]">
           <span style={{ opacity: 0.7 }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
           <button onClick={trocarCaixa} className="font-semibold underline" style={{ opacity: 0.7 }}>{t("trocarCaixa", lang)}</button>
         </div>
@@ -594,11 +594,14 @@ export default function PdvVendaPage() {
             com os blocos emoldurados de bipagem/destaque do item; direita
             (~65%) com a lista de produtos + totais. Tudo SEMPRE montado, com
             carrinho vazio ou não — só o conteúdo interno muda (é o que
-            garante "tudo visível desde o início"). Nenhuma coluna rola por
-            fora: só as LINHAS da tabela rolam por dentro. */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[35%_1fr] gap-3">
+            garante "tudo visível desde o início"). ZERO SCROLL é requisito
+            travado: todo bloco da esquerda é shrink-0 (tamanho mínimo já
+            compacto) exceto o logo (flex-1, absorve/cede o que sobra);
+            à direita só as LINHAS da tabela têm overflow-y-auto como rede de
+            segurança pra carrinho com muitos itens — ver nota lá na função. */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[35%_1fr] gap-2">
           {/* COLUNA ESQUERDA */}
-          <div className="min-h-0 flex flex-col gap-2.5">
+          <div className="min-h-0 flex flex-col gap-1.5">
             <LogoBoxGrande lang={lang} idle={!itemDestaque} />
             <CampoBuscaBox
               lang={lang} busca={busca} onBusca={setBusca} onKeyDown={handleBuscaKeyDown} inputRef={inputBuscaRef}
@@ -610,7 +613,7 @@ export default function PdvVendaPage() {
           </div>
 
           {/* COLUNA DIREITA */}
-          <div className="min-h-0 flex flex-col gap-2.5">
+          <div className="min-h-0 flex flex-col gap-1.5">
             <TabelaItensVenda
               lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
               onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
@@ -757,14 +760,14 @@ function AbrirCaixaPanel({ lang, valorAberturaInput, onValorAbertura, observacao
 
 // Quadro genérico da coluna esquerda — label pequeno em cima, valor grande
 // embaixo, mesma moldura (cardBg/cardBorda) que o resto do PDV já usa.
-function QuadroValor({ label, valor, corValor, tamanho = "text-2xl md:text-3xl" }: {
+function QuadroValor({ label, valor, corValor, tamanho = "text-lg md:text-xl" }: {
   label: string; valor: string; corValor?: string; tamanho?: string;
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="shrink-0 rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
-      <p className={`${tamanho} font-black truncate`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
+    <div className="shrink-0 rounded-xl px-2.5 py-1.5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className="text-[9px] font-bold uppercase tracking-wide leading-none truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
+      <p className={`${tamanho} font-black truncate leading-tight`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
     </div>
   );
 }
@@ -774,23 +777,24 @@ function QuadroValor({ label, valor, corValor, tamanho = "text-2xl md:text-3xl" 
 // animação para sozinha assim que um item entra no carrinho.
 function LogoBoxGrande({ lang, idle }: { lang: Idioma; idle: boolean }) {
   const { tokens } = useTemaPdv();
-  // min-h precisa ser >= o conteúdo real (logo grande + título + 2 linhas de
-  // subtítulo), senão o flexbox honra o número literal e deixa o texto
-  // vazar pra fora da caixa quando a coluna fica apertada — foi o que
-  // cortava "Bipe o código de barras..." antes (min-h mentia, dizia 110px
-  // com ~230px de conteúdo real).
+  // ZERO SCROLL é prioridade máxima aqui (acima de deixar o logo grande):
+  // é o ÚNICO bloco flex-1 da coluna, então ele quem absorve o espaço que
+  // sobra dos outros 4 (shrink-0). Sem min-height fixo — um número fixo
+  // "mentiria" pro flexbox e deixaria conteúdo vazar quando a coluna
+  // aperta (foi exatamente isso que cortou o subtítulo antes). idleSubtitulo
+  // agora é truncate (1 linha só, com "…") — altura sempre previsível.
   return (
-    <div className="flex-1 min-h-[220px] rounded-2xl p-4 flex flex-col items-center justify-center gap-3 text-center"
+    <div className="flex-1 min-h-0 rounded-2xl p-2 flex flex-col items-center justify-center gap-1.5 text-center overflow-hidden"
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <motion.div
         animate={idle ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
         transition={idle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}>
-        <Image src="/logo-aitech.png" alt="Axioma" width={128} height={128} priority />
+        <Image src="/logo-aitech.png" alt="Axioma" width={56} height={56} priority />
       </motion.div>
       {idle && (
-        <div className="max-w-[85%]">
-          <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
-          <p className="text-xs leading-relaxed" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleSubtitulo", lang)}</p>
+        <div className="max-w-[90%]">
+          <p className="text-xs font-bold truncate" style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
+          <p className="text-[10px] truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleSubtitulo", lang)}</p>
         </div>
       )}
     </div>
@@ -808,8 +812,8 @@ function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resul
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="shrink-0 relative rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className="text-[11px] font-bold uppercase tracking-wide mb-1.5" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
+    <div className="shrink-0 relative rounded-xl px-2.5 py-1.5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
       <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} />
       {busca.trim().length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-2xl overflow-hidden shadow-2xl">
@@ -857,15 +861,15 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
   const { tokens } = useTemaPdv();
   return (
     <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5" style={{ background: tokens.acentoSuaveBg }}>
-        <div className="flex items-center gap-2">
-          <ShoppingCart size={16} style={{ color: tokens.acento }} />
-          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("itensDaVenda", lang)} ({carrinho.length})</h3>
+      <div className="shrink-0 flex items-center justify-between px-3 py-1.5" style={{ background: tokens.acentoSuaveBg }}>
+        <div className="flex items-center gap-1.5">
+          <ShoppingCart size={13} style={{ color: tokens.acento }} />
+          <h3 className="text-xs font-bold" style={{ color: tokens.texto }}>{t("itensDaVenda", lang)} ({carrinho.length})</h3>
         </div>
-        <button onClick={onLimpar} disabled={carrinho.length === 0} className="text-xs font-semibold disabled:opacity-40" style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
+        <button onClick={onLimpar} disabled={carrinho.length === 0} className="text-[11px] font-semibold disabled:opacity-40" style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
       </div>
 
-      <div className="shrink-0 grid items-center px-4 py-2 text-xs uppercase tracking-wide"
+      <div className="shrink-0 grid items-center px-3 py-1 text-[10px] uppercase tracking-wide"
         style={{ gridTemplateColumns: COLUNAS_GRID, color: tokens.cardTexto, opacity: 0.65, borderBottom: `1px solid ${tokens.cardBorda}` }}>
         <span>{t("colNumero", lang)}</span>
         <span>{t("colCodigo", lang)}</span>
@@ -875,28 +879,32 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
         <span className="text-right">{t("colTotal", lang)}</span>
       </div>
 
+      {/* overflow-y-auto fica como rede de segurança só pro caso extremo de
+          carrinho com dezenas de itens que não caibam nem no tamanho mínimo
+          de linha legível — com o rodapé compactado, o caso comum (até
+          ~8-10 itens numa tela de notebook) cabe inteiro sem rolar. */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {carrinho.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: tokens.cardTexto, opacity: 0.55 }}>{t("carrinhoVazio", lang)}</p>
+          <p className="text-xs text-center py-4" style={{ color: tokens.cardTexto, opacity: 0.55 }}>{t("carrinhoVazio", lang)}</p>
         ) : (
           carrinho.map(({ produto, quantidade }, idx) => {
             const precoUnit = produto.preco_venda ?? produto.preco_sugerido ?? 0;
             const emDestaque = produto.id === destaqueId;
             return (
-              <div key={produto.id} className="grid items-center px-4 py-2 text-sm md:text-base"
+              <div key={produto.id} className="grid items-center px-3 py-1 text-xs md:text-sm"
                 style={{ gridTemplateColumns: COLUNAS_GRID, background: emDestaque ? tokens.acentoSuaveBg : "transparent", borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
                 <span style={{ opacity: 0.7 }}>{idx + 1}</span>
                 <span className="truncate pr-2" style={{ opacity: 0.7 }}>{produto.codigo_barras || produto.sku || "—"}</span>
                 <span className="font-semibold truncate pr-2">{produto.nome}</span>
-                <div className="flex items-center justify-center gap-1.5">
-                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-1 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={12} /></button>
-                  <span className="w-5 text-center font-bold">{quantidade}</span>
-                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-1 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={12} /></button>
+                <div className="flex items-center justify-center gap-1">
+                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className="p-0.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={11} /></button>
+                  <span className="w-4 text-center font-bold">{quantidade}</span>
+                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className="p-0.5 rounded-md" style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={11} /></button>
                 </div>
                 <span className="text-right whitespace-nowrap">{moeda(precoUnit)}</span>
-                <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                   <span className="font-bold">{moeda(precoUnit * quantidade)}</span>
-                  <button onClick={() => onRemover(produto.id)} className="p-1 rounded-md shrink-0" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={12} /></button>
+                  <button onClick={() => onRemover(produto.id)} className="p-0.5 rounded-md shrink-0" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={11} /></button>
                 </div>
               </div>
             );
@@ -917,59 +925,59 @@ function RodapeTotais({
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="shrink-0 rounded-2xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      {/* SUBTOTAL — bloco grande */}
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
-        <span className="text-xl md:text-2xl font-black" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
+    <div className="shrink-0 rounded-xl p-2 md:p-2.5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      {/* SUBTOTAL */}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
+        <span className="text-base font-black" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
       </div>
       {desconto > 0 && (
-        <div className="flex items-center justify-between mb-2 text-sm" style={{ color: tokens.cardTexto }}>
+        <div className="flex items-center justify-between mb-1 text-xs" style={{ color: tokens.cardTexto }}>
           <span style={{ opacity: 0.75 }}>{t("desconto", lang)}</span>
           <span className="font-semibold">- {moeda(desconto)}</span>
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4 pt-2 mb-2" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <span className="text-base md:text-lg font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
+      <div className="flex items-center justify-between gap-4 pt-1 mb-1" style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <span className="text-xs md:text-sm font-bold" style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
         {/* cardTexto, não acento: tokens.acento em cima de tokens.cardBg não
             garante 4.5:1 em todos os temas (no intermediário os dois são
             azuis escuros próximos — quase some). O destaque fica no
-            tamanho/peso da fonte, que já é o maior da tela. */}
-        <span className="text-3xl md:text-4xl font-black" style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
+            tamanho/peso da fonte, que já é o maior deste bloco. */}
+        <span className="text-xl md:text-2xl font-black" style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
       </div>
 
       {/* Tributo aproximado (Lei 12.741) — linha própria, legível, junto do
           Subtotal/Total a pagar (não mais espremida perto do rodapé). */}
-      <div className="flex items-center justify-between gap-3 mb-3 text-sm font-semibold" style={{ color: tokens.cardTexto }}>
-        <span>{t("tributosAproximados", lang)}</span>
-        <span>{moeda(tributoAproximado)}</span>
+      <div className="flex items-center justify-between gap-3 mb-1.5 text-[11px] font-semibold" style={{ color: tokens.cardTexto }}>
+        <span className="truncate">{t("tributosAproximados", lang)}</span>
+        <span className="shrink-0">{moeda(tributoAproximado)}</span>
       </div>
 
-      {/* TOTAL RECEBIDO e TROCO — lado a lado, grandes. Só de exibição:
-          calculadora de troco pro operador, nunca vai pro finalizar_venda. */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="rounded-xl p-2.5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className="text-[11px] font-bold uppercase tracking-wide mb-1 flex items-center gap-1" style={{ color: tokens.cardTexto, opacity: 0.7 }}>
-            <Banknote size={12} />{t("totalRecebido", lang)}
+      {/* TOTAL RECEBIDO e TROCO — lado a lado. Só de exibição: calculadora
+          de troco pro operador, nunca vai pro finalizar_venda. */}
+      <div className="grid grid-cols-2 gap-2 mb-1.5">
+        <div className="rounded-lg px-2 py-1" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className="text-[9px] font-bold uppercase tracking-wide leading-none mb-0.5 flex items-center gap-1" style={{ color: tokens.cardTexto, opacity: 0.7 }}>
+            <Banknote size={10} />{t("totalRecebido", lang)}
           </p>
           <input
             value={valorRecebidoInput} onChange={(e) => onValorRecebidoInput(e.target.value)}
             inputMode="decimal" placeholder="0,00"
-            className="w-full bg-transparent outline-none text-xl md:text-2xl font-black"
+            className="w-full bg-transparent outline-none text-sm md:text-base font-black"
             style={{ color: tokens.cardTexto }}
           />
         </div>
-        <div className="rounded-xl p-2.5" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className="text-[11px] font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
-          <p className="text-xl md:text-2xl font-black truncate" style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
+        <div className="rounded-lg px-2 py-1" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className="text-[9px] font-bold uppercase tracking-wide leading-none mb-0.5" style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
+          <p className="text-sm md:text-base font-black truncate" style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
             {troco < 0 ? t("faltam", lang, { valor: moeda(Math.abs(troco)) }) : moeda(troco)}
           </p>
         </div>
       </div>
 
       <button onClick={onFinalizar} disabled={carrinhoVazio}
-        className="w-full py-3 rounded-2xl text-base md:text-lg font-black disabled:opacity-40"
+        className="w-full py-1.5 rounded-lg text-sm font-black disabled:opacity-40"
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {t("finalizarVenda", lang)}
       </button>
@@ -981,7 +989,7 @@ function AtalhosRodape({ lang }: { lang: Idioma }) {
   const { tokens } = useTemaPdv();
   const atalhos: (keyof typeof txt)[] = ["atalhoEnter", "atalhoF2", "atalhoDelete", "atalhoEsc"];
   return (
-    <div className="shrink-0 flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-4 pt-3 pb-1 text-xs"
+    <div className="shrink-0 flex items-center justify-center gap-4 md:gap-6 flex-wrap mt-1.5 pt-1.5 text-[11px]"
       style={{ color: tokens.textoMuted, borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
       {atalhos.map((chave) => <span key={chave}>{t(chave, lang)}</span>)}
     </div>
@@ -1121,11 +1129,11 @@ function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef }: {
   const { tokens } = useTemaPdv();
   return (
     <div className="relative">
-      <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: tokens.acento }} />
+      <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.acento }} />
       <input
         ref={inputRef} autoFocus value={busca} onChange={(e) => onBusca(e.target.value)} onKeyDown={onKeyDown}
         placeholder={t("buscarPlaceholder", lang)}
-        className="w-full pl-12 pr-4 py-3.5 rounded-2xl text-lg md:text-xl font-semibold outline-none"
+        className="w-full pl-9 pr-3 py-2 rounded-xl text-sm md:text-base font-semibold outline-none"
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `2px solid ${tokens.inputBorda}` }}
       />
     </div>
