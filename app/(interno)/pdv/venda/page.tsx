@@ -865,21 +865,25 @@ function LogoBoxGrande({ lang, idle, grande }: { lang: Idioma; idle: boolean; gr
   // "mentiria" pro flexbox e deixaria conteúdo vazar quando a coluna
   // aperta (foi exatamente isso que cortou o subtítulo antes). Toda linha
   // de texto é truncate (1 linha só, com "…") — altura sempre previsível.
-  // Em tela cheia (grande) o logo cresce de verdade — há espaço real pra isso.
-  const tamanhoLogo = grande ? 150 : 76;
+  // A logo em si usa `fill`+`object-contain` dentro de um wrapper flex-1
+  // (não mais width/height fixos em px): ela cresce sozinha pra preencher
+  // o espaço vertical que sobra no quadro (mais em tela cheia, onde sobra
+  // mais espaço de verdade) sem nunca estourar — quem trava o limite é o
+  // próprio flexbox, não um número chutado.
   return (
     <div className={`flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center text-center overflow-hidden ${grande ? "p-4 gap-2" : "p-2 gap-1"}`}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <motion.div
+        className={`relative w-full min-h-0 flex-1 ${grande ? "max-w-[80%]" : "max-w-[74%]"}`}
         animate={idle ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
         transition={idle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}>
-        <Image src="/logo-aitech.png" alt="Axioma" width={tamanhoLogo} height={tamanhoLogo} priority />
+        <Image src="/logo-aitech.png" alt="Axioma" fill sizes="(max-width: 1024px) 60vw, 25vw" className="object-contain" priority />
       </motion.div>
-      <p className={`font-black truncate ${grande ? "text-lg" : "text-xs"}`} style={{ color: tokens.cardTexto }}>
+      <p className={`font-black truncate shrink-0 ${grande ? "text-lg" : "text-xs"}`} style={{ color: tokens.cardTexto }}>
         PDV Axioma — {t("sistemaInteligente", lang)}
       </p>
       {idle && (
-        <div className="max-w-[90%]">
+        <div className="max-w-[90%] shrink-0">
           <p className={`font-semibold truncate ${grande ? "text-sm mb-0.5" : "text-[10px]"}`} style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleTitulo", lang)}</p>
           <p className={`truncate ${grande ? "text-xs" : "text-[9px]"}`} style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("idleSubtitulo", lang)}</p>
         </div>
