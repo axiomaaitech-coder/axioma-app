@@ -69,6 +69,7 @@ const txt = {
   },
   definirPrecoErroGenerico: { pt: "Não foi possível salvar o preço. Tente novamente.", en: "Could not save the price. Try again.", es: "No fue posible guardar el precio. Intente de nuevo." },
   itemAdicionado: { pt: "Adicionado: {nome}", en: "Added: {nome}", es: "Agregado: {nome}" },
+  sistemaInteligente: { pt: "Sistema Inteligente", en: "Intelligent System", es: "Sistema Inteligente" },
   idleTitulo: { pt: "Pronto pra vender", en: "Ready to sell", es: "Listo para vender" },
   idleSubtitulo: {
     pt: "Bipe o código de barras ou digite nome/SKU no campo acima.",
@@ -378,6 +379,7 @@ export default function PdvVendaPage() {
     setFormaPagamento("");
     setCpfNotaInput("");
     setValorRecebidoInput("");
+    inputBuscaRef.current?.focus();
 
     setBaixandoEstoqueFlag(true);
     const { falhas } = await baixarEstoqueVenda(empresaId, userId, vendaId, itensParaBaixa);
@@ -642,7 +644,7 @@ export default function PdvVendaPage() {
             <TabelaItensVenda
               lang={lang} carrinho={carrinho} destaqueId={ultimoAdicionadoId}
               onAlterarQuantidade={alterarQuantidade} onRemover={removerItem}
-              onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); }}
+              onLimpar={() => { setCarrinho([]); setUltimoAdicionadoId(null); inputBuscaRef.current?.focus(); }}
               grande={fullscreenAtivo}
             />
             <RodapeTotais
@@ -650,6 +652,7 @@ export default function PdvVendaPage() {
               carrinhoVazio={carrinho.length === 0}
               valorRecebidoInput={valorRecebidoInput} onValorRecebidoInput={setValorRecebidoInput} troco={troco}
               onFinalizar={() => setPainelFinalizarAberto(true)}
+              onConfirmarRecebido={() => inputBuscaRef.current?.focus()}
               grande={fullscreenAtivo}
             />
           </div>
@@ -849,30 +852,36 @@ function QuadroValor({ label, valor, corValor, grande, tamanho }: {
 }
 
 // Quadro grande da logo — ocupa o espaço que no layout de referência seria
-// o carrinho. Brilho sutil só enquanto ocioso (nenhum item em destaque); a
-// animação para sozinha assim que um item entra no carrinho.
+// o carrinho. Logo imponente + "PDV Axioma — Sistema Inteligente" como
+// identidade fixa do caixa; idleTitulo/idleSubtitulo viram subtexto menor
+// abaixo, só enquanto ocioso (nenhum item em destaque). Brilho sutil na
+// logo só enquanto ocioso; a animação para sozinha assim que um item entra
+// no carrinho.
 function LogoBoxGrande({ lang, idle, grande }: { lang: Idioma; idle: boolean; grande?: boolean }) {
   const { tokens } = useTemaPdv();
   // ZERO SCROLL é prioridade máxima aqui (acima de deixar o logo grande):
   // é o ÚNICO bloco flex-1 da coluna, então ele quem absorve o espaço que
   // sobra dos outros (shrink-0). Sem min-height fixo — um número fixo
   // "mentiria" pro flexbox e deixaria conteúdo vazar quando a coluna
-  // aperta (foi exatamente isso que cortou o subtítulo antes). idleSubtitulo
-  // é truncate (1 linha só, com "…") — altura sempre previsível. Em tela
-  // cheia (grande) o logo cresce de verdade — há espaço real pra isso.
-  const tamanhoLogo = grande ? 110 : 56;
+  // aperta (foi exatamente isso que cortou o subtítulo antes). Toda linha
+  // de texto é truncate (1 linha só, com "…") — altura sempre previsível.
+  // Em tela cheia (grande) o logo cresce de verdade — há espaço real pra isso.
+  const tamanhoLogo = grande ? 150 : 76;
   return (
-    <div className={`flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center text-center overflow-hidden ${grande ? "p-4 gap-3" : "p-2 gap-1.5"}`}
+    <div className={`flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center text-center overflow-hidden ${grande ? "p-4 gap-2" : "p-2 gap-1"}`}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <motion.div
         animate={idle ? { opacity: [0.7, 1, 0.7] } : { opacity: 1 }}
         transition={idle ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}}>
         <Image src="/logo-aitech.png" alt="Axioma" width={tamanhoLogo} height={tamanhoLogo} priority />
       </motion.div>
+      <p className={`font-black truncate ${grande ? "text-lg" : "text-xs"}`} style={{ color: tokens.cardTexto }}>
+        PDV Axioma — {t("sistemaInteligente", lang)}
+      </p>
       {idle && (
         <div className="max-w-[90%]">
-          <p className={`font-bold truncate ${grande ? "text-xl mb-1" : "text-xs"}`} style={{ color: tokens.cardTexto }}>{t("idleTitulo", lang)}</p>
-          <p className={`truncate ${grande ? "text-sm" : "text-[10px]"}`} style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleSubtitulo", lang)}</p>
+          <p className={`font-semibold truncate ${grande ? "text-sm mb-0.5" : "text-[10px]"}`} style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("idleTitulo", lang)}</p>
+          <p className={`truncate ${grande ? "text-xs" : "text-[9px]"}`} style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("idleSubtitulo", lang)}</p>
         </div>
       )}
     </div>
@@ -999,11 +1008,11 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
 
 function RodapeTotais({
   lang, subtotal, desconto, tributoAproximado, totalAPagar, carrinhoVazio,
-  valorRecebidoInput, onValorRecebidoInput, troco, onFinalizar, grande,
+  valorRecebidoInput, onValorRecebidoInput, troco, onFinalizar, onConfirmarRecebido, grande,
 }: {
   lang: Idioma; subtotal: number; desconto: number; tributoAproximado: number; totalAPagar: number;
   carrinhoVazio: boolean; valorRecebidoInput: string; onValorRecebidoInput: (v: string) => void; troco: number;
-  onFinalizar: () => void; grande?: boolean;
+  onFinalizar: () => void; onConfirmarRecebido: () => void; grande?: boolean;
 }) {
   const { tokens } = useTemaPdv();
   return (
@@ -1046,6 +1055,7 @@ function RodapeTotais({
           </p>
           <input
             value={valorRecebidoInput} onChange={(e) => onValorRecebidoInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); onConfirmarRecebido(); } }}
             inputMode="decimal" placeholder="0,00"
             className={`w-full bg-transparent outline-none font-black ${grande ? "text-xl" : "text-base md:text-lg"}`}
             style={{ color: tokens.cardTexto }}

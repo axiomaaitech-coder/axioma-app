@@ -1137,6 +1137,12 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 
 **Aguardando:** Elias testar clicando na tela (abrir caixa → adicionar produto → finalizar venda de ponta a ponta) — ainda não visto rodando no navegador nesta sessão (sem credencial de login).
 
+## 3-AX. PDV Frente de Caixa — identidade "PDV Axioma" fixa + foco automático no campo de busca (2026-08-20)
+
+**Ajuste de polimento, código isolado em `app/(interno)/pdv/venda/page.tsx`, `tsc --noEmit` limpo:**
+- O quadro da logo agora sempre mostra "PDV Axioma — Sistema Inteligente" como identidade fixa do caixa (antes só aparecia texto ali quando a tela estava ociosa, sem item nenhum bipado).
+- Depois de finalizar uma venda, limpar o carrinho, ou confirmar o valor recebido (Enter no campo), o cursor volta sozinho pro campo de busca — evita o operador ter que clicar de novo pra bipar o próximo cliente.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
