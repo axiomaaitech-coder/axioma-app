@@ -494,6 +494,30 @@ const SUBNICHOS_ACOUGUE_ACOMPANHAMENTOS_CHURRASCO: SubNichoPdv[] = [
   SUB("queijo_coalho_provolone", "Queijo Coalho/Provolone", "Coalho/Provolone Cheese", "Queso Coalho/Provolone", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
 ];
 
+// Chocolates de MARCA (industrializado, comprado pronto — Lacta, Nestlé,
+// Garoto, Ferrero, Hershey's) — existe em 2 lugares (categoria dentro de
+// "mercado" e categoria própria em "padaria_confeitaria"), cada um com seu
+// próprio `sufixo` no value pra nunca colidir entre os dois nichos. Gerador
+// só pra não repetir os 9 SUB() na mão duas vezes — a lista em si é a mesma
+// nos dois lugares. Deliberadamente SEPARADO dos doces artesanais que já
+// existem em confeitaria_fina/doces_sobremesas (trufa, bombom_artesanal,
+// brigadeiro_gourmet) — aqueles são produção própria da padaria, isto aqui
+// é revenda de produto de prateleira com marca.
+const gerarSubNichosChocolatesMarca = (sufixo: "_choc_mercado" | "_choc_padaria"): SubNichoPdv[] => [
+  SUB(`barra_tablete${sufixo}`, "Barra/Tablete de Chocolate", "Chocolate Bar", "Barra/Tableta de Chocolate", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`bombom_caixa${sufixo}`, "Bombom/Caixa de Bombom", "Boxed Chocolates/Bonbons", "Bombón/Caja de Bombones", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`bombom_avulso${sufixo}`, "Bombom Avulso/A Granel", "Individual/Bulk Bonbons", "Bombón Suelto/A Granel", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`wafer${sufixo}`, "Wafer", "Wafer", "Wafer", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`diet_zero${sufixo}`, "Chocolate Diet/Zero Açúcar", "Diet/Sugar-free Chocolate", "Chocolate Diet/Sin Azúcar", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`trufa_industrializada${sufixo}`, "Trufa Industrializada", "Packaged Truffle", "Trufa Industrializada", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`cobertura_culinaria${sufixo}`, "Cobertura/Chocolate Culinário", "Chocolate Coating/Baking Chocolate", "Cobertura/Chocolate para Repostería", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  SUB(`ovo_pascoa${sufixo}`, "Ovo de Páscoa", "Chocolate Easter Egg", "Huevo de Pascua de Chocolate", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+  // Duplicata proposital do "achocolatado_po_mercearia" (mercearia_seca) —
+  // NÃO movido de lá (produto já cadastrado nele quebraria ao editar, ver
+  // nota em mercearia_seca). Este value é novo, os dois convivem.
+  SUB(`achocolatado_po${sufixo}`, "Chocolate em Pó/Achocolatado", "Powdered/Drinking Chocolate", "Chocolate en Polvo/Achocolatado", [CAMPO_VALIDADE_DATA, CAMPO_UNIDADE_VENDA]),
+];
+
 export const NICHOS_PDV: NichoPdvDef[] = [
   // ============================================================================
   // MODO PRODUTO — reaproveitam o segmento existente do Estoque (dado real)
@@ -613,6 +637,9 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("graos", "Grãos", "Grains", "Granos"), SUB("massas_mercearia", "Massas", "Pasta", "Pastas"),
         SUB("oleo_mercearia", "Óleo/Azeite", "Oil", "Aceite"), SUB("farinha", "Farinha", "Flour", "Harina"),
         SUB("acucar_adocante", "Açúcar/Adoçante", "Sugar/Sweetener", "Azúcar/Edulcorante"), SUB("sal_mercearia", "Sal", "Salt", "Sal"),
+        // Mantido tal e qual (produto pode estar cadastrado nele) — o par
+        // novo "achocolatado_po_choc_mercado" mora em "Chocolates e Doces",
+        // categoria abaixo. Duplicidade proposital, não um bug.
         SUB("cafe_mercearia", "Café", "Coffee", "Café"), SUB("achocolatado_po_mercearia", "Achocolatado em Pó", "Powdered Chocolate", "Chocolate en Polvo"),
         SUB("biscoitos_snacks", "Biscoitos e Snacks", "Cookies & Snacks", "Galletas y Snacks"),
         SUB("caldo_tempero_po_mercearia", "Caldo/Tempero em Pó", "Bouillon/Powdered Seasoning", "Caldo/Condimento en Polvo", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
@@ -631,6 +658,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("preparo_bolo_po_mercearia", "Pó para Bolo/Mistura Pronta", "Cake Mix", "Mezcla para Torta", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("mel_geleia_doce_pasta_mercearia", "Mel/Geleia/Doce em Pasta", "Honey/Jam/Spreadable Sweets", "Miel/Mermelada/Dulce en Pasta", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
       ]),
+      CAT("chocolates_doces_mercado", "Chocolates e Doces", "Chocolates & Candy", "Chocolates y Dulces", gerarSubNichosChocolatesMarca("_choc_mercado")),
       CAT("bebidas", "Bebidas", "Beverages", "Bebidas", [
         SUB("refrigerante", "Refrigerante", "Soda", "Refresco", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("cerveja", "Cerveja", "Beer", "Cerveza", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_VALIDADE_DATA]),
         SUB("agua", "Água", "Water", "Agua", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("suco", "Suco", "Juice", "Jugo", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
@@ -1046,6 +1074,11 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       CAT("confeitaria_fina", "Confeitaria Fina", "Fine Pastry", "Pastelería Fina", SUBNICHOS_PADARIA_CONFEITARIA_FINA),
       CAT("bolos_tortas", "Bolos e Tortas", "Cakes & Pies", "Tortas y Pasteles", SUBNICHOS_PADARIA_BOLOS_TORTAS),
       CAT("doces_sobremesas", "Doces e Sobremesas", "Sweets & Desserts", "Dulces y Postres", SUBNICHOS_PADARIA_DOCES_SOBREMESAS),
+      // Chocolate DE MARCA (comprado pronto — Ferrero, Lacta, Nestlé,
+      // Garoto, Hershey's), separado de propósito de "Confeitaria Fina" e
+      // "Doces e Sobremesas" acima, que são a produção ARTESANAL da própria
+      // padaria (trufa, bombom artesanal, brigadeiro gourmet).
+      CAT("chocolates_marca_padaria", "Chocolates de Marca", "Branded Chocolates", "Chocolates de Marca", gerarSubNichosChocolatesMarca("_choc_padaria")),
       CAT("cafeteria", "Café/Cafeteria", "Coffee/Café", "Café/Cafetería", SUBNICHOS_PADARIA_CAFETERIA),
       CAT("frios_laticinios_padaria", "Frios e Laticínios", "Deli & Dairy", "Fiambres y Lácteos", SUBNICHOS_PADARIA_FRIOS_LATICINIOS),
       CAT("congelados_padaria", "Congelados", "Frozen", "Congelados", SUBNICHOS_PADARIA_CONGELADOS),
