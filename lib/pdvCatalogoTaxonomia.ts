@@ -631,7 +631,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
         SUB("preparo_bolo_po_mercearia", "Pó para Bolo/Mistura Pronta", "Cake Mix", "Mezcla para Torta", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
         SUB("mel_geleia_doce_pasta_mercearia", "Mel/Geleia/Doce em Pasta", "Honey/Jam/Spreadable Sweets", "Miel/Mermelada/Dulce en Pasta", [CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
       ]),
-      CAT("bebidas", "Bebidas / Mercearia Líquida", "Beverages", "Bebidas", [
+      CAT("bebidas", "Bebidas", "Beverages", "Bebidas", [
         SUB("refrigerante", "Refrigerante", "Soda", "Refresco", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("cerveja", "Cerveja", "Beer", "Cerveza", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_VALIDADE_DATA]),
         SUB("agua", "Água", "Water", "Agua", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]), SUB("suco", "Suco", "Juice", "Jugo", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
         SUB("energetico_isotonico", "Energético/Isotônico", "Energy/Sports Drink", "Energética/Isotónica", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
