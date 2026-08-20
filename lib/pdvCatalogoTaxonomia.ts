@@ -349,6 +349,24 @@ const SUBNICHOS_PADARIA_CONGELADOS: SubNichoPdv[] = [
   SUB("polpa_fruta_congelada_padaria", "Polpa de Fruta Congelada", "Frozen Fruit Pulp", "Pulpa de Fruta Congelada", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
   SUB("pao_queijo_congelado", "Pão de Queijo Congelado (Pacote)", "Frozen Cheese Bread (Bag)", "Pan de Queso Congelado (Bolsa)", [CAMPO_PERECIVEL, CAMPO_UNIDADE_VENDA, CAMPO_VALIDADE_DATA]),
 ];
+// Bebidas de PRATELEIRA/GELADEIRA pra revenda no balcão — complementa
+// "Café/Cafeteria" acima (espresso, cappuccino, café com leite, chocolate
+// quente, suco natural, chá — bebidas FEITAS na hora, essas não mexem).
+// Todo value com sufixo "_padaria": mesmo item já existe em mercado>bebidas
+// com value diferente (refrigerante, agua, suco, cerveja, energetico_isotonico
+// etc.) — sufixo evita colisão, os dois convivem sem relação entre si.
+const SUBNICHOS_PADARIA_BEBIDAS_REVENDA: SubNichoPdv[] = [
+  SUB("refrigerante_padaria", "Refrigerante (Lata/Garrafa)", "Soda (Can/Bottle)", "Refresco (Lata/Botella)", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("agua_padaria", "Água (Mineral/Com Gás)", "Water (Still/Sparkling)", "Agua (Mineral/Con Gas)", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("suco_pronto_padaria", "Suco Pronto/Caixinha", "Ready-to-drink/Boxed Juice", "Jugo Listo/en Caja", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("agua_coco_padaria", "Água de Coco", "Coconut Water", "Agua de Coco", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("cerveja_padaria", "Cerveja (Lata/Long Neck)", "Beer (Can/Bottle)", "Cerveza (Lata/Botella)", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_TEOR_ALCOOLICO, CAMPO_VALIDADE_DATA]),
+  SUB("cha_gelado_mate_padaria", "Chá Gelado/Mate", "Iced Tea/Yerba Mate", "Té Helado/Mate", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("energetico_padaria", "Energético", "Energy Drink", "Energética", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("achocolatado_pronto_padaria", "Achocolatado Pronto/Gelado", "Ready-to-drink Chocolate Milk", "Achocolatado Listo/Frío", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("vitamina_padaria", "Vitamina (Batida de Fruta com Leite)", "Fruit & Milk Smoothie", "Vitamina (Batido de Fruta con Leche)", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+  SUB("bebida_lactea_padaria", "Bebida Láctea", "Dairy Drink", "Bebida Láctea", [CAMPO_PERECIVEL, CAMPO_VOLUME, CAMPO_VALIDADE_DATA]),
+];
 
 // ============================================================================
 // SUB-NICHOS COMPARTILHADOS — Hortifruti: fonte única entre a categoria
@@ -1080,6 +1098,7 @@ export const NICHOS_PDV: NichoPdvDef[] = [
       // padaria (trufa, bombom artesanal, brigadeiro gourmet).
       CAT("chocolates_marca_padaria", "Chocolates de Marca", "Branded Chocolates", "Chocolates de Marca", gerarSubNichosChocolatesMarca("_choc_padaria")),
       CAT("cafeteria", "Café/Cafeteria", "Coffee/Café", "Café/Cafetería", SUBNICHOS_PADARIA_CAFETERIA),
+      CAT("bebidas_padaria", "Bebidas", "Beverages", "Bebidas", SUBNICHOS_PADARIA_BEBIDAS_REVENDA),
       CAT("frios_laticinios_padaria", "Frios e Laticínios", "Deli & Dairy", "Fiambres y Lácteos", SUBNICHOS_PADARIA_FRIOS_LATICINIOS),
       CAT("congelados_padaria", "Congelados", "Frozen", "Congelados", SUBNICHOS_PADARIA_CONGELADOS),
     ],
