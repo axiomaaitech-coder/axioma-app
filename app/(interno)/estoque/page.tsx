@@ -649,7 +649,8 @@ export default function EstoquePage() {
 
   async function excluirProdutoHandler(produto: Produto) {
     if (!confirm(`${et.confirmarExclusaoProduto} "${produto.nome}"?`)) return;
-    const { erro, inativadoEmVezDeExcluir } = await excluirProduto(produto.id);
+    const { erro, inativadoEmVezDeExcluir, temVenda } = await excluirProduto(produto.id);
+    if (temVenda) { mostrarToast(et.toastProdutoTemVenda, "erro"); return; }
     if (erro) { mostrarToast(erro, "erro"); return; }
     mostrarToast(inativadoEmVezDeExcluir ? et.toastProdutoInativado : et.toastProdutoExcluido, "info");
     carregarProdutos();

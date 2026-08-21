@@ -117,6 +117,20 @@ export async function listarProdutosPdv(empresaId: string, filtro: FiltroProduto
 }
 
 // ============================================================================
+// TELA "PRODUTOS CADASTRADOS" — lista completa (sem paginação) pra montar a
+// árvore nicho→categoria→sub-nicho agrupada no cliente. Teto generoso (5000)
+// no mesmo espírito column-only/com limite das funções acima; dono/admin só,
+// nunca a fonte vw_produtos_seguro do operador (esta tela não é dele).
+// ============================================================================
+export async function listarTodosProdutosPdv(empresaId: string): Promise<ProdutoPdv[]> {
+  const { data, error } = await supabase.from("produtos").select(COLUNAS_SEGURAS)
+    .eq("empresa_id", empresaId).eq("status", "ativo")
+    .order("nome", { ascending: true }).limit(5000);
+  if (error) return [];
+  return (data as unknown as ProdutoPdv[]) || [];
+}
+
+// ============================================================================
 // FASE 2 — CADASTRO: cascata (camada 3, IA) + checagem de duplicidade
 // ============================================================================
 

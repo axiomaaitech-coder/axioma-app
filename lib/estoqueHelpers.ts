@@ -211,9 +211,15 @@ export async function atualizarProduto(id: string, dados: Partial<Produto>): Pro
   return {};
 }
 
-// Exclusão real só é segura sem movimentação nenhuma (senão perde a base do
-// CMV histórico). Com movimentação, inativa em vez de apagar.
-export async function excluirProduto(id: string): Promise<{ erro?: string; inativadoEmVezDeExcluir?: boolean }> {
+// Produto com venda registrada nunca é excluído nem inativado por aqui — tem
+// que continuar visível/rastreável pro histórico fiscal (item_venda.produto_id
+// é RESTRICT no banco, ver PDV-FASE3-ETAPA1-VENDAS-SQL.sql; checar antes evita
+// o erro cru de foreign key chegando na tela). Exclusão real só é segura sem
+// movimentação nenhuma (senão perde a base do CMV histórico); com
+// movimentação mas sem venda, inativa em vez de apagar.
+export async function excluirProduto(id: string): Promise<{ erro?: string; inativadoEmVezDeExcluir?: boolean; temVenda?: boolean }> {
+  const { count: countVenda } = await supabase.from("item_venda").select("id", { count: "exact", head: true }).eq("produto_id", id);
+  if ((countVenda || 0) > 0) return { temVenda: true };
   const { count } = await supabase.from("estoque_movimentacoes").select("id", { count: "exact", head: true }).eq("produto_id", id);
   if ((count || 0) > 0) {
     const { error } = await supabase.from("produtos").update({ status: "inativo" }).eq("id", id);

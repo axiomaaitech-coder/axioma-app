@@ -76,6 +76,12 @@ const txt = {
     es: "\"{nome}\" ya tiene movimientos — marcado como inactivo en lugar de eliminado.",
   },
   erroExcluir: { pt: "Não foi possível excluir. Tente novamente.", en: "Could not delete. Try again.", es: "No se pudo eliminar. Intente de nuevo." },
+  produtoTemVenda: {
+    pt: "Não é possível excluir \"{nome}\" — já tem venda registrada.",
+    en: "Cannot delete \"{nome}\" — it already has a sale registered.",
+    es: "No se puede eliminar \"{nome}\" — ya tiene una venta registrada.",
+  },
+  produtosCadastrados: { pt: "Produtos Cadastrados", en: "Registered Products", es: "Productos Registrados" },
 };
 
 type Nivel = "nicho" | "categoria" | "subnicho" | "produtos";
@@ -178,7 +184,8 @@ export default function PDV() {
 
   async function excluirProdutoHandler(produto: ProdutoPdv) {
     if (!confirm(t("confirmarExclusao", lang, { nome: produto.nome }))) return;
-    const { erro: erroExclusao, inativadoEmVezDeExcluir } = await excluirProduto(produto.id);
+    const { erro: erroExclusao, inativadoEmVezDeExcluir, temVenda } = await excluirProduto(produto.id);
+    if (temVenda) { mostrarToast(t("produtoTemVenda", lang, { nome: produto.nome }), "erro"); return; }
     if (erroExclusao) { mostrarToast(t("erroExcluir", lang), "erro"); return; }
     mostrarToast(
       inativadoEmVezDeExcluir ? t("produtoInativado", lang, { nome: produto.nome }) : t("produtoExcluido", lang, { nome: produto.nome }),
@@ -439,6 +446,10 @@ function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
       <Link href="/pdv/venda" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
         style={{ background: "transparent", color: tokens.cardTexto, border: `1px solid ${tokens.cardTexto}` }}>
         {t("frenteDeCaixa", lang)}
+      </Link>
+      <Link href="/pdv/produtos" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
+        style={{ background: "transparent", color: tokens.cardTexto, border: `1px solid ${tokens.cardTexto}` }}>
+        {t("produtosCadastrados", lang)}
       </Link>
     </>
   );
