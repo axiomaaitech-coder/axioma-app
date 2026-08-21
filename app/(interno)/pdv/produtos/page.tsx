@@ -1,44 +1,42 @@
 "use client";
-// 🦅 AXIOMA AI.TECH — PDV: "Produtos Cadastrados" — visão plana de TODO o
-// catálogo da empresa, agrupada por nicho→categoria→sub-nicho (mesmas 3
-// colunas da taxonomia curada, ver lib/pdvCatalogoTaxonomia.ts), pensada pra
-// achar/editar/excluir um produto sem precisar navegar nicho por nicho como
-// o Catálogo (app/(interno)/pdv/page.tsx) já faz. Reaproveita 100%: o mesmo
-// formulário de cadastro (/pdv/cadastro?id=) pra editar, o mesmo
-// excluirProduto() (lib/estoqueHelpers.ts) pra excluir — nenhuma lógica nova
-// de venda/turno/finalizar, nenhuma mudança na navegação por nicho existente.
+// 🦅 AXIOMA AI.TECH — PDV: "Produtos Cadastrados" — mesmo padrão visual de
+// navegação por cards do Catálogo (app/(interno)/pdv/page.tsx: nicho →
+// categoria → sub-nicho, breadcrumb, grid), reaproveitado via
+// components/PdvCatalogoNav.tsx (nenhum JSX duplicado entre os dois). A
+// diferença: aqui só aparece nicho/categoria/sub-nicho que TEM produto (o
+// Catálogo mostra a árvore curada inteira, vazia ou não, porque é de lá que
+// se cadastra um produto novo em uma categoria ainda sem nada) — e cada
+// produto já vem com editar/excluir, sem formulário de cadastro embutido.
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, Search, Loader2, Pencil, Trash2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
 import { excluirProduto } from "../../../../lib/estoqueHelpers";
-import { buscarNicho } from "../../../../lib/pdvCatalogoTaxonomia";
-import { listarTodosProdutosPdv, type ProdutoPdv } from "../../../../lib/pdvHelpers";
-
-// Preço por unidade precisa de 2 casas SEMPRE — fBRL (lib/cfoCore.ts) é pra
-// totais agregados grandes (arredonda pro real cheio de propósito), errado
-// aqui. Mesmo moeda() local que app/(interno)/pdv/page.tsx e
-// app/(interno)/pdv/venda/page.tsx já usam pro mesmo tipo de campo.
-function moeda(v: number): string {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+import { buscarNicho, type NichoPdvDef } from "../../../../lib/pdvCatalogoTaxonomia";
+import { listarTodosProdutosPdv, SEM_SUBNICHO, type ProdutoPdv } from "../../../../lib/pdvHelpers";
+import {
+  EstadoCarregando, AvisoErro, Breadcrumb, CartaoNicho, BotaoSimples, EstadoVazio, LinhaProduto,
+  type NivelCatalogo,
+} from "../../../../components/PdvCatalogoNav";
 
 const txt = {
   titulo: { pt: "PDV — Produtos Cadastrados", en: "POS — Registered Products", es: "PDV — Productos Registrados" },
   subtitulo: {
-    pt: "Veja, edite ou exclua qualquer produto do seu catálogo.",
-    en: "View, edit or delete any product in your catalog.",
-    es: "Vea, edite o elimine cualquier producto de su catálogo.",
+    pt: "Navegue por nicho, categoria e sub-nicho — só aparece onde tem produto.",
+    en: "Browse by niche, category and sub-niche — only where products exist.",
+    es: "Navegue por nicho, categoría y sub-nicho — solo donde hay productos.",
   },
   carregando: { pt: "Carregando…", en: "Loading…", es: "Cargando…" },
   buscarPlaceholder: { pt: "Buscar por nome ou código de barras…", en: "Search by name or barcode…", es: "Buscar por nombre o código de barras…" },
   totalProdutos: { pt: "{n} produto(s) cadastrado(s)", en: "{n} registered product(s)", es: "{n} producto(s) registrado(s)" },
+  resultadosBusca: { pt: "{n} resultado(s) para \"{termo}\"", en: "{n} result(s) for \"{termo}\"", es: "{n} resultado(s) para \"{termo}\"" },
   semProdutos: { pt: "Nenhum produto cadastrado ainda.", en: "No products registered yet.", es: "Ningún producto registrado todavía." },
   semResultadoBusca: { pt: "Nenhum produto encontrado para essa busca.", en: "No product found for this search.", es: "Ningún producto encontrado para esta búsqueda." },
+  nichos: { pt: "Nichos", en: "Niches", es: "Nichos" },
   semCategoria: { pt: "Sem categoria definida", en: "No category defined", es: "Sin categoría definida" },
   semSubNicho: { pt: "Sem sub-nicho definido", en: "No sub-niche defined", es: "Sin sub-nicho definido" },
   estoqueDisponivel: { pt: "em estoque", en: "in stock", es: "en stock" },
@@ -73,62 +71,6 @@ function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string |
 }
 
 const SEM_CATEGORIA = "__sem_categoria__";
-const SEM_SUB = "__sem_sub__";
-
-type SubGrupo = { chave: string; label: string; produtos: ProdutoPdv[] };
-type CategoriaGrupo = { chave: string; label: string; subs: SubGrupo[]; total: number };
-type NichoGrupo = { chave: string; label: string; categorias: CategoriaGrupo[]; total: number };
-
-// Agrupa em 3 níveis reaproveitando as MESMAS colunas do Catálogo (segmento,
-// categoria, subcategoria — ver lib/pdvHelpers.ts). `produtos` já chega
-// ordenado por nome da consulta (listarTodosProdutosPdv), e filter/Map
-// preservam essa ordem — nenhum resort de produto dentro do grupo é preciso,
-// só os RÓTULOS de nicho/categoria/sub-nicho são ordenados alfabeticamente.
-function montarArvore(produtos: ProdutoPdv[], lang: Idioma): NichoGrupo[] {
-  const porNicho = new Map<string, ProdutoPdv[]>();
-  for (const p of produtos) {
-    const seg = p.segmento || "";
-    if (!porNicho.has(seg)) porNicho.set(seg, []);
-    porNicho.get(seg)!.push(p);
-  }
-
-  const nichos: NichoGrupo[] = [];
-  for (const [seg, prodsNicho] of porNicho) {
-    const nichoLabel = buscarNicho(seg)?.label[lang] || seg || "—";
-
-    const porCategoria = new Map<string, ProdutoPdv[]>();
-    for (const p of prodsNicho) {
-      const cat = (p.categoria || "").trim() || SEM_CATEGORIA;
-      if (!porCategoria.has(cat)) porCategoria.set(cat, []);
-      porCategoria.get(cat)!.push(p);
-    }
-
-    const categorias: CategoriaGrupo[] = [];
-    for (const [cat, prodsCat] of porCategoria) {
-      const catLabel = cat === SEM_CATEGORIA ? t("semCategoria", lang) : cat;
-
-      const porSub = new Map<string, ProdutoPdv[]>();
-      for (const p of prodsCat) {
-        const sub = (p.subcategoria || "").trim() || SEM_SUB;
-        if (!porSub.has(sub)) porSub.set(sub, []);
-        porSub.get(sub)!.push(p);
-      }
-
-      const subs: SubGrupo[] = Array.from(porSub, ([sub, prodsSub]) => ({
-        chave: `${seg}|${cat}|${sub}`,
-        label: sub === SEM_SUB ? t("semSubNicho", lang) : sub,
-        produtos: prodsSub,
-      })).sort((a, b) => a.label.localeCompare(b.label, lang));
-
-      categorias.push({ chave: `${seg}|${cat}`, label: catLabel, subs, total: prodsCat.length });
-    }
-    categorias.sort((a, b) => a.label.localeCompare(b.label, lang));
-
-    nichos.push({ chave: seg, label: nichoLabel, categorias, total: prodsNicho.length });
-  }
-  nichos.sort((a, b) => a.label.localeCompare(b.label, lang));
-  return nichos;
-}
 
 export default function PdvProdutosCadastrados() {
   const { idioma } = useLanguage();
@@ -144,9 +86,13 @@ export default function PdvProdutosCadastrados() {
   const [carregandoProdutos, setCarregandoProdutos] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  const [nivel, setNivel] = useState<NivelCatalogo>("nicho");
+  const [nichoSel, setNichoSel] = useState<NichoPdvDef | null>(null);
+  const [categoriaSel, setCategoriaSel] = useState<string | null>(null);
+  const [subNichoSel, setSubNichoSel] = useState<string | null>(null);
+
   const [busca, setBusca] = useState("");
   const [buscaDebounced, setBuscaDebounced] = useState("");
-  const [expandido, setExpandido] = useState<Set<string>>(new Set());
   const [produtoParaExcluir, setProdutoParaExcluir] = useState<ProdutoPdv | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
@@ -158,6 +104,8 @@ export default function PdvProdutosCadastrados() {
 
   useEffect(() => {
     (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setCarregandoPapel(false); return; }
       const id = await obterEmpresaAtiva();
       setEmpresaId(id);
       if (!id) { setCarregandoPapel(false); return; }
@@ -186,23 +134,80 @@ export default function PdvProdutosCadastrados() {
     return () => clearTimeout(timer);
   }, [busca]);
 
-  const produtosFiltrados = useMemo(() => {
-    const termo = buscaDebounced.trim().toLowerCase();
-    if (!termo) return produtos;
-    return produtos.filter((p) => p.nome.toLowerCase().includes(termo) || (p.codigo_barras || "").toLowerCase().includes(termo));
-  }, [produtos, buscaDebounced]);
-
-  const arvore = useMemo(() => montarArvore(produtosFiltrados, lang), [produtosFiltrados, lang]);
   const buscaAtiva = buscaDebounced.trim().length > 0;
+  const resultadosBusca = useMemo(() => {
+    if (!buscaAtiva) return [];
+    const termo = buscaDebounced.trim().toLowerCase();
+    return produtos.filter((p) => p.nome.toLowerCase().includes(termo) || (p.codigo_barras || "").toLowerCase().includes(termo));
+  }, [produtos, buscaDebounced, buscaAtiva]);
 
-  function alternarExpandido(chave: string) {
-    setExpandido((prev) => {
-      const next = new Set(prev);
-      if (next.has(chave)) next.delete(chave); else next.add(chave);
-      return next;
+  // ── Cards de nicho: só quem tem produto, contagem tirada dos produtos já
+  // carregados (nunca uma query à parte — é o mesmo dado, reagregar no
+  // cliente aqui é mais barato que ir de novo no banco). ──
+  const nichosComProduto = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const p of produtos) { const seg = p.segmento || ""; mapa.set(seg, (mapa.get(seg) || 0) + 1); }
+    const lista: { nicho: NichoPdvDef; qtd: number }[] = [];
+    for (const [seg, qtd] of mapa) { const n = buscarNicho(seg); if (n) lista.push({ nicho: n, qtd }); }
+    return lista.sort((a, b) => a.nicho.label[lang].localeCompare(b.nicho.label[lang], lang));
+  }, [produtos, lang]);
+
+  const categoriasComProduto = useMemo(() => {
+    if (!nichoSel) return [];
+    const mapa = new Map<string, number>();
+    for (const p of produtos) {
+      if ((p.segmento || "") !== nichoSel.value) continue;
+      const cat = (p.categoria || "").trim() || SEM_CATEGORIA;
+      mapa.set(cat, (mapa.get(cat) || 0) + 1);
+    }
+    return Array.from(mapa, ([valor, qtd]) => ({ valor, label: valor === SEM_CATEGORIA ? t("semCategoria", lang) : valor, qtd }))
+      .sort((a, b) => a.label.localeCompare(b.label, lang));
+  }, [produtos, nichoSel, lang]);
+
+  const subNichosComProduto = useMemo(() => {
+    if (!nichoSel || !categoriaSel) return [];
+    const mapa = new Map<string, number>();
+    for (const p of produtos) {
+      if ((p.segmento || "") !== nichoSel.value) continue;
+      const cat = (p.categoria || "").trim() || SEM_CATEGORIA;
+      if (cat !== categoriaSel) continue;
+      const sub = (p.subcategoria || "").trim() || SEM_SUBNICHO;
+      mapa.set(sub, (mapa.get(sub) || 0) + 1);
+    }
+    return Array.from(mapa, ([valor, qtd]) => ({ valor, label: valor === SEM_SUBNICHO ? t("semSubNicho", lang) : valor, qtd }))
+      .sort((a, b) => a.label.localeCompare(b.label, lang));
+  }, [produtos, nichoSel, categoriaSel, lang]);
+
+  const produtosDoGrupo = useMemo(() => {
+    if (!nichoSel || !categoriaSel || !subNichoSel) return [];
+    return produtos.filter((p) => {
+      if ((p.segmento || "") !== nichoSel.value) return false;
+      const cat = (p.categoria || "").trim() || SEM_CATEGORIA;
+      if (cat !== categoriaSel) return false;
+      const sub = (p.subcategoria || "").trim() || SEM_SUBNICHO;
+      return sub === subNichoSel;
     });
+  }, [produtos, nichoSel, categoriaSel, subNichoSel]);
+
+  function abrirNicho(nicho: NichoPdvDef) { setNichoSel(nicho); setCategoriaSel(null); setSubNichoSel(null); setNivel("categoria"); }
+  function abrirCategoria(categoria: string) { setCategoriaSel(categoria); setSubNichoSel(null); setNivel("subnicho"); }
+  function abrirSubNicho(sub: string) { setSubNichoSel(sub); setNivel("produtos"); }
+
+  function voltarPara(destino: NivelCatalogo) {
+    setErro(null);
+    if (destino === "nicho") { setNichoSel(null); setCategoriaSel(null); setSubNichoSel(null); setNivel("nicho"); }
+    else if (destino === "categoria") { setCategoriaSel(null); setSubNichoSel(null); setNivel("categoria"); }
+    else if (destino === "subnicho") { setSubNichoSel(null); setNivel("subnicho"); }
   }
-  const estaExpandido = (chave: string) => buscaAtiva || expandido.has(chave);
+
+  // Seta de voltar do topo — sobe exatamente um nível, mesmo princípio do
+  // Catálogo (app/(interno)/pdv/page.tsx: handleSetaTopo). Só na raiz sai da tela.
+  function handleSetaTopo() {
+    if (nivel === "categoria") { voltarPara("nicho"); return; }
+    if (nivel === "subnicho") { voltarPara("categoria"); return; }
+    if (nivel === "produtos") { voltarPara("subnicho"); return; }
+    router.push("/pdv");
+  }
 
   async function confirmarExclusao() {
     if (!produtoParaExcluir) return;
@@ -218,38 +223,77 @@ export default function PdvProdutosCadastrados() {
     setProdutos((lista) => lista.filter((p) => p.id !== produtoParaExcluir.id));
   }
 
+  const rotulos = {
+    estoqueLabel: t("estoqueDisponivel", lang), precoNaoDefinidoLabel: t("precoNaoDefinido", lang),
+    editarLabel: t("editar", lang), excluirLabel: t("excluir", lang),
+  };
+
   if (carregandoPapel || papel === "operador") {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
-        <EstadoCarregando lang={lang} />
+        <EstadoCarregando texto={t("carregando", lang)} />
       </PdvLayout>
     );
   }
 
   return (
-    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv">
-      {erro && <AvisoErro texto={erro} />}
-
+    <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} aoVoltar={handleSetaTopo}>
       <BarraBusca lang={lang} busca={busca} onBusca={setBusca} />
 
+      {erro && <AvisoErro texto={erro} />}
+
       {carregandoProdutos ? (
-        <EstadoCarregando lang={lang} />
+        <EstadoCarregando texto={t("carregando", lang)} />
       ) : produtos.length === 0 ? (
         <EstadoVazio texto={t("semProdutos", lang)} />
-      ) : (
+      ) : buscaAtiva ? (
         <>
-          <ResumoTotal lang={lang} total={produtos.length} />
-          {arvore.length === 0 ? (
+          <p className="text-xs mb-3" style={{ opacity: 0.7 }}>{t("resultadosBusca", lang, { n: resultadosBusca.length, termo: buscaDebounced.trim() })}</p>
+          {resultadosBusca.length === 0 ? (
             <EstadoVazio texto={t("semResultadoBusca", lang)} />
           ) : (
             <div className="space-y-2">
-              {arvore.map((nicho) => (
-                <GrupoNicho
-                  key={nicho.chave} grupo={nicho} lang={lang}
-                  expandido={estaExpandido} onToggle={alternarExpandido}
-                  onExcluir={setProdutoParaExcluir}
-                />
+              {resultadosBusca.map((p) => <LinhaProduto key={p.id} produto={p} onExcluir={setProdutoParaExcluir} {...rotulos} />)}
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <Breadcrumb
+            lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel}
+            nichosLabel={t("nichos", lang)} semSubNichoLabel={t("semSubNicho", lang)} semSubNichoValor={SEM_SUBNICHO}
+            semCategoriaLabel={t("semCategoria", lang)} semCategoriaValor={SEM_CATEGORIA}
+            onVoltar={voltarPara}
+          />
+          <p className="text-xs mb-3" style={{ opacity: 0.7 }}>{t("totalProdutos", lang, { n: produtos.length })}</p>
+
+          {nivel === "nicho" && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {nichosComProduto.map(({ nicho, qtd }) => (
+                <CartaoNicho key={nicho.value} nicho={nicho} lang={lang} qtd={qtd} onClick={() => abrirNicho(nicho)} />
               ))}
+            </div>
+          )}
+
+          {nivel === "categoria" && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {categoriasComProduto.map((c) => (
+                <BotaoSimples key={c.valor} label={c.label} qtd={c.qtd} onClick={() => abrirCategoria(c.valor)} apagado={c.valor === SEM_CATEGORIA} />
+              ))}
+            </div>
+          )}
+
+          {nivel === "subnicho" && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {subNichosComProduto.map((s) => (
+                <BotaoSimples key={s.valor} label={s.label} qtd={s.qtd} onClick={() => abrirSubNicho(s.valor)} apagado={s.valor === SEM_SUBNICHO} />
+              ))}
+            </div>
+          )}
+
+          {nivel === "produtos" && (
+            <div className="space-y-2">
+              {produtosDoGrupo.map((p) => <LinhaProduto key={p.id} produto={p} onExcluir={setProdutoParaExcluir} {...rotulos} />)}
             </div>
           )}
         </>
@@ -272,47 +316,6 @@ export default function PdvProdutosCadastrados() {
   );
 }
 
-// ============================================================================
-// SUBCOMPONENTES — cada um lê o próprio tema via useTemaPdv() (só funciona
-// corretamente sendo componente próprio, renderizado dentro da árvore do
-// PdvLayout/Provider — mesmo padrão de app/(interno)/pdv/page.tsx).
-// ============================================================================
-
-function EstadoCarregando({ lang }: { lang: Idioma }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
-      <Loader2 className="animate-spin" size={18} />
-      <span className="text-sm">{t("carregando", lang)}</span>
-    </div>
-  );
-}
-
-function AvisoErro({ texto }: { texto: string }) {
-  const { tema } = useTemaPdv();
-  const claro = tema !== "escuro";
-  return (
-    <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-      style={{ background: claro ? "rgba(220,38,38,0.08)" : "rgba(239,68,68,0.12)", color: claro ? "#b91c1c" : "#fca5a5", border: `1px solid ${claro ? "rgba(220,38,38,0.25)" : "rgba(239,68,68,0.3)"}` }}>
-      {texto}
-    </div>
-  );
-}
-
-function EstadoVazio({ texto }: { texto: string }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="flex items-center justify-center py-16 px-4 text-center">
-      <p className="text-sm" style={{ color: tokens.textoSecundario }}>{texto}</p>
-    </div>
-  );
-}
-
-function ResumoTotal({ lang, total }: { lang: Idioma; total: number }) {
-  const { tokens } = useTemaPdv();
-  return <p className="text-xs mb-3" style={{ color: tokens.textoMuted }}>{t("totalProdutos", lang, { n: total })}</p>;
-}
-
 function BarraBusca({ lang, busca, onBusca }: { lang: Idioma; busca: string; onBusca: (v: string) => void }) {
   const { tokens } = useTemaPdv();
   return (
@@ -325,103 +328,6 @@ function BarraBusca({ lang, busca, onBusca }: { lang: Idioma; busca: string; onB
         className="bg-transparent outline-none text-sm flex-1"
         style={{ color: tokens.inputTexto }}
       />
-    </div>
-  );
-}
-
-function CabecalhoGrupo({ label, total, nivel, onClick, expandido }: {
-  label: string; total: number; nivel: 0 | 1 | 2; onClick: () => void; expandido: boolean;
-}) {
-  const { tokens } = useTemaPdv();
-  const tamanhos = ["text-sm font-bold", "text-sm font-semibold", "text-xs font-semibold"] as const;
-  return (
-    <button onClick={onClick}
-      className="w-full flex items-center gap-1.5 py-2.5 px-2 rounded-lg text-left"
-      style={{ marginLeft: nivel * 16 }}>
-      {expandido ? <ChevronDown size={14} style={{ color: tokens.acento }} /> : <ChevronRight size={14} style={{ color: tokens.acento }} />}
-      <span className={tamanhos[nivel]} style={{ color: tokens.cardTexto }}>{label}</span>
-      <span className="text-xs" style={{ color: tokens.textoMuted }}>({total})</span>
-    </button>
-  );
-}
-
-function GrupoNicho({ grupo, lang, expandido, onToggle, onExcluir }: {
-  grupo: NichoGrupo; lang: Idioma; expandido: (chave: string) => boolean; onToggle: (chave: string) => void; onExcluir: (p: ProdutoPdv) => void;
-}) {
-  const { tokens } = useTemaPdv();
-  const aberto = expandido(grupo.chave);
-  return (
-    <div className="rounded-xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <CabecalhoGrupo label={grupo.label} total={grupo.total} nivel={0} onClick={() => onToggle(grupo.chave)} expandido={aberto} />
-      {aberto && (
-        <div className="pb-2">
-          {grupo.categorias.map((cat) => (
-            <GrupoCategoria key={cat.chave} grupo={cat} lang={lang} expandido={expandido} onToggle={onToggle} onExcluir={onExcluir} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GrupoCategoria({ grupo, lang, expandido, onToggle, onExcluir }: {
-  grupo: CategoriaGrupo; lang: Idioma; expandido: (chave: string) => boolean; onToggle: (chave: string) => void; onExcluir: (p: ProdutoPdv) => void;
-}) {
-  const aberto = expandido(grupo.chave);
-  return (
-    <div>
-      <CabecalhoGrupo label={grupo.label} total={grupo.total} nivel={1} onClick={() => onToggle(grupo.chave)} expandido={aberto} />
-      {aberto && (
-        <div>
-          {grupo.subs.map((sub) => (
-            <GrupoSub key={sub.chave} grupo={sub} lang={lang} expandido={expandido} onToggle={onToggle} onExcluir={onExcluir} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function GrupoSub({ grupo, lang, expandido, onToggle, onExcluir }: {
-  grupo: SubGrupo; lang: Idioma; expandido: (chave: string) => boolean; onToggle: (chave: string) => void; onExcluir: (p: ProdutoPdv) => void;
-}) {
-  const aberto = expandido(grupo.chave);
-  return (
-    <div>
-      <CabecalhoGrupo label={grupo.label} total={grupo.produtos.length} nivel={2} onClick={() => onToggle(grupo.chave)} expandido={aberto} />
-      {aberto && (
-        <div className="space-y-2 px-2 pb-2" style={{ marginLeft: 48 }}>
-          {grupo.produtos.map((p) => (
-            <LinhaProduto key={p.id} produto={p} lang={lang} onExcluir={onExcluir} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LinhaProduto({ produto, lang, onExcluir }: { produto: ProdutoPdv; lang: Idioma; onExcluir: (p: ProdutoPdv) => void }) {
-  const { tokens } = useTemaPdv();
-  const preco = produto.preco_venda ?? produto.preco_sugerido;
-  return (
-    <div className="flex items-center justify-between gap-3 p-3 rounded-xl flex-wrap" style={{ background: tokens.fundoContainer, border: `1px solid ${tokens.bordaContainer}` }}>
-      <div className="min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: tokens.cardTexto }}>{produto.nome}</p>
-        <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.72 }}>
-          {produto.codigo_barras || produto.sku || "—"} · {produto.saldo_disponivel} {t("estoqueDisponivel", lang)}
-        </p>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm font-bold" style={{ color: tokens.cardTexto, opacity: preco ? 1 : 0.6 }}>
-          {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
-        </span>
-        <a href={`/pdv/cadastro?id=${produto.id}`} title={t("editar", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
-          <Pencil size={14} />
-        </a>
-        <button onClick={() => onExcluir(produto)} title={t("excluir", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
-          <Trash2 size={14} />
-        </button>
-      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Search, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import PdvLayout, { useTemaPdv } from "../../../components/PdvLayout";
@@ -18,6 +18,10 @@ import {
   PDV_PAGE_SIZE, type ProdutoPdv,
 } from "../../../lib/pdvHelpers";
 import { FormularioCadastroPdv, encontrarCategoriaPorLabel, encontrarSubNichoPorLabel } from "../../../components/PdvCadastroProduto";
+import {
+  EstadoCarregando, AvisoErro, Breadcrumb, CartaoNicho, ListaCarregavel, BotaoSimples, EstadoVazio, LinhaProduto,
+  type NivelCatalogo,
+} from "../../../components/PdvCatalogoNav";
 
 // Botões de ação e preço usam tokens.acaoBg/acento (verde só sobrevive no
 // tema escuro, via tokens — ver components/PdvLayout.tsx). Nenhuma cor fixa
@@ -84,18 +88,13 @@ const txt = {
   produtosCadastrados: { pt: "Produtos Cadastrados", en: "Registered Products", es: "Productos Registrados" },
 };
 
-type Nivel = "nicho" | "categoria" | "subnicho" | "produtos";
+type Nivel = NivelCatalogo;
 type FiltroDivisao = "todos" | DivisaoPrimaria;
 
 function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string | number>): string {
   let s = txt[chave][lang];
   if (vars) for (const k of Object.keys(vars)) s = s.replace(`{${k}}`, String(vars[k]));
   return s;
-}
-
-function moeda(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "—";
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 const ORDEM_MODO: ModoNicho[] = ["produto", "misto", "servico"];
@@ -318,7 +317,7 @@ export default function PDV() {
   if (carregandoPapel || papel === "operador") {
     return (
       <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/dashboard">
-        <EstadoCarregando lang={lang} />
+        <EstadoCarregando texto={t("carregando", lang)} />
       </PdvLayout>
     );
   }
@@ -328,7 +327,8 @@ export default function PDV() {
       titulo={tituloAtual} subtitulo={subtituloAtual} aoVoltar={handleSetaTopo}
       botaoExtra={<BotoesHeader lang={lang} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} />}
     >
-      <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel} onVoltar={voltarPara} />
+      <Breadcrumb lang={lang} nivel={nivel} nichoSel={nichoSel} categoriaSel={categoriaSel} subNichoSel={subNichoSel}
+        nichosLabel={t("nichos", lang)} semSubNichoLabel={t("semSubNicho", lang)} semSubNichoValor={SEM_SUBNICHO} onVoltar={voltarPara} />
 
       {erro && <AvisoErro texto={erro} />}
 
@@ -406,16 +406,6 @@ export default function PDV() {
 // PdvLayout/Provider, diferente de JSX solto no corpo de PDV()).
 // ============================================================================
 
-function EstadoCarregando({ lang }: { lang: Idioma }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
-      <Loader2 className="animate-spin" size={18} />
-      <span className="text-sm">{t("carregando", lang)}</span>
-    </div>
-  );
-}
-
 function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
   lang: Idioma; nichoSel: NichoPdvDef | null; categoriaSel: string | null; subNichoSel: string | null;
 }) {
@@ -452,17 +442,6 @@ function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
         {t("produtosCadastrados", lang)}
       </Link>
     </>
-  );
-}
-
-function AvisoErro({ texto }: { texto: string }) {
-  const { tema } = useTemaPdv();
-  const claro = tema !== "escuro";
-  return (
-    <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-      style={{ background: claro ? "rgba(220,38,38,0.08)" : "rgba(239,68,68,0.12)", color: claro ? "#b91c1c" : "#fca5a5", border: `1px solid ${claro ? "rgba(220,38,38,0.25)" : "rgba(239,68,68,0.3)"}` }}>
-      {texto}
-    </div>
   );
 }
 
@@ -510,65 +489,6 @@ function SecaoNichos({ lang, filtroDivisao, onFiltroChange, nichosPorModo, qtdPo
       )}
     </div>
   );
-}
-
-function Breadcrumb({ lang, nivel, nichoSel, categoriaSel, subNichoSel, onVoltar }: {
-  lang: Idioma; nivel: Nivel; nichoSel: NichoPdvDef | null; categoriaSel: string | null; subNichoSel: string | null;
-  onVoltar: (destino: Nivel) => void;
-}) {
-  const { tokens } = useTemaPdv();
-  if (nivel === "nicho") return null;
-  const itens: { label: string; destino: Nivel | null }[] = [
-    { label: t("nichos", lang), destino: "nicho" },
-  ];
-  if (nichoSel) itens.push({ label: nichoSel.label[lang], destino: nichoSel.categorias.length ? "categoria" : null });
-  if (categoriaSel) itens.push({ label: categoriaSel, destino: "subnicho" });
-  if (subNichoSel) itens.push({ label: subNichoSel === SEM_SUBNICHO ? t("semSubNicho", lang) : subNichoSel, destino: null });
-
-  return (
-    <div className="flex items-center flex-wrap gap-1 mb-4 text-xs">
-      {itens.map((item, i) => (
-        <span key={i} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight size={12} style={{ color: tokens.textoMuted }} />}
-          {item.destino ? (
-            <button onClick={() => onVoltar(item.destino!)} className="hover:underline font-medium" style={{ color: tokens.acento }}>{item.label}</button>
-          ) : (
-            <span style={{ color: tokens.textoSecundario }}>{item.label}</span>
-          )}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: Idioma; qtd: number; onClick: () => void }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px]"
-      style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
-    >
-      <span className="text-sm font-semibold" style={{ color: tokens.cardTexto }}>{nicho.label[lang]}</span>
-      {qtd > 0 && <span className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{qtd}</span>}
-    </motion.button>
-  );
-}
-
-function ListaCarregavel({ carregando, children }: { carregando: boolean; children: React.ReactNode }) {
-  const { tokens } = useTemaPdv();
-  if (carregando) {
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="animate-pulse h-16 rounded-xl" style={{ background: tokens.cardBg, opacity: 0.4 }} />
-        ))}
-      </div>
-    );
-  }
-  return <>{children}</>;
 }
 
 function GradeCategorias({ lang, nicho, categoriasReais, onSelecionar }: {
@@ -641,35 +561,6 @@ function GradeSubNichos({ lang, nicho, categoria, subNichosReais, onSelecionar }
   );
 }
 
-function BotaoSimples({ label, onClick, apagado }: { label: string; onClick: () => void; apagado?: boolean }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      onClick={onClick}
-      className="p-3.5 rounded-xl text-left text-sm font-medium min-h-[52px]"
-      style={{
-        background: apagado ? tokens.fundoContainer : tokens.cardBg,
-        border: `1px solid ${apagado ? tokens.bordaContainer : tokens.cardBorda}`,
-        color: apagado ? tokens.textoMuted : tokens.cardTexto,
-      }}
-    >
-      {label}
-    </motion.button>
-  );
-}
-
-function EstadoVazio({ texto, dica }: { texto: string; dica?: string }) {
-  const { tokens } = useTemaPdv();
-  return (
-    <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-1">
-      <p className="text-sm" style={{ color: tokens.textoSecundario }}>{texto}</p>
-      {dica && <p className="text-xs max-w-sm" style={{ color: tokens.textoMuted }}>{dica}</p>}
-    </div>
-  );
-}
-
 function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBusca, onPaginaAnterior, onPaginaProxima, onExcluir }: {
   lang: Idioma; produtos: ProdutoPdv[]; total: number; pagina: number; carregando: boolean; busca: string;
   onBusca: (v: string) => void; onPaginaAnterior: () => void; onPaginaProxima: () => void; onExcluir: (p: ProdutoPdv) => void;
@@ -703,7 +594,9 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
           <p className="text-xs mb-3" style={{ color: tokens.textoMuted }}>{t("produtosEncontrados", lang, { n: total })}</p>
           <div className="space-y-2">
             {produtos.map((p) => (
-              <LinhaProduto key={p.id} produto={p} lang={lang} onExcluir={onExcluir} />
+              <LinhaProduto key={p.id} produto={p} onExcluir={onExcluir}
+                estoqueLabel={t("estoqueDisponivel", lang)} precoNaoDefinidoLabel={t("precoNaoDefinido", lang)}
+                editarLabel={t("editar", lang)} excluirLabel={t("excluir", lang)} />
             ))}
           </div>
           {totalPaginas > 1 && (
@@ -719,32 +612,6 @@ function ListaProdutos({ lang, produtos, total, pagina, carregando, busca, onBus
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function LinhaProduto({ produto, lang, onExcluir }: { produto: ProdutoPdv; lang: Idioma; onExcluir: (p: ProdutoPdv) => void }) {
-  const { tokens } = useTemaPdv();
-  const preco = produto.preco_venda ?? produto.preco_sugerido;
-  return (
-    <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <div className="min-w-0">
-        <p className="text-sm font-medium truncate" style={{ color: tokens.cardTexto }}>{produto.nome}</p>
-        <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.72 }}>
-          {produto.codigo_barras || produto.sku || "—"} · {produto.saldo_disponivel} {t("estoqueDisponivel", lang)}
-        </p>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className="text-sm font-bold" style={{ color: tokens.cardTexto, opacity: preco ? 1 : 0.6 }}>
-          {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
-        </span>
-        <a href={`/pdv/cadastro?id=${produto.id}`} title={t("editar", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
-          <Pencil size={14} />
-        </a>
-        <button onClick={() => onExcluir(produto)} title={t("excluir", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
-          <Trash2 size={14} />
-        </button>
-      </div>
     </div>
   );
 }
