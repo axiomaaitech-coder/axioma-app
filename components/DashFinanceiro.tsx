@@ -1,7 +1,12 @@
 "use client";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
+import { serieRolling } from "../lib/cfoCore";
 import ReactECharts from "echarts-for-react";
+
+const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
 const T = {
   pt: {
@@ -9,36 +14,45 @@ const T = {
     receitaTotal: "Receita Total", custosFixos: "Custos Fixos", custosVariaveis: "Custos Variáveis",
     saldoCaixa: "Saldo em Caixa", dividaTotal: "Dívida Total",
     painelTitulo: "Análise Financeira Anual", painelSub: "Endividamento · Custos · Fluxo de Caixa · Receita",
-    endivid: "Endividamento", saldoDevedor: "Saldo Devedor", amortizacao: "Amortização", juros: "Juros",
+    endivid: "Endividamento", saldoDevedor: "Saldo Devedor", amortizacao: "Amortização", juros: "Juros", jaPago: "Pago",
     cf: "Custos Fixos", cv: "Custos Variáveis", fluxo: "Fluxo de Caixa", receita: "Receita",
     entradas: "Entradas", saidas: "Saídas", investido: "Investido", reserva: "Reserva",
     vendas: "Vendas", servicos: "Serviços", recorrente: "Recorrente", outros: "Outros",
     verModulo: "Ver módulo", total: "TOTAL",
     meses: ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"],
+    verDemo: "Ver demonstração", verMeusDados: "Ver meus dados", modoDemoAtivo: "MODO DEMONSTRAÇÃO — dados fictícios, não são da sua empresa",
+    semReceita: "Nenhuma receita registrada ainda", semCustoFixo: "Nenhum custo fixo cadastrado ainda",
+    semCustoVariavel: "Nenhum custo variável registrado ainda", semDivida: "Nenhuma dívida cadastrada ainda",
   },
   en: {
     demo: "DEMO",
     receitaTotal: "Total Revenue", custosFixos: "Fixed Costs", custosVariaveis: "Variable Costs",
     saldoCaixa: "Cash Balance", dividaTotal: "Total Debt",
     painelTitulo: "Annual Financial Analysis", painelSub: "Debt · Costs · Cash Flow · Revenue",
-    endivid: "Debt", saldoDevedor: "Outstanding", amortizacao: "Amortization", juros: "Interest",
+    endivid: "Debt", saldoDevedor: "Outstanding", amortizacao: "Amortization", juros: "Interest", jaPago: "Paid",
     cf: "Fixed Costs", cv: "Variable Costs", fluxo: "Cash Flow", receita: "Revenue",
     entradas: "Inflows", saidas: "Outflows", investido: "Invested", reserva: "Reserve",
     vendas: "Sales", servicos: "Services", recorrente: "Recurring", outros: "Others",
     verModulo: "View module", total: "TOTAL",
     meses: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+    verDemo: "View demo", verMeusDados: "View my data", modoDemoAtivo: "DEMO MODE — sample data, not your company's",
+    semReceita: "No revenue recorded yet", semCustoFixo: "No fixed costs registered yet",
+    semCustoVariavel: "No variable costs recorded yet", semDivida: "No debts registered yet",
   },
   es: {
     demo: "DEMO",
     receitaTotal: "Ingresos Totales", custosFixos: "Costos Fijos", custosVariaveis: "Costos Variables",
     saldoCaixa: "Saldo en Caja", dividaTotal: "Deuda Total",
     painelTitulo: "Análisis Financiero Anual", painelSub: "Deuda · Costos · Flujo de Caja · Ingresos",
-    endivid: "Deuda", saldoDevedor: "Saldo Deudor", amortizacao: "Amortización", juros: "Intereses",
+    endivid: "Deuda", saldoDevedor: "Saldo Deudor", amortizacao: "Amortización", juros: "Intereses", jaPago: "Pagado",
     cf: "Costos Fijos", cv: "Costos Variables", fluxo: "Flujo de Caja", receita: "Ingresos",
     entradas: "Entradas", saidas: "Salidas", investido: "Invertido", reserva: "Reserva",
     vendas: "Ventas", servicos: "Servicios", recorrente: "Recurrente", outros: "Otros",
     verModulo: "Ver módulo", total: "TOTAL",
     meses: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+    verDemo: "Ver demostración", verMeusDados: "Ver mis datos", modoDemoAtivo: "MODO DEMOSTRACIÓN — datos ficticios, no son de su empresa",
+    semReceita: "Aún no hay ingresos registrados", semCustoFixo: "Aún no hay costos fijos registrados",
+    semCustoVariavel: "Aún no hay costos variables registrados", semDivida: "Aún no hay deudas registradas",
   },
 };
 
@@ -52,6 +66,7 @@ const C = {
 const fBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
 const fK = (n: number) => Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toFixed(0)}k` : `R$ ${Math.round(n)}`;
 
+// Dados de exemplo — só aparecem quando o usuário liga "Ver demonstração".
 const D = {
   saldoDevedor: [248000,236500,228900,214200,205800,189400,176300,168900,151200,138700,122400,108900],
   amortizacao:  [ 11500, 12400, 10700, 14700,  8400, 16400, 13100,  7400, 17700, 12500, 16300, 13500],
@@ -60,6 +75,26 @@ const D = {
   custosVar:    [  9200, 11400,  8700, 13600, 10200, 15800, 12300,  9800, 16400, 14100, 18900, 21300],
   fluxo:   [{ k:"entradas", v:284000, c:C.verde }, { k:"saidas", v:149000, c:C.vermelho }, { k:"investido", v:42000, c:C.roxo }, { k:"reserva", v:68000, c:C.cyan }],
   receita: [{ k:"vendas", v:142000, c:C.ouro }, { k:"servicos", v:78000, c:C.roxo }, { k:"recorrente", v:51000, c:C.cyan }, { k:"outros", v:13000, c:C.teal }],
+};
+
+// Dados reais da empresa ativa — preenchidos via Supabase (RLS já filtra pela empresa do usuário).
+type RealFin = {
+  receitaTotal: number;
+  receitaCategorias: { name: string; value: number }[];
+  custosFixosTotal: number;
+  custosFixosCategorias: { name: string; value: number }[];
+  custosVarMedia: number;
+  custosVarSerie: number[];
+  saldoCaixa: number;
+  dividaTotal: number;
+  dividaPaga: number;
+  temDivida: boolean;
+};
+
+const REAL_VAZIO: RealFin = {
+  receitaTotal: 0, receitaCategorias: [], custosFixosTotal: 0, custosFixosCategorias: [],
+  custosVarMedia: 0, custosVarSerie: Array(12).fill(0), saldoCaixa: 0,
+  dividaTotal: 0, dividaPaga: 0, temDivida: false,
 };
 
 const tip = {
@@ -151,58 +186,142 @@ export default function DashFinanceiro() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
 
-  const totalReceita = D.receita.reduce((a, b) => a + b.v, 0);
-  const totalCF = D.custosFixos.reduce((a, b) => a + b, 0);
-  const totalCV = D.custosVar.reduce((a, b) => a + b, 0);
-  const saldoCaixa = D.fluxo[0].v - D.fluxo[1].v;
-  const dividaAtual = D.saldoDevedor[D.saldoDevedor.length - 1];
+  const [demo, setDemo] = useState(false);
+  const [real, setReal] = useState<RealFin>(REAL_VAZIO);
 
-  const kpis = [
-    { l: tt.receitaTotal, v: fBRL(totalReceita), c: C.ouro, i: "💰", p: "/receitas", d: "▲ 12,4%", up: true },
-    { l: tt.custosFixos, v: fBRL(totalCF / 12), c: C.vermelho, i: "📌", p: "/custos-fixos", d: "▲ 3,1%", up: false },
-    { l: tt.custosVariaveis, v: fBRL(totalCV / 12), c: C.laranja, i: "📉", p: "/custos-variaveis", d: "▲ 8,7%", up: false },
-    { l: tt.saldoCaixa, v: fBRL(saldoCaixa), c: C.cyan, i: "💧", p: "/fluxo-caixa", d: "▲ 21,3%", up: true },
-    { l: tt.dividaTotal, v: fBRL(dividaAtual), c: C.rosa, i: "⚖️", p: "/endividamento", d: "▼ 56,1%", up: true },
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const hoje = new Date();
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
+      const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10);
+      const doze = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1).toISOString().slice(0, 10);
+
+      const [{ data: receitasMes }, { data: receitas12m }, { data: custosFix }, { data: custosVar12m }, { data: custosVarMes }, { data: dividas }] = await Promise.all([
+        supabase.from("receitas").select("valor").gte("data", inicioMes).lte("data", fimMes),
+        supabase.from("receitas").select("valor, data, categoria").gte("data", doze),
+        supabase.from("custos_fixos").select("valor_mensal, categoria"),
+        supabase.from("custos_variaveis").select("valor, data").gte("data", doze),
+        supabase.from("custos_variaveis").select("valor").gte("data", inicioMes).lte("data", fimMes),
+        supabase.from("dividas").select("valor_total, valor_pago"),
+      ]);
+      if (!ativo) return;
+
+      const receitaTotal = (receitasMes || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+      const custosFixosTotal = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
+      const custosVarMesTotal = (custosVarMes || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
+
+      const catReceita = new Map<string, number>();
+      (receitas12m || []).forEach((r: any) => { const k = r.categoria || "—"; catReceita.set(k, (catReceita.get(k) || 0) + Number(r.valor || 0)); });
+      const receitaCategorias = Array.from(catReceita, ([name, value]) => ({ name, value })).filter(c => c.value > 0);
+
+      const catFixo = new Map<string, number>();
+      (custosFix || []).forEach((r: any) => { const k = r.categoria || "—"; catFixo.set(k, (catFixo.get(k) || 0) + Number(r.valor_mensal || 0)); });
+      const custosFixosCategorias = Array.from(catFixo, ([name, value]) => ({ name, value })).filter(c => c.value > 0);
+
+      const custosVarSerie = serieRolling((custosVar12m || []).map((r: any) => ({ valor: r.valor, data: r.data })), 12).map(b => b.value);
+      const custosVarMedia = custosVarSerie.reduce((a, b) => a + b, 0) / 12;
+
+      const dividaTotal = (dividas || []).reduce((s: number, d: any) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
+      const dividaPaga = (dividas || []).reduce((s: number, d: any) => s + Number(d.valor_pago || 0), 0);
+
+      setReal({
+        receitaTotal, receitaCategorias, custosFixosTotal, custosFixosCategorias,
+        custosVarMedia, custosVarSerie, saldoCaixa: receitaTotal - custosFixosTotal - custosVarMesTotal,
+        dividaTotal, dividaPaga, temDivida: (dividas || []).length > 0,
+      });
+    })();
+    return () => { ativo = false; };
+  }, []);
+
+  // ── Demo (fixo, só pra ilustrar o layout) ──
+  const totalReceitaDemo = D.receita.reduce((a, b) => a + b.v, 0);
+  const totalCFDemo = D.custosFixos.reduce((a, b) => a + b, 0);
+  const totalCVDemo = D.custosVar.reduce((a, b) => a + b, 0);
+  const saldoCaixaDemo = D.fluxo[0].v - D.fluxo[1].v;
+  const dividaAtualDemo = D.saldoDevedor[D.saldoDevedor.length - 1];
+
+  const kpis = demo ? [
+    { l: tt.receitaTotal, v: fBRL(totalReceitaDemo), c: C.ouro, i: "💰", p: "/receitas", d: "▲ 12,4%", up: true },
+    { l: tt.custosFixos, v: fBRL(totalCFDemo / 12), c: C.vermelho, i: "📌", p: "/custos-fixos", d: "▲ 3,1%", up: false },
+    { l: tt.custosVariaveis, v: fBRL(totalCVDemo / 12), c: C.laranja, i: "📉", p: "/custos-variaveis", d: "▲ 8,7%", up: false },
+    { l: tt.saldoCaixa, v: fBRL(saldoCaixaDemo), c: C.cyan, i: "💧", p: "/fluxo-caixa", d: "▲ 21,3%", up: true },
+    { l: tt.dividaTotal, v: fBRL(dividaAtualDemo), c: C.rosa, i: "⚖️", p: "/endividamento", d: "▼ 56,1%", up: true },
+  ] : [
+    { l: tt.receitaTotal, v: fBRL(real.receitaTotal), c: C.ouro, i: "💰", p: "/receitas" },
+    { l: tt.custosFixos, v: fBRL(real.custosFixosTotal), c: C.vermelho, i: "📌", p: "/custos-fixos" },
+    { l: tt.custosVariaveis, v: fBRL(real.custosVarMedia), c: C.laranja, i: "📉", p: "/custos-variaveis" },
+    { l: tt.saldoCaixa, v: fBRL(real.saldoCaixa), c: C.cyan, i: "💧", p: "/fluxo-caixa" },
+    { l: tt.dividaTotal, v: fBRL(real.dividaTotal), c: C.rosa, i: "⚖️", p: "/endividamento" },
   ];
 
-  const marquee = [
+  const marquee = demo ? [
+    `🚀 AXIOMA AI.TECH`, `🎭 ${tt.demo}`,
+    `${tt.receitaTotal} ${fBRL(totalReceitaDemo)}`,
+    `${tt.custosFixos} ${fBRL(totalCFDemo / 12)}`,
+    `${tt.custosVariaveis} ${fBRL(totalCVDemo / 12)}`,
+    `${tt.saldoCaixa} ${fBRL(saldoCaixaDemo)}`,
+    `${tt.dividaTotal} ${fBRL(dividaAtualDemo)}`,
+  ] : [
     `🚀 AXIOMA AI.TECH`,
-    `${tt.receitaTotal} ${fBRL(totalReceita)}`,
-    `${tt.custosFixos} ${fBRL(totalCF / 12)}`,
-    `${tt.custosVariaveis} ${fBRL(totalCV / 12)}`,
-    `${tt.saldoCaixa} ${fBRL(saldoCaixa)}`,
-    `${tt.dividaTotal} ${fBRL(dividaAtual)}`,
-    `${tt.receita} ${fBRL(totalReceita)}`,
+    `${tt.receitaTotal} ${fBRL(real.receitaTotal)}`,
+    `${tt.custosFixos} ${fBRL(real.custosFixosTotal)}`,
+    `${tt.custosVariaveis} ${fBRL(real.custosVarMedia)}`,
+    `${tt.saldoCaixa} ${fBRL(real.saldoCaixa)}`,
+    `${tt.dividaTotal} ${fBRL(real.dividaTotal)}`,
   ];
 
-  const Chart = ({ titulo, cor, path, option, altura }: { titulo: string; cor: string; path: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-4" style={{ background: "rgba(8,6,24,0.55)", border: `1px solid ${cor}20` }}>
+  const Chart = ({ titulo, cor, path, option, altura, vazio }: { titulo: string; cor: string; path: string; option?: any; altura: number; vazio?: string }) => (
+    <div className="rounded-xl p-4 relative" style={{ background: "rgba(8,6,24,0.55)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
           <p className="text-[13px] font-black" style={{ color: "#f1f5f9" }}>{titulo}</p>
-          <span className="text-[7px] px-1.5 py-0.5 rounded font-black" style={{ background: `${cor}22`, color: cor }}>{tt.demo}</span>
+          {demo && <span className="text-[9px] px-2 py-0.5 rounded font-black tracking-wider" style={{ background: `${C.ouro}30`, color: C.ouro, border: `1px solid ${C.ouro}60` }}>🎭 {tt.demo}</span>}
         </div>
         <button onClick={() => router.push(path)} className="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all hover:scale-105"
           style={{ background: `${cor}15`, border: `1px solid ${cor}38`, color: cor }}>{tt.verModulo} →</button>
       </div>
-      <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
+      {option ? (
+        <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
+      ) : (
+        <div className="flex items-center justify-center text-center px-4" style={{ height: altura, color: "#5a6a85", fontSize: 12, fontWeight: 600 }}>{vazio}</div>
+      )}
     </div>
   );
 
   return (
     <div className="space-y-4 w-full">
+
+      {/* TOGGLE demo/real */}
+      <div className="flex items-center justify-end gap-2">
+        <button onClick={() => setDemo(v => !v)}
+          className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
+          style={{ background: demo ? `${C.ouro}25` : "rgba(255,255,255,0.05)", border: `1px solid ${demo ? C.ouro : "rgba(148,163,184,0.3)"}`, color: demo ? C.ouroC : "#94a3b8" }}>
+          🎭 {demo ? tt.verMeusDados : tt.verDemo}
+        </button>
+      </div>
+
+      {demo && (
+        <div className="w-full rounded-xl px-4 py-2.5 text-center" style={{ background: `${C.ouro}18`, border: `1px dashed ${C.ouro}` }}>
+          <span className="text-[11px] font-black tracking-widest uppercase" style={{ color: C.ouroC }}>🎭 {tt.modoDemoAtivo}</span>
+        </div>
+      )}
+
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {kpis.map((k, i) => (
           <div key={i} onClick={() => router.push(k.p)}
-            className="rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px]"
+            className="rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px] relative"
             style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: `1px solid ${k.c}22`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${k.c}60`; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.5), 0 0 26px ${k.c}22`; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${k.c}22`; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}>
+            {demo && <span className="absolute top-2 right-2 text-[7px] px-1.5 py-0.5 rounded font-black tracking-wider" style={{ background: `${C.ouro}30`, color: C.ouro }}>🎭 {tt.demo}</span>}
             <div className="flex items-center justify-between mb-2">
               <span className="text-lg">{k.i}</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={{ background: k.up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: k.up ? C.verde : C.vermelho }}>{k.d}</span>
+              {"d" in k && (k as any).d && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={{ background: (k as any).up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: (k as any).up ? C.verde : C.vermelho }}>{(k as any).d}</span>
+              )}
             </div>
             <p className="text-lg font-black tracking-tight" style={{ color: k.c }}>{k.v}</p>
             <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
@@ -211,13 +330,13 @@ export default function DashFinanceiro() {
       </div>
 
       {/* LETREIRO EM LOOP */}
-      <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.22)" }}>
+      <div className="relative rounded-xl overflow-hidden" style={{ background: demo ? `linear-gradient(90deg, ${C.ouro}22, ${C.ouro}12)` : "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", border: demo ? `1px solid ${C.ouro}55` : "1px solid rgba(139,92,246,0.22)" }}>
         <div className="marquee-fin py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
           <span className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }}>
-            {marquee.map((t, i) => (<span key={i} style={{ color: i === 0 ? "#c4b5fd" : "#e2e8f0" }}>{t}<span style={{ color: "#8b5cf6" }}>{"  •  "}</span></span>))}
+            {marquee.map((t, i) => (<span key={i} style={{ color: i === 0 ? "#c4b5fd" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#8b5cf6" }}>{"  •  "}</span></span>))}
           </span>
           <span className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden>
-            {marquee.map((t, i) => (<span key={`b${i}`} style={{ color: i === 0 ? "#c4b5fd" : "#e2e8f0" }}>{t}<span style={{ color: "#8b5cf6" }}>{"  •  "}</span></span>))}
+            {marquee.map((t, i) => (<span key={`b${i}`} style={{ color: i === 0 ? "#c4b5fd" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#8b5cf6" }}>{"  •  "}</span></span>))}
           </span>
         </div>
         <style>{`
@@ -240,14 +359,39 @@ export default function DashFinanceiro() {
           </div>
 
           <div className="mb-4">
-            <Chart titulo={tt.endivid} cor={C.rosa} path="/endividamento" option={linhaEndiv(tt)} altura={280} />
+            {demo ? (
+              <Chart titulo={tt.endivid} cor={C.rosa} path="/endividamento" option={linhaEndiv(tt)} altura={280} />
+            ) : (
+              <Chart titulo={tt.endivid} cor={C.rosa} path="/endividamento" altura={280}
+                option={real.temDivida ? rosca([{ name: tt.jaPago, value: real.dividaPaga, color: C.verde }, { name: tt.saldoDevedor, value: real.dividaTotal, color: C.rosa }], C.rosa, tt.total) : undefined}
+                vazio={tt.semDivida} />
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Chart titulo={tt.cf} cor={C.vermelho} path="/custos-fixos" option={barrasV(D.custosFixos, tt.meses, C.vermelho, C.vermelhoC)} altura={260} />
-            <Chart titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" option={barrasV(D.custosVar, tt.meses, C.laranja, C.laranjaC)} altura={260} />
-            <Chart titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" option={rosca(D.fluxo.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.cyan, tt.total)} altura={220} />
-            <Chart titulo={tt.receita} cor={C.ouro} path="/receitas" option={rosca(D.receita.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total)} altura={220} />
+            {demo ? (
+              <>
+                <Chart titulo={tt.cf} cor={C.vermelho} path="/custos-fixos" option={barrasV(D.custosFixos, tt.meses, C.vermelho, C.vermelhoC)} altura={260} />
+                <Chart titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" option={barrasV(D.custosVar, tt.meses, C.laranja, C.laranjaC)} altura={260} />
+                <Chart titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" option={rosca(D.fluxo.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.cyan, tt.total)} altura={220} />
+                <Chart titulo={tt.receita} cor={C.ouro} path="/receitas" option={rosca(D.receita.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total)} altura={220} />
+              </>
+            ) : (
+              <>
+                <Chart titulo={tt.cf} cor={C.vermelho} path="/custos-fixos" altura={260}
+                  option={real.custosFixosCategorias.length ? barrasV(real.custosFixosCategorias.map(c => c.value), real.custosFixosCategorias.map(c => c.name), C.vermelho, C.vermelhoC) : undefined}
+                  vazio={tt.semCustoFixo} />
+                <Chart titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" altura={260}
+                  option={real.custosVarSerie.some(v => v > 0) ? barrasV(real.custosVarSerie, tt.meses, C.laranja, C.laranjaC) : undefined}
+                  vazio={tt.semCustoVariavel} />
+                <Chart titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" altura={220}
+                  option={real.receitaTotal > 0 || real.custosFixosTotal > 0 ? rosca([{ name: tt.entradas, value: real.receitaTotal, color: C.verde }, { name: tt.saidas, value: Math.max(0, real.receitaTotal - real.saldoCaixa), color: C.vermelho }], C.cyan, tt.total) : undefined}
+                  vazio={tt.semReceita} />
+                <Chart titulo={tt.receita} cor={C.ouro} path="/receitas" altura={220}
+                  option={real.receitaCategorias.length ? rosca(real.receitaCategorias.map((c, i) => ({ name: c.name, value: c.value, color: [C.ouro, C.roxo, C.cyan, C.teal, C.rosa][i % 5] })), C.ouro, tt.total) : undefined}
+                  vazio={tt.semReceita} />
+              </>
+            )}
           </div>
         </div>
       </div>
