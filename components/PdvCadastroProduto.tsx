@@ -514,6 +514,59 @@ export function Campo({ label, value, onChange, tipo = "text", sugerido, lista, 
   );
 }
 
+function formatarMoedaInput(v: number | null | undefined): string {
+  if (v === null || v === undefined || isNaN(v)) return "";
+  return v.toFixed(2).replace(".", ",");
+}
+function parseMoedaInput(texto: string): number | null {
+  const limpo = texto.trim().replace(",", ".");
+  if (limpo === "") return null;
+  const n = Number(limpo);
+  return isNaN(n) ? null : n;
+}
+
+// Campo monetário (Preço de Venda, Custo de Compra) — texto livre em vez de
+// <input type="number">: number nativo NUNCA exibe zero à direita (5.4 e 5.40
+// são o mesmo float, o browser sempre mostra "5.4"), então é impossível
+// corrigir só formatando o valor. Aqui o texto digitado fica solto enquanto o
+// campo está focado (não briga com o cursor) e só vira "5,40" no onBlur —
+// exatamente o pedido do Elias. O número propagado pro form já sai
+// arredondado em 2 casas em cada tecla, então cálculo (margem/lucro) nunca
+// vê mais de 2 casas de precisão por trás dos panos.
+export function CampoMoeda({ label, value, onChange, sugerido, emCard }: {
+  label: string; value: number | null | undefined; onChange: (v: number | null) => void; sugerido?: boolean; emCard?: boolean;
+}) {
+  const { tokens } = useTemaPdv();
+  const [texto, setTexto] = useState(() => formatarMoedaInput(value));
+  const [focado, setFocado] = useState(false);
+
+  useEffect(() => {
+    if (!focado) setTexto(formatarMoedaInput(value));
+  }, [value, focado]);
+
+  return (
+    <div>
+      <label className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: sugerido ? AMBAR : emCard ? tokens.cardTexto : tokens.textoSecundario }}>
+        {label} {sugerido && <Sparkles size={11} />}
+      </label>
+      <input
+        type="text" inputMode="decimal" value={texto}
+        onFocus={() => setFocado(true)}
+        onChange={(e) => { setTexto(e.target.value); onChange(parseMoedaInput(e.target.value)); }}
+        onBlur={() => {
+          setFocado(false);
+          const numero = parseMoedaInput(texto);
+          const arredondado = numero === null ? null : Math.round(numero * 100) / 100;
+          onChange(arredondado);
+          setTexto(formatarMoedaInput(arredondado));
+        }}
+        className="w-full px-3 py-2.5 rounded-lg text-sm"
+        style={{ background: tokens.inputBg, border: `1px solid ${sugerido ? "rgba(245,185,66,0.5)" : tokens.inputBorda}`, color: tokens.inputTexto }}
+      />
+    </div>
+  );
+}
+
 export function CampoSelectSimples({ label, value, onChange, opcoes, sugerido, emCard }: { label: string; value: any; onChange: (v: any) => void; opcoes: { value: string; label: string }[]; sugerido?: boolean; emCard?: boolean }) {
   const { tokens } = useTemaPdv();
   return (
@@ -844,7 +897,7 @@ function BlocoPrecificacao({
     <div className="space-y-3">
       <p className="text-xs font-bold uppercase tracking-wide" style={{ color: tokens.acento }}>{t("precificacaoTitulo", lang)}</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Campo label={t("campoCustoCompra", lang)} tipo="number" value={custo} onChange={onChangeCusto} />
+        <CampoMoeda label={t("campoCustoCompra", lang)} value={custo} onChange={onChangeCusto} />
         <Campo label={t("campoDespesasVariaveis", lang)} tipo="number" value={despesasPct} onChange={onChangeDespesasPct} />
         <Campo label={t("campoMargemDesejada", lang)} tipo="number" value={margemDesejadaPct} onChange={onChangeMargemDesejadaPct} />
       </div>
@@ -1021,7 +1074,7 @@ export function FormularioAvulso({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Campo label={t("campoPrecoVenda", lang)} tipo="number" value={form.preco_venda} onChange={(v) => onChangeCampo("preco_venda", v)} sugerido={camposSugeridos.has("preco_venda")} />
+        <CampoMoeda label={t("campoPrecoVenda", lang)} value={form.preco_venda} onChange={(v) => onChangeCampo("preco_venda", v)} sugerido={camposSugeridos.has("preco_venda")} />
         <CampoSelectSimples label={t("campoStatus", lang)} value={form.status} onChange={(v) => onChangeCampo("status", v)}
           opcoes={[{ value: "ativo", label: t("statusAtivo", lang) }, { value: "inativo", label: t("statusInativo", lang) }]} />
       </div>

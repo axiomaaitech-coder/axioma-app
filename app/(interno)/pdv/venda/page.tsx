@@ -669,6 +669,10 @@ export default function PdvVendaPage() {
           <DefinirPrecoModal
             lang={lang} produto={produtoParaPreco}
             precoInput={precoManualInput} onPrecoInput={setPrecoManualInput}
+            onPrecoBlur={() => {
+              const n = Number(precoManualInput.replace(",", "."));
+              if (precoManualInput.trim() !== "" && !isNaN(n)) setPrecoManualInput(n.toFixed(2).replace(".", ","));
+            }}
             confirmando={definindoPreco}
             onConfirmar={handleConfirmarPrecoManual}
             onCancelar={() => { setProdutoParaPreco(null); setPrecoManualInput(""); }}
@@ -1153,9 +1157,9 @@ function FinalizarVendaModal({
 // Nunca mostra custo/margem — ProdutoPdv (lib/pdvHelpers.ts) já não tem
 // esses campos (COLUNAS_SEGURAS), então não tem como vazar aqui mesmo que
 // o operador dispare este painel.
-function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, confirmando, onConfirmar, onCancelar }: {
+function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, onPrecoBlur, confirmando, onConfirmar, onCancelar }: {
   lang: Idioma; produto: ProdutoPdv;
-  precoInput: string; onPrecoInput: (v: string) => void;
+  precoInput: string; onPrecoInput: (v: string) => void; onPrecoBlur: () => void;
   confirmando: boolean; onConfirmar: () => void; onCancelar: () => void;
 }) {
   const { tokens } = useTemaPdv();
@@ -1168,7 +1172,7 @@ function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, confirmand
 
         <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("definirPrecoLabel", lang)}</label>
         <input
-          value={precoInput} onChange={(e) => onPrecoInput(e.target.value)}
+          value={precoInput} onChange={(e) => onPrecoInput(e.target.value)} onBlur={onPrecoBlur}
           inputMode="decimal" placeholder="0,00" autoFocus
           className="w-full px-3 py-3 rounded-xl text-lg font-bold outline-none mb-4"
           style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}

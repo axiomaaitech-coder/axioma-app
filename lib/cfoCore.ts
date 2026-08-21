@@ -25,6 +25,17 @@ export const fK = (n: number) =>
 
 export const fPct = (n: number, casas = 1) => `${(n || 0).toFixed(casas)}%`;
 
+// Preço digitado à mão numa string precisa ganhar 2 casas fixas ao perder o
+// foco (padrão brasileiro R$ X,XX) — um <input type="number"> nunca preserva
+// zero à direita quando o valor vem de um número JS (5.40 === 5.4), então a
+// única forma de manter "5,40" na tela é o campo guardar TEXTO e só
+// reformatar no blur, nunca em cada tecla. Só mexe em texto que já é um
+// número válido; vazio ou digitação parcial (".", "5.") fica como está.
+export const precoBlur = (v: string): string => {
+  const n = Number(v);
+  return v.trim() !== "" && !isNaN(n) ? n.toFixed(2) : v;
+};
+
 export const mesesPt = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 export const mesesEn = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 export const mesesEs = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];

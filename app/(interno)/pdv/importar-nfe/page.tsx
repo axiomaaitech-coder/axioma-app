@@ -8,6 +8,7 @@ import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
 import { parseXMLNFe, type ItemNFe } from "../../../../lib/importarParsers";
 import { type Produto, criarProduto, atualizarProduto, criarMovimentacao, buscarProdutoPorCodigo, buscarProdutoPorId } from "../../../../lib/estoqueHelpers";
+import { precoBlur } from "../../../../lib/cfoCore";
 import { NICHOS_PDV, type NichoPdvDef, buscarCategoria, subNichoEhServico } from "../../../../lib/pdvCatalogoTaxonomia";
 import {
   nfeJaImportada, registrarNfeImportada, buscarFornecedorPorCnpj, criarFornecedorDaNfe,
@@ -557,7 +558,8 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <CampoSelect label={t("colSubNicho", lang)} value={item.subNicho} onChange={(v) => onAtualizar("subNicho", v)}
           opcoes={(categoriaAtual?.subNichos || []).map((s) => ({ value: s.label[lang], label: s.label[lang] }))} disabled={item.status === "existente" || !item.categoria} />
-        <CampoTexto label={t("colPrecoVenda", lang)} tipo="number" value={item.precoVenda} onChange={(v) => onAtualizar("precoVenda", v)} />
+        <CampoTexto label={t("colPrecoVenda", lang)} tipo="number" value={item.precoVenda} onChange={(v) => onAtualizar("precoVenda", v)}
+          onBlur={(v) => onAtualizar("precoVenda", precoBlur(v))} />
       </div>
 
       <div className="flex items-center gap-4 flex-wrap text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>
@@ -577,12 +579,13 @@ function ItemConferenciaCard({ lang, item, opcoesCategoria, onAtualizar }: {
   );
 }
 
-function CampoTexto({ label, value, onChange, tipo = "text" }: { label: string; value: string; onChange: (v: string) => void; tipo?: "text" | "number" }) {
+function CampoTexto({ label, value, onChange, tipo = "text", onBlur }: { label: string; value: string; onChange: (v: string) => void; tipo?: "text" | "number"; onBlur?: (v: string) => void }) {
   const { tokens } = useTemaPdv();
   return (
     <div>
       <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.8 }}>{label}</label>
-      <input type={tipo} value={value} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2.5 rounded-lg text-sm"
+      <input type={tipo} value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur ? (e) => onBlur(e.target.value) : undefined}
+        className="w-full px-3 py-2.5 rounded-lg text-sm"
         style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}`, color: tokens.inputTexto }} />
     </div>
   );

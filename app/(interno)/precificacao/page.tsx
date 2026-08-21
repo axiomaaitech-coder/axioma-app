@@ -13,11 +13,11 @@ import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
-  fBRL, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
   montarDRE, margemContribuicao, coeficienteVariacao, concentracao,
   simularCenariosExecutivos, calcularImpactoPreco, calcularImpactoDesconto,
   estimarElasticidade, detectarOportunidadesPrecificacao, calcularIPPA, optRosca,
-  precoPorDivisor,
+  precoPorDivisor, precoBlur,
   type Lancamento, type ChoqueSimulador, type ResultadoCenario,
   type TipoOportunidadePrecificacao,
 } from "../../../lib/cfoCore";
@@ -600,11 +600,11 @@ export default function Precificacao() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#94a3b8" }}>{cx.prcPrecoAtualLabel}</label>
-                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.02)", color: "#94a3b8" }}>{fBRL(produtoSelecionado.preco_sugerido || 0)}</div>
+                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.02)", color: "#94a3b8" }}>R$ {fBRL2(produtoSelecionado.preco_sugerido || 0)}</div>
                     </div>
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcPrecoCandidatoLabel}</label>
-                      <input type="number" value={precoCandidato} onChange={(e) => setPrecoCandidato(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                      <input type="number" value={precoCandidato} onChange={(e) => setPrecoCandidato(e.target.value)} onBlur={(e) => setPrecoCandidato(precoBlur(e.target.value))} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     </div>
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#94a3b8" }}>{cx.prcUnidadesVendidasLabel}</label>
@@ -672,7 +672,7 @@ export default function Precificacao() {
                   <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.prcConcorrentesSub}</p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                     <input placeholder={cx.prcConcorrenteNomeLabel} value={novoConcorrenteNome} onChange={(e) => setNovoConcorrenteNome(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                    <input type="number" placeholder={cx.prcConcorrentePrecoLabel} value={novoConcorrentePreco} onChange={(e) => setNovoConcorrentePreco(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
+                    <input type="number" placeholder={cx.prcConcorrentePrecoLabel} value={novoConcorrentePreco} onChange={(e) => setNovoConcorrentePreco(e.target.value)} onBlur={(e) => setNovoConcorrentePreco(precoBlur(e.target.value))} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input placeholder={cx.prcConcorrentePosicionamentoLabel} value={novoConcorrentePosicionamento} onChange={(e) => setNovoConcorrentePosicionamento(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: "#1a1400" }}>
                       <Plus size={16} /> {cx.prcAdicionarConcorrente}
@@ -684,7 +684,7 @@ export default function Precificacao() {
                     <div className="space-y-2">
                       {derivadoSelecionado?.concorrentesProduto.map((c) => (
                         <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
-                          <p className="text-xs md:text-[13px] font-medium" style={{ color: "#e2e8f0" }}>{c.nome_concorrente} — {fBRL(c.preco)}{c.posicionamento ? ` (${c.posicionamento})` : ""}</p>
+                          <p className="text-xs md:text-[13px] font-medium" style={{ color: "#e2e8f0" }}>{c.nome_concorrente} — R$ {fBRL2(c.preco)}{c.posicionamento ? ` (${c.posicionamento})` : ""}</p>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerConcorrente(c.id)}><Trash2 size={14} style={{ color: "#f87171" }} /></motion.button>
                         </div>
                       ))}

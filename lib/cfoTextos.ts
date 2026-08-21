@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import {
-  fBRL, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho,
+  fBRL, fBRL2, fPct, type FatorVariacaoLucro, type PonteLucroCaixa, type GatilhoConselho,
   type BucketVencimento, type GatilhoConselhoDivida, type GatilhoConselhoMeta, type ArvoreMeta, type TipoMeta,
   type GatilhoConselhoInvestimento, type OportunidadeResgate,
   type ResultadoAlocacao, type CategoriaAlocacao, type ResultadoCenario,
@@ -1045,10 +1045,15 @@ export function montarNarrativaOportunidadePrecificacao(lang: string, o: Oportun
   return `${nome} representa uma fatia grande da receita mensal — proteja-o antes de mexer no preço.`;
 }
 
+// precoAtual/precoCandidato são o preço de UM produto — sempre 2 casas
+// (fBRL2, ver lib/cfoCore.ts), nunca arredondado pro real cheio como o
+// fBRL usado no delta de lucro logo abaixo (esse sim é um agregado mensal
+// da empresa, onde arredondar centavos não muda a decisão).
 export function montarNarrativaImpactoPreco(lang: string, impacto: ImpactoPreco, precoAtual: number, precoCandidato: number): string {
-  if (lang === "en") return `Moving from ${fBRL(precoAtual)} to ${fBRL(precoCandidato)}: net profit ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "grows" : "shrinks"} by ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/month, new contribution margin ${fPct(impacto.margemContribuicaoPct)}.`;
-  if (lang === "es") return `Al pasar de ${fBRL(precoAtual)} a ${fBRL(precoCandidato)}: la utilidad neta ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "crece" : "cae"} ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/mes, nuevo margen de contribución ${fPct(impacto.margemContribuicaoPct)}.`;
-  return `Ao sair de ${fBRL(precoAtual)} para ${fBRL(precoCandidato)}: o lucro líquido ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "cresce" : "cai"} ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/mês, nova margem de contribuição ${fPct(impacto.margemContribuicaoPct)}.`;
+  const precoAtualFmt = `R$ ${fBRL2(precoAtual)}`, precoCandidatoFmt = `R$ ${fBRL2(precoCandidato)}`;
+  if (lang === "en") return `Moving from ${precoAtualFmt} to ${precoCandidatoFmt}: net profit ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "grows" : "shrinks"} by ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/month, new contribution margin ${fPct(impacto.margemContribuicaoPct)}.`;
+  if (lang === "es") return `Al pasar de ${precoAtualFmt} a ${precoCandidatoFmt}: la utilidad neta ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "crece" : "cae"} ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/mes, nuevo margen de contribución ${fPct(impacto.margemContribuicaoPct)}.`;
+  return `Ao sair de ${precoAtualFmt} para ${precoCandidatoFmt}: o lucro líquido ${impacto.deltaLucroLiquidoEmpresa >= 0 ? "cresce" : "cai"} ${fBRL(Math.abs(impacto.deltaLucroLiquidoEmpresa))}/mês, nova margem de contribuição ${fPct(impacto.margemContribuicaoPct)}.`;
 }
 
 export function montarNarrativaImpactoDesconto(lang: string, impacto: ImpactoDesconto, descontoPct: number): string {

@@ -18,7 +18,14 @@ import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers
 import { excluirProduto } from "../../../../lib/estoqueHelpers";
 import { buscarNicho } from "../../../../lib/pdvCatalogoTaxonomia";
 import { listarTodosProdutosPdv, type ProdutoPdv } from "../../../../lib/pdvHelpers";
-import { fBRL } from "../../../../lib/cfoCore";
+
+// Preço por unidade precisa de 2 casas SEMPRE — fBRL (lib/cfoCore.ts) é pra
+// totais agregados grandes (arredonda pro real cheio de propósito), errado
+// aqui. Mesmo moeda() local que app/(interno)/pdv/page.tsx e
+// app/(interno)/pdv/venda/page.tsx já usam pro mesmo tipo de campo.
+function moeda(v: number): string {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
 
 const txt = {
   titulo: { pt: "PDV — Produtos Cadastrados", en: "POS — Registered Products", es: "PDV — Productos Registrados" },
@@ -406,7 +413,7 @@ function LinhaProduto({ produto, lang, onExcluir }: { produto: ProdutoPdv; lang:
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <span className="text-sm font-bold" style={{ color: tokens.cardTexto, opacity: preco ? 1 : 0.6 }}>
-          {preco ? fBRL(preco) : t("precoNaoDefinido", lang)}
+          {preco ? moeda(preco) : t("precoNaoDefinido", lang)}
         </span>
         <a href={`/pdv/cadastro?id=${produto.id}`} title={t("editar", lang)} className="p-1.5 rounded-lg" style={{ color: tokens.cardTexto, opacity: 0.85, border: `1px solid ${tokens.cardTexto}` }}>
           <Pencil size={14} />
