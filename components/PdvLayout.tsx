@@ -30,6 +30,13 @@ export type TokensPdv = {
   cardBg: string; cardTexto: string; cardBorda: string;
   inputBg: string; inputTexto: string; inputBorda: string;
   acento: string; acentoSuaveBg: string; acentoSuaveBorda: string;
+  // Fundo de MODAL/overlay (Finalizar Venda, Definir Preço, etc.) — SEMPRE
+  // opaco (sem alpha), diferente de acentoSuaveBg (translúcido de propósito,
+  // pensado pra tingir uma superfície que já é opaca por baixo, tipo linha
+  // de tabela em destaque). Um modal fica por cima do conteúdo real da tela
+  // (tabela/totais) — com acentoSuaveBg ali, esse conteúdo aparecia por
+  // trás do modal.
+  modalBg: string;
   // Botão de AÇÃO (Salvar/Confirmar/+Novo/Consultar) — verde só no tema
   // escuro; nos temas 2 e 3 é sempre AZUL-ELETRICO + texto branco.
   acaoBg: string; acaoTexto: string;
@@ -94,6 +101,8 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     cardBg: "linear-gradient(160deg, rgba(22,20,50,0.75), rgba(14,14,34,0.8))", cardTexto: "#e2ecf7", cardBorda: "rgba(106,176,255,0.16)",
     inputBg: "rgba(10,16,32,0.7)", inputTexto: "#e2ecf7", inputBorda: "rgba(106,176,255,0.22)",
     acento: "#6ab0ff", acentoSuaveBg: "rgba(106,176,255,0.08)", acentoSuaveBorda: "rgba(106,176,255,0.22)",
+    // Mesmos tons/direção do cardBg acima, só que sem alpha — 100% opaco.
+    modalBg: "linear-gradient(160deg, #18153c, #0d0c22)",
     acaoBg: "linear-gradient(135deg, #00cc6a, #00ff88)", acaoTexto: "#022",
     filtroAtivoBg: "rgba(106,176,255,0.22)", filtroAtivoTexto: "#6ab0ff", filtroAtivoBorda: "#6ab0ff",
     filtroInativoBg: "rgba(106,176,255,0.08)", filtroInativoTexto: "#5a7a9a", filtroInativoBorda: "rgba(106,176,255,0.22)",
@@ -108,6 +117,7 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     cardBg: AZUL_PROFUNDO, cardTexto: BRANCO_PURO, cardBorda: "rgba(55,26,229,0.4)",
     inputBg: BRANCO_GELO, inputTexto: AZUL_NOITE, inputBorda: "rgba(55,26,229,0.35)",
     acento: AZUL_ELETRICO, acentoSuaveBg: BRANCO_GELO, acentoSuaveBorda: "rgba(55,26,229,0.3)",
+    modalBg: BRANCO_GELO, // já era opaco — mantém a mesma cor
     acaoBg: AZUL_ELETRICO, acaoTexto: BRANCO_PURO,
     filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
     filtroInativoBg: AZUL_MARCA, filtroInativoTexto: BRANCO_PURO, filtroInativoBorda: AZUL_MARCA,
@@ -122,6 +132,7 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     cardBg: MARFIM, cardTexto: AZUL_NOITE, cardBorda: AZUL_ELETRICO,
     inputBg: MARFIM, inputTexto: AZUL_NOITE, inputBorda: AZUL_ELETRICO,
     acento: AZUL_ELETRICO, acentoSuaveBg: MARFIM, acentoSuaveBorda: AZUL_ELETRICO,
+    modalBg: MARFIM, // já era opaco — mantém a mesma cor
     acaoBg: AZUL_ELETRICO, acaoTexto: BRANCO_PURO,
     filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
     filtroInativoBg: MARFIM, filtroInativoTexto: AZUL_NOITE, filtroInativoBorda: AZUL_ELETRICO,
@@ -136,6 +147,7 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     cardBg: NAVY_CARD, cardTexto: BRANCO_GELO_AZUL, cardBorda: "rgba(77,168,255,0.24)",
     inputBg: NAVY_CARD, inputTexto: BRANCO_GELO_AZUL, inputBorda: "rgba(77,168,255,0.32)",
     acento: CERULEO, acentoSuaveBg: "rgba(77,168,255,0.1)", acentoSuaveBorda: "rgba(77,168,255,0.28)",
+    modalBg: NAVY_CARD, // mesmo tom do cardBg, já opaco
     acaoBg: `linear-gradient(135deg, ${AZUL_BOTAO}, ${CERULEO_FORTE})`, acaoTexto: "#FFFFFF",
     filtroAtivoBg: "rgba(77,168,255,0.24)", filtroAtivoTexto: CERULEO, filtroAtivoBorda: CERULEO,
     filtroInativoBg: "rgba(77,168,255,0.08)", filtroInativoTexto: "#7C93B8", filtroInativoBorda: "rgba(77,168,255,0.22)",

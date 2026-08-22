@@ -15,10 +15,17 @@
 // SEGURANÇA/CERTIFICADO: configurado abaixo em modo "unsigned" (sem
 // certificado próprio) — o QZ Tray mostra UM diálogo de confiança no PC do
 // caixa a cada vez que o QZ Tray é reaberto (não é 100% silencioso depois
-// de reiniciar o programa); o operador clica "permitir sempre" nesse
-// diálogo e não é incomodado de novo até reiniciar o QZ Tray.
+// de reiniciar o programa, mas TAMBÉM não é a cada venda: a conexão fica
+// aberta entre vendas — keepAlive padrão de 60s do QZ Tray — então o
+// diálogo só reaparece de fato quando o programa é fechado/reaberto ou o PC
+// reinicia). No diálogo, marcar "Remember this decision"/"Always allow" +
+// "Allow" resolve pro resto daquela sessão do QZ Tray. Pra eliminar o
+// diálogo de vez mesmo depois de reiniciar o QZ Tray, sem precisar de
+// certificado nenhum: no ícone do QZ Tray na bandeja → "Advanced" → "Site
+// Manager", adicionar o domínio do Axioma como permanentemente permitido.
 // ponytail: modo unsigned. Upgrade: certificado próprio + endpoint de
-// assinatura (elimina o diálogo por completo), se incomodar em produção.
+// assinatura (elimina o diálogo por completo, inclusive sem usar o Site
+// Manager), se ainda incomodar em produção.
 
 type QzModulo = typeof import("qz-tray");
 

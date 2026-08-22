@@ -622,6 +622,17 @@ export default function PdvVendaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ultimoCupom, dadosEmpresaCupom?.impressaoAutomatica]);
 
+  // O aviso "Venda concluída / Imprimir Nota" some sozinho depois de um
+  // tempo — a impressão automática (efeito acima) já rodou bem antes disso,
+  // então sumir da tela não atrapalha nada, só limpa o aviso já cumprido.
+  // Some antes disso também se o operador já começar a próxima venda (ver
+  // adicionarAoCarrinhoDireto).
+  useEffect(() => {
+    if (!ultimoCupom) return;
+    const timer = setTimeout(() => setUltimoCupom(null), 9000);
+    return () => clearTimeout(timer);
+  }, [ultimoCupom]);
+
   useEffect(() => {
     const timer = setTimeout(() => setBuscaDebounced(busca), 300);
     return () => clearTimeout(timer);
@@ -648,6 +659,11 @@ export default function PdvVendaPage() {
   // preço de venda garantido (existente, ou acabou de ser definido no
   // painel abaixo). Nunca chamada direto pra um produto sem preço.
   function adicionarAoCarrinhoDireto(produto: ProdutoPdv) {
+    // Bipar o primeiro item de uma venda nova é o sinal de que a anterior já
+    // era — o aviso "Venda concluída / Imprimir Nota" dela não faz mais
+    // sentido na tela (a impressão automática já rodou antes disso). Só
+    // mexe no estado do aviso, não na venda em si.
+    setUltimoCupom(null);
     setCarrinho((atual) => {
       const existe = atual.find((i) => i.produto.id === produto.id);
       if (existe) return atual.map((i) => (i.produto.id === produto.id ? { ...i, quantidade: i.quantidade + 1 } : i));
@@ -1345,7 +1361,7 @@ function FinalizarVendaModal({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-md rounded-2xl p-6" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-md rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("finalizarVenda", lang)}</h3>
         <p className="text-4xl font-black mb-1" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</p>
         <p className="text-xs flex items-center gap-1 mb-4" style={{ color: tokens.textoMuted }}>
@@ -1401,7 +1417,7 @@ function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, onPrecoBlu
   const { tokens } = useTemaPdv();
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("definirPrecoTitulo", lang)}</h3>
         <p className="text-base font-bold truncate mb-2" style={{ color: tokens.texto }}>{produto.nome}</p>
         <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("definirPrecoSubtitulo", lang)}</p>
@@ -1692,32 +1708,35 @@ function montarComandosEscPos(empresa: DadosEmpresaCupom | null, cupom: CupomVen
   return linhas;
 }
 
-// Banner GRANDE e óbvio — some das laterais/cantos de propósito (era ali que
-// o operador não via antes). Fica centralizado embaixo, por cima de
-// qualquer outro overlay (z-50: maior que o de "atualizando estoque" e
-// modais, z-40), do tamanho da venda concluída até a próxima venda.
+// Aviso tipo "toast", num canto — de propósito NÃO fica no centro/embaixo:
+// ali cobria a lista de produtos e o rodapé de totais (Finalizar Venda da
+// PRÓXIMA venda fica bem ali embaixo). Canto superior direito, abaixo da
+// faixa de botões do topo, mesmo padrão de posição do Toast genérico desta
+// tela — só que maior e some sozinho (ver useEffect de 9s + reset em
+// adicionarAoCarrinhoDireto), nunca bloqueando o conteúdo por baixo.
+// Fundo SEMPRE opaco (tokens.modalBg, não cardBg/acentoSuaveBg) — é um
+// overlay por cima do conteúdo real da tela, não uma tinta sobre superfície
+// já opaca.
 function BotaoImprimirNota({ lang, cupom, jaImpresso, onImprimir }: {
   lang: Idioma; cupom: CupomVenda; jaImpresso: boolean; onImprimir: () => void;
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2.5 rounded-2xl px-6 py-4 shadow-2xl" style={{ background: tokens.cardBg, border: `3px solid ${tokens.acento}` }}>
-      <span className="text-sm font-bold" style={{ color: tokens.cardTexto }}>
+    <div className="fixed top-20 right-4 z-50 w-full max-w-xs flex flex-col items-stretch gap-2.5 rounded-2xl px-4 py-4 shadow-2xl" style={{ background: tokens.modalBg, border: `3px solid ${tokens.acento}` }}>
+      <span className="text-sm font-bold text-center" style={{ color: tokens.texto }}>
         {t("vendaConcluida", lang, { valor: moeda(cupom.totalAPagar) })}
       </span>
-      <div className="flex items-center gap-3">
-        <button onClick={onImprimir}
-          className="flex items-center gap-2.5 px-8 py-4 rounded-xl text-xl font-black uppercase tracking-wide"
-          style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
-          <Printer size={26} />
-          {t("imprimirComprovante", lang)}
+      <button onClick={onImprimir}
+        className="flex items-center justify-center gap-2.5 px-4 py-4 rounded-xl text-lg font-black uppercase tracking-wide"
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+        <Printer size={22} />
+        {t("imprimirComprovante", lang)}
+      </button>
+      {jaImpresso && (
+        <button onClick={onImprimir} className="text-sm font-semibold underline" style={{ color: tokens.texto }}>
+          {t("reimprimirComprovante", lang)}
         </button>
-        {jaImpresso && (
-          <button onClick={onImprimir} className="px-3 py-2 rounded-lg text-sm font-semibold underline" style={{ color: tokens.cardTexto }}>
-            {t("reimprimirComprovante", lang)}
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -1739,7 +1758,7 @@ function ConfigCupomModal({ lang, config, salvando, statusQz, impressorasQz, onT
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>{t("configCupomTitulo", lang)}</h3>
 
         <label className="flex items-start gap-2 mb-2 cursor-pointer">
