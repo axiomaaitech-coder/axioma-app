@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, TrendingUp, AlertTriangle, Sparkles, Bell, Zap } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -49,6 +50,15 @@ export default function CustosFixos() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
 
   useEffect(() => { carregarCustos(); }, []);
 
@@ -74,17 +84,25 @@ export default function CustosFixos() {
     if (!empresaId) { setSalvando(false); return; }
     const payload: any = { descricao: novo.descricao, valor_mensal: parseFloat(novo.valor), dia_vencimento: parseInt(novo.vencimento || "1"), categoria: novo.categoria, data_renovacao: novo.renovacao || null, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
-      const { error } = await supabase.from("custos_fixos").update(payload).eq("id", editando.id);
-      if (!error) {
-        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
-        fecharModal(); await carregarCustos();
+      const { data, error } = await supabase.from("custos_fixos").update(payload).eq("id", editando.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(L("Não foi possível salvar o custo fixo. Tente novamente.", "Could not save the fixed cost. Try again.", "No se pudo guardar el costo fijo. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("custos_fixos", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
       }
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
+      fecharModal(); await carregarCustos();
     } else {
       const { data, error } = await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
-      if (!error && data) {
-        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
-        fecharModal(); await carregarCustos();
+      if (error || !data) {
+        showToast(L("Não foi possível salvar o custo fixo. Tente novamente.", "Could not save the fixed cost. Try again.", "No se pudo guardar el costo fijo. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("custos_fixos", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
       }
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
+      fecharModal(); await carregarCustos();
     }
     setSalvando(false);
   };
@@ -93,7 +111,12 @@ export default function CustosFixos() {
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = await obterEmpresaAtiva();
     const custo = custos.find(c => c.id === id);
-    await supabase.from("custos_fixos").delete().eq("id", id);
+    const { data, error } = await supabase.from("custos_fixos").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(L("Não foi possível excluir o custo fixo. Tente novamente.", "Could not delete the fixed cost. Try again.", "No se pudo eliminar el costo fijo. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("custos_fixos", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_fixos", registroId: id, acao: "excluir", descricao: `Custo fixo excluído: ${custo?.descricao || id}` });
     setCustos(custos.filter(c => c.id !== id));
   };
@@ -448,6 +471,13 @@ export default function CustosFixos() {
         onExportarPDF={exportarPDF}
         cor="#ef4444"
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   );
 }

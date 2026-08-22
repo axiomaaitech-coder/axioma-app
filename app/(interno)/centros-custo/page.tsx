@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -92,6 +93,15 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
 export default function CentrosCustoPage() {
   const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
+  const Lt = (pt: string, en: string, es: string) => (idioma === "en" ? en : idioma === "es" ? es : pt);
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
   const [aba, setAba] = useState<"visao" | "centros" | "lancamentos" | "insights" | "causaRaiz" | "oportunidades" | "simulador" | "copiloto" | "acoes" | "planilha">("visao");
   const [centros, setCentros] = useState<Centro[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
@@ -260,11 +270,23 @@ export default function CentrosCustoPage() {
       headcount: headcountCentro ? parseInt(headcountCentro) : null, area_m2: areaCentro ? parseFloat(areaCentro) : null,
     };
     if (editandoCentro) {
-      await supabase.from("centros_custo").update(payload).eq("id", editandoCentro.id);
+      const { data, error } = await supabase.from("centros_custo").update(payload).eq("id", editandoCentro.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(Lt("Não foi possível salvar o centro. Tente novamente.", "Could not save the center. Try again.", "No se pudo guardar el centro. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("centros_custo", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoCentro(false);
+        return;
+      }
       await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: editandoCentro.id, tabela: "centros_custo", registroId: editandoCentro.id, acao: "editar", descricao: `Centro editado: ${nomeCentro}`, valorAntes: editandoCentro, valorDepois: payload });
     } else {
-      const { data } = await supabase.from("centros_custo").insert({ ...payload, user_id: user.id, empresa_id: empresaId, ativo: true }).select("id").single();
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: data?.id, tabela: "centros_custo", registroId: data?.id, acao: "criar", descricao: `Centro criado: ${nomeCentro}`, valorDepois: payload });
+      const { data, error } = await supabase.from("centros_custo").insert({ ...payload, user_id: user.id, empresa_id: empresaId, ativo: true }).select("id").single();
+      if (error || !data) {
+        showToast(Lt("Não foi possível salvar o centro. Tente novamente.", "Could not save the center. Try again.", "No se pudo guardar el centro. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("centros_custo", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoCentro(false);
+        return;
+      }
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: data.id, tabela: "centros_custo", registroId: data.id, acao: "criar", descricao: `Centro criado: ${nomeCentro}`, valorDepois: payload });
     }
     fecharModalCentro(); setSalvandoCentro(false); carregarDados();
   }
@@ -272,7 +294,12 @@ export default function CentrosCustoPage() {
   async function excluirCentro(id: string) {
     if (!userId) return;
     const centro = centros.find(c => c.id === id);
-    await supabase.from("centros_custo").delete().eq("id", id);
+    const { data, error } = await supabase.from("centros_custo").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(Lt("Não foi possível excluir o centro. Tente novamente.", "Could not delete the center. Try again.", "No se pudo eliminar el centro. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("centros_custo", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     await registrarAuditoriaCentro({ userId, empresaId, centroId: id, tabela: "centros_custo", registroId: id, acao: "excluir", descricao: `Centro excluído: ${centro?.nome || id}` });
     carregarDados();
   }
@@ -288,11 +315,21 @@ export default function CentrosCustoPage() {
       centro_custo_id: centroLanc || null,
     };
     if (editandoLanc) {
-      const { error } = await supabase.from("lancamentos_centro").update(payload).eq("id", editandoLanc.id);
-      if (error) { console.error("Erro ao editar lançamento:", error.message, error); alert("Erro ao editar: " + error.message); setSalvandoLanc(false); return; }
+      const { data, error } = await supabase.from("lancamentos_centro").update(payload).eq("id", editandoLanc.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(Lt("Não foi possível salvar o lançamento. Tente novamente.", "Could not save the entry. Try again.", "No se pudo guardar el movimiento. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("lancamentos_centro", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoLanc(false);
+        return;
+      }
     } else {
-      const { error } = await supabase.from("lancamentos_centro").insert({ ...payload, user_id: user.id, empresa_id: empresaId });
-      if (error) { console.error("Erro ao salvar lançamento:", error.message, error); alert("Erro ao salvar: " + error.message); setSalvandoLanc(false); return; }
+      const { data, error } = await supabase.from("lancamentos_centro").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(Lt("Não foi possível salvar o lançamento. Tente novamente.", "Could not save the entry. Try again.", "No se pudo guardar el movimiento. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("lancamentos_centro", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvandoLanc(false);
+        return;
+      }
     }
     fecharModalLancamento();
     carregarDados(); setSalvandoLanc(false);
@@ -325,7 +362,12 @@ export default function CentrosCustoPage() {
   }
 
   async function excluirLancamento(id: string) {
-    await supabase.from("lancamentos_centro").delete().eq("id", id);
+    const { data, error } = await supabase.from("lancamentos_centro").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(Lt("Não foi possível excluir o lançamento. Tente novamente.", "Could not delete the entry. Try again.", "No se pudo eliminar el movimiento. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("lancamentos_centro", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     carregarDados();
   }
 
@@ -1507,6 +1549,13 @@ export default function CentrosCustoPage() {
           </div>
         </div>
       </ModalPremium>
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   );
 

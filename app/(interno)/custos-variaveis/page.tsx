@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap, MessageSquareText } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -62,6 +63,15 @@ export default function CustosVariaveis() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
 
   // Seletor de período — controla comparativo, narrativa, anomalias e projeção
   const [presetPeriodo, setPresetPeriodo] = useState<PeriodoPreset>("mes_atual");
@@ -117,17 +127,25 @@ export default function CustosVariaveis() {
     if (!empresaId) { setSalvando(false); return; }
     const payload = { descricao: novo.descricao, valor: parseFloat(novo.valor), data: novo.data || new Date().toISOString().slice(0, 10), categoria: novo.categoria, centro_custo_id: novo.centro_custo_id || null };
     if (editando) {
-      const { error } = await supabase.from("custos_variaveis").update(payload).eq("id", editando.id);
-      if (!error) {
-        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
-        fecharModal(); await carregarTudo();
+      const { data, error } = await supabase.from("custos_variaveis").update(payload).eq("id", editando.id).select("id");
+      if (error || !data || data.length === 0) {
+        showToast(L("Não foi possível salvar o custo variável. Tente novamente.", "Could not save the variable cost. Try again.", "No se pudo guardar el costo variable. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("custos_variaveis", "update", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
       }
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
+      fecharModal(); await carregarTudo();
     } else {
       const { data, error } = await supabase.from("custos_variaveis").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
-      if (!error && data) {
-        await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
-        fecharModal(); await carregarTudo();
+      if (error || !data) {
+        showToast(L("Não foi possível salvar o custo variável. Tente novamente.", "Could not save the variable cost. Try again.", "No se pudo guardar el costo variable. Intente de nuevo."), "erro");
+        reportarFalhaEscrita("custos_variaveis", "insert", error?.message || "0 linhas afetadas (RLS?)");
+        setSalvando(false);
+        return;
       }
+      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
+      fecharModal(); await carregarTudo();
     }
     setSalvando(false);
   };
@@ -136,7 +154,12 @@ export default function CustosVariaveis() {
     const { data: { user } } = await supabase.auth.getUser();
     const empresaId = await obterEmpresaAtiva();
     const custo = custos.find(c => c.id === id);
-    await supabase.from("custos_variaveis").delete().eq("id", id);
+    const { data, error } = await supabase.from("custos_variaveis").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(L("Não foi possível excluir o custo variável. Tente novamente.", "Could not delete the variable cost. Try again.", "No se pudo eliminar el costo variable. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("custos_variaveis", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_variaveis", registroId: id, acao: "excluir", descricao: `Custo variável excluído: ${custo?.descricao || id}` });
     setCustos(custos.filter(c => c.id !== id));
   };
@@ -597,6 +620,13 @@ export default function CustosVariaveis() {
         onExportarPDF={exportarPDF}
         cor="#8b5cf6"
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   );
 }

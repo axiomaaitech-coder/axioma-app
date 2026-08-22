@@ -713,6 +713,8 @@ export default function Fornecedores() {
     erroSalvarConta: idioma === "pt" ? "Não foi possível salvar a conta a pagar. Tente novamente." : idioma === "en" ? "Could not save the bill. Try again." : "No se pudo guardar la cuenta por pagar. Intente de nuevo.",
     erroExcluirConta: idioma === "pt" ? "Não foi possível excluir a conta a pagar. Tente novamente." : idioma === "en" ? "Could not delete the bill. Try again." : "No se pudo eliminar la cuenta por pagar. Intente de nuevo.",
     erroQuitarConta: idioma === "pt" ? "Não foi possível quitar a conta. Tente novamente." : idioma === "en" ? "Could not settle the bill. Try again." : "No se pudo saldar la cuenta. Intente de nuevo.",
+    erroSalvarProduto: idioma === "pt" ? "Não foi possível salvar o produto/serviço. Tente novamente." : idioma === "en" ? "Could not save the product/service. Try again." : "No se pudo guardar el producto/servicio. Intente de nuevo.",
+    erroExcluirProduto: idioma === "pt" ? "Não foi possível excluir o produto/serviço. Tente novamente." : idioma === "en" ? "Could not delete the product/service. Try again." : "No se pudo eliminar el producto/servicio. Intente de nuevo.",
   };
 
   const [aba, setAba] = useState<"fornecedores" | "contas">("fornecedores");
@@ -1142,8 +1144,14 @@ export default function Fornecedores() {
       valor_unitario: novoProduto.valor_unitario ? parseFloat(novoProduto.valor_unitario) : null,
       unidade: novoProduto.unidade || null,
     };
-    if (editandoProdutoId) await atualizarProduto(editandoProdutoId, dados);
-    else await criarProduto(fornecedorAtualId, user.id, empresaId, dados);
+    const { erro } = editandoProdutoId
+      ? await atualizarProduto(editandoProdutoId, dados)
+      : await criarProduto(fornecedorAtualId, user.id, empresaId, dados);
+    if (erro) {
+      showToast(txt.erroSalvarProduto, "erro");
+      reportarFalhaEscrita("fornecedor_produtos", editandoProdutoId ? "update" : "insert", erro);
+      return;
+    }
     setNovoProduto({ descricao: "", categoria: "", valor_unitario: "", unidade: "" });
     setEditandoProdutoId(null);
     setProdutosForn(await listarProdutos(fornecedorAtualId));
@@ -1157,7 +1165,12 @@ export default function Fornecedores() {
     setEditandoProdutoId(null);
   };
   const removerProduto = async (id: string) => {
-    await excluirProduto(id);
+    const { erro } = await excluirProduto(id);
+    if (erro) {
+      showToast(txt.erroExcluirProduto, "erro");
+      reportarFalhaEscrita("fornecedor_produtos", "delete", erro);
+      return;
+    }
     if (editandoProdutoId === id) cancelarEdicaoProduto();
     if (fornecedorAtualId) setProdutosForn(await listarProdutos(fornecedorAtualId));
   };

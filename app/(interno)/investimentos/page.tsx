@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -88,6 +89,15 @@ export default function Investimentos() {
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
 
   const [investimentos, setInvestimentos] = useState<InvestimentoRow[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -226,21 +236,31 @@ export default function Investimentos() {
       data_vencimento: dataVencimento || null, indexador: indexador || null,
       instituicao: instituicao || null, liquidez, status,
     };
-    let error;
+    let respData, error;
     if (editando) {
-      ({ error } = await supabase.from("investimentos").update(payload).eq("id", editando.id));
+      ({ data: respData, error } = await supabase.from("investimentos").update(payload).eq("id", editando.id).select("id"));
     } else {
       const empresaId = await obterEmpresaAtiva();
       if (!empresaId) { setSalvando(false); return; }
-      ({ error } = await supabase.from("investimentos").insert({ ...payload, user_id: user.id, empresa_id: empresaId }));
+      ({ data: respData, error } = await supabase.from("investimentos").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id"));
     }
 
-    if (error) { setErroModal(error.message); setSalvando(false); return; }
+    if (error || !respData || respData.length === 0) {
+      setErroModal(L("Não foi possível salvar o investimento. Tente novamente.", "Could not save the investment. Try again.", "No se pudo guardar la inversión. Intente de nuevo."));
+      reportarFalhaEscrita("investimentos", editando ? "update" : "insert", error?.message || "0 linhas afetadas (RLS?)");
+      setSalvando(false);
+      return;
+    }
     fecharModal(); setSalvando(false); await carregarTudo();
   }
 
   async function excluir(id: string) {
-    await supabase.from("investimentos").delete().eq("id", id);
+    const { data, error } = await supabase.from("investimentos").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(L("Não foi possível excluir o investimento. Tente novamente.", "Could not delete the investment. Try again.", "No se pudo eliminar la inversión. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("investimentos", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     setInvestimentos(investimentos.filter((i) => i.id !== id));
   }
 
@@ -1016,6 +1036,13 @@ export default function Investimentos() {
         onExportarPDF={exportarPDF}
         cor="#8b5cf6"
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   );
 }

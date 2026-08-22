@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Target, Trash2, X, Pencil, Share2, Sparkles, GitBranch, Archive, ArchiveRestore, Trophy } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -223,6 +224,15 @@ export default function Metas() {
   const [salvando, setSalvando] = useState(false);
   const [erroModal, setErroModal] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+  }
   const [shareAberto, setShareAberto] = useState(false);
 
   const [receitasRows, setReceitasRows] = useState<{ valor: number; data: string }[]>([]);
@@ -314,9 +324,9 @@ export default function Metas() {
     });
 
     if (atualizacoes.length > 0) {
-      const resultados = await Promise.all(atualizacoes.map(a => supabase.from("metas").update({ valor_atual: a.valor_atual, status: a.status }).eq("id", a.id)));
-      const erroSync = resultados.find(r => r.error)?.error;
-      if (erroSync) console.error("Falha ao sincronizar valor_atual/status de metas:", erroSync.message);
+      const resultados = await Promise.all(atualizacoes.map(a => supabase.from("metas").update({ valor_atual: a.valor_atual, status: a.status }).eq("id", a.id).select("id")));
+      const falha = resultados.find(r => r.error || !r.data || r.data.length === 0);
+      if (falha) reportarFalhaEscrita("metas", "update valor_atual/status (sync)", falha.error?.message || "0 linhas afetadas (RLS?)");
     }
 
     setMetas(metasFinal);
@@ -390,37 +400,49 @@ export default function Metas() {
       responsavel: responsavelInput.trim() || null, descricao: descricaoInput.trim() || null,
     };
 
-    let error;
+    let data, error;
     if (editando) {
       const payload: any = { ...camposComuns, valor_inicial: parseFloat(valorInicialInput) };
       if (!editando.tipo_meta) { // meta antiga sendo reclassificada agora — vira meta moderna
         payload.tipo_meta = tipoMetaSel;
         payload.data_inicio = hojeISO();
       }
-      ({ error } = await supabase.from("metas").update(payload).eq("id", editando.id));
+      ({ data, error } = await supabase.from("metas").update(payload).eq("id", editando.id).select("id"));
     } else {
       const hoje = hojeISO();
       const empresaId = await obterEmpresaAtiva();
       if (!empresaId) { setSalvando(false); setErroModal("Nenhuma empresa ativa encontrada."); return; }
-      ({ error } = await supabase.from("metas").insert({
+      ({ data, error } = await supabase.from("metas").insert({
         ...camposComuns, tipo_meta: tipoMetaSel, valor_inicial: parseFloat(valorInicialInput),
         valor_atual: parseFloat(valorInicialInput), data_inicio: hoje, status: "ativa", user_id: user.id, empresa_id: empresaId,
-      }));
+      }).select("id"));
     }
 
     setSalvando(false);
-    if (error) { setErroModal(`${cx.metaErroSalvar} ${error.message}`); return; } // mantém o modal aberto com os dados preenchidos — nada se perde
+    if (error || !data || data.length === 0) {
+      setErroModal(cx.metaErroSalvar); // mantém o modal aberto com os dados preenchidos — nada se perde
+      reportarFalhaEscrita("metas", editando ? "update" : "insert", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     fecharModal(); await carregarTudo();
   };
 
   const excluir = async (id: string) => {
-    const { error } = await supabase.from("metas").delete().eq("id", id);
-    if (error) { console.error("Erro ao excluir meta:", error.message); return; }
+    const { data, error } = await supabase.from("metas").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(L("Não foi possível excluir a meta. Tente novamente.", "Could not delete the goal. Try again.", "No se pudo eliminar la meta. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("metas", "delete", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     carregarTudo();
   };
   const arquivar = async (m: MetaRow) => {
-    const { error } = await supabase.from("metas").update({ status: m.status === "arquivada" ? "ativa" : "arquivada" }).eq("id", m.id);
-    if (error) { console.error("Erro ao arquivar meta:", error.message); return; }
+    const { data, error } = await supabase.from("metas").update({ status: m.status === "arquivada" ? "ativa" : "arquivada" }).eq("id", m.id).select("id");
+    if (error || !data || data.length === 0) {
+      showToast(L("Não foi possível atualizar a meta. Tente novamente.", "Could not update the goal. Try again.", "No se pudo actualizar la meta. Intente de nuevo."), "erro");
+      reportarFalhaEscrita("metas", "update arquivar", error?.message || "0 linhas afetadas (RLS?)");
+      return;
+    }
     carregarTudo();
   };
 
@@ -949,6 +971,13 @@ export default function Metas() {
         onExportarPDF={exportarPDF}
         cor="#8b5cf6"
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   );
 }

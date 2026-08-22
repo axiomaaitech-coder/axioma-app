@@ -9,6 +9,7 @@ import type { CobrancaCompromisso, EtapaRegua, AlertaCobranca, CardExplicativo }
 import { detectarAlertasCobranca, gerarParecerCobranca } from "./cobrancaHelpers";
 import { montarDRE, serieRolling, type DRE, type Lancamento } from "./cfoCore";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -601,8 +602,13 @@ export async function atualizarProvisaoNaDRE(userId: string, periodoInicio: stri
   const { data: existente } = await supabase.from("dre_historico").select("id")
     .eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
   if (!existente) return { atualizado: false };
-  const { error } = await supabase.from("dre_historico").update({ provisao_pcld: provisaoPcld }).eq("id", existente.id);
-  return error ? { atualizado: false, erro: error.message } : { atualizado: true };
+  const { data, error } = await supabase.from("dre_historico").update({ provisao_pcld: provisaoPcld }).eq("id", existente.id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    Sentry.captureException(new Error(`Falha ao atualizar dre_historico: ${motivo}`), { extra: { tabela: "dre_historico", operacao: "update", userId, periodoInicio, periodoFim, motivo } });
+    return { atualizado: false, erro: motivo };
+  }
+  return { atualizado: true };
 }
 
 // ============================================================================

@@ -6,6 +6,7 @@
 // recalculado do zero.
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import type { ClienteSnapshot, ContaRow, SnapshotCarteira, ScoreAxiomaCliente, Idioma3 } from "./clienteIntelHelpers";
 import { scoreRecebimento } from "./clienteIntelHelpers";
 
@@ -16,6 +17,14 @@ const supabase = createBrowserClient(
 
 function diffDias(a: Date, b: Date): number {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
+
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres
+// (mesma causa raiz do bug real do atualizarEmpresa "salvava sem salvar") —
+// .select("id") é o que permite enxergar essa falha silenciosa. Insert com
+// .select("id").single() já falha "alto" (erro real ou null) quando bloqueado.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
 }
 
 // ============================================================================
@@ -63,13 +72,23 @@ export async function listarInteracoes(contaId?: string): Promise<CobrancaIntera
 }
 
 export async function criarInteracao(userId: string, empresaId: string | null, dados: Partial<CobrancaInteracao>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_interacoes").insert({ ...dados, user_id: userId, empresa_id: empresaId });
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_interacoes").insert({ ...dados, user_id: userId, empresa_id: empresaId }).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_interacoes", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_interacoes").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_interacoes").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_interacoes", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================
@@ -87,18 +106,33 @@ export async function listarCompromissos(contaId?: string): Promise<CobrancaComp
 }
 
 export async function criarCompromisso(userId: string, empresaId: string | null, dados: Partial<CobrancaCompromisso>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_compromissos").insert({ ...dados, user_id: userId, empresa_id: empresaId, status: "pendente" });
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_compromissos").insert({ ...dados, user_id: userId, empresa_id: empresaId, status: "pendente" }).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_compromissos", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function atualizarStatusCompromisso(id: string, status: CobrancaCompromisso["status"]): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_compromissos").update({ status }).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_compromissos").update({ status }).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_compromissos", "update status", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function atualizarCompromisso(id: string, dados: Partial<CobrancaCompromisso>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_compromissos").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_compromissos").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_compromissos", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================
@@ -124,16 +158,31 @@ export async function listarEtapasRegua(userId: string): Promise<EtapaRegua[]> {
 
 export async function salvarEtapaRegua(userId: string, empresaId: string | null, etapa: Partial<EtapaRegua>): Promise<{ erro?: string }> {
   if (etapa.id) {
-    const { error } = await supabase.from("cobranca_regua_etapas").update(etapa).eq("id", etapa.id);
-    return error ? { erro: error.message } : {};
+    const { data, error } = await supabase.from("cobranca_regua_etapas").update(etapa).eq("id", etapa.id).select("id");
+    if (error || !data || data.length === 0) {
+      const motivo = error?.message || "0 linhas afetadas (RLS?)";
+      reportarFalhaEscrita("cobranca_regua_etapas", "update", motivo);
+      return { erro: motivo };
+    }
+    return {};
   }
-  const { error } = await supabase.from("cobranca_regua_etapas").insert({ ...etapa, user_id: userId, empresa_id: empresaId });
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_regua_etapas").insert({ ...etapa, user_id: userId, empresa_id: empresaId }).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_regua_etapas", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirEtapaRegua(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("cobranca_regua_etapas").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("cobranca_regua_etapas").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("cobranca_regua_etapas", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // Qual etapa da régua se aplica a uma conta HOJE, dado o vencimento — usado

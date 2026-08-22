@@ -558,10 +558,15 @@ export default function ContasReceber() {
   async function salvarContato() {
     if (!contaCobranca || !userId || !novoContato.descricao.trim()) return
     setSalvandoCobranca(true)
-    await criarInteracao(userId, empresaId, {
+    const { erro } = await criarInteracao(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
       tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao, data: hoje,
     })
+    if (erro) {
+      showToast(L('Não foi possível registrar o contato. Tente novamente.', 'Could not register the contact. Try again.', 'No se pudo registrar el contacto. Intente de nuevo.'), 'erro')
+      setSalvandoCobranca(false)
+      return
+    }
     setInteracoesConta(await listarInteracoes(contaCobranca.id))
     setNovoContato({ tipo: 'contato', canal: 'telefone', descricao: '' })
     setSalvandoCobranca(false)
@@ -570,19 +575,25 @@ export default function ContasReceber() {
   async function salvarCompromisso() {
     if (!contaCobranca || !userId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
     setSalvandoCobranca(true)
-    await criarCompromisso(userId, empresaId, {
+    const { erro } = await criarCompromisso(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
       tipo: novoCompromisso.tipo, valor_original: contaCobranca.valor,
       valor_compromissado: parseFloat(novoCompromisso.valor_compromissado), data_compromissada: novoCompromisso.data_compromissada,
       condicoes: novoCompromisso.condicoes || null,
     })
+    if (erro) {
+      showToast(L('Não foi possível salvar o compromisso. Tente novamente.', 'Could not save the commitment. Try again.', 'No se pudo guardar el compromiso. Intente de nuevo.'), 'erro')
+      setSalvandoCobranca(false)
+      return
+    }
     setCompromissos(await listarCompromissos())
     setNovoCompromisso({ tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
     setSalvandoCobranca(false)
   }
 
   async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
-    await atualizarStatusCompromisso(id, status)
+    const { erro } = await atualizarStatusCompromisso(id, status)
+    if (erro) { showToast(L('Não foi possível atualizar o compromisso. Tente novamente.', 'Could not update the commitment. Try again.', 'No se pudo actualizar el compromiso. Intente de nuevo.'), 'erro'); return }
     setCompromissos(await listarCompromissos())
   }
 
@@ -591,17 +602,22 @@ export default function ContasReceber() {
   function abrirNovaEtapa() { setEditandoEtapa({ dias_relativos: 0, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasRegua.length }) }
   async function salvarEtapa() {
     if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
-    await salvarEtapaRegua(userId, empresaId, editandoEtapa)
+    const { erro } = await salvarEtapaRegua(userId, empresaId, editandoEtapa)
+    if (erro) { showToast(L('Não foi possível salvar a etapa. Tente novamente.', 'Could not save the step. Try again.', 'No se pudo guardar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(await listarEtapasRegua(userId))
     setEditandoEtapa(null)
   }
   async function excluirEtapa(id: string) {
-    await excluirEtapaRegua(id)
+    const { erro } = await excluirEtapaRegua(id)
+    if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
     if (userId) setEtapasRegua(await listarEtapasRegua(userId))
   }
   async function usarReguaPadrao() {
     if (!userId) return
-    for (const e of etapasReguaPadrao()) await salvarEtapaRegua(userId, empresaId, e)
+    for (const e of etapasReguaPadrao()) {
+      const { erro } = await salvarEtapaRegua(userId, empresaId, e)
+      if (erro) { showToast(L('Não foi possível aplicar a régua padrão. Tente novamente.', 'Could not apply the default reminder ladder. Try again.', 'No se pudo aplicar la regla predeterminada. Intente de nuevo.'), 'erro'); return }
+    }
     setEtapasRegua(await listarEtapasRegua(userId))
   }
 

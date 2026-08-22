@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -936,11 +937,17 @@ export default function ImportarDocumentosPage() {
         somarAlvo: montarSomarAlvo(),
       });
 
-      // 4) Atualiza tempo de processamento
-      await supabase
+      // 4) Atualiza tempo de processamento — métrica não-crítica (a importação em si já
+      // foi gravada por gravarLinhas() acima); só reporta pro Sentry, sem toast, pra não
+      // confundir o usuário com um erro numa gravação que na prática já deu certo.
+      const { data: dataTempo, error: erroTempo } = await supabase
         .from("importacoes")
         .update({ tempo_processamento_ms: Date.now() - tInicio })
-        .eq("id", importacaoId);
+        .eq("id", importacaoId)
+        .select("id");
+      if (erroTempo || !dataTempo || dataTempo.length === 0) {
+        Sentry.captureException(new Error(`Falha ao atualizar importacoes: ${erroTempo?.message || "0 linhas afetadas (RLS?)"}`), { extra: { tabela: "importacoes", operacao: "update tempo_processamento_ms", importacaoId } });
+      }
 
       setSucesso({ ...result, importacaoId });
       setSimulacao(null);

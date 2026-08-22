@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import * as Sentry from '@sentry/nextjs'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-05-27.dahlia',
@@ -10,6 +11,16 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Webhook roda com service role (sem RLS) — mas uma gravação ainda pode
+// falhar (erro real, ou 0 linhas por não achar o customer_id/user_id) e
+// isso NUNCA aparece pra ninguém em tempo real (é assíncrono, sem tela
+// esperando resposta) — sem isso, cliente pagou e o Axioma nunca liberou o
+// acesso, e ninguém saberia até o cliente reclamar.
+function logFalhaWebhook(tabela: string, operacao: string, motivo: string, contexto: Record<string, unknown>) {
+  console.error(`[stripe webhook] Falha ao ${operacao} em ${tabela}: ${motivo}`, contexto)
+  Sentry.captureException(new Error(`[stripe webhook] Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo, ...contexto } })
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -37,14 +48,17 @@ export async function POST(request: NextRequest) {
         const userId = session.metadata?.userId
         const plano = session.metadata?.plano
         if (userId && plano) {
-          await supabase.from('perfis').upsert({
+          const { data, error } = await supabase.from('perfis').upsert({
             user_id: userId,
             plano: plano,
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: session.subscription as string,
             plano_ativo: true,
             updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' })
+          }, { onConflict: 'user_id' }).select('user_id')
+          if (error || !data || data.length === 0) {
+            logFalhaWebhook('perfis', 'upsert (checkout.session.completed)', error?.message || '0 linhas afetadas', { userId, plano })
+          }
         }
         break
       }
@@ -56,12 +70,15 @@ export async function POST(request: NextRequest) {
         // Na API 2026-05-27.dahlia, invoice.subscription foi movido pra invoice.parent.subscription_details.subscription
         const subscriptionId = invoice.parent?.subscription_details?.subscription
         if (customerId && subscriptionId) {
-          await supabase.from('perfis')
+          const { data, error } = await supabase.from('perfis')
             .update({
               plano_ativo: true,
               updated_at: new Date().toISOString(),
             })
-            .eq('stripe_customer_id', customerId)
+            .eq('stripe_customer_id', customerId).select('user_id')
+          if (error || !data || data.length === 0) {
+            logFalhaWebhook('perfis', 'update (invoice.paid)', error?.message || '0 linhas afetadas', { customerId, subscriptionId })
+          }
         }
         break
       }
@@ -71,12 +88,15 @@ export async function POST(request: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice
         const customerId = invoice.customer as string
         if (customerId) {
-          await supabase.from('perfis')
+          const { data, error } = await supabase.from('perfis')
             .update({
               plano_ativo: false,
               updated_at: new Date().toISOString(),
             })
-            .eq('stripe_customer_id', customerId)
+            .eq('stripe_customer_id', customerId).select('user_id')
+          if (error || !data || data.length === 0) {
+            logFalhaWebhook('perfis', 'update (invoice.payment_failed)', error?.message || '0 linhas afetadas', { customerId })
+          }
         }
         break
       }
@@ -93,13 +113,16 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
         if (customerId) {
-          await supabase.from('perfis')
+          const { data, error } = await supabase.from('perfis')
             .update({
               plano: 'starter',
               plano_ativo: false,
               updated_at: new Date().toISOString(),
             })
-            .eq('stripe_customer_id', customerId)
+            .eq('stripe_customer_id', customerId).select('user_id')
+          if (error || !data || data.length === 0) {
+            logFalhaWebhook('perfis', 'update (customer.subscription.deleted)', error?.message || '0 linhas afetadas', { customerId })
+          }
         }
         break
       }

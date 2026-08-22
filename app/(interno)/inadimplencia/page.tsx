@@ -246,6 +246,7 @@ export default function Inadimplencia() {
     const r = await atualizarProvisaoNaDRE(userId, dreHistoricoAtual.periodo_inicio, dreHistoricoAtual.periodo_fim, kpis.perdaProvavel)
     setSalvandoProvisao(false)
     setProvisaoSalva(r.atualizado)
+    if (r.erro) showToast(L('Não foi possível salvar a provisão na DRE. Tente novamente.', 'Could not save the provision to the DRE. Try again.', 'No se pudo guardar la provisión en el DRE. Intente de nuevo.'), 'erro')
   }
 
   const hoje = new Date().toISOString().slice(0, 10)
@@ -318,10 +319,13 @@ export default function Inadimplencia() {
       multa_pct: novoCompromisso.multa_pct ? parseFloat(novoCompromisso.multa_pct) : null,
       responsavel: novoCompromisso.responsavel || null,
     }
-    if (editandoCompromissoId) {
-      await atualizarCompromisso(editandoCompromissoId, payload)
-    } else {
-      await criarCompromisso(userId, empresaId, payload)
+    const { erro } = editandoCompromissoId
+      ? await atualizarCompromisso(editandoCompromissoId, payload)
+      : await criarCompromisso(userId, empresaId, payload)
+    if (erro) {
+      showToast(L('Não foi possível salvar o compromisso. Tente novamente.', 'Could not save the commitment. Try again.', 'No se pudo guardar el compromiso. Intente de nuevo.'), 'erro')
+      setSalvandoCompromisso(false)
+      return
     }
     setCompromissos(await listarCompromissos())
     setNovoCompromisso({ ...compromissoVazio })
@@ -342,18 +346,24 @@ export default function Inadimplencia() {
   function cancelarEdicaoCompromisso() { setEditandoCompromissoId(null); setNovoCompromisso({ ...compromissoVazio }) }
 
   async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
-    await atualizarStatusCompromisso(id, status)
+    const { erro } = await atualizarStatusCompromisso(id, status)
+    if (erro) { showToast(L('Não foi possível atualizar o compromisso. Tente novamente.', 'Could not update the commitment. Try again.', 'No se pudo actualizar el compromiso. Intente de nuevo.'), 'erro'); return }
     setCompromissos(await listarCompromissos())
   }
 
   async function registrarContato() {
     if (!linhaAberta || !userId || !novoContato.conta_id || !novoContato.descricao.trim()) return
     setSalvandoContato(true)
-    await criarInteracao(userId, empresaId, {
+    const { erro } = await criarInteracao(userId, empresaId, {
       conta_id: novoContato.conta_id, cliente_id: linhaAberta.s.cliente.id,
       tipo: novoContato.tipo, canal: novoContato.canal, descricao: novoContato.descricao,
       data: new Date().toISOString().slice(0, 10),
     })
+    if (erro) {
+      showToast(L('Não foi possível registrar o contato. Tente novamente.', 'Could not register the contact. Try again.', 'No se pudo registrar el contacto. Intente de nuevo.'), 'erro')
+      setSalvandoContato(false)
+      return
+    }
     setInteracoes(await listarInteracoes())
     setNovoContato({ ...contatoVazio, conta_id: novoContato.conta_id })
     setSalvandoContato(false)
@@ -365,17 +375,22 @@ export default function Inadimplencia() {
   }
   async function salvarEtapa() {
     if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
-    await salvarEtapaRegua(userId, empresaId, editandoEtapa)
+    const { erro } = await salvarEtapaRegua(userId, empresaId, editandoEtapa)
+    if (erro) { showToast(L('Não foi possível salvar a etapa. Tente novamente.', 'Could not save the step. Try again.', 'No se pudo guardar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(await listarEtapasRegua(userId))
     setEditandoEtapa(null)
   }
   async function excluirEtapa(id: string) {
-    await excluirEtapaRegua(id)
+    const { erro } = await excluirEtapaRegua(id)
+    if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(etapasRegua.filter((e) => e.id !== id))
   }
   async function usarEscalonamentoPadrao() {
     if (!userId) return
-    for (const etapa of etapasEscalonamentoPadrao()) await salvarEtapaRegua(userId, empresaId, etapa)
+    for (const etapa of etapasEscalonamentoPadrao()) {
+      const { erro } = await salvarEtapaRegua(userId, empresaId, etapa)
+      if (erro) { showToast(L('Não foi possível aplicar o escalonamento padrão. Tente novamente.', 'Could not apply the default escalation. Try again.', 'No se pudo aplicar el escalonamiento predeterminado. Intente de nuevo.'), 'erro'); return }
+    }
     setEtapasRegua(await listarEtapasRegua(userId))
   }
 
