@@ -586,7 +586,7 @@ export default function PdvVendaPage() {
         mostrarToast(t("qzNaoConectado", lang), "erro");
       }
     }
-    window.print();
+    imprimirHtmlEmIframe(gerarHtmlCupom(dadosEmpresaCupom, cupom, lang));
     setCupomJaImpresso(true);
   }
 
@@ -925,16 +925,8 @@ export default function PdvVendaPage() {
 
         {toast && <Toast toast={toast} />}
 
-        {/* Cupom em si fica sempre montado (invisível na tela) assim que a
-            primeira venda do turno é finalizada — window.print() (automático
-            ou pelo botão abaixo) usa o CSS @media print pra imprimir só esta
-            div, escondendo o resto da página inteira. */}
         {ultimoCupom && (
-          <>
-            <style>{ESTILO_IMPRESSAO_CUPOM}</style>
-            <CupomImpressao lang={lang} empresa={dadosEmpresaCupom} cupom={ultimoCupom} />
-            <BotaoReimprimirCupom lang={lang} cupom={ultimoCupom} jaImpresso={cupomJaImpresso} onImprimir={handleImprimirCupom} />
-          </>
+          <BotaoImprimirNota lang={lang} cupom={ultimoCupom} jaImpresso={cupomJaImpresso} onImprimir={handleImprimirCupom} />
         )}
       </ConteudoPdv>
     </PdvLayout>
@@ -1536,73 +1528,94 @@ function ResultadosBusca({ lang, termo, resultados, buscando, onAdicionar }: {
 // CUPOM NÃO-FISCAL + IMPRESSÃO (PDV Fase 3, Etapa 3)
 // ============================================================================
 
-// Técnica padrão de "imprimir só esta div": visibility:hidden na página
-// inteira, visibility:visible só no cupom e nos filhos dele, position:fixed
-// pra ele imprimir a partir do topo da folha (independe de onde ele estava
-// no fluxo normal da página). #cupom-recibo some da TELA via display:none
-// (Tailwind `hidden`, no componente) — o @media print troca pra
-// display:block, senão a regra de visibility não bastaria por si só.
-// @page define o tamanho pro rolo de 80mm (impressora térmica).
-const ESTILO_IMPRESSAO_CUPOM = `
-@media print {
-  body * { visibility: hidden; }
-  #cupom-recibo, #cupom-recibo * { visibility: visible; }
-  #cupom-recibo { display: block !important; position: fixed; left: 0; top: 0; width: 72mm; }
-}
-@page { size: 80mm auto; margin: 2mm; }
-`;
-
-function LinhaCupom({ label, valor, negrito }: { label: string; valor: string; negrito?: boolean }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontWeight: negrito ? 700 : 400 }}>
-      <span>{label}</span>
-      <span>{valor}</span>
-    </div>
-  );
+// window.print() da PÁGINA inteira (mesmo só mostrando o cupom via
+// visibility:hidden no resto) se mostrou frágil na prática: qualquer
+// ancestral com transform/filter (framer-motion anima alguns blocos desta
+// tela) vira "containing block" e pode cortar um position:fixed, e o modo
+// tela cheia (Fullscreen API) também mexe no que o navegador desenha. Um
+// <iframe> escondido com SÓ o HTML do cupom, sem nada da página por trás,
+// não depende de nenhum desses dois — é o documento inteiro dele.
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// Sempre montado (fora da tela) assim que a 1ª venda do turno é finalizada
-// — window.print() (automático ou pelo botão) só enxerga o que está no DOM
-// neste momento, então não dá pra renderizar isto sob demanda no próprio
-// clique do botão de imprimir.
-function CupomImpressao({ lang, empresa, cupom }: { lang: Idioma; empresa: DadosEmpresaCupom | null; cupom: CupomVenda }) {
+function linhaHtml(label: string, valor: string, negrito?: boolean): string {
+  return `<div style="display:flex;justify-content:space-between;gap:8px;${negrito ? "font-weight:700;" : ""}"><span>${escapeHtml(label)}</span><span>${escapeHtml(valor)}</span></div>`;
+}
+
+function gerarHtmlCupom(empresa: DadosEmpresaCupom | null, cupom: CupomVenda, lang: Idioma): string {
   const dataHora = new Date(cupom.criadoEm).toLocaleString("pt-BR");
-  return (
-    <div id="cupom-recibo" className="hidden" style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: 11, color: "#000", background: "#fff", lineHeight: 1.4 }}>
-      <div style={{ textAlign: "center" }}>
-        {empresa?.nome && <p style={{ fontWeight: 700 }}>{empresa.nome}</p>}
-        {empresa?.cnpj && <p>CNPJ: {empresa.cnpj}</p>}
-        {empresa?.endereco && <p>{empresa.endereco}</p>}
-      </div>
-      <p style={{ textAlign: "center", fontWeight: 700, margin: "6px 0" }}>{t("cupomNaoFiscal", lang)}</p>
-      <p>{dataHora}</p>
-      <p>{t("cupomNumeroVenda", lang)}: {cupom.vendaId.slice(0, 8).toUpperCase()}</p>
-      <p>{t("cupomOperador", lang)}: {cupom.operador}</p>
-      <p>{t("cupomCaixa", lang)}: {cupom.caixa}</p>
-      <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
-      {cupom.itens.map((item, idx) => (
-        <div key={idx} style={{ marginBottom: 3 }}>
-          <p>{item.nome}{item.codigo ? ` (${item.codigo})` : ""}</p>
-          <LinhaCupom label={`${item.quantidade} x ${moeda(item.precoUnit)}`} valor={moeda(item.precoUnit * item.quantidade)} />
-        </div>
-      ))}
-      <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
-      <LinhaCupom label={t("subtotal", lang)} valor={moeda(cupom.subtotal)} />
-      {cupom.desconto > 0 && <LinhaCupom label={t("desconto", lang)} valor={`- ${moeda(cupom.desconto)}`} />}
-      <LinhaCupom label={t("totalAPagar", lang)} valor={moeda(cupom.totalAPagar)} negrito />
-      <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
-      <LinhaCupom label={t("formaPagamentoLabel", lang)} valor={labelFormaPagamento(cupom.formaPagamento, lang)} />
-      {cupom.valorRecebido > 0 && <LinhaCupom label={t("totalRecebido", lang)} valor={moeda(cupom.valorRecebido)} />}
-      {cupom.valorRecebido > 0 && <LinhaCupom label={t("troco", lang)} valor={moeda(Math.max(cupom.troco, 0))} />}
-      {cupom.cpfNota && <LinhaCupom label={t("cpfNotaLabel", lang)} valor={cupom.cpfNota} />}
-      <p style={{ marginTop: 6 }}>{t("tributosAproximados", lang)}: {moeda(cupom.tributoAproximado)}</p>
-      {empresa?.rodape && <p style={{ textAlign: "center", marginTop: 8 }}>{empresa.rodape}</p>}
-    </div>
-  );
+  const separador = `<hr style="border:none;border-top:1px dashed #000;margin:6px 0">`;
+  const itensHtml = cupom.itens.map((item) => `
+    <p style="margin:2px 0">${escapeHtml(item.nome)}${item.codigo ? ` (${escapeHtml(item.codigo)})` : ""}</p>
+    ${linhaHtml(`${item.quantidade} x ${moeda(item.precoUnit)}`, moeda(item.precoUnit * item.quantidade))}
+  `).join("");
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>Cupom</title>
+<style>
+  @page { size: 80mm auto; margin: 2mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 11px; line-height: 1.4; color: #000; background: #fff; width: 72mm; margin: 0; padding: 4px; }
+  p { margin: 2px 0; }
+</style>
+</head><body>
+  <div style="text-align:center">
+    ${empresa?.nome ? `<p style="font-weight:700">${escapeHtml(empresa.nome)}</p>` : ""}
+    ${empresa?.cnpj ? `<p>CNPJ: ${escapeHtml(empresa.cnpj)}</p>` : ""}
+    ${empresa?.endereco ? `<p>${escapeHtml(empresa.endereco)}</p>` : ""}
+  </div>
+  <p style="text-align:center;font-weight:700;margin:6px 0">${escapeHtml(t("cupomNaoFiscal", lang))}</p>
+  <p>${dataHora}</p>
+  <p>${escapeHtml(t("cupomNumeroVenda", lang))}: ${cupom.vendaId.slice(0, 8).toUpperCase()}</p>
+  <p>${escapeHtml(t("cupomOperador", lang))}: ${escapeHtml(cupom.operador)}</p>
+  <p>${escapeHtml(t("cupomCaixa", lang))}: ${escapeHtml(cupom.caixa)}</p>
+  ${separador}
+  ${itensHtml}
+  ${separador}
+  ${linhaHtml(t("subtotal", lang), moeda(cupom.subtotal))}
+  ${cupom.desconto > 0 ? linhaHtml(t("desconto", lang), `- ${moeda(cupom.desconto)}`) : ""}
+  ${linhaHtml(t("totalAPagar", lang), moeda(cupom.totalAPagar), true)}
+  ${separador}
+  ${linhaHtml(t("formaPagamentoLabel", lang), labelFormaPagamento(cupom.formaPagamento, lang))}
+  ${cupom.valorRecebido > 0 ? linhaHtml(t("totalRecebido", lang), moeda(cupom.valorRecebido)) : ""}
+  ${cupom.valorRecebido > 0 ? linhaHtml(t("troco", lang), moeda(Math.max(cupom.troco, 0))) : ""}
+  ${cupom.cpfNota ? linhaHtml(t("cpfNotaLabel", lang), cupom.cpfNota) : ""}
+  <p style="margin-top:6px">${escapeHtml(t("tributosAproximados", lang))}: ${moeda(cupom.tributoAproximado)}</p>
+  ${empresa?.rodape ? `<p style="text-align:center;margin-top:8px">${escapeHtml(empresa.rodape)}</p>` : ""}
+</body></html>`;
+}
+
+const IFRAME_IMPRESSAO_ID = "cupom-print-frame";
+
+// Reaproveita o mesmo iframe entre impressões (evita empilhar um por venda).
+// display:none NÃO é usado nele — um iframe com display:none não roda
+// print() de forma confiável em todo navegador; 0x0px fora da tela é o que
+// funciona em todos.
+function imprimirHtmlEmIframe(html: string) {
+  let iframe = document.getElementById(IFRAME_IMPRESSAO_ID) as HTMLIFrameElement | null;
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.id = IFRAME_IMPRESSAO_ID;
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+  }
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc || !iframe.contentWindow) return;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  iframe.contentWindow.focus();
+  iframe.contentWindow.print();
 }
 
 // ============================================================================
-// ESC/POS (PDV Fase 3, Etapa 4) — mesmo conteúdo/ordem do CupomImpressao
+// ESC/POS (PDV Fase 3, Etapa 4) — mesmo conteúdo/ordem do gerarHtmlCupom()
 // (HTML) acima, só que em bytes crus de comando pra impressora térmica via
 // QZ Tray (ver lib/qzTrayHelpers.ts). String simples no array = QZ Tray
 // interpreta como comando raw automaticamente, sem precisar montar objeto.
@@ -1679,17 +1692,32 @@ function montarComandosEscPos(empresa: DadosEmpresaCupom | null, cupom: CupomVen
   return linhas;
 }
 
-function BotaoReimprimirCupom({ lang, cupom, jaImpresso, onImprimir }: {
+// Banner GRANDE e óbvio — some das laterais/cantos de propósito (era ali que
+// o operador não via antes). Fica centralizado embaixo, por cima de
+// qualquer outro overlay (z-50: maior que o de "atualizando estoque" e
+// modais, z-40), do tamanho da venda concluída até a próxima venda.
+function BotaoImprimirNota({ lang, cupom, jaImpresso, onImprimir }: {
   lang: Idioma; cupom: CupomVenda; jaImpresso: boolean; onImprimir: () => void;
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="fixed bottom-4 left-4 z-40 flex items-center gap-3 rounded-xl px-4 py-3 shadow-2xl" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
-      <span className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{moeda(cupom.totalAPagar)}</span>
-      <button onClick={onImprimir} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-black" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
-        <Printer size={16} />
-        {t(jaImpresso ? "reimprimirComprovante" : "imprimirComprovante", lang)}
-      </button>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2.5 rounded-2xl px-6 py-4 shadow-2xl" style={{ background: tokens.cardBg, border: `3px solid ${tokens.acento}` }}>
+      <span className="text-sm font-bold" style={{ color: tokens.cardTexto }}>
+        {t("vendaConcluida", lang, { valor: moeda(cupom.totalAPagar) })}
+      </span>
+      <div className="flex items-center gap-3">
+        <button onClick={onImprimir}
+          className="flex items-center gap-2.5 px-8 py-4 rounded-xl text-xl font-black uppercase tracking-wide"
+          style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+          <Printer size={26} />
+          {t("imprimirComprovante", lang)}
+        </button>
+        {jaImpresso && (
+          <button onClick={onImprimir} className="px-3 py-2 rounded-lg text-sm font-semibold underline" style={{ color: tokens.cardTexto }}>
+            {t("reimprimirComprovante", lang)}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
