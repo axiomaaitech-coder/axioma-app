@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2 } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
@@ -28,6 +28,8 @@ import {
   finalizarVenda, baixarEstoqueVenda, atualizarStatusBaixaEstoque, definirPrecoVenda,
   type Caixa, type TurnoCaixa, type ItemBaixaEstoque,
 } from "../../../../lib/pdvVendaHelpers";
+import { obterDadosCupomEmpresa, salvarConfigCupom, type DadosEmpresaCupom } from "../../../../lib/pdvCupomHelpers";
+import { conectarQz, listarImpressorasQz, imprimirEscPos } from "../../../../lib/qzTrayHelpers";
 
 // Lei 12.741/2012 (transparência fiscal ao consumidor) — percentual fixo,
 // só informativo. NÃO entra em nenhum cálculo de finalizar_venda nem é
@@ -158,6 +160,63 @@ const txt = {
   atalhoF2: { pt: "F2 — finalizar", en: "F2 — checkout", es: "F2 — finalizar" },
   atalhoDelete: { pt: "Delete — remover último", en: "Delete — remove last", es: "Delete — quitar último" },
   atalhoEsc: { pt: "Esc — fechar/cancelar", en: "Esc — close/cancel", es: "Esc — cerrar/cancelar" },
+
+  // Cupom não-fiscal + impressão (PDV Fase 3, Etapa 3)
+  cupomNaoFiscal: { pt: "CUPOM NÃO FISCAL", en: "NON-FISCAL RECEIPT", es: "COMPROBANTE NO FISCAL" },
+  cupomNumeroVenda: { pt: "Venda nº", en: "Sale No.", es: "Venta N.°" },
+  cupomOperador: { pt: "Operador", en: "Operator", es: "Operador" },
+  cupomCaixa: { pt: "Caixa", en: "Register", es: "Caja" },
+  imprimirComprovante: { pt: "Imprimir Nota", en: "Print Receipt", es: "Imprimir Nota" },
+  reimprimirComprovante: { pt: "Reimprimir", en: "Reprint", es: "Reimprimir" },
+  qzNaoConectado: {
+    pt: "Impressora não conectada — verifique se o QZ Tray está aberto. Imprimindo pela tela.",
+    en: "Printer not connected — check if QZ Tray is open. Printing from the screen instead.",
+    es: "Impresora no conectada — verifique si QZ Tray está abierto. Imprimiendo desde la pantalla.",
+  },
+  qzErroImprimir: {
+    pt: "Não foi possível imprimir na impressora térmica. Imprimindo pela tela.",
+    en: "Could not print on the thermal printer. Printing from the screen instead.",
+    es: "No fue posible imprimir en la impresora térmica. Imprimiendo desde la pantalla.",
+  },
+  qzImpressoraLabel: { pt: "Impressora térmica", en: "Thermal printer", es: "Impresora térmica" },
+  qzImpressoraSelecione: { pt: "Nenhuma (usar impressão pela tela)", en: "None (use screen printing)", es: "Ninguna (usar impresión desde la pantalla)" },
+  qzTestarConexao: { pt: "Testar conexão", en: "Test connection", es: "Probar conexión" },
+  qzTestando: { pt: "Testando…", en: "Testing…", es: "Probando…" },
+  qzStatusConectado: { pt: "✅ QZ Tray conectado", en: "✅ QZ Tray connected", es: "✅ QZ Tray conectado" },
+  qzStatusDesconectado: {
+    pt: "⚠️ QZ Tray não conectado — abra o programa QZ Tray no computador do caixa.",
+    en: "⚠️ QZ Tray not connected — open the QZ Tray program on the register's computer.",
+    es: "⚠️ QZ Tray no conectado — abra el programa QZ Tray en la computadora de la caja.",
+  },
+  qzStatusVerificando: { pt: "Verificando QZ Tray…", en: "Checking QZ Tray…", es: "Verificando QZ Tray…" },
+  qzSemImpressoras: {
+    pt: "Nenhuma impressora encontrada pelo QZ Tray.",
+    en: "No printer found by QZ Tray.",
+    es: "Ninguna impresora encontrada por QZ Tray.",
+  },
+  configurarImpressao: { pt: "Impressão", en: "Printing", es: "Impresión" },
+  configCupomTitulo: { pt: "Impressão do cupom", en: "Receipt printing", es: "Impresión del comprobante" },
+  configCupomImpressaoAutomaticaLabel: {
+    pt: "Imprimir automaticamente ao finalizar a venda",
+    en: "Print automatically when the sale is completed",
+    es: "Imprimir automáticamente al finalizar la venta",
+  },
+  configCupomImpressaoAutomaticaAjuda: {
+    pt: "Com uma impressora térmica selecionada abaixo e o QZ Tray aberto, o cupom sai sozinho na impressora, sem nenhuma tela de confirmação. Sem impressora selecionada (ou QZ Tray fechado), abre a tela de impressão do navegador pra confirmar.",
+    en: "With a thermal printer selected below and QZ Tray open, the receipt prints by itself, with no confirmation screen. Without a printer selected (or QZ Tray closed), the browser's print screen opens to confirm.",
+    es: "Con una impresora térmica seleccionada abajo y QZ Tray abierto, el comprobante se imprime solo, sin ninguna pantalla de confirmación. Sin impresora seleccionada (o QZ Tray cerrado), se abre la pantalla de impresión del navegador para confirmar.",
+  },
+  configCupomRodapeLabel: { pt: "Mensagem no rodapé do cupom (opcional)", en: "Receipt footer message (optional)", es: "Mensaje en el pie del comprobante (opcional)" },
+  configCupomRodapePlaceholder: { pt: "Ex: Volte sempre!", en: "E.g.: Come back soon!", es: "Ej: ¡Vuelva siempre!" },
+  configCupomSalvar: { pt: "Salvar", en: "Save", es: "Guardar" },
+  configCupomSalvando: { pt: "Salvando…", en: "Saving…", es: "Guardando…" },
+  configCupomSemPermissao: {
+    pt: "Você não tem permissão para alterar a configuração de impressão. Peça para o proprietário.",
+    en: "You don't have permission to change the printing configuration. Ask the owner.",
+    es: "No tiene permiso para cambiar la configuración de impresión. Pida al propietario.",
+  },
+  configCupomErroGenerico: { pt: "Não foi possível salvar a configuração. Tente novamente.", en: "Could not save the configuration. Try again.", es: "No fue posible guardar la configuración. Intente de nuevo." },
+  configCupomSalva: { pt: "Configuração de impressão salva.", en: "Printing configuration saved.", es: "Configuración de impresión guardada." },
 };
 
 function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string | number>): string {
@@ -187,7 +246,36 @@ function moeda(v: number | null | undefined): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+const CHAVES_FORMA_PAGAMENTO: Record<string, keyof typeof txt> = {
+  dinheiro: "formaPagamentoDinheiro", debito: "formaPagamentoDebito", credito: "formaPagamentoCredito",
+  pix: "formaPagamentoPix", outro: "formaPagamentoOutro",
+};
+function labelFormaPagamento(codigo: string, lang: Idioma): string {
+  const chave = CHAVES_FORMA_PAGAMENTO[codigo];
+  return chave ? t(chave, lang) : codigo;
+}
+
 type ItemCarrinho = { produto: ProdutoPdv; quantidade: number };
+
+// Cupom não-fiscal (PDV Fase 3, Etapa 3) — snapshot congelado no momento da
+// venda: nunca relido do carrinho depois (que já foi limpo), permite
+// reimprimir a qualquer momento até a próxima venda ser finalizada.
+type ItemCupom = { nome: string; codigo: string; quantidade: number; precoUnit: number };
+type CupomVenda = {
+  vendaId: string;
+  criadoEm: string;
+  operador: string;
+  caixa: string;
+  itens: ItemCupom[];
+  subtotal: number;
+  desconto: number;
+  tributoAproximado: number;
+  totalAPagar: number;
+  formaPagamento: string;
+  cpfNota: string;
+  valorRecebido: number;
+  troco: number;
+};
 
 export default function PdvVendaPage() {
   const { idioma } = useLanguage();
@@ -251,6 +339,24 @@ export default function PdvVendaPage() {
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
   const inputBuscaRef = useRef<HTMLInputElement>(null);
 
+  // Cupom não-fiscal + impressão automática (PDV Fase 3, Etapa 3).
+  const [nomeOperador, setNomeOperador] = useState("");
+  const [dadosEmpresaCupom, setDadosEmpresaCupom] = useState<DadosEmpresaCupom | null>(null);
+  const [ultimoCupom, setUltimoCupom] = useState<CupomVenda | null>(null);
+  const [cupomJaImpresso, setCupomJaImpresso] = useState(false);
+  const [configCupomAberto, setConfigCupomAberto] = useState(false);
+  const [salvandoConfigCupom, setSalvandoConfigCupom] = useState(false);
+  // Evita reimprimir automaticamente a mesma venda de novo a cada re-render
+  // (ex: quando dadosEmpresaCupom termina de carregar depois do cupom já
+  // estar montado) — só dispara uma vez por vendaId.
+  const cupomAutoImpressoRef = useRef<string | null>(null);
+
+  // QZ Tray (impressão térmica ESC/POS) — conecta uma vez ao abrir a tela
+  // (não bloqueia nada se não conseguir: só sai already "desconectado" e o
+  // resto do PDV funciona igual, caindo pro cupom HTML na hora de imprimir).
+  const [statusQz, setStatusQz] = useState<"verificando" | "conectado" | "desconectado">("verificando");
+  const [impressorasQz, setImpressorasQz] = useState<string[]>([]);
+
   // Modo tela cheia — Fullscreen API nativa no CONTAINER da Frente de Caixa
   // (não no <body>): o browser só desenha esse elemento e seus filhos,
   // então a TopNav e o aviso de cadastro (que vivem FORA dele, em
@@ -282,11 +388,43 @@ export default function PdvVendaPage() {
       setEmpresaId(id);
       const { data: authData } = await supabase.auth.getUser();
       setUserId(authData?.user?.id || null);
+      setNomeOperador(
+        authData?.user?.user_metadata?.nome ||
+        authData?.user?.user_metadata?.full_name ||
+        authData?.user?.email?.split("@")[0] || ""
+      );
       if (!id) { setCarregandoPapel(false); return; }
       setPapel(await obterMeuPapel(id));
       setCarregandoPapel(false);
     })();
   }, [supabase]);
+
+  // Nome/CNPJ/endereço (cabeçalho do cupom) + config de impressão salva pela
+  // empresa — carregado uma vez por empresa, igual aos caixas.
+  useEffect(() => {
+    if (!empresaId) return;
+    obterDadosCupomEmpresa(empresaId).then(setDadosEmpresaCupom);
+  }, [empresaId]);
+
+  // Tenta conectar no QZ Tray assim que a tela abre — só "aquece" a conexão
+  // pra impressão automática não perder tempo depois; se falhar aqui, tenta
+  // de novo sozinho na hora de imprimir (ver imprimirCupomAtual).
+  useEffect(() => {
+    let ativo = true;
+    conectarQz().then((ok) => {
+      if (!ativo) return;
+      setStatusQz(ok ? "conectado" : "desconectado");
+      if (ok) listarImpressorasQz().then((lista) => { if (ativo) setImpressorasQz(lista); });
+    });
+    return () => { ativo = false; };
+  }, []);
+
+  async function handleTestarQz() {
+    setStatusQz("verificando");
+    const ok = await conectarQz();
+    setStatusQz(ok ? "conectado" : "desconectado");
+    setImpressorasQz(ok ? await listarImpressorasQz() : []);
+  }
 
   // Carrega os caixas da empresa e retoma o caixa escolhido neste terminal
   // da última vez (localStorage), se ele ainda estiver ativo.
@@ -372,6 +510,29 @@ export default function PdvVendaPage() {
     // de estoque não depender mais do estado do carrinho.
     const itensParaBaixa: ItemBaixaEstoque[] = carrinho.map((i) => ({ produtoId: i.produto.id, nome: i.produto.nome, quantidade: i.quantidade }));
     const vendaId = resultado.vendaId;
+
+    // Snapshot do cupom ANTES de limpar o carrinho — mesma lógica de
+    // itensParaBaixa acima. Fica disponível pra impressão automática e pro
+    // botão "Reimprimir" até a próxima venda ser finalizada.
+    setUltimoCupom({
+      vendaId,
+      criadoEm: new Date().toISOString(),
+      operador: nomeOperador,
+      caixa: caixas.find((c) => c.id === caixaId)?.nome || "",
+      itens: carrinho.map((i) => ({
+        nome: i.produto.nome,
+        codigo: i.produto.codigo_barras || i.produto.sku || "",
+        quantidade: i.quantidade,
+        precoUnit: i.produto.preco_venda ?? i.produto.preco_sugerido ?? 0,
+      })),
+      subtotal, desconto, tributoAproximado,
+      totalAPagar: resultado.valorTotal ?? totalAPagar,
+      formaPagamento, cpfNota: cpfLimpo,
+      valorRecebido, troco,
+    });
+    setCupomJaImpresso(false);
+    cupomAutoImpressoRef.current = null;
+
     mostrarToast(t("vendaConcluida", lang, { valor: moeda(resultado.valorTotal) }), "ok");
     setCarrinho([]);
     setUltimoAdicionadoId(null);
@@ -407,6 +568,59 @@ export default function PdvVendaPage() {
       mostrarToast(t("baixaEstoqueFalhouParcial", lang), "erro");
     }
   }
+
+  // Tenta a impressora térmica (ESC/POS via QZ Tray) primeiro, SE a empresa
+  // tiver uma configurada; se o QZ não estiver conectado, ou a impressão
+  // falhar, ou nenhuma impressora estiver configurada, cai pro cupom HTML
+  // (window.print()) — a venda nunca fica sem forma de imprimir.
+  async function imprimirCupomAtual(cupom: CupomVenda) {
+    const impressora = dadosEmpresaCupom?.impressora;
+    if (impressora) {
+      const conectado = await conectarQz();
+      if (conectado) {
+        const comandos = montarComandosEscPos(dadosEmpresaCupom, cupom, lang);
+        const resultado = await imprimirEscPos(impressora, comandos);
+        if (!resultado.erro) { setCupomJaImpresso(true); return; }
+        mostrarToast(t("qzErroImprimir", lang), "erro");
+      } else {
+        mostrarToast(t("qzNaoConectado", lang), "erro");
+      }
+    }
+    window.print();
+    setCupomJaImpresso(true);
+  }
+
+  function handleImprimirCupom() {
+    if (ultimoCupom) imprimirCupomAtual(ultimoCupom);
+  }
+
+  async function handleSalvarConfigCupom(v: { impressaoAutomatica: boolean; rodape: string; impressora: string }) {
+    if (!empresaId) return;
+    setSalvandoConfigCupom(true);
+    const resultado = await salvarConfigCupom(empresaId, v);
+    setSalvandoConfigCupom(false);
+
+    if (resultado.semPermissao) { mostrarToast(t("configCupomSemPermissao", lang), "erro"); return; }
+    if (resultado.erro) { mostrarToast(t("configCupomErroGenerico", lang), "erro"); return; }
+    setDadosEmpresaCupom((atual) => atual ? { ...atual, ...v } : atual);
+    setConfigCupomAberto(false);
+    mostrarToast(t("configCupomSalva", lang), "ok");
+  }
+
+  // Impressão automática ao finalizar (config por empresa, ligada por
+  // padrão) — dispara só uma vez por venda. Sem impressora térmica
+  // configurada (ou QZ Tray fora do ar), window.print() no navegador normal
+  // abre o diálogo de confirmação; pra sair direto (sem diálogo) o Chrome do
+  // caixa precisa estar aberto com a flag --kiosk-printing (ver nota na tela
+  // de configuração).
+  useEffect(() => {
+    if (!ultimoCupom || !dadosEmpresaCupom?.impressaoAutomatica) return;
+    if (cupomAutoImpressoRef.current === ultimoCupom.vendaId) return;
+    cupomAutoImpressoRef.current = ultimoCupom.vendaId;
+    const id = requestAnimationFrame(() => { imprimirCupomAtual(ultimoCupom); });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ultimoCupom, dadosEmpresaCupom?.impressaoAutomatica]);
 
   useEffect(() => {
     const timer = setTimeout(() => setBuscaDebounced(busca), 300);
@@ -601,6 +815,7 @@ export default function PdvVendaPage() {
       <ConteudoPdv
         containerRef={pdvContainerRef} fullscreenAtivo={fullscreenAtivo} onAlternarTelaCheia={alternarTelaCheia}
         lang={lang} caixaAtual={caixaAtual} onTrocarCaixa={trocarCaixa}
+        mostrarConfigCupom={papel !== "operador"} onAbrirConfigCupom={() => setConfigCupomAberto(true)}
       >
         {pendenciaBaixa && (
           <div className="shrink-0">
@@ -699,7 +914,28 @@ export default function PdvVendaPage() {
           </div>
         )}
 
+        {configCupomAberto && dadosEmpresaCupom && (
+          <ConfigCupomModal
+            lang={lang} config={dadosEmpresaCupom} salvando={salvandoConfigCupom}
+            statusQz={statusQz} impressorasQz={impressorasQz} onTestarQz={handleTestarQz}
+            onSalvar={handleSalvarConfigCupom}
+            onCancelar={() => setConfigCupomAberto(false)}
+          />
+        )}
+
         {toast && <Toast toast={toast} />}
+
+        {/* Cupom em si fica sempre montado (invisível na tela) assim que a
+            primeira venda do turno é finalizada — window.print() (automático
+            ou pelo botão abaixo) usa o CSS @media print pra imprimir só esta
+            div, escondendo o resto da página inteira. */}
+        {ultimoCupom && (
+          <>
+            <style>{ESTILO_IMPRESSAO_CUPOM}</style>
+            <CupomImpressao lang={lang} empresa={dadosEmpresaCupom} cupom={ultimoCupom} />
+            <BotaoReimprimirCupom lang={lang} cupom={ultimoCupom} jaImpresso={cupomJaImpresso} onImprimir={handleImprimirCupom} />
+          </>
+        )}
       </ConteudoPdv>
     </PdvLayout>
   );
@@ -712,13 +948,15 @@ export default function PdvVendaPage() {
 // aplica position:fixed+inset:0 automaticamente sobre :fullscreen) — TopNav,
 // aviso de cadastro e até o cabeçalho/moldura do PdvLayout ficam de fora
 // (são ancestrais do container, não descendentes), então somem sozinhos.
-function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, children }: {
+function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, mostrarConfigCupom, onAbrirConfigCupom, children }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
   fullscreenAtivo: boolean;
   onAlternarTelaCheia: () => void;
   lang: Idioma;
   caixaAtual: { nome: string } | undefined;
   onTrocarCaixa: () => void;
+  mostrarConfigCupom: boolean;
+  onAbrirConfigCupom: () => void;
   children: React.ReactNode;
 }) {
   const { tokens } = useTemaPdv();
@@ -731,6 +969,12 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
       <div className={`shrink-0 flex items-center justify-between mb-1.5 ${fullscreenAtivo ? "text-xs" : "text-[11px]"}`}>
         <span style={{ opacity: 0.7, color: tokens.texto }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
         <div className="flex items-center gap-4">
+          {mostrarConfigCupom && (
+            <button onClick={onAbrirConfigCupom} className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
+              <Settings size={13} />
+              {t("configurarImpressao", lang)}
+            </button>
+          )}
           <button onClick={onTrocarCaixa} className="font-semibold underline" style={{ opacity: 0.7, color: tokens.texto }}>{t("trocarCaixa", lang)}</button>
           <button onClick={onAlternarTelaCheia} className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
             {fullscreenAtivo ? <Minimize2 size={16} /> : <Maximize2 size={13} />}
@@ -1286,4 +1530,237 @@ function ResultadosBusca({ lang, termo, resultados, buscando, onAdicionar }: {
   );
 
   return <div style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>{conteudo}</div>;
+}
+
+// ============================================================================
+// CUPOM NÃO-FISCAL + IMPRESSÃO (PDV Fase 3, Etapa 3)
+// ============================================================================
+
+// Técnica padrão de "imprimir só esta div": visibility:hidden na página
+// inteira, visibility:visible só no cupom e nos filhos dele, position:fixed
+// pra ele imprimir a partir do topo da folha (independe de onde ele estava
+// no fluxo normal da página). #cupom-recibo some da TELA via display:none
+// (Tailwind `hidden`, no componente) — o @media print troca pra
+// display:block, senão a regra de visibility não bastaria por si só.
+// @page define o tamanho pro rolo de 80mm (impressora térmica).
+const ESTILO_IMPRESSAO_CUPOM = `
+@media print {
+  body * { visibility: hidden; }
+  #cupom-recibo, #cupom-recibo * { visibility: visible; }
+  #cupom-recibo { display: block !important; position: fixed; left: 0; top: 0; width: 72mm; }
+}
+@page { size: 80mm auto; margin: 2mm; }
+`;
+
+function LinhaCupom({ label, valor, negrito }: { label: string; valor: string; negrito?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontWeight: negrito ? 700 : 400 }}>
+      <span>{label}</span>
+      <span>{valor}</span>
+    </div>
+  );
+}
+
+// Sempre montado (fora da tela) assim que a 1ª venda do turno é finalizada
+// — window.print() (automático ou pelo botão) só enxerga o que está no DOM
+// neste momento, então não dá pra renderizar isto sob demanda no próprio
+// clique do botão de imprimir.
+function CupomImpressao({ lang, empresa, cupom }: { lang: Idioma; empresa: DadosEmpresaCupom | null; cupom: CupomVenda }) {
+  const dataHora = new Date(cupom.criadoEm).toLocaleString("pt-BR");
+  return (
+    <div id="cupom-recibo" className="hidden" style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: 11, color: "#000", background: "#fff", lineHeight: 1.4 }}>
+      <div style={{ textAlign: "center" }}>
+        {empresa?.nome && <p style={{ fontWeight: 700 }}>{empresa.nome}</p>}
+        {empresa?.cnpj && <p>CNPJ: {empresa.cnpj}</p>}
+        {empresa?.endereco && <p>{empresa.endereco}</p>}
+      </div>
+      <p style={{ textAlign: "center", fontWeight: 700, margin: "6px 0" }}>{t("cupomNaoFiscal", lang)}</p>
+      <p>{dataHora}</p>
+      <p>{t("cupomNumeroVenda", lang)}: {cupom.vendaId.slice(0, 8).toUpperCase()}</p>
+      <p>{t("cupomOperador", lang)}: {cupom.operador}</p>
+      <p>{t("cupomCaixa", lang)}: {cupom.caixa}</p>
+      <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
+      {cupom.itens.map((item, idx) => (
+        <div key={idx} style={{ marginBottom: 3 }}>
+          <p>{item.nome}{item.codigo ? ` (${item.codigo})` : ""}</p>
+          <LinhaCupom label={`${item.quantidade} x ${moeda(item.precoUnit)}`} valor={moeda(item.precoUnit * item.quantidade)} />
+        </div>
+      ))}
+      <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
+      <LinhaCupom label={t("subtotal", lang)} valor={moeda(cupom.subtotal)} />
+      {cupom.desconto > 0 && <LinhaCupom label={t("desconto", lang)} valor={`- ${moeda(cupom.desconto)}`} />}
+      <LinhaCupom label={t("totalAPagar", lang)} valor={moeda(cupom.totalAPagar)} negrito />
+      <hr style={{ border: "none", borderTop: "1px dashed #000", margin: "6px 0" }} />
+      <LinhaCupom label={t("formaPagamentoLabel", lang)} valor={labelFormaPagamento(cupom.formaPagamento, lang)} />
+      {cupom.valorRecebido > 0 && <LinhaCupom label={t("totalRecebido", lang)} valor={moeda(cupom.valorRecebido)} />}
+      {cupom.valorRecebido > 0 && <LinhaCupom label={t("troco", lang)} valor={moeda(Math.max(cupom.troco, 0))} />}
+      {cupom.cpfNota && <LinhaCupom label={t("cpfNotaLabel", lang)} valor={cupom.cpfNota} />}
+      <p style={{ marginTop: 6 }}>{t("tributosAproximados", lang)}: {moeda(cupom.tributoAproximado)}</p>
+      {empresa?.rodape && <p style={{ textAlign: "center", marginTop: 8 }}>{empresa.rodape}</p>}
+    </div>
+  );
+}
+
+// ============================================================================
+// ESC/POS (PDV Fase 3, Etapa 4) — mesmo conteúdo/ordem do CupomImpressao
+// (HTML) acima, só que em bytes crus de comando pra impressora térmica via
+// QZ Tray (ver lib/qzTrayHelpers.ts). String simples no array = QZ Tray
+// interpreta como comando raw automaticamente, sem precisar montar objeto.
+// ============================================================================
+
+const ESCPOS_LARGURA = 42; // Font A padrão em impressoras térmicas de 80mm.
+// ponytail: largura fixa em 42 colunas — se a impressora do cliente usar
+// fonte diferente (mais estreita/larga), ajustar aqui.
+const ESC = "\x1B";
+const GS = "\x1D";
+
+// ESC/POS não garante acentuação sem escolher a codepage certa por modelo
+// de impressora — tira acento antes de mandar, assim funciona igual em
+// qualquer impressora térmica sem precisar testar codepage por cliente.
+// ponytail: sem seleção de codepage. Upgrade: mandar ESC t <n> com a
+// codepage certa pro modelo do cliente, se reclamarem de acento sumido.
+// Marcas diacríticas combinantes (U+0300–U+036F) que sobram depois do NFD —
+// evita literal de regex com caractere combinante solto no código-fonte
+// (renderiza colado na letra anterior em muitos editores).
+function semAcentoEscPos(s: string): string {
+  return Array.from(s.normalize("NFD"))
+    .filter((c) => { const cp = c.codePointAt(0)!; return cp < 0x0300 || cp > 0x036f; })
+    .join("");
+}
+
+function linhaEscPos(esq: string, dir: string, largura = ESCPOS_LARGURA): string {
+  const e = semAcentoEscPos(esq), d = semAcentoEscPos(dir);
+  const espacos = Math.max(1, largura - e.length - d.length);
+  return e + " ".repeat(espacos) + d + "\n";
+}
+
+function montarComandosEscPos(empresa: DadosEmpresaCupom | null, cupom: CupomVenda, lang: Idioma): string[] {
+  const linhas: string[] = [ESC + "@"]; // inicializa a impressora
+
+  linhas.push(ESC + "a" + "\x01"); // centralizado
+  if (empresa?.nome) linhas.push(ESC + "E" + "\x01" + semAcentoEscPos(empresa.nome) + "\n" + ESC + "E" + "\x00");
+  if (empresa?.cnpj) linhas.push(`CNPJ: ${empresa.cnpj}\n`);
+  if (empresa?.endereco) linhas.push(semAcentoEscPos(empresa.endereco) + "\n");
+  linhas.push(ESC + "E" + "\x01" + semAcentoEscPos(t("cupomNaoFiscal", lang)) + "\n" + ESC + "E" + "\x00");
+
+  linhas.push(ESC + "a" + "\x00"); // volta pro alinhamento à esquerda
+  linhas.push(new Date(cupom.criadoEm).toLocaleString("pt-BR") + "\n");
+  linhas.push(`${semAcentoEscPos(t("cupomNumeroVenda", lang))}: ${cupom.vendaId.slice(0, 8).toUpperCase()}\n`);
+  linhas.push(`${semAcentoEscPos(t("cupomOperador", lang))}: ${semAcentoEscPos(cupom.operador)}\n`);
+  linhas.push(`${semAcentoEscPos(t("cupomCaixa", lang))}: ${semAcentoEscPos(cupom.caixa)}\n`);
+  linhas.push("-".repeat(ESCPOS_LARGURA) + "\n");
+
+  for (const item of cupom.itens) {
+    linhas.push(semAcentoEscPos(item.nome) + (item.codigo ? ` (${item.codigo})` : "") + "\n");
+    linhas.push(linhaEscPos(`${item.quantidade} x ${moeda(item.precoUnit)}`, moeda(item.precoUnit * item.quantidade)));
+  }
+  linhas.push("-".repeat(ESCPOS_LARGURA) + "\n");
+
+  linhas.push(linhaEscPos(t("subtotal", lang), moeda(cupom.subtotal)));
+  if (cupom.desconto > 0) linhas.push(linhaEscPos(t("desconto", lang), `- ${moeda(cupom.desconto)}`));
+  linhas.push(GS + "!" + "\x11"); // negrito em dobro (largura+altura) só pro TOTAL
+  linhas.push(linhaEscPos(t("totalAPagar", lang), moeda(cupom.totalAPagar), Math.floor(ESCPOS_LARGURA / 2)));
+  linhas.push(GS + "!" + "\x00"); // volta ao tamanho normal
+  linhas.push("-".repeat(ESCPOS_LARGURA) + "\n");
+
+  linhas.push(linhaEscPos(t("formaPagamentoLabel", lang), labelFormaPagamento(cupom.formaPagamento, lang)));
+  if (cupom.valorRecebido > 0) linhas.push(linhaEscPos(t("totalRecebido", lang), moeda(cupom.valorRecebido)));
+  if (cupom.valorRecebido > 0) linhas.push(linhaEscPos(t("troco", lang), moeda(Math.max(cupom.troco, 0))));
+  if (cupom.cpfNota) linhas.push(linhaEscPos(t("cpfNotaLabel", lang), cupom.cpfNota));
+  linhas.push(`${semAcentoEscPos(t("tributosAproximados", lang))}: ${moeda(cupom.tributoAproximado)}\n`);
+
+  if (empresa?.rodape) {
+    linhas.push(ESC + "a" + "\x01");
+    linhas.push(semAcentoEscPos(empresa.rodape) + "\n");
+  }
+
+  linhas.push("\n\n\n");
+  linhas.push(GS + "V" + "\x00"); // corte de papel
+  return linhas;
+}
+
+function BotaoReimprimirCupom({ lang, cupom, jaImpresso, onImprimir }: {
+  lang: Idioma; cupom: CupomVenda; jaImpresso: boolean; onImprimir: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="fixed bottom-4 left-4 z-40 flex items-center gap-3 rounded-xl px-4 py-3 shadow-2xl" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
+      <span className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{moeda(cupom.totalAPagar)}</span>
+      <button onClick={onImprimir} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-black" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+        <Printer size={16} />
+        {t(jaImpresso ? "reimprimirComprovante" : "imprimirComprovante", lang)}
+      </button>
+    </div>
+  );
+}
+
+function ConfigCupomModal({ lang, config, salvando, statusQz, impressorasQz, onTestarQz, onSalvar, onCancelar }: {
+  lang: Idioma; config: DadosEmpresaCupom; salvando: boolean;
+  statusQz: "verificando" | "conectado" | "desconectado";
+  impressorasQz: string[];
+  onTestarQz: () => void;
+  onSalvar: (v: { impressaoAutomatica: boolean; rodape: string; impressora: string }) => void;
+  onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const [impressaoAutomatica, setImpressaoAutomatica] = useState(config.impressaoAutomatica);
+  const [rodape, setRodape] = useState(config.rodape);
+  const [impressora, setImpressora] = useState(config.impressora);
+
+  const chaveStatusQz = statusQz === "conectado" ? "qzStatusConectado" : statusQz === "desconectado" ? "qzStatusDesconectado" : "qzStatusVerificando";
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-md rounded-2xl p-6 max-h-[90vh] overflow-y-auto" style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>{t("configCupomTitulo", lang)}</h3>
+
+        <label className="flex items-start gap-2 mb-2 cursor-pointer">
+          <input type="checkbox" checked={impressaoAutomatica} onChange={(e) => setImpressaoAutomatica(e.target.checked)} className="mt-0.5" />
+          <span className="text-sm font-semibold" style={{ color: tokens.texto }}>{t("configCupomImpressaoAutomaticaLabel", lang)}</span>
+        </label>
+        <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("configCupomImpressaoAutomaticaAjuda", lang)}</p>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("qzImpressoraLabel", lang)}</label>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-semibold" style={{ color: statusQz === "conectado" ? tokens.acento : statusQz === "desconectado" ? "#f87171" : tokens.textoMuted }}>
+            {t(chaveStatusQz, lang)}
+          </span>
+          <button onClick={onTestarQz} disabled={statusQz === "verificando"} className="text-xs font-semibold underline disabled:opacity-50" style={{ color: tokens.texto }}>
+            {statusQz === "verificando" ? t("qzTestando", lang) : t("qzTestarConexao", lang)}
+          </button>
+        </div>
+        <select value={impressora} onChange={(e) => setImpressora(e.target.value)}
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-1"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+          <option value="">{t("qzImpressoraSelecione", lang)}</option>
+          {impressorasQz.map((nome) => <option key={nome} value={nome}>{nome}</option>)}
+        </select>
+        {statusQz === "conectado" && impressorasQz.length === 0 && (
+          <p className="text-xs mb-3" style={{ color: "#f87171" }}>{t("qzSemImpressoras", lang)}</p>
+        )}
+
+        <label className="text-xs font-semibold block mb-1 mt-3" style={{ color: tokens.texto }}>{t("configCupomRodapeLabel", lang)}</label>
+        <input
+          value={rodape} onChange={(e) => setRodape(e.target.value)}
+          placeholder={t("configCupomRodapePlaceholder", lang)}
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={salvando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("cancelarPainel", lang)}
+          </button>
+          <button onClick={() => onSalvar({ impressaoAutomatica, rodape, impressora })} disabled={salvando}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {salvando && <Loader2 className="animate-spin" size={14} />}
+            {salvando ? t("configCupomSalvando", lang) : t("configCupomSalvar", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
