@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
+import * as Sentry from '@sentry/nextjs'
 import ReactECharts from 'echarts-for-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -78,6 +79,14 @@ export default function Inadimplencia() {
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 4000)
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
+  }
 
   // ========== FASE 3 — Ponto de Partida automático pro Simulador (leitura só,
   // mesmo padrão já usado no Simulador do Contas a Receber) ==========
@@ -397,9 +406,21 @@ export default function Inadimplencia() {
       empresa_id: empresaId,
     }
     if (editandoCaso) {
-      await supabase.from('contas_receber').update(payload).eq('id', editandoCaso.id)
+      const { data, error } = await supabase.from('contas_receber').update(payload).eq('id', editandoCaso.id).select('id')
+      if (error || !data || data.length === 0) {
+        showToast(L('Não foi possível salvar o caso. Tente novamente.', 'Could not save the case. Try again.', 'No se pudo guardar el caso. Intente de nuevo.'), 'erro')
+        reportarFalhaEscrita('contas_receber', 'update', error?.message || '0 linhas afetadas (RLS?)')
+        setSalvandoCaso(false)
+        return
+      }
     } else {
-      await supabase.from('contas_receber').insert({ ...payload, status: 'pendente', user_id: userId })
+      const { data, error } = await supabase.from('contas_receber').insert({ ...payload, status: 'pendente', user_id: userId }).select('id')
+      if (error || !data || data.length === 0) {
+        showToast(L('Não foi possível salvar o caso. Tente novamente.', 'Could not save the case. Try again.', 'No se pudo guardar el caso. Intente de nuevo.'), 'erro')
+        reportarFalhaEscrita('contas_receber', 'insert', error?.message || '0 linhas afetadas (RLS?)')
+        setSalvandoCaso(false)
+        return
+      }
     }
     const { data: ct } = await supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true })
     setContas((ct as ContaRow[]) || [])
@@ -408,7 +429,12 @@ export default function Inadimplencia() {
   }
 
   async function excluirCaso(id: string) {
-    await supabase.from('contas_receber').delete().eq('id', id)
+    const { data, error } = await supabase.from('contas_receber').delete().eq('id', id).select('id')
+    if (error || !data || data.length === 0) {
+      showToast(L('Não foi possível excluir. Tente novamente.', 'Could not delete. Try again.', 'No se pudo eliminar. Intente de nuevo.'), 'erro')
+      reportarFalhaEscrita('contas_receber', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+      return
+    }
     setContas(contas.filter((c) => c.id !== id))
   }
 
@@ -1286,6 +1312,13 @@ export default function Inadimplencia() {
         assunto={L('Inadimplência — Axioma', 'Delinquency — Axioma', 'Morosidad — Axioma')}
         cor={INDIGO}
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   )
 }

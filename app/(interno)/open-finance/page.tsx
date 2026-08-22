@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import * as Sentry from '@sentry/nextjs'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'
@@ -86,6 +87,7 @@ const textos = {
     sucessoLancamentoCriado: 'Lançamento criado e conciliado!', erroCriarLancamento: 'Erro ao criar lançamento',
     sucessoVinculado: 'Transação conciliada!', erroVincularCandidato: 'Erro ao conciliar',
     sucessoDesconectado: 'Banco desconectado.', letreiroAtipicos: 'transação(ões) atípica(s) — merece(m) uma olhada',
+    erroDesconectar: 'Não foi possível desconectar o banco. Tente novamente.',
   },
   en: {
     titulo: 'Open Finance — Reconciliation', sub: 'Connect your bank: we reconcile it against what is already in your CFO and flag what looks off.',
@@ -120,6 +122,7 @@ const textos = {
     sucessoLancamentoCriado: 'Entry created and reconciled!', erroCriarLancamento: 'Error creating entry',
     sucessoVinculado: 'Transaction reconciled!', erroVincularCandidato: 'Error reconciling',
     sucessoDesconectado: 'Bank disconnected.', letreiroAtipicos: 'unusual transaction(s) — worth a look',
+    erroDesconectar: 'Could not disconnect the bank. Try again.',
   },
   es: {
     titulo: 'Open Finance — Conciliación', sub: 'Conecte su banco: conciliamos con lo que ya está en su CFO y avisamos lo que parece extraño.',
@@ -154,6 +157,7 @@ const textos = {
     sucessoLancamentoCriado: '¡Registro creado y conciliado!', erroCriarLancamento: 'Error al crear el registro',
     sucessoVinculado: '¡Transacción conciliada!', erroVincularCandidato: 'Error al conciliar',
     sucessoDesconectado: 'Banco desconectado.', letreiroAtipicos: 'transacción(es) atípica(s) — merece(n) una mirada',
+    erroDesconectar: 'No se pudo desconectar el banco. Intente de nuevo.',
   },
 }
 
@@ -233,6 +237,9 @@ export default function OpenFinancePage() {
   function avisar(tipo: 'sucesso' | 'erro', msg: string, ms = 5000) {
     setTipoMsg(tipo); setMensagem(msg)
     setTimeout(() => setMensagem(''), ms)
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
   }
 
   async function carregarTudo() {
@@ -319,12 +326,19 @@ export default function OpenFinancePage() {
           const itemId = itemData?.item?.id
           if (user && itemId) {
             const empresaId = await obterEmpresaAtiva()
-            await supabase.from('open_finance').upsert({
+            const { data, error } = await supabase.from('open_finance').upsert({
               user_id: user.id, empresa_id: empresaId, item_id: itemId,
               conector_nome: itemData.item.connector?.name || '',
               conector_tipo: itemData.item.connector?.type || '',
               status: itemData.item.status || 'UPDATED',
-            }, { onConflict: 'item_id' })
+            }, { onConflict: 'item_id' }).select('id')
+            if (error || !data || data.length === 0) {
+              avisar('erro', t.erro)
+              reportarFalhaEscrita('open_finance', 'upsert', error?.message || '0 linhas afetadas (RLS?)')
+              setConectando(false)
+              setConectandoId(null)
+              return
+            }
           }
           avisar('sucesso', t.sucesso)
           await carregarTudo()
@@ -348,7 +362,12 @@ export default function OpenFinancePage() {
 
   async function desconectarBanco(itemId: string) {
     if (!empresaIdAtual) return
-    await supabase.from('open_finance').delete().eq('item_id', itemId).eq('empresa_id', empresaIdAtual)
+    const { data, error } = await supabase.from('open_finance').delete().eq('item_id', itemId).eq('empresa_id', empresaIdAtual).select('id')
+    if (error || !data || data.length === 0) {
+      avisar('erro', t.erroDesconectar)
+      reportarFalhaEscrita('open_finance', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+      return
+    }
     setConfirmandoRemocaoId(null)
     avisar('sucesso', t.sucessoDesconectado)
     await carregarTudo()
@@ -369,12 +388,20 @@ export default function OpenFinancePage() {
       if (tabela === 'receitas') payload.status = 'recebido'
 
       const { data: novoLancamento, error: errLanc } = await supabase.from(tabela).insert(payload).select('id').single()
-      if (errLanc || !novoLancamento) { avisar('erro', t.erroCriarLancamento); return }
+      if (errLanc || !novoLancamento) {
+        avisar('erro', t.erroCriarLancamento)
+        reportarFalhaEscrita(tabela, 'insert', errLanc?.message || '0 linhas afetadas (RLS?)')
+        return
+      }
 
-      const { error: errVinculo } = await supabase.from('of_transacoes')
+      const { data: dataVinculo, error: errVinculo } = await supabase.from('of_transacoes')
         .update({ lancamento_id: novoLancamento.id, lancamento_tabela: tabela })
-        .eq('id', tx.id)
-      if (errVinculo) { avisar('erro', t.erroCriarLancamento); return }
+        .eq('id', tx.id).select('id')
+      if (errVinculo || !dataVinculo || dataVinculo.length === 0) {
+        avisar('erro', t.erroCriarLancamento)
+        reportarFalhaEscrita('of_transacoes', 'update', errVinculo?.message || '0 linhas afetadas (RLS?)')
+        return
+      }
 
       avisar('sucesso', t.sucessoLancamentoCriado)
       setEditandoCategoriaId(null)
@@ -388,10 +415,14 @@ export default function OpenFinancePage() {
     setCriandoId(tx.id)
     try {
       const tabela = tx.tipo === 'entrada' ? 'receitas' : 'custos_variaveis'
-      const { error } = await supabase.from('of_transacoes')
+      const { data, error } = await supabase.from('of_transacoes')
         .update({ lancamento_id: candidato.id, lancamento_tabela: tabela })
-        .eq('id', tx.id)
-      if (error) { avisar('erro', t.erroVincularCandidato); return }
+        .eq('id', tx.id).select('id')
+      if (error || !data || data.length === 0) {
+        avisar('erro', t.erroVincularCandidato)
+        reportarFalhaEscrita('of_transacoes', 'update', error?.message || '0 linhas afetadas (RLS?)')
+        return
+      }
       avisar('sucesso', t.sucessoVinculado)
       setExpandidoCandidatosId(null)
       await carregarTudo()

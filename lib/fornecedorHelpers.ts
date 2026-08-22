@@ -3,6 +3,7 @@
 // Mesmo padrão de storage/CRUD já usado em empresaHelpers.ts (bucket + tabela de metadados).
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -170,9 +171,17 @@ export async function criarProduto(fornecedorId: string, userId: string, empresa
   return { id: data.id };
 }
 
+// RLS pode bloquear o update e devolver 0 linhas SEM error do Postgres — a
+// mesma causa raiz do bug real do atualizarEmpresa ("salvava sem salvar").
+// .select("id") aqui é o que permite enxergar essa falha silenciosa.
 export async function atualizarProduto(id: string, dados: Partial<FornecedorProduto>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_produtos").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_produtos").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    Sentry.captureException(new Error(`Falha ao atualizar fornecedor_produtos: ${motivo}`), { extra: { tabela: "fornecedor_produtos", operacao: "update", id, motivo } });
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirProduto(id: string): Promise<{ erro?: string }> {

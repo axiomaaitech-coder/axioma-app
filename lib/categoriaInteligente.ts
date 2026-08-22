@@ -5,6 +5,7 @@
 // upgrade real (extração de palavra-chave por NLP) fica pra quando plugarmos LLM.
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import type { Idioma } from "./translations";
 
 const supabase = createBrowserClient(
@@ -452,17 +453,29 @@ export async function sugerirCategoria(empresaId: string, segmento: Segmento | n
 
 // Chamar ao salvar o produto, só quando o usuário mudou a categoria que a
 // sugestão automática tinha preenchido — assim o sistema aprende com a correção.
+// Fire-and-forget de propósito (nunca trava o fluxo de cadastro por causa de
+// aprendizado em segundo plano) — sem toast pro usuário, mas a falha (RLS
+// bloqueando update/insert em silêncio, sem error do Postgres) vai pro
+// Sentry, senão fica impossível perceber que o aprendizado parou de gravar.
 export async function registrarAprendizadoCategoria(empresaId: string, nome: string, categoriaEscolhida: string): Promise<void> {
   const termo = extrairTermoChave(nome);
   if (!termo || !categoriaEscolhida) return;
   const { data: existente } = await supabase.from("produtos_categoria_aprendizado").select("id, ocorrencias")
     .eq("empresa_id", empresaId).eq("termo", termo).maybeSingle();
   if (existente) {
-    await supabase.from("produtos_categoria_aprendizado")
+    const { data, error } = await supabase.from("produtos_categoria_aprendizado")
       .update({ categoria: categoriaEscolhida, ocorrencias: (existente.ocorrencias || 1) + 1, ultima_vez_usado: new Date().toISOString() })
-      .eq("id", existente.id);
+      .eq("id", existente.id).select("id");
+    if (error || !data || data.length === 0) {
+      const motivo = error?.message || "0 linhas afetadas (RLS?)";
+      Sentry.captureException(new Error(`Falha ao atualizar produtos_categoria_aprendizado: ${motivo}`), { extra: { tabela: "produtos_categoria_aprendizado", operacao: "update", empresaId, termo, motivo } });
+    }
   } else {
-    await supabase.from("produtos_categoria_aprendizado")
-      .insert({ empresa_id: empresaId, termo, categoria: categoriaEscolhida });
+    const { data, error } = await supabase.from("produtos_categoria_aprendizado")
+      .insert({ empresa_id: empresaId, termo, categoria: categoriaEscolhida }).select("id");
+    if (error || !data || data.length === 0) {
+      const motivo = error?.message || "0 linhas afetadas (RLS?)";
+      Sentry.captureException(new Error(`Falha ao inserir produtos_categoria_aprendizado: ${motivo}`), { extra: { tabela: "produtos_categoria_aprendizado", operacao: "insert", empresaId, termo, motivo } });
+    }
   }
 }
