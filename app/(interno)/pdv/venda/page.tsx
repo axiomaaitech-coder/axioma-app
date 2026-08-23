@@ -15,9 +15,10 @@
 // pra ninguém, porque a consulta nem seleciona essas colunas.
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings, LayoutDashboard } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
@@ -195,6 +196,7 @@ const txt = {
     es: "Ninguna impresora encontrada por QZ Tray.",
   },
   configurarImpressao: { pt: "Impressão", en: "Printing", es: "Impresión" },
+  linkRetaguarda: { pt: "Retaguarda", en: "Back Office", es: "Retaguardia" },
   configCupomTitulo: { pt: "Impressão do cupom", en: "Receipt printing", es: "Impresión del comprobante" },
   configCupomImpressaoAutomaticaLabel: {
     pt: "Imprimir automaticamente ao finalizar a venda",
@@ -832,6 +834,7 @@ export default function PdvVendaPage() {
         containerRef={pdvContainerRef} fullscreenAtivo={fullscreenAtivo} onAlternarTelaCheia={alternarTelaCheia}
         lang={lang} caixaAtual={caixaAtual} onTrocarCaixa={trocarCaixa}
         mostrarConfigCupom={papel !== "operador"} onAbrirConfigCupom={() => setConfigCupomAberto(true)}
+        mostrarRetaguarda={papel === "dono" || papel === "admin"}
       >
         {pendenciaBaixa && (
           <div className="shrink-0">
@@ -956,7 +959,7 @@ export default function PdvVendaPage() {
 // aplica position:fixed+inset:0 automaticamente sobre :fullscreen) — TopNav,
 // aviso de cadastro e até o cabeçalho/moldura do PdvLayout ficam de fora
 // (são ancestrais do container, não descendentes), então somem sozinhos.
-function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, mostrarConfigCupom, onAbrirConfigCupom, children }: {
+function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, mostrarConfigCupom, onAbrirConfigCupom, mostrarRetaguarda, children }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
   fullscreenAtivo: boolean;
   onAlternarTelaCheia: () => void;
@@ -965,6 +968,7 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
   onTrocarCaixa: () => void;
   mostrarConfigCupom: boolean;
   onAbrirConfigCupom: () => void;
+  mostrarRetaguarda: boolean;
   children: React.ReactNode;
 }) {
   const { tokens } = useTemaPdv();
@@ -977,6 +981,12 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
       <div className={`shrink-0 flex items-center justify-between mb-1.5 ${fullscreenAtivo ? "text-xs" : "text-[11px]"}`}>
         <span style={{ opacity: 0.7, color: tokens.texto }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
         <div className="flex items-center gap-4">
+          {mostrarRetaguarda && (
+            <Link href="/pdv/retaguarda" className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
+              <LayoutDashboard size={13} />
+              {t("linkRetaguarda", lang)}
+            </Link>
+          )}
           {mostrarConfigCupom && (
             <button onClick={onAbrirConfigCupom} className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
               <Settings size={13} />

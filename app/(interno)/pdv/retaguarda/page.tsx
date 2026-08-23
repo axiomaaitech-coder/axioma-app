@@ -1,0 +1,840 @@
+"use client";
+// 🦅 AXIOMA AI.TECH — PDV: Retaguarda do Caixa. Área exclusiva dono/admin —
+// operador/financeiro/contabil/leitor são redirecionados pra /pdv/venda
+// assim que o papel carrega. Essa checagem aqui é só a PRIMEIRA camada
+// (evita renderizar a tela); a proteção de verdade é no banco — toda leitura
+// sensível (resumo do dia, vendas por categoria, prejuízo, fechar turno,
+// sangria/suprimento, salvar config) passa pelas funções retaguarda_* que
+// recusam quem não é dono/admin com erro AX020, mesmo se alguém chamasse
+// direto pela API sem passar por esta tela. Ver PDV-RETAGUARDA-SQL-REVISAO.txt.
+//
+// NÃO dá baixa de estoque nem grava venda de novo — só lê, soma e agrupa o
+// que finalizar_venda() + criarMovimentacao() já gravaram na hora da venda.
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2,
+} from "lucide-react";
+import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
+import { useLanguage } from "../../../../lib/LanguageContext";
+import type { Idioma } from "../../../../lib/translations";
+import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
+import {
+  obterConfigRetaguarda, salvarConfigRetaguarda, obterResumoDia, obterVendasPorCategoria,
+  obterItensPrejuizo, listarTurnosAbertos, fecharTurno, registrarMovimentacao, hojeLocal,
+  type ConfigRetaguarda, type ModoRetaguarda, type ResumoDia, type VendaPorCategoria,
+  type ItemPrejuizo, type TurnoAberto, type ResultadoFechamento,
+} from "../../../../lib/retaguardaHelpers";
+
+const CHAVE_CONFIGURADO_LOCAL = "axioma_retaguarda_configurado_";
+const INTERVALO_ATUALIZACAO_MS = 30000;
+
+const txt = {
+  titulo: { pt: "Retaguarda do Caixa", en: "Cash Back Office", es: "Retaguardia de Caja" },
+  subtitulo: {
+    pt: "Acompanhe as vendas e feche o caixa com segurança.",
+    en: "Track sales and close the register safely.",
+    es: "Siga las ventas y cierre la caja con seguridad.",
+  },
+  carregando: { pt: "Carregando…", en: "Loading…", es: "Cargando…" },
+  redirecionando: { pt: "Redirecionando…", en: "Redirecting…", es: "Redirigiendo…" },
+
+  assistenteTitulo: { pt: "Como você quer acompanhar o caixa?", en: "How do you want to track the register?", es: "¿Cómo quiere seguir la caja?" },
+  assistenteSubtitulo: {
+    pt: "3 perguntas rápidas — dá pra mudar depois a qualquer momento no botão Configurar.",
+    en: "3 quick questions — you can change this later anytime in the Configure button.",
+    es: "3 preguntas rápidas — puede cambiarlo después en cualquier momento en el botón Configurar.",
+  },
+  perguntaModo: { pt: "Como acompanhar o caixa?", en: "How to track the register?", es: "¿Cómo seguir la caja?" },
+  opcaoAoVivo: { pt: "Ao vivo", en: "Live", es: "En vivo" },
+  opcaoSoFechamento: { pt: "Só fechamento", en: "Closing only", es: "Solo cierre" },
+  opcaoAmbos: { pt: "Os dois", en: "Both", es: "Ambos" },
+  perguntaConferirGaveta: { pt: "Conferir a gaveta no fechamento?", en: "Count the drawer at closing?", es: "¿Contar la gaveta al cierre?" },
+  perguntaVerLucro: { pt: "Ver lucro real e margem?", en: "See real profit and margin?", es: "¿Ver ganancia real y margen?" },
+  opcaoSim: { pt: "Sim", en: "Yes", es: "Sí" },
+  opcaoNao: { pt: "Não", en: "No", es: "No" },
+  assistenteSalvar: { pt: "Salvar e continuar", en: "Save and continue", es: "Guardar y continuar" },
+  assistenteSalvando: { pt: "Salvando…", en: "Saving…", es: "Guardando…" },
+  assistenteCancelar: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
+  configurar: { pt: "Configurar", en: "Configure", es: "Configurar" },
+  configSalva: { pt: "Configuração salva.", en: "Configuration saved.", es: "Configuración guardada." },
+
+  totalVendidoHoje: { pt: "Total vendido hoje", en: "Total sold today", es: "Total vendido hoy" },
+  numeroVendas: { pt: "Nº de vendas", en: "No. of sales", es: "N.° de ventas" },
+  ticketMedio: { pt: "Ticket médio", en: "Average ticket", es: "Ticket promedio" },
+  lucroRealHoje: { pt: "Lucro real hoje", en: "Real profit today", es: "Ganancia real hoy" },
+  itensSemCustoAviso: {
+    pt: "{n} item(ns) vendido(s) sem custo cadastrado — o lucro pode estar subestimado.",
+    en: "{n} item(s) sold without a registered cost — profit may be understated.",
+    es: "{n} ítem(s) vendido(s) sin costo registrado — la ganancia puede estar subestimada.",
+  },
+
+  atualizar: { pt: "Atualizar", en: "Refresh", es: "Actualizar" },
+  atualizadoAs: { pt: "Atualizado às {hora}", en: "Updated at {hora}", es: "Actualizado a las {hora}" },
+
+  abaAoVivo: { pt: "Ao vivo", en: "Live", es: "En vivo" },
+  abaFechamento: { pt: "Fechamento", en: "Closing", es: "Cierre" },
+
+  vendasPorCategoriaTitulo: { pt: "Vendas por nicho / categoria / sub-nicho", en: "Sales by niche / category / sub-niche", es: "Ventas por nicho / categoría / sub-nicho" },
+  colNicho: { pt: "Nicho", en: "Niche", es: "Nicho" },
+  colCategoria: { pt: "Categoria", en: "Category", es: "Categoría" },
+  colSubNicho: { pt: "Sub-nicho", en: "Sub-niche", es: "Sub-nicho" },
+  colQtd: { pt: "Qtd", en: "Qty", es: "Cant." },
+  colValor: { pt: "Valor", en: "Amount", es: "Valor" },
+  colLucro: { pt: "Lucro", en: "Profit", es: "Ganancia" },
+  semVendasHoje: { pt: "Nenhuma venda registrada hoje ainda.", en: "No sales recorded today yet.", es: "Ninguna venta registrada hoy todavía." },
+
+  alertaPrejuizoTitulo: { pt: "Itens vendidos com prejuízo hoje", en: "Items sold at a loss today", es: "Ítems vendidos con pérdida hoy" },
+  prejuizoDetalhe: { pt: "Prejuízo de {valor} por unidade × {qtd} = {total}", en: "Loss of {valor} per unit × {qtd} = {total}", es: "Pérdida de {valor} por unidad × {qtd} = {total}" },
+
+  turnoLabel: { pt: "Caixa", en: "Register", es: "Caja" },
+  selecioneTurno: { pt: "Selecione o caixa pra fechar…", en: "Select the register to close…", es: "Seleccione la caja para cerrar…" },
+  nenhumTurnoAberto: { pt: "Nenhum caixa aberto no momento.", en: "No register currently open.", es: "Ninguna caja abierta en este momento." },
+  abertoDesde: { pt: "Aberto desde {hora}", en: "Open since {hora}", es: "Abierta desde {hora}" },
+  fundoAbertura: { pt: "Fundo de abertura: {valor}", en: "Opening float: {valor}", es: "Fondo de apertura: {valor}" },
+  sangria: { pt: "Sangria", en: "Cash out", es: "Retiro" },
+  suprimento: { pt: "Suprimento", en: "Cash in", es: "Refuerzo" },
+  valorContadoLabel: { pt: "Valor contado na gaveta", en: "Amount counted in the drawer", es: "Valor contado en la gaveta" },
+  fecharCaixa: { pt: "Fechar Caixa", en: "Close Register", es: "Cerrar Caja" },
+  confirmarEFecharSemConferencia: { pt: "Confirmar e fechar turno", en: "Confirm and close shift", es: "Confirmar y cerrar turno" },
+  fechando: { pt: "Fechando…", en: "Closing…", es: "Cerrando…" },
+  confirmarFechamentoTitulo: { pt: "Fechar o caixa?", en: "Close the register?", es: "¿Cerrar la caja?" },
+  confirmarFechamentoTexto: {
+    pt: "Essa ação não pode ser desfeita. O turno será marcado como fechado.",
+    en: "This action cannot be undone. The shift will be marked as closed.",
+    es: "Esta acción no se puede deshacer. El turno se marcará como cerrado.",
+  },
+  confirmar: { pt: "Confirmar", en: "Confirm", es: "Confirmar" },
+  cancelar: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
+  esperado: { pt: "Esperado", en: "Expected", es: "Esperado" },
+  contado: { pt: "Contado", en: "Counted", es: "Contado" },
+  diferenca: { pt: "Diferença", en: "Difference", es: "Diferencia" },
+  sobra: { pt: "Sobra de {valor}", en: "Surplus of {valor}", es: "Sobrante de {valor}" },
+  falta: { pt: "Falta {valor}", en: "Missing {valor}", es: "Falta {valor}" },
+  bateuCerto: { pt: "Bateu certinho.", en: "Matched exactly.", es: "Coincidió exacto." },
+  turnoFechadoSucesso: { pt: "Caixa fechado com sucesso.", en: "Register closed successfully.", es: "Caja cerrada con éxito." },
+  resultadoFechamentoTitulo: { pt: "Resultado do fechamento", en: "Closing result", es: "Resultado del cierre" },
+
+  modalSangriaTitulo: { pt: "Registrar sangria", en: "Register cash out", es: "Registrar retiro" },
+  modalSuprimentoTitulo: { pt: "Registrar suprimento", en: "Register cash in", es: "Registrar refuerzo" },
+  valorLabel: { pt: "Valor", en: "Amount", es: "Valor" },
+  motivoLabel: { pt: "Motivo (opcional)", en: "Reason (optional)", es: "Motivo (opcional)" },
+  registrar: { pt: "Registrar", en: "Register", es: "Registrar" },
+  registrando: { pt: "Registrando…", en: "Registering…", es: "Registrando…" },
+  sangriaRegistrada: { pt: "Sangria registrada.", en: "Cash out recorded.", es: "Retiro registrado." },
+  suprimentoRegistrado: { pt: "Suprimento registrado.", en: "Cash in recorded.", es: "Refuerzo registrado." },
+
+  erroSemPermissao: { pt: "Você não tem permissão para acessar a retaguarda.", en: "You don't have permission to access the back office.", es: "No tiene permiso para acceder a la retaguardia." },
+  erroTurnoNaoEncontrado: { pt: "Caixa não encontrado.", en: "Register not found.", es: "Caja no encontrada." },
+  erroTurnoJaFechado: { pt: "Esse caixa já está fechado.", en: "This register is already closed.", es: "Esa caja ya está cerrada." },
+  erroValorInvalido: { pt: "Informe um valor válido, maior que zero.", en: "Enter a valid amount, greater than zero.", es: "Indique un valor válido, mayor que cero." },
+  erroConferenciaDesligada: { pt: "A conferência de gaveta está desligada nas configurações.", en: "Drawer counting is turned off in settings.", es: "El conteo de gaveta está desactivado en la configuración." },
+  erroValorContadoObrigatorio: { pt: "Informe o valor contado na gaveta.", en: "Enter the amount counted in the drawer.", es: "Indique el valor contado en la gaveta." },
+  erroGenerico: { pt: "Não foi possível completar a ação. Tente novamente.", en: "Could not complete the action. Try again.", es: "No fue posible completar la acción. Intente de nuevo." },
+};
+
+function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string | number>): string {
+  let s = txt[chave][lang];
+  if (vars) for (const k of Object.keys(vars)) s = s.replace(`{${k}}`, String(vars[k]));
+  return s;
+}
+
+function moeda(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function mensagemErro(codigo: string | undefined, lang: Idioma): string {
+  switch (codigo) {
+    case "AX020": return t("erroSemPermissao", lang);
+    case "AX021": return t("erroTurnoNaoEncontrado", lang);
+    case "AX022": return t("erroTurnoJaFechado", lang);
+    case "AX024": return t("erroValorInvalido", lang);
+    case "AX025": return t("erroConferenciaDesligada", lang);
+    case "AX027": return t("erroValorContadoObrigatorio", lang);
+    default: return t("erroGenerico", lang);
+  }
+}
+
+export default function RetaguardaPage() {
+  const { idioma } = useLanguage();
+  const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
+  const router = useRouter();
+
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [papel, setPapel] = useState<string | null>(null);
+  const [carregandoAcesso, setCarregandoAcesso] = useState(true);
+  const acessoLiberado = papel === "dono" || papel === "admin";
+
+  const [config, setConfig] = useState<ConfigRetaguarda | null>(null);
+  const [carregandoConfig, setCarregandoConfig] = useState(true);
+  const [configuradoLocal, setConfiguradoLocal] = useState(false);
+  const [assistenteAberto, setAssistenteAberto] = useState(false);
+  const [salvandoConfig, setSalvandoConfig] = useState(false);
+
+  const [aba, setAba] = useState<"ao_vivo" | "fechamento">("ao_vivo");
+  const [resumo, setResumo] = useState<ResumoDia | null>(null);
+  const [categorias, setCategorias] = useState<VendaPorCategoria[]>([]);
+  const [prejuizos, setPrejuizos] = useState<ItemPrejuizo[]>([]);
+  const [carregandoDados, setCarregandoDados] = useState(true);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null);
+
+  const [turnosAbertos, setTurnosAbertos] = useState<TurnoAberto[]>([]);
+  const [turnoSelecionado, setTurnoSelecionado] = useState<string | null>(null);
+  const [valorContadoInput, setValorContadoInput] = useState("");
+  const [modalMovimentacao, setModalMovimentacao] = useState<"sangria" | "suprimento" | null>(null);
+  const [registrandoMovimentacao, setRegistrandoMovimentacao] = useState(false);
+  const [confirmarFechamentoAberto, setConfirmarFechamentoAberto] = useState(false);
+  const [fechando, setFechando] = useState(false);
+  const [resultadoFechamento, setResultadoFechamento] = useState<ResultadoFechamento | null>(null);
+
+  const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
+  function mostrarToast(msg: string, tipo: "ok" | "erro" = "ok") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
+
+  // Acesso: só dono/admin. Primeira camada — a de verdade é no banco
+  // (AX020 nas funções retaguarda_*).
+  useEffect(() => {
+    (async () => {
+      const id = await obterEmpresaAtiva();
+      setEmpresaId(id);
+      if (!id) { setCarregandoAcesso(false); return; }
+      const p = await obterMeuPapel(id);
+      setPapel(p);
+      setCarregandoAcesso(false);
+      if (p !== "dono" && p !== "admin") router.push("/pdv/venda");
+    })();
+  }, [router]);
+
+  // Config — carrega do banco, e confere a "flag local" de primeira visita
+  // (não existe coluna de banco pra isso: os defaults de retaguarda_modo/
+  // conferir_gaveta/ver_lucro já são valores válidos por si só, então uso
+  // localStorage só pra decidir se mostra o assistente na abertura — os
+  // valores de verdade sempre vêm do banco, isto aqui só controla a
+  // PERGUNTA aparecer ou não).
+  useEffect(() => {
+    if (!empresaId || !acessoLiberado) return;
+    setCarregandoConfig(true);
+    obterConfigRetaguarda(empresaId).then((c) => {
+      setConfig(c);
+      setAba(c.modo === "fechamento" ? "fechamento" : "ao_vivo");
+      setCarregandoConfig(false);
+      const salvo = typeof window !== "undefined" ? window.localStorage.getItem(CHAVE_CONFIGURADO_LOCAL + empresaId) : null;
+      setConfiguradoLocal(!!salvo);
+    });
+  }, [empresaId, acessoLiberado]);
+
+  async function handleSalvarConfig(novaConfig: ConfigRetaguarda) {
+    if (!empresaId) return;
+    setSalvandoConfig(true);
+    const resultado = await salvarConfigRetaguarda(empresaId, novaConfig);
+    setSalvandoConfig(false);
+    if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
+    setConfig(novaConfig);
+    setAba(novaConfig.modo === "fechamento" ? "fechamento" : "ao_vivo");
+    if (typeof window !== "undefined") window.localStorage.setItem(CHAVE_CONFIGURADO_LOCAL + empresaId, "1");
+    setConfiguradoLocal(true);
+    setAssistenteAberto(false);
+    mostrarToast(t("configSalva", lang), "ok");
+  }
+
+  // Números do dia — painel ao vivo E fechamento usam o mesmo resumo diário.
+  // Atualiza sozinho a cada 30s enquanto a tela estiver aberta e configurada.
+  async function carregarDadosDoDia() {
+    if (!empresaId) return;
+    setCarregandoDados(true);
+    const dataHoje = hojeLocal();
+    const [r, c, p] = await Promise.all([
+      obterResumoDia(empresaId, dataHoje),
+      obterVendasPorCategoria(empresaId, dataHoje),
+      obterItensPrejuizo(empresaId, dataHoje),
+    ]);
+    if (r.erro) mostrarToast(mensagemErro(r.codigo, lang), "erro"); else setResumo(r.resumo!);
+    if (c.erro) mostrarToast(mensagemErro(c.codigo, lang), "erro"); else setCategorias(c.dados);
+    if (p.erro) mostrarToast(mensagemErro(p.codigo, lang), "erro"); else setPrejuizos(p.dados);
+    setCarregandoDados(false);
+    setUltimaAtualizacao(new Date());
+  }
+
+  useEffect(() => {
+    if (!empresaId || !acessoLiberado || !config || !configuradoLocal) return;
+    carregarDadosDoDia();
+    const intervalo = setInterval(carregarDadosDoDia, INTERVALO_ATUALIZACAO_MS);
+    return () => clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId, acessoLiberado, config, configuradoLocal]);
+
+  // Caixas abertos — só relevante pra aba de fechamento.
+  async function carregarTurnosAbertos() {
+    if (!empresaId) return;
+    const turnos = await listarTurnosAbertos(empresaId);
+    setTurnosAbertos(turnos);
+    setTurnoSelecionado((atual) => (atual && turnos.some((t) => t.id === atual)) ? atual : (turnos.length === 1 ? turnos[0].id : null));
+  }
+
+  useEffect(() => {
+    if (!empresaId || !acessoLiberado || !config || !configuradoLocal) return;
+    if (config.modo === "ao_vivo") return;
+    carregarTurnosAbertos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId, acessoLiberado, config, configuradoLocal]);
+
+  async function handleRegistrarMovimentacao(valor: number, motivo: string) {
+    if (!turnoSelecionado || !modalMovimentacao) return;
+    setRegistrandoMovimentacao(true);
+    const resultado = await registrarMovimentacao(turnoSelecionado, modalMovimentacao, valor, motivo || undefined);
+    setRegistrandoMovimentacao(false);
+    if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
+    mostrarToast(t(modalMovimentacao === "sangria" ? "sangriaRegistrada" : "suprimentoRegistrado", lang), "ok");
+    setModalMovimentacao(null);
+  }
+
+  async function handleFecharTurno() {
+    if (!turnoSelecionado || !config) return;
+    const valorContado = valorContadoInput.trim() ? Number(valorContadoInput.replace(",", ".")) : null;
+    if (config.conferirGaveta && valorContado === null) {
+      mostrarToast(t("erroValorContadoObrigatorio", lang), "erro");
+      return;
+    }
+    setFechando(true);
+    const resultado = await fecharTurno(turnoSelecionado, valorContado);
+    setFechando(false);
+    if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
+    setResultadoFechamento(resultado.resultado!);
+    setConfirmarFechamentoAberto(false);
+    setTurnoSelecionado(null);
+    setValorContadoInput("");
+    mostrarToast(t("turnoFechadoSucesso", lang), "ok");
+    carregarTurnosAbertos();
+  }
+
+  if (carregandoAcesso) {
+    return (
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv/venda">
+        <EstadoCarregando lang={lang} />
+      </PdvLayout>
+    );
+  }
+
+  if (!acessoLiberado) {
+    return (
+      <PdvLayout titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv/venda">
+        <EstadoCarregando lang={lang} texto={t("redirecionando", lang)} />
+      </PdvLayout>
+    );
+  }
+
+  const mostrarAoVivo = config && (config.modo === "ao_vivo" || config.modo === "ambos");
+  const mostrarFechamento = config && (config.modo === "fechamento" || config.modo === "ambos");
+  const mostrarAbas = config?.modo === "ambos";
+
+  return (
+    <PdvLayout
+      titulo={t("titulo", lang)} subtitulo={t("subtitulo", lang)} voltarPara="/pdv/venda"
+      botaoExtra={
+        configuradoLocal ? (
+          <BotaoSecundario onClick={() => setAssistenteAberto(true)}>
+            <Settings size={14} />
+            {t("configurar", lang)}
+          </BotaoSecundario>
+        ) : undefined
+      }
+    >
+      {carregandoConfig || !config ? (
+        <EstadoCarregando lang={lang} />
+      ) : (
+        <>
+          {!configuradoLocal ? (
+            <Assistente lang={lang} configAtual={config} salvando={salvandoConfig} podeCancelar={false} onSalvar={handleSalvarConfig} onCancelar={() => {}} />
+          ) : (
+            <div className="flex flex-col gap-4">
+              <CardsResumo lang={lang} resumo={resumo} verLucro={config.verLucro} carregando={carregandoDados} ultimaAtualizacao={ultimaAtualizacao} onAtualizar={carregarDadosDoDia} />
+
+              {mostrarAbas && (
+                <div className="flex gap-2">
+                  <BotaoAba selecionado={aba === "ao_vivo"} onClick={() => setAba("ao_vivo")}>{t("abaAoVivo", lang)}</BotaoAba>
+                  <BotaoAba selecionado={aba === "fechamento"} onClick={() => setAba("fechamento")}>{t("abaFechamento", lang)}</BotaoAba>
+                </div>
+              )}
+
+              {(mostrarAoVivo && (!mostrarAbas || aba === "ao_vivo")) && (
+                <PainelAoVivo lang={lang} categorias={categorias} prejuizos={prejuizos} verLucro={config.verLucro} carregando={carregandoDados} />
+              )}
+
+              {(mostrarFechamento && (!mostrarAbas || aba === "fechamento")) && (
+                <PainelFechamento
+                  lang={lang} config={config} turnos={turnosAbertos} turnoSelecionado={turnoSelecionado}
+                  onSelecionarTurno={setTurnoSelecionado}
+                  valorContadoInput={valorContadoInput} onValorContadoInput={setValorContadoInput}
+                  onAbrirMovimentacao={setModalMovimentacao}
+                  onFecharCaixa={() => setConfirmarFechamentoAberto(true)}
+                  resultadoFechamento={resultadoFechamento}
+                />
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {assistenteAberto && config && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+          <Assistente lang={lang} configAtual={config} salvando={salvandoConfig} podeCancelar comoModal onSalvar={handleSalvarConfig} onCancelar={() => setAssistenteAberto(false)} />
+        </div>
+      )}
+
+      {modalMovimentacao && (
+        <ModalMovimentacao
+          lang={lang} tipo={modalMovimentacao} registrando={registrandoMovimentacao}
+          onConfirmar={handleRegistrarMovimentacao} onCancelar={() => setModalMovimentacao(null)}
+        />
+      )}
+
+      {confirmarFechamentoAberto && (
+        <ModalConfirmarFechamento lang={lang} fechando={fechando} onConfirmar={handleFecharTurno} onCancelar={() => setConfirmarFechamentoAberto(false)} />
+      )}
+
+      {toast && <Toast toast={toast} />}
+    </PdvLayout>
+  );
+}
+
+function EstadoCarregando({ lang, texto }: { lang: Idioma; texto?: string }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-center justify-center py-16 gap-2" style={{ color: tokens.textoMuted }}>
+      <Loader2 className="animate-spin" size={18} />
+      <span className="text-sm">{texto || t("carregando", lang)}</span>
+    </div>
+  );
+}
+
+function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" } }) {
+  return (
+    <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+      style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+      {toast.msg}
+    </div>
+  );
+}
+
+function BotaoSecundario({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <button onClick={onClick} className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold"
+      style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+      {children}
+    </button>
+  );
+}
+
+function BotaoAba({ selecionado, onClick, children }: { selecionado: boolean; onClick: () => void; children: React.ReactNode }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <button onClick={onClick}
+      className="px-4 py-2 rounded-xl text-sm font-bold"
+      style={selecionado
+        ? { background: tokens.acaoBg, color: tokens.acaoTexto }
+        : { background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+      {children}
+    </button>
+  );
+}
+
+// ============================================================================
+// ASSISTENTE — 3 perguntas em botões
+// ============================================================================
+
+function GrupoBotoes<T extends string | boolean>({ opcoes, valor, onSelecionar }: {
+  opcoes: { valor: T; label: string }[]; valor: T; onSelecionar: (v: T) => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex gap-2 flex-wrap">
+      {opcoes.map((o) => (
+        <button key={String(o.valor)} onClick={() => onSelecionar(o.valor)}
+          className="px-4 py-2.5 rounded-xl text-sm font-bold"
+          style={o.valor === valor
+            ? { background: tokens.acaoBg, color: tokens.acaoTexto }
+            : { background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Assistente({ lang, configAtual, salvando, podeCancelar, comoModal, onSalvar, onCancelar }: {
+  lang: Idioma; configAtual: ConfigRetaguarda; salvando: boolean; podeCancelar: boolean; comoModal?: boolean;
+  onSalvar: (c: ConfigRetaguarda) => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const [modo, setModo] = useState<ModoRetaguarda>(configAtual.modo);
+  const [conferirGaveta, setConferirGaveta] = useState(configAtual.conferirGaveta);
+  const [verLucro, setVerLucro] = useState(configAtual.verLucro);
+
+  const conteudo = (
+    <div className={comoModal ? "w-full max-w-lg rounded-2xl p-6" : "max-w-lg mx-auto rounded-2xl p-6"} style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+      <h3 className="text-lg font-bold mb-1" style={{ color: tokens.texto }}>{t("assistenteTitulo", lang)}</h3>
+      <p className="text-xs mb-5" style={{ color: tokens.textoMuted }}>{t("assistenteSubtitulo", lang)}</p>
+
+      <p className="text-sm font-semibold mb-2" style={{ color: tokens.texto }}>{t("perguntaModo", lang)}</p>
+      <div className="mb-5">
+        <GrupoBotoes
+          opcoes={[
+            { valor: "ao_vivo", label: t("opcaoAoVivo", lang) },
+            { valor: "fechamento", label: t("opcaoSoFechamento", lang) },
+            { valor: "ambos", label: t("opcaoAmbos", lang) },
+          ]}
+          valor={modo} onSelecionar={setModo}
+        />
+      </div>
+
+      <p className="text-sm font-semibold mb-2" style={{ color: tokens.texto }}>{t("perguntaConferirGaveta", lang)}</p>
+      <div className="mb-5">
+        <GrupoBotoes
+          opcoes={[{ valor: true, label: t("opcaoSim", lang) }, { valor: false, label: t("opcaoNao", lang) }]}
+          valor={conferirGaveta} onSelecionar={setConferirGaveta}
+        />
+      </div>
+
+      <p className="text-sm font-semibold mb-2" style={{ color: tokens.texto }}>{t("perguntaVerLucro", lang)}</p>
+      <div className="mb-6">
+        <GrupoBotoes
+          opcoes={[{ valor: true, label: t("opcaoSim", lang) }, { valor: false, label: t("opcaoNao", lang) }]}
+          valor={verLucro} onSelecionar={setVerLucro}
+        />
+      </div>
+
+      <div className="flex items-center gap-2">
+        {podeCancelar && (
+          <button onClick={onCancelar} disabled={salvando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("assistenteCancelar", lang)}
+          </button>
+        )}
+        <button onClick={() => onSalvar({ modo, conferirGaveta, verLucro })} disabled={salvando}
+          className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+          {salvando && <Loader2 className="animate-spin" size={14} />}
+          {salvando ? t("assistenteSalvando", lang) : t("assistenteSalvar", lang)}
+        </button>
+      </div>
+    </div>
+  );
+
+  return conteudo;
+}
+
+// ============================================================================
+// RESUMO DO DIA
+// ============================================================================
+
+function CardEstat({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="rounded-xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <p className="text-[11px] font-bold uppercase tracking-wide mb-1 truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
+      <p className="text-xl md:text-2xl font-black truncate" style={{ color: cor || tokens.cardTexto }}>{valor}</p>
+    </div>
+  );
+}
+
+function CardsResumo({ lang, resumo, verLucro, carregando, ultimaAtualizacao, onAtualizar }: {
+  lang: Idioma; resumo: ResumoDia | null; verLucro: boolean; carregando: boolean;
+  ultimaAtualizacao: Date | null; onAtualizar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <div className="text-xs" style={{ color: tokens.textoMuted }}>
+          {ultimaAtualizacao && t("atualizadoAs", lang, { hora: ultimaAtualizacao.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) })}
+        </div>
+        <button onClick={onAtualizar} disabled={carregando} className="flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50" style={{ color: tokens.acento }}>
+          <RefreshCw size={13} className={carregando ? "animate-spin" : ""} />
+          {t("atualizar", lang)}
+        </button>
+      </div>
+
+      <div className={`grid grid-cols-2 ${verLucro ? "md:grid-cols-4" : "md:grid-cols-3"} gap-3`}>
+        <CardEstat label={t("totalVendidoHoje", lang)} valor={moeda(resumo?.totalVendido ?? 0)} />
+        <CardEstat label={t("numeroVendas", lang)} valor={String(resumo?.qtdVendas ?? 0)} />
+        <CardEstat label={t("ticketMedio", lang)} valor={moeda(resumo?.ticketMedio ?? 0)} />
+        {verLucro && <CardEstat label={t("lucroRealHoje", lang)} valor={moeda(resumo?.lucroReal ?? 0)} cor={tokens.acento} />}
+      </div>
+
+      {!!resumo?.itensSemCusto && resumo.itensSemCusto > 0 && (
+        <div className="mt-2 flex items-start gap-2 rounded-xl px-3 py-2" style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.35)" }}>
+          <AlertTriangle size={14} style={{ color: "#fbbf24" }} className="shrink-0 mt-0.5" />
+          <p className="text-xs" style={{ color: "#fbbf24" }}>{t("itensSemCustoAviso", lang, { n: resumo.itensSemCusto })}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// PAINEL AO VIVO — categorias + alerta de prejuízo
+// ============================================================================
+
+function PainelAoVivo({ lang, categorias, prejuizos, verLucro, carregando }: {
+  lang: Idioma; categorias: VendaPorCategoria[]; prejuizos: ItemPrejuizo[]; verLucro: boolean; carregando: boolean;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+        <div className="px-4 py-3" style={{ background: tokens.acentoSuaveBg }}>
+          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("vendasPorCategoriaTitulo", lang)}</h3>
+        </div>
+        {carregando && categorias.length === 0 ? (
+          <EstadoCarregando lang={lang} />
+        ) : categorias.length === 0 ? (
+          <p className="text-sm text-center py-8" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("semVendasHoje", lang)}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${tokens.cardBorda}` }}>
+                  <th className="text-left px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colNicho", lang)}</th>
+                  <th className="text-left px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colCategoria", lang)}</th>
+                  <th className="text-left px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colSubNicho", lang)}</th>
+                  <th className="text-right px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colQtd", lang)}</th>
+                  <th className="text-right px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colValor", lang)}</th>
+                  {verLucro && <th className="text-right px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colLucro", lang)}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {categorias.map((c, idx) => (
+                  <tr key={idx} style={{ borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                    <td className="px-4 py-2 truncate max-w-[140px]">{c.nicho}</td>
+                    <td className="px-4 py-2 truncate max-w-[140px]">{c.categoria}</td>
+                    <td className="px-4 py-2 truncate max-w-[140px]">{c.subNicho}</td>
+                    <td className="px-4 py-2 text-right whitespace-nowrap">{c.quantidade}</td>
+                    <td className="px-4 py-2 text-right whitespace-nowrap font-semibold">{moeda(c.valorVendido)}</td>
+                    {verLucro && <td className="px-4 py-2 text-right whitespace-nowrap" style={{ color: tokens.acento }}>{moeda(c.lucroReal)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {prejuizos.length > 0 && (
+        <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.4)" }}>
+          <div className="px-4 py-3 flex items-center gap-2">
+            <AlertTriangle size={16} style={{ color: "#f87171" }} />
+            <h3 className="text-sm font-bold" style={{ color: "#f87171" }}>{t("alertaPrejuizoTitulo", lang)}</h3>
+          </div>
+          <div className="px-4 pb-3 flex flex-col gap-2">
+            {prejuizos.map((p, idx) => (
+              <div key={idx} className="text-xs" style={{ color: "#f87171" }}>
+                <span className="font-semibold">{p.produtoNome}</span>
+                {" — "}
+                {t("prejuizoDetalhe", lang, { valor: moeda(p.prejuizoUnitario), qtd: p.quantidade, total: moeda(p.prejuizoUnitario * p.quantidade) })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// PAINEL FECHAMENTO
+// ============================================================================
+
+function PainelFechamento({
+  lang, config, turnos, turnoSelecionado, onSelecionarTurno,
+  valorContadoInput, onValorContadoInput, onAbrirMovimentacao, onFecharCaixa, resultadoFechamento,
+}: {
+  lang: Idioma; config: ConfigRetaguarda; turnos: TurnoAberto[]; turnoSelecionado: string | null;
+  onSelecionarTurno: (id: string) => void;
+  valorContadoInput: string; onValorContadoInput: (v: string) => void;
+  onAbrirMovimentacao: (tipo: "sangria" | "suprimento") => void;
+  onFecharCaixa: () => void;
+  resultadoFechamento: ResultadoFechamento | null;
+}) {
+  const { tokens } = useTemaPdv();
+  const turno = turnos.find((t2) => t2.id === turnoSelecionado) || null;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {resultadoFechamento && <CardResultadoFechamento lang={lang} resultado={resultadoFechamento} />}
+
+      <div className="rounded-2xl p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+        {turnos.length === 0 ? (
+          <p className="text-sm text-center py-4" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("nenhumTurnoAberto", lang)}</p>
+        ) : (
+          <>
+            <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("turnoLabel", lang)}</label>
+            <select value={turnoSelecionado || ""} onChange={(e) => onSelecionarTurno(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-2"
+              style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}>
+              <option value="">{t("selecioneTurno", lang)}</option>
+              {turnos.map((t2) => <option key={t2.id} value={t2.id}>{t2.caixaNome}</option>)}
+            </select>
+
+            {turno && (
+              <>
+                <p className="text-xs mb-4" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
+                  {t("abertoDesde", lang, { hora: new Date(turno.abertoEm).toLocaleString("pt-BR") })} · {t("fundoAbertura", lang, { valor: moeda(turno.valorAbertura) })}
+                </p>
+
+                {config.conferirGaveta && (
+                  <>
+                    <div className="flex gap-2 mb-4">
+                      <button onClick={() => onAbrirMovimentacao("sangria")}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold"
+                        style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.35)" }}>
+                        <ArrowUpCircle size={15} />
+                        {t("sangria", lang)}
+                      </button>
+                      <button onClick={() => onAbrirMovimentacao("suprimento")}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold"
+                        style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.35)" }}>
+                        <ArrowDownCircle size={15} />
+                        {t("suprimento", lang)}
+                      </button>
+                    </div>
+
+                    <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("valorContadoLabel", lang)}</label>
+                    <input
+                      value={valorContadoInput} onChange={(e) => onValorContadoInput(e.target.value)}
+                      inputMode="decimal" placeholder="0,00"
+                      className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+                      style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+                    />
+                  </>
+                )}
+
+                <button onClick={onFecharCaixa}
+                  className="w-full py-3 rounded-xl text-sm font-black"
+                  style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+                  {config.conferirGaveta ? t("fecharCaixa", lang) : t("confirmarEFecharSemConferencia", lang)}
+                </button>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CardResultadoFechamento({ lang, resultado }: { lang: Idioma; resultado: ResultadoFechamento }) {
+  const { tokens } = useTemaPdv();
+  const diferenca = resultado.diferenca;
+  const corDiferenca = diferenca === null ? tokens.cardTexto : diferenca === 0 ? tokens.acento : diferenca > 0 ? "#34d399" : "#f87171";
+  return (
+    <div className="rounded-2xl p-4" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
+      <h3 className="text-sm font-bold mb-3" style={{ color: tokens.cardTexto }}>{t("resultadoFechamentoTitulo", lang)}</h3>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
+          <p className="text-lg font-black" style={{ color: tokens.cardTexto }}>{moeda(resultado.valorEsperado)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("contado", lang)}</p>
+          <p className="text-lg font-black" style={{ color: tokens.cardTexto }}>{moeda(resultado.valorContado)}</p>
+        </div>
+        <div>
+          <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("diferenca", lang)}</p>
+          <p className="text-lg font-black" style={{ color: corDiferenca }}>
+            {diferenca === null ? "—" : diferenca === 0 ? t("bateuCerto", lang) : diferenca > 0 ? t("sobra", lang, { valor: moeda(diferenca) }) : t("falta", lang, { valor: moeda(Math.abs(diferenca)) })}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MODAIS
+// ============================================================================
+
+function ModalMovimentacao({ lang, tipo, registrando, onConfirmar, onCancelar }: {
+  lang: Idioma; tipo: "sangria" | "suprimento"; registrando: boolean;
+  onConfirmar: (valor: number, motivo: string) => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const [valorInput, setValorInput] = useState("");
+  const [motivo, setMotivo] = useState("");
+
+  function handleConfirmar() {
+    const valor = Number(valorInput.replace(",", "."));
+    if (!valor || valor <= 0 || isNaN(valor)) return;
+    onConfirmar(valor, motivo.trim());
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <h3 className="text-sm font-bold mb-4" style={{ color: tokens.texto }}>
+          {t(tipo === "sangria" ? "modalSangriaTitulo" : "modalSuprimentoTitulo", lang)}
+        </h3>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("valorLabel", lang)}</label>
+        <input
+          value={valorInput} onChange={(e) => setValorInput(e.target.value)}
+          inputMode="decimal" placeholder="0,00" autoFocus
+          className="w-full px-3 py-3 rounded-xl text-lg font-bold outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("motivoLabel", lang)}</label>
+        <input
+          value={motivo} onChange={(e) => setMotivo(e.target.value)}
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={registrando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("cancelar", lang)}
+          </button>
+          <button onClick={handleConfirmar} disabled={registrando}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {registrando && <Loader2 className="animate-spin" size={14} />}
+            {registrando ? t("registrando", lang) : t("registrar", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalConfirmarFechamento({ lang, fechando, onConfirmar, onCancelar }: {
+  lang: Idioma; fechando: boolean; onConfirmar: () => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <h3 className="text-sm font-bold mb-2" style={{ color: tokens.texto }}>{t("confirmarFechamentoTitulo", lang)}</h3>
+        <p className="text-xs mb-5" style={{ color: tokens.textoMuted }}>{t("confirmarFechamentoTexto", lang)}</p>
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={fechando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("cancelar", lang)}
+          </button>
+          <button onClick={onConfirmar} disabled={fechando}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {fechando && <Loader2 className="animate-spin" size={14} />}
+            {fechando ? t("fechando", lang) : t("confirmar", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

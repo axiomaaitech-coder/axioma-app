@@ -1,0 +1,674 @@
+-- ============================================================================
+-- AXIOMA — PDV: Retaguarda do Caixa (Fase 1 — banco)
+-- ⚠️ NÃO APLICADO. Arquivo separado só pra revisão do Elias antes de rodar.
+-- Aprovado em conversa (planejamento) em 2026-08-23 — decisões do dono:
+--   1) Acesso à Retaguarda: só papel 'dono' e 'admin' (financeiro/contabil/
+--      leitor/operador ficam de fora).
+--   2) Configurar os 3 botões (retaguarda_modo/conferir_gaveta/ver_lucro):
+--      dono E admin podem.
+--   3) Fechar a lacuna de segurança de item_venda.custo_unitario_na_venda
+--      AGORA, junto — ver PARTE D abaixo (explicação completa da abordagem).
+--
+-- PRÉ-REQUISITOS (já aplicados antes, este arquivo não repete nem substitui):
+--   PDV-FASE0-EQUIPE-OPERADOR-SQL.sql, PDV-FASE0-CORRECAO-DONO-SQL.sql
+--     → meu_papel(), empresas_do_usuario(), empresas_do_usuario_operacional()
+--   PDV-FASE3-ETAPA1-VENDAS-SQL.sql → caixa, turno_caixa, venda, item_venda
+--   PDV-FASE3-ETAPA2-FINALIZAR-VENDA-SQL.sql → finalizar_venda(), venda.estoque_baixado
+--   ESTOQUE-FASE1-SQL.sql / FASE1-CORRECOES → produtos (segmento/categoria/
+--     subcategoria/preco_custo)
+--
+-- O QUE ESTE ARQUIVO FAZ:
+--   PARTE A — tabela caixa_movimentacao (sangria/suprimento)
+--   PARTE B — 3 colunas de config em empresas (retaguarda_modo,
+--             retaguarda_conferir_gaveta, retaguarda_ver_lucro)
+--   PARTE C — 1 coluna valor_esperado em turno_caixa
+--   PARTE D — CORREÇÃO DE SEGURANÇA: fecha o acesso do operador a
+--             item_venda.custo_unitario_na_venda (a lacuna do item 3)
+--   PARTE E — 6 funções SECURITY DEFINER (todas recusam quem não é
+--             dono/admin na primeira linha):
+--             retaguarda_resumo_dia, retaguarda_vendas_por_categoria,
+--             retaguarda_itens_prejuizo, retaguarda_fechar_turno,
+--             retaguarda_registrar_movimentacao, retaguarda_salvar_config
+--
+-- Códigos de erro novos: AX020 a AX027 (nenhum destes existia antes —
+-- conferido no repositório inteiro, os códigos em uso vão até AX015).
+--
+-- Idempotente — pode rodar mais de uma vez com segurança (ADD COLUMN IF NOT
+-- EXISTS, CREATE OR REPLACE FUNCTION, DROP POLICY IF EXISTS antes de recriar).
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — RODE SOZINHO PRIMEIRO, ANTES DE QUALQUER OUTRA COISA. Só leitura,
+-- não muda nada. Confirma as pré-condições E mostra a política ATUAL de
+-- item_venda (importante pra Parte D — confira que ela usa
+-- empresas_do_usuario(), SEM "_operacional", antes de continuar; é o estado
+-- esperado hoje, a Parte D é quem troca isso).
+-- ============================================================================
+SELECT routine_name FROM information_schema.routines
+WHERE routine_schema = 'public'
+  AND routine_name IN ('meu_papel', 'empresas_do_usuario', 'empresas_do_usuario_operacional');
+-- Espera 3 linhas. Se vier menos, PARE — rode os arquivos de pré-requisito antes.
+
+SELECT policyname, cmd, roles, qual, with_check
+FROM pg_policies
+WHERE schemaname = 'public' AND tablename = 'item_venda';
+-- Espera 1 política ("item_venda_multi_tenant") usando empresas_do_usuario()
+-- (sem "_operacional") no qual/with_check.
+
+
+BEGIN;
+
+-- ============================================================================
+-- PARTE A — CAIXA_MOVIMENTACAO (sangria/suprimento durante o turno)
+-- Uma tabela só, com "tipo" — mesmo padrão que estoque_movimentacoes já usa
+-- (tipo entrada/saída), em vez de duas tabelas separadas pra sangria e
+-- suprimento.
+--
+-- ESCRITA: só acontece pela função retaguarda_registrar_movimentacao()
+-- (Parte E) — ela SEMPRE confere dono/admin + turno aberto + conferência
+-- ligada antes de gravar. A RLS abaixo é uma SEGUNDA camada (defesa em
+-- profundidade), não a única.
+--
+-- LEITURA/ESCRITA diretas na tabela: restritas a dono/admin usando
+-- meu_papel() dentro da própria política — mais apertado que o padrão
+-- "empresas_do_usuario_operacional()" usado pelo resto do projeto (que só
+-- bloqueia 'operador', deixando financeiro/contabil/leitor passar). Aqui
+-- bloqueia todo mundo que não seja dono/admin, porque sangria/suprimento é
+-- dinheiro saindo/entrando do caixa físico — mais sensível que catálogo.
+--
+-- SEM política de UPDATE/DELETE de propósito: sangria/suprimento é um
+-- registro de auditoria, não deveria ser editado depois de criado (se
+-- registrou errado, registra um lançamento novo corrigindo, igual
+-- estoque_movimentacoes já funciona). Sem política = bloqueado por padrão
+-- sob RLS.
+--
+-- ⚠️ ATENÇÃO PRA QUEM MEXER NA FASE 0 NO FUTURO: esta tabela tem política
+-- PRÓPRIA (mais apertada que o padrão da descoberta dinâmica da Fase 0) —
+-- se PDV-FASE0-EQUIPE-OPERADOR-SQL.sql for reescrito/rerodado algum dia,
+-- ADICIONE 'caixa_movimentacao' à lista de exceções dele (as duas
+-- ocorrências do NOT IN, igual caixa/turno_caixa/venda/item_venda já
+-- estão) — senão a descoberta dinâmica droparia esta política e recriaria
+-- a versão padrão (que permite financeiro/contabil/leitor também, mais
+-- fraca que o pedido "só dono/admin"). Não consigo adicionar isso na lista
+-- de verdade AQUI porque ela mora como texto dentro do arquivo antigo, que
+-- você pediu pra eu não tocar nesta rodada — fica registrado aqui como
+-- pendência pra próxima vez que aquele arquivo for revisado.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.caixa_movimentacao (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references public.empresas(id),
+  turno_caixa_id uuid not null references public.turno_caixa(id),
+
+  tipo text not null check (tipo in ('sangria', 'suprimento')),
+  valor numeric(12,2) not null check (valor > 0),
+  motivo text,
+  usuario_id uuid not null,
+
+  criado_em timestamptz not null default now()
+);
+
+ALTER TABLE public.caixa_movimentacao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS caixa_movimentacao_leitura ON public.caixa_movimentacao;
+CREATE POLICY caixa_movimentacao_leitura ON public.caixa_movimentacao
+  FOR SELECT TO authenticated
+  USING (
+    empresa_id IN (SELECT public.empresas_do_usuario())
+    AND public.meu_papel(empresa_id) IN ('dono', 'admin')
+  );
+
+DROP POLICY IF EXISTS caixa_movimentacao_escrita ON public.caixa_movimentacao;
+CREATE POLICY caixa_movimentacao_escrita ON public.caixa_movimentacao
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    empresa_id IN (SELECT public.empresas_do_usuario())
+    AND public.meu_papel(empresa_id) IN ('dono', 'admin')
+  );
+
+CREATE INDEX IF NOT EXISTS idx_caixa_movimentacao_turno ON public.caixa_movimentacao(turno_caixa_id);
+CREATE INDEX IF NOT EXISTS idx_caixa_movimentacao_empresa_criado_em ON public.caixa_movimentacao(empresa_id, criado_em);
+
+COMMENT ON TABLE public.caixa_movimentacao IS
+  'Sangria (retirada) e suprimento (reforço) de dinheiro no caixa físico durante o turno — só dono/admin, via retaguarda_registrar_movimentacao(). Ver PDV-RETAGUARDA-SQL-REVISAO.txt.';
+
+
+-- ============================================================================
+-- PARTE B — CONFIG DO LOJISTA (3 colunas em empresas)
+-- Mesmo padrão já usado pra impressão do PDV (pdv_impressao_automatica etc.)
+-- — colunas simples em empresas, sem tabela própria pra 3 preferências.
+-- Escrita só via retaguarda_salvar_config() (Parte E) — dono OU admin (a
+-- RLS de UPDATE em empresas hoje é só dono; por isso esta config passa por
+-- uma função própria em vez do UPDATE direto que a tela de /empresa usa).
+-- ============================================================================
+
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS retaguarda_modo text NOT NULL DEFAULT 'ambos'
+  CHECK (retaguarda_modo IN ('ao_vivo', 'fechamento', 'ambos'));
+
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS retaguarda_conferir_gaveta boolean NOT NULL DEFAULT true;
+
+ALTER TABLE public.empresas ADD COLUMN IF NOT EXISTS retaguarda_ver_lucro boolean NOT NULL DEFAULT true;
+
+
+-- ============================================================================
+-- PARTE C — turno_caixa.valor_esperado
+-- turno_caixa já tem valor_abertura/valor_fechamento/status/fechado_em —
+-- só faltava onde guardar o "esperado" calculado na hora do fechamento
+-- (valor_fechamento vira o CONTADO, informado por quem fecha o caixa).
+-- Nullable: só é preenchido no fechamento, nunca antes.
+-- ============================================================================
+
+ALTER TABLE public.turno_caixa ADD COLUMN IF NOT EXISTS valor_esperado numeric(12,2);
+
+
+-- ============================================================================
+-- PARTE D — CORREÇÃO DE SEGURANÇA: item_venda fecha pro operador
+-- (a lacuna do item 3 que você pediu pra corrigir agora)
+--
+-- O PROBLEMA: item_venda guarda preco_unitario_venda E
+-- custo_unitario_na_venda por linha vendida. Hoje a política dela
+-- (item_venda_multi_tenant, criada em PDV-FASE3-ETAPA1-VENDAS-SQL.sql) usa
+-- empresas_do_usuario() — dá acesso total a QUALQUER papel da empresa,
+-- inclusive operador, porque na época a intenção era "operador precisa
+-- registrar/ver a própria venda". RLS do Postgres bloqueia por LINHA, não
+-- por COLUNA — então um operador que soubesse chamar a API do Supabase
+-- direto (fora da tela) conseguiria ler custo_unitario_na_venda de
+-- qualquer venda da empresa, mesmo a tela nunca mostrando isso.
+--
+-- POR QUE NÃO É "VIEW SEGURA" (o padrão de vw_produtos_seguro) SOZINHA:
+-- vw_produtos_seguro funciona porque a tabela produtos JÁ bloqueia 100% das
+-- linhas pro operador (RLS de PDV-FASE0), então a view é o ÚNICO caminho de
+-- leitura que sobra pra ele — e ela simplesmente não seleciona as colunas
+-- sensíveis. Item_venda é diferente: a tabela crua está ABERTA pro operador
+-- hoje. Criar uma view segura do lado, sem fechar a tabela crua, não
+-- resolve nada — o operador continuaria conseguindo ler
+-- custo_unitario_na_venda direto da tabela, ignorando a view.
+--
+-- POR QUE NÃO É "REVOKE de coluna" (GRANT/REVOKE por coluna do Postgres):
+-- documentado no cabeçalho de PDV-FASE3-ETAPA0-OPERADOR-PRODUTOS-SQL.sql —
+-- todo usuário autenticado do Axioma (dono, operador, admin...) é o MESMO
+-- role do Postgres ("authenticated"). REVOKE SELECT (coluna) FROM
+-- authenticated tiraria o acesso de TODO MUNDO, incluindo dono/admin/
+-- financeiro — não dá pra diferenciar papel por essa via aqui.
+--
+-- A ABORDAGEM ESCOLHIDA (a mais robusta disponível nesta arquitetura):
+-- trocar a política de item_venda de empresas_do_usuario() (acesso total,
+-- todo papel) pra empresas_do_usuario_operacional() (bloqueia por LINHA
+-- quem tem vínculo 'operador') — o MESMO padrão que toda outra tabela
+-- sensível do projeto já usa (é literalmente a política PADRÃO da
+-- descoberta dinâmica da Fase 0; item_venda só não a tinha porque foi
+-- colocada na lista de exceções por precaução, não por necessidade real
+-- comprovada). Com isso, operador passa a ter ZERO linhas em item_venda —
+-- nem custo, nem preço, nem nada — exatamente como já acontece hoje com
+-- produtos.
+--
+-- POR QUE ISSO NÃO QUEBRA O PDV (verifiquei antes de propor, não é
+-- suposição): busquei todo o repositório por uso de "item_venda" no código
+-- do app. Resultado: A ÚNICA referência em todo o projeto é um COUNT (sem
+-- selecionar nenhuma coluna, `head: true`) em lib/estoqueHelpers.ts, dentro
+-- de excluirProduto() — usado só pra decidir se um produto pode ser
+-- excluído ou precisa ser inativado, chamado só nas telas de gestão de
+-- estoque/catálogo (já bloqueadas pro operador antes mesmo de chegar
+-- nisso). NINGUÉM no código lê item_venda de volta pra montar carrinho,
+-- recibo ou qualquer tela do operador — o cupom de impressão (Fase 3,
+-- Etapa 3) usa o estado do carrinho no navegador, nunca reconsulta o
+-- banco. E a gravação em si (finalizar_venda) é SECURITY DEFINER — ela
+-- grava em item_venda com o próprio privilégio dela, nunca depende da RLS
+-- de quem chamou. Ou seja: apertar esta política não tira NENHUM acesso
+-- que o operador realmente usa hoje.
+--
+-- Depois desta mudança, item_venda passa a se comportar exatamente como
+-- produtos: se um dia alguma tela precisar que o operador releia linhas de
+-- venda (ex.: reimprimir cupom buscando do banco em vez do estado local),
+-- aí sim cria-se uma vw_item_venda_seguro (mesmo molde de
+-- vw_produtos_seguro) — não faço isso agora porque nenhum código precisa
+-- disso hoje (YAGNI).
+-- ============================================================================
+
+DROP POLICY IF EXISTS item_venda_multi_tenant ON public.item_venda;
+CREATE POLICY item_venda_multi_tenant ON public.item_venda
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario_operacional()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario_operacional()));
+
+COMMENT ON POLICY item_venda_multi_tenant ON public.item_venda IS
+  'Bloqueia por LINHA quem tem vínculo papel=operador (empresas_do_usuario_operacional) — fecha o acesso a custo_unitario_na_venda pro operador. Trocado de empresas_do_usuario() em PDV-RETAGUARDA-SQL-REVISAO.txt (ver comentário completo ali); finalizar_venda() continua gravando normalmente (SECURITY DEFINER, ignora esta política).';
+
+-- ⚠️ MESMA ATENÇÃO DA PARTE A, ao contrário: se PDV-FASE0-EQUIPE-OPERADOR-
+-- SQL.sql for reescrito algum dia, item_venda PODE SAIR da lista de
+-- exceções dele (ela não precisa mais de tratamento especial — a política
+-- padrão da descoberta dinâmica já é exatamente esta). Não é urgente like
+-- a Parte A: mesmo que continue na lista de exceções por esquecimento, não
+-- quebra nada — só significa que uma Fase 0 futura não mexeria nesta
+-- política (que já está correta), e não tem problema nenhum nisso.
+
+
+-- ============================================================================
+-- PARTE E — FUNÇÕES SECURITY DEFINER (dono/admin só)
+-- Mesmo padrão de segurança de listar_equipe(): "if meu_papel(...) not in
+-- (...) then raise exception" na PRIMEIRA linha executável, sempre. RLS não
+-- entra em jogo dentro delas (SECURITY DEFINER ignora RLS) — a checagem
+-- manual de papel é a ÚNICA proteção, por isso vem sempre primeiro.
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- E1) retaguarda_resumo_dia — números do dia (painel ao vivo E fechamento
+-- usam o mesmo resumo diário; só a conferência de gaveta é por turno).
+-- Se retaguarda_ver_lucro = false, lucro_real volta NULL — filtrado aqui
+-- dentro, nunca no payload calculado e escondido só na tela.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_resumo_dia(p_empresa_id uuid, p_data date DEFAULT CURRENT_DATE)
+RETURNS TABLE (
+  total_vendido numeric,
+  qtd_vendas integer,
+  ticket_medio numeric,
+  lucro_real numeric,
+  itens_sem_custo integer
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_ver_lucro boolean;
+BEGIN
+  IF public.meu_papel(p_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem ver a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  SELECT retaguarda_ver_lucro INTO v_ver_lucro FROM empresas WHERE id = p_empresa_id;
+
+  RETURN QUERY
+  SELECT
+    COALESCE(SUM(v.valor_total), 0) AS total_vendido,
+    COUNT(v.id)::integer AS qtd_vendas,
+    CASE WHEN COUNT(v.id) > 0 THEN ROUND(SUM(v.valor_total) / COUNT(v.id), 2) ELSE 0 END AS ticket_medio,
+    CASE WHEN COALESCE(v_ver_lucro, true) THEN (
+      SELECT COALESCE(SUM((iv.preco_unitario_venda - COALESCE(iv.custo_unitario_na_venda, 0)) * iv.quantidade), 0)
+      FROM item_venda iv
+      JOIN venda v2 ON v2.id = iv.venda_id
+      WHERE v2.empresa_id = p_empresa_id AND v2.status = 'finalizada' AND v2.finalizada_em::date = p_data
+    ) ELSE NULL END AS lucro_real,
+    (
+      SELECT COUNT(*)::integer
+      FROM item_venda iv
+      JOIN venda v3 ON v3.id = iv.venda_id
+      WHERE v3.empresa_id = p_empresa_id AND v3.status = 'finalizada' AND v3.finalizada_em::date = p_data
+        AND iv.custo_unitario_na_venda IS NULL
+    ) AS itens_sem_custo
+  FROM venda v
+  WHERE v.empresa_id = p_empresa_id AND v.status = 'finalizada' AND v.finalizada_em::date = p_data;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_resumo_dia(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_resumo_dia(uuid, date) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- E2) retaguarda_vendas_por_categoria — agrupado nicho→categoria→sub-nicho
+-- (segmento→categoria→subcategoria em produtos).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_vendas_por_categoria(p_empresa_id uuid, p_data date DEFAULT CURRENT_DATE)
+RETURNS TABLE (
+  nicho text,
+  categoria text,
+  sub_nicho text,
+  quantidade numeric,
+  valor_vendido numeric,
+  lucro_real numeric
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_ver_lucro boolean;
+BEGIN
+  IF public.meu_papel(p_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem ver a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  SELECT retaguarda_ver_lucro INTO v_ver_lucro FROM empresas WHERE id = p_empresa_id;
+
+  RETURN QUERY
+  SELECT
+    COALESCE(NULLIF(p.segmento, ''), '—') AS nicho,
+    COALESCE(NULLIF(p.categoria, ''), '—') AS categoria,
+    COALESCE(NULLIF(p.subcategoria, ''), '—') AS sub_nicho,
+    SUM(iv.quantidade) AS quantidade,
+    SUM(iv.subtotal) AS valor_vendido,
+    CASE WHEN COALESCE(v_ver_lucro, true)
+      THEN SUM((iv.preco_unitario_venda - COALESCE(iv.custo_unitario_na_venda, 0)) * iv.quantidade)
+      ELSE NULL END AS lucro_real
+  FROM item_venda iv
+  JOIN venda v ON v.id = iv.venda_id
+  JOIN produtos p ON p.id = iv.produto_id
+  WHERE v.empresa_id = p_empresa_id AND v.status = 'finalizada' AND v.finalizada_em::date = p_data
+  GROUP BY 1, 2, 3
+  ORDER BY valor_vendido DESC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_vendas_por_categoria(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_vendas_por_categoria(uuid, date) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- E3) retaguarda_itens_prejuizo — alerta de item vendido abaixo do custo
+-- (linha a linha, não agrupado). Extra implícito no plano aprovado ("alerta
+-- de item vendido com prejuízo" no painel ao vivo) — sinalizando aqui que
+-- não estava nos 4 nomes que você listou, adicionei por ser parte do
+-- escopo já aprovado. Some inteira (0 linhas) se ver_lucro = false, porque
+-- o alerta em si já revela a relação preço×custo do item.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_itens_prejuizo(p_empresa_id uuid, p_data date DEFAULT CURRENT_DATE)
+RETURNS TABLE (
+  venda_id uuid,
+  produto_nome text,
+  quantidade numeric,
+  preco_unitario_venda numeric,
+  custo_unitario_na_venda numeric,
+  prejuizo_unitario numeric
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_ver_lucro boolean;
+BEGIN
+  IF public.meu_papel(p_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem ver a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  SELECT retaguarda_ver_lucro INTO v_ver_lucro FROM empresas WHERE id = p_empresa_id;
+  IF NOT COALESCE(v_ver_lucro, true) THEN
+    RETURN; -- config pede pra não mostrar lucro/custo — o alerta some junto
+  END IF;
+
+  RETURN QUERY
+  SELECT v.id, p.nome, iv.quantidade, iv.preco_unitario_venda, iv.custo_unitario_na_venda,
+         (iv.custo_unitario_na_venda - iv.preco_unitario_venda)
+  FROM item_venda iv
+  JOIN venda v ON v.id = iv.venda_id
+  JOIN produtos p ON p.id = iv.produto_id
+  WHERE v.empresa_id = p_empresa_id AND v.status = 'finalizada' AND v.finalizada_em::date = p_data
+    AND iv.custo_unitario_na_venda IS NOT NULL
+    AND iv.preco_unitario_venda < iv.custo_unitario_na_venda
+  ORDER BY (iv.custo_unitario_na_venda - iv.preco_unitario_venda) * iv.quantidade DESC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_itens_prejuizo(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_itens_prejuizo(uuid, date) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- E4) retaguarda_fechar_turno — calcula o esperado, grava o contado, fecha
+-- o turno (status/valor_fechamento/valor_esperado/fechado_em). Se a
+-- conferência estiver ligada, exige valor contado; se estiver desligada,
+-- fecha sem exigir (mas o esperado é sempre calculado e guardado, pra
+-- ficar registrado mesmo que ninguém tenha conferido naquele dia).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_fechar_turno(
+  p_turno_caixa_id uuid,
+  p_valor_contado numeric DEFAULT NULL,
+  p_observacao text DEFAULT NULL
+)
+RETURNS TABLE (
+  turno_id uuid,
+  valor_esperado numeric,
+  valor_contado numeric,
+  diferenca numeric
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_abertura numeric;
+  v_status text;
+  v_conferir boolean;
+  v_vendas_dinheiro numeric;
+  v_suprimentos numeric;
+  v_sangrias numeric;
+  v_esperado numeric;
+BEGIN
+  SELECT empresa_id, valor_abertura, status INTO v_empresa_id, v_abertura, v_status
+  FROM turno_caixa WHERE id = p_turno_caixa_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Turno de caixa não encontrado.' USING errcode = 'AX021';
+  END IF;
+
+  IF public.meu_papel(v_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem fechar o caixa.' USING errcode = 'AX020';
+  END IF;
+
+  IF v_status <> 'aberto' THEN
+    RAISE EXCEPTION 'Este turno já está fechado.' USING errcode = 'AX022';
+  END IF;
+
+  SELECT retaguarda_conferir_gaveta INTO v_conferir FROM empresas WHERE id = v_empresa_id;
+  IF COALESCE(v_conferir, true) AND p_valor_contado IS NULL THEN
+    RAISE EXCEPTION 'Informe o valor contado na gaveta para fechar o caixa.' USING errcode = 'AX027';
+  END IF;
+
+  SELECT COALESCE(SUM(valor_total), 0) INTO v_vendas_dinheiro
+  FROM venda WHERE turno_caixa_id = p_turno_caixa_id AND status = 'finalizada' AND forma_pagamento = 'dinheiro';
+
+  SELECT COALESCE(SUM(valor), 0) INTO v_suprimentos
+  FROM caixa_movimentacao WHERE turno_caixa_id = p_turno_caixa_id AND tipo = 'suprimento';
+
+  SELECT COALESCE(SUM(valor), 0) INTO v_sangrias
+  FROM caixa_movimentacao WHERE turno_caixa_id = p_turno_caixa_id AND tipo = 'sangria';
+
+  v_esperado := v_abertura + v_vendas_dinheiro + v_suprimentos - v_sangrias;
+
+  UPDATE turno_caixa
+  SET status = 'fechado',
+      valor_fechamento = p_valor_contado,
+      valor_esperado = v_esperado,
+      fechado_em = now(),
+      observacao = COALESCE(p_observacao, observacao),
+      updated_at = now()
+  WHERE id = p_turno_caixa_id;
+
+  RETURN QUERY SELECT p_turno_caixa_id, v_esperado, p_valor_contado,
+    CASE WHEN p_valor_contado IS NOT NULL THEN p_valor_contado - v_esperado ELSE NULL END;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_fechar_turno(uuid, numeric, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_fechar_turno(uuid, numeric, text) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- E5) retaguarda_registrar_movimentacao — sangria/suprimento, só com
+-- conferência ligada e turno aberto.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_registrar_movimentacao(
+  p_turno_caixa_id uuid,
+  p_tipo text,
+  p_valor numeric,
+  p_motivo text DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_status text;
+  v_conferir boolean;
+  v_id uuid;
+BEGIN
+  SELECT empresa_id, status INTO v_empresa_id, v_status FROM turno_caixa WHERE id = p_turno_caixa_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Turno de caixa não encontrado.' USING errcode = 'AX021';
+  END IF;
+
+  IF public.meu_papel(v_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem registrar sangria/suprimento.' USING errcode = 'AX020';
+  END IF;
+
+  IF v_status <> 'aberto' THEN
+    RAISE EXCEPTION 'Este turno já está fechado.' USING errcode = 'AX022';
+  END IF;
+
+  IF p_tipo NOT IN ('sangria', 'suprimento') THEN
+    RAISE EXCEPTION 'Tipo de movimentação inválido.' USING errcode = 'AX023';
+  END IF;
+
+  IF p_valor IS NULL OR p_valor <= 0 THEN
+    RAISE EXCEPTION 'Informe um valor válido, maior que zero.' USING errcode = 'AX024';
+  END IF;
+
+  SELECT retaguarda_conferir_gaveta INTO v_conferir FROM empresas WHERE id = v_empresa_id;
+  IF NOT COALESCE(v_conferir, true) THEN
+    RAISE EXCEPTION 'A conferência de gaveta está desligada nas configurações da retaguarda.' USING errcode = 'AX025';
+  END IF;
+
+  INSERT INTO caixa_movimentacao (empresa_id, turno_caixa_id, tipo, valor, motivo, usuario_id)
+  VALUES (v_empresa_id, p_turno_caixa_id, p_tipo, p_valor, p_motivo, auth.uid())
+  RETURNING id INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_registrar_movimentacao(uuid, text, numeric, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_registrar_movimentacao(uuid, text, numeric, text) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- E6) retaguarda_salvar_config — grava os 3 botões de configuração. Passa
+-- por função própria (em vez do UPDATE direto em empresas que a tela
+-- /empresa usa) porque a RLS de UPDATE em empresas hoje é só pra 'dono'
+-- (FIX-POLITICA-EMPRESAS-SQL.sql) — e a decisão 2 pede dono E admin
+-- podendo configurar a retaguarda. Alargar a RLS de UPDATE de empresas
+-- inteira pra admin abriria edição de CNPJ/razão social/endereço etc. pra
+-- admin também, que não foi pedido — esta função abre só estas 3 colunas.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_salvar_config(
+  p_empresa_id uuid,
+  p_modo text,
+  p_conferir_gaveta boolean,
+  p_ver_lucro boolean
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF public.meu_papel(p_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem configurar a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  IF p_modo NOT IN ('ao_vivo', 'fechamento', 'ambos') THEN
+    RAISE EXCEPTION 'Modo de retaguarda inválido.' USING errcode = 'AX026';
+  END IF;
+
+  UPDATE empresas
+  SET retaguarda_modo = p_modo,
+      retaguarda_conferir_gaveta = p_conferir_gaveta,
+      retaguarda_ver_lucro = p_ver_lucro
+  WHERE id = p_empresa_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_salvar_config(uuid, text, boolean, boolean) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_salvar_config(uuid, text, boolean, boolean) TO authenticated;
+
+COMMIT;
+
+
+-- ============================================================================
+-- VERIFICAÇÕES (rodar depois do COMMIT)
+-- ============================================================================
+
+-- Tabela + colunas novas existem:
+SELECT table_name, column_name, data_type, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND (
+    (table_name = 'caixa_movimentacao')
+    OR (table_name = 'empresas' AND column_name IN ('retaguarda_modo', 'retaguarda_conferir_gaveta', 'retaguarda_ver_lucro'))
+    OR (table_name = 'turno_caixa' AND column_name = 'valor_esperado')
+  )
+ORDER BY table_name, column_name;
+
+-- Políticas de caixa_movimentacao (espera 2: leitura + escrita, ambas
+-- citando meu_papel):
+SELECT policyname, cmd, qual, with_check
+FROM pg_policies WHERE schemaname = 'public' AND tablename = 'caixa_movimentacao';
+
+-- Política de item_venda TROCADA (espera empresas_do_usuario_operacional
+-- no qual/with_check agora, não mais empresas_do_usuario puro):
+SELECT policyname, cmd, qual, with_check
+FROM pg_policies WHERE schemaname = 'public' AND tablename = 'item_venda';
+
+-- As 6 funções existem e são SECURITY DEFINER:
+SELECT proname, prosecdef
+FROM pg_proc
+WHERE proname IN (
+  'retaguarda_resumo_dia', 'retaguarda_vendas_por_categoria', 'retaguarda_itens_prejuizo',
+  'retaguarda_fechar_turno', 'retaguarda_registrar_movimentacao', 'retaguarda_salvar_config'
+);
+-- Espera 6 linhas, prosecdef = true em todas.
+
+
+-- ============================================================================
+-- TESTE LÓGICO (raciocínio pra conferir depois de rodar, não é código)
+--
+-- Operador chamando SELECT * FROM item_venda (tabela crua):
+--   → Zero linhas agora (era acesso total antes). Igual a produtos hoje.
+-- Operador chamando qualquer função retaguarda_*:
+--   → Erro AX020 na primeira linha, nenhum dado calculado antes de recusar.
+-- Dono/admin chamando as funções retaguarda_*:
+--   → Funciona normal; lucro_real/itens_prejuizo vêm NULL/vazio se
+--     retaguarda_ver_lucro estiver desligado pra aquela empresa.
+-- Financeiro/contabil/leitor chamando funções retaguarda_*:
+--   → Erro AX020 (não estão em ('dono','admin')) — bloqueados também,
+--     conforme decisão 1.
+-- Dono/admin, venda normal no PDV (finalizar_venda):
+--   → Sem mudança nenhuma — a função é SECURITY DEFINER, não usa a
+--     política de item_venda que a Parte D trocou.
+-- ============================================================================
+
+
+-- ============================================================================
+-- ROLLBACK — SÓ RODAR SE ALGO QUEBRAR DEPOIS DE APLICAR. Desfaz só o que
+-- este arquivo criou/mudou, na ordem inversa. Descomente e rode como bloco
+-- único.
+-- ============================================================================
+-- BEGIN;
+--
+-- DROP FUNCTION IF EXISTS public.retaguarda_salvar_config(uuid, text, boolean, boolean);
+-- DROP FUNCTION IF EXISTS public.retaguarda_registrar_movimentacao(uuid, text, numeric, text);
+-- DROP FUNCTION IF EXISTS public.retaguarda_fechar_turno(uuid, numeric, text);
+-- DROP FUNCTION IF EXISTS public.retaguarda_itens_prejuizo(uuid, date);
+-- DROP FUNCTION IF EXISTS public.retaguarda_vendas_por_categoria(uuid, date);
+-- DROP FUNCTION IF EXISTS public.retaguarda_resumo_dia(uuid, date);
+--
+-- -- Volta item_venda pro estado de antes (acesso total, todo papel):
+-- DROP POLICY IF EXISTS item_venda_multi_tenant ON public.item_venda;
+-- CREATE POLICY item_venda_multi_tenant ON public.item_venda
+--   FOR ALL TO authenticated
+--   USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+--   WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+--
+-- ALTER TABLE public.turno_caixa DROP COLUMN IF EXISTS valor_esperado;
+--
+-- ALTER TABLE public.empresas DROP COLUMN IF EXISTS retaguarda_modo;
+-- ALTER TABLE public.empresas DROP COLUMN IF EXISTS retaguarda_conferir_gaveta;
+-- ALTER TABLE public.empresas DROP COLUMN IF EXISTS retaguarda_ver_lucro;
+--
+-- DROP TABLE IF EXISTS public.caixa_movimentacao;
+--
+-- COMMIT;
+-- ============================================================================
