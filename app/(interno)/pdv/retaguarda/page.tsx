@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye,
+  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye, ChevronDown, ChevronUp,
 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { CardGenerico, BreadcrumbGenerico, EstadoVazio, type ItemBreadcrumb } from "../../../../components/PdvCatalogoNav";
@@ -23,9 +23,10 @@ import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers
 import {
   obterConfigRetaguarda, salvarConfigRetaguarda, obterResumoDia, obterVendasPorProduto,
   obterVendasProdutoDetalhe, obterItensPrejuizo, listarTurnosAbertos, fecharTurno,
-  registrarMovimentacao, hojeLocal,
+  registrarMovimentacao, obterComposicaoEsperado, hojeLocal,
   type ConfigRetaguarda, type ModoRetaguarda, type ResumoDia, type VendaPorProduto,
   type VendaDetalheProduto, type ItemPrejuizo, type TurnoAberto, type ResultadoFechamento,
+  type ComposicaoLinha,
 } from "../../../../lib/retaguardaHelpers";
 
 const CHAVE_CONFIGURADO_LOCAL = "axioma_retaguarda_configurado_";
@@ -125,6 +126,13 @@ const txt = {
   bateuCerto: { pt: "Bateu certinho.", en: "Matched exactly.", es: "Coincidió exacto." },
   turnoFechadoSucesso: { pt: "Caixa fechado com sucesso.", en: "Register closed successfully.", es: "Caja cerrada con éxito." },
   resultadoFechamentoTitulo: { pt: "Resultado do fechamento", en: "Closing result", es: "Resultado del cierre" },
+  verComposicao: { pt: "Como esse valor foi calculado?", en: "How was this calculated?", es: "¿Cómo se calculó este valor?" },
+  composicaoTitulo: { pt: "Composição do esperado", en: "Expected amount breakdown", es: "Composición del esperado" },
+  compAbertura: { pt: "Fundo de abertura", en: "Opening float", es: "Fondo de apertura" },
+  compVendas: { pt: "Vendas em dinheiro deste turno", en: "Cash sales this shift", es: "Ventas en efectivo de este turno" },
+  maisItens: { pt: "(+ {n} item(ns))", en: "(+ {n} item(s))", es: "(+ {n} ítem(s))" },
+  nenhumRegistro: { pt: "Nenhum registro.", en: "No records.", es: "Ningún registro." },
+  totalEsperadoLinha: { pt: "= Esperado", en: "= Expected", es: "= Esperado" },
 
   modalSangriaTitulo: { pt: "Registrar sangria", en: "Register cash out", es: "Registrar retiro" },
   modalSuprimentoTitulo: { pt: "Registrar suprimento", en: "Register cash in", es: "Registrar refuerzo" },
@@ -153,6 +161,11 @@ function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string |
 function moeda(v: number | null | undefined): string {
   if (v === null || v === undefined) return "—";
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function totalEsperadoDeLinhas(linhas: ComposicaoLinha[]): number {
+  const soma = (c: string) => linhas.filter((l) => l.componente === c).reduce((s, l) => s + l.valor, 0);
+  return soma("abertura") + soma("venda") + soma("suprimento") - soma("sangria");
 }
 
 function mensagemErro(codigo: string | undefined, lang: Idioma): string {
@@ -198,6 +211,15 @@ export default function RetaguardaPage() {
   const [confirmarFechamentoAberto, setConfirmarFechamentoAberto] = useState(false);
   const [fechando, setFechando] = useState(false);
   const [resultadoFechamento, setResultadoFechamento] = useState<ResultadoFechamento | null>(null);
+
+  // Composição do "Esperado" (abertura + vendas em dinheiro + suprimentos −
+  // sangrias) linha a linha — carregada assim que um turno é selecionado na
+  // aba de fechamento, e reaproveitada depois de fechar o turno (não é
+  // limpa no fechamento) pra o botão "Ver detalhes" continuar funcionando
+  // no card de resultado.
+  const [composicao, setComposicao] = useState<{ turnoId: string; linhas: ComposicaoLinha[] } | null>(null);
+  const [carregandoComposicao, setCarregandoComposicao] = useState(false);
+  const [modalComposicaoAberto, setModalComposicaoAberto] = useState(false);
 
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
   function mostrarToast(msg: string, tipo: "ok" | "erro" = "ok") {
@@ -292,6 +314,20 @@ export default function RetaguardaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresaId, acessoLiberado, config, configuradoLocal]);
 
+  async function carregarComposicao(turnoId: string) {
+    setCarregandoComposicao(true);
+    const r = await obterComposicaoEsperado(turnoId);
+    setCarregandoComposicao(false);
+    if (r.erro) { mostrarToast(mensagemErro(r.codigo, lang), "erro"); return; }
+    setComposicao({ turnoId, linhas: r.dados });
+  }
+
+  useEffect(() => {
+    if (!turnoSelecionado) return;
+    carregarComposicao(turnoSelecionado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnoSelecionado]);
+
   async function handleRegistrarMovimentacao(valor: number, motivo: string) {
     if (!turnoSelecionado || !modalMovimentacao) return;
     setRegistrandoMovimentacao(true);
@@ -300,6 +336,7 @@ export default function RetaguardaPage() {
     if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
     mostrarToast(t(modalMovimentacao === "sangria" ? "sangriaRegistrada" : "suprimentoRegistrado", lang), "ok");
     setModalMovimentacao(null);
+    carregarComposicao(turnoSelecionado);
   }
 
   async function handleFecharTurno() {
@@ -382,6 +419,10 @@ export default function RetaguardaPage() {
                   onAbrirMovimentacao={setModalMovimentacao}
                   onFecharCaixa={() => setConfirmarFechamentoAberto(true)}
                   resultadoFechamento={resultadoFechamento}
+                  composicaoTotal={composicao && turnoSelecionado && composicao.turnoId === turnoSelecionado ? totalEsperadoDeLinhas(composicao.linhas) : null}
+                  composicaoCarregando={carregandoComposicao}
+                  composicaoDisponivel={!!(composicao && resultadoFechamento && composicao.turnoId === resultadoFechamento.turnoId)}
+                  onVerComposicao={() => setModalComposicaoAberto(true)}
                 />
               )}
             </div>
@@ -404,6 +445,10 @@ export default function RetaguardaPage() {
 
       {confirmarFechamentoAberto && (
         <ModalConfirmarFechamento lang={lang} fechando={fechando} onConfirmar={handleFecharTurno} onCancelar={() => setConfirmarFechamentoAberto(false)} />
+      )}
+
+      {modalComposicaoAberto && composicao && (
+        <ModalComposicaoEsperado lang={lang} linhas={composicao.linhas} onFechar={() => setModalComposicaoAberto(false)} />
       )}
 
       {toast && <Toast toast={toast} />}
@@ -846,6 +891,7 @@ function ModalDetalheProduto({ lang, produto, vendas, carregando, onFechar }: {
 function PainelFechamento({
   lang, config, turnos, turnoSelecionado, onSelecionarTurno,
   valorContadoInput, onValorContadoInput, onAbrirMovimentacao, onFecharCaixa, resultadoFechamento,
+  composicaoTotal, composicaoCarregando, composicaoDisponivel, onVerComposicao,
 }: {
   lang: Idioma; config: ConfigRetaguarda; turnos: TurnoAberto[]; turnoSelecionado: string | null;
   onSelecionarTurno: (id: string) => void;
@@ -853,13 +899,20 @@ function PainelFechamento({
   onAbrirMovimentacao: (tipo: "sangria" | "suprimento") => void;
   onFecharCaixa: () => void;
   resultadoFechamento: ResultadoFechamento | null;
+  composicaoTotal: number | null;
+  composicaoCarregando: boolean;
+  composicaoDisponivel: boolean;
+  onVerComposicao: () => void;
 }) {
   const { tokens } = useTemaPdv();
   const turno = turnos.find((t2) => t2.id === turnoSelecionado) || null;
 
   return (
     <div className="flex flex-col gap-4">
-      {resultadoFechamento && <CardResultadoFechamento lang={lang} resultado={resultadoFechamento} />}
+      {resultadoFechamento && (
+        <CardResultadoFechamento lang={lang} resultado={resultadoFechamento}
+          onVerComposicao={composicaoDisponivel ? onVerComposicao : undefined} />
+      )}
 
       <div className="rounded-2xl p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         {turnos.length === 0 ? (
@@ -879,6 +932,23 @@ function PainelFechamento({
                 <p className="text-xs mb-4" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
                   {t("abertoDesde", lang, { hora: new Date(turno.abertoEm).toLocaleString("pt-BR") })} · {t("fundoAbertura", lang, { valor: moeda(turno.valorAbertura) })}
                 </p>
+
+                <div className="flex items-center justify-between gap-3 mb-4 rounded-xl p-3" style={{ background: tokens.acentoSuaveBg }}>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
+                    {composicaoCarregando && composicaoTotal === null ? (
+                      <Loader2 className="animate-spin mt-1" size={16} style={{ color: tokens.cardTexto }} />
+                    ) : (
+                      <p className="text-lg font-black" style={{ color: tokens.cardTexto }}>{moeda(composicaoTotal ?? 0)}</p>
+                    )}
+                  </div>
+                  {composicaoTotal !== null && (
+                    <button onClick={onVerComposicao} className="flex items-center gap-1.5 text-xs font-bold shrink-0" style={{ color: tokens.acento }}>
+                      <Search size={13} />
+                      {t("verComposicao", lang)}
+                    </button>
+                  )}
+                </div>
 
                 {config.conferirGaveta && (
                   <>
@@ -921,13 +991,21 @@ function PainelFechamento({
   );
 }
 
-function CardResultadoFechamento({ lang, resultado }: { lang: Idioma; resultado: ResultadoFechamento }) {
+function CardResultadoFechamento({ lang, resultado, onVerComposicao }: { lang: Idioma; resultado: ResultadoFechamento; onVerComposicao?: () => void }) {
   const { tokens } = useTemaPdv();
   const diferenca = resultado.diferenca;
   const corDiferenca = diferenca === null ? tokens.cardTexto : diferenca === 0 ? tokens.acento : diferenca > 0 ? "#34d399" : "#f87171";
   return (
     <div className="rounded-2xl p-4" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
-      <h3 className="text-sm font-bold mb-3" style={{ color: tokens.cardTexto }}>{t("resultadoFechamentoTitulo", lang)}</h3>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("resultadoFechamentoTitulo", lang)}</h3>
+        {onVerComposicao && (
+          <button onClick={onVerComposicao} className="flex items-center gap-1.5 text-xs font-bold shrink-0" style={{ color: tokens.acento }}>
+            <Search size={13} />
+            {t("verComposicao", lang)}
+          </button>
+        )}
+      </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
@@ -1000,6 +1078,125 @@ function ModalMovimentacao({ lang, tipo, registrando, onConfirmar, onCancelar }:
             {registrando && <Loader2 className="animate-spin" size={14} />}
             {registrando ? t("registrando", lang) : t("registrar", lang)}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SecaoComposicao({ titulo, total, sinal, cor, expandido, onToggle, vazio, lang, children }: {
+  titulo: string; total: number; sinal: "+" | "−"; cor: string; expandido: boolean; onToggle: () => void;
+  vazio: boolean; lang: Idioma; children: React.ReactNode;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="rounded-xl p-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <button onClick={onToggle} disabled={vazio} className="w-full flex items-center justify-between gap-2 text-left disabled:opacity-60">
+        <span className="text-xs font-bold flex items-center gap-1.5" style={{ color: tokens.cardTexto }}>
+          {!vazio && (expandido ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
+          {titulo}
+        </span>
+        <span className="text-sm font-black shrink-0" style={{ color: cor }}>{sinal} {moeda(total)}</span>
+      </button>
+      {vazio ? (
+        <p className="text-[11px] mt-1" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("nenhumRegistro", lang)}</p>
+      ) : expandido ? (
+        <div className="mt-1">{children}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
+  lang: Idioma; linhas: ComposicaoLinha[]; onFechar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const [expandido, setExpandido] = useState<Record<string, boolean>>({ venda: true, suprimento: false, sangria: false });
+  function toggle(c: string) { setExpandido((a) => ({ ...a, [c]: !a[c] })); }
+
+  const porComponente = (c: string) => linhas.filter((l) => l.componente === c);
+  const somar = (c: string) => porComponente(c).reduce((s, l) => s + l.valor, 0);
+  const dataHora = (iso: string) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+  const abertura = porComponente("abertura")[0] || null;
+  const vendas = porComponente("venda").slice().sort((a, b) => (a.numeroSequencial || 0) - (b.numeroSequencial || 0));
+  const suprimentos = porComponente("suprimento");
+  const sangrias = porComponente("sangria");
+
+  const totalAbertura = abertura?.valor || 0;
+  const totalVendas = somar("venda");
+  const totalSuprimentos = somar("suprimento");
+  const totalSangrias = somar("sangria");
+  const totalEsperado = totalAbertura + totalVendas + totalSuprimentos - totalSangrias;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-lg rounded-2xl p-6 max-h-[85vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("composicaoTitulo", lang)}</h3>
+          <button onClick={onFechar} className="shrink-0" style={{ color: tokens.textoMuted }}><X size={18} /></button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="rounded-xl p-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs font-bold" style={{ color: tokens.cardTexto }}>{t("compAbertura", lang)}</p>
+                {abertura && <p className="text-[11px]" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{dataHora(abertura.horario)}</p>}
+              </div>
+              <p className="text-sm font-black shrink-0" style={{ color: tokens.cardTexto }}>{moeda(totalAbertura)}</p>
+            </div>
+          </div>
+
+          <SecaoComposicao titulo={t("compVendas", lang)} total={totalVendas} sinal="+" cor={tokens.cardTexto} lang={lang}
+            expandido={expandido.venda} onToggle={() => toggle("venda")} vazio={vendas.length === 0}>
+            {vendas.map((v) => (
+              <div key={v.referenciaId} className="flex items-center justify-between gap-2 py-1.5" style={{ borderTop: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                <div className="min-w-0">
+                  <p className="text-xs">
+                    <span className="font-bold">#{v.numeroSequencial}</span>{" · "}
+                    <span style={{ opacity: 0.75 }}>{dataHora(v.horario)}</span>
+                  </p>
+                  <p className="text-xs truncate" style={{ opacity: 0.85 }}>
+                    {v.produtoPrincipal}
+                    {(v.qtdItens || 0) > 1 ? ` ${t("maisItens", lang, { n: (v.qtdItens || 1) - 1 })}` : ""}
+                  </p>
+                </div>
+                <span className="text-xs font-bold shrink-0">{moeda(v.valor)}</span>
+              </div>
+            ))}
+          </SecaoComposicao>
+
+          <SecaoComposicao titulo={t("suprimento", lang)} total={totalSuprimentos} sinal="+" cor="#34d399" lang={lang}
+            expandido={expandido.suprimento} onToggle={() => toggle("suprimento")} vazio={suprimentos.length === 0}>
+            {suprimentos.map((s) => (
+              <div key={s.referenciaId} className="flex items-center justify-between gap-2 py-1.5" style={{ borderTop: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                <div className="min-w-0">
+                  <p className="text-xs" style={{ opacity: 0.75 }}>{dataHora(s.horario)}</p>
+                  {s.motivo && <p className="text-xs truncate" style={{ opacity: 0.85 }}>{s.motivo}</p>}
+                </div>
+                <span className="text-xs font-bold shrink-0">{moeda(s.valor)}</span>
+              </div>
+            ))}
+          </SecaoComposicao>
+
+          <SecaoComposicao titulo={t("sangria", lang)} total={totalSangrias} sinal="−" cor="#f87171" lang={lang}
+            expandido={expandido.sangria} onToggle={() => toggle("sangria")} vazio={sangrias.length === 0}>
+            {sangrias.map((s) => (
+              <div key={s.referenciaId} className="flex items-center justify-between gap-2 py-1.5" style={{ borderTop: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
+                <div className="min-w-0">
+                  <p className="text-xs" style={{ opacity: 0.75 }}>{dataHora(s.horario)}</p>
+                  {s.motivo && <p className="text-xs truncate" style={{ opacity: 0.85 }}>{s.motivo}</p>}
+                </div>
+                <span className="text-xs font-bold shrink-0">{moeda(s.valor)}</span>
+              </div>
+            ))}
+          </SecaoComposicao>
+
+          <div className="flex items-center justify-between px-3 py-3 rounded-xl mt-1" style={{ background: tokens.acaoBg }}>
+            <span className="text-xs font-black" style={{ color: tokens.acaoTexto }}>{t("totalEsperadoLinha", lang)}</span>
+            <span className="text-lg font-black" style={{ color: tokens.acaoTexto }}>{moeda(totalEsperado)}</span>
+          </div>
         </div>
       </div>
     </div>

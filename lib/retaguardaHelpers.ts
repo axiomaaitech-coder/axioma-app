@@ -158,6 +158,35 @@ export async function obterItensPrejuizo(empresaId: string, data: string): Promi
   };
 }
 
+export type ComposicaoLinha = {
+  componente: "abertura" | "venda" | "suprimento" | "sangria";
+  referenciaId: string | null;
+  numeroSequencial: number | null;
+  horario: string;
+  valor: number;
+  produtoPrincipal: string | null;
+  qtdItens: number | null;
+  motivo: string | null;
+};
+
+// Decomposição do "Esperado" linha a linha — pra dono/admin auditarem de
+// onde vem cada centavo antes de fechar o caixa (ou depois, revendo o
+// fechamento). Funciona com o turno aberto OU fechado.
+export async function obterComposicaoEsperado(turnoCaixaId: string): Promise<{ dados: ComposicaoLinha[]; erro?: string; codigo?: string }> {
+  const { data: linhas, error } = await supabase.rpc("retaguarda_composicao_esperado", { p_turno_caixa_id: turnoCaixaId });
+  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  return {
+    dados: (linhas || []).map((l: any) => ({
+      componente: l.componente, referenciaId: l.referencia_id,
+      numeroSequencial: l.numero_sequencial === null || l.numero_sequencial === undefined ? null : Number(l.numero_sequencial),
+      horario: l.horario, valor: Number(l.valor) || 0,
+      produtoPrincipal: l.produto_principal,
+      qtdItens: l.qtd_itens === null || l.qtd_itens === undefined ? null : Number(l.qtd_itens),
+      motivo: l.motivo,
+    })),
+  };
+}
+
 export type TurnoAberto = { id: string; caixaNome: string; valorAbertura: number; abertoEm: string };
 
 export async function listarTurnosAbertos(empresaId: string): Promise<TurnoAberto[]> {

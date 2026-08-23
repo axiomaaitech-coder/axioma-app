@@ -1,0 +1,178 @@
+-- ============================================================================
+-- AXIOMA — PDV: Retaguarda do Caixa (Fase 3 — transparência do "Esperado")
+-- ⚠️ NÃO APLICADO. Arquivo separado só pra revisão do Elias antes de rodar.
+--
+-- POR QUE ESTE ARQUIVO EXISTE:
+-- Caso real que motivou isso: no turno da empresa 2bcb0184 (aberto desde
+-- 16/08/2026), o "Esperado" no fechamento veio R$ 679,80, mas as vendas de
+-- HOJE somaram só R$ 7,56 — a diferença era venda de teste antiga
+-- acumulada no mesmo turno (aberto há dias). O dono não tinha como ver ISSO
+-- na tela — só o número final. retaguarda_fechar_turno() (Fase 1) já
+-- CALCULA o esperado (abertura + vendas em dinheiro do turno + suprimentos
+-- − sangrias) mas nunca expôs a composição, linha a linha, de cada uma
+-- dessas 4 partes.
+--
+-- O QUE ESTE ARQUIVO FAZ:
+--   G1 — retaguarda_composicao_esperado(turno_caixa_id)
+--        Devolve TODAS as linhas que compõem o esperado daquele turno,
+--        cada uma marcada com o "componente" a que pertence:
+--          'abertura'   → 1 linha só, o fundo de caixa
+--          'venda'      → 1 linha por venda em DINHEIRO finalizada no
+--                         turno, numerada em ordem cronológica (#1, #2...
+--                         só uma referência curta na tela, não é número
+--                         fiscal), com o produto de maior valor da venda
+--                         (produto_principal) e quantos itens ela tem
+--                         (qtd_itens) — útil pra reconhecer de relance
+--                         "essa venda de R$ 672,24 não é de hoje".
+--          'suprimento' → 1 linha por suprimento do turno, com motivo
+--          'sangria'    → 1 linha por sangria do turno, com motivo
+--        A tela soma cada grupo e monta: Esperado = abertura + Σvendas +
+--        Σsuprimentos − Σsangrias — EXATAMENTE a mesma fórmula que
+--        retaguarda_fechar_turno() já usa (mesmas 4 fontes, mesmas
+--        condições de filtro). Ver PDV-RETAGUARDA-SQL-REVISAO.txt (E4).
+--
+-- FUNCIONA COM O TURNO ABERTO OU FECHADO — de propósito. O dono precisa
+-- poder conferir a composição ANTES de decidir fechar o caixa (prévia ao
+-- vivo), não só depois. A função não olha pra turno_caixa.status.
+--
+-- Sangria/suprimento SÃO tabela com RLS própria que já libera SELECT direto
+-- pra dono/admin (caixa_movimentacao_leitura, Fase 1) — não precisei de RPC
+-- pra essa parte; só a parte de VENDAS + a montagem entrelaçada com abertura
+-- precisa de SECURITY DEFINER (a política de venda/item_venda de hoje não
+-- dá acesso de leitura solto pro front — passa tudo por função).
+--
+-- PRÉ-REQUISITOS (já aplicados antes, este arquivo não repete nem substitui):
+--   PDV-RETAGUARDA-SQL-REVISAO.txt → meu_papel(), caixa_movimentacao,
+--     turno_caixa.valor_esperado, retaguarda_fechar_turno()
+--   PDV-FASE3-ETAPA1-VENDAS-SQL.sql → turno_caixa, venda, item_venda
+--
+-- Nenhum código de erro novo: reaproveita AX020 (só dono/admin) e AX021
+-- (turno não encontrado), os mesmos já usados por retaguarda_fechar_turno.
+--
+-- Idempotente — CREATE OR REPLACE FUNCTION, pode rodar mais de uma vez.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — RODE SOZINHO PRIMEIRO, ANTES DE QUALQUER OUTRA COISA. Só
+-- leitura, confirma pré-requisitos.
+-- ============================================================================
+SELECT proname FROM pg_proc WHERE proname IN ('meu_papel', 'retaguarda_fechar_turno');
+-- Espera 2 linhas. Se vier menos, PARE — rode PDV-RETAGUARDA-SQL-REVISAO.txt antes.
+
+
+BEGIN;
+
+-- ----------------------------------------------------------------------------
+-- G1) retaguarda_composicao_esperado — todas as linhas que compõem o
+-- esperado de um turno, uma função só, o front agrupa por "componente".
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_composicao_esperado(p_turno_caixa_id uuid)
+RETURNS TABLE (
+  componente text,             -- 'abertura' | 'venda' | 'suprimento' | 'sangria'
+  referencia_id uuid,          -- id da venda ou da movimentação (null pra abertura)
+  numero_sequencial integer,   -- só em 'venda': #1, #2... em ordem cronológica
+  horario timestamptz,
+  valor numeric,
+  produto_principal text,      -- só em 'venda': item de maior valor daquela venda
+  qtd_itens integer,           -- só em 'venda': quantos itens a venda tem
+  motivo text                  -- só em 'suprimento'/'sangria'
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+BEGIN
+  SELECT tc.empresa_id INTO v_empresa_id FROM turno_caixa tc WHERE tc.id = p_turno_caixa_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Caixa não encontrado.' USING errcode = 'AX021';
+  END IF;
+
+  IF public.meu_papel(v_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem ver a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  RETURN QUERY
+  SELECT linhas.componente, linhas.referencia_id, linhas.numero_sequencial, linhas.horario,
+         linhas.valor, linhas.produto_principal, linhas.qtd_itens, linhas.motivo
+  FROM (
+    -- Fundo de abertura — 1 linha só.
+    SELECT 'abertura'::text AS componente, NULL::uuid AS referencia_id, NULL::integer AS numero_sequencial,
+           tc.aberto_em AS horario, tc.valor_abertura AS valor,
+           NULL::text AS produto_principal, NULL::integer AS qtd_itens, NULL::text AS motivo
+    FROM turno_caixa tc WHERE tc.id = p_turno_caixa_id
+
+    UNION ALL
+
+    -- Vendas em DINHEIRO finalizadas neste turno (mesmo filtro que
+    -- retaguarda_fechar_turno usa pra somar vendas_dinheiro).
+    SELECT 'venda'::text, v.id, ROW_NUMBER() OVER (ORDER BY v.finalizada_em)::integer,
+           v.finalizada_em, v.valor_total,
+           (SELECT p.nome FROM item_venda iv JOIN produtos p ON p.id = iv.produto_id
+            WHERE iv.venda_id = v.id ORDER BY iv.subtotal DESC, iv.created_at ASC LIMIT 1),
+           (SELECT COUNT(*)::integer FROM item_venda iv WHERE iv.venda_id = v.id),
+           NULL::text
+    FROM venda v
+    WHERE v.turno_caixa_id = p_turno_caixa_id AND v.status = 'finalizada' AND v.forma_pagamento = 'dinheiro'
+
+    UNION ALL
+
+    SELECT 'suprimento'::text, cm.id, NULL::integer, cm.criado_em, cm.valor, NULL::text, NULL::integer, cm.motivo
+    FROM caixa_movimentacao cm WHERE cm.turno_caixa_id = p_turno_caixa_id AND cm.tipo = 'suprimento'
+
+    UNION ALL
+
+    SELECT 'sangria'::text, cm.id, NULL::integer, cm.criado_em, cm.valor, NULL::text, NULL::integer, cm.motivo
+    FROM caixa_movimentacao cm WHERE cm.turno_caixa_id = p_turno_caixa_id AND cm.tipo = 'sangria'
+  ) linhas
+  ORDER BY CASE linhas.componente
+             WHEN 'abertura' THEN 0 WHEN 'venda' THEN 1 WHEN 'suprimento' THEN 2 WHEN 'sangria' THEN 3
+           END,
+           linhas.horario;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_composicao_esperado(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_composicao_esperado(uuid) TO authenticated;
+
+COMMIT;
+
+
+-- ============================================================================
+-- VERIFICAÇÕES (rodar depois do COMMIT)
+-- ============================================================================
+
+SELECT proname, prosecdef FROM pg_proc WHERE proname = 'retaguarda_composicao_esperado';
+-- Espera 1 linha, prosecdef = true.
+
+-- Teste manual (troque pelo turno_caixa_id real do turno aberto desde
+-- 16/08 na empresa 2bcb0184, logado como dono/admin dela) — a SOMA de
+-- valor por componente deve bater com o que retaguarda_fechar_turno()
+-- calcularia pra esse mesmo turno:
+-- SELECT componente, SUM(valor) FROM retaguarda_composicao_esperado('<turno_caixa_id>') GROUP BY componente;
+
+
+-- ============================================================================
+-- TESTE LÓGICO (raciocínio pra conferir depois de rodar, não é código)
+--
+-- Operador chamando a função:
+--   → Erro AX020, nenhum dado calculado antes de recusar.
+-- Dono/admin chamando com um turno_caixa_id de OUTRA empresa:
+--   → meu_papel() daquela empresa não vai dar 'dono'/'admin' pra quem não
+--     tem vínculo lá → erro AX020 (nunca vê os dados de outra empresa).
+-- Dono/admin chamando pra um turno ABERTO (ainda não fechado):
+--   → Funciona igual — é a prévia ao vivo, antes de decidir fechar.
+-- Dono/admin chamando pra um turno já FECHADO:
+--   → Funciona igual — é a auditoria depois do fato.
+-- ============================================================================
+
+
+-- ============================================================================
+-- ROLLBACK — SÓ RODAR SE ALGO QUEBRAR DEPOIS DE APLICAR.
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.retaguarda_composicao_esperado(uuid);
+-- ============================================================================
