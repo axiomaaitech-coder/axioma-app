@@ -10,10 +10,11 @@
 //
 // NÃO dá baixa de estoque nem grava venda de novo — só lê, soma e agrupa o
 // que finalizar_venda() + criarMovimentacao() já gravaram na hora da venda.
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye, ChevronDown, ChevronUp, Pencil, Trash2,
+  Calculator, Banknote,
 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { CardGenerico, BreadcrumbGenerico, EstadoVazio, type ItemBreadcrumb } from "../../../../components/PdvCatalogoNav";
@@ -108,6 +109,17 @@ const txt = {
   sangria: { pt: "Sangria", en: "Cash out", es: "Retiro" },
   suprimento: { pt: "Suprimento", en: "Cash in", es: "Refuerzo" },
   valorContadoLabel: { pt: "Valor contado na gaveta", en: "Amount counted in the drawer", es: "Valor contado en la gaveta" },
+  abrirCalculadora: { pt: "Calculadora", en: "Calculator", es: "Calculadora" },
+  abrirContagemGaveta: { pt: "Contagem de gaveta", en: "Drawer count", es: "Conteo de gaveta" },
+  calculadoraTitulo: { pt: "Calculadora", en: "Calculator", es: "Calculadora" },
+  calculadoraHistorico: { pt: "Histórico", en: "History", es: "Historial" },
+  usarValorContado: { pt: "Usar este total no Valor Contado", en: "Use this total as Amount Counted", es: "Usar este total como Valor Contado" },
+  contagemGavetaTitulo: { pt: "Contagem de gaveta", en: "Drawer count", es: "Conteo de gaveta" },
+  totalGeral: { pt: "Total geral", en: "Grand total", es: "Total general" },
+  notasLabel: { pt: "Notas", en: "Bills", es: "Billetes" },
+  moedasLabel: { pt: "Moedas", en: "Coins", es: "Monedas" },
+  qtdLabel: { pt: "qtd", en: "qty", es: "cant." },
+  limparTudo: { pt: "Limpar tudo", en: "Clear all", es: "Limpiar todo" },
   fecharCaixa: { pt: "Fechar Caixa", en: "Close Register", es: "Cerrar Caja" },
   confirmarEFecharSemConferencia: { pt: "Confirmar e fechar turno", en: "Confirm and close shift", es: "Confirmar y cerrar turno" },
   fechando: { pt: "Fechando…", en: "Closing…", es: "Cerrando…" },
@@ -1000,6 +1012,12 @@ function PainelFechamento({
 }) {
   const { tokens } = useTemaPdv();
   const turno = turnos.find((t2) => t2.id === turnoSelecionado) || null;
+  const [calculadoraAberta, setCalculadoraAberta] = useState(false);
+  const [contagemAberta, setContagemAberta] = useState(false);
+
+  function aplicarValorContado(valor: number) {
+    onValorContadoInput(valor.toFixed(2).replace(".", ","));
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -1065,7 +1083,19 @@ function PainelFechamento({
                     <ListaMovimentacoes lang={lang} movimentacoes={movimentacoes} carregando={carregandoMovimentacoes}
                       turnoAberto userId={userId} onEditar={onEditarMovimentacao} onExcluir={onExcluirMovimentacao} />
 
-                    <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("valorContadoLabel", lang)}</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("valorContadoLabel", lang)}</label>
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => setCalculadoraAberta(true)} title={t("abrirCalculadora", lang)}
+                          className="p-1.5 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
+                          <Calculator size={14} />
+                        </button>
+                        <button onClick={() => setContagemAberta(true)} title={t("abrirContagemGaveta", lang)}
+                          className="p-1.5 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
+                          <Banknote size={14} />
+                        </button>
+                      </div>
+                    </div>
                     <input
                       value={valorContadoInput} onChange={(e) => onValorContadoInput(e.target.value)}
                       inputMode="decimal" placeholder="0,00"
@@ -1085,6 +1115,13 @@ function PainelFechamento({
           </>
         )}
       </div>
+
+      {calculadoraAberta && (
+        <ModalCalculadora lang={lang} onUsar={aplicarValorContado} onFechar={() => setCalculadoraAberta(false)} />
+      )}
+      {contagemAberta && (
+        <ModalContagemGaveta lang={lang} onUsar={aplicarValorContado} onFechar={() => setContagemAberta(false)} />
+      )}
     </div>
   );
 }
@@ -1433,6 +1470,270 @@ function ModalConfirmarExclusaoMovimentacao({ lang, movimentacao, excluindo, onC
             style={{ background: "#f87171", color: "#020810" }}>
             {excluindo && <Loader2 className="animate-spin" size={14} />}
             {excluindo ? t("excluindo", lang) : t("excluir", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// CALCULADORA — reducer simples (mesmo padrão de calculadora de bolso: um
+// valor pendente + operador + "aguardando novo número" depois de um
+// operador ou do "="). useReducer em vez de vários useState soltos porque
+// as transições dependem umas das outras (operador precisa saber se já tem
+// valor pendente pra encadear "12 + 3 + 4" sem apertar "=" no meio).
+// ============================================================================
+
+type OperadorCalc = "+" | "-" | "×" | "÷";
+type EstadoCalculadora = {
+  display: string; valorAnterior: number | null; operador: OperadorCalc | null;
+  aguardandoNovoValor: boolean; historico: string[];
+};
+type AcaoCalculadora =
+  | { tipo: "digito"; valor: string }
+  | { tipo: "operador"; valor: OperadorCalc }
+  | { tipo: "igual" }
+  | { tipo: "limpar" }
+  | { tipo: "apagar" }
+  | { tipo: "sinal" };
+
+const ESTADO_INICIAL_CALCULADORA: EstadoCalculadora = { display: "0", valorAnterior: null, operador: null, aguardandoNovoValor: false, historico: [] };
+
+function formatarNumeroCalc(v: number): string {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function calcularOperacao(a: number, b: number, op: OperadorCalc): number | null {
+  switch (op) {
+    case "+": return a + b;
+    case "-": return a - b;
+    case "×": return a * b;
+    case "÷": return b === 0 ? null : a / b;
+  }
+}
+
+function reducerCalculadora(estado: EstadoCalculadora, acao: AcaoCalculadora): EstadoCalculadora {
+  switch (acao.tipo) {
+    case "digito": {
+      if (estado.display === "Erro" || estado.aguardandoNovoValor) {
+        return { ...estado, display: acao.valor === "," ? "0," : acao.valor, aguardandoNovoValor: false };
+      }
+      if (acao.valor === ",") {
+        return estado.display.includes(",") ? estado : { ...estado, display: estado.display + "," };
+      }
+      if (estado.display === "0") return { ...estado, display: acao.valor };
+      if (estado.display.replace(/[,-]/g, "").length >= 12) return estado;
+      return { ...estado, display: estado.display + acao.valor };
+    }
+    case "operador": {
+      const atual = Number(estado.display.replace(",", "."));
+      if (estado.valorAnterior !== null && estado.operador && !estado.aguardandoNovoValor) {
+        const resultado = calcularOperacao(estado.valorAnterior, atual, estado.operador);
+        if (resultado === null) return { ...ESTADO_INICIAL_CALCULADORA, display: "Erro", historico: estado.historico };
+        return { display: formatarNumeroCalc(resultado), valorAnterior: resultado, operador: acao.valor, aguardandoNovoValor: true, historico: estado.historico };
+      }
+      return { ...estado, valorAnterior: atual, operador: acao.valor, aguardandoNovoValor: true };
+    }
+    case "igual": {
+      if (estado.valorAnterior === null || !estado.operador) return estado;
+      const atual = Number(estado.display.replace(",", "."));
+      const resultado = calcularOperacao(estado.valorAnterior, atual, estado.operador);
+      if (resultado === null) return { ...ESTADO_INICIAL_CALCULADORA, display: "Erro", historico: estado.historico };
+      const linha = `${formatarNumeroCalc(estado.valorAnterior)} ${estado.operador} ${formatarNumeroCalc(atual)} = ${formatarNumeroCalc(resultado)}`;
+      return { display: formatarNumeroCalc(resultado), valorAnterior: null, operador: null, aguardandoNovoValor: true, historico: [linha, ...estado.historico].slice(0, 5) };
+    }
+    case "limpar":
+      return { ...ESTADO_INICIAL_CALCULADORA, historico: estado.historico };
+    case "apagar": {
+      if (estado.display === "Erro" || estado.aguardandoNovoValor) return { ...estado, display: "0", aguardandoNovoValor: false };
+      if (estado.display.length <= 1 || (estado.display.length === 2 && estado.display.startsWith("-"))) return { ...estado, display: "0" };
+      return { ...estado, display: estado.display.slice(0, -1) };
+    }
+    case "sinal":
+      return estado.display === "0" || estado.display === "Erro" ? estado
+        : { ...estado, display: estado.display.startsWith("-") ? estado.display.slice(1) : "-" + estado.display };
+    default:
+      return estado;
+  }
+}
+
+function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (valor: number) => void; onFechar: () => void }) {
+  const { tokens } = useTemaPdv();
+  const [estado, dispatch] = useReducer(reducerCalculadora, ESTADO_INICIAL_CALCULADORA);
+
+  useEffect(() => {
+    function aoTeclar(e: KeyboardEvent) {
+      if (e.key >= "0" && e.key <= "9") { dispatch({ tipo: "digito", valor: e.key }); return; }
+      if (e.key === "," || e.key === ".") { dispatch({ tipo: "digito", valor: "," }); return; }
+      if (e.key === "+") { dispatch({ tipo: "operador", valor: "+" }); return; }
+      if (e.key === "-") { dispatch({ tipo: "operador", valor: "-" }); return; }
+      if (e.key === "*") { dispatch({ tipo: "operador", valor: "×" }); return; }
+      if (e.key === "/") { e.preventDefault(); dispatch({ tipo: "operador", valor: "÷" }); return; }
+      if (e.key === "Enter" || e.key === "=") { dispatch({ tipo: "igual" }); return; }
+      if (e.key === "Backspace") { dispatch({ tipo: "apagar" }); return; }
+      if (e.key === "Escape") { onFechar(); return; }
+    }
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [onFechar]);
+
+  const botoesLinha1: { label: string; acao: AcaoCalculadora }[] = [
+    { label: "C", acao: { tipo: "limpar" } },
+    { label: "CE", acao: { tipo: "apagar" } },
+    { label: "±", acao: { tipo: "sinal" } },
+    { label: "÷", acao: { tipo: "operador", valor: "÷" } },
+  ];
+  const linhasNumericas: { label: string; acao: AcaoCalculadora; operador?: boolean }[][] = [
+    [{ label: "7", acao: { tipo: "digito", valor: "7" } }, { label: "8", acao: { tipo: "digito", valor: "8" } }, { label: "9", acao: { tipo: "digito", valor: "9" } }, { label: "×", acao: { tipo: "operador", valor: "×" }, operador: true }],
+    [{ label: "4", acao: { tipo: "digito", valor: "4" } }, { label: "5", acao: { tipo: "digito", valor: "5" } }, { label: "6", acao: { tipo: "digito", valor: "6" } }, { label: "-", acao: { tipo: "operador", valor: "-" }, operador: true }],
+    [{ label: "1", acao: { tipo: "digito", valor: "1" } }, { label: "2", acao: { tipo: "digito", valor: "2" } }, { label: "3", acao: { tipo: "digito", valor: "3" } }, { label: "+", acao: { tipo: "operador", valor: "+" }, operador: true }],
+  ];
+
+  function BotaoCalc({ label, acao, estilo, className }: { label: string; acao: AcaoCalculadora; estilo?: "operador" | "acao" | "igual"; className?: string }) {
+    return (
+      <button onClick={() => dispatch(acao)} className={`py-3 rounded-xl text-base font-bold ${className || ""}`}
+        style={estilo === "operador" ? { background: tokens.acentoSuaveBg, color: tokens.acento }
+          : estilo === "acao" ? { background: "rgba(248,113,113,0.12)", color: "#f87171" }
+          : estilo === "igual" ? { background: tokens.acaoBg, color: tokens.acaoTexto }
+          : { background: tokens.inputBg, color: tokens.inputTexto }}>
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("calculadoraTitulo", lang)}</h3>
+          <button onClick={onFechar} style={{ color: tokens.textoMuted }}><X size={18} /></button>
+        </div>
+
+        <div className="rounded-xl px-4 py-4 mb-3 text-right overflow-hidden" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
+          <p className="text-3xl font-black truncate" style={{ color: tokens.inputTexto }}>{estado.display}</p>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          {botoesLinha1.map((b) => <BotaoCalc key={b.label} label={b.label} acao={b.acao} estilo={b.label === "÷" ? "operador" : "acao"} />)}
+          {linhasNumericas.map((linha) => linha.map((b) => <BotaoCalc key={b.label} label={b.label} acao={b.acao} estilo={b.operador ? "operador" : undefined} />))}
+          <BotaoCalc label="0" acao={{ tipo: "digito", valor: "0" }} className="col-span-2" />
+          <BotaoCalc label="," acao={{ tipo: "digito", valor: "," }} />
+          <BotaoCalc label="=" acao={{ tipo: "igual" }} estilo="igual" />
+        </div>
+
+        {estado.historico.length > 0 && (
+          <div className="mb-3 max-h-24 overflow-y-auto rounded-xl p-2" style={{ background: tokens.acentoSuaveBg }}>
+            <p className="text-[10px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("calculadoraHistorico", lang)}</p>
+            {estado.historico.map((linha, i) => (
+              <p key={i} className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{linha}</p>
+            ))}
+          </div>
+        )}
+
+        <button onClick={() => { onUsar(Number(estado.display.replace(",", ".")) || 0); onFechar(); }}
+          disabled={estado.display === "Erro"}
+          className="w-full py-3 rounded-xl text-sm font-black disabled:opacity-50"
+          style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+          {t("usarValorContado", lang)}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// CONTAGEM DE GAVETA — notas/moedas BR, persistida em session storage
+// ENQUANTO O MODAL ESTIVER ABERTO (limpa só ao usar o total ou "limpar
+// tudo") — protege contra fechar o modal sem querer no meio da contagem.
+// ============================================================================
+
+const CHAVE_CONTAGEM_GAVETA = "retaguarda_contagem_gaveta";
+const DENOMINACOES_NOTAS = [200, 100, 50, 20, 10, 5, 2];
+const DENOMINACOES_MOEDAS = [1, 0.5, 0.25, 0.1, 0.05];
+
+function LinhaDenominacao({ valor, qtd, onQtd, lang }: { valor: number; qtd: string; onQtd: (q: string) => void; lang: Idioma }) {
+  const { tokens } = useTemaPdv();
+  const subtotal = valor * (Number(qtd) || 0);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-bold w-16 shrink-0" style={{ color: tokens.cardTexto }}>{moeda(valor)}</span>
+      <input value={qtd} onChange={(e) => onQtd(e.target.value.replace(/[^0-9]/g, ""))}
+        inputMode="numeric" placeholder="0" aria-label={t("qtdLabel", lang)}
+        className="w-16 px-2 py-2 rounded-lg text-sm text-center outline-none shrink-0"
+        style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }} />
+      <span className="text-[10px] font-bold uppercase shrink-0" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("qtdLabel", lang)}</span>
+      <span className="text-sm font-bold ml-auto text-right" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
+    </div>
+  );
+}
+
+function ModalContagemGaveta({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (valor: number) => void; onFechar: () => void }) {
+  const { tokens } = useTemaPdv();
+  const [quantidades, setQuantidades] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    try {
+      const salvo = sessionStorage.getItem(CHAVE_CONTAGEM_GAVETA);
+      if (salvo) setQuantidades(JSON.parse(salvo));
+    } catch { /* sessionStorage indisponível — segue com os campos vazios */ }
+  }, []);
+
+  function atualizarQtd(valor: number, qtd: string) {
+    setQuantidades((atual) => {
+      const novo = { ...atual, [String(valor)]: qtd };
+      try { sessionStorage.setItem(CHAVE_CONTAGEM_GAVETA, JSON.stringify(novo)); } catch { /* segue só em memória */ }
+      return novo;
+    });
+  }
+
+  function limparTudo() {
+    setQuantidades({});
+    try { sessionStorage.removeItem(CHAVE_CONTAGEM_GAVETA); } catch { /* nada a limpar */ }
+  }
+
+  const total = [...DENOMINACOES_NOTAS, ...DENOMINACOES_MOEDAS]
+    .reduce((s, v) => s + v * (Number(quantidades[String(v)]) || 0), 0);
+
+  function handleUsar() {
+    onUsar(total);
+    try { sessionStorage.removeItem(CHAVE_CONTAGEM_GAVETA); } catch { /* nada a limpar */ }
+    onFechar();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-md rounded-2xl p-5 max-h-[85vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("contagemGavetaTitulo", lang)}</h3>
+          <button onClick={onFechar} style={{ color: tokens.textoMuted }}><X size={18} /></button>
+        </div>
+
+        <div className="rounded-xl p-3 mb-4 text-center" style={{ background: tokens.acaoBg }}>
+          <p className="text-[11px] font-bold uppercase" style={{ color: tokens.acaoTexto, opacity: 0.85 }}>{t("totalGeral", lang)}</p>
+          <p className="text-2xl font-black" style={{ color: tokens.acaoTexto }}>{moeda(total)}</p>
+        </div>
+
+        <p className="text-[11px] font-bold uppercase mb-2" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("notasLabel", lang)}</p>
+        <div className="flex flex-col gap-2 mb-4">
+          {DENOMINACOES_NOTAS.map((v) => (
+            <LinhaDenominacao key={v} valor={v} qtd={quantidades[String(v)] || ""} onQtd={(q) => atualizarQtd(v, q)} lang={lang} />
+          ))}
+        </div>
+
+        <p className="text-[11px] font-bold uppercase mb-2" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("moedasLabel", lang)}</p>
+        <div className="flex flex-col gap-2 mb-4">
+          {DENOMINACOES_MOEDAS.map((v) => (
+            <LinhaDenominacao key={v} valor={v} qtd={quantidades[String(v)] || ""} onQtd={(q) => atualizarQtd(v, q)} lang={lang} />
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button onClick={limparTudo} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("limparTudo", lang)}
+          </button>
+          <button onClick={handleUsar} className="flex-1 py-3 rounded-xl text-sm font-black" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {t("usarValorContado", lang)}
           </button>
         </div>
       </div>
