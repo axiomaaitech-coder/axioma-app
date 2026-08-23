@@ -15,10 +15,10 @@
 // pra ninguém, porque a consulta nem seleciona essas colunas.
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion } from "framer-motion";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings, LayoutDashboard } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings, LayoutDashboard, Lock } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
@@ -207,6 +207,17 @@ const txt = {
   },
   configurarImpressao: { pt: "Impressão", en: "Printing", es: "Impresión" },
   linkRetaguarda: { pt: "Retaguarda", en: "Back Office", es: "Retaguardia" },
+  reautenticarTitulo: { pt: "Digite sua senha pra acessar a Retaguarda", en: "Enter your password to access the Back Office", es: "Ingrese su contraseña para acceder a la Retaguardia" },
+  reautenticarSubtitulo: {
+    pt: "Confirmação de segurança — protege a Retaguarda caso o dono se afaste do caixa.",
+    en: "Security check — protects the Back Office in case the owner steps away from the register.",
+    es: "Confirmación de seguridad — protege la Retaguardia si el propietario se aleja de la caja.",
+  },
+  senhaLabel: { pt: "Senha", en: "Password", es: "Contraseña" },
+  senhaIncorreta: { pt: "Senha incorreta.", en: "Incorrect password.", es: "Contraseña incorrecta." },
+  reautenticarConfirmar: { pt: "Confirmar", en: "Confirm", es: "Confirmar" },
+  reautenticarConfirmando: { pt: "Confirmando…", en: "Confirming…", es: "Confirmando…" },
+  reautenticarCancelar: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
   configCupomTitulo: { pt: "Impressão do cupom", en: "Receipt printing", es: "Impresión del comprobante" },
   configCupomImpressaoAutomaticaLabel: {
     pt: "Imprimir automaticamente ao finalizar a venda",
@@ -289,9 +300,13 @@ type CupomVenda = {
   troco: number;
 };
 
+const CHAVE_REAUTH_RETAGUARDA = "retaguarda_reauth_ate";
+const VALIDADE_REAUTH_MS = 15 * 60 * 1000;
+
 export default function PdvVendaPage() {
   const { idioma } = useLanguage();
   const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
+  const router = useRouter();
 
   const supabase = useMemo(() => createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!), []);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -351,8 +366,18 @@ export default function PdvVendaPage() {
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" | "info" } | null>(null);
   const inputBuscaRef = useRef<HTMLInputElement>(null);
 
+  // Re-autenticação por senha antes de abrir a Retaguarda — protege contra o
+  // operador usar a máquina se o dono/admin se afastar deixando a sessão
+  // logada. Não cria sessão nova (a sessão atual continua intacta);
+  // signInWithPassword aqui serve só pra VALIDAR a credencial. Válida por 15
+  // min via sessionStorage — mesma aba/dispositivo, some ao fechar a aba.
+  const [reautenticarAberto, setReautenticarAberto] = useState(false);
+  const [autenticandoRetaguarda, setAutenticandoRetaguarda] = useState(false);
+  const [erroReauth, setErroReauth] = useState("");
+
   // Cupom não-fiscal + impressão automática (PDV Fase 3, Etapa 3).
   const [nomeOperador, setNomeOperador] = useState("");
+  const [emailUsuario, setEmailUsuario] = useState<string | null>(null);
   const [dadosEmpresaCupom, setDadosEmpresaCupom] = useState<DadosEmpresaCupom | null>(null);
   const [ultimoCupom, setUltimoCupom] = useState<CupomVenda | null>(null);
   const [cupomJaImpresso, setCupomJaImpresso] = useState(false);
@@ -394,12 +419,31 @@ export default function PdvVendaPage() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  function handleClickRetaguarda() {
+    const ate = Number(sessionStorage.getItem(CHAVE_REAUTH_RETAGUARDA) || 0);
+    if (Date.now() < ate) { router.push("/pdv/retaguarda"); return; }
+    setErroReauth("");
+    setReautenticarAberto(true);
+  }
+
+  async function handleConfirmarReauth(senha: string) {
+    if (!emailUsuario) { setErroReauth(t("senhaIncorreta", lang)); return; }
+    setAutenticandoRetaguarda(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: emailUsuario, password: senha });
+    setAutenticandoRetaguarda(false);
+    if (error) { setErroReauth(t("senhaIncorreta", lang)); return; }
+    sessionStorage.setItem(CHAVE_REAUTH_RETAGUARDA, String(Date.now() + VALIDADE_REAUTH_MS));
+    setReautenticarAberto(false);
+    router.push("/pdv/retaguarda");
+  }
+
   useEffect(() => {
     (async () => {
       const id = await obterEmpresaAtiva();
       setEmpresaId(id);
       const { data: authData } = await supabase.auth.getUser();
       setUserId(authData?.user?.id || null);
+      setEmailUsuario(authData?.user?.email || null);
       setNomeOperador(
         authData?.user?.user_metadata?.nome ||
         authData?.user?.user_metadata?.full_name ||
@@ -863,7 +907,7 @@ export default function PdvVendaPage() {
         containerRef={pdvContainerRef} fullscreenAtivo={fullscreenAtivo} onAlternarTelaCheia={alternarTelaCheia}
         lang={lang} caixaAtual={caixaAtual} onTrocarCaixa={trocarCaixa}
         mostrarConfigCupom={papel !== "operador"} onAbrirConfigCupom={() => setConfigCupomAberto(true)}
-        mostrarRetaguarda={papel === "dono" || papel === "admin"}
+        mostrarRetaguarda={papel === "dono" || papel === "admin"} onAbrirRetaguarda={handleClickRetaguarda}
       >
         {pendenciaBaixa && (
           <div className="shrink-0">
@@ -976,6 +1020,14 @@ export default function PdvVendaPage() {
         {ultimoCupom && (
           <BotaoImprimirNota lang={lang} cupom={ultimoCupom} jaImpresso={cupomJaImpresso} onImprimir={handleImprimirCupom} />
         )}
+
+        {reautenticarAberto && (
+          <ModalReautenticarRetaguarda
+            lang={lang} autenticando={autenticandoRetaguarda} erro={erroReauth}
+            onConfirmar={handleConfirmarReauth}
+            onCancelar={() => { setReautenticarAberto(false); setErroReauth(""); }}
+          />
+        )}
       </ConteudoPdv>
     </PdvLayout>
   );
@@ -988,7 +1040,7 @@ export default function PdvVendaPage() {
 // aplica position:fixed+inset:0 automaticamente sobre :fullscreen) — TopNav,
 // aviso de cadastro e até o cabeçalho/moldura do PdvLayout ficam de fora
 // (são ancestrais do container, não descendentes), então somem sozinhos.
-function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, mostrarConfigCupom, onAbrirConfigCupom, mostrarRetaguarda, children }: {
+function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang, caixaAtual, onTrocarCaixa, mostrarConfigCupom, onAbrirConfigCupom, mostrarRetaguarda, onAbrirRetaguarda, children }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
   fullscreenAtivo: boolean;
   onAlternarTelaCheia: () => void;
@@ -998,6 +1050,7 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
   mostrarConfigCupom: boolean;
   onAbrirConfigCupom: () => void;
   mostrarRetaguarda: boolean;
+  onAbrirRetaguarda: () => void;
   children: React.ReactNode;
 }) {
   const { tokens } = useTemaPdv();
@@ -1011,11 +1064,11 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
         <span style={{ opacity: 0.7, color: tokens.texto }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
         <div className="flex items-center gap-4">
           {mostrarRetaguarda && (
-            <Link href="/pdv/retaguarda" className="flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-lg"
+            <button onClick={onAbrirRetaguarda} className="flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-lg"
               style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
               <LayoutDashboard size={13} />
               {t("linkRetaguarda", lang)}
-            </Link>
+            </button>
           )}
           {mostrarConfigCupom && (
             <button onClick={onAbrirConfigCupom} className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
@@ -1481,6 +1534,55 @@ function DefinirPrecoModal({ lang, produto, precoInput, onPrecoInput, onPrecoBlu
             style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
             {confirmando && <Loader2 className="animate-spin" size={14} />}
             {confirmando ? t("definirPrecoConfirmando", lang) : t("definirPrecoConfirmar", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalReautenticarRetaguarda({ lang, autenticando, erro, onConfirmar, onCancelar }: {
+  lang: Idioma; autenticando: boolean; erro: string;
+  onConfirmar: (senha: string) => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const [senha, setSenha] = useState("");
+
+  function handleConfirmar() {
+    if (!senha) return;
+    onConfirmar(senha);
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Lock size={16} style={{ color: tokens.acento }} />
+          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("reautenticarTitulo", lang)}</h3>
+        </div>
+        <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("reautenticarSubtitulo", lang)}</p>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("senhaLabel", lang)}</label>
+        <input
+          value={senha} onChange={(e) => { setSenha(e.target.value); }}
+          onKeyDown={(e) => { if (e.key === "Enter") handleConfirmar(); }}
+          type="password" autoFocus
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-2"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+        {erro && <p className="text-xs font-semibold mb-3" style={{ color: "#f87171" }}>{erro}</p>}
+
+        <div className="flex items-center gap-2 mt-2">
+          <button onClick={onCancelar} disabled={autenticando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("reautenticarCancelar", lang)}
+          </button>
+          <button onClick={handleConfirmar} disabled={autenticando || !senha}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {autenticando && <Loader2 className="animate-spin" size={14} />}
+            {autenticando ? t("reautenticarConfirmando", lang) : t("reautenticarConfirmar", lang)}
           </button>
         </div>
       </div>
