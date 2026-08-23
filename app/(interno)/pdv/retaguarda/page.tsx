@@ -13,17 +13,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2,
+  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye,
 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
+import { CardGenerico, BreadcrumbGenerico, EstadoVazio, type ItemBreadcrumb } from "../../../../components/PdvCatalogoNav";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
 import {
-  obterConfigRetaguarda, salvarConfigRetaguarda, obterResumoDia, obterVendasPorCategoria,
-  obterItensPrejuizo, listarTurnosAbertos, fecharTurno, registrarMovimentacao, hojeLocal,
-  type ConfigRetaguarda, type ModoRetaguarda, type ResumoDia, type VendaPorCategoria,
-  type ItemPrejuizo, type TurnoAberto, type ResultadoFechamento,
+  obterConfigRetaguarda, salvarConfigRetaguarda, obterResumoDia, obterVendasPorProduto,
+  obterVendasProdutoDetalhe, obterItensPrejuizo, listarTurnosAbertos, fecharTurno,
+  registrarMovimentacao, hojeLocal,
+  type ConfigRetaguarda, type ModoRetaguarda, type ResumoDia, type VendaPorProduto,
+  type VendaDetalheProduto, type ItemPrejuizo, type TurnoAberto, type ResultadoFechamento,
 } from "../../../../lib/retaguardaHelpers";
 
 const CHAVE_CONFIGURADO_LOCAL = "axioma_retaguarda_configurado_";
@@ -75,14 +77,23 @@ const txt = {
   abaAoVivo: { pt: "Ao vivo", en: "Live", es: "En vivo" },
   abaFechamento: { pt: "Fechamento", en: "Closing", es: "Cierre" },
 
-  vendasPorCategoriaTitulo: { pt: "Vendas por nicho / categoria / sub-nicho", en: "Sales by niche / category / sub-niche", es: "Ventas por nicho / categoría / sub-nicho" },
-  colNicho: { pt: "Nicho", en: "Niche", es: "Nicho" },
-  colCategoria: { pt: "Categoria", en: "Category", es: "Categoría" },
-  colSubNicho: { pt: "Sub-nicho", en: "Sub-niche", es: "Sub-nicho" },
+  vendasPorCategoriaTitulo: { pt: "Vendas por categoria / sub-nicho / produto", en: "Sales by category / sub-niche / product", es: "Ventas por categoría / sub-nicho / producto" },
   colQtd: { pt: "Qtd", en: "Qty", es: "Cant." },
-  colValor: { pt: "Valor", en: "Amount", es: "Valor" },
   colLucro: { pt: "Lucro", en: "Profit", es: "Ganancia" },
+  colHorario: { pt: "Horário", en: "Time", es: "Horario" },
+  colValorUnit: { pt: "Valor unitário", en: "Unit price", es: "Valor unitario" },
+  colTotal: { pt: "Total", en: "Total", es: "Total" },
   semVendasHoje: { pt: "Nenhuma venda registrada hoje ainda.", en: "No sales recorded today yet.", es: "Ninguna venta registrada hoy todavía." },
+  semResultadoBusca: { pt: "Nenhum resultado para essa busca.", en: "No results for this search.", es: "Ningún resultado para esta búsqueda." },
+  navCategoriasRaiz: { pt: "Categorias", en: "Categories", es: "Categorías" },
+  buscarProdutoPlaceholder: { pt: "Buscar produto ou categoria…", en: "Search product or category…", es: "Buscar producto o categoría…" },
+  verDetalhes: { pt: "Ver detalhes", en: "View details", es: "Ver detalles" },
+  totalConsolidado: { pt: "Total do dia", en: "Day total", es: "Total del día" },
+  estoqueImpacto: {
+    pt: "Vendeu {vendido} un — estoque baixou de {antes} pra {depois}.",
+    en: "Sold {vendido} un — stock dropped from {antes} to {depois}.",
+    es: "Vendió {vendido} un — el stock bajó de {antes} a {depois}.",
+  },
 
   alertaPrejuizoTitulo: { pt: "Itens vendidos com prejuízo hoje", en: "Items sold at a loss today", es: "Ítems vendidos con pérdida hoy" },
   prejuizoDetalhe: { pt: "Prejuízo de {valor} por unidade × {qtd} = {total}", en: "Loss of {valor} per unit × {qtd} = {total}", es: "Pérdida de {valor} por unidad × {qtd} = {total}" },
@@ -174,7 +185,7 @@ export default function RetaguardaPage() {
 
   const [aba, setAba] = useState<"ao_vivo" | "fechamento">("ao_vivo");
   const [resumo, setResumo] = useState<ResumoDia | null>(null);
-  const [categorias, setCategorias] = useState<VendaPorCategoria[]>([]);
+  const [produtosVendidos, setProdutosVendidos] = useState<VendaPorProduto[]>([]);
   const [prejuizos, setPrejuizos] = useState<ItemPrejuizo[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null);
@@ -246,13 +257,13 @@ export default function RetaguardaPage() {
     if (!empresaId) return;
     setCarregandoDados(true);
     const dataHoje = hojeLocal();
-    const [r, c, p] = await Promise.all([
+    const [r, pv, p] = await Promise.all([
       obterResumoDia(empresaId, dataHoje),
-      obterVendasPorCategoria(empresaId, dataHoje),
+      obterVendasPorProduto(empresaId, dataHoje),
       obterItensPrejuizo(empresaId, dataHoje),
     ]);
     if (r.erro) mostrarToast(mensagemErro(r.codigo, lang), "erro"); else setResumo(r.resumo!);
-    if (c.erro) mostrarToast(mensagemErro(c.codigo, lang), "erro"); else setCategorias(c.dados);
+    if (pv.erro) mostrarToast(mensagemErro(pv.codigo, lang), "erro"); else setProdutosVendidos(pv.dados);
     if (p.erro) mostrarToast(mensagemErro(p.codigo, lang), "erro"); else setPrejuizos(p.dados);
     setCarregandoDados(false);
     setUltimaAtualizacao(new Date());
@@ -360,7 +371,7 @@ export default function RetaguardaPage() {
               )}
 
               {(mostrarAoVivo && (!mostrarAbas || aba === "ao_vivo")) && (
-                <PainelAoVivo lang={lang} categorias={categorias} prejuizos={prejuizos} verLucro={config.verLucro} carregando={carregandoDados} />
+                <PainelAoVivo lang={lang} empresaId={empresaId!} data={hojeLocal()} produtos={produtosVendidos} prejuizos={prejuizos} verLucro={config.verLucro} carregando={carregandoDados} />
               )}
 
               {(mostrarFechamento && (!mostrarAbas || aba === "fechamento")) && (
@@ -580,49 +591,12 @@ function CardsResumo({ lang, resumo, verLucro, carregando, ultimaAtualizacao, on
 // PAINEL AO VIVO — categorias + alerta de prejuízo
 // ============================================================================
 
-function PainelAoVivo({ lang, categorias, prejuizos, verLucro, carregando }: {
-  lang: Idioma; categorias: VendaPorCategoria[]; prejuizos: ItemPrejuizo[]; verLucro: boolean; carregando: boolean;
+function PainelAoVivo({ lang, empresaId, data, produtos, prejuizos, verLucro, carregando }: {
+  lang: Idioma; empresaId: string; data: string; produtos: VendaPorProduto[]; prejuizos: ItemPrejuizo[]; verLucro: boolean; carregando: boolean;
 }) {
-  const { tokens } = useTemaPdv();
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-        <div className="px-4 py-3" style={{ background: tokens.acentoSuaveBg }}>
-          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("vendasPorCategoriaTitulo", lang)}</h3>
-        </div>
-        {carregando && categorias.length === 0 ? (
-          <EstadoCarregando lang={lang} />
-        ) : categorias.length === 0 ? (
-          <p className="text-sm text-center py-8" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("semVendasHoje", lang)}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${tokens.cardBorda}` }}>
-                  <th className="text-left px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colNicho", lang)}</th>
-                  <th className="text-left px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colCategoria", lang)}</th>
-                  <th className="text-left px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colSubNicho", lang)}</th>
-                  <th className="text-right px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colQtd", lang)}</th>
-                  <th className="text-right px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colValor", lang)}</th>
-                  {verLucro && <th className="text-right px-4 py-2 font-semibold text-xs uppercase" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colLucro", lang)}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {categorias.map((c, idx) => (
-                  <tr key={idx} style={{ borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
-                    <td className="px-4 py-2 truncate max-w-[140px]">{c.nicho}</td>
-                    <td className="px-4 py-2 truncate max-w-[140px]">{c.categoria}</td>
-                    <td className="px-4 py-2 truncate max-w-[140px]">{c.subNicho}</td>
-                    <td className="px-4 py-2 text-right whitespace-nowrap">{c.quantidade}</td>
-                    <td className="px-4 py-2 text-right whitespace-nowrap font-semibold">{moeda(c.valorVendido)}</td>
-                    {verLucro && <td className="px-4 py-2 text-right whitespace-nowrap" style={{ color: tokens.acento }}>{moeda(c.lucroReal)}</td>}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <NavegacaoVendasPorProduto lang={lang} empresaId={empresaId} data={data} produtos={produtos} verLucro={verLucro} carregando={carregando} />
 
       {prejuizos.length > 0 && (
         <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.4)" }}>
@@ -641,6 +615,226 @@ function PainelAoVivo({ lang, categorias, prejuizos, verLucro, carregando }: {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ============================================================================
+// NAVEGAÇÃO EM CARDS — Categoria → Sub-nicho → Produtos → modal de detalhe
+// Sem "Nicho" de propósito: cada loja opera dentro de um "modo" de negócio
+// só, então Categoria já é o primeiro nível pro dono (decisão registrada em
+// PDV-RETAGUARDA-FASE2-DETALHE-PRODUTO-SQL.txt). Os 3 níveis vêm de UMA
+// chamada só (retaguarda_vendas_por_produto) — a navegação agrupa em
+// memória, sem repetir consulta ao banco a cada clique.
+// ============================================================================
+
+function agruparPorChave<T>(itens: T[], chave: (i: T) => string): Map<string, T[]> {
+  const mapa = new Map<string, T[]>();
+  for (const item of itens) {
+    const k = chave(item);
+    if (!mapa.has(k)) mapa.set(k, []);
+    mapa.get(k)!.push(item);
+  }
+  return mapa;
+}
+
+function NavegacaoVendasPorProduto({ lang, empresaId, data, produtos, verLucro, carregando }: {
+  lang: Idioma; empresaId: string; data: string; produtos: VendaPorProduto[]; verLucro: boolean; carregando: boolean;
+}) {
+  const { tokens } = useTemaPdv();
+  const [nivel, setNivel] = useState<"categoria" | "subnicho" | "produtos">("categoria");
+  const [categoriaSel, setCategoriaSel] = useState<string | null>(null);
+  const [subNichoSel, setSubNichoSel] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [produtoModal, setProdutoModal] = useState<VendaPorProduto | null>(null);
+  const [detalheVendas, setDetalheVendas] = useState<VendaDetalheProduto[]>([]);
+  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
+
+  const termo = busca.trim().toLowerCase();
+  const filtrados = termo
+    ? produtos.filter((p) =>
+        p.produtoNome.toLowerCase().includes(termo) ||
+        p.categoria.toLowerCase().includes(termo) ||
+        p.subNicho.toLowerCase().includes(termo))
+    : produtos;
+  const textoVazio = t(termo ? "semResultadoBusca" : "semVendasHoje", lang);
+
+  function voltarPara(destino: "categoria" | "subnicho") {
+    if (destino === "categoria") { setCategoriaSel(null); setSubNichoSel(null); setNivel("categoria"); }
+    else { setSubNichoSel(null); setNivel("subnicho"); }
+  }
+
+  async function abrirDetalhe(produto: VendaPorProduto) {
+    setProdutoModal(produto);
+    setCarregandoDetalhe(true);
+    const r = await obterVendasProdutoDetalhe(empresaId, produto.produtoId, data);
+    setDetalheVendas(r.dados);
+    setCarregandoDetalhe(false);
+  }
+
+  const itensBreadcrumb: ItemBreadcrumb[] = [];
+  if (nivel !== "categoria") {
+    itensBreadcrumb.push({ label: t("navCategoriasRaiz", lang), onClick: () => voltarPara("categoria") });
+    if (categoriaSel) itensBreadcrumb.push({ label: categoriaSel, onClick: nivel === "produtos" ? () => voltarPara("subnicho") : undefined });
+    if (nivel === "produtos" && subNichoSel) itensBreadcrumb.push({ label: subNichoSel });
+  }
+
+  let conteudo: React.ReactNode;
+
+  if (nivel === "categoria") {
+    const cards = Array.from(agruparPorChave(filtrados, (p) => p.categoria).entries())
+      .map(([categoria, itens]) => ({
+        categoria,
+        quantidade: itens.reduce((s, i) => s + i.quantidade, 0),
+        valorVendido: itens.reduce((s, i) => s + i.valorVendido, 0),
+        lucroReal: verLucro ? itens.reduce((s, i) => s + (i.lucroReal || 0), 0) : null,
+      }))
+      .sort((a, b) => b.valorVendido - a.valorVendido);
+
+    conteudo = cards.length === 0 ? <EstadoVazio texto={textoVazio} /> : (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {cards.map((c) => (
+          <CardGenerico key={c.categoria} label={c.categoria}
+            sublabel={`${c.quantidade} ${t("colQtd", lang).toLowerCase()} · ${moeda(c.valorVendido)}${verLucro && c.lucroReal !== null ? ` · ${t("colLucro", lang)}: ${moeda(c.lucroReal)}` : ""}`}
+            onClick={() => { setCategoriaSel(c.categoria); setNivel("subnicho"); }} />
+        ))}
+      </div>
+    );
+  } else if (nivel === "subnicho") {
+    const doNivel = filtrados.filter((p) => p.categoria === categoriaSel);
+    const cards = Array.from(agruparPorChave(doNivel, (p) => p.subNicho).entries())
+      .map(([subNicho, itens]) => ({
+        subNicho,
+        quantidade: itens.reduce((s, i) => s + i.quantidade, 0),
+        valorVendido: itens.reduce((s, i) => s + i.valorVendido, 0),
+        lucroReal: verLucro ? itens.reduce((s, i) => s + (i.lucroReal || 0), 0) : null,
+      }))
+      .sort((a, b) => b.valorVendido - a.valorVendido);
+
+    conteudo = cards.length === 0 ? <EstadoVazio texto={textoVazio} /> : (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {cards.map((c) => (
+          <CardGenerico key={c.subNicho} label={c.subNicho}
+            sublabel={`${c.quantidade} ${t("colQtd", lang).toLowerCase()} · ${moeda(c.valorVendido)}${verLucro && c.lucroReal !== null ? ` · ${t("colLucro", lang)}: ${moeda(c.lucroReal)}` : ""}`}
+            onClick={() => { setSubNichoSel(c.subNicho); setNivel("produtos"); }} />
+        ))}
+      </div>
+    );
+  } else {
+    const doNivel = filtrados
+      .filter((p) => p.categoria === categoriaSel && p.subNicho === subNichoSel)
+      .sort((a, b) => b.valorVendido - a.valorVendido);
+
+    conteudo = doNivel.length === 0 ? <EstadoVazio texto={textoVazio} /> : (
+      <div className="flex flex-col gap-2">
+        {doNivel.map((p) => {
+          const saldoAntes = p.saldoAtual + p.quantidade;
+          return (
+            <div key={p.produtoId} className="flex items-center justify-between gap-3 p-3.5 rounded-xl flex-wrap"
+              style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: tokens.cardTexto }}>{p.produtoNome}</p>
+                <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.7 }}>
+                  {t("estoqueImpacto", lang, { vendido: p.quantidade, antes: saldoAntes, depois: p.saldoAtual })}
+                </p>
+              </div>
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="text-right">
+                  <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{p.quantidade} {t("colQtd", lang).toLowerCase()}</p>
+                  <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{moeda(p.valorVendido)}</p>
+                </div>
+                {verLucro && (
+                  <div className="text-right">
+                    <p className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("colLucro", lang)}</p>
+                    <p className="text-sm font-bold" style={{ color: tokens.acento }}>{moeda(p.lucroReal)}</p>
+                  </div>
+                )}
+                <button onClick={() => abrirDetalhe(p)} title={t("verDetalhes", lang)}
+                  className="p-2 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
+                  <Eye size={16} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap" style={{ background: tokens.acentoSuaveBg }}>
+        <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("vendasPorCategoriaTitulo", lang)}</h3>
+        <div className="relative w-full sm:w-64">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.textoMuted }} />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t("buscarProdutoPlaceholder", lang)}
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-xs outline-none"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }} />
+        </div>
+      </div>
+
+      <div className="p-4">
+        <BreadcrumbGenerico itens={itensBreadcrumb} />
+        {carregando && produtos.length === 0 ? <EstadoCarregando lang={lang} /> : conteudo}
+      </div>
+
+      {produtoModal && (
+        <ModalDetalheProduto lang={lang} produto={produtoModal} vendas={detalheVendas} carregando={carregandoDetalhe}
+          onFechar={() => { setProdutoModal(null); setDetalheVendas([]); }} />
+      )}
+    </div>
+  );
+}
+
+function ModalDetalheProduto({ lang, produto, vendas, carregando, onFechar }: {
+  lang: Idioma; produto: VendaPorProduto; vendas: VendaDetalheProduto[]; carregando: boolean; onFechar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const totalQtd = vendas.reduce((s, v) => s + v.quantidade, 0);
+  const totalValor = vendas.reduce((s, v) => s + v.subtotal, 0);
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-lg rounded-2xl p-6 max-h-[80vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <h3 className="text-sm font-bold truncate" style={{ color: tokens.texto }}>{produto.produtoNome}</h3>
+          <button onClick={onFechar} className="shrink-0" style={{ color: tokens.textoMuted }}><X size={18} /></button>
+        </div>
+
+        {carregando ? (
+          <EstadoCarregando lang={lang} />
+        ) : vendas.length === 0 ? (
+          <p className="text-sm text-center py-6" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("semVendasHoje", lang)}</p>
+        ) : (
+          <>
+            <div className="overflow-x-auto mb-3">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ borderBottom: `1px solid ${tokens.cardBorda}` }}>
+                    <th className="text-left px-2 py-2 font-semibold text-xs uppercase" style={{ color: tokens.textoMuted }}>{t("colHorario", lang)}</th>
+                    <th className="text-right px-2 py-2 font-semibold text-xs uppercase" style={{ color: tokens.textoMuted }}>{t("colQtd", lang)}</th>
+                    <th className="text-right px-2 py-2 font-semibold text-xs uppercase" style={{ color: tokens.textoMuted }}>{t("colValorUnit", lang)}</th>
+                    <th className="text-right px-2 py-2 font-semibold text-xs uppercase" style={{ color: tokens.textoMuted }}>{t("colTotal", lang)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendas.map((v) => (
+                    <tr key={v.vendaId} style={{ borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.texto }}>
+                      <td className="px-2 py-2 whitespace-nowrap">{new Date(v.horario).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</td>
+                      <td className="px-2 py-2 text-right">{v.quantidade}</td>
+                      <td className="px-2 py-2 text-right whitespace-nowrap">{moeda(v.precoUnitario)}</td>
+                      <td className="px-2 py-2 text-right whitespace-nowrap font-semibold">{moeda(v.subtotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: tokens.acentoSuaveBg }}>
+              <span className="text-xs font-bold" style={{ color: tokens.texto }}>{t("totalConsolidado", lang)}</span>
+              <span className="text-sm font-black" style={{ color: tokens.texto }}>{totalQtd} {t("colQtd", lang).toLowerCase()} · {moeda(totalValor)}</span>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

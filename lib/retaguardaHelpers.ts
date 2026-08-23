@@ -103,6 +103,44 @@ export async function obterVendasPorCategoria(empresaId: string, data: string): 
   };
 }
 
+export type VendaPorProduto = {
+  produtoId: string; produtoNome: string; nicho: string; categoria: string; subNicho: string;
+  quantidade: number; valorVendido: number; lucroReal: number | null; saldoAtual: number;
+};
+
+// 1 linha por produto vendido no dia — já com categoria/sub-nicho e o
+// estoque atual, pra tela agregar em memória os níveis de navegação
+// (Categoria → Sub-nicho → Produtos) sem uma chamada por nível.
+export async function obterVendasPorProduto(empresaId: string, data: string): Promise<{ dados: VendaPorProduto[]; erro?: string; codigo?: string }> {
+  const { data: linhas, error } = await supabase.rpc("retaguarda_vendas_por_produto", { p_empresa_id: empresaId, p_data: data });
+  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  return {
+    dados: (linhas || []).map((l: any) => ({
+      produtoId: l.produto_id, produtoNome: l.produto_nome, nicho: l.nicho, categoria: l.categoria, subNicho: l.sub_nicho,
+      quantidade: Number(l.quantidade) || 0, valorVendido: Number(l.valor_vendido) || 0,
+      lucroReal: l.lucro_real === null || l.lucro_real === undefined ? null : Number(l.lucro_real),
+      saldoAtual: Number(l.saldo_atual) || 0,
+    })),
+  };
+}
+
+export type VendaDetalheProduto = {
+  vendaId: string; horario: string; quantidade: number; precoUnitario: number; subtotal: number;
+};
+
+// 1 linha por VENDA individual de um produto no dia — usada só quando o
+// dono abre o modal de detalhe de um produto específico (Nível 4).
+export async function obterVendasProdutoDetalhe(empresaId: string, produtoId: string, data: string): Promise<{ dados: VendaDetalheProduto[]; erro?: string; codigo?: string }> {
+  const { data: linhas, error } = await supabase.rpc("retaguarda_vendas_produto_detalhe", { p_empresa_id: empresaId, p_produto_id: produtoId, p_data: data });
+  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  return {
+    dados: (linhas || []).map((l: any) => ({
+      vendaId: l.venda_id, horario: l.horario, quantidade: Number(l.quantidade) || 0,
+      precoUnitario: Number(l.preco_unitario) || 0, subtotal: Number(l.subtotal) || 0,
+    })),
+  };
+}
+
 export type ItemPrejuizo = {
   vendaId: string; produtoNome: string; quantidade: number;
   precoUnitario: number; custoUnitario: number; prejuizoUnitario: number;

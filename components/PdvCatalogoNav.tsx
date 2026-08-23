@@ -43,6 +43,31 @@ export function AvisoErro({ texto }: { texto: string }) {
   );
 }
 
+export type ItemBreadcrumb = { label: string; onClick?: () => void };
+
+// Breadcrumb genérico (lista de {label, onClick?}) — a peça visual por trás
+// do Breadcrumb do Catálogo e de qualquer navegação em níveis fora da
+// taxonomia fixa (ex.: Retaguarda do Caixa). Sem onClick = item final
+// (nível atual, não clicável).
+export function BreadcrumbGenerico({ itens }: { itens: ItemBreadcrumb[] }) {
+  const { tokens } = useTemaPdv();
+  if (itens.length <= 1) return null;
+  return (
+    <div className="flex items-center flex-wrap gap-1 mb-4 text-xs">
+      {itens.map((item, i) => (
+        <span key={i} className="flex items-center gap-1">
+          {i > 0 && <ChevronRight size={12} style={{ color: tokens.textoMuted }} />}
+          {item.onClick ? (
+            <button onClick={item.onClick} className="hover:underline font-medium" style={{ color: tokens.acento }}>{item.label}</button>
+          ) : (
+            <span style={{ color: tokens.textoSecundario }}>{item.label}</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function Breadcrumb({
   lang, nivel, nichoSel, categoriaSel, subNichoSel, nichosLabel, semSubNichoLabel, semSubNichoValor,
   semCategoriaLabel, semCategoriaValor, onVoltar,
@@ -55,7 +80,6 @@ export function Breadcrumb({
   semCategoriaLabel?: string; semCategoriaValor?: string;
   onVoltar: (destino: NivelCatalogo) => void;
 }) {
-  const { tokens } = useTemaPdv();
   if (nivel === "nicho") return null;
   const itens: { label: string; destino: NivelCatalogo | null }[] = [
     { label: nichosLabel, destino: "nicho" },
@@ -65,22 +89,14 @@ export function Breadcrumb({
   if (subNichoSel) itens.push({ label: subNichoSel === semSubNichoValor ? semSubNichoLabel : subNichoSel, destino: null });
 
   return (
-    <div className="flex items-center flex-wrap gap-1 mb-4 text-xs">
-      {itens.map((item, i) => (
-        <span key={i} className="flex items-center gap-1">
-          {i > 0 && <ChevronRight size={12} style={{ color: tokens.textoMuted }} />}
-          {item.destino ? (
-            <button onClick={() => onVoltar(item.destino!)} className="hover:underline font-medium" style={{ color: tokens.acento }}>{item.label}</button>
-          ) : (
-            <span style={{ color: tokens.textoSecundario }}>{item.label}</span>
-          )}
-        </span>
-      ))}
-    </div>
+    <BreadcrumbGenerico itens={itens.map((item) => ({ label: item.label, onClick: item.destino ? () => onVoltar(item.destino!) : undefined }))} />
   );
 }
 
-export function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: Idioma; qtd: number; onClick: () => void }) {
+// Card genérico (label + sublabel opcional) — a peça visual por trás de
+// CartaoNicho (Catálogo) e de qualquer navegação em cards fora da taxonomia
+// fixa (ex.: Retaguarda do Caixa, agrupando dados de venda do dia).
+export function CardGenerico({ label, sublabel, onClick }: { label: string; sublabel?: React.ReactNode; onClick: () => void }) {
   const { tokens } = useTemaPdv();
   return (
     <motion.button
@@ -90,10 +106,14 @@ export function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef;
       className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px]"
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
     >
-      <span className="text-sm font-semibold" style={{ color: tokens.cardTexto }}>{nicho.label[lang]}</span>
-      {qtd > 0 && <span className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{qtd}</span>}
+      <span className="text-sm font-semibold truncate w-full" style={{ color: tokens.cardTexto }}>{label}</span>
+      {sublabel != null && sublabel !== "" && <span className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{sublabel}</span>}
     </motion.button>
   );
+}
+
+export function CartaoNicho({ nicho, lang, qtd, onClick }: { nicho: NichoPdvDef; lang: Idioma; qtd: number; onClick: () => void }) {
+  return <CardGenerico label={nicho.label[lang]} sublabel={qtd > 0 ? qtd : undefined} onClick={onClick} />;
 }
 
 export function ListaCarregavel({ carregando, children }: { carregando: boolean; children: React.ReactNode }) {

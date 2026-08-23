@@ -1,0 +1,216 @@
+-- ============================================================================
+-- AXIOMA — PDV: Retaguarda do Caixa (Fase 2 — detalhe por produto)
+-- ⚠️ NÃO APLICADO. Arquivo separado só pra revisão do Elias antes de rodar.
+--
+-- POR QUE ESTE ARQUIVO EXISTE:
+-- A Fase 1 (PDV-RETAGUARDA-SQL-REVISAO.txt) trouxe retaguarda_vendas_por_
+-- categoria(), que agrupa direto em nicho→categoria→sub_nicho (perde o
+-- produto individual — várias linhas de produtos diferentes viram um só
+-- número por sub-nicho). A tela nova pede navegação em cards até o PRODUTO
+-- (Categoria > Sub-nicho > lista de produtos) e, num modal, cada VENDA
+-- individual daquele produto no dia. Isso exige granularidade que a função
+-- da Fase 1 não tem — por isso duas funções NOVAS, a antiga continua
+-- existindo e não é tocada aqui (nada mais depende dela ser removida).
+--
+-- PRÉ-REQUISITOS (já aplicados antes, este arquivo não repete nem substitui):
+--   PDV-RETAGUARDA-SQL-REVISAO.txt → meu_papel(), empresas.retaguarda_ver_lucro
+--   PDV-FASE3-ETAPA1-VENDAS-SQL.sql → venda, item_venda
+--   ESTOQUE-FASE1-SQL.sql → produtos (categoria/subcategoria/saldo_disponivel)
+--
+-- DECISÃO DE DESENHO — por que só 2 níveis (Categoria > Sub-nicho), sem
+-- "Nicho" no meio:
+-- O catálogo do PDV usa 4 níveis (Nicho > Categoria > Sub-nicho > Produto —
+-- ex.: "Mercado" > "Bebidas" > "Refrigerante" > "Coca-Cola"). O pedido da
+-- Retaguarda usa só 3 (Categoria > Sub-nicho > Produto, breadcrumb dado
+-- como exemplo: "Categorias > Bebidas > Refrigerante > Coca-Cola" — aqui
+-- "Bebidas" já entra como o PRIMEIRO nível, não o segundo). Value de
+-- produtos.categoria já é único por segmento na prática (cada loja opera
+-- dentro de um "modo" de negócio só, não mistura nichos de ramos
+-- diferentes), então agrupar sem o nicho não mistura coisas de lojas
+-- diferentes — só simplifica a navegação pra bater com o que foi pedido.
+-- Retaguarda_vendas_por_produto() abaixo TRAZ nicho igual mesmo assim (não
+-- custa nada, join já existe) — a tela é livre de ignorá-lo ou usá-lo no
+-- futuro se aparecer um caso real de colisão.
+--
+-- O QUE ESTE ARQUIVO FAZ:
+--   F1 — retaguarda_vendas_por_produto(empresa, data)
+--        1 linha por produto vendido no dia, já com categoria/sub-nicho/
+--        nicho, quantidade, valor vendido, lucro (se ligado) e saldo atual
+--        de estoque — a tela agrega isso em memória pra montar os 3
+--        níveis de card (Categoria → Sub-nicho → Produtos), sem precisar
+--        de uma chamada por nível.
+--   F2 — retaguarda_vendas_produto_detalhe(empresa, produto, data)
+--        1 linha por VENDA individual daquele produto no dia (horário,
+--        quantidade, valor unitário, subtotal) — usada só quando o dono
+--        abre o modal de detalhe de um produto específico.
+--
+-- Nenhum código de erro novo: reaproveita AX020 (só dono/admin), o mesmo
+-- guard já usado em toda função retaguarda_*.
+--
+-- Idempotente — CREATE OR REPLACE FUNCTION, pode rodar mais de uma vez.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — RODE SOZINHO PRIMEIRO, ANTES DE QUALQUER OUTRA COISA. Só
+-- leitura, confirma que a Fase 1 já foi aplicada.
+-- ============================================================================
+SELECT proname FROM pg_proc
+WHERE proname IN ('meu_papel', 'retaguarda_vendas_por_categoria');
+-- Espera 2 linhas. Se vier menos, PARE — rode PDV-RETAGUARDA-SQL-REVISAO.txt antes.
+
+
+BEGIN;
+
+-- ----------------------------------------------------------------------------
+-- F1) retaguarda_vendas_por_produto — 1 linha por produto vendido no dia.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_vendas_por_produto(p_empresa_id uuid, p_data date DEFAULT CURRENT_DATE)
+RETURNS TABLE (
+  produto_id uuid,
+  produto_nome text,
+  nicho text,
+  categoria text,
+  sub_nicho text,
+  quantidade numeric,
+  valor_vendido numeric,
+  lucro_real numeric,
+  saldo_atual numeric
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_ver_lucro boolean;
+BEGIN
+  IF public.meu_papel(p_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem ver a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  SELECT retaguarda_ver_lucro INTO v_ver_lucro FROM empresas WHERE id = p_empresa_id;
+
+  RETURN QUERY
+  SELECT
+    p.id AS produto_id,
+    p.nome AS produto_nome,
+    COALESCE(NULLIF(p.segmento, ''), '—') AS nicho,
+    COALESCE(NULLIF(p.categoria, ''), '—') AS categoria,
+    COALESCE(NULLIF(p.subcategoria, ''), '—') AS sub_nicho,
+    SUM(iv.quantidade) AS quantidade,
+    SUM(iv.subtotal) AS valor_vendido,
+    CASE WHEN COALESCE(v_ver_lucro, true)
+      THEN SUM((iv.preco_unitario_venda - COALESCE(iv.custo_unitario_na_venda, 0)) * iv.quantidade)
+      ELSE NULL END AS lucro_real,
+    p.saldo_disponivel AS saldo_atual
+  FROM item_venda iv
+  JOIN venda v ON v.id = iv.venda_id
+  JOIN produtos p ON p.id = iv.produto_id
+  WHERE v.empresa_id = p_empresa_id AND v.status = 'finalizada' AND v.finalizada_em::date = p_data
+  GROUP BY p.id, p.nome, p.segmento, p.categoria, p.subcategoria, p.saldo_disponivel
+  ORDER BY valor_vendido DESC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_vendas_por_produto(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_vendas_por_produto(uuid, date) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- F2) retaguarda_vendas_produto_detalhe — 1 linha por venda individual de
+-- UM produto no dia (o modal de "Nível 4"). Sem lucro/custo aqui de
+-- propósito — o pedido do modal é só horário/quantidade/valor unitário/
+-- total, nada de margem por linha.
+--
+-- SEGURANÇA: p_produto_id NÃO é validado contra p_empresa_id numa linha
+-- separada — o JOIN com venda (WHERE v.empresa_id = p_empresa_id) já
+-- garante isolamento: um produto_id de outra empresa simplesmente não bate
+-- com nenhuma venda desta empresa e a função devolve 0 linhas, sem
+-- vazamento de dado nenhum. Levantar uma exceção extra pra esse caso não
+-- muda o resultado prático (tela vazia de qualquer jeito) — mantido
+-- simples de propósito.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_vendas_produto_detalhe(
+  p_empresa_id uuid,
+  p_produto_id uuid,
+  p_data date DEFAULT CURRENT_DATE
+)
+RETURNS TABLE (
+  venda_id uuid,
+  horario timestamptz,
+  quantidade numeric,
+  preco_unitario numeric,
+  subtotal numeric
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF public.meu_papel(p_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem ver a retaguarda.' USING errcode = 'AX020';
+  END IF;
+
+  RETURN QUERY
+  SELECT v.id AS venda_id, v.finalizada_em AS horario, iv.quantidade,
+         iv.preco_unitario_venda AS preco_unitario, iv.subtotal
+  FROM item_venda iv
+  JOIN venda v ON v.id = iv.venda_id
+  WHERE v.empresa_id = p_empresa_id AND v.status = 'finalizada' AND v.finalizada_em::date = p_data
+    AND iv.produto_id = p_produto_id
+  ORDER BY v.finalizada_em ASC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_vendas_produto_detalhe(uuid, uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_vendas_produto_detalhe(uuid, uuid, date) TO authenticated;
+
+COMMIT;
+
+
+-- ============================================================================
+-- ⚠️ ATENÇÃO — CONFIRME ANTES DE APLICAR: a coluna "segmento" usada em F1
+-- (nicho) é a mesma já usada por retaguarda_vendas_por_categoria (Fase 1) —
+-- se aquela função já funciona hoje na tela, esta coluna já existe e este
+-- arquivo aplica sem erro. Se der erro "column p.segmento does not exist",
+-- pare e me avise antes de continuar (significaria que o nome da coluna
+-- mudou desde a Fase 1).
+-- ============================================================================
+
+
+-- ============================================================================
+-- VERIFICAÇÕES (rodar depois do COMMIT)
+-- ============================================================================
+
+SELECT proname, prosecdef
+FROM pg_proc
+WHERE proname IN ('retaguarda_vendas_por_produto', 'retaguarda_vendas_produto_detalhe');
+-- Espera 2 linhas, prosecdef = true nas duas.
+
+-- Teste manual (troque os uuids/data pelos reais de uma empresa com venda
+-- hoje, logado como o dono/admin dela):
+-- SELECT * FROM retaguarda_vendas_por_produto('<empresa_id>', CURRENT_DATE);
+-- SELECT * FROM retaguarda_vendas_produto_detalhe('<empresa_id>', '<produto_id>', CURRENT_DATE);
+
+
+-- ============================================================================
+-- TESTE LÓGICO (raciocínio pra conferir depois de rodar, não é código)
+--
+-- Operador chamando qualquer uma das 2 funções:
+--   → Erro AX020 na primeira linha, nenhum dado calculado antes de recusar.
+-- Dono/admin chamando retaguarda_vendas_por_produto com ver_lucro desligado:
+--   → lucro_real vem NULL em todas as linhas, resto (quantidade/valor/
+--     saldo) continua normal.
+-- Dono/admin chamando retaguarda_vendas_produto_detalhe com um produto_id
+-- que não vendeu nada hoje (ou é de outra empresa):
+--   → 0 linhas, sem erro.
+-- ============================================================================
+
+
+-- ============================================================================
+-- ROLLBACK — SÓ RODAR SE ALGO QUEBRAR DEPOIS DE APLICAR.
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.retaguarda_vendas_produto_detalhe(uuid, uuid, date);
+-- DROP FUNCTION IF EXISTS public.retaguarda_vendas_por_produto(uuid, date);
+-- ============================================================================
