@@ -114,6 +114,16 @@ const txt = {
   cpfNotaPlaceholder: { pt: "Somente números", en: "Numbers only", es: "Solo números" },
   cpfNotaInvalido: { pt: "CPF inválido — informe 11 números ou deixe em branco.", en: "Invalid tax ID — enter 11 digits or leave it blank.", es: "CPF inválido — indique 11 números o deje en blanco." },
   formaPagamentoObrigatoria: { pt: "Selecione a forma de pagamento.", en: "Select a payment method.", es: "Seleccione la forma de pago." },
+  estoqueInsuficiente: {
+    pt: "Estoque insuficiente para {nome} (disponível: {saldo}). Peça autorização do dono ou administrador.",
+    en: "Not enough stock for {nome} (available: {saldo}). Ask the owner or an admin to authorize.",
+    es: "Stock insuficiente para {nome} (disponible: {saldo}). Pida autorización al propietario o administrador.",
+  },
+  estoqueInsuficienteAviso: {
+    pt: "Atenção: {nome} vai ficar com estoque negativo (disponível: {saldo}).",
+    en: "Warning: {nome} will end up with negative stock (available: {saldo}).",
+    es: "Atención: {nome} quedará con stock negativo (disponible: {saldo}).",
+  },
   confirmarVenda: { pt: "Confirmar Venda", en: "Confirm Sale", es: "Confirmar Venta" },
   confirmandoVenda: { pt: "Confirmando…", en: "Confirming…", es: "Confirmando…" },
   cancelarPainel: { pt: "Cancelar", en: "Cancel", es: "Cancelar" },
@@ -495,6 +505,20 @@ export default function PdvVendaPage() {
     const cpfLimpo = cpfNotaInput.replace(/\D/g, "");
     if (cpfLimpo && cpfLimpo.length !== 11) { mostrarToast(t("cpfNotaInvalido", lang), "erro"); return; }
 
+    // Trava de estoque negativo: operador não passa; dono/admin seguem
+    // (a autorização é a própria ação deles), só com aviso na tela — o
+    // saldo aqui é o snapshot da busca, então é um alerta, não garantia
+    // exata (concorrência real fica pro banco).
+    const itemSemEstoque = carrinho.find((i) => i.quantidade > i.produto.saldo_disponivel);
+    if (itemSemEstoque) {
+      const vars = { nome: itemSemEstoque.produto.nome, saldo: itemSemEstoque.produto.saldo_disponivel };
+      if (papel !== "dono" && papel !== "admin") {
+        mostrarToast(t("estoqueInsuficiente", lang, vars), "erro");
+        return;
+      }
+      mostrarToast(t("estoqueInsuficienteAviso", lang, vars), "info");
+    }
+
     setFinalizandoVenda(true);
     const itensRpc = carrinho.map((i) => ({ produto_id: i.produto.id, quantidade: i.quantidade }));
     const resultado = await finalizarVenda(turno.id, itensRpc, {
@@ -542,6 +566,11 @@ export default function PdvVendaPage() {
     setFormaPagamento("");
     setCpfNotaInput("");
     setValorRecebidoInput("");
+    // Reset completo da busca — sem isto o campo e o dropdown de resultados
+    // ficam com os dados da venda anterior mesmo com o carrinho já vazio.
+    setBusca("");
+    setBuscaDebounced("");
+    setResultados([]);
     inputBuscaRef.current?.focus();
 
     setBaixandoEstoqueFlag(true);
@@ -982,7 +1011,8 @@ function ConteudoPdv({ containerRef, fullscreenAtivo, onAlternarTelaCheia, lang,
         <span style={{ opacity: 0.7, color: tokens.texto }}>{t("caixaLabel", lang, { nome: caixaAtual?.nome || "" })}</span>
         <div className="flex items-center gap-4">
           {mostrarRetaguarda && (
-            <Link href="/pdv/retaguarda" className="flex items-center gap-1.5 font-semibold" style={{ opacity: 0.7, color: tokens.texto }}>
+            <Link href="/pdv/retaguarda" className="flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-lg"
+              style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
               <LayoutDashboard size={13} />
               {t("linkRetaguarda", lang)}
             </Link>
