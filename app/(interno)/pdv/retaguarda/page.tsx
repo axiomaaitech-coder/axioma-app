@@ -11,6 +11,7 @@
 // NÃO dá baixa de estoque nem grava venda de novo — só lê, soma e agrupa o
 // que finalizar_venda() + criarMovimentacao() já gravaram na hora da venda.
 import { useEffect, useReducer, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye, ChevronDown, ChevronUp, Pencil, Trash2,
@@ -109,8 +110,13 @@ const txt = {
   sangria: { pt: "Sangria", en: "Cash out", es: "Retiro" },
   suprimento: { pt: "Suprimento", en: "Cash in", es: "Refuerzo" },
   valorContadoLabel: { pt: "Valor contado na gaveta", en: "Amount counted in the drawer", es: "Valor contado en la gaveta" },
-  abrirCalculadora: { pt: "Calculadora", en: "Calculator", es: "Calculadora" },
-  abrirContagemGaveta: { pt: "Contagem de gaveta", en: "Drawer count", es: "Conteo de gaveta" },
+  abrirCalculadora: { pt: "CALCULADORA", en: "CALCULATOR", es: "CALCULADORA" },
+  abrirContagemGaveta: { pt: "CONTAGEM DE GAVETA", en: "DRAWER COUNT", es: "CONTEO DE GAVETA" },
+  identidadeAxioma: {
+    pt: "Axioma.AI.Tech — Sistema Inteligente de Gestão",
+    en: "Axioma.AI.Tech — Intelligent Management System",
+    es: "Axioma.AI.Tech — Sistema Inteligente de Gestión",
+  },
   calculadoraTitulo: { pt: "Calculadora", en: "Calculator", es: "Calculadora" },
   calculadoraHistorico: { pt: "Histórico", en: "History", es: "Historial" },
   usarValorContado: { pt: "Usar este total no Valor Contado", en: "Use this total as Amount Counted", es: "Usar este total como Valor Contado" },
@@ -1083,18 +1089,20 @@ function PainelFechamento({
                     <ListaMovimentacoes lang={lang} movimentacoes={movimentacoes} carregando={carregandoMovimentacoes}
                       turnoAberto userId={userId} onEditar={onEditarMovimentacao} onExcluir={onExcluirMovimentacao} />
 
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs font-semibold" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("valorContadoLabel", lang)}</label>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => setCalculadoraAberta(true)} title={t("abrirCalculadora", lang)}
-                          className="p-1.5 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
-                          <Calculator size={14} />
-                        </button>
-                        <button onClick={() => setContagemAberta(true)} title={t("abrirContagemGaveta", lang)}
-                          className="p-1.5 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
-                          <Banknote size={14} />
-                        </button>
-                      </div>
+                    <label className="text-xs font-semibold block mb-1.5" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("valorContadoLabel", lang)}</label>
+                    <div className="flex items-center gap-2 mb-3">
+                      <button onClick={() => setCalculadoraAberta(true)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black"
+                        style={{ background: tokens.acentoSuaveBg, color: tokens.acento, border: `1px solid ${tokens.acento}` }}>
+                        <Calculator size={18} />
+                        {t("abrirCalculadora", lang)}
+                      </button>
+                      <button onClick={() => setContagemAberta(true)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-black"
+                        style={{ background: tokens.acentoSuaveBg, color: tokens.acento, border: `1px solid ${tokens.acento}` }}>
+                        <Banknote size={18} />
+                        {t("abrirContagemGaveta", lang)}
+                      </button>
                     </div>
                     <input
                       value={valorContadoInput} onChange={(e) => onValorContadoInput(e.target.value)}
@@ -1558,6 +1566,26 @@ function reducerCalculadora(estado: EstadoCalculadora, acao: AcaoCalculadora): E
   }
 }
 
+// Cabeçalho com identidade (logo + nome + slogan) reaproveitado pelos dois
+// modais — largura/altura maiores foram pedidas junto com "transmitir
+// autoridade e profissionalismo", então os dois ganham a mesma peça em vez
+// de duplicar o mesmo bloco de marca duas vezes.
+function CabecalhoModalAxioma({ titulo, lang, onFechar }: { titulo: string; lang: Idioma; onFechar: () => void }) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="flex items-start justify-between gap-3 mb-5 pb-4" style={{ borderBottom: `1px solid ${tokens.cardBorda}` }}>
+      <div className="flex items-center gap-3 min-w-0">
+        <Image src="/logo-aitech.png" alt="Axioma" width={44} height={44} className="object-contain shrink-0" />
+        <div className="min-w-0">
+          <h3 className="text-2xl font-black truncate" style={{ color: tokens.texto }}>{titulo}</h3>
+          <p className="text-xs font-semibold truncate" style={{ color: tokens.textoMuted }}>{t("identidadeAxioma", lang)}</p>
+        </div>
+      </div>
+      <button onClick={onFechar} className="shrink-0 p-1 rounded-lg" style={{ color: tokens.textoMuted }}><X size={22} /></button>
+    </div>
+  );
+}
+
 function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (valor: number) => void; onFechar: () => void }) {
   const { tokens } = useTemaPdv();
   const [estado, dispatch] = useReducer(reducerCalculadora, ESTADO_INICIAL_CALCULADORA);
@@ -1592,7 +1620,7 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
 
   function BotaoCalc({ label, acao, estilo, className }: { label: string; acao: AcaoCalculadora; estilo?: "operador" | "acao" | "igual"; className?: string }) {
     return (
-      <button onClick={() => dispatch(acao)} className={`py-3 rounded-xl text-base font-bold ${className || ""}`}
+      <button onClick={() => dispatch(acao)} className={`py-5 rounded-xl text-2xl font-bold ${className || ""}`}
         style={estilo === "operador" ? { background: tokens.acentoSuaveBg, color: tokens.acento }
           : estilo === "acao" ? { background: "rgba(248,113,113,0.12)", color: "#f87171" }
           : estilo === "igual" ? { background: tokens.acaoBg, color: tokens.acaoTexto }
@@ -1603,18 +1631,15 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("calculadoraTitulo", lang)}</h3>
-          <button onClick={onFechar} style={{ color: tokens.textoMuted }}><X size={18} /></button>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-24 md:pt-28 pb-8 overflow-y-auto" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-[640px] rounded-2xl p-6 md:p-8" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <CabecalhoModalAxioma titulo={t("calculadoraTitulo", lang)} lang={lang} onFechar={onFechar} />
+
+        <div className="rounded-2xl px-6 py-6 mb-4 text-right overflow-hidden" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
+          <p className="text-5xl md:text-6xl font-black truncate" style={{ color: tokens.inputTexto }}>{estado.display}</p>
         </div>
 
-        <div className="rounded-xl px-4 py-4 mb-3 text-right overflow-hidden" style={{ background: tokens.inputBg, border: `1px solid ${tokens.inputBorda}` }}>
-          <p className="text-3xl font-black truncate" style={{ color: tokens.inputTexto }}>{estado.display}</p>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2 mb-3">
+        <div className="grid grid-cols-4 gap-3 mb-4">
           {botoesLinha1.map((b) => <BotaoCalc key={b.label} label={b.label} acao={b.acao} estilo={b.label === "÷" ? "operador" : "acao"} />)}
           {linhasNumericas.map((linha) => linha.map((b) => <BotaoCalc key={b.label} label={b.label} acao={b.acao} estilo={b.operador ? "operador" : undefined} />))}
           <BotaoCalc label="0" acao={{ tipo: "digito", valor: "0" }} className="col-span-2" />
@@ -1623,17 +1648,17 @@ function ModalCalculadora({ lang, onUsar, onFechar }: { lang: Idioma; onUsar: (v
         </div>
 
         {estado.historico.length > 0 && (
-          <div className="mb-3 max-h-24 overflow-y-auto rounded-xl p-2" style={{ background: tokens.acentoSuaveBg }}>
-            <p className="text-[10px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("calculadoraHistorico", lang)}</p>
+          <div className="mb-4 max-h-32 overflow-y-auto rounded-xl p-3" style={{ background: tokens.acentoSuaveBg }}>
+            <p className="text-xs font-bold uppercase mb-1.5" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("calculadoraHistorico", lang)}</p>
             {estado.historico.map((linha, i) => (
-              <p key={i} className="text-xs" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{linha}</p>
+              <p key={i} className="text-sm" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{linha}</p>
             ))}
           </div>
         )}
 
         <button onClick={() => { onUsar(Number(estado.display.replace(",", ".")) || 0); onFechar(); }}
           disabled={estado.display === "Erro"}
-          className="w-full py-3 rounded-xl text-sm font-black disabled:opacity-50"
+          className="w-full py-4 rounded-xl text-base font-black disabled:opacity-50"
           style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
           {t("usarValorContado", lang)}
         </button>
@@ -1656,14 +1681,14 @@ function LinhaDenominacao({ valor, qtd, onQtd, lang }: { valor: number; qtd: str
   const { tokens } = useTemaPdv();
   const subtotal = valor * (Number(qtd) || 0);
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-bold w-16 shrink-0" style={{ color: tokens.cardTexto }}>{moeda(valor)}</span>
+    <div className="flex items-center gap-3">
+      <span className="text-base font-bold w-20 shrink-0" style={{ color: tokens.cardTexto }}>{moeda(valor)}</span>
       <input value={qtd} onChange={(e) => onQtd(e.target.value.replace(/[^0-9]/g, ""))}
         inputMode="numeric" placeholder="0" aria-label={t("qtdLabel", lang)}
-        className="w-16 px-2 py-2 rounded-lg text-sm text-center outline-none shrink-0"
+        className="w-24 px-2 py-3 rounded-lg text-lg font-bold text-center outline-none shrink-0"
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }} />
-      <span className="text-[10px] font-bold uppercase shrink-0" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("qtdLabel", lang)}</span>
-      <span className="text-sm font-bold ml-auto text-right" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
+      <span className="text-[11px] font-bold uppercase shrink-0" style={{ color: tokens.cardTexto, opacity: 0.5 }}>{t("qtdLabel", lang)}</span>
+      <span className="text-base font-bold ml-auto text-right" style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
     </div>
   );
 }
@@ -1702,37 +1727,34 @@ function ModalContagemGaveta({ lang, onUsar, onFechar }: { lang: Idioma; onUsar:
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
-      <div className="w-full max-w-md rounded-2xl p-5 max-h-[85vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold" style={{ color: tokens.texto }}>{t("contagemGavetaTitulo", lang)}</h3>
-          <button onClick={onFechar} style={{ color: tokens.textoMuted }}><X size={18} /></button>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-24 md:pt-28 pb-8 overflow-y-auto" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-[720px] rounded-2xl p-6 md:p-8 max-h-[80vh] overflow-y-auto" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <CabecalhoModalAxioma titulo={t("contagemGavetaTitulo", lang)} lang={lang} onFechar={onFechar} />
+
+        <div className="rounded-2xl p-5 mb-5 text-center" style={{ background: tokens.acaoBg }}>
+          <p className="text-xs font-bold uppercase" style={{ color: tokens.acaoTexto, opacity: 0.85 }}>{t("totalGeral", lang)}</p>
+          <p className="text-4xl md:text-5xl font-black" style={{ color: tokens.acaoTexto }}>{moeda(total)}</p>
         </div>
 
-        <div className="rounded-xl p-3 mb-4 text-center" style={{ background: tokens.acaoBg }}>
-          <p className="text-[11px] font-bold uppercase" style={{ color: tokens.acaoTexto, opacity: 0.85 }}>{t("totalGeral", lang)}</p>
-          <p className="text-2xl font-black" style={{ color: tokens.acaoTexto }}>{moeda(total)}</p>
-        </div>
-
-        <p className="text-[11px] font-bold uppercase mb-2" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("notasLabel", lang)}</p>
-        <div className="flex flex-col gap-2 mb-4">
+        <p className="text-xs font-bold uppercase mb-3" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("notasLabel", lang)}</p>
+        <div className="flex flex-col gap-3 mb-5">
           {DENOMINACOES_NOTAS.map((v) => (
             <LinhaDenominacao key={v} valor={v} qtd={quantidades[String(v)] || ""} onQtd={(q) => atualizarQtd(v, q)} lang={lang} />
           ))}
         </div>
 
-        <p className="text-[11px] font-bold uppercase mb-2" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("moedasLabel", lang)}</p>
-        <div className="flex flex-col gap-2 mb-4">
+        <p className="text-xs font-bold uppercase mb-3" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("moedasLabel", lang)}</p>
+        <div className="flex flex-col gap-3 mb-5">
           {DENOMINACOES_MOEDAS.map((v) => (
             <LinhaDenominacao key={v} valor={v} qtd={quantidades[String(v)] || ""} onQtd={(q) => atualizarQtd(v, q)} lang={lang} />
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button onClick={limparTudo} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+        <div className="flex items-center gap-3">
+          <button onClick={limparTudo} className="flex-1 py-4 rounded-xl text-sm font-semibold" style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
             {t("limparTudo", lang)}
           </button>
-          <button onClick={handleUsar} className="flex-1 py-3 rounded-xl text-sm font-black" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+          <button onClick={handleUsar} className="flex-1 py-4 rounded-xl text-sm font-black" style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
             {t("usarValorContado", lang)}
           </button>
         </div>
