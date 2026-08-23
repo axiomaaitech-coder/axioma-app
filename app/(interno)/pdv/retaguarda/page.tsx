@@ -13,7 +13,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye, ChevronDown, ChevronUp,
+  Settings, RefreshCw, AlertTriangle, ArrowDownCircle, ArrowUpCircle, Loader2, Search, X, Eye, ChevronDown, ChevronUp, Pencil, Trash2,
 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
 import { CardGenerico, BreadcrumbGenerico, EstadoVazio, type ItemBreadcrumb } from "../../../../components/PdvCatalogoNav";
@@ -23,10 +23,11 @@ import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers
 import {
   obterConfigRetaguarda, salvarConfigRetaguarda, obterResumoDia, obterVendasPorProduto,
   obterVendasProdutoDetalhe, obterItensPrejuizo, listarTurnosAbertos, fecharTurno,
-  registrarMovimentacao, obterComposicaoEsperado, hojeLocal,
+  registrarMovimentacao, obterComposicaoEsperado, listarMovimentacoesTurno,
+  editarMovimentacao, excluirMovimentacao, obterUsuarioAtualId, hojeLocal,
   type ConfigRetaguarda, type ModoRetaguarda, type ResumoDia, type VendaPorProduto,
   type VendaDetalheProduto, type ItemPrejuizo, type TurnoAberto, type ResultadoFechamento,
-  type ComposicaoLinha,
+  type ComposicaoLinha, type MovimentacaoCaixa,
 } from "../../../../lib/retaguardaHelpers";
 
 const CHAVE_CONFIGURADO_LOCAL = "axioma_retaguarda_configurado_";
@@ -142,6 +143,26 @@ const txt = {
   registrando: { pt: "Registrando…", en: "Registering…", es: "Registrando…" },
   sangriaRegistrada: { pt: "Sangria registrada.", en: "Cash out recorded.", es: "Retiro registrado." },
   suprimentoRegistrado: { pt: "Suprimento registrado.", en: "Cash in recorded.", es: "Refuerzo registrado." },
+  lancamentosTitulo: { pt: "Lançamentos deste turno", en: "This shift's entries", es: "Movimientos de este turno" },
+  nenhumaMovimentacao: { pt: "Nenhuma sangria ou suprimento registrado neste turno.", en: "No cash out or cash in recorded this shift.", es: "Ningún retiro o refuerzo registrado en este turno." },
+  voce: { pt: "você", en: "you", es: "usted" },
+  editarMovimentacaoBotao: { pt: "Editar", en: "Edit", es: "Editar" },
+  excluirMovimentacaoBotao: { pt: "Excluir", en: "Delete", es: "Eliminar" },
+  editarMovimentacaoTitulo: { pt: "Editar {tipo}", en: "Edit {tipo}", es: "Editar {tipo}" },
+  tipoNaoMuda: { pt: "O tipo (sangria/suprimento) não pode ser alterado — só valor e motivo.", en: "The type (cash out/cash in) can't be changed — only amount and reason.", es: "El tipo (retiro/refuerzo) no se puede cambiar — solo valor y motivo." },
+  editarMovimentacaoSalvar: { pt: "Salvar", en: "Save", es: "Guardar" },
+  editarMovimentacaoSalvando: { pt: "Salvando…", en: "Saving…", es: "Guardando…" },
+  movimentacaoEditada: { pt: "Lançamento atualizado.", en: "Entry updated.", es: "Movimiento actualizado." },
+  confirmarExclusaoTitulo: { pt: "Excluir lançamento?", en: "Delete entry?", es: "¿Eliminar movimiento?" },
+  confirmarExclusaoTexto: {
+    pt: "Tem certeza que deseja excluir esta {tipo} de {valor}? Essa ação não pode ser desfeita.",
+    en: "Are you sure you want to delete this {tipo} of {valor}? This action cannot be undone.",
+    es: "¿Seguro que desea eliminar este {tipo} de {valor}? Esta acción no se puede deshacer.",
+  },
+  excluir: { pt: "Excluir", en: "Delete", es: "Eliminar" },
+  excluindo: { pt: "Excluindo…", en: "Deleting…", es: "Eliminando…" },
+  movimentacaoExcluida: { pt: "Lançamento excluído.", en: "Entry deleted.", es: "Movimiento eliminado." },
+  erroMovimentacaoNaoEncontrada: { pt: "Lançamento não encontrado.", en: "Entry not found.", es: "Movimiento no encontrado." },
 
   erroSemPermissao: { pt: "Você não tem permissão para acessar a retaguarda.", en: "You don't have permission to access the back office.", es: "No tiene permiso para acceder a la retaguardia." },
   erroTurnoNaoEncontrado: { pt: "Caixa não encontrado.", en: "Register not found.", es: "Caja no encontrada." },
@@ -176,6 +197,7 @@ function mensagemErro(codigo: string | undefined, lang: Idioma): string {
     case "AX024": return t("erroValorInvalido", lang);
     case "AX025": return t("erroConferenciaDesligada", lang);
     case "AX027": return t("erroValorContadoObrigatorio", lang);
+    case "AX028": return t("erroMovimentacaoNaoEncontrada", lang);
     default: return t("erroGenerico", lang);
   }
 }
@@ -187,6 +209,7 @@ export default function RetaguardaPage() {
 
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [papel, setPapel] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [carregandoAcesso, setCarregandoAcesso] = useState(true);
   const acessoLiberado = papel === "dono" || papel === "admin";
 
@@ -221,6 +244,16 @@ export default function RetaguardaPage() {
   const [carregandoComposicao, setCarregandoComposicao] = useState(false);
   const [modalComposicaoAberto, setModalComposicaoAberto] = useState(false);
 
+  // Lançamentos (sangria/suprimento) do turno selecionado — editar/excluir
+  // só valem com o turno aberto (o banco também barra com AX022, mas a UI já
+  // esconde os botões nesse caso).
+  const [movimentacoes, setMovimentacoes] = useState<MovimentacaoCaixa[]>([]);
+  const [carregandoMovimentacoes, setCarregandoMovimentacoes] = useState(false);
+  const [movimentacaoEditando, setMovimentacaoEditando] = useState<MovimentacaoCaixa | null>(null);
+  const [salvandoEdicaoMovimentacao, setSalvandoEdicaoMovimentacao] = useState(false);
+  const [movimentacaoExcluindo, setMovimentacaoExcluindo] = useState<MovimentacaoCaixa | null>(null);
+  const [excluindoMovimentacao, setExcluindoMovimentacao] = useState(false);
+
   const [toast, setToast] = useState<{ msg: string; tipo: "ok" | "erro" } | null>(null);
   function mostrarToast(msg: string, tipo: "ok" | "erro" = "ok") {
     setToast({ msg, tipo });
@@ -233,6 +266,7 @@ export default function RetaguardaPage() {
     (async () => {
       const id = await obterEmpresaAtiva();
       setEmpresaId(id);
+      obterUsuarioAtualId().then(setUserId);
       if (!id) { setCarregandoAcesso(false); return; }
       const p = await obterMeuPapel(id);
       setPapel(p);
@@ -322,11 +356,27 @@ export default function RetaguardaPage() {
     setComposicao({ turnoId, linhas: r.dados });
   }
 
+  async function carregarMovimentacoes(turnoId: string) {
+    setCarregandoMovimentacoes(true);
+    const dados = await listarMovimentacoesTurno(turnoId);
+    setMovimentacoes(dados);
+    setCarregandoMovimentacoes(false);
+  }
+
   useEffect(() => {
     if (!turnoSelecionado) return;
     carregarComposicao(turnoSelecionado);
+    carregarMovimentacoes(turnoSelecionado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnoSelecionado]);
+
+  // Depois de registrar/editar/excluir uma sangria/suprimento: a lista E o
+  // "Esperado" (que soma/subtrai essas movimentações) precisam refletir a
+  // mudança — os dois vêm de fontes diferentes (tabela direta vs. RPC de
+  // composição), então recarrega os dois.
+  function recarregarMovimentacoesEComposicao() {
+    if (turnoSelecionado) { carregarMovimentacoes(turnoSelecionado); carregarComposicao(turnoSelecionado); }
+  }
 
   async function handleRegistrarMovimentacao(valor: number, motivo: string) {
     if (!turnoSelecionado || !modalMovimentacao) return;
@@ -336,7 +386,29 @@ export default function RetaguardaPage() {
     if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
     mostrarToast(t(modalMovimentacao === "sangria" ? "sangriaRegistrada" : "suprimentoRegistrado", lang), "ok");
     setModalMovimentacao(null);
-    carregarComposicao(turnoSelecionado);
+    recarregarMovimentacoesEComposicao();
+  }
+
+  async function handleSalvarEdicaoMovimentacao(valor: number, motivo: string) {
+    if (!movimentacaoEditando) return;
+    setSalvandoEdicaoMovimentacao(true);
+    const resultado = await editarMovimentacao(movimentacaoEditando.id, valor, motivo || undefined);
+    setSalvandoEdicaoMovimentacao(false);
+    if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
+    mostrarToast(t("movimentacaoEditada", lang), "ok");
+    setMovimentacaoEditando(null);
+    recarregarMovimentacoesEComposicao();
+  }
+
+  async function handleConfirmarExclusaoMovimentacao() {
+    if (!movimentacaoExcluindo) return;
+    setExcluindoMovimentacao(true);
+    const resultado = await excluirMovimentacao(movimentacaoExcluindo.id);
+    setExcluindoMovimentacao(false);
+    if (resultado.erro) { mostrarToast(mensagemErro(resultado.codigo, lang), "erro"); return; }
+    mostrarToast(t("movimentacaoExcluida", lang), "ok");
+    setMovimentacaoExcluindo(null);
+    recarregarMovimentacoesEComposicao();
   }
 
   async function handleFecharTurno() {
@@ -423,6 +495,8 @@ export default function RetaguardaPage() {
                   composicaoCarregando={carregandoComposicao}
                   composicaoDisponivel={!!(composicao && resultadoFechamento && composicao.turnoId === resultadoFechamento.turnoId)}
                   onVerComposicao={() => setModalComposicaoAberto(true)}
+                  movimentacoes={movimentacoes} carregandoMovimentacoes={carregandoMovimentacoes} userId={userId}
+                  onEditarMovimentacao={setMovimentacaoEditando} onExcluirMovimentacao={setMovimentacaoExcluindo}
                 />
               )}
             </div>
@@ -449,6 +523,20 @@ export default function RetaguardaPage() {
 
       {modalComposicaoAberto && composicao && (
         <ModalComposicaoEsperado lang={lang} linhas={composicao.linhas} onFechar={() => setModalComposicaoAberto(false)} />
+      )}
+
+      {movimentacaoEditando && (
+        <ModalEditarMovimentacao
+          lang={lang} movimentacao={movimentacaoEditando} salvando={salvandoEdicaoMovimentacao}
+          onConfirmar={handleSalvarEdicaoMovimentacao} onCancelar={() => setMovimentacaoEditando(null)}
+        />
+      )}
+
+      {movimentacaoExcluindo && (
+        <ModalConfirmarExclusaoMovimentacao
+          lang={lang} movimentacao={movimentacaoExcluindo} excluindo={excluindoMovimentacao}
+          onConfirmar={handleConfirmarExclusaoMovimentacao} onCancelar={() => setMovimentacaoExcluindo(null)}
+        />
       )}
 
       {toast && <Toast toast={toast} />}
@@ -892,6 +980,7 @@ function PainelFechamento({
   lang, config, turnos, turnoSelecionado, onSelecionarTurno,
   valorContadoInput, onValorContadoInput, onAbrirMovimentacao, onFecharCaixa, resultadoFechamento,
   composicaoTotal, composicaoCarregando, composicaoDisponivel, onVerComposicao,
+  movimentacoes, carregandoMovimentacoes, userId, onEditarMovimentacao, onExcluirMovimentacao,
 }: {
   lang: Idioma; config: ConfigRetaguarda; turnos: TurnoAberto[]; turnoSelecionado: string | null;
   onSelecionarTurno: (id: string) => void;
@@ -903,6 +992,11 @@ function PainelFechamento({
   composicaoCarregando: boolean;
   composicaoDisponivel: boolean;
   onVerComposicao: () => void;
+  movimentacoes: MovimentacaoCaixa[];
+  carregandoMovimentacoes: boolean;
+  userId: string | null;
+  onEditarMovimentacao: (m: MovimentacaoCaixa) => void;
+  onExcluirMovimentacao: (m: MovimentacaoCaixa) => void;
 }) {
   const { tokens } = useTemaPdv();
   const turno = turnos.find((t2) => t2.id === turnoSelecionado) || null;
@@ -967,6 +1061,10 @@ function PainelFechamento({
                       </button>
                     </div>
 
+                    <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("lancamentosTitulo", lang)}</p>
+                    <ListaMovimentacoes lang={lang} movimentacoes={movimentacoes} carregando={carregandoMovimentacoes}
+                      turnoAberto userId={userId} onEditar={onEditarMovimentacao} onExcluir={onExcluirMovimentacao} />
+
                     <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("valorContadoLabel", lang)}</label>
                     <input
                       value={valorContadoInput} onChange={(e) => onValorContadoInput(e.target.value)}
@@ -987,6 +1085,57 @@ function PainelFechamento({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function ListaMovimentacoes({ lang, movimentacoes, carregando, turnoAberto, userId, onEditar, onExcluir }: {
+  lang: Idioma; movimentacoes: MovimentacaoCaixa[]; carregando: boolean; turnoAberto: boolean; userId: string | null;
+  onEditar: (m: MovimentacaoCaixa) => void; onExcluir: (m: MovimentacaoCaixa) => void;
+}) {
+  const { tokens } = useTemaPdv();
+  if (carregando && movimentacoes.length === 0) {
+    return <div className="mb-4"><EstadoCarregando lang={lang} /></div>;
+  }
+  if (movimentacoes.length === 0) {
+    return <p className="text-xs text-center py-3 mb-4" style={{ color: tokens.cardTexto, opacity: 0.55 }}>{t("nenhumaMovimentacao", lang)}</p>;
+  }
+  return (
+    <div className="flex flex-col gap-2 mb-4">
+      {movimentacoes.map((m) => {
+        const cor = m.tipo === "sangria" ? "#f87171" : "#34d399";
+        const Icone = m.tipo === "sangria" ? ArrowUpCircle : ArrowDownCircle;
+        return (
+          <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5"
+            style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            <div className="flex items-center gap-2 min-w-0">
+              <Icone size={16} style={{ color: cor }} className="shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold" style={{ color: tokens.cardTexto }}>
+                  {t(m.tipo, lang)} · {moeda(m.valor)}
+                </p>
+                <p className="text-[11px] truncate" style={{ color: tokens.cardTexto, opacity: 0.65 }}>
+                  {new Date(m.criadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                  {m.motivo ? ` · ${m.motivo}` : ""}
+                  {m.usuarioId === userId ? ` · ${t("voce", lang)}` : ""}
+                </p>
+              </div>
+            </div>
+            {turnoAberto && (
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => onEditar(m)} title={t("editarMovimentacaoBotao", lang)}
+                  className="p-1.5 rounded-lg" style={{ background: tokens.inputBg, color: tokens.acento }}>
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => onExcluir(m)} title={t("excluirMovimentacaoBotao", lang)}
+                  className="p-1.5 rounded-lg" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -1197,6 +1346,94 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
             <span className="text-xs font-black" style={{ color: tokens.acaoTexto }}>{t("totalEsperadoLinha", lang)}</span>
             <span className="text-lg font-black" style={{ color: tokens.acaoTexto }}>{moeda(totalEsperado)}</span>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalEditarMovimentacao({ lang, movimentacao, salvando, onConfirmar, onCancelar }: {
+  lang: Idioma; movimentacao: MovimentacaoCaixa; salvando: boolean;
+  onConfirmar: (valor: number, motivo: string) => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  const [valorInput, setValorInput] = useState(String(movimentacao.valor).replace(".", ","));
+  const [motivo, setMotivo] = useState(movimentacao.motivo || "");
+
+  function handleConfirmar() {
+    const valor = Number(valorInput.replace(",", "."));
+    if (!valor || valor <= 0 || isNaN(valor)) return;
+    onConfirmar(valor, motivo.trim());
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>
+          {t("editarMovimentacaoTitulo", lang, { tipo: t(movimentacao.tipo, lang) })}
+        </h3>
+        <p className="text-xs mb-4" style={{ color: tokens.textoMuted }}>{t("tipoNaoMuda", lang)}</p>
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("valorLabel", lang)}</label>
+        <input
+          value={valorInput} onChange={(e) => setValorInput(e.target.value)}
+          inputMode="decimal" placeholder="0,00" autoFocus
+          className="w-full px-3 py-3 rounded-xl text-lg font-bold outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <label className="text-xs font-semibold block mb-1" style={{ color: tokens.texto }}>{t("motivoLabel", lang)}</label>
+        <input
+          value={motivo} onChange={(e) => setMotivo(e.target.value)}
+          className="w-full px-3 py-3 rounded-xl text-sm outline-none mb-4"
+          style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `1px solid ${tokens.inputBorda}` }}
+        />
+
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={salvando}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("cancelar", lang)}
+          </button>
+          <button onClick={handleConfirmar} disabled={salvando}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
+            {salvando && <Loader2 className="animate-spin" size={14} />}
+            {salvando ? t("editarMovimentacaoSalvando", lang) : t("editarMovimentacaoSalvar", lang)}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalConfirmarExclusaoMovimentacao({ lang, movimentacao, excluindo, onConfirmar, onCancelar }: {
+  lang: Idioma; movimentacao: MovimentacaoCaixa; excluindo: boolean;
+  onConfirmar: () => void; onCancelar: () => void;
+}) {
+  const { tokens } = useTemaPdv();
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
+      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: tokens.modalBg, border: "2px solid #f87171" }}>
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle size={18} style={{ color: "#f87171" }} />
+          <h3 className="text-sm font-bold" style={{ color: "#f87171" }}>{t("confirmarExclusaoTitulo", lang)}</h3>
+        </div>
+        <p className="text-sm mb-5" style={{ color: tokens.texto }}>
+          {t("confirmarExclusaoTexto", lang, { tipo: t(movimentacao.tipo, lang).toLowerCase(), valor: moeda(movimentacao.valor) })}
+        </p>
+        <div className="flex items-center gap-2">
+          <button onClick={onCancelar} disabled={excluindo}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+            style={{ background: tokens.inputBg, color: tokens.inputTexto }}>
+            {t("cancelar", lang)}
+          </button>
+          <button onClick={onConfirmar} disabled={excluindo}
+            className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2"
+            style={{ background: "#f87171", color: "#020810" }}>
+            {excluindo && <Loader2 className="animate-spin" size={14} />}
+            {excluindo ? t("excluindo", lang) : t("excluir", lang)}
+          </button>
         </div>
       </div>
     </div>

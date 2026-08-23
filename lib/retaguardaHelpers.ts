@@ -15,6 +15,11 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+export async function obterUsuarioAtualId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser();
+  return data?.user?.id || null;
+}
+
 export type ModoRetaguarda = "ao_vivo" | "fechamento" | "ambos";
 
 export type ConfigRetaguarda = {
@@ -235,4 +240,43 @@ export async function registrarMovimentacao(
   });
   if (error) return { erro: error.message, codigo: (error as any).code };
   return { id: data as string };
+}
+
+export type MovimentacaoCaixa = {
+  id: string; tipo: "sangria" | "suprimento"; valor: number; motivo: string | null;
+  usuarioId: string; criadoEm: string;
+};
+
+// Leitura direta da tabela (RLS já libera SELECT pra dono/admin da empresa —
+// ver PDV-RETAGUARDA-SQL-REVISAO.txt, Parte A) — sem RPC pra isso, só a
+// ESCRITA (criar/editar/excluir) passa por função.
+export async function listarMovimentacoesTurno(turnoCaixaId: string): Promise<MovimentacaoCaixa[]> {
+  const { data, error } = await supabase.from("caixa_movimentacao")
+    .select("id, tipo, valor, motivo, usuario_id, criado_em")
+    .eq("turno_caixa_id", turnoCaixaId)
+    .order("criado_em", { ascending: true });
+  if (error) {
+    Sentry.captureException(new Error(`Falha ao listar movimentações do turno: ${error.message}`), { extra: { tabela: "caixa_movimentacao", operacao: "select", turnoCaixaId } });
+    return [];
+  }
+  return (data || []).map((m: any) => ({
+    id: m.id, tipo: m.tipo, valor: Number(m.valor) || 0, motivo: m.motivo,
+    usuarioId: m.usuario_id, criadoEm: m.criado_em,
+  }));
+}
+
+export async function editarMovimentacao(
+  movimentacaoId: string, valor: number, motivo?: string
+): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("retaguarda_editar_movimentacao", {
+    p_movimentacao_id: movimentacaoId, p_valor: valor, p_motivo: motivo || null,
+  });
+  if (error) return { erro: error.message, codigo: (error as any).code };
+  return {};
+}
+
+export async function excluirMovimentacao(movimentacaoId: string): Promise<{ erro?: string; codigo?: string }> {
+  const { error } = await supabase.rpc("retaguarda_excluir_movimentacao", { p_movimentacao_id: movimentacaoId });
+  if (error) return { erro: error.message, codigo: (error as any).code };
+  return {};
 }

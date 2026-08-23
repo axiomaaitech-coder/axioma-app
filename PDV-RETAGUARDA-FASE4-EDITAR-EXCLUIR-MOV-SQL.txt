@@ -1,0 +1,238 @@
+-- ============================================================================
+-- AXIOMA — PDV: Retaguarda do Caixa (Fase 4 — editar/excluir sangria/suprimento)
+-- ⚠️ NÃO APLICADO. Arquivo separado só pra revisão do Elias antes de rodar.
+--
+-- POR QUE ESTE ARQUIVO EXISTE:
+-- retaguarda_registrar_movimentacao() (Fase 1) só cria sangria/suprimento —
+-- não existe forma de corrigir um valor/motivo digitado errado nem de
+-- apagar um lançamento de teste, a não ser lançando um NOVO registro pra
+-- compensar (o que polui a lista e o "Esperado"). Este arquivo adiciona
+-- EDITAR (valor/motivo) e EXCLUIR (hard delete — é registro operacional de
+-- caixa, não documento fiscal) sangria/suprimento, só enquanto o turno
+-- ainda está aberto.
+--
+-- O QUE ESTE ARQUIVO FAZ:
+--   H1 — retaguarda_editar_movimentacao(movimentacao_id, valor, motivo)
+--        Atualiza valor/motivo de UMA sangria ou suprimento. NÃO permite
+--        trocar o "tipo" (sangria ↔ suprimento) — se o dono errou o tipo,
+--        o certo é excluir e lançar de novo (evita um caminho de edição
+--        que muda o sinal na fórmula do "Esperado" sem deixar rastro claro
+--        de qual foi a intenção original).
+--   H2 — retaguarda_excluir_movimentacao(movimentacao_id)
+--        Apaga UMA sangria ou suprimento (hard delete).
+--   H3 — política RLS de caixa_movimentacao ganha UPDATE e DELETE (hoje só
+--        tem SELECT + INSERT) — mesma condição do INSERT (dono/admin da
+--        empresa). Defesa em profundidade: as duas funções acima são
+--        SECURITY DEFINER (ignoram RLS pra valer), a política é a 2ª
+--        camada, não a única — mesmo raciocínio já usado em toda
+--        caixa_movimentacao (Fase 1).
+--
+-- Ambas as funções (H1 e H2) recusam se:
+--   • quem chama não é dono/admin da empresa dona da movimentação (AX020)
+--   • a movimentação não existe (AX028 — novo, os códigos até AX027 já
+--     estão em uso, conferido no repositório inteiro)
+--   • o turno daquela movimentação já está fechado (AX022 — reaproveitado,
+--     mesmo código que retaguarda_fechar_turno já usa pra "turno já
+--     fechado", mesmo significado aqui)
+-- H1 também recusa valor ≤ 0 (AX024 — reaproveitado, mesmo código que
+-- retaguarda_registrar_movimentacao já usa pra "valor inválido").
+--
+-- PRÉ-REQUISITOS (já aplicados antes, este arquivo não repete nem substitui):
+--   PDV-RETAGUARDA-SQL-REVISAO.txt → meu_papel(), caixa_movimentacao,
+--     caixa_movimentacao_leitura/escrita, retaguarda_registrar_movimentacao()
+--
+-- Idempotente — CREATE OR REPLACE FUNCTION, DROP POLICY IF EXISTS antes de
+-- recriar. Pode rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — RODE SOZINHO PRIMEIRO, ANTES DE QUALQUER OUTRA COISA. Só
+-- leitura, confirma pré-requisito.
+-- ============================================================================
+SELECT proname FROM pg_proc WHERE proname = 'retaguarda_registrar_movimentacao';
+-- Espera 1 linha. Se vier 0, PARE — rode PDV-RETAGUARDA-SQL-REVISAO.txt antes.
+
+-- Confere a política ATUAL de caixa_movimentacao (espera 2: leitura SELECT
+-- + escrita INSERT, nenhuma de UPDATE/DELETE ainda):
+SELECT policyname, cmd FROM pg_policies WHERE schemaname = 'public' AND tablename = 'caixa_movimentacao';
+
+
+BEGIN;
+
+-- ----------------------------------------------------------------------------
+-- H1) retaguarda_editar_movimentacao — corrige valor/motivo de UMA sangria
+-- ou suprimento existente. Tipo não muda.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_editar_movimentacao(
+  p_movimentacao_id uuid,
+  p_valor numeric,
+  p_motivo text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_turno_id uuid;
+  v_turno_status text;
+BEGIN
+  SELECT cm.empresa_id, cm.turno_caixa_id INTO v_empresa_id, v_turno_id
+  FROM caixa_movimentacao cm WHERE cm.id = p_movimentacao_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Movimentação não encontrada.' USING errcode = 'AX028';
+  END IF;
+
+  IF public.meu_papel(v_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem editar sangria/suprimento.' USING errcode = 'AX020';
+  END IF;
+
+  SELECT status INTO v_turno_status FROM turno_caixa WHERE id = v_turno_id;
+  IF v_turno_status IS DISTINCT FROM 'aberto' THEN
+    RAISE EXCEPTION 'Este turno já está fechado.' USING errcode = 'AX022';
+  END IF;
+
+  IF p_valor IS NULL OR p_valor <= 0 THEN
+    RAISE EXCEPTION 'Informe um valor válido, maior que zero.' USING errcode = 'AX024';
+  END IF;
+
+  UPDATE caixa_movimentacao
+  SET valor = p_valor, motivo = p_motivo
+  WHERE id = p_movimentacao_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_editar_movimentacao(uuid, numeric, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_editar_movimentacao(uuid, numeric, text) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- H2) retaguarda_excluir_movimentacao — apaga UMA sangria ou suprimento
+-- (hard delete — registro operacional, não documento fiscal).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.retaguarda_excluir_movimentacao(p_movimentacao_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_turno_id uuid;
+  v_turno_status text;
+BEGIN
+  SELECT cm.empresa_id, cm.turno_caixa_id INTO v_empresa_id, v_turno_id
+  FROM caixa_movimentacao cm WHERE cm.id = p_movimentacao_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Movimentação não encontrada.' USING errcode = 'AX028';
+  END IF;
+
+  IF public.meu_papel(v_empresa_id) NOT IN ('dono', 'admin') THEN
+    RAISE EXCEPTION 'Apenas dono ou administrador podem excluir sangria/suprimento.' USING errcode = 'AX020';
+  END IF;
+
+  SELECT status INTO v_turno_status FROM turno_caixa WHERE id = v_turno_id;
+  IF v_turno_status IS DISTINCT FROM 'aberto' THEN
+    RAISE EXCEPTION 'Este turno já está fechado.' USING errcode = 'AX022';
+  END IF;
+
+  DELETE FROM caixa_movimentacao WHERE id = p_movimentacao_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.retaguarda_excluir_movimentacao(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.retaguarda_excluir_movimentacao(uuid) TO authenticated;
+
+-- ----------------------------------------------------------------------------
+-- H3) RLS de caixa_movimentacao ganha UPDATE e DELETE — mesma condição do
+-- INSERT (caixa_movimentacao_escrita, Fase 1): dono/admin da empresa dona
+-- da movimentação. Defesa em profundidade — H1/H2 são SECURITY DEFINER e
+-- não dependem desta política pra funcionar.
+-- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS caixa_movimentacao_atualizacao ON public.caixa_movimentacao;
+CREATE POLICY caixa_movimentacao_atualizacao ON public.caixa_movimentacao
+  FOR UPDATE TO authenticated
+  USING (
+    empresa_id IN (SELECT public.empresas_do_usuario())
+    AND public.meu_papel(empresa_id) IN ('dono', 'admin')
+  )
+  WITH CHECK (
+    empresa_id IN (SELECT public.empresas_do_usuario())
+    AND public.meu_papel(empresa_id) IN ('dono', 'admin')
+  );
+
+DROP POLICY IF EXISTS caixa_movimentacao_exclusao ON public.caixa_movimentacao;
+CREATE POLICY caixa_movimentacao_exclusao ON public.caixa_movimentacao
+  FOR DELETE TO authenticated
+  USING (
+    empresa_id IN (SELECT public.empresas_do_usuario())
+    AND public.meu_papel(empresa_id) IN ('dono', 'admin')
+  );
+
+COMMENT ON TABLE public.caixa_movimentacao IS
+  'Sangria (retirada) e suprimento (reforço) de dinheiro no caixa físico durante o turno — só dono/admin. Criar via retaguarda_registrar_movimentacao(), editar via retaguarda_editar_movimentacao(), excluir via retaguarda_excluir_movimentacao() (só com o turno aberto). Ver PDV-RETAGUARDA-SQL-REVISAO.txt e PDV-RETAGUARDA-FASE4-EDITAR-EXCLUIR-MOV-SQL.txt.';
+
+COMMIT;
+
+
+-- ⚠️ MESMA ATENÇÃO JÁ REGISTRADA NA FASE 1 (Parte A): se
+-- PDV-FASE0-EQUIPE-OPERADOR-SQL.sql for reescrito/rerodado algum dia,
+-- ADICIONE 'caixa_movimentacao' à lista de exceções dele (agora vale pras
+-- políticas de UPDATE/DELETE também, não só leitura/escrita) — senão a
+-- descoberta dinâmica droparia estas 2 políticas novas e recriaria a
+-- versão padrão (mais fraca, permite financeiro/contabil/leitor também).
+
+
+-- ============================================================================
+-- VERIFICAÇÕES (rodar depois do COMMIT)
+-- ============================================================================
+
+SELECT proname, prosecdef
+FROM pg_proc
+WHERE proname IN ('retaguarda_editar_movimentacao', 'retaguarda_excluir_movimentacao');
+-- Espera 2 linhas, prosecdef = true nas duas.
+
+-- Políticas de caixa_movimentacao (espera 4 agora: leitura, escrita,
+-- atualização, exclusão):
+SELECT policyname, cmd, qual, with_check
+FROM pg_policies WHERE schemaname = 'public' AND tablename = 'caixa_movimentacao';
+
+
+-- ============================================================================
+-- TESTE LÓGICO (raciocínio pra conferir depois de rodar, não é código)
+--
+-- Operador chamando qualquer uma das 2 funções:
+--   → Erro AX020, nenhuma alteração feita antes de recusar.
+-- Dono/admin editando/excluindo movimentação de OUTRA empresa:
+--   → meu_papel() daquela empresa não dá 'dono'/'admin' pra quem não tem
+--     vínculo lá → erro AX020.
+-- Dono/admin editando/excluindo movimentação de um turno JÁ FECHADO:
+--   → Erro AX022 — movimentação de turno fechado é histórico, não mexe
+--     mais (mesmo espírito de retaguarda_registrar_movimentacao não deixar
+--     criar sangria/suprimento em turno fechado).
+-- Dono/admin editando com valor 0 ou negativo:
+--   → Erro AX024, nada é gravado.
+-- Dono/admin editando com movimentacao_id inexistente:
+--   → Erro AX028.
+-- Dono/admin editando/excluindo movimentação do PRÓPRIO turno aberto:
+--   → Funciona; UPDATE só troca valor/motivo (tipo continua o mesmo);
+--     DELETE remove a linha por completo.
+-- ============================================================================
+
+
+-- ============================================================================
+-- ROLLBACK — SÓ RODAR SE ALGO QUEBRAR DEPOIS DE APLICAR. Desfaz só o que
+-- este arquivo criou/mudou, na ordem inversa.
+-- ============================================================================
+-- BEGIN;
+--
+-- DROP POLICY IF EXISTS caixa_movimentacao_exclusao ON public.caixa_movimentacao;
+-- DROP POLICY IF EXISTS caixa_movimentacao_atualizacao ON public.caixa_movimentacao;
+-- DROP FUNCTION IF EXISTS public.retaguarda_excluir_movimentacao(uuid);
+-- DROP FUNCTION IF EXISTS public.retaguarda_editar_movimentacao(uuid, numeric, text);
+--
+-- COMMIT;
+-- ============================================================================
