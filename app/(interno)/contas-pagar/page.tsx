@@ -16,10 +16,11 @@ import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categori
 import { parseXMLNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
 import {
-  type ContaPagar, type ContaPagarDocumento, type NfeJaImportada,
+  type ContaPagar, type ContaPagarDocumento, type NfeJaImportada, type ConfigAp, type DuplicataDetectada,
   listarContasPagar, criarContaPagar, editarContaPagar, darBaixaContaPagar, estornarBaixaContaPagar, excluirContaPagar,
   gerarContaDeCustoFixo, listarDocumentos, anexarDocumento, excluirDocumento, gerarUrlDocumento,
   classificarCategoria, checarNfeJaImportadaNoPdv,
+  obterConfigAp, detectarDuplicata, registrarAuditoriaAp,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -44,7 +45,7 @@ const TIPOS_DOC = [
 ];
 const TAMANHO_MAX_ANEXO = 10 * 1024 * 1024;
 
-type Fornecedor = { id: string; nome: string };
+type Fornecedor = { id: string; nome: string; nivel_dependencia?: string | null };
 type CentroCusto = { id: string; nome: string };
 type CustoFixo = { id: string; descricao: string; valor_mensal: number; dia_vencimento: number; categoria?: string | null; centro_custo_id?: string | null };
 
@@ -72,8 +73,10 @@ export default function ContasPagarPage() {
   const [custosFixos, setCustosFixos] = useState<CustoFixo[]>([]);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [emailUsuario, setEmailUsuario] = useState<string | null>(null);
   const [papel, setPapel] = useState<string | null>(null);
   const podeEditar = papel != null && PAPEIS_ESCRITA.includes(papel);
+  const [configAp, setConfigAp] = useState<ConfigAp | null>(null);
 
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
@@ -89,19 +92,22 @@ export default function ContasPagarPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     setUserId(user.id);
+    setEmailUsuario(user.email || null);
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     if (empId) setPapel(await obterMeuPapel(empId));
-    const [cp, { data: forn }, { data: cc }, { data: cf }] = await Promise.all([
+    const [cp, { data: forn }, { data: cc }, { data: cf }, cfgAp] = await Promise.all([
       listarContasPagar(),
-      supabase.from("fornecedores").select("id, nome").order("nome"),
+      supabase.from("fornecedores").select("id, nome, nivel_dependencia").order("nome"),
       supabase.from("centros_custo").select("id, nome").order("nome"),
       supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").order("dia_vencimento"),
+      empId ? obterConfigAp(empId) : Promise.resolve(null),
     ]);
     setContas(cp);
     setFornecedores(forn || []);
     setCentrosCusto(cc || []);
     setCustosFixos(cf || []);
+    setConfigAp(cfgAp);
     setLoading(false);
   }
 
@@ -197,7 +203,6 @@ export default function ContasPagarPage() {
 
   async function salvarConta() {
     if (!nc.descricao || !nc.valor_total || !nc.data_vencimento || !userId) return;
-    setSalvando(true);
     const dados = {
       fornecedor_id: nc.fornecedor_id || null, descricao: nc.descricao, numero_nota: nc.numero_nota || null,
       categoria: nc.categoria || "Outros", valor_total: parseFloat(nc.valor_total || "0"),
@@ -205,13 +210,98 @@ export default function ContasPagarPage() {
       forma_pagamento: nc.forma_pagamento, parcelas: parseInt(nc.parcelas || "1"),
       centro_custo_id: nc.centro_custo_id || null, observacoes: nc.observacoes || null,
     };
-    const resultado = editando ? await editarContaPagar(editando.id, dados) : await criarContaPagar(userId, empresaId, dados);
-    if (resultado.erro) {
+
+    if (editando) {
+      // Edição não passa pela checagem de duplicidade — a conta já existe,
+      // não está sendo criada de novo.
+      setSalvando(true);
+      const resultado = await editarContaPagar(editando.id, dados);
+      if (resultado.erro) {
+        showToast(L("Não foi possível salvar a conta. Tente novamente.", "Could not save the bill. Try again.", "No se pudo guardar la cuenta. Intente de nuevo."), "erro");
+        setSalvando(false);
+        return;
+      }
+      fecharModalConta(); await carregar(); setSalvando(false);
+      return;
+    }
+
+    // Nova conta: checa duplicidade ANTES de inserir (mesmo caminho serve
+    // pro formulário manual e pra Importar XML NF-e, que também termina
+    // caindo neste modal antes de salvar).
+    if (!empresaId) return;
+    setSalvando(true);
+    const { duplicatas } = await detectarDuplicata({
+      empresaId, fornecedorId: nc.fornecedor_id || null, valorTotal: dados.valor_total,
+      dataEmissao: nc.data_emissao || nc.data_vencimento, numeroNota: nc.numero_nota || null,
+      diasJanela: configAp?.dias_janela_duplicata,
+    });
+    const relevantes = duplicatas.filter((d) => d.score >= 70);
+    if (relevantes.length === 0) {
+      await inserirContaDeFato(dados);
+      return;
+    }
+    setDuplicatas(relevantes);
+    setDadosPendentes(dados);
+    setSenhaForcar(""); setErroForcar("");
+    setModalDuplicata(true);
+    await registrarAuditoriaAp(relevantes[0].contas_pagar_id, "duplicata_detectada", null, { candidata: dados, similares: relevantes });
+    setSalvando(false);
+  }
+
+  async function inserirContaDeFato(dados: Record<string, any>, ignorouDuplicata: boolean = false) {
+    if (!userId) return;
+    setSalvando(true);
+    const resultado = await criarContaPagar(userId, empresaId, dados);
+    if (resultado.erro || !resultado.id) {
       showToast(L("Não foi possível salvar a conta. Tente novamente.", "Could not save the bill. Try again.", "No se pudo guardar la cuenta. Intente de nuevo."), "erro");
       setSalvando(false);
       return;
     }
-    fecharModalConta(); await carregar(); setSalvando(false);
+    if (ignorouDuplicata) await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { duplicatas });
+    fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
+  }
+
+  // ========== COMMIT 2 — MODAL DE POSSÍVEL DUPLICATA ==========
+  const [modalDuplicata, setModalDuplicata] = useState(false);
+  const [duplicatas, setDuplicatas] = useState<DuplicataDetectada[]>([]);
+  const [dadosPendentes, setDadosPendentes] = useState<Record<string, any> | null>(null);
+  const [mostrarForcar, setMostrarForcar] = useState(false);
+  const [senhaForcar, setSenhaForcar] = useState("");
+  const [erroForcar, setErroForcar] = useState("");
+  const [forcando, setForcando] = useState(false);
+
+  const maiorScoreDuplicata = duplicatas.reduce((m, d) => Math.max(m, d.score), 0);
+  const duplicataBloqueada = maiorScoreDuplicata >= 90 && (configAp?.bloquear_duplicata ?? true);
+
+  function fecharModalDuplicata() {
+    setModalDuplicata(false); setDuplicatas([]); setDadosPendentes(null);
+    setMostrarForcar(false); setSenhaForcar(""); setErroForcar("");
+  }
+
+  async function salvarMesmoAssim() {
+    if (!dadosPendentes) return;
+    await inserirContaDeFato(dadosPendentes, true);
+  }
+
+  function vincularAExistente(dup: DuplicataDetectada) {
+    const existente = contas.find((c) => c.id === dup.contas_pagar_id);
+    if (!existente) return;
+    fecharModalDuplicata();
+    fecharModalConta();
+    abrirEdicaoConta(existente);
+  }
+
+  async function confirmarForcarSenha() {
+    if (!emailUsuario || !senhaForcar || !dadosPendentes) return;
+    setForcando(true); setErroForcar("");
+    const { error } = await supabase.auth.signInWithPassword({ email: emailUsuario, password: senhaForcar });
+    if (error) {
+      setErroForcar(L("Senha incorreta.", "Incorrect password.", "Contraseña incorrecta."));
+      setForcando(false);
+      return;
+    }
+    setForcando(false);
+    await inserirContaDeFato(dadosPendentes, true);
   }
 
   async function excluir(c: ContaPagar) {
@@ -639,6 +729,96 @@ export default function ContasPagarPage() {
                       </button>
                     </div>
                   </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL POSSÍVEL DUPLICATA (Entrega 2 — Commit 2) ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalDuplicata && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[110] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
+                <CanvasBox cor={VERMELHO}>
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+                        ⚠️ {L("Possível conta duplicada", "Possible duplicate bill", "Posible cuenta duplicada")}
+                      </h3>
+                    </div>
+                    <button onClick={fecharModalDuplicata} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+
+                  <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+                    {duplicatas.map((d) => (
+                      <div key={d.contas_pagar_id} className="p-3 rounded-xl flex items-center justify-between gap-3"
+                        style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${d.score >= 90 ? VERMELHO : AMBAR}40` }}>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {L("Nº nota", "Invoice no.", "Nº factura")} {d.numero_nota || "—"} · {fmt(d.valor_total)} · {L("emissão", "issued", "emisión")} {d.data_emissao ? new Date(d.data_emissao + "T00:00:00").toLocaleDateString("pt-BR") : "—"} · {L("vencimento", "due", "vencimiento")} {d.data_vencimento ? new Date(d.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className="px-2 py-1 rounded-lg text-xs font-black" style={{ background: `${d.score >= 90 ? VERMELHO : AMBAR}20`, color: d.score >= 90 ? VERMELHO : AMBAR }}>
+                            {d.score}%
+                          </span>
+                          {podeEditar && (
+                            <button onClick={() => vincularAExistente(d)} className="text-[10px] font-semibold underline" style={{ color: AZUL }}>
+                              {L("Vincular a esta", "Link to this one", "Vincular a esta")}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {duplicataBloqueada ? (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold" style={{ color: VERMELHO }}>
+                        {L("Semelhança muito alta — salvar foi bloqueado por padrão. Só dono/admin pode forçar, confirmando a senha.", "Very high similarity — saving was blocked by default. Only owner/admin can force it, confirming their password.", "Similitud muy alta — guardar fue bloqueado por defecto. Solo dueño/admin puede forzar, confirmando su contraseña.")}
+                      </p>
+                      {(papel === "dono" || papel === "admin") ? (
+                        !mostrarForcar ? (
+                          <div className="flex gap-3">
+                            <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                            <button onClick={() => setMostrarForcar(true)} className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #7f1d1d, #f87171)", color: "#fff" }}>
+                              {L("Forçar (senha do dono)", "Force (owner password)", "Forzar (contraseña del dueño)")}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <input type="password" value={senhaForcar} onChange={(e) => setSenhaForcar(e.target.value)}
+                              placeholder={L("Sua senha", "Your password", "Su contraseña")}
+                              className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(248,113,113,0.3)", color: "#c8d8f0" }} />
+                            {erroForcar && <p className="text-xs" style={{ color: VERMELHO }}>{erroForcar}</p>}
+                            <div className="flex gap-3">
+                              <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                              <button onClick={confirmarForcarSenha} disabled={forcando || !senhaForcar} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #7f1d1d, #f87171)", color: "#fff" }}>
+                                {forcando ? L("Confirmando...", "Confirming...", "Confirmando...") : L("Confirmar e Salvar", "Confirm and Save", "Confirmar y Guardar")}
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <button onClick={fecharModalDuplicata} className="w-full py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Entendi", "Got it", "Entendido")}</button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 flex-wrap">
+                      <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={salvarMesmoAssim} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
+                        {L("Salvar mesmo assim", "Save anyway", "Guardar de todos modos")}
+                      </button>
+                    </div>
+                  )}
                 </CanvasBox>
               </motion.div>
             </motion.div>

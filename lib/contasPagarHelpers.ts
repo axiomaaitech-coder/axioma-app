@@ -263,3 +263,89 @@ export async function checarNfeJaImportadaNoPdv(empresaId: string, chaveAcesso: 
     .eq("empresa_id", empresaId).eq("chave_acesso", chaveAcesso).maybeSingle();
   return (data as NfeJaImportada) || null;
 }
+
+// ============================================================================
+// ENTREGA 2 — INTELIGÊNCIA BÁSICA
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// CONFIG AP — 1 linha por empresa (empresa_config_ap). Sem linha ainda =
+// usa os mesmos defaults do banco (nunca trava a empresa por falta de config).
+// ----------------------------------------------------------------------------
+
+export type ConfigAp = {
+  limite_aprovacao_automatica: number;
+  aprovadores: string[];
+  bloquear_duplicata: boolean;
+  dias_janela_duplicata: number;
+};
+
+const CONFIG_AP_PADRAO: ConfigAp = {
+  limite_aprovacao_automatica: 500, aprovadores: [], bloquear_duplicata: true, dias_janela_duplicata: 30,
+};
+
+export async function obterConfigAp(empresaId: string): Promise<ConfigAp> {
+  const { data } = await supabase.from("empresa_config_ap")
+    .select("limite_aprovacao_automatica, aprovadores, bloquear_duplicata, dias_janela_duplicata")
+    .eq("empresa_id", empresaId).maybeSingle();
+  if (!data) return { ...CONFIG_AP_PADRAO };
+  return {
+    limite_aprovacao_automatica: Number(data.limite_aprovacao_automatica) || CONFIG_AP_PADRAO.limite_aprovacao_automatica,
+    aprovadores: data.aprovadores || [],
+    bloquear_duplicata: data.bloquear_duplicata ?? CONFIG_AP_PADRAO.bloquear_duplicata,
+    dias_janela_duplicata: Number(data.dias_janela_duplicata) || CONFIG_AP_PADRAO.dias_janela_duplicata,
+  };
+}
+
+export async function salvarConfigAp(empresaId: string, config: ConfigAp): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("empresa_config_ap")
+    .upsert({ empresa_id: empresaId, ...config, atualizado_em: new Date().toISOString() }, { onConflict: "empresa_id" })
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_config_ap", "upsert", motivo);
+    return { erro: motivo };
+  }
+  return {};
+}
+
+// ----------------------------------------------------------------------------
+// DETECÇÃO DE DUPLICIDADE — RPC ap_detectar_duplicata (mesmo fornecedor +
+// valor ±1% na janela, ou mesmo número de nota). Score >=70 = aviso,
+// score >=90 (+ bloquear_duplicata) = trava por padrão no client (Commit 2).
+// ----------------------------------------------------------------------------
+
+export type DuplicataDetectada = {
+  contas_pagar_id: string; descricao: string; numero_nota: string | null;
+  valor_total: number; data_emissao: string | null; data_vencimento: string | null; score: number;
+};
+
+export async function detectarDuplicata(params: {
+  empresaId: string; fornecedorId: string | null; valorTotal: number; dataEmissao: string; numeroNota?: string | null; diasJanela?: number;
+}): Promise<{ duplicatas: DuplicataDetectada[]; erro?: string }> {
+  const { data, error } = await supabase.rpc("ap_detectar_duplicata", {
+    p_empresa_id: params.empresaId, p_fornecedor_id: params.fornecedorId, p_valor_total: params.valorTotal,
+    p_data_emissao: params.dataEmissao, p_numero_nota: params.numeroNota || null, p_dias_janela: params.diasJanela ?? 30,
+  });
+  if (error) {
+    reportarFalhaEscrita("ap_detectar_duplicata", "rpc", error.message);
+    return { duplicatas: [], erro: error.message };
+  }
+  return { duplicatas: (data as DuplicataDetectada[]) || [] };
+}
+
+// ----------------------------------------------------------------------------
+// AUDITORIA MANUAL — eventos que não são INSERT/UPDATE/DELETE de verdade
+// (o trigger já cobre criou/editou/baixou/estornou/excluiu sozinho).
+// ----------------------------------------------------------------------------
+
+export async function registrarAuditoriaAp(contasPagarId: string, acao: string, antes?: any, depois?: any): Promise<{ erro?: string }> {
+  const { error } = await supabase.rpc("ap_registrar_auditoria", {
+    p_contas_pagar_id: contasPagarId, p_acao: acao, p_antes: antes ?? null, p_depois: depois ?? null,
+  });
+  if (error) {
+    reportarFalhaEscrita("ap_registrar_auditoria", "rpc", error.message);
+    return { erro: error.message };
+  }
+  return {};
+}

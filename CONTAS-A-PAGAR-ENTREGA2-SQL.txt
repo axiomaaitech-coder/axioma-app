@@ -1,0 +1,462 @@
+-- ============================================================================
+-- AXIOMA — Contas a Pagar, Entrega 2: Inteligência Básica (SQL). NÃO APLICADO
+-- — só pra revisão. Roda sobre a Entrega 1 já em produção (contas_pagar,
+-- contas_pagar_documentos, dedup do Fluxo de Caixa) — nada disso é recriado.
+--
+-- DECISÕES DE DIAGNÓSTICO (ver relatório junto desta entrega):
+--   - NÃO reaproveita a tabela centro_custo_auditoria (já grava ações de
+--     contas_pagar hoje, mas RLS é só auth.uid()=user_id, sem empresa_id —
+--     lacuna multi-tenant real, fora de escopo consertar aqui porque é
+--     tabela compartilhada por Fornecedores/Custos Fixos/Centros de Custo
+--     em produção). contas_pagar_auditoria nasce com empresa_id correto.
+--   - NÃO cria ap_calcular_cash_impact nem ap_priorizar_pagamentos como RPC
+--     — esse cálculo já existe em TypeScript (cfoCore.ts: detectarRupturaCaixa
+--     /projetarRecorrenciaMensal; cobrancaHelpers.ts: filaCobrancaPriorizada,
+--     mesmo padrão de fila-por-score). Vira função nova em
+--     contasPagarHelpers.ts no Commit 3, sem RPC — evita duplicar a mesma
+--     regra de negócio em SQL e em TS.
+--   - Coluna nova contas_pagar.taxa_multa_mensal (nullable): não existia
+--     campo de juros/multa em contas_pagar, e o score de prioridade
+--     (Commit 3) precisa disso pro fator "juros por atraso" — sem dado,
+--     esse fator fica 0 (mesmo padrão "sem dado não penaliza" do Score
+--     Axioma de Fornecedores), nunca inventado.
+--   - "Fornecedor essencial" (fator de criticidade do score) reaproveita
+--     fornecedores.nivel_dependencia = 'alto', que já existe — sem coluna
+--     nova.
+--   - "Aprovadores" reaproveita empresa_usuarios (mesma fonte de
+--     listarEquipe()) — dono da empresa pode SEMPRE decidir aprovação,
+--     mesmo que a lista aprovadores esteja vazia (evita travar a empresa
+--     sem ninguém habilitado a aprovar).
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0  — leitura: confirma contas_pagar, empresas, empresa_usuarios,
+--              empresas_do_usuario() existem
+--   PARTE 1  — coluna nova em contas_pagar (taxa_multa_mensal) + status novo
+--              (aguardando_aprovacao é só um valor de texto, sem ALTER)
+--   PARTE 2  — empresa_config_ap
+--   PARTE 3  — contas_pagar_aprovacao
+--   PARTE 4  — contas_pagar_auditoria
+--   PARTE 5  — RPCs (ap_detectar_duplicata, ap_solicitar_aprovacao,
+--              ap_decidir_aprovacao, ap_registrar_auditoria)
+--   PARTE 6  — trigger de auditoria automática em contas_pagar
+--   PARTE 7  — índices
+--   PARTE 8  — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DROP ... IF EXISTS antes de recriar) — pode
+-- rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_pagar';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresa_usuarios';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+
+-- ============================================================================
+-- PARTE 1 — CONTAS_PAGAR: coluna nova pro score de prioridade (Commit 3)
+-- ============================================================================
+-- Nullable de propósito — a maioria das contas não tem juros/multa
+-- combinados com o fornecedor. Quando vazio, o fator "juros por atraso" do
+-- score de prioridade fica 0, nunca inventado.
+
+ALTER TABLE public.contas_pagar
+  ADD COLUMN IF NOT EXISTS taxa_multa_mensal numeric;
+
+-- Nenhuma ALTER necessária pro status 'aguardando_aprovacao' — a coluna
+-- contas_pagar.status já é texto livre (sem CHECK constraint), o mesmo jeito
+-- que 'pago'/'parcial'/'vencido'/'pendente' já funcionam hoje.
+
+
+-- ============================================================================
+-- PARTE 2 — EMPRESA_CONFIG_AP: 1 linha por empresa
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.empresa_config_ap (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL UNIQUE REFERENCES public.empresas(id) ON DELETE CASCADE,
+  limite_aprovacao_automatica numeric NOT NULL DEFAULT 500,
+  aprovadores uuid[] NOT NULL DEFAULT '{}',
+  bloquear_duplicata boolean NOT NULL DEFAULT true,
+  dias_janela_duplicata integer NOT NULL DEFAULT 30,
+  criado_em timestamptz NOT NULL DEFAULT now(),
+  atualizado_em timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.empresa_config_ap ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS empresa_config_ap_empresa ON public.empresa_config_ap;
+CREATE POLICY empresa_config_ap_empresa ON public.empresa_config_ap
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 3 — CONTAS_PAGAR_APROVACAO
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.contas_pagar_aprovacao (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contas_pagar_id uuid NOT NULL REFERENCES public.contas_pagar(id) ON DELETE CASCADE,
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  solicitante_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+  aprovador_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  valor numeric NOT NULL,
+  status text NOT NULL DEFAULT 'pendente', -- pendente | aprovada | rejeitada | auto_aprovada
+  motivo text,
+  decidido_em timestamptz,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.contas_pagar_aprovacao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contas_pagar_aprovacao_empresa ON public.contas_pagar_aprovacao;
+CREATE POLICY contas_pagar_aprovacao_empresa ON public.contas_pagar_aprovacao
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 4 — CONTAS_PAGAR_AUDITORIA (tabela nova — ver nota de diagnóstico no
+-- topo do arquivo sobre por que não reaproveita centro_custo_auditoria)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.contas_pagar_auditoria (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contas_pagar_id uuid NOT NULL REFERENCES public.contas_pagar(id) ON DELETE CASCADE,
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  usuario_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  acao text NOT NULL, -- criou | editou | baixou | estornou | excluiu | aprovou | rejeitou | duplicata_detectada | duplicata_ignorada
+  antes jsonb,
+  depois jsonb,
+  ip text,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.contas_pagar_auditoria ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contas_pagar_auditoria_empresa ON public.contas_pagar_auditoria;
+CREATE POLICY contas_pagar_auditoria_empresa ON public.contas_pagar_auditoria
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 5 — RPCs
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 5.1) ap_detectar_duplicata — mesmo fornecedor + valor ±1% dentro da janela,
+-- OU mesmo número de nota (não vazio). Score: 60 (só janela+valor), +25 se
+-- numero_nota bate, +15 se a data de emissão é a mesma dia. Empresa vem do
+-- contexto (auth.uid() via empresas_do_usuario()), nunca aceita de fora —
+-- evita um usuário pedir duplicata de empresa alheia.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.ap_detectar_duplicata(
+  p_empresa_id uuid,
+  p_fornecedor_id uuid,
+  p_valor_total numeric,
+  p_data_emissao date,
+  p_numero_nota text DEFAULT NULL,
+  p_dias_janela integer DEFAULT 30
+)
+RETURNS TABLE (
+  contas_pagar_id uuid,
+  descricao text,
+  numero_nota text,
+  valor_total numeric,
+  data_emissao date,
+  data_vencimento date,
+  score integer
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    cp.id, cp.descricao, cp.numero_nota, cp.valor_total, cp.data_emissao, cp.data_vencimento,
+    (
+      60
+      + CASE WHEN p_numero_nota IS NOT NULL AND p_numero_nota <> '' AND cp.numero_nota = p_numero_nota THEN 25 ELSE 0 END
+      + CASE WHEN cp.data_emissao = p_data_emissao THEN 15 ELSE 0 END
+    )::integer AS score
+  FROM public.contas_pagar cp
+  WHERE cp.empresa_id = p_empresa_id
+    AND cp.fornecedor_id IS NOT DISTINCT FROM p_fornecedor_id
+    AND cp.data_emissao IS NOT NULL
+    AND cp.data_emissao BETWEEN (p_data_emissao - (p_dias_janela || ' days')::interval) AND (p_data_emissao + (p_dias_janela || ' days')::interval)
+    AND (
+      (p_valor_total > 0 AND ABS(cp.valor_total - p_valor_total) <= (p_valor_total * 0.01))
+      OR (p_numero_nota IS NOT NULL AND p_numero_nota <> '' AND cp.numero_nota = p_numero_nota)
+    )
+  ORDER BY score DESC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ap_detectar_duplicata(uuid, uuid, numeric, date, text, integer) FROM public;
+GRANT EXECUTE ON FUNCTION public.ap_detectar_duplicata(uuid, uuid, numeric, date, text, integer) TO authenticated;
+
+
+-- ----------------------------------------------------------------------------
+-- 5.2) ap_registrar_auditoria — helper interno, chamado pelo trigger (Parte 6)
+-- E diretamente pelo client pra eventos que não são INSERT/UPDATE/DELETE de
+-- verdade (duplicata_detectada, duplicata_ignorada, aprovou, rejeitou).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.ap_registrar_auditoria(
+  p_contas_pagar_id uuid,
+  p_acao text,
+  p_antes jsonb DEFAULT NULL,
+  p_depois jsonb DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_id uuid;
+BEGIN
+  SELECT empresa_id INTO v_empresa_id FROM public.contas_pagar WHERE id = p_contas_pagar_id;
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Conta a pagar % não encontrada', p_contas_pagar_id;
+  END IF;
+  IF v_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  INSERT INTO public.contas_pagar_auditoria (contas_pagar_id, empresa_id, usuario_id, acao, antes, depois)
+  VALUES (p_contas_pagar_id, v_empresa_id, auth.uid(), p_acao, p_antes, p_depois)
+  RETURNING id INTO v_id;
+
+  RETURN v_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ap_registrar_auditoria(uuid, text, jsonb, jsonb) FROM public;
+GRANT EXECUTE ON FUNCTION public.ap_registrar_auditoria(uuid, text, jsonb, jsonb) TO authenticated;
+
+
+-- ----------------------------------------------------------------------------
+-- 5.3) ap_solicitar_aprovacao — se valor > limite, cria aprovação pendente E
+-- marca a conta como 'aguardando_aprovacao' (trava o pagamento até decidir —
+-- ver darBaixaContaPagar no Commit 4, que passa a checar esse status). Se
+-- dentro do limite, marca auto_aprovada e não mexe no status da conta.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.ap_solicitar_aprovacao(p_contas_pagar_id uuid)
+RETURNS TABLE (aprovacao_id uuid, status text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_valor numeric;
+  v_limite numeric;
+  v_status text;
+  v_id uuid;
+BEGIN
+  SELECT empresa_id, valor_total INTO v_empresa_id, v_valor FROM public.contas_pagar WHERE id = p_contas_pagar_id;
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Conta a pagar % não encontrada', p_contas_pagar_id;
+  END IF;
+  IF v_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  SELECT limite_aprovacao_automatica INTO v_limite FROM public.empresa_config_ap WHERE empresa_id = v_empresa_id;
+  v_limite := COALESCE(v_limite, 500); -- empresa sem linha de config ainda = usa o padrão (500)
+
+  IF v_valor > v_limite THEN
+    v_status := 'pendente';
+  ELSE
+    v_status := 'auto_aprovada';
+  END IF;
+
+  INSERT INTO public.contas_pagar_aprovacao (contas_pagar_id, empresa_id, solicitante_id, valor, status, decidido_em)
+  VALUES (p_contas_pagar_id, v_empresa_id, auth.uid(), v_valor, v_status, CASE WHEN v_status = 'auto_aprovada' THEN now() ELSE NULL END)
+  RETURNING id INTO v_id;
+
+  IF v_status = 'pendente' THEN
+    UPDATE public.contas_pagar SET status = 'aguardando_aprovacao' WHERE id = p_contas_pagar_id;
+  END IF;
+
+  RETURN QUERY SELECT v_id, v_status;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ap_solicitar_aprovacao(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.ap_solicitar_aprovacao(uuid) TO authenticated;
+
+
+-- ----------------------------------------------------------------------------
+-- 5.4) ap_decidir_aprovacao — só quem está em empresa_config_ap.aprovadores
+-- OU é o dono da empresa (fail-safe: lista de aprovadores vazia nunca deixa
+-- a empresa sem ninguém que possa decidir). Ao aprovar, devolve a conta pro
+-- status calculado por valor/pago/vencimento (o client recalcula e chama
+-- editarContaPagar — esta função só desbloqueia, não decide o status final,
+-- porque só o app sabe se já foi paga/vencida).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.ap_decidir_aprovacao(
+  p_aprovacao_id uuid,
+  p_decisao text,
+  p_motivo text DEFAULT NULL
+)
+RETURNS TABLE (contas_pagar_id uuid, status text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id uuid;
+  v_contas_pagar_id uuid;
+  v_dono_id uuid;
+  v_aprovadores uuid[];
+  v_pode_decidir boolean;
+BEGIN
+  IF p_decisao NOT IN ('aprovada', 'rejeitada') THEN
+    RAISE EXCEPTION 'Decisão inválida: %', p_decisao;
+  END IF;
+
+  SELECT empresa_id, contas_pagar_id INTO v_empresa_id, v_contas_pagar_id
+  FROM public.contas_pagar_aprovacao WHERE id = p_aprovacao_id AND status = 'pendente';
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Aprovação % não encontrada ou já decidida', p_aprovacao_id;
+  END IF;
+  IF v_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  SELECT user_id INTO v_dono_id FROM public.empresas WHERE id = v_empresa_id;
+  SELECT aprovadores INTO v_aprovadores FROM public.empresa_config_ap WHERE empresa_id = v_empresa_id;
+  v_pode_decidir := (auth.uid() = v_dono_id) OR (v_aprovadores IS NOT NULL AND auth.uid() = ANY(v_aprovadores));
+
+  IF NOT v_pode_decidir THEN
+    RAISE EXCEPTION 'Você não está habilitado a aprovar contas desta empresa';
+  END IF;
+
+  UPDATE public.contas_pagar_aprovacao
+  SET status = p_decisao, motivo = p_motivo, aprovador_id = auth.uid(), decidido_em = now()
+  WHERE id = p_aprovacao_id;
+
+  -- rejeitada: volta pro estado anterior (pendente/vencido, recalculado pelo
+  -- client). aprovada: sai de 'aguardando_aprovacao', também recalculado
+  -- pelo client (calcStatus já existe em fornecedorHelpers.ts — não duplicado
+  -- aqui em SQL).
+  UPDATE public.contas_pagar SET status = 'pendente' WHERE id = v_contas_pagar_id AND status = 'aguardando_aprovacao';
+
+  PERFORM public.ap_registrar_auditoria(v_contas_pagar_id, CASE WHEN p_decisao = 'aprovada' THEN 'aprovou' ELSE 'rejeitou' END, NULL, jsonb_build_object('motivo', p_motivo));
+
+  RETURN QUERY SELECT v_contas_pagar_id, 'pendente'::text;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.ap_decidir_aprovacao(uuid, text, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.ap_decidir_aprovacao(uuid, text, text) TO authenticated;
+
+
+-- ============================================================================
+-- PARTE 6 — TRIGGER DE AUDITORIA AUTOMÁTICA em contas_pagar
+-- ============================================================================
+-- Cobre criou/editou/excluiu mesmo se algum caminho de código futuro
+-- esquecer de registrar manualmente (a Fase 1 do Fluxo de Caixa/Fornecedores
+-- não chama nada disso — o trigger garante que nada escapa, sem depender de
+-- toda tela lembrar de chamar um helper).
+
+CREATE OR REPLACE FUNCTION public.fn_contas_pagar_auditoria_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO public.contas_pagar_auditoria (contas_pagar_id, empresa_id, usuario_id, acao, antes, depois)
+    VALUES (NEW.id, NEW.empresa_id, auth.uid(), 'criou', NULL, to_jsonb(NEW));
+    RETURN NEW;
+  ELSIF TG_OP = 'UPDATE' THEN
+    INSERT INTO public.contas_pagar_auditoria (contas_pagar_id, empresa_id, usuario_id, acao, antes, depois)
+    VALUES (
+      NEW.id, NEW.empresa_id, auth.uid(),
+      CASE
+        WHEN OLD.status <> 'pago' AND NEW.status = 'pago' THEN 'baixou'
+        WHEN OLD.status = 'pago' AND NEW.status <> 'pago' THEN 'estornou'
+        ELSE 'editou'
+      END,
+      to_jsonb(OLD), to_jsonb(NEW)
+    );
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    INSERT INTO public.contas_pagar_auditoria (contas_pagar_id, empresa_id, usuario_id, acao, antes, depois)
+    VALUES (OLD.id, OLD.empresa_id, auth.uid(), 'excluiu', to_jsonb(OLD), NULL);
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_contas_pagar_auditoria ON public.contas_pagar;
+CREATE TRIGGER trg_contas_pagar_auditoria
+AFTER INSERT OR UPDATE OR DELETE ON public.contas_pagar
+FOR EACH ROW EXECUTE FUNCTION public.fn_contas_pagar_auditoria_trigger();
+
+
+-- ============================================================================
+-- PARTE 7 — ÍNDICES
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_auditoria_empresa_criado ON public.contas_pagar_auditoria (empresa_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_auditoria_empresa_conta ON public.contas_pagar_auditoria (empresa_id, contas_pagar_id);
+
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_aprovacao_empresa_status ON public.contas_pagar_aprovacao (empresa_id, status);
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_aprovacao_empresa_conta ON public.contas_pagar_aprovacao (empresa_id, contas_pagar_id);
+
+
+-- ============================================================================
+-- PARTE 8 — VERIFICAÇÃO (só leitura — rodar depois das partes 1-7)
+-- ============================================================================
+
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'contas_pagar' AND column_name = 'taxa_multa_mensal';
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('empresa_config_ap', 'contas_pagar_aprovacao', 'contas_pagar_auditoria');
+
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public'
+  AND routine_name IN ('ap_detectar_duplicata', 'ap_registrar_auditoria', 'ap_solicitar_aprovacao', 'ap_decidir_aprovacao', 'fn_contas_pagar_auditoria_trigger');
+
+SELECT trigger_name FROM information_schema.triggers WHERE event_object_table = 'contas_pagar' AND trigger_name = 'trg_contas_pagar_auditoria';
+
+SELECT tablename, policyname FROM pg_policies WHERE tablename IN ('empresa_config_ap', 'contas_pagar_aprovacao', 'contas_pagar_auditoria');
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP TRIGGER IF EXISTS trg_contas_pagar_auditoria ON public.contas_pagar;
+-- DROP FUNCTION IF EXISTS public.fn_contas_pagar_auditoria_trigger();
+-- DROP FUNCTION IF EXISTS public.ap_decidir_aprovacao(uuid, text, text);
+-- DROP FUNCTION IF EXISTS public.ap_solicitar_aprovacao(uuid);
+-- DROP FUNCTION IF EXISTS public.ap_registrar_auditoria(uuid, text, jsonb, jsonb);
+-- DROP FUNCTION IF EXISTS public.ap_detectar_duplicata(uuid, uuid, numeric, date, text, integer);
+--
+-- DROP TABLE IF EXISTS public.contas_pagar_auditoria;
+-- DROP TABLE IF EXISTS public.contas_pagar_aprovacao;
+-- DROP TABLE IF EXISTS public.empresa_config_ap;
+--
+-- ALTER TABLE public.contas_pagar DROP COLUMN IF EXISTS taxa_multa_mensal;
