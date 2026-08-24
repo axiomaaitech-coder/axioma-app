@@ -3,13 +3,14 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
-  Upload, FileText, AlertTriangle, Sparkles, Landmark,
+  Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../lib/empresaHelpers";
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe } from "../../../lib/importarParsers";
@@ -151,6 +152,20 @@ export default function ContasPagarPage() {
     if (s === "vencido") return VERMELHO;
     return CINZA;
   }
+
+  // ========== COMPARTILHAR — reaproveita 100% CentroCompartilhamento ==========
+  const [shareAberto, setShareAberto] = useState(false);
+  const textoResumo = L(
+    `Contas a Pagar Axioma: em aberto ${fmt(kpis.totalEmAberto)}, vencendo em 7 dias ${fmt(kpis.vencendoEm7)}, vencidas ${fmt(kpis.vencidas)}.`,
+    `Axioma Accounts Payable: outstanding ${fmt(kpis.totalEmAberto)}, due in 7 days ${fmt(kpis.vencendoEm7)}, overdue ${fmt(kpis.vencidas)}.`,
+    `Cuentas por Pagar Axioma: abierto ${fmt(kpis.totalEmAberto)}, vence en 7 días ${fmt(kpis.vencendoEm7)}, vencidas ${fmt(kpis.vencidas)}.`,
+  );
+  const textoDetalhado = [
+    `🦅 AXIOMA AI.TECH — ${L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")} (${L("detalhado", "detailed", "detallado")})`,
+    ...contasFiltradas.map((c) =>
+      `${c.descricao} | ${nomeFornecedor(c.fornecedor_id)} | ${c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${statusLabel(c.status)} | ${fmt(c.valor_total)}`
+    ),
+  ].join("\n");
 
   // ========== MODAL NOVA/EDITAR CONTA ==========
   const [modalConta, setModalConta] = useState(false);
@@ -382,21 +397,30 @@ export default function ContasPagarPage() {
       subtitulo={L("Central de obrigações com fornecedores — vencimentos, baixas e anexos num só lugar.", "Supplier obligations center — due dates, payments and attachments in one place.", "Central de obligaciones con proveedores — vencimientos, pagos y adjuntos en un solo lugar.")}
       onNovo={podeEditar ? abrirNovaConta : undefined}
       labelBotao={L("Nova Conta", "New Bill", "Nueva Cuenta")}
-      botaoExtra={podeEditar ? (
+      botaoExtra={
         <>
-          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setModalCustoFixo(true)}
+          {podeEditar && (
+            <>
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setModalCustoFixo(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+                style={{ background: "rgba(167,139,250,0.15)", color: ROXO, border: "1px solid rgba(167,139,250,0.3)" }}>
+                <Landmark size={16} />{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}
+              </motion.button>
+              <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer"
+                style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                <Upload size={16} />{processandoNfe ? L("Lendo…", "Reading…", "Leyendo…") : L("Importar XML NF-e", "Import NF-e XML", "Importar XML NF-e")}
+                <input type="file" accept=".xml" className="hidden" disabled={processandoNfe}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) importarXmlNfe(f); e.target.value = ""; }} />
+              </label>
+            </>
+          )}
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: "rgba(167,139,250,0.15)", color: ROXO, border: "1px solid rgba(167,139,250,0.3)" }}>
-            <Landmark size={16} />{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}
+            style={{ background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+            <Share2 size={16} />{L("Compartilhar", "Share", "Compartir")}
           </motion.button>
-          <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer"
-            style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
-            <Upload size={16} />{processandoNfe ? L("Lendo…", "Reading…", "Leyendo…") : L("Importar XML NF-e", "Import NF-e XML", "Importar XML NF-e")}
-            <input type="file" accept=".xml" className="hidden" disabled={processandoNfe}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) importarXmlNfe(f); e.target.value = ""; }} />
-          </label>
         </>
-      ) : undefined}
+      }
     >
       {!podeEditar && papel && (
         <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: AMBAR }}>
@@ -406,22 +430,25 @@ export default function ContasPagarPage() {
       )}
 
       {avisoNfeDuplicada && (
-        <div className="mb-4 p-4 rounded-xl" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}>
-          <p className="text-sm font-semibold mb-2" style={{ color: AMBAR }}>
-            {L(`Esta NF-e já foi importada pelo PDV para estoque em ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("pt-BR")}. Deseja vincular esta conta a pagar à compra existente?`,
-              `This NF-e was already imported by the POS into inventory on ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("en-US")}. Link this bill to the existing purchase?`,
-              `Esta NF-e ya fue importada por el PDV al inventario el ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("es-ES")}. ¿Vincular esta cuenta a la compra existente?`)}
-          </p>
-          <div className="flex gap-2">
-            <button onClick={() => abrirModalComDadosNfe(avisoNfeDuplicada.dados, avisoNfeDuplicada.nfe.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>
-              {L("Sim, vincular", "Yes, link", "Sí, vincular")}
-            </button>
-            <button onClick={() => setAvisoNfeDuplicada(null)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: CINZA }}>
-              {L("Não", "No", "No")}
-            </button>
-          </div>
+        <div className="mb-4">
+          <CanvasBox cor={AMBAR}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+            <p className="text-sm font-semibold mb-3" style={{ color: "#c8d8f0" }}>
+              {L(`Esta NF-e já foi importada pelo PDV para estoque em ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("pt-BR")}. Deseja vincular esta conta a pagar à compra existente?`,
+                `This NF-e was already imported by the POS into inventory on ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("en-US")}. Link this bill to the existing purchase?`,
+                `Esta NF-e ya fue importada por el PDV al inventario el ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("es-ES")}. ¿Vincular esta cuenta a la compra existente?`)}
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => abrirModalComDadosNfe(avisoNfeDuplicada.dados, avisoNfeDuplicada.nfe.id)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>
+                {L("Sim, vincular", "Yes, link", "Sí, vincular")}
+              </button>
+              <button onClick={() => setAvisoNfeDuplicada(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: CINZA }}>
+                {L("Não", "No", "No")}
+              </button>
+            </div>
+          </CanvasBox>
         </div>
       )}
 
@@ -528,7 +555,10 @@ export default function ContasPagarPage() {
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
                 <CanvasBox cor={AMBAR}>
                   <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? L("Editar Conta a Pagar", "Edit Bill", "Editar Cuenta a Pagar") : L("Nova Conta a Pagar", "New Bill", "Nueva Cuenta a Pagar")}</h3>
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? L("Editar Conta a Pagar", "Edit Bill", "Editar Cuenta a Pagar") : L("Nova Conta a Pagar", "New Bill", "Nueva Cuenta a Pagar")}</h3>
+                    </div>
                     <button onClick={fecharModalConta} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <div className="space-y-3">
@@ -627,7 +657,10 @@ export default function ContasPagarPage() {
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
                 <CanvasBox cor={VERDE}>
                   <div className="flex justify-between items-center mb-5">
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Dar Baixa", "Register Payment", "Registrar Pago")}</h3>
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Dar Baixa", "Register Payment", "Registrar Pago")}</h3>
+                    </div>
                     <button onClick={fecharBaixa} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{contaBaixa.descricao}</p>
@@ -672,7 +705,10 @@ export default function ContasPagarPage() {
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
                 <CanvasBox cor={ROXO}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}</h3>
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}</h3>
+                    </div>
                     <button onClick={() => setModalCustoFixo(false)} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{L(`Custos fixos do mês ${mesAtual} — clique em Gerar para criar a conta a pagar correspondente.`, `Fixed costs for ${mesAtual} — click Generate to create the matching bill.`, `Costos fijos de ${mesAtual} — haga clic en Generar para crear la cuenta correspondiente.`)}</p>
@@ -713,7 +749,10 @@ export default function ContasPagarPage() {
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
                 <CanvasBox cor={AZUL}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Anexos", "Attachments", "Adjuntos")}</h3>
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Anexos", "Attachments", "Adjuntos")}</h3>
+                    </div>
                     <button onClick={fecharAnexo} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{contaAnexo.descricao}</p>
@@ -756,6 +795,16 @@ export default function ContasPagarPage() {
           )}
         </AnimatePresence>, document.body
       )}
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={idioma}
+        textoResumo={textoResumo}
+        textoDetalhado={textoDetalhado}
+        assunto={`${L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")} — Axioma`}
+        cor={AZUL}
+      />
     </ModuloLayout>
   );
 }
