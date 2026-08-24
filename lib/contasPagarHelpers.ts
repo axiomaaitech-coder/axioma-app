@@ -7,6 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
+import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, type EventoCaixa, type RupturaCaixa } from "./cfoCore";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +37,7 @@ export type ContaPagar = {
   observacoes?: string | null;
   centro_custo_id?: string | null;
   custo_fixo_id?: string | null;
+  taxa_multa_mensal?: number | null;
   user_id?: string;
   empresa_id?: string | null;
   created_at?: string;
@@ -348,4 +350,123 @@ export async function registrarAuditoriaAp(contasPagarId: string, acao: string, 
     return { erro: error.message };
   }
   return {};
+}
+
+// ----------------------------------------------------------------------------
+// IMPACTO NO CAIXA — 100% TypeScript, reaproveitando o mesmo motor do Fluxo
+// de Caixa (cfoCore.ts: detectarRupturaCaixa/projetarRecorrenciaMensal),
+// já com o dedup de custo fixo da Entrega 1. Nenhuma RPC — ver nota de
+// diagnóstico no topo do SQL da Entrega 2 sobre por quê.
+// ----------------------------------------------------------------------------
+
+export type ImpactoCaixa = {
+  saldoAtual: number;
+  saldoProjetado30dComPagamentos: number;
+  saldoProjetado30dSemPagamentos: number;
+  ruptura: RupturaCaixa | null;
+};
+
+const HORIZONTE_IMPACTO_DIAS = 30;
+
+export async function calcularImpactoCaixa(empresaId: string): Promise<ImpactoCaixa> {
+  const hoje = new Date().toISOString().split("T")[0];
+  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }] = await Promise.all([
+    supabase.from("fluxo_caixa").select("valor, tipo, status"),
+    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
+    supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id"),
+    supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento"),
+  ]);
+
+  const saldoAtual = (fc || []).filter((l: any) => l.status === "realizado")
+    .reduce((s: number, l: any) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
+
+  const entradas: EventoCaixa[] = (cr || [])
+    .filter((c: any) => c.data_vencimento && c.data_vencimento >= hoje)
+    .map((c: any) => ({ data: c.data_vencimento, valor: Math.max(0, Number(c.valor || 0) - Number(c.valor_recebido || 0)) }))
+    .filter((e: EventoCaixa) => e.valor > 0);
+
+  const saidasContasPagar: EventoCaixa[] = (cp || [])
+    .filter((c: any) => c.data_vencimento && c.data_vencimento >= hoje)
+    .map((c: any) => ({ data: c.data_vencimento, valor: Math.max(0, Number(c.valor_total || 0) - Number(c.valor_pago || 0)) }))
+    .filter((e: EventoCaixa) => e.valor > 0);
+
+  // Mesma regra de dedup do Fluxo de Caixa: custo fixo do mês que já virou
+  // contas_pagar não entra 2x (uma vez como conta a pagar, outra como
+  // projeção do custo fixo).
+  const mesesJaGerados = new Set(
+    (cp || []).filter((c: any) => c.custo_fixo_id && c.data_vencimento).map((c: any) => `${c.custo_fixo_id}|${String(c.data_vencimento).slice(0, 7)}`)
+  );
+  const saidasCustosFixos: EventoCaixa[] = (cf || []).flatMap((c: any) => {
+    if (!c.valor_mensal || !c.dia_vencimento) return [];
+    const proxima = proximaOcorrenciaDoDia(Number(c.dia_vencimento));
+    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, HORIZONTE_IMPACTO_DIAS)
+      .filter((ev) => !mesesJaGerados.has(`${c.id}|${ev.data.slice(0, 7)}`));
+  });
+
+  const dentroDoHorizonte = (e: EventoCaixa) => {
+    const dias = Math.round((new Date(e.data + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000);
+    return dias >= 0 && dias <= HORIZONTE_IMPACTO_DIAS;
+  };
+  const somaNoHorizonte = (eventos: EventoCaixa[]) => eventos.filter(dentroDoHorizonte).reduce((s, e) => s + e.valor, 0);
+
+  const totalEntradas30d = somaNoHorizonte(entradas);
+  const totalSaidasCustosFixos30d = somaNoHorizonte(saidasCustosFixos);
+  const totalSaidasContasPagar30d = somaNoHorizonte(saidasContasPagar);
+
+  const saidasComPagamentos = [...saidasContasPagar, ...saidasCustosFixos];
+  const ruptura = detectarRupturaCaixa(saldoAtual, entradas, saidasComPagamentos, HORIZONTE_IMPACTO_DIAS);
+
+  return {
+    saldoAtual,
+    saldoProjetado30dComPagamentos: saldoAtual + totalEntradas30d - totalSaidasCustosFixos30d - totalSaidasContasPagar30d,
+    saldoProjetado30dSemPagamentos: saldoAtual + totalEntradas30d - totalSaidasCustosFixos30d,
+    ruptura,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// PRIORIDADE DE PAGAMENTO — mesmo padrão de filaCobrancaPriorizada
+// (cobrancaHelpers.ts): função pura sobre dados já carregados pela tela,
+// sem fetch/RPC próprios. Score = proximidade_vencimento (40%) +
+// juros_por_atraso (30%, taxa_multa_mensal — sem dado = 0, nunca inventado)
+// + criticidade_fornecedor (20%, nivel_dependencia='alto') + valor_alto (10%,
+// relativo à maior conta pendente do lote).
+// ----------------------------------------------------------------------------
+
+export type ItemPrioridadePagamento = { conta: ContaPagar; score: number; explicacao: string };
+
+export function priorizarPagamentos(
+  contas: ContaPagar[],
+  fornecedores: { id: string; nivel_dependencia?: string | null }[],
+  lang: "pt" | "en" | "es" = "pt",
+): ItemPrioridadePagamento[] {
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const pendentes = contas.filter((c) => c.status !== "pago" && c.status !== "aguardando_aprovacao");
+  if (pendentes.length === 0) return [];
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const maiorValor = Math.max(...pendentes.map((c) => c.valor_total || 0), 1);
+  const fornecedorDe = (id?: string | null) => fornecedores.find((f) => f.id === id) || null;
+
+  return pendentes.map((c) => {
+    const diasParaVencer = c.data_vencimento
+      ? Math.round((new Date(c.data_vencimento + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000)
+      : 999;
+    const fatorVencimento = diasParaVencer <= 0 ? 100 : Math.max(0, 100 - (Math.min(diasParaVencer, 30) / 30) * 100);
+    const taxaMulta = Number(c.taxa_multa_mensal) || 0;
+    const fatorJuros = Math.min(100, taxaMulta * 20);
+    const nivelDep = fornecedorDe(c.fornecedor_id)?.nivel_dependencia;
+    const fatorCriticidade = nivelDep === "alto" ? 100 : nivelDep === "medio" ? 50 : 0;
+    const fatorValor = ((c.valor_total || 0) / maiorValor) * 100;
+    const score = Math.round(fatorVencimento * 0.4 + fatorJuros * 0.3 + fatorCriticidade * 0.2 + fatorValor * 0.1);
+
+    const motivos: string[] = [];
+    if (diasParaVencer < 0) motivos.push(L(`vencida há ${Math.abs(diasParaVencer)} dias`, `overdue by ${Math.abs(diasParaVencer)} days`, `vencida hace ${Math.abs(diasParaVencer)} días`));
+    else if (diasParaVencer <= 7) motivos.push(L(`vence em ${diasParaVencer} dias`, `due in ${diasParaVencer} days`, `vence en ${diasParaVencer} días`));
+    if (taxaMulta > 0) motivos.push(L(`juros ${taxaMulta}%/mês`, `${taxaMulta}%/mo. interest`, `interés ${taxaMulta}%/mes`));
+    if (nivelDep === "alto") motivos.push(L("fornecedor essencial", "essential supplier", "proveedor esencial"));
+    if (fatorValor >= 80) motivos.push(L("valor alto", "high amount", "monto alto"));
+
+    return { conta: c, score, explicacao: motivos.join(" + ") || L("prioridade baixa", "low priority", "prioridad baja") };
+  }).sort((a, b) => b.score - a.score);
 }

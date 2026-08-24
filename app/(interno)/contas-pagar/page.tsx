@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
+  TrendingUp, TrendingDown, Pin, Gauge,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -21,6 +22,7 @@ import {
   gerarContaDeCustoFixo, listarDocumentos, anexarDocumento, excluirDocumento, gerarUrlDocumento,
   classificarCategoria, checarNfeJaImportadaNoPdv,
   obterConfigAp, detectarDuplicata, registrarAuditoriaAp,
+  calcularImpactoCaixa, priorizarPagamentos, type ImpactoCaixa, type ItemPrioridadePagamento,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -52,7 +54,7 @@ type CustoFixo = { id: string; descricao: string; valor_mensal: number; dia_venc
 const contaVazia = {
   fornecedor_id: "", descricao: "", numero_nota: "", categoria: "" as string,
   valor_total: "", data_emissao: "", data_vencimento: "", forma_pagamento: FORMAS_PAGAMENTO[0],
-  parcelas: "1", centro_custo_id: "", observacoes: "",
+  parcelas: "1", centro_custo_id: "", observacoes: "", taxa_multa_mensal: "",
 };
 
 export default function ContasPagarPage() {
@@ -173,6 +175,34 @@ export default function ContasPagarPage() {
     ),
   ].join("\n");
 
+  // ========== COMMIT 3 — ABA INTELIGÊNCIA (impacto no caixa + prioridade) ==========
+  const [aba, setAba] = useState<"central" | "inteligencia">("central");
+  const [impactoCaixa, setImpactoCaixa] = useState<ImpactoCaixa | null>(null);
+  const [carregandoImpacto, setCarregandoImpacto] = useState(false);
+  const [proximasAPagar, setProximasAPagar] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (aba !== "inteligencia" || !empresaId || impactoCaixa) return;
+    (async () => {
+      setCarregandoImpacto(true);
+      setImpactoCaixa(await calcularImpactoCaixa(empresaId));
+      setCarregandoImpacto(false);
+    })();
+  }, [aba, empresaId]);
+
+  const prioridades: ItemPrioridadePagamento[] = useMemo(
+    () => priorizarPagamentos(contas, fornecedores, idioma as "pt" | "en" | "es"),
+    [contas, fornecedores, idioma]
+  );
+
+  function alternarProximaAPagar(id: string) {
+    setProximasAPagar((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id); else novo.add(id);
+      return novo;
+    });
+  }
+
   // ========== MODAL NOVA/EDITAR CONTA ==========
   const [modalConta, setModalConta] = useState(false);
   const [editando, setEditando] = useState<ContaPagar | null>(null);
@@ -189,6 +219,7 @@ export default function ContasPagarPage() {
       data_emissao: c.data_emissao || "", data_vencimento: c.data_vencimento || "",
       forma_pagamento: c.forma_pagamento || FORMAS_PAGAMENTO[0], parcelas: String(c.parcelas || "1"),
       centro_custo_id: c.centro_custo_id || "", observacoes: c.observacoes || "",
+      taxa_multa_mensal: c.taxa_multa_mensal != null ? String(c.taxa_multa_mensal) : "",
     });
     setSugestaoCategoria(null);
     setModalConta(true);
@@ -209,6 +240,7 @@ export default function ContasPagarPage() {
       valor_pago: editando?.valor_pago || 0, data_emissao: nc.data_emissao || null, data_vencimento: nc.data_vencimento,
       forma_pagamento: nc.forma_pagamento, parcelas: parseInt(nc.parcelas || "1"),
       centro_custo_id: nc.centro_custo_id || null, observacoes: nc.observacoes || null,
+      taxa_multa_mensal: nc.taxa_multa_mensal ? parseFloat(nc.taxa_multa_mensal) : null,
     };
 
     if (editando) {
@@ -542,87 +574,186 @@ export default function ContasPagarPage() {
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: L("Total em Aberto", "Total Outstanding", "Total Abierto"), valor: kpis.totalEmAberto, cor: AMBAR },
-          { label: L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días"), valor: kpis.vencendoEm7, cor: AZUL },
-          { label: L("Vencidas", "Overdue", "Vencidas"), valor: kpis.vencidas, cor: VERMELHO },
-          { label: L("Pagas no Mês", "Paid this Month", "Pagadas este Mes"), valor: kpis.pagasNoMes, cor: VERDE },
-        ].map((k) => (
-          <CanvasBox key={k.label} cor={k.cor}>
-            <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
-            <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{semDados ? "—" : fmt(k.valor)}</p>
+      {/* Abas */}
+      <div className="flex gap-2 mb-5">
+        <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
+          style={aba === "central" ? { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          {L("Command Center", "Command Center", "Command Center")}
+        </button>
+        <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
+          style={aba === "inteligencia" ? { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
+        </button>
+      </div>
+
+      {aba === "central" && (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: L("Total em Aberto", "Total Outstanding", "Total Abierto"), valor: kpis.totalEmAberto, cor: AMBAR },
+              { label: L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días"), valor: kpis.vencendoEm7, cor: AZUL },
+              { label: L("Vencidas", "Overdue", "Vencidas"), valor: kpis.vencidas, cor: VERMELHO },
+              { label: L("Pagas no Mês", "Paid this Month", "Pagadas este Mes"), valor: kpis.pagasNoMes, cor: VERDE },
+            ].map((k) => (
+              <CanvasBox key={k.label} cor={k.cor}>
+                <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
+                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{semDados ? "—" : fmt(k.valor)}</p>
+              </CanvasBox>
+            ))}
+          </div>
+
+          {/* Filtros */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: CINZA }} />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+            </div>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+              <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
+              <option value="pendente">{statusLabel("pendente")}</option>
+              <option value="parcial">{statusLabel("parcial")}</option>
+              <option value="vencido">{statusLabel("vencido")}</option>
+              <option value="pago">{statusLabel("pago")}</option>
+            </select>
+            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+              <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
+              {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            </select>
+            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+              <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
+              {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
+            </select>
+            <input type="date" value={filtroVencDe} onChange={(e) => setFiltroVencDe(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+            <input type="date" value={filtroVencAte} onChange={(e) => setFiltroVencAte(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+          </div>
+
+          {/* Lista */}
+          {loading ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
+          ) : contasFiltradas.length === 0 ? (
+            <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L("Nenhuma conta a pagar encontrada.", "No bills found.", "No se encontraron cuentas.")}</p>
+          ) : (
+            <div className="space-y-2">
+              {contasFiltradas.map((c) => {
+                const cor = statusCor(c.status);
+                return (
+                  <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
+                    style={{ background: proximasAPagar.has(c.id) ? "rgba(167,139,250,0.08)" : "rgba(10,20,36,0.6)", border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: "#c8d8f0" }}>
+                        {proximasAPagar.has(c.id) && <Pin size={12} style={{ color: ROXO }} />}
+                        {c.descricao}
+                        {c.status === "aguardando_aprovacao" && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase" style={{ background: "rgba(245,158,11,0.2)", color: AMBAR }}>
+                            {L("Aguardando aprovação", "Awaiting approval", "Esperando aprobación")}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs" style={{ color: CINZA }}>{nomeFornecedor(c.fornecedor_id)} · {c.categoria ? cat(c.categoria) : "—"}</p>
+                    </div>
+                    <div className="text-xs" style={{ color: CINZA }}>
+                      {L("Vence", "Due", "Vence")} {c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                    </div>
+                    <p className="text-sm font-bold w-28 text-right" style={{ color: "#c8d8f0" }}>{fmt(c.valor_total)}</p>
+                    <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0 justify-end">
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexos", "Attachments", "Adjuntos")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
+                      {podeEditar && (
+                        <>
+                          {c.status !== "pago" && c.status !== "aguardando_aprovacao" && (
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa", "Register payment", "Registrar pago")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
+                          )}
+                          {(c.status === "pago" || c.status === "parcial") && (
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => estornar(c)} title={L("Estornar baixa", "Reverse payment", "Reversar pago")} style={{ color: AMBAR }}><RotateCcw size={15} /></motion.button>
+                          )}
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar", "Edit", "Editar")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c)} title={L("Excluir", "Delete", "Eliminar")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {aba === "inteligencia" && (
+        <div className="space-y-4">
+          {/* Card Impacto no Caixa */}
+          <CanvasBox cor={impactoCaixa && impactoCaixa.ruptura ? VERMELHO : AZUL}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: impactoCaixa && impactoCaixa.ruptura ? VERMELHO : AZUL }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+              {impactoCaixa && impactoCaixa.ruptura ? <TrendingDown size={18} style={{ color: VERMELHO }} /> : <TrendingUp size={18} style={{ color: AZUL }} />}
+              {L("Impacto no Caixa (próximos 30 dias)", "Cash Impact (next 30 days)", "Impacto en Caja (próximos 30 días)")}
+            </h3>
+            {carregandoImpacto ? (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Calculando...", "Calculating...", "Calculando...")}</p>
+            ) : !impactoCaixa ? (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Sem dados suficientes.", "Not enough data.", "Datos insuficientes.")}</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
+                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(impactoCaixa.saldoAtual)}</p>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${impactoCaixa.saldoProjetado30dComPagamentos < 0 ? VERMELHO : VERDE}30` }}>
+                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado em 30d (pagando pendentes)", "Projected in 30d (paying pending)", "Proyectado en 30d (pagando pendientes)")}</p>
+                    <p className="text-lg font-black" style={{ color: impactoCaixa.saldoProjetado30dComPagamentos < 0 ? VERMELHO : VERDE }}>{fmt(impactoCaixa.saldoProjetado30dComPagamentos)}</p>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado em 30d (sem pagar pendentes)", "Projected in 30d (not paying pending)", "Proyectado en 30d (sin pagar pendientes)")}</p>
+                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(impactoCaixa.saldoProjetado30dSemPagamentos)}</p>
+                  </div>
+                </div>
+                {impactoCaixa.ruptura ? (
+                  <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.35)" }}>
+                    <AlertTriangle size={16} style={{ color: VERMELHO }} />
+                    <p className="text-sm font-semibold" style={{ color: VERMELHO }}>
+                      {L(`Saldo fica negativo em ${impactoCaixa.ruptura.diasRestantes} dias (${new Date(impactoCaixa.ruptura.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fmt(impactoCaixa.ruptura.saldoProjetado)}.`,
+                        `Balance goes negative in ${impactoCaixa.ruptura.diasRestantes} days (${new Date(impactoCaixa.ruptura.data + "T00:00:00").toLocaleDateString("en-US")}), projected at ${fmt(impactoCaixa.ruptura.saldoProjetado)}.`,
+                        `El saldo queda negativo en ${impactoCaixa.ruptura.diasRestantes} días (${new Date(impactoCaixa.ruptura.data + "T00:00:00").toLocaleDateString("es-ES")}), proyectado en ${fmt(impactoCaixa.ruptura.saldoProjetado)}.`)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs" style={{ color: VERDE }}>{L("Sem ruptura de caixa prevista nos próximos 30 dias.", "No cash shortfall expected in the next 30 days.", "Sin ruptura de caja prevista en los próximos 30 días.")}</p>
+                )}
+              </>
+            )}
           </CanvasBox>
-        ))}
-      </div>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <div className="relative flex-1 min-w-[180px]">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: CINZA }} />
-          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
-            className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
-        </div>
-        <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
-          <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
-          <option value="pendente">{statusLabel("pendente")}</option>
-          <option value="parcial">{statusLabel("parcial")}</option>
-          <option value="vencido">{statusLabel("vencido")}</option>
-          <option value="pago">{statusLabel("pago")}</option>
-        </select>
-        <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
-          <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
-          {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
-        </select>
-        <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
-          <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
-          {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
-        </select>
-        <input type="date" value={filtroVencDe} onChange={(e) => setFiltroVencDe(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
-        <input type="date" value={filtroVencAte} onChange={(e) => setFiltroVencAte(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
-      </div>
-
-      {/* Lista */}
-      {loading ? (
-        <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
-      ) : contasFiltradas.length === 0 ? (
-        <p className="text-sm text-center py-8" style={{ color: CINZA }}>{L("Nenhuma conta a pagar encontrada.", "No bills found.", "No se encontraron cuentas.")}</p>
-      ) : (
-        <div className="space-y-2">
-          {contasFiltradas.map((c) => {
-            const cor = statusCor(c.status);
-            return (
-              <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
-                style={{ background: "rgba(10,20,36,0.6)", border: `1px solid ${cor}25` }}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{c.descricao}</p>
-                  <p className="text-xs" style={{ color: CINZA }}>{nomeFornecedor(c.fornecedor_id)} · {c.categoria ? cat(c.categoria) : "—"}</p>
-                </div>
-                <div className="text-xs" style={{ color: CINZA }}>
-                  {L("Vence", "Due", "Vence")} {c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
-                </div>
-                <p className="text-sm font-bold w-28 text-right" style={{ color: "#c8d8f0" }}>{fmt(c.valor_total)}</p>
-                <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span>
-                <div className="flex items-center gap-2 flex-shrink-0 justify-end">
-                  <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexos", "Attachments", "Adjuntos")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
-                  {podeEditar && (
-                    <>
-                      {c.status !== "pago" && (
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa", "Register payment", "Registrar pago")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
-                      )}
-                      {(c.status === "pago" || c.status === "parcial") && (
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => estornar(c)} title={L("Estornar baixa", "Reverse payment", "Reversar pago")} style={{ color: AMBAR }}><RotateCcw size={15} /></motion.button>
-                      )}
-                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar", "Edit", "Editar")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
-                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c)} title={L("Excluir", "Delete", "Eliminar")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+          {/* Card Prioridade de Pagamento */}
+          <CanvasBox cor={ROXO}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-3" style={{ color: "#c8d8f0" }}>{L("Prioridade de Pagamento", "Payment Priority", "Prioridad de Pago")}</h3>
+            {prioridades.length === 0 ? (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Nenhuma conta pendente para priorizar.", "No pending bills to prioritize.", "Ninguna cuenta pendiente para priorizar.")}</p>
+            ) : (
+              <div className="space-y-2">
+                {prioridades.map((item, i) => (
+                  <div key={item.conta.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(167,139,250,0.15)" }}>
+                    <span className="text-xs font-black w-6 text-center flex-shrink-0" style={{ color: CINZA }}>#{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{item.conta.descricao} · {nomeFornecedor(item.conta.fornecedor_id)}</p>
+                      <p className="text-xs" style={{ color: CINZA }}>{item.explicacao}</p>
+                    </div>
+                    <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${item.score >= 70 ? VERMELHO : item.score >= 40 ? AMBAR : VERDE}20`, color: item.score >= 70 ? VERMELHO : item.score >= 40 ? AMBAR : VERDE }}>
+                      {item.score}
+                    </span>
+                    <button onClick={() => alternarProximaAPagar(item.conta.id)} title={L("Marcar como próxima a pagar", "Mark as next to pay", "Marcar como próxima a pagar")}
+                      className="flex-shrink-0" style={{ color: proximasAPagar.has(item.conta.id) ? ROXO : CINZA }}>
+                      <Pin size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CanvasBox>
         </div>
       )}
 
@@ -714,6 +845,12 @@ export default function ContasPagarPage() {
                           <option value="">-- {L("Sem centro de custo", "No cost center", "Sin centro de costo")} --</option>
                           {centrosCusto.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
                         </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Multa/Juros por Atraso (%/mês)", "Late Penalty/Interest (%/mo.)", "Multa/Interés por Atraso (%/mes)")}</label>
+                        <input type="number" step="0.01" value={nc.taxa_multa_mensal} onChange={(e) => setNc({ ...nc, taxa_multa_mensal: e.target.value })}
+                          placeholder={L("Opcional", "Optional", "Opcional")}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
                       </div>
                     </div>
                     <div>
