@@ -41,6 +41,7 @@ import {
   type FornecedorContato, type FornecedorDocumento, type FornecedorContrato, type FornecedorProduto, type FornecedorInteracao,
 } from "../../../lib/fornecedorHelpers";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
+import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,7 +52,7 @@ const supabase = createBrowserClient(
 const AMBAR = "#f59e0b";
 const BRONZE = "#b45309";
 
-const categorias = ["Produtos", "Marketing", "Logística", "Tecnologia", "Serviços", "Outros"];
+const categorias: string[] = [...CATEGORIAS_DESPESA];
 const formasPagamento = ["PIX", "Crédito", "Débito", "Boleto", "Dinheiro", "Transferência"];
 const moedas = ["BRL", "USD", "EUR"];
 

@@ -29,11 +29,12 @@ import {
 import {
   type FornecedorRow, type ContaPagarRow, type FornecedorContrato,
 } from "../../../lib/fornecedorHelpers";
+import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/PlanilhaCentroCusto";
 
 const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
 const CATEGORIAS_CUSTOS_VARIAVEIS = ["Marketing", "Logística", "Matéria-prima", "Comissões", "Embalagens", "Outros"];
-const CATEGORIAS_CONTAS_PAGAR = ["Produtos", "Marketing", "Logística", "Tecnologia", "Serviços", "Outros"];
+const CATEGORIAS_CONTAS_PAGAR: string[] = [...CATEGORIAS_DESPESA];
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

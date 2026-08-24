@@ -127,8 +127,12 @@ export default function FluxoCaixa() {
         .order("data", { ascending: false }),
       // Leitura só (SELECT) — base dos previstos automáticos. Nunca escreve nessas tabelas.
       supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
-      supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").neq("status", "pago"),
-      supabase.from("custos_fixos").select("valor_mensal, dia_vencimento"),
+      // Sem .neq("status","pago") aqui: contas pagas continuam entrando (resta = 0,
+      // já cai fora de saidasAutoContasPagar pelo filtro de valor abaixo) — precisamos
+      // delas TAMBÉM quando pagas, pra saber que o custo fixo do mês já virou conta
+      // a pagar e não duplicar a saída na projeção de custos fixos logo adiante.
+      supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id"),
+      supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento"),
       supabase.from("dividas").select("valor_total, valor_pago, parcelas, vencimento"),
     ]);
 
@@ -236,11 +240,20 @@ export default function FluxoCaixa() {
     .map((c: any) => ({ data: c.data_vencimento, valor: Math.max(0, Number(c.valor_total || 0) - Number(c.valor_pago || 0)) }))
     .filter((e) => e.valor > 0);
 
-  // Custos Fixos — recorrentes todo mês, projetados pelo dia de vencimento
+  // Custos Fixos — recorrentes todo mês, projetados pelo dia de vencimento.
+  // DEDUP: quando o botão "Gerar de Custo Fixo" (Contas a Pagar) já criou a
+  // conta do mês (custo_fixo_id preenchido), essa saída já está contada em
+  // saidasAutoContasPagar acima — contar as duas somaria a mesma obrigação
+  // 2x. Aqui removemos SÓ a ocorrência do mês que já virou conta a pagar
+  // (a projeção dos meses seguintes continua, pois ainda não foi gerada).
+  const mesesJaGeradosPorCustoFixo = new Set(
+    contasPagarRows.filter((c: any) => c.custo_fixo_id && c.data_vencimento).map((c: any) => `${c.custo_fixo_id}|${String(c.data_vencimento).slice(0, 7)}`)
+  );
   const saidasAutoCustosFixos: EventoCaixa[] = custosFixosRows.flatMap((c: any) => {
     if (!c.valor_mensal || !c.dia_vencimento) return [];
     const proxima = proximaOcorrenciaDoDia(Number(c.dia_vencimento));
-    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, 120);
+    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, 120)
+      .filter((ev) => !mesesJaGeradosPorCustoFixo.has(`${c.id}|${ev.data.slice(0, 7)}`));
   });
 
   // Dívidas — parcelas restantes projetadas a partir da próxima data de vencimento

@@ -109,6 +109,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/simulacoes') ||
     pathname.startsWith('/precificacao') ||
     pathname.startsWith('/contas-receber') ||
+    pathname.startsWith('/contas-pagar') ||
     pathname.startsWith('/inadimplencia') ||
     pathname.startsWith('/mei') ||
     pathname.startsWith('/open-finance')

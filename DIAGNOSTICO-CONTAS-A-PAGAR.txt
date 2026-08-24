@@ -1,0 +1,375 @@
+================================================================================
+DIAGNÓSTICO SOMENTE LEITURA — MÓDULO CONTAS A PAGAR
+Gerado em 2026-08-24. Nada foi alterado no código nem no banco.
+================================================================================
+
+
+=== 1) TABELAS RELACIONADAS ===
+
+A TABELA `contas_pagar` JÁ EXISTE NO SUPABASE. Isso é o achado mais importante
+deste diagnóstico: não vamos criar do zero, vamos construir a TELA e as REGRAS
+em cima de uma tabela que já está viva e sendo alimentada por outro módulo.
+
+Campos confirmados de `contas_pagar` (por uso real no código):
+  id, empresa_id, user_id, fornecedor_id, descricao, categoria,
+  valor_total, valor_pago, status, numero_nota, forma_pagamento, parcelas,
+  observacoes, data_emissao, data_vencimento, data_pagamento
+
+Quem hoje LÊ `contas_pagar` (nenhuma dessas telas edita — só consulta):
+  - Fluxo de Caixa (app/(interno)/fluxo-caixa/page.tsx) — usa pra montar a
+    previsão de saídas ("previstos automáticos"), só leitura, nunca escreve.
+  - Fornecedores (app/(interno)/fornecedores/page.tsx) — cruza com
+    fornecedor_contratos pra montar o Dashboard Executivo de Fornecedores
+    (Fase 2): KPIs de carteira de compras por fornecedor.
+  - Centros de Custo (app/(interno)/centros-custo/page.tsx) — cruza
+    contas_pagar com custos_fixos/custos_variaveis/receitas/fornecedores pra
+    ratear lançamentos entre centros de custo.
+
+Quem hoje ESCREVE em `contas_pagar` (isso é o mais crítico pra não duplicar):
+  - Importar Documentos (lib/importarHelpers.ts + lib/importarParsers.ts) —
+    já classifica automaticamente linhas de CSV/XLSX/OFX/XML NF-e como
+    destino "contas_pagar" (usa sinal estrutural + palavra-chave, nunca
+    grava sozinho, sempre pede confirmação do usuário na tela).
+  - O parser de XML de NF-e (parseXMLNFe, ver seção 7) já decide sozinho se
+    uma nota é "compra" (destino contas_pagar) comparando o CNPJ do
+    destinatário da nota com o CNPJ da empresa cadastrada.
+
+Ou seja: HOJE existe uma "porta de entrada" pra Contas a Pagar (Importar
+Documentos), mas NÃO existe uma tela pra listar, editar, dar baixa (marcar
+como pago), anexar boleto ou gerenciar essas contas depois que entram. É
+exatamente esse o buraco que a Entrega 1 precisa fechar.
+
+--- Fornecedores (tabela `fornecedores`) ---
+Campos: id, empresa_id, user_id, nome, produto_servico, contato, valor_mensal,
+categoria, tipo_pessoa, documento (CNPJ/CPF), razao_social, nome_fantasia,
+inscricao_estadual, inscricao_municipal, email, telefone, responsavel, pais,
+cep, endereco, numero, complemento, bairro, cidade, uf, banco, agencia, conta,
+chave_pix, condicao_pagamento, status, observacoes, porte, regime_tributario,
+contribuinte_icms, prazo_medio_dias, moeda, centro_custo_id,
+forma_pagamento_preferencial, nivel_qualidade, certificacoes,
+classificacao_risco.
+
+Tabelas satélite de Fornecedores (todas já existem, todas com
+fornecedor_id + user_id + empresa_id):
+  - fornecedor_contatos (nome, cargo, email, telefone, whatsapp, principal)
+  - fornecedor_documentos (nome, tipo, numero_documento, data_emissao,
+    data_validade, storage_path, mime_type, tamanho_bytes) — ESTE é o padrão
+    de "documento anexo" já pronto no sistema (bucket privado
+    "fornecedor-documentos" + tabela de metadados). Ver seção sobre anexos.
+  - fornecedor_contratos (descricao, data_inicio, data_fim,
+    renovacao_automatica, indice_reajuste, valor_contratado, valor_utilizado)
+  - fornecedor_produtos (descricao, categoria, valor_unitario, unidade) —
+    também guarda o vínculo "código do produto no fornecedor = produto X
+    nosso", usado pelo importador de NF-e do PDV.
+  - fornecedor_interacoes (data, tipo, descricao)
+
+--- Categorias / Plano de Contas ---
+Não existe uma tabela `categorias` ou `plano_contas` genérica. Cada módulo
+tem sua PRÓPRIA lista fixa de categorias, hardcoded no código (não é coluna
+de configuração no banco):
+  - Custos Fixos: Aluguel/Imóvel, Folha de pagamento, Serviços essenciais,
+    Sistemas e assinaturas, Seguros, Contabilidade, Outros
+  - Custos Variáveis: Marketing, Logística, Matéria-prima, Comissões,
+    Embalagens, Outros
+  - Contas a Pagar (já existe, usada por Centros de Custo mesmo sem tela
+    própria): Produtos, Marketing, Logística, Tecnologia, Serviços, Outros
+
+--- Centro de Custo (tabela `centros_custo` + `centro_custo_rateio`) ---
+`centro_custo_rateio`: id, user_id, empresa_id, origem_tabela, origem_id,
+centro_custo_id, percentual. Esse é o padrão genérico de rateio: qualquer
+lançamento de qualquer tabela (custos_fixos, custos_variaveis, contas_pagar,
+receitas) pode ser dividido entre centros de custo sem precisar de coluna
+nova na tabela de origem — só grava (origem_tabela="contas_pagar",
+origem_id=<id da conta>) + percentual por centro.
+Contas a Pagar já é uma das "origem_tabela" suportadas — ou seja, o rateio
+por centro de custo VAI FUNCIONAR pra Contas a Pagar assim que a tela
+existir, sem precisar mexer em centroCustoHelpers.ts.
+
+--- Fluxo de Caixa (tabela `fluxo_caixa`) ---
+Campos (bem enxuta, de propósito): id, user_id, empresa_id, descricao, tipo,
+valor, data, status.
+NÃO tem coluna `categoria`, NÃO tem coluna `origem`/FK pra rastrear de onde
+veio a linha, NÃO tem coluna de conta bancária.
+Lançamento é 100% manual pela tela (INSERT direto via Supabase, sem RPC).
+
+--- Contas Bancárias ---
+NÃO EXISTE tabela `contas_bancarias` nem qualquer variação
+(conta_bancaria/banco_conta) no projeto. O único lugar onde dado bancário
+aparece é dentro de `fornecedores` (banco/agencia/conta/chave_pix) — e isso é
+a conta do FORNECEDOR pra ELE receber, não a conta da empresa dona do Axioma
+pra pagar. Hoje não existe nenhum jeito do dono cadastrar as próprias contas
+de saída (conta corrente, cartão, etc). Isso é uma lacuna real pra Contas a
+Pagar completo (rastrear "paguei pela conta X"), mas não é bloqueante pra
+Entrega 1 — dá pra nascer sem isso e evoluir depois.
+
+--- Documento anexo (upload de boleto/NF) ---
+Não existe hoje ligado a `contas_pagar` especificamente, mas o PADRÃO já
+existe e está provado em produção em dois lugares:
+  1. `fornecedor_documentos` — storage_path + mime_type + tamanho_bytes,
+     bucket privado "fornecedor-documentos" (lib/fornecedorHelpers.ts).
+  2. `documentos_fiscais` (MEI Imposto de Renda) — mesmo padrão, bucket via
+     lib/documentoStorageAdapter.ts (upload comprime imagem, valida tipo
+     PDF/imagem, teto de 10MB, URL assinada pra visualizar,
+     nunca deixa arquivo órfão sem metadado).
+Pra Contas a Pagar, o caminho natural é reaproveitar
+lib/documentoStorageAdapter.ts (genérico) + criar uma tabela nova
+`contas_pagar_documentos` no mesmo molde de `fornecedor_documentos`.
+
+
+=== 2) FLUXO DE CAIXA — SAÍDAS ===
+
+Hoje as saídas em `fluxo_caixa` são 100% lançamento manual pela tela (o
+usuário digita descrição/tipo/valor/data/status e clica salvar — INSERT
+direto, sem RPC, com verificação de erro/RLS via reportarFalhaEscrita()).
+
+A tela também MOSTRA (mas não grava) "previstos automáticos": ela faz SELECT
+em `contas_receber`, `contas_pagar`, `custos_fixos` e `dividas` toda vez que
+abre, e junta tudo em memória no navegador pra montar a visão de 13 semanas
+e os cenários otimista/pessimista. Comentário no próprio código confirma a
+intenção: "Leitura só (SELECT)... Nunca escreve nessas tabelas."
+
+Isso responde diretamente a pergunta de "origem": NÃO existe uma coluna
+`origem`/`categoria_id` em `fluxo_caixa` pra rastrear de onde veio a linha,
+porque a arquitetura atual não PRECISA disso — as saídas previstas de Contas
+a Pagar aparecem como uma camada calculada, não como linha física gravada em
+fluxo_caixa. O agrupamento na tela já rotula visualmente cada origem
+(origemContasPagar, origemCustosFixos, origemDividas, origemContasReceber),
+só que isso é um objeto em memória, não uma coluna no banco.
+
+Risco a observar na Entrega 1: se a tela de Contas a Pagar nova criar uma
+prática de "quando eu pago, jogo lá pro Fluxo de Caixa também", isso vai
+duplicar contagem, porque o Fluxo de Caixa já está lendo contas_pagar
+diretamente pra montar o previsto. A conta a pagar quitada deve só mudar de
+status (pago) — o Fluxo de Caixa a enxerga automaticamente sem precisar de
+um segundo lançamento manual.
+
+
+=== 3) FORNECEDORES ===
+
+Estrutura completa colada na seção 1. RLS não é visível por código (API do
+Supabase não expõe índice/policy) — mas o padrão confirmado em todas as
+tabelas do projeto é `user_id` + `empresa_id` sempre presentes, e é razoável
+assumir RLS por empresa_id como em todo o resto do sistema.
+
+RPCs: não existe nenhuma RPC (função Postgres) usada por Fornecedores nem por
+Contas a Pagar — todo o projeto usa INSERT/UPDATE/SELECT direto do cliente
+Supabase, com uma camada de verificação de erro reportarFalhaEscrita() (ver
+memória "Correção em lotes: falha silenciosa de escrita" — 60 pontos do
+sistema já foram auditados por não checar erro de escrita; Contas a Pagar
+precisa nascer já seguindo esse padrão, não regredir).
+
+Integração hoje: Fornecedores tem histórico de compras SIM, mas só como
+LEITURA — a Fase 2 do módulo (dashboard executivo) já cruza
+contas_pagar + fornecedor_contratos pra montar KPIs de carteira por
+fornecedor. Não existe tela dedicada de "extrato do fornecedor" ainda, mas o
+dado já está todo lá pra isso.
+
+
+=== 4) CUSTOS FIXOS/VARIÁVEIS ===
+
+`custos_fixos`: descricao, valor_mensal, dia_vencimento, categoria,
+data_renovacao, user_id, empresa_id. Radar de Renovações + Detector de
+Desperdício já implementados.
+
+`custos_variaveis`: estrutura similar (descricao, valor, data, categoria,
+user_id, empresa_id), com Margem de Contribuição/Ponto de Equilíbrio.
+
+Relação com `contas_pagar` HOJE: só cruzamento de LEITURA, em dois lugares —
+Fluxo de Caixa (soma separada: saídas de custos fixos + saídas de contas a
+pagar, cada uma na sua caixinha) e Centros de Custo (mesmo padrão de rateio
+origem_tabela, tratadas como fontes irmãs mas independentes). NÃO existe
+nenhuma FK entre as tabelas.
+
+RISCO DE SOBREPOSIÇÃO REAL (o mais importante deste diagnóstico):
+Um custo fixo recorrente (ex: aluguel, cadastrado em `custos_fixos` com
+dia_vencimento=10) e uma "conta a pagar" mensal do mesmo aluguel são
+CONCEITUALMENTE a mesma obrigação, mas HOJE são tabelas sem qualquer relação.
+Se o usuário cadastrar o aluguel nos dois lugares, o Fluxo de Caixa vai
+CONTAR A SAÍDA EM DOBRO (soma saidasAutoCustosFixos + saidasAutoContasPagar
+sem nenhuma deduplicação entre elas).
+
+Proposta pra evitar (decisão de arquitetura pra Entrega 1): Custos Fixos
+continua sendo o cadastro de "compromisso recorrente" (é o que ele já faz
+bem, com Radar de Renovações). Contas a Pagar não deve recriar isso — em vez
+disso, Contas a Pagar pode ter um botão "gerar conta a partir de custo fixo"
+que lê `custos_fixos` (id, descricao, valor_mensal, dia_vencimento) e cria
+UMA linha em `contas_pagar` do mês corrente com uma referência de volta
+(campo novo `custo_fixo_id`, opcional) — assim o custo fixo continua sendo a
+fonte de verdade do "compromisso mensal", e contas_pagar vira o controle de
+"essa parcela específica já foi paga ou não". Fluxo de Caixa aí precisa
+aprender a não somar as duas fontes quando uma right referencia a outra (ou,
+mais simples pra Entrega 1: manter os dois lidos separadamente como hoje, e
+deixar o cruzamento mais inteligente pra uma fase 2 — documentar o risco e
+não resolver tudo de uma vez).
+
+
+=== 5) TELAS EXISTENTES ===
+
+Não existe nenhuma tela em app/(interno)/ chamada contas-pagar, compras,
+pagamentos ou obrigacoes que sirva pra isso. `empresa_obrigacoes`
+(lib/empresaHelpers.ts) é outra coisa — obrigações SOCIETÁRIAS/legais da
+empresa (tipo alvará, licença), não contas a pagar financeiras. Não confundir
+os dois.
+
+Navegação (components/Sidebar.tsx): não existe item reservado pra Contas a
+Pagar hoje. A estrutura de grupos é:
+  💰 Financeiro: Receitas, Custos Fixos, Custos Variáveis, Fluxo de Caixa,
+     DRE, Endividamento
+  👥 Comercial: Clientes, Fornecedores, Contas a Receber, Inadimplência
+
+Contas a Receber está no grupo Comercial (não no Financeiro) — é uma escolha
+de produto que já foi feita. Pra manter simetria com Contas a Receber, o
+lugar mais natural pra Contas a Pagar é logo depois de "Fornecedores" dentro
+de 👥 Comercial (Fornecedores → Contas a Pagar → Contas a Receber →
+Inadimplência), já que Contas a Pagar sempre se relaciona com um fornecedor,
+igual Contas a Receber se relaciona com um cliente.
+
+
+=== 6) HELPERS E LIBS ===
+
+Não existe `lib/contasPagarHelpers.ts` nem nada equivalente ainda.
+
+`lib/categoriaInteligente.ts` — NÃO classifica despesa. É do PDV, classifica
+PRODUTO por segmento de negócio (padaria, farmácia, etc), serve pro cadastro
+de itens vendáveis. Não é reaproveitável pra Contas a Pagar.
+
+O que existe e SERVE de base pra classificação de despesa em Contas a Pagar:
+  - lib/importarHelpers.ts → sugerirClassificacoes() e a lista
+    MAPEAMENTO_DESTINO já sabem detectar se uma linha importada é
+    "contas_pagar" (por sinal estrutural + palavra-chave PT/EN/ES).
+  - lib/importarParsers.ts → PALAVRAS_CUSTO (compra, pagamento, fornecedor,
+    frete, comissão, salário, aluguel, imposto, despesa...) já é um
+    dicionário de palavras-chave de despesa pronto, multi-idioma.
+
+
+=== 7) NF-E / XML ===
+
+Existem DOIS lugares que lidam com XML de NF-e, e eles JÁ SE REAPROVEITAM
+entre si — não são duplicados:
+
+1. `lib/importarParsers.ts` → `parseXMLNFe()` — o parser CANÔNICO. Usado pela
+   tela Importar Documentos (geral, qualquer tabela de destino). Já faz:
+   - Extrai emitente/destinatário/CNPJ, chave de acesso (44 dígitos),
+     valor total, ICMS/IPI/PIS/COFINS, itens (cEAN/NCM/CFOP/quantidade/
+     valores/lote/validade).
+   - Decide sozinho se é COMPRA (destino contas_pagar) ou VENDA (destino
+     receitas), comparando CNPJ do emitente e do destinatário com o CNPJ da
+     empresa cadastrada em Empresa — nunca chuta, mostra "confiança baixa"
+     quando não bate com nenhum dos dois lados.
+   - Valida formato CFOP/CST/NCM/grupo IBS-CBS da Reforma Tributária e
+     calcula uma estimativa honesta do impacto do Split Payment.
+
+2. `lib/pdvNfeHelpers.ts` — específico do PDV Fase 2.1, e o próprio
+   cabeçalho do arquivo já documenta: "Reaproveitados sem mudança:
+   parseXMLNFe (lib/importarParsers.ts)". Ou seja, o PDV NÃO tem parser
+   próprio — ele importa e usa o mesmo parseXMLNFe. O que o PDV adiciona por
+   cima é específico de ESTOQUE: dar entrada de produto, criar fornecedor
+   automaticamente se o CNPJ não existir (criarFornecedorDaNfe), vincular
+   "código do fornecedor = nosso produto" pra próxima nota reconhecer
+   sozinha, e travar reimportação da MESMA nota por chave_acesso via a
+   tabela `estoque_nfe_importadas`.
+
+RISCO DE DUPLICAÇÃO A OBSERVAR: o PDV (importação de NF-e pra estoque) NÃO
+cria linha em `contas_pagar` — ele só dá entrada no estoque e registra a
+chave_acesso em `estoque_nfe_importadas`, uma tabela isolada. Isso quer dizer
+que, hoje, uma compra de mercadoria importada pelo PDV NÃO vira
+automaticamente uma obrigação financeira em Contas a Pagar — o financeiro
+fica cego a essa compra a menos que alguém importe o MESMO XML de novo pela
+tela Importar Documentos (e aí não existe nenhuma trava cruzada entre
+`estoque_nfe_importadas` e `contas_pagar` pra evitar reimportar a mesma nota
+duas vezes por dois caminhos diferentes, ou pra AVISAR "essa nota já deu
+entrada no estoque, quer criar a conta a pagar dela agora?").
+
+Pra Contas a Pagar, o parser a REAPROVEITAR é `parseXMLNFe()` (já pronto, já
+testado, já usado em produção) — não construir um novo. O ajuste recomendado
+é fazer a Entrega 1 verificar `estoque_nfe_importadas` por chave_acesso antes
+de criar uma conta a pagar nova a partir de XML, pra oferecer "vincular à
+compra de estoque já importada" em vez de duplicar.
+
+
+=== 8) RECOMENDAÇÕES ===
+
+--- O QUE EXISTE E VAMOS REAPROVEITAR ---
+  - Tabela `contas_pagar` (id, empresa_id, user_id, fornecedor_id, descricao,
+    categoria, valor_total, valor_pago, status, numero_nota, forma_pagamento,
+    parcelas, observacoes, data_emissao, data_vencimento, data_pagamento) —
+    já existe, já é alimentada pelo Importar Documentos, já é lida por 3
+    módulos. Não recriar, só construir a tela em cima dela.
+  - `centro_custo_rateio` (origem_tabela/origem_id) — rateio por centro de
+    custo já funciona pra contas_pagar sem precisar mexer em nada.
+  - `parseXMLNFe()` (lib/importarParsers.ts) — parser de NF-e completo,
+    já detecta compra vs venda e já extrai tudo que Contas a Pagar precisa.
+  - `lib/documentoStorageAdapter.ts` — padrão de upload de anexo (bucket +
+    URL assinada + validação de tipo/tamanho), pronto pra reaproveitar pro
+    anexo de boleto/NF em Contas a Pagar.
+  - `lib/importarHelpers.ts` (sugerirClassificacoes) + PALAVRAS_CUSTO — base
+    de classificação automática de categoria de despesa.
+  - Fornecedores (tabela + fornecedor_contratos) — já pronto pra vincular.
+  - `cfoCore.ts`/`cfoTextos.ts` — alicerce padrão (KPIs, gráficos, DRE,
+    fBRL/fPct, FONTE_EXEC) que todo módulo CFO reaproveita.
+
+--- O QUE FALTA CONSTRUIR DO ZERO ---
+  - Tela `/contas-pagar` (Command Center: lista, filtros, KPIs, dar baixa/
+    marcar como pago, editar, excluir).
+  - `lib/contasPagarHelpers.ts` — camada de dados própria (CRUD +
+    integração com fornecedores/rateio), no mesmo padrão de
+    `lib/fornecedorHelpers.ts`.
+  - Tabela nova `contas_pagar_documentos` (anexo de boleto/NF por conta),
+    mesmo molde de `fornecedor_documentos`.
+  - Item no menu (Sidebar.tsx), sugerido dentro de 👥 Comercial, entre
+    Fornecedores e Contas a Receber.
+  - Trava cruzada com `estoque_nfe_importadas` por chave_acesso, pra avisar
+    quando uma NF-e já foi importada pelo PDV antes de criar conta duplicada.
+
+--- O QUE PRECISA DE AJUSTE ---
+  - Nenhuma coluna nova é estritamente necessária em `fluxo_caixa` pra
+    Entrega 1 — o padrão atual (leitura ao vivo de contas_pagar, sem gravar
+    linha própria) já funciona e evita duplicar contagem. NÃO adicionar
+    coluna `origem` lá — isso quebraria o padrão "nunca escreve" que o
+    Fluxo de Caixa mantém hoje.
+  - Coluna nova opcional em `contas_pagar`: `custo_fixo_id` (nullable), só se
+    decidirmos implementar o botão "gerar conta a partir de custo fixo" já
+    na Entrega 1 (ver risco abaixo). Pode ficar pra depois sem travar nada.
+  - `contas_pagar` provavelmente precisa de mais 1-2 índices compostos
+    (empresa_id, data_vencimento) e (empresa_id, status) pra não repetir o
+    mesmo problema de escala já mapeado no Centro de Custos (teto de 300
+    linhas hoje). Seguir as 9 regras de escala já validadas no projeto.
+
+--- RISCOS DE DUPLICAÇÃO IDENTIFICADOS ---
+  1. Custos Fixos recorrente x Conta a Pagar do mesmo compromisso (ex:
+     aluguel) pode contar em dobro no Fluxo de Caixa — proposta: Custos
+     Fixos continua sendo a fonte do "compromisso recorrente", Contas a
+     Pagar vira o controle de baixa mês a mês, ligados por FK opcional.
+  2. NF-e importada pelo PDV pra estoque não vira conta a pagar
+     automaticamente, e nada impede reimportar a mesma nota pela tela de
+     Importar Documentos como se fosse nova — proposta: checar
+     `estoque_nfe_importadas` por chave_acesso antes de criar a conta.
+  3. Importar Documentos já escreve em `contas_pagar` com um layout de
+     categoria próprio (Produtos, Marketing, Logística, Tecnologia,
+     Serviços, Outros) — a tela nova de Contas a Pagar PRECISA usar essa
+     mesma lista de categorias, não inventar uma lista paralela.
+
+--- PROPOSTA DE ARQUITETURA PRA ENTREGA 1 ---
+  1. Tabela: reaproveitar `contas_pagar` como está. Adicionar índice
+     composto (empresa_id, data_vencimento) e (empresa_id, status).
+     Tabela nova: `contas_pagar_documentos` (anexo).
+  2. Sem RPC nova necessária — seguir o padrão do resto do projeto
+     (INSERT/UPDATE direto do client + reportarFalhaEscrita() em toda
+     escrita, para não repetir a falha silenciosa já mapeada em outros
+     módulos).
+  3. Tela `/contas-pagar`: Command Center com KPIs (total em aberto, vencendo
+     em 7 dias, vencido, pago no mês), lista com filtro por
+     status/fornecedor/categoria/vencimento, ação de dar baixa (marca
+     valor_pago + data_pagamento + status="pago"), CRUD completo, upload de
+     anexo (reaproveitando documentoStorageAdapter.ts), botão de importar
+     XML de NF-e reaproveitando parseXMLNFe() com a trava de duplicidade da
+     seção 7.
+  4. Integração com Fluxo de Caixa: nenhuma mudança de schema — o Fluxo de
+     Caixa já lê `contas_pagar` ao vivo, só precisa continuar assim.
+  5. Integração com Fornecedores: a Fase 2 de Fornecedores já lê
+     `contas_pagar` — a tela nova não precisa duplicar essa lógica, só
+     garantir que o CRUD novo mantenha os mesmos nomes de campo que o
+     Fornecedores já espera (fornecedor_id, valor_total, valor_pago, status,
+     datas).
+  6. Integração com Centros de Custo: já funciona via `centro_custo_rateio`
+     (origem_tabela="contas_pagar") sem nenhuma mudança.

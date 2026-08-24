@@ -59,6 +59,7 @@ const grupos = [
     itens: [
       { label: "Clientes", path: "/clientes", emoji: "🤝" },
       { label: "Fornecedores", path: "/fornecedores", emoji: "🏭" },
+      { label: "Contas a Pagar", path: "/contas-pagar", emoji: "📤" },
       { label: "Contas a Receber", path: "/contas-receber", emoji: "📥" },
       { label: "Inadimplência", path: "/inadimplencia", emoji: "⚠️" },
     ]
@@ -94,10 +95,17 @@ const grupos = [
   },
 ];
 
+// Rótulos traduzidos por caminho — os demais itens do menu ainda são só PT
+// (nunca foram i18n desde a origem); só o item novo (/contas-pagar) precisa
+// respeitar PT/EN/ES aqui, sem mexer no padrão dos outros.
+const LABELS_ITEM: Record<string, { pt: string; en: string; es: string }> = {
+  "/contas-pagar": { pt: "Contas a Pagar", en: "Accounts Payable", es: "Cuentas por Pagar" },
+};
+
 export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, idioma } = useLanguage();
   const [abertos, setAbertos] = useState<string[]>(["🟡 MEI", "💰 Financeiro"]);
   const [menuAberto, setMenuAberto] = useState(false);
 
@@ -210,7 +218,7 @@ export default function Sidebar() {
                         }}
                       >
                         <span className="text-sm">{item.emoji}</span>
-                        <span className="text-xs font-medium">{item.label}</span>
+                        <span className="text-xs font-medium">{LABELS_ITEM[item.path]?.[idioma] || item.label}</span>
                         {itemAtivo && <div className="ml-auto w-1.5 h-1.5 rounded-full" style={{ background: grupo.cor }} />}
                         {item.path === "/open-finance" && !itemAtivo && (
                           <span className="ml-auto text-xs px-1.5 py-0.5 rounded-full font-black"

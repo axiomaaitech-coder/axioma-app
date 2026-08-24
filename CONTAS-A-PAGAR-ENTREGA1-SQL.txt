@@ -1,0 +1,198 @@
+-- ============================================================================
+-- AXIOMA — Contas a Pagar, Entrega 1 (SQL). NÃO APLICADO — só pra revisão.
+--
+-- Decidido com Elias em 2026-08-24:
+--   - Reaproveitar a tabela contas_pagar que já existe (não recriar).
+--   - Risco Custo Fixo x Conta a Pagar = OPÇÃO B: coluna custo_fixo_id
+--     (nullable) em contas_pagar, referenciando custos_fixos(id). O Fluxo
+--     de Caixa vai aprender a não somar 2x quando uma referencia a outra
+--     (isso é ajuste de código, feito na Etapa 2 — este arquivo é só banco).
+--   - contas_pagar_documentos no mesmo molde de fornecedor_documentos.
+--   - Sem RPC nova — todo INSERT/UPDATE continua vindo direto do client,
+--     com reportarFalhaEscrita() checando erro e linhas afetadas (padrão
+--     já usado no resto do projeto).
+--
+-- ORDEM DE EXECUÇÃO (não misturar, é por isso que o arquivo é uma transação
+-- só — se qualquer parte falhar, nada fica pela metade):
+--   PASSO 0 — leitura: confirma que contas_pagar e custos_fixos existem
+--   PARTE 1 — ALTER TABLE contas_pagar (coluna custo_fixo_id)
+--   PARTE 2 — índices compostos (escala — Regra 2 das 9 regras multi-tenant)
+--   PARTE 3 — tabela contas_pagar_documentos + RLS + policies do Storage
+--   PARTE 4 — verificação (só leitura, no fim)
+--   ROLLBACK (comentado, só pra referência — não faz parte da execução)
+--
+-- ANTES DE RODAR A PARTE 3: criar o bucket "contas-pagar-documentos" no
+-- painel do Supabase, PRIVADO ("Public bucket" desligado) — mesma ordem já
+-- usada em DOCUMENTOS-FISCAIS-SQL.sql. Enquanto o bucket não existir com RLS
+-- ativo, as policies de storage abaixo não têm efeito nenhum (fail-safe:
+-- bucket com RLS ativo nega tudo até existir policy explícita liberando).
+--
+-- Idempotente (IF NOT EXISTS / DROP POLICY IF EXISTS antes de recriar) —
+-- pode rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma que as duas tabelas-base já existem antes de
+-- mexer em qualquer coisa. Se qualquer uma dessas duas SELECTs vier vazia,
+-- PARE — não rode o resto, avise o Elias, algo está diferente do esperado.
+-- ============================================================================
+
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'contas_pagar'
+ORDER BY ordinal_position;
+
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'custos_fixos'
+ORDER BY ordinal_position;
+
+
+-- ============================================================================
+-- PARTE 1 — CONTAS_PAGAR: vínculo opcional com custos_fixos
+-- ============================================================================
+-- Nullable de propósito: a imensa maioria das contas a pagar (compra
+-- avulsa, boleto de fornecedor, NF-e) NÃO nasce de um custo fixo — só as que
+-- forem geradas pelo botão "Gerar de Custo Fixo" (Etapa 2) preenchem isso.
+-- ON DELETE SET NULL: se o custo fixo for excluído, a conta a pagar
+-- histórica continua existindo (ela já é uma obrigação própria, com seu
+-- próprio valor/vencimento/status) — só perde o vínculo de origem.
+
+ALTER TABLE public.contas_pagar
+  ADD COLUMN IF NOT EXISTS custo_fixo_id uuid REFERENCES public.custos_fixos(id) ON DELETE SET NULL;
+
+
+-- ============================================================================
+-- PARTE 2 — ÍNDICES COMPOSTOS (escala)
+-- ============================================================================
+-- (empresa_id, data_vencimento): filtro mais comum da tela nova — "o que
+--   vence entre X e Y" (KPIs de vencendo em 7 dias / vencidas) e ORDER BY
+--   vencimento da lista principal.
+-- (empresa_id, status): segundo filtro mais comum — "só pendente" /
+--   "só pago" / "só vencida", usado nos cards de KPI e nos filtros da tela.
+-- (empresa_id, custo_fixo_id): usado pela dedup do Fluxo de Caixa (Etapa 2)
+--   pra achar rápido "já existe conta a pagar deste custo fixo neste mês?"
+--   sem varrer a tabela inteira.
+
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_empresa_vencimento
+  ON public.contas_pagar (empresa_id, data_vencimento);
+
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_empresa_status
+  ON public.contas_pagar (empresa_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_empresa_custofixo
+  ON public.contas_pagar (empresa_id, custo_fixo_id);
+
+
+-- ============================================================================
+-- PARTE 3 — TABELA NOVA: contas_pagar_documentos (anexo de boleto/NF)
+-- ============================================================================
+-- Mesmo molde de fornecedor_documentos (lib/fornecedorHelpers.ts): nome,
+-- tipo, storage_path, mime_type, tamanho_bytes. RLS no padrão multi-tenant
+-- atual do projeto (empresa_id IN empresas_do_usuario(), função criada em
+-- MIGRACAO-MULTITENANT.sql Parte 1 — não recriada aqui, só reaproveitada).
+
+CREATE TABLE IF NOT EXISTS public.contas_pagar_documentos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  contas_pagar_id uuid NOT NULL REFERENCES public.contas_pagar(id) ON DELETE CASCADE,
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  nome text NOT NULL,
+  tipo text, -- boleto | nota_fiscal | comprovante | outro (livre, mesmo espírito de fornecedor_documentos.tipo)
+  storage_path text NOT NULL, -- "{empresaId}/{contasPagarId}/{timestamp}-arquivo.ext" no bucket contas-pagar-documentos
+  mime_type text,
+  tamanho_bytes bigint NOT NULL DEFAULT 0,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+-- Índice pelo FK que toda consulta da tela usa: listarDocumentos(contas_pagar_id).
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_documentos_conta
+  ON public.contas_pagar_documentos (contas_pagar_id);
+
+ALTER TABLE public.contas_pagar_documentos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contas_pagar_documentos_empresa ON public.contas_pagar_documentos;
+CREATE POLICY contas_pagar_documentos_empresa ON public.contas_pagar_documentos
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+-- Policies do Storage (bucket contas-pagar-documentos) — path começa sempre
+-- com o empresaId, igual ao padrão já usado em documentos-fiscais. 3
+-- policies (select/insert/delete); não existe update de arquivo — trocar
+-- nome/tipo mexe só na tabela de metadados acima, nunca no storage.
+
+DROP POLICY IF EXISTS contas_pagar_documentos_storage_select ON storage.objects;
+CREATE POLICY contas_pagar_documentos_storage_select ON storage.objects
+  FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'contas-pagar-documentos'
+    AND (storage.foldername(name))[1]::uuid IN (SELECT public.empresas_do_usuario())
+  );
+
+DROP POLICY IF EXISTS contas_pagar_documentos_storage_insert ON storage.objects;
+CREATE POLICY contas_pagar_documentos_storage_insert ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'contas-pagar-documentos'
+    AND (storage.foldername(name))[1]::uuid IN (SELECT public.empresas_do_usuario())
+  );
+
+DROP POLICY IF EXISTS contas_pagar_documentos_storage_delete ON storage.objects;
+CREATE POLICY contas_pagar_documentos_storage_delete ON storage.objects
+  FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'contas-pagar-documentos'
+    AND (storage.foldername(name))[1]::uuid IN (SELECT public.empresas_do_usuario())
+  );
+
+
+-- ============================================================================
+-- PARTE 4 — VERIFICAÇÃO (só leitura — rodar depois das partes 1-3)
+-- ============================================================================
+
+-- a) a coluna nova existe em contas_pagar, com o tipo e a FK certos
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'contas_pagar' AND column_name = 'custo_fixo_id';
+
+-- b) os 3 índices novos de contas_pagar existem
+SELECT indexname FROM pg_indexes
+WHERE schemaname = 'public' AND tablename = 'contas_pagar'
+  AND indexname IN ('idx_contas_pagar_empresa_vencimento', 'idx_contas_pagar_empresa_status', 'idx_contas_pagar_empresa_custofixo');
+
+-- c) a tabela contas_pagar_documentos existe, com RLS ativo
+SELECT relname, relrowsecurity FROM pg_class
+WHERE relname = 'contas_pagar_documentos';
+
+-- d) as policies da tabela e do bucket existem
+SELECT tablename, policyname FROM pg_policies WHERE tablename = 'contas_pagar_documentos';
+
+SELECT policyname FROM pg_policies
+WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname LIKE 'contas_pagar_documentos%';
+
+-- e) o índice do FK contas_pagar_id existe
+SELECT indexname FROM pg_indexes
+WHERE schemaname = 'public' AND tablename = 'contas_pagar_documentos' AND indexname = 'idx_contas_pagar_documentos_conta';
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- Ordem inversa da criação. Rodar manualmente, um bloco de cada vez, só se
+-- precisar desfazer tudo. Apagar o bucket "contas-pagar-documentos" (e os
+-- arquivos dentro dele) é feito à parte, no painel do Supabase — SQL não
+-- apaga arquivo de bucket.
+--
+-- DROP POLICY IF EXISTS contas_pagar_documentos_storage_delete ON storage.objects;
+-- DROP POLICY IF EXISTS contas_pagar_documentos_storage_insert ON storage.objects;
+-- DROP POLICY IF EXISTS contas_pagar_documentos_storage_select ON storage.objects;
+-- DROP POLICY IF EXISTS contas_pagar_documentos_empresa ON public.contas_pagar_documentos;
+-- DROP TABLE IF EXISTS public.contas_pagar_documentos;
+--
+-- DROP INDEX IF EXISTS public.idx_contas_pagar_empresa_custofixo;
+-- DROP INDEX IF EXISTS public.idx_contas_pagar_empresa_status;
+-- DROP INDEX IF EXISTS public.idx_contas_pagar_empresa_vencimento;
+--
+-- ALTER TABLE public.contas_pagar DROP COLUMN IF EXISTS custo_fixo_id;
