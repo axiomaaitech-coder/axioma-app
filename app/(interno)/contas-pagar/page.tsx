@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
-  TrendingUp, TrendingDown, Pin, Gauge,
+  TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -12,7 +12,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
-import { obterEmpresaAtiva, obterMeuPapel } from "../../../lib/empresaHelpers";
+import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } from "../../../lib/empresaHelpers";
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
@@ -21,8 +21,10 @@ import {
   listarContasPagar, criarContaPagar, editarContaPagar, darBaixaContaPagar, estornarBaixaContaPagar, excluirContaPagar,
   gerarContaDeCustoFixo, listarDocumentos, anexarDocumento, excluirDocumento, gerarUrlDocumento,
   classificarCategoria, checarNfeJaImportadaNoPdv,
-  obterConfigAp, detectarDuplicata, registrarAuditoriaAp,
+  obterConfigAp, salvarConfigAp, detectarDuplicata, registrarAuditoriaAp,
   calcularImpactoCaixa, priorizarPagamentos, type ImpactoCaixa, type ItemPrioridadePagamento,
+  solicitarAprovacao, listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
+  listarAuditoriaConta, type AuditoriaAp,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -152,12 +154,14 @@ export default function ContasPagarPage() {
     if (s === "pago") return L("Pago", "Paid", "Pagado");
     if (s === "parcial") return L("Parcial", "Partial", "Parcial");
     if (s === "vencido") return L("Vencida", "Overdue", "Vencida");
+    if (s === "aguardando_aprovacao") return L("Aguardando Aprovação", "Awaiting Approval", "Esperando Aprobación");
     return L("Pendente", "Pending", "Pendiente");
   }
   function statusCor(s?: string | null) {
     if (s === "pago") return VERDE;
     if (s === "parcial") return AZUL;
     if (s === "vencido") return VERMELHO;
+    if (s === "aguardando_aprovacao") return ROXO;
     return CINZA;
   }
 
@@ -176,7 +180,7 @@ export default function ContasPagarPage() {
   ].join("\n");
 
   // ========== COMMIT 3 — ABA INTELIGÊNCIA (impacto no caixa + prioridade) ==========
-  const [aba, setAba] = useState<"central" | "inteligencia">("central");
+  const [aba, setAba] = useState<"central" | "inteligencia" | "aprovacoes" | "historico">("central");
   const [impactoCaixa, setImpactoCaixa] = useState<ImpactoCaixa | null>(null);
   const [carregandoImpacto, setCarregandoImpacto] = useState(false);
   const [proximasAPagar, setProximasAPagar] = useState<Set<string>>(new Set());
@@ -201,6 +205,134 @@ export default function ContasPagarPage() {
       if (novo.has(id)) novo.delete(id); else novo.add(id);
       return novo;
     });
+  }
+
+  // ========== COMMIT 4 — CONFIGURAÇÃO AP ==========
+  // Só dono (não admin): listarEquipe() já é uma RPC restrita a dono em todo
+  // o resto do app (listar_equipe recusa quem não é dono) — a lista de
+  // aprovadores usa a mesma fonte, então a tela de configurar quem aprova
+  // segue a mesma fronteira de acesso já estabelecida, sem abrir uma exceção
+  // nova só pra este módulo.
+  const podeConfigurarAp = papel === "dono";
+  const [equipe, setEquipe] = useState<MembroEquipe[]>([]);
+  const [modalConfigAp, setModalConfigAp] = useState(false);
+  const [configForm, setConfigForm] = useState({ limite: "500", aprovadores: [] as string[], bloquearDuplicata: true, diasJanela: "30" });
+  const [salvandoConfig, setSalvandoConfig] = useState(false);
+
+  async function abrirConfigAp() {
+    if (empresaId) setEquipe((await listarEquipe(empresaId)).dados);
+    setConfigForm({
+      limite: String(configAp?.limite_aprovacao_automatica ?? 500),
+      aprovadores: configAp?.aprovadores || [],
+      bloquearDuplicata: configAp?.bloquear_duplicata ?? true,
+      diasJanela: String(configAp?.dias_janela_duplicata ?? 30),
+    });
+    setModalConfigAp(true);
+  }
+
+  function alternarAprovador(userId2: string) {
+    setConfigForm((prev) => ({
+      ...prev,
+      aprovadores: prev.aprovadores.includes(userId2) ? prev.aprovadores.filter((u) => u !== userId2) : [...prev.aprovadores, userId2],
+    }));
+  }
+
+  async function salvarConfiguracaoAp() {
+    if (!empresaId) return;
+    setSalvandoConfig(true);
+    const { erro } = await salvarConfigAp(empresaId, {
+      limite_aprovacao_automatica: parseFloat(configForm.limite || "500"),
+      aprovadores: configForm.aprovadores,
+      bloquear_duplicata: configForm.bloquearDuplicata,
+      dias_janela_duplicata: parseInt(configForm.diasJanela || "30"),
+    });
+    if (erro) {
+      showToast(L("Não foi possível salvar a configuração. Tente novamente.", "Could not save the configuration. Try again.", "No se pudo guardar la configuración. Intente de nuevo."), "erro");
+      setSalvandoConfig(false);
+      return;
+    }
+    setConfigAp(await obterConfigAp(empresaId));
+    setModalConfigAp(false);
+    setSalvandoConfig(false);
+  }
+
+  // ========== COMMIT 4 — APROVAÇÕES PENDENTES ==========
+  const podeAprovar = papel === "dono" || (!!userId && (configAp?.aprovadores || []).includes(userId));
+  const [aprovacoes, setAprovacoes] = useState<AprovacaoPendente[]>([]);
+  const [carregandoAprovacoes, setCarregandoAprovacoes] = useState(false);
+  const [motivoDecisao, setMotivoDecisao] = useState<Record<string, string>>({});
+  const [decidindoId, setDecidindoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (aba !== "aprovacoes" || !empresaId) return;
+    (async () => {
+      setCarregandoAprovacoes(true);
+      setAprovacoes(await listarAprovacoesPendentes());
+      setCarregandoAprovacoes(false);
+    })();
+  }, [aba, empresaId]);
+
+  // Carregado sempre que a empresa é conhecida (não só pra quem aprova) —
+  // tanto a fila de Aprovações Pendentes quanto o Histórico precisam
+  // resolver nome de usuário, e nomear colega de equipe não é dado sensível
+  // (a própria tela de Equipe já mostra isso pra qualquer membro).
+  const [equipeCache, setEquipeCache] = useState<MembroEquipe[]>([]);
+  useEffect(() => { if (empresaId) listarEquipe(empresaId).then((r) => setEquipeCache(r.dados)); }, [empresaId]);
+
+  function nomeUsuario(id?: string | null): string {
+    if (!id) return "—";
+    const m = equipeCache.find((e) => e.user_id === id);
+    return m?.nome || m?.email || `${id.slice(0, 8)}…`;
+  }
+
+  async function decidir(aprovacaoId: string, decisao: "aprovada" | "rejeitada") {
+    const motivo = (motivoDecisao[aprovacaoId] || "").trim();
+    if (decisao === "rejeitada" && !motivo) {
+      showToast(L("Informe o motivo da rejeição.", "Enter the rejection reason.", "Informe el motivo del rechazo."), "erro");
+      return;
+    }
+    setDecidindoId(aprovacaoId);
+    const { erro } = await decidirAprovacao(aprovacaoId, decisao, motivo || undefined);
+    if (erro) {
+      showToast(L("Não foi possível registrar a decisão. Tente novamente.", "Could not register the decision. Try again.", "No se pudo registrar la decisión. Intente de nuevo."), "erro");
+      setDecidindoId(null);
+      return;
+    }
+    setAprovacoes(await listarAprovacoesPendentes());
+    await carregar();
+    setDecidindoId(null);
+  }
+
+  // ========== COMMIT 4 — HISTÓRICO (AUDITORIA) ==========
+  const [contaHistoricoId, setContaHistoricoId] = useState("");
+  const [auditoria, setAuditoria] = useState<AuditoriaAp[]>([]);
+  const [carregandoAuditoria, setCarregandoAuditoria] = useState(false);
+  const [expandido, setExpandido] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!contaHistoricoId) { setAuditoria([]); return; }
+    (async () => {
+      setCarregandoAuditoria(true);
+      setAuditoria(await listarAuditoriaConta(contaHistoricoId));
+      setCarregandoAuditoria(false);
+    })();
+  }, [contaHistoricoId]);
+
+  function acaoLabel(acao: string): string {
+    const mapa: Record<string, [string, string, string]> = {
+      criou: ["Criou", "Created", "Creó"], editou: ["Editou", "Edited", "Editó"],
+      baixou: ["Deu baixa", "Paid", "Pagó"], estornou: ["Estornou", "Reversed", "Reversó"],
+      excluiu: ["Excluiu", "Deleted", "Eliminó"], aprovou: ["Aprovou", "Approved", "Aprobó"],
+      rejeitou: ["Rejeitou", "Rejected", "Rechazó"],
+      duplicata_detectada: ["Duplicata detectada", "Duplicate detected", "Duplicado detectado"],
+      duplicata_ignorada: ["Duplicata ignorada", "Duplicate ignored", "Duplicado ignorado"],
+    };
+    const t = mapa[acao] || [acao, acao, acao];
+    return L(t[0], t[1], t[2]);
+  }
+
+  function alternarExpandido(id: string) {
+    setExpandido((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   }
 
   // ========== MODAL NOVA/EDITAR CONTA ==========
@@ -290,6 +422,10 @@ export default function ContasPagarPage() {
       return;
     }
     if (ignorouDuplicata) await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { duplicatas });
+    // Entrega 2 Commit 4 — só DEPOIS do insert, como pedido: decide sozinha
+    // (auto_aprovada) ou trava a conta em 'aguardando_aprovacao' até alguém
+    // decidir na aba Aprovações Pendentes.
+    await solicitarAprovacao(resultado.id);
     fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
   }
 
@@ -584,6 +720,20 @@ export default function ContasPagarPage() {
           style={aba === "inteligencia" ? { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
+        <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
+          style={aba === "aprovacoes" ? { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
+        </button>
+        <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
+          style={aba === "historico" ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <History size={14} />{L("Histórico", "History", "Historial")}
+        </button>
+        {podeConfigurarAp && (
+          <button onClick={abrirConfigAp} className="ml-auto px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
+            style={{ background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+            <Settings size={14} />⚙️ {L("Configuração AP", "AP Configuration", "Configuración AP")}
+          </button>
+        )}
       </div>
 
       {aba === "central" && (
@@ -616,6 +766,7 @@ export default function ContasPagarPage() {
               <option value="parcial">{statusLabel("parcial")}</option>
               <option value="vencido">{statusLabel("vencido")}</option>
               <option value="pago">{statusLabel("pago")}</option>
+              <option value="aguardando_aprovacao">{statusLabel("aguardando_aprovacao")}</option>
             </select>
             <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
               <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
@@ -646,11 +797,6 @@ export default function ContasPagarPage() {
                       <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: "#c8d8f0" }}>
                         {proximasAPagar.has(c.id) && <Pin size={12} style={{ color: ROXO }} />}
                         {c.descricao}
-                        {c.status === "aguardando_aprovacao" && (
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase" style={{ background: "rgba(245,158,11,0.2)", color: AMBAR }}>
-                            {L("Aguardando aprovação", "Awaiting approval", "Esperando aprobación")}
-                          </span>
-                        )}
                       </p>
                       <p className="text-xs" style={{ color: CINZA }}>{nomeFornecedor(c.fornecedor_id)} · {c.categoria ? cat(c.categoria) : "—"}</p>
                     </div>
@@ -755,6 +901,106 @@ export default function ContasPagarPage() {
             )}
           </CanvasBox>
         </div>
+      )}
+
+      {aba === "aprovacoes" && (
+        <CanvasBox cor={VERDE}>
+          <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
+          <h3 className="text-base font-bold mb-1" style={{ color: "#c8d8f0" }}>{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}</h3>
+          {!podeAprovar && (
+            <p className="text-xs mb-3" style={{ color: CINZA }}>{L("Você pode ver a fila, mas só quem está habilitado como aprovador pode decidir.", "You can see the queue, but only an enabled approver can decide.", "Puede ver la cola, pero solo un aprobador habilitado puede decidir.")}</p>
+          )}
+          {carregandoAprovacoes ? (
+            <p className="text-sm mt-3" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
+          ) : aprovacoes.length === 0 ? (
+            <p className="text-sm mt-3" style={{ color: CINZA }}>{L("Nenhuma aprovação pendente.", "No pending approvals.", "Ninguna aprobación pendiente.")}</p>
+          ) : (
+            <div className="space-y-2 mt-3">
+              {aprovacoes.map((a) => (
+                <div key={a.id} className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{a.contas_pagar?.descricao || "—"}</p>
+                      <p className="text-xs" style={{ color: CINZA }}>
+                        {L("Solicitado por", "Requested by", "Solicitado por")} {nomeUsuario(a.solicitante_id)} · {fmt(a.valor)} · {L("vencimento", "due", "vencimiento")} {a.contas_pagar?.data_vencimento ? new Date(a.contas_pagar.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                      </p>
+                    </div>
+                    {podeAprovar && (
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <input value={motivoDecisao[a.id] || ""} onChange={(e) => setMotivoDecisao({ ...motivoDecisao, [a.id]: e.target.value })}
+                          placeholder={L("Motivo (obrigatório se rejeitar)", "Reason (required to reject)", "Motivo (obligatorio si rechaza)")}
+                          className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        <button onClick={() => decidir(a.id, "aprovada")} disabled={decidindoId === a.id}
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                          <CheckCircle2 size={13} />{L("Aprovar", "Approve", "Aprobar")}
+                        </button>
+                        <button onClick={() => decidir(a.id, "rejeitada")} disabled={decidindoId === a.id}
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO, border: "1px solid rgba(248,113,113,0.3)" }}>
+                          <XCircle size={13} />{L("Rejeitar", "Reject", "Rechazar")}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CanvasBox>
+      )}
+
+      {aba === "historico" && (
+        <CanvasBox cor={AZUL}>
+          <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
+          <h3 className="text-base font-bold mb-3" style={{ color: "#c8d8f0" }}>{L("Histórico da Conta", "Bill History", "Historial de la Cuenta")}</h3>
+          <select value={contaHistoricoId} onChange={(e) => setContaHistoricoId(e.target.value)}
+            className="w-full mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+            <option value="">-- {L("Selecione uma conta", "Select a bill", "Seleccione una cuenta")} --</option>
+            {contas.map((c) => <option key={c.id} value={c.id}>{c.descricao} ({fmt(c.valor_total)})</option>)}
+          </select>
+
+          {!contaHistoricoId ? (
+            <p className="text-sm" style={{ color: CINZA }}>{L("Selecione uma conta acima para ver a timeline de ações.", "Select a bill above to see its action timeline.", "Seleccione una cuenta arriba para ver la línea de tiempo de acciones.")}</p>
+          ) : carregandoAuditoria ? (
+            <p className="text-sm" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
+          ) : auditoria.length === 0 ? (
+            <p className="text-sm" style={{ color: CINZA }}>{L("Nenhum registro de auditoria ainda.", "No audit records yet.", "Ningún registro de auditoría todavía.")}</p>
+          ) : (
+            <div className="space-y-2">
+              {auditoria.map((ev) => (
+                <div key={ev.id} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.12)" }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{acaoLabel(ev.acao)}</p>
+                      <p className="text-xs" style={{ color: CINZA }}>{nomeUsuario(ev.usuario_id)} · {new Date(ev.criado_em).toLocaleString("pt-BR")}</p>
+                    </div>
+                    {(ev.antes || ev.depois) && (
+                      <button onClick={() => alternarExpandido(ev.id)} className="flex items-center gap-1 text-xs font-semibold flex-shrink-0" style={{ color: AZUL }}>
+                        {expandido.has(ev.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        {L("Detalhes", "Details", "Detalles")}
+                      </button>
+                    )}
+                  </div>
+                  {expandido.has(ev.id) && (ev.antes || ev.depois) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                      {ev.antes && (
+                        <div>
+                          <p className="text-[10px] uppercase font-bold mb-1" style={{ color: VERMELHO }}>{L("Antes", "Before", "Antes")}</p>
+                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: "#c8d8f0" }}>{JSON.stringify(ev.antes, null, 2)}</pre>
+                        </div>
+                      )}
+                      {ev.depois && (
+                        <div>
+                          <p className="text-[10px] uppercase font-bold mb-1" style={{ color: VERDE }}>{L("Depois", "After", "Después")}</p>
+                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: "#c8d8f0" }}>{JSON.stringify(ev.depois, null, 2)}</pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CanvasBox>
       )}
 
       {/* TOAST */}
@@ -1106,6 +1352,67 @@ export default function ContasPagarPage() {
                       ))}
                     </div>
                   )}
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL CONFIGURAÇÃO AP ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalConfigAp && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
+                <CanvasBox cor={CINZA}>
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><Settings size={18} />{L("Configuração AP", "AP Configuration", "Configuración AP")}</h3>
+                    </div>
+                    <button onClick={() => setModalConfigAp(false)} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Limite de Aprovação Automática (R$)", "Auto-approval Limit (R$)", "Límite de Aprobación Automática (R$)")}</label>
+                      <input type="number" value={configForm.limite} onChange={(e) => setConfigForm({ ...configForm, limite: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Contas com valor acima disso pedem aprovação antes de poder ser pagas.", "Bills above this amount need approval before they can be paid.", "Cuentas con valor superior a esto piden aprobación antes de poder pagarse.")}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Aprovadores", "Approvers", "Aprobadores")}</label>
+                      <p className="text-[10px] mb-1" style={{ color: CINZA }}>{L("O dono da empresa pode sempre aprovar, mesmo sem estar na lista.", "The company owner can always approve, even if not on this list.", "El dueño de la empresa siempre puede aprobar, incluso sin estar en la lista.")}</p>
+                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.1)" }}>
+                        {equipe.length === 0 ? (
+                          <p className="text-xs px-2 py-1" style={{ color: CINZA }}>{L("Ninguém além de você tem acesso ainda.", "No one besides you has access yet.", "Nadie además de usted tiene acceso todavía.")}</p>
+                        ) : equipe.filter((m) => m.origem === "ativo" && m.user_id).map((m) => (
+                          <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer" style={{ background: configForm.aprovadores.includes(m.user_id!) ? "rgba(52,211,153,0.1)" : "transparent" }}>
+                            <input type="checkbox" checked={configForm.aprovadores.includes(m.user_id!)} onChange={() => alternarAprovador(m.user_id!)} />
+                            <span className="text-xs" style={{ color: "#c8d8f0" }}>{m.nome || m.email} <span style={{ color: CINZA }}>({m.papel})</span></span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={configForm.bloquearDuplicata} onChange={(e) => setConfigForm({ ...configForm, bloquearDuplicata: e.target.checked })} />
+                      <span className="text-xs font-semibold" style={{ color: AZUL }}>{L("Bloquear duplicata quase certa (score ≥90%) por padrão", "Block near-certain duplicates (score ≥90%) by default", "Bloquear duplicado casi seguro (score ≥90%) por defecto")}</span>
+                    </label>
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Janela de Busca de Duplicata (dias)", "Duplicate Search Window (days)", "Ventana de Búsqueda de Duplicado (días)")}</label>
+                      <input type="number" value={configForm.diasJanela} onChange={(e) => setConfigForm({ ...configForm, diasJanela: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setModalConfigAp(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={salvarConfiguracaoAp} disabled={salvandoConfig} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #334155, #64748b)", color: "#fff" }}>
+                        {salvandoConfig ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Configuração", "Save Configuration", "Guardar Configuración")}
+                      </button>
+                    </div>
+                  </div>
                 </CanvasBox>
               </motion.div>
             </motion.div>

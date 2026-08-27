@@ -119,6 +119,7 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
 }
 
 export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, dataPagamento: string, formaPagamento: string): Promise<{ erro?: string }> {
+  if (conta.status === "aguardando_aprovacao") return { erro: "aguardando_aprovacao" };
   const status = calcStatus(conta.valor_total, valorPago, conta.data_vencimento);
   const { data, error } = await supabase.from("contas_pagar")
     .update({ valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento, status })
@@ -469,4 +470,62 @@ export function priorizarPagamentos(
 
     return { conta: c, score, explicacao: motivos.join(" + ") || L("prioridade baixa", "low priority", "prioridad baja") };
   }).sort((a, b) => b.score - a.score);
+}
+
+// ----------------------------------------------------------------------------
+// CONFIGURAÇÃO AP — CRUD já coberto por obterConfigAp/salvarConfigAp acima.
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// APROVAÇÃO — RPCs ap_solicitar_aprovacao / ap_decidir_aprovacao. O status da
+// contas_pagar (pendente ↔ aguardando_aprovacao) é resolvido dentro das
+// próprias RPCs (ver SQL da Entrega 2) — o client só chama e recarrega.
+// ----------------------------------------------------------------------------
+
+export async function solicitarAprovacao(contasPagarId: string): Promise<{ status?: string; erro?: string }> {
+  const { data, error } = await supabase.rpc("ap_solicitar_aprovacao", { p_contas_pagar_id: contasPagarId });
+  if (error) {
+    reportarFalhaEscrita("ap_solicitar_aprovacao", "rpc", error.message);
+    return { erro: error.message };
+  }
+  const linha = Array.isArray(data) ? data[0] : data;
+  return { status: linha?.status };
+}
+
+export type AprovacaoPendente = {
+  id: string; contas_pagar_id: string; empresa_id: string; solicitante_id: string; aprovador_id: string | null;
+  valor: number; status: string; motivo: string | null; decidido_em: string | null; criado_em: string;
+  contas_pagar?: { descricao: string; valor_total: number; data_vencimento: string | null; fornecedor_id: string | null } | null;
+};
+
+export async function listarAprovacoesPendentes(): Promise<AprovacaoPendente[]> {
+  const { data } = await supabase.from("contas_pagar_aprovacao")
+    .select("*, contas_pagar(descricao, valor_total, data_vencimento, fornecedor_id)")
+    .eq("status", "pendente").order("criado_em", { ascending: true });
+  return (data as AprovacaoPendente[]) || [];
+}
+
+export async function decidirAprovacao(aprovacaoId: string, decisao: "aprovada" | "rejeitada", motivo?: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.rpc("ap_decidir_aprovacao", { p_aprovacao_id: aprovacaoId, p_decisao: decisao, p_motivo: motivo || null });
+  if (error) {
+    reportarFalhaEscrita("ap_decidir_aprovacao", "rpc", error.message);
+    return { erro: error.message };
+  }
+  return {};
+}
+
+// ----------------------------------------------------------------------------
+// AUDITORIA — leitura da timeline por conta (o trigger já grava tudo
+// automaticamente, ver Entrega 2 SQL Parte 6; RLS já filtra por empresa).
+// ----------------------------------------------------------------------------
+
+export type AuditoriaAp = {
+  id: string; contas_pagar_id: string; empresa_id: string; usuario_id: string | null;
+  acao: string; antes: any; depois: any; ip: string | null; criado_em: string;
+};
+
+export async function listarAuditoriaConta(contasPagarId: string): Promise<AuditoriaAp[]> {
+  const { data } = await supabase.from("contas_pagar_auditoria").select("*")
+    .eq("contas_pagar_id", contasPagarId).order("criado_em", { ascending: false });
+  return (data as AuditoriaAp[]) || [];
 }
