@@ -1,0 +1,88 @@
+-- ============================================================================
+-- AXIOMA — Contas a Pagar, Entrega 3 (Value Recovery + Forecast): SQL do
+-- Commit 1/6 — campo de desconto por pagamento antecipado. NÃO APLICADO —
+-- só pra revisão. Roda sobre a Entrega 1/2 já em produção (contas_pagar,
+-- contas_pagar_auditoria, empresa_config_ap) — nada disso é recriado ou
+-- alterado além das 2 colunas novas abaixo.
+--
+-- DECISÕES DE DIAGNÓSTICO (ver relatório do Passo 1 desta entrega):
+--   - Só este pedaço da Entrega 3 precisa de SQL. Forecast multi-horizonte,
+--     Supplier Health no contexto de AP, Recurring Expense Intelligence,
+--     "cobranças acima da média" e "multas evitáveis" reaproveitam schema e
+--     motores que já existem (cfoCore.ts, fornecedorHelpers.ts,
+--     contasPagarHelpers.ts) — zero coluna nova pra eles.
+--   - 2 colunas novas, as duas nullable: a maioria das contas não negocia
+--     desconto por antecipação, e sem dado real o "desconto não usado" fica
+--     de fora do cálculo (mesmo princípio "sem dado não penaliza/não
+--     inventa" já usado em taxa_multa_mensal na Entrega 2 e no Score Axioma
+--     de Fornecedores).
+--   - NÃO existe uma 3ª coluna "desconto_aproveitado" (boolean) — isso é
+--     100% derivável das colunas que já existem (status='pago' e
+--     data_pagamento <= desconto_data_limite) + estas 2 novas, calculado em
+--     TypeScript no Commit 5. Guardar um boolean redundante junto seria
+--     estado duplicado que pode dessincronizar (ex: se a baixa for
+--     estornada) — deterministic-first, o dado fica só onde é fonte única
+--     da verdade.
+--   - Sem CHECK constraint no percentual (mesmo padrão de taxa_multa_mensal
+--     na Entrega 2: numeric livre, sem trava de faixa no banco) — validação
+--     de faixa (0-100%) fica no formulário, consistente com o resto da
+--     tabela (status também não tem CHECK, por exemplo).
+--   - Nenhuma RLS nova necessária: são colunas na MESMA tabela contas_pagar,
+--     as policies existentes (escopadas por empresa_id) já cobrem qualquer
+--     coluna da linha, sem precisar de policy por coluna.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0  — leitura: confirma contas_pagar existe
+--   PARTE 1  — 2 colunas novas em contas_pagar
+--   PARTE 2  — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS) — pode rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma a peça-base antes de mexer em qualquer coisa.
+-- Se vier vazio, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_pagar';
+
+
+-- ============================================================================
+-- PARTE 1 — CONTAS_PAGAR: 2 colunas novas pro Value Recovery — Commit 5
+-- (descontos não usados)
+-- ============================================================================
+-- desconto_disponivel_pct: percentual de desconto negociado com o
+-- fornecedor por pagamento antecipado (ex: "2/10 net 30" = 2 preenchido
+-- aqui). Nullable de propósito — sem negociação de desconto, fica vazio e
+-- a conta simplesmente não entra no cálculo de "desconto não usado".
+--
+-- desconto_data_limite: até que data o pagamento precisa acontecer pra
+-- valer o desconto. Data explícita (não "dias a partir da emissão") pelo
+-- mesmo motivo de data_vencimento/data_emissao/data_pagamento já serem
+-- datas explícitas nesta tabela — consistente com o resto do schema.
+
+ALTER TABLE public.contas_pagar
+  ADD COLUMN IF NOT EXISTS desconto_disponivel_pct numeric;
+
+ALTER TABLE public.contas_pagar
+  ADD COLUMN IF NOT EXISTS desconto_data_limite date;
+
+
+-- ============================================================================
+-- PARTE 2 — VERIFICAÇÃO (só leitura — rodar depois da parte 1)
+-- ============================================================================
+
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = 'contas_pagar'
+  AND column_name IN ('desconto_disponivel_pct', 'desconto_data_limite');
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- ALTER TABLE public.contas_pagar DROP COLUMN IF EXISTS desconto_disponivel_pct;
+-- ALTER TABLE public.contas_pagar DROP COLUMN IF EXISTS desconto_data_limite;
