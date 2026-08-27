@@ -278,7 +278,8 @@ export default function CentrosCustoPage() {
         setSalvandoCentro(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: editandoCentro.id, tabela: "centros_custo", registroId: editandoCentro.id, acao: "editar", descricao: `Centro editado: ${nomeCentro}`, valorAntes: editandoCentro, valorDepois: payload });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: editandoCentro.id, tabela: "centros_custo", registroId: editandoCentro.id, acao: "editar", descricao: `Centro editado: ${nomeCentro}`, valorAntes: editandoCentro, valorDepois: payload });
+      if (auditoria.erro) showToast(Lt("Centro salvo, mas o registro de auditoria falhou.", "Center saved, but the audit record failed.", "Centro guardado, pero el registro de auditoría falló."), "erro");
     } else {
       const { data, error } = await supabase.from("centros_custo").insert({ ...payload, user_id: user.id, empresa_id: empresaId, ativo: true }).select("id").single();
       if (error || !data) {
@@ -287,7 +288,8 @@ export default function CentrosCustoPage() {
         setSalvandoCentro(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: data.id, tabela: "centros_custo", registroId: data.id, acao: "criar", descricao: `Centro criado: ${nomeCentro}`, valorDepois: payload });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: data.id, tabela: "centros_custo", registroId: data.id, acao: "criar", descricao: `Centro criado: ${nomeCentro}`, valorDepois: payload });
+      if (auditoria.erro) showToast(Lt("Centro salvo, mas o registro de auditoria falhou.", "Center saved, but the audit record failed.", "Centro guardado, pero el registro de auditoría falló."), "erro");
     }
     fecharModalCentro(); setSalvandoCentro(false); carregarDados();
   }
@@ -301,7 +303,8 @@ export default function CentrosCustoPage() {
       reportarFalhaEscrita("centros_custo", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
-    await registrarAuditoriaCentro({ userId, empresaId, centroId: id, tabela: "centros_custo", registroId: id, acao: "excluir", descricao: `Centro excluído: ${centro?.nome || id}` });
+    const auditoria = await registrarAuditoriaCentro({ userId, empresaId, centroId: id, tabela: "centros_custo", registroId: id, acao: "excluir", descricao: `Centro excluído: ${centro?.nome || id}` });
+    if (auditoria.erro) showToast(Lt("Centro excluído, mas o registro de auditoria falhou.", "Center deleted, but the audit record failed.", "Centro eliminado, pero el registro de auditoría falló."), "erro");
     carregarDados();
   }
 

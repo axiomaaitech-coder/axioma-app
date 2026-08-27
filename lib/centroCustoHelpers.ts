@@ -3,12 +3,20 @@
 // entre vários centros por % — nunca duplica o valor, só a fração de cada centro.
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import { calcStatus } from "./fornecedorHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// RLS pode bloquear insert e devolver 0 linhas SEM error do Postgres (mesma causa raiz
+// do bug real do atualizarEmpresa "salvava sem salvar") — .select("id") é o que permite
+// enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 export type OrigemTabela = "custos_fixos" | "custos_variaveis" | "contas_pagar";
 
@@ -150,12 +158,18 @@ export function orcamentoDoPeriodo(orcamentos: OrcamentoRow[], centroId: string,
 export async function registrarAuditoriaCentro(params: {
   userId: string; empresaId: string | null; centroId?: string | null; tabela: string; registroId?: string;
   acao: "criar" | "editar" | "excluir"; descricao?: string; valorAntes?: any; valorDepois?: any;
-}): Promise<void> {
-  await supabase.from("centro_custo_auditoria").insert({
+}): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("centro_custo_auditoria").insert({
     user_id: params.userId, empresa_id: params.empresaId, centro_custo_id: params.centroId, tabela: params.tabela,
     registro_id: params.registroId, acao: params.acao, descricao: params.descricao,
     valor_antes: params.valorAntes, valor_depois: params.valorDepois,
-  });
+  }).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_auditoria", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export type AuditoriaRow = {
