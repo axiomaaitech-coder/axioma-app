@@ -252,9 +252,10 @@ export default function EstoquePage() {
   const [comprimindoImagem, setComprimindoImagem] = useState(false);
   const [categoriaSugerida, setCategoriaSugerida] = useState<string | null>(null);
 
-  // ---- Calculadora de preço (custo + markup → preço sugerido) ----
+  // ---- Calculadora de preço (custo de cadastro + markup → preço sugerido) ----
+  // Preço Sugerido é 100% derivado (custo × (1 + markup/100)) — nunca editado
+  // direto, por isso não existe mais estado de "override manual" aqui.
   const [markupPct, setMarkupPct] = useState("");
-  const [precoSugeridoManual, setPrecoSugeridoManual] = useState(false);
 
   // ---- Lote inicial (produto perecível novo) ----
   const [loteInicial, setLoteInicial] = useState({ numero_lote: "", data_fabricacao: "", data_validade: "", quantidade: "", custo_unitario: "" });
@@ -506,7 +507,6 @@ export default function EstoquePage() {
     setArquivoImagem(null);
     setPreviewImagem((old) => { if (old) URL.revokeObjectURL(old); return null; });
     setCategoriaSugerida(null);
-    setPrecoSugeridoManual(false);
     const custoAtual = produto?.preco_custo || 0;
     setMarkupPct(custoAtual > 0 && produto?.preco_sugerido ? (((produto.preco_sugerido - custoAtual) / custoAtual) * 100).toFixed(1) : "");
     setLoteInicial({ numero_lote: "", data_fabricacao: "", data_validade: "", quantidade: "", custo_unitario: "" });
@@ -581,7 +581,6 @@ export default function EstoquePage() {
   }
 
   function aplicarCalculoPreco(custo: number, markup: number) {
-    if (precoSugeridoManual) return;
     setFormProduto((f) => ({ ...f, preco_sugerido: precoPorMarkup(custo, markup) }));
   }
 
@@ -603,7 +602,11 @@ export default function EstoquePage() {
     try {
       let produtoId = produtoEditando?.id;
       if (produtoEditando) {
-        const { erro } = await atualizarProduto(produtoEditando.id, formProduto);
+        // preco_medio/preco_medio_anterior são contábeis, mantidos só pela trigger de
+        // movimentação (ver comentário no topo de estoqueHelpers.ts) — o cadastro/comercial
+        // nunca escreve neles, mesmo carregando o valor atual no state pra exibição.
+        const { preco_medio, preco_medio_anterior, ...comercial } = formProduto;
+        const { erro } = await atualizarProduto(produtoEditando.id, comercial);
         if (erro) { mostrarToast(erro, "erro"); return; }
       } else {
         const { id, erro } = await criarProduto(empresaId, userId, formProduto);
@@ -1691,12 +1694,34 @@ export default function EstoquePage() {
                 setMarkupPct(v);
                 aplicarCalculoPreco(Number(formProduto.preco_custo) || 0, Number(v) || 0);
               }} />
-            <CampoMoeda label={et.campoPrecoSugerido} valor={formProduto.preco_sugerido}
-              onChange={(v) => { setPrecoSugeridoManual(true); setFormProduto((f) => ({ ...f, preco_sugerido: v })); }} />
+            {/* Preço Sugerido é só leitura — resultado do cálculo acima (custo × (1 + markup/100)),
+                nunca digitado direto. Mesmo padrão visual do quadro "Custo Médio (sistema)" logo acima:
+                informativo, não um input. */}
+            <div>
+              <p className={labelCls} style={labelStyle}>{et.campoPrecoSugerido}</p>
+              <p className="text-sm py-2" style={{ color: "#c8d8f0" }}>{moeda(formProduto.preco_sugerido)}</p>
+            </div>
           </div>
-          {(formProduto.preco_custo || 0) > 0 && formProduto.preco_sugerido != null && (
-            <p className="text-xs font-semibold" style={{ color: POSITIVO }}>{et.campoMargemReal}: {margemReal(formProduto.preco_sugerido, formProduto.preco_custo || 0).toFixed(1)}%</p>
-          )}
+          <div className="grid grid-cols-3 gap-3 items-start">
+            <CampoMoeda label={et.campoPrecoVenda} valor={formProduto.preco_venda}
+              onChange={(v) => setFormProduto((f) => ({ ...f, preco_venda: v }))} />
+            <div className="flex flex-col justify-center">
+              {(formProduto.preco_sugerido || 0) > 0 && (
+                <button type="button"
+                  onClick={() => setFormProduto((f) => ({ ...f, preco_venda: f.preco_sugerido ?? null }))}
+                  className="text-xs font-semibold underline text-left mt-6" style={{ color: NEUTRO }}>
+                  {et.linkUsarSugestao} ({moeda(formProduto.preco_sugerido)})
+                </button>
+              )}
+            </div>
+            {(formProduto.preco_venda || 0) > 0 && (
+              <div className="mt-6">
+                <p className="text-xs font-semibold" style={{ color: POSITIVO }}>
+                  {et.campoMargemReal}: {margemReal(formProduto.preco_venda || 0, formProduto.preco_custo || 0).toFixed(1)}%
+                </p>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <CampoMoeda label={et.campoPrecoMinimo} valor={formProduto.preco_minimo} onChange={(v) => setFormProduto((f) => ({ ...f, preco_minimo: v }))} />
             <CampoMoeda label={et.campoPrecoPromocional} valor={formProduto.preco_promocional} onChange={(v) => setFormProduto((f) => ({ ...f, preco_promocional: v }))} />
