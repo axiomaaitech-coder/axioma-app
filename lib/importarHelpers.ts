@@ -4,12 +4,19 @@
 
 import CryptoJS from "crypto-js";
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import type { DestinoTabela, LinhaImportada, ResultadoParse } from "./importarParsers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres —
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 // ============================================================================
 // BUILDERS DE PAYLOAD POR DESTINO
@@ -933,11 +940,13 @@ export async function gravarLinhas(params: {
         continue;
       }
       const novoValor = Number((atual as any)[colValor] || 0) + (linha.valor || 0);
-      const { error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id);
-      if (errUpdate) {
+      const { data: somado, error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id).select("id");
+      if (errUpdate || !somado || somado.length === 0) {
+        const msg = errUpdate?.message || "0 linhas afetadas (RLS?)";
         resultado.erro++;
-        resultado.mensagens_erro.push(`Linha ${numLinha}: ${errUpdate.message}`);
-        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: errUpdate.message });
+        resultado.mensagens_erro.push(`Linha ${numLinha}: ${msg}`);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: msg });
+        reportarFalhaEscrita(alvoSomar.tabela, "update (somar importação)", msg);
         continue;
       }
       resultado.importadas++;
@@ -1142,12 +1151,17 @@ export async function editarLinhaImportada(
   }
 
   // 3) UPDATE no destino real
-  const { error: errUpdate } = await supabase
+  const { data: editado, error: errUpdate } = await supabase
     .from(destino)
     .update(payload)
-    .eq("id", aud.destino_id);
+    .eq("id", aud.destino_id)
+    .select("id");
 
-  if (errUpdate) return { erro: errUpdate.message };
+  if (errUpdate || !editado || editado.length === 0) {
+    const motivo = errUpdate?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita(destino, "update (editar linha importada)", motivo);
+    return { erro: motivo };
+  }
 
   // 4) UPDATE na auditoria
   const auditUpdate: Record<string, any> = {
@@ -1294,10 +1308,14 @@ export async function reverterImportacao(
         .delete({ count: "exact" })
         .in("id", chunk);
 
-      if (error) {
-        erros.push(`${tabela}: ${error.message}`);
+      const qtdRemovida = count ?? 0;
+      if (error || qtdRemovida < chunk.length) {
+        const motivo = error?.message || `${chunk.length - qtdRemovida} de ${chunk.length} não foram removidos (RLS?)`;
+        erros.push(`${tabela}: ${motivo}`);
+        reportarFalhaEscrita(tabela, "delete (reverter importação)", motivo);
+        removidas += qtdRemovida;
       } else {
-        removidas += count || chunk.length;
+        removidas += qtdRemovida;
       }
     }
   }
@@ -1321,9 +1339,11 @@ export async function reverterImportacao(
       continue;
     }
     const novoValor = Number((atual as any)[colValor] || 0) - Number(l.valor || 0);
-    const { error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id);
-    if (errUpdate) {
-      erros.push(`${l.destino_tabela}: ${errUpdate.message}`);
+    const { data: subtraido, error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id).select("id");
+    if (errUpdate || !subtraido || subtraido.length === 0) {
+      const motivo = errUpdate?.message || "0 linhas afetadas (RLS?)";
+      erros.push(`${l.destino_tabela}: ${motivo}`);
+      reportarFalhaEscrita(l.destino_tabela, "update (desfazer soma na reversão)", motivo);
       continue;
     }
     removidas++;

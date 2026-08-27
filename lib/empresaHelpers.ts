@@ -12,6 +12,13 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres —
+// .select("id") é o que permite enxergar essa falha silenciosa (mesmo padrão
+// já usado em atualizarEmpresa(), mais abaixo).
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
+
 // Campos que identificam uma PESSOA física de fora da empresa (o contador,
 // não sócio/funcionário) — a auditoria nunca grava o valor real desses
 // campos, só o fato de que mudaram (LGPD: dado pessoal de terceiro sem base
@@ -292,7 +299,8 @@ export async function obterEmpresaAtiva(): Promise<string | null> {
   // (c) rede de segurança: nem dono nem convidado — cria "Minha Empresa" vazia
   // (idempotente/atômica no banco, ver obter_ou_criar_empresa_padrao() em SQL-EMPRESA-PADRAO.sql).
   // O caminho principal de criação é o /auth/callback (login/cadastro), isto é só o fallback.
-  const { data: empresaId } = await supabase.rpc("obter_ou_criar_empresa_padrao");
+  const { data: empresaId, error } = await supabase.rpc("obter_ou_criar_empresa_padrao");
+  if (error) reportarFalhaEscrita("empresas", "rpc obter_ou_criar_empresa_padrao", error.message);
   return salvar(typeof empresaId === "string" ? empresaId : null);
 }
 
@@ -320,9 +328,13 @@ export async function criarEmpresa(userId: string, dados: any): Promise<{ id?: s
   // futura que use essa tabela como fonte). obter_ou_criar_empresa_padrao()
   // já grava isso pro caminho automático de cadastro; este é o caminho
   // manual, que ficou de fora até agora.
-  await supabase
+  const { data: vinculoDono, error: erroVinculo } = await supabase
     .from("empresa_usuarios")
-    .upsert({ empresa_id: data.id, user_id: userId, papel: "dono" }, { onConflict: "empresa_id,user_id" });
+    .upsert({ empresa_id: data.id, user_id: userId, papel: "dono" }, { onConflict: "empresa_id,user_id" })
+    .select("id");
+  if (erroVinculo || !vinculoDono || vinculoDono.length === 0) {
+    reportarFalhaEscrita("empresa_usuarios", "upsert (vínculo dono)", erroVinculo?.message || "0 linhas afetadas (RLS?)");
+  }
 
   await registrarAuditoria({
     empresaId: data.id,
@@ -422,12 +434,17 @@ export async function criarSocio(empresaId: string, userId: string, dados: any):
 }
 
 export async function atualizarSocio(socioId: string, empresaId: string, userId: string, dados: any): Promise<{ erro?: string }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("empresa_socios")
     .update({ ...dados, updated_at: new Date().toISOString() })
     .eq("id", socioId)
-    .eq("empresa_id", empresaId);
-  if (error) return { erro: error.message };
+    .eq("empresa_id", empresaId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_socios", "update", motivo);
+    return { erro: error ? motivo : "SEM_PERMISSAO_ESCRITA" };
+  }
   await registrarAuditoria({
     empresaId,
     userId,
@@ -440,12 +457,17 @@ export async function atualizarSocio(socioId: string, empresaId: string, userId:
 }
 
 export async function excluirSocio(socioId: string, empresaId: string, userId: string): Promise<{ erro?: string }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("empresa_socios")
     .delete()
     .eq("id", socioId)
-    .eq("empresa_id", empresaId);
-  if (error) return { erro: error.message };
+    .eq("empresa_id", empresaId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_socios", "delete", motivo);
+    return { erro: error ? motivo : "SEM_PERMISSAO_ESCRITA" };
+  }
   await registrarAuditoria({
     empresaId,
     userId,
@@ -467,13 +489,14 @@ export async function excluirSocio(socioId: string, empresaId: string, userId: s
 // dois, compara por nome (case/acento-insensível, aproximado).
 export async function importarSociosDoQSA(
   empresaId: string, userId: string, qsa: any[], sociosExistentes: any[] = []
-): Promise<{ importados: number; ignorados: number }> {
+): Promise<{ importados: number; ignorados: number; falhas: number }> {
   const norm = (s: string) => (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
   const cpfCnpjExistentes = new Set(sociosExistentes.map((s) => (s.cpf_cnpj || "").replace(/\D/g, "")).filter(Boolean));
   const nomesExistentes = new Set(sociosExistentes.map((s) => norm(s.nome)).filter(Boolean));
 
   let importados = 0;
   let ignorados = 0;
+  let falhas = 0;
   for (const s of qsa) {
     const dados = {
       nome: s.nome_socio || s.nome,
@@ -496,6 +519,9 @@ export async function importarSociosDoQSA(
     if (!error && data) {
       importados++;
       if (cpfCnpjLimpo) cpfCnpjExistentes.add(cpfCnpjLimpo); else nomesExistentes.add(norm(dados.nome));
+    } else {
+      falhas++;
+      reportarFalhaEscrita("empresa_socios", "insert (importação QSA)", error?.message || "0 linhas afetadas (RLS?)");
     }
   }
   // 1 registro de auditoria pro lote inteiro (não 1 por sócio) — a ação e a
@@ -511,7 +537,7 @@ export async function importarSociosDoQSA(
       descricao: `Importados ${importados} sócio(s) do quadro societário da Receita Federal${ignorados > 0 ? ` (${ignorados} já cadastrado(s), ignorado(s))` : ""}`,
     });
   }
-  return { importados, ignorados };
+  return { importados, ignorados, falhas };
 }
 
 // ============================================================================
@@ -708,12 +734,17 @@ export async function criarObrigacao(empresaId: string, userId: string, dados: a
 }
 
 export async function atualizarObrigacao(id: string, empresaId: string, userId: string, dados: any): Promise<{ erro?: string }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("empresa_obrigacoes")
     .update({ ...dados, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("empresa_id", empresaId);
-  if (error) return { erro: error.message };
+    .eq("empresa_id", empresaId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_obrigacoes", "update", motivo);
+    return { erro: error ? motivo : "SEM_PERMISSAO_ESCRITA" };
+  }
   await registrarAuditoria({
     empresaId, userId,
     tabela: "empresa_obrigacoes",
@@ -726,8 +757,12 @@ export async function atualizarObrigacao(id: string, empresaId: string, userId: 
 }
 
 export async function excluirObrigacao(id: string, empresaId: string, userId: string, nome: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("empresa_obrigacoes").delete().eq("id", id).eq("empresa_id", empresaId);
-  if (error) return { erro: error.message };
+  const { data, error } = await supabase.from("empresa_obrigacoes").delete().eq("id", id).eq("empresa_id", empresaId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("empresa_obrigacoes", "delete", motivo);
+    return { erro: error ? motivo : "SEM_PERMISSAO_ESCRITA" };
+  }
   await registrarAuditoria({
     empresaId, userId,
     tabela: "empresa_obrigacoes",
@@ -930,8 +965,12 @@ export async function alterarPapelMembro(
   membro: MembroEquipe, empresaId: string, userId: string, novoPapel: string
 ): Promise<{ erro?: string; codigo?: string }> {
   const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
-  const { error } = await supabase.from(tabela).update({ papel: novoPapel }).eq("id", membro.id).eq("empresa_id", empresaId);
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  const { data, error } = await supabase.from(tabela).update({ papel: novoPapel }).eq("id", membro.id).eq("empresa_id", empresaId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita(tabela, "update (papel)", motivo);
+    return error ? { erro: motivo, codigo: (error as any).code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+  }
   await registrarAuditoria({
     empresaId, userId, tabela, registroId: membro.id, acao: "editar",
     campo: "papel", valorAntes: membro.papel, valorDepois: novoPapel,
@@ -948,8 +987,12 @@ export async function removerAcessoMembro(
   membro: MembroEquipe, empresaId: string, userId: string
 ): Promise<{ erro?: string; codigo?: string }> {
   const tabela = membro.origem === "ativo" ? "empresa_usuarios" : "empresa_equipe";
-  const { error } = await supabase.from(tabela).delete().eq("id", membro.id).eq("empresa_id", empresaId);
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  const { data, error } = await supabase.from(tabela).delete().eq("id", membro.id).eq("empresa_id", empresaId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita(tabela, "delete (acesso)", motivo);
+    return error ? { erro: motivo, codigo: (error as any).code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+  }
   await registrarAuditoria({
     empresaId, userId, tabela, registroId: membro.id, acao: "excluir",
     descricao: `Acesso removido: ${membro.email}`,

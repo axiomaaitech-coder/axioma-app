@@ -88,6 +88,7 @@ const textos = {
     sucessoVinculado: 'Transação conciliada!', erroVincularCandidato: 'Erro ao conciliar',
     sucessoDesconectado: 'Banco desconectado.', letreiroAtipicos: 'transação(ões) atípica(s) — merece(m) uma olhada',
     erroDesconectar: 'Não foi possível desconectar o banco. Tente novamente.',
+    sincronizacaoParcial: 'Sincronizado, mas algumas transações não foram salvas. Tente sincronizar de novo.',
   },
   en: {
     titulo: 'Open Finance — Reconciliation', sub: 'Connect your bank: we reconcile it against what is already in your CFO and flag what looks off.',
@@ -123,6 +124,7 @@ const textos = {
     sucessoVinculado: 'Transaction reconciled!', erroVincularCandidato: 'Error reconciling',
     sucessoDesconectado: 'Bank disconnected.', letreiroAtipicos: 'unusual transaction(s) — worth a look',
     erroDesconectar: 'Could not disconnect the bank. Try again.',
+    sincronizacaoParcial: 'Synced, but some transactions were not saved. Try syncing again.',
   },
   es: {
     titulo: 'Open Finance — Conciliación', sub: 'Conecte su banco: conciliamos con lo que ya está en su CFO y avisamos lo que parece extraño.',
@@ -158,6 +160,7 @@ const textos = {
     sucessoVinculado: '¡Transacción conciliada!', erroVincularCandidato: 'Error al conciliar',
     sucessoDesconectado: 'Banco desconectado.', letreiroAtipicos: 'transacción(es) atípica(s) — merece(n) una mirada',
     erroDesconectar: 'No se pudo desconectar el banco. Intente de nuevo.',
+    sincronizacaoParcial: 'Sincronizado, pero algunas transacciones no se guardaron. Intente sincronizar de nuevo.',
   },
 }
 
@@ -297,7 +300,11 @@ export default function OpenFinancePage() {
       const dados = await res.json()
       if (!res.ok || dados.error) throw new Error(dados.error || 'Erro ao sincronizar')
       await carregarTudo()
-      avisar('sucesso', `${dados.total ?? 0} ${t.importadas}`)
+      if (dados.erros?.length > 0) {
+        avisar('erro', t.sincronizacaoParcial)
+      } else {
+        avisar('sucesso', `${dados.total ?? 0} ${t.importadas}`)
+      }
     } catch (err: any) {
       avisar('erro', err.message || t.erro)
     } finally {

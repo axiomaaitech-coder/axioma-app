@@ -3,6 +3,7 @@
 // lib/documentoStorageAdapter.ts (bucket privado + signed URL).
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import { comprimirImagem } from "./imagemHelpers";
 import { uploadArquivoStorage, gerarUrlAssinada, removerArquivoStorage } from "./documentoStorageAdapter";
 
@@ -10,6 +11,12 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres —
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 export const TAMANHO_MAXIMO_BYTES = 10 * 1024 * 1024; // 10MB, mesmo teto do plano aprovado
 
@@ -90,14 +97,24 @@ export async function uploadDocumentoFiscal(params: {
 }
 
 export async function atualizarDocumentoFiscal(id: string, dados: { tipo?: TipoDocumentoFiscal; descricao?: string }): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("documentos_fiscais").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("documentos_fiscais").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("documentos_fiscais", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirDocumentoFiscal(doc: DocumentoFiscal): Promise<{ erro?: string }> {
   await removerArquivoStorage(doc.path_storage);
-  const { error } = await supabase.from("documentos_fiscais").delete().eq("id", doc.id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("documentos_fiscais").delete().eq("id", doc.id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("documentos_fiscais", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function urlDocumentoFiscal(path: string): Promise<string | null> {

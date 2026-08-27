@@ -10,6 +10,13 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres — a
+// mesma causa raiz do bug real do atualizarEmpresa ("salvava sem salvar").
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
+
 // ============================================================================
 // TIPOS — LINHAS DO SUPABASE
 // ============================================================================
@@ -70,18 +77,32 @@ export async function listarContatos(fornecedorId: string): Promise<FornecedorCo
 export async function criarContato(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorContato>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_contatos")
     .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_contatos", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
 export async function atualizarContato(id: string, dados: Partial<FornecedorContato>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_contatos").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_contatos").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_contatos", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirContato(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_contatos").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_contatos").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_contatos", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================
@@ -107,19 +128,33 @@ export async function listarDocumentos(fornecedorId: string): Promise<Fornecedor
 export async function criarDocumentoFornecedor(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorDocumento>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_documentos")
     .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_documentos", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
 export async function atualizarDocumentoFornecedor(id: string, dados: Partial<FornecedorDocumento>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_documentos").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_documentos").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_documentos", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirDocumentoFornecedor(doc: FornecedorDocumento): Promise<{ erro?: string }> {
   if (doc.storage_path) await supabase.storage.from("fornecedor-documentos").remove([doc.storage_path]);
-  const { error } = await supabase.from("fornecedor_documentos").delete().eq("id", doc.id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_documentos").delete().eq("id", doc.id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_documentos", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function gerarUrlDocumentoFornecedor(path: string, segundos: number = 3600): Promise<string | null> {
@@ -140,18 +175,32 @@ export async function listarContratos(fornecedorId: string): Promise<FornecedorC
 export async function criarContrato(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorContrato>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_contratos")
     .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_contratos", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
 export async function atualizarContrato(id: string, dados: Partial<FornecedorContrato>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_contratos").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_contratos").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_contratos", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirContrato(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_contratos").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_contratos").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_contratos", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================
@@ -167,26 +216,32 @@ export async function listarProdutos(fornecedorId: string): Promise<FornecedorPr
 export async function criarProduto(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorProduto>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_produtos")
     .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_produtos", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
-// RLS pode bloquear o update e devolver 0 linhas SEM error do Postgres — a
-// mesma causa raiz do bug real do atualizarEmpresa ("salvava sem salvar").
-// .select("id") aqui é o que permite enxergar essa falha silenciosa.
 export async function atualizarProduto(id: string, dados: Partial<FornecedorProduto>): Promise<{ erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_produtos").update(dados).eq("id", id).select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    Sentry.captureException(new Error(`Falha ao atualizar fornecedor_produtos: ${motivo}`), { extra: { tabela: "fornecedor_produtos", operacao: "update", id, motivo } });
+    reportarFalhaEscrita("fornecedor_produtos", "update", motivo);
     return { erro: motivo };
   }
   return {};
 }
 
 export async function excluirProduto(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_produtos").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_produtos").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_produtos", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================

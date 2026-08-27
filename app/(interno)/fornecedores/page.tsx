@@ -716,6 +716,12 @@ export default function Fornecedores() {
     erroQuitarConta: idioma === "pt" ? "Não foi possível quitar a conta. Tente novamente." : idioma === "en" ? "Could not settle the bill. Try again." : "No se pudo saldar la cuenta. Intente de nuevo.",
     erroSalvarProduto: idioma === "pt" ? "Não foi possível salvar o produto/serviço. Tente novamente." : idioma === "en" ? "Could not save the product/service. Try again." : "No se pudo guardar el producto/servicio. Intente de nuevo.",
     erroExcluirProduto: idioma === "pt" ? "Não foi possível excluir o produto/serviço. Tente novamente." : idioma === "en" ? "Could not delete the product/service. Try again." : "No se pudo eliminar el producto/servicio. Intente de nuevo.",
+    erroSalvarContato: idioma === "pt" ? "Não foi possível salvar o contato. Tente novamente." : idioma === "en" ? "Could not save the contact. Try again." : "No se pudo guardar el contacto. Intente de nuevo.",
+    erroExcluirContato: idioma === "pt" ? "Não foi possível excluir o contato. Tente novamente." : idioma === "en" ? "Could not delete the contact. Try again." : "No se pudo eliminar el contacto. Intente de nuevo.",
+    erroSalvarDocumento: idioma === "pt" ? "Não foi possível salvar o documento. Tente novamente." : idioma === "en" ? "Could not save the document. Try again." : "No se pudo guardar el documento. Intente de nuevo.",
+    erroExcluirDocumento: idioma === "pt" ? "Não foi possível excluir o documento. Tente novamente." : idioma === "en" ? "Could not delete the document. Try again." : "No se pudo eliminar el documento. Intente de nuevo.",
+    erroSalvarContrato: idioma === "pt" ? "Não foi possível salvar o contrato. Tente novamente." : idioma === "en" ? "Could not save the contract. Try again." : "No se pudo guardar el contrato. Intente de nuevo.",
+    erroExcluirContrato: idioma === "pt" ? "Não foi possível excluir o contrato. Tente novamente." : idioma === "en" ? "Could not delete the contract. Try again." : "No se pudo eliminar el contrato. Intente de nuevo.",
   };
 
   const [aba, setAba] = useState<"fornecedores" | "contas">("fornecedores");
@@ -1031,8 +1037,10 @@ export default function Fornecedores() {
     if (!fornecedorAtualId || !novoContato.nome.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    if (editandoContatoId) await atualizarContato(editandoContatoId, novoContato);
-    else await criarContato(fornecedorAtualId, user.id, empresaId, novoContato);
+    const { erro } = editandoContatoId
+      ? await atualizarContato(editandoContatoId, novoContato)
+      : await criarContato(fornecedorAtualId, user.id, empresaId, novoContato);
+    if (erro) { showToast(txt.erroSalvarContato, "erro"); return; }
     setNovoContato({ nome: "", cargo: "", email: "", telefone: "", whatsapp: "", principal: false });
     setEditandoContatoId(null);
     setContatosForn(await listarContatos(fornecedorAtualId));
@@ -1046,7 +1054,8 @@ export default function Fornecedores() {
     setEditandoContatoId(null);
   };
   const removerContato = async (id: string) => {
-    await excluirContato(id);
+    const { erro } = await excluirContato(id);
+    if (erro) { showToast(txt.erroExcluirContato, "erro"); return; }
     if (editandoContatoId === id) cancelarEdicaoContato();
     if (fornecedorAtualId) setContatosForn(await listarContatos(fornecedorAtualId));
   };
@@ -1063,14 +1072,16 @@ export default function Fornecedores() {
       if (up.erro) { setEnviandoDocumento(false); return; }
       storage_path = up.path; mime_type = arquivoDocumento.type; tamanho_bytes = arquivoDocumento.size;
     }
+    let erroDoc: string | undefined;
     if (editandoDocumentoId) {
       // Só troca o arquivo se um novo foi escolhido — corrigir nome/validade não exige reupload.
       const dados: Partial<FornecedorDocumento> = { ...novoDocumento };
       if (storage_path) { dados.storage_path = storage_path; dados.mime_type = mime_type; dados.tamanho_bytes = tamanho_bytes; }
-      await atualizarDocumentoFornecedor(editandoDocumentoId, dados);
+      erroDoc = (await atualizarDocumentoFornecedor(editandoDocumentoId, dados)).erro;
     } else {
-      await criarDocumentoFornecedor(fornecedorAtualId, user.id, empresaId, { ...novoDocumento, storage_path, mime_type, tamanho_bytes });
+      erroDoc = (await criarDocumentoFornecedor(fornecedorAtualId, user.id, empresaId, { ...novoDocumento, storage_path, mime_type, tamanho_bytes })).erro;
     }
+    if (erroDoc) { showToast(txt.erroSalvarDocumento, "erro"); setEnviandoDocumento(false); return; }
     setNovoDocumento({ tipo: TIPOS_DOCUMENTO_FORNECEDOR[0].key, nome: "", numero_documento: "", data_emissao: "", data_validade: "" });
     setArquivoDocumento(null);
     setEditandoDocumentoId(null);
@@ -1088,7 +1099,8 @@ export default function Fornecedores() {
     setEditandoDocumentoId(null);
   };
   const removerDocumento = async (doc: FornecedorDocumento) => {
-    await excluirDocumentoFornecedor(doc);
+    const { erro } = await excluirDocumentoFornecedor(doc);
+    if (erro) { showToast(txt.erroExcluirDocumento, "erro"); return; }
     if (editandoDocumentoId === doc.id) cancelarEdicaoDocumento();
     if (fornecedorAtualId) setDocumentosForn(await listarDocumentos(fornecedorAtualId));
   };
@@ -1109,8 +1121,10 @@ export default function Fornecedores() {
       valor_contratado: novoContrato.valor_contratado ? parseFloat(novoContrato.valor_contratado) : null,
       valor_utilizado: novoContrato.valor_utilizado ? parseFloat(novoContrato.valor_utilizado) : 0,
     };
-    if (editandoContratoId) await atualizarContrato(editandoContratoId, dados);
-    else await criarContrato(fornecedorAtualId, user.id, empresaId, dados);
+    const { erro } = editandoContratoId
+      ? await atualizarContrato(editandoContratoId, dados)
+      : await criarContrato(fornecedorAtualId, user.id, empresaId, dados);
+    if (erro) { showToast(txt.erroSalvarContrato, "erro"); return; }
     setNovoContrato({ descricao: "", data_inicio: "", data_fim: "", renovacao_automatica: false, indice_reajuste: "", valor_contratado: "", valor_utilizado: "" });
     setEditandoContratoId(null);
     setContratosForn(await listarContratos(fornecedorAtualId));
@@ -1129,7 +1143,8 @@ export default function Fornecedores() {
     setEditandoContratoId(null);
   };
   const removerContrato = async (id: string) => {
-    await excluirContrato(id);
+    const { erro } = await excluirContrato(id);
+    if (erro) { showToast(txt.erroExcluirContrato, "erro"); return; }
     if (editandoContratoId === id) cancelarEdicaoContrato();
     if (fornecedorAtualId) setContratosForn(await listarContratos(fornecedorAtualId));
     carregarDados();

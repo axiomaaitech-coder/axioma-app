@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import * as Sentry from '@sentry/nextjs'
 
 // Puxa contas + transações dos bancos conectados e salva no Supabase.
 // Não depende do webhook — funciona na hora que o cliente conecta ou clica em "Sincronizar".
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
     const { apiKey } = await authResponse.json()
 
     let totalSalvas = 0
+    const erros: string[] = []
 
     for (const it of itens) {
       const itemId = it.item_id
@@ -115,20 +117,31 @@ export async function POST(request: NextRequest) {
       // payload, então o Supabase preserva o valor já gravado na linha
       // existente em vez de resetar).
       if (novas.length > 0) {
-        const { error: upsertErr } = await supabase
+        const { data: salvas, error: upsertErr } = await supabase
           .from('of_transacoes')
           .upsert(novas, { onConflict: 'pluggy_transaction_id' })
-        if (!upsertErr) totalSalvas += novas.length
+          .select('id')
+        if (upsertErr || !salvas || salvas.length < novas.length) {
+          const motivo = upsertErr?.message || `${novas.length - (salvas?.length || 0)} de ${novas.length} transação(ões) não foram gravadas (RLS?)`
+          Sentry.captureException(new Error(`Falha ao upsert em of_transacoes: ${motivo}`), { extra: { tabela: 'of_transacoes', operacao: 'upsert', itemId, motivo } })
+          erros.push(`${itemId}: ${motivo}`)
+          totalSalvas += salvas?.length || 0
+        } else {
+          totalSalvas += novas.length
+        }
       }
 
       // Marca a conexão como ativa e atualiza o saldo (soma das contas do item)
-      await supabase.from('open_finance')
+      const { error: erroStatus } = await supabase.from('open_finance')
         .update({ status: 'UPDATED', saldo_atual: saldoItem, updated_at: new Date().toISOString() })
         .eq('item_id', itemId)
         .eq('empresa_id', empresaId)
+      if (erroStatus) {
+        Sentry.captureException(new Error(`Falha ao update em open_finance: ${erroStatus.message}`), { extra: { tabela: 'open_finance', operacao: 'update', itemId } })
+      }
     }
 
-    return NextResponse.json({ total: totalSalvas })
+    return NextResponse.json({ total: totalSalvas, erros: erros.length > 0 ? erros : undefined })
   } catch (error: any) {
     console.error('Pluggy sync error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })

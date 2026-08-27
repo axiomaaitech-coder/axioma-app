@@ -487,7 +487,11 @@ export default function CentrosCustoPage() {
 
   async function excluirRateioAtual() {
     if (!userId || !rateioOrigemId) return;
-    await removerRateio(userId, rateioTabela, rateioOrigemId);
+    const { erro } = await removerRateio(userId, rateioTabela, rateioOrigemId);
+    if (erro) {
+      showToast(Lt("Não foi possível remover o rateio. Tente novamente.", "Could not remove the allocation. Try again.", "No se pudo eliminar el prorrateo. Intente de nuevo."), "erro");
+      return;
+    }
     setRateioPercentuais({});
     carregarDados();
   }
@@ -659,12 +663,20 @@ export default function CentrosCustoPage() {
   }
 
   async function mudarStatusPlano(id: string, status: PlanoAcao["status"]) {
-    await atualizarPlanoAcao(id, { status });
+    const { erro } = await atualizarPlanoAcao(id, { status });
+    if (erro) {
+      showToast(Lt("Não foi possível atualizar o status do plano. Tente novamente.", "Could not update the plan status. Try again.", "No se pudo actualizar el estado del plan. Intente de nuevo."), "erro");
+      return;
+    }
     carregarDados();
   }
 
   async function removerPlano(id: string) {
-    await excluirPlanoAcao(id);
+    const { erro } = await excluirPlanoAcao(id);
+    if (erro) {
+      showToast(Lt("Não foi possível remover o plano. Tente novamente.", "Could not remove the plan. Try again.", "No se pudo eliminar el plan. Intente de nuevo."), "erro");
+      return;
+    }
     carregarDados();
   }
 
@@ -831,8 +843,13 @@ export default function CentrosCustoPage() {
                           <button disabled={salvandoOrcamento} onClick={async () => {
                               if (!userId) return;
                               setSalvandoOrcamento(true);
-                              await definirOrcamento(userId, empresaId, centro.id, periodo, parseFloat(orcamentoEditValor || "0"));
-                              setSalvandoOrcamento(false); setOrcamentoEditId(null); carregarDados();
+                              const { erro } = await definirOrcamento(userId, empresaId, centro.id, periodo, parseFloat(orcamentoEditValor || "0"));
+                              setSalvandoOrcamento(false);
+                              if (erro) {
+                                showToast(Lt("Não foi possível salvar o orçamento. Tente novamente.", "Could not save the budget. Try again.", "No se pudo guardar el presupuesto. Intente de nuevo."), "erro");
+                                return;
+                              }
+                              setOrcamentoEditId(null); carregarDados();
                             }} className="text-xs font-bold px-2 py-1.5 rounded-lg" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>
                             {idioma === "pt" ? "Salvar" : idioma === "es" ? "Guardar" : "Save"}
                           </button>

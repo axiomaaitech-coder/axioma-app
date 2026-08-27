@@ -5,6 +5,7 @@
 // Escrita nova: só auditoria (Fase 1) e planos de ação (Fase 2).
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import {
   detectarAnomaliasHistoricas, type AnomaliaHistorica, type Lancamento,
   detectarDesperdicio, type ItemDespesa,
@@ -22,6 +23,12 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres —
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 export type CentroLeve = { id: string; nome: string };
 export type Lang = "pt" | "en" | "es";
@@ -536,12 +543,17 @@ export async function criarPlanoAcao(userId: string, empresaId: string | null, p
   titulo: string; objetivo?: string; tarefas?: string[]; responsavel?: string; prazo?: string;
   impactoEsperado?: string; economiaEstimada?: number;
 }): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("centro_custo_plano_acao").insert({
+  const { data, error } = await supabase.from("centro_custo_plano_acao").insert({
     user_id: userId, empresa_id: empresaId, centro_custo_id: plano.centroId || null, origem_tipo: plano.origemTipo, origem_id: plano.origemId || null,
     titulo: plano.titulo, objetivo: plano.objetivo || null, tarefas: plano.tarefas || null, responsavel: plano.responsavel || null,
     prazo: plano.prazo || null, impacto_esperado: plano.impactoEsperado || null, economia_estimada: plano.economiaEstimada ?? null,
-  });
-  return error ? { erro: error.message } : {};
+  }).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_plano_acao", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function atualizarPlanoAcao(id: string, dados: Partial<{
@@ -557,10 +569,21 @@ export async function atualizarPlanoAcao(id: string, dados: Partial<{
   if (dados.impactoEsperado !== undefined) payload.impacto_esperado = dados.impactoEsperado;
   if (dados.economiaEstimada !== undefined) payload.economia_estimada = dados.economiaEstimada;
   if (dados.status !== undefined) payload.status = dados.status;
-  const { error } = await supabase.from("centro_custo_plano_acao").update(payload).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("centro_custo_plano_acao").update(payload).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_plano_acao", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
-export async function excluirPlanoAcao(id: string): Promise<void> {
-  await supabase.from("centro_custo_plano_acao").delete().eq("id", id);
+export async function excluirPlanoAcao(id: string): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("centro_custo_plano_acao").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_plano_acao", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }

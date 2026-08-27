@@ -102,6 +102,7 @@ export default function DASObrigacoes() {
     estimativaAviso: { pt: 'Estimativa pelas regras vigentes (multa 0,33%/dia até 20%, juros Selic). Não substitui o extrato oficial da Receita Federal.', en: 'Estimate under current rules (0.33%/day fine up to 20%, Selic interest). Does not replace the official Federal Revenue statement.', es: 'Estimación según las reglas vigentes (multa 0,33%/día hasta 20%, intereses Selic). No sustituye el extracto oficial de la Receita Federal.' },
     historicoVazio: { pt: 'Ainda não há competência de DAS vencida este ano.', en: 'No DAS competence has come due this year yet.', es: 'Aún no hay ninguna competencia de DAS vencida este año.' },
     erroSalvarDas: { pt: 'Não foi possível salvar o valor do DAS. Tente novamente.', en: 'Could not save the DAS value. Try again.', es: 'No se pudo guardar el valor del DAS. Intente de nuevo.' },
+    erroSalvarObrigacao: { pt: 'Não foi possível salvar a obrigação. Tente novamente.', en: 'Could not save the obligation. Try again.', es: 'No se pudo guardar la obligación. Intente de nuevo.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -200,12 +201,13 @@ export default function DASObrigacoes() {
     const empresaId = await obterEmpresaAtiva()
     const competencia = tipo === 'DAS' ? competenciaDas : competenciaAnual
     const vencimento = tipo === 'DAS' ? vencimentoDas : tipo === 'DASN' ? vencimentoDasn : vencimentoIrpf
-    await salvarObrigacao({
+    const { erro } = await salvarObrigacao({
       userId: user.id, empresaId, tipo, competencia, status,
       dataVencimento: vencimento.toISOString().slice(0, 10),
       dataEntrega: status === 'Entregue' ? new Date().toISOString().slice(0, 10) : null,
     })
     setSalvandoStatus(false)
+    if (erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setEditandoTipo(null)
     carregar()
   }

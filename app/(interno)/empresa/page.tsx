@@ -218,6 +218,7 @@ const T = {
     toastDadosAplicados: "Dados aplicados! Clique em Salvar.",
     toastSociosImportados: (n: number) => `${n} sócio(s) importado(s)`,
     toastSociosImportadosComIgnorados: (n: number, ign: number) => `${n} sócio(s) importado(s) — ${ign} já cadastrado(s), ignorado(s)`,
+    toastSociosImportadosComFalhas: (n: number, falhas: number) => `${n} sócio(s) importado(s) — ${falhas} não foi possível salvar. Tente novamente.`,
     toastConfirmImportarSocios: (n: number) => `Encontramos ${n} sócio(s) na Receita. Importar para o sistema?`,
     toastDadosSalvos: "Dados salvos!",
     toastErroCarregar: "Erro ao carregar",
@@ -419,6 +420,7 @@ const T = {
     toastDadosAplicados: "Data applied! Click Save.",
     toastSociosImportados: (n: number) => `${n} partner(s) imported`,
     toastSociosImportadosComIgnorados: (n: number, ign: number) => `${n} partner(s) imported — ${ign} already registered, skipped`,
+    toastSociosImportadosComFalhas: (n: number, falhas: number) => `${n} partner(s) imported — ${falhas} could not be saved. Try again.`,
     toastConfirmImportarSocios: (n: number) => `Found ${n} partner(s). Import into system?`,
     toastDadosSalvos: "Data saved!",
     toastErroCarregar: "Loading error",
@@ -619,6 +621,7 @@ const T = {
     toastDadosAplicados: "¡Datos aplicados! Haga clic en Guardar.",
     toastSociosImportados: (n: number) => `${n} socio(s) importado(s)`,
     toastSociosImportadosComIgnorados: (n: number, ign: number) => `${n} socio(s) importado(s) — ${ign} ya registrado(s), omitido(s)`,
+    toastSociosImportadosComFalhas: (n: number, falhas: number) => `${n} socio(s) importado(s) — ${falhas} no se pudo(ieron) guardar. Intente de nuevo.`,
     toastConfirmImportarSocios: (n: number) => `Encontramos ${n} socio(s). ¿Importar al sistema?`,
     toastDadosSalvos: "¡Datos guardados!",
     toastErroCarregar: "Error al cargar",
@@ -891,8 +894,13 @@ export default function EmpresaPage() {
     showToast(tt.toastDadosAplicados, "ok");
     if (d.socios && d.socios.length > 0 && empresa) {
       if (window.confirm(tt.toastConfirmImportarSocios(d.socios.length))) {
-        importarSociosDoQSA(empresa.id, userId!, d.socios, socios).then(({ importados, ignorados }) => {
-          showToast(ignorados > 0 ? tt.toastSociosImportadosComIgnorados(importados, ignorados) : tt.toastSociosImportados(importados), "ok");
+        importarSociosDoQSA(empresa.id, userId!, d.socios, socios).then(({ importados, ignorados, falhas }) => {
+          showToast(
+            falhas > 0 ? tt.toastSociosImportadosComFalhas(importados, falhas)
+              : ignorados > 0 ? tt.toastSociosImportadosComIgnorados(importados, ignorados)
+              : tt.toastSociosImportados(importados),
+            falhas > 0 ? "erro" : "ok"
+          );
           recarregarSocios();
         });
       }
@@ -1002,7 +1010,7 @@ export default function EmpresaPage() {
       showToast(tt.toastSocioAdicionado, "ok");
     } else {
       const r = await atualizarSocio(modalSocio.id, empresa.id, userId, dados);
-      if (r.erro) { showToast(r.erro, "erro"); return; }
+      if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
       showToast(tt.toastSocioAtualizado, "ok");
     }
     setModalSocio(null);
@@ -1013,7 +1021,7 @@ export default function EmpresaPage() {
     if (!empresa || !userId) return;
     if (!window.confirm(tt.toastConfirmRemoverSocio(socio.nome))) return;
     const r = await excluirSocio(socio.id, empresa.id, userId);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
+    if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
     showToast(tt.toastSocioRemovido, "ok");
     await recarregarSocios();
   }
@@ -1075,7 +1083,7 @@ export default function EmpresaPage() {
       if (r.erro) { showToast(r.erro, "erro"); return; }
     } else {
       const r = await atualizarObrigacao(modalObrigacao.id, empresa.id, userId, dados);
-      if (r.erro) { showToast(r.erro, "erro"); return; }
+      if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
     }
     setModalObrigacao(null);
     showToast(tt.toastObrigSalva, "ok");
@@ -1085,7 +1093,7 @@ export default function EmpresaPage() {
   async function marcarObrigacaoPaga(obr: any) {
     if (!empresa || !userId) return;
     const r = await atualizarObrigacao(obr.id, empresa.id, userId, { status: "paga", valor_pago: obr.valor_estimado });
-    if (r.erro) { showToast(r.erro, "erro"); return; }
+    if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
     showToast(tt.toastMarcadaPaga, "ok");
     await carregarTudo();
   }
@@ -1094,7 +1102,7 @@ export default function EmpresaPage() {
     if (!empresa || !userId) return;
     if (!window.confirm(tt.toastConfirmRemoverObrig(obr.nome))) return;
     const r = await excluirObrigacao(obr.id, empresa.id, userId, obr.nome);
-    if (r.erro) { showToast(r.erro, "erro"); return; }
+    if (r.erro) { showToast(r.erro === "SEM_PERMISSAO_ESCRITA" ? tt.toastSemPermissaoEscrita : r.erro, "erro"); return; }
     await carregarTudo();
   }
 

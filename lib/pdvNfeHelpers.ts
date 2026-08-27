@@ -5,11 +5,18 @@
 // (lib/estoqueHelpers.ts).
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// RLS pode bloquear a escrita e devolver 0 linhas SEM error do Postgres —
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 // ============================================================================
 // ANTI-DUPLICIDADE — chave de acesso real da NF-e (estoque_nfe_importadas)
@@ -79,11 +86,16 @@ export async function buscarVinculoFornecedor(fornecedorId: string, codigoFornec
 
 export async function salvarVinculoFornecedor(fornecedorId: string, userId: string, empresaId: string | null, produtoId: string, codigoFornecedor: string): Promise<{ erro?: string }> {
   if (!codigoFornecedor) return {};
-  const { error } = await supabase.from("fornecedor_produtos").upsert(
+  const { data, error } = await supabase.from("fornecedor_produtos").upsert(
     { fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId, produto_id: produtoId, codigo_fornecedor: codigoFornecedor, descricao: "" },
     { onConflict: "fornecedor_id,codigo_fornecedor" }
-  );
-  return error ? { erro: error.message } : {};
+  ).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_produtos", "upsert (vínculo NF-e)", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================

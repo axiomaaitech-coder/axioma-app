@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
+import * as Sentry from '@sentry/nextjs'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
@@ -96,6 +97,8 @@ export default function FaturamentoMEI() {
     serieFaturamento: { pt: 'Faturamento real', en: 'Real revenue', es: 'Facturación real' },
     serieTeto: { pt: 'Teto mensal recomendado', en: 'Recommended monthly cap', es: 'Límite mensual recomendado' },
     serieMedia: { pt: 'Sua média', en: 'Your average', es: 'Su promedio' },
+    erroSalvarLancamento: { pt: 'Não foi possível salvar o lançamento. Tente novamente.', en: 'Could not save the entry. Try again.', es: 'No se pudo guardar el movimiento. Intente de nuevo.' },
+    erroExcluirLancamento: { pt: 'Não foi possível excluir o lançamento. Tente novamente.', en: 'Could not delete the entry. Try again.', es: 'No se pudo eliminar el movimiento. Intente de nuevo.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -118,12 +121,19 @@ export default function FaturamentoMEI() {
   }
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500) }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
+  }
 
   async function alternarContaTeto(r: Receita) {
     const novoValor = r.considera_teto_mei === false ? true : false
     setReceitas(prev => prev.map(x => x.id === r.id ? { ...x, considera_teto_mei: novoValor } : x))
-    const { error } = await supabase.from('receitas').update({ considera_teto_mei: novoValor }).eq('id', r.id)
-    if (error) { showToast(error.message); carregar() }
+    const { data, error } = await supabase.from('receitas').update({ considera_teto_mei: novoValor }).eq('id', r.id).select('id')
+    if (error || !data || data.length === 0) {
+      reportarFalhaEscrita('receitas', 'update (considera_teto_mei)', error?.message || '0 linhas afetadas (RLS?)')
+      showToast(t('erroSalvarLancamento'))
+      carregar()
+    }
   }
 
   function abrirEdicao(r: Receita) {
@@ -134,20 +144,28 @@ export default function FaturamentoMEI() {
   async function salvarEdicao() {
     if (!editando || !form.descricao || !form.valor) return
     setSalvando(true)
-    const { error } = await supabase.from('receitas').update({
+    const { data, error } = await supabase.from('receitas').update({
       descricao: form.descricao, valor: parseFloat(form.valor), data: form.data, categoria: form.categoria, status: form.status,
-    }).eq('id', editando.id)
+    }).eq('id', editando.id).select('id')
     setSalvando(false)
-    if (error) { showToast(error.message); return }
+    if (error || !data || data.length === 0) {
+      reportarFalhaEscrita('receitas', 'update', error?.message || '0 linhas afetadas (RLS?)')
+      showToast(t('erroSalvarLancamento'))
+      return
+    }
     setEditando(null)
     carregar()
   }
 
   async function confirmarExclusao() {
     if (!excluindo) return
-    const { error } = await supabase.from('receitas').delete().eq('id', excluindo.id)
+    const { data, error } = await supabase.from('receitas').delete().eq('id', excluindo.id).select('id')
     setExcluindo(null)
-    if (error) { showToast(error.message); return }
+    if (error || !data || data.length === 0) {
+      reportarFalhaEscrita('receitas', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+      showToast(t('erroExcluirLancamento'))
+      return
+    }
     carregar()
   }
 

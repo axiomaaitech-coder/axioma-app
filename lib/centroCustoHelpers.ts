@@ -91,18 +91,38 @@ export async function aplicarRateio(
   userId: string, empresaId: string | null, origemTabela: OrigemTabela, origemId: string, descricao: string, baseTipo: string,
   splits: { centroId: string; percentual: number }[],
 ): Promise<{ erro?: string }> {
-  await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId);
+  // 0 linhas apagadas aqui é normal (pode ser o 1º rateio deste lançamento) —
+  // só um `error` de verdade indica falha, senão os splits antigos ficariam
+  // convivendo com os novos e o rateio de custo ficaria errado.
+  const { error: erroLimpeza } = await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId);
+  if (erroLimpeza) {
+    reportarFalhaEscrita("centro_custo_rateio", "delete (limpeza antes de novo rateio)", erroLimpeza.message);
+    return { erro: erroLimpeza.message };
+  }
   const linhas = splits.filter(s => s.percentual > 0).map(s => ({
     user_id: userId, empresa_id: empresaId, origem_tabela: origemTabela, origem_id: origemId,
     centro_custo_id: s.centroId, percentual: s.percentual, base_tipo: baseTipo, descricao,
   }));
   if (linhas.length === 0) return {};
-  const { error } = await supabase.from("centro_custo_rateio").insert(linhas);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("centro_custo_rateio").insert(linhas).select("id");
+  if (error || !data || data.length < linhas.length) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_rateio", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
-export async function removerRateio(userId: string, origemTabela: OrigemTabela, origemId: string): Promise<void> {
-  await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId);
+// Só chamada quando a UI já sabe que existe um rateio pra este lançamento —
+// 0 linhas apagadas aqui É uma falha (RLS bloqueando), não um estado normal.
+export async function removerRateio(userId: string, origemTabela: OrigemTabela, origemId: string): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("centro_custo_rateio").delete().eq("origem_tabela", origemTabela).eq("origem_id", origemId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_rateio", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // Junta o que já está etiquetado direto (centro_custo_id nos 3 módulos) com o que foi
@@ -145,9 +165,15 @@ export async function carregarOrcamentos(userId: string): Promise<OrcamentoRow[]
 }
 
 export async function definirOrcamento(userId: string, empresaId: string | null, centroId: string, periodo: string, valor: number): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("centro_custo_orcamento")
-    .upsert({ user_id: userId, empresa_id: empresaId, centro_custo_id: centroId, periodo, valor_orcado: valor }, { onConflict: "centro_custo_id,periodo" });
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("centro_custo_orcamento")
+    .upsert({ user_id: userId, empresa_id: empresaId, centro_custo_id: centroId, periodo, valor_orcado: valor }, { onConflict: "centro_custo_id,periodo" })
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centro_custo_orcamento", "upsert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export function orcamentoDoPeriodo(orcamentos: OrcamentoRow[], centroId: string, periodo: string, fallback: number): number {
@@ -213,8 +239,12 @@ export async function atualizarCampoOrigem(
     payload.status = calcStatus(Number(valor) || 0, contexto?.valorPagoAtual ?? 0, contexto?.dataVencimentoAtual);
   }
 
-  const { error } = await supabase.from(tabela).update(payload).eq("id", id);
-  if (error) return { erro: error.message };
+  const { data, error } = await supabase.from(tabela).update(payload).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita(tabela, "update (Planilha)", motivo);
+    return { erro: motivo };
+  }
 
   await registrarAuditoriaCentro({
     userId, empresaId, centroId: contexto?.centroId, tabela, registroId: id, acao: "editar",

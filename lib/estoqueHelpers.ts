@@ -12,6 +12,13 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// RLS pode bloquear update/delete e devolver 0 linhas SEM error do Postgres — a
+// mesma causa raiz do bug real do atualizarEmpresa ("salvava sem salvar").
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
+
 // ============================================================================
 // TIPOS
 // ============================================================================
@@ -197,7 +204,11 @@ export async function buscarProdutoPorId(id: string): Promise<Produto | null> {
 export async function criarProduto(empresaId: string, userId: string, dados: Partial<Produto>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("produtos")
     .insert({ ...dados, empresa_id: empresaId, user_id: userId }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("produtos", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
@@ -205,7 +216,7 @@ export async function atualizarProduto(id: string, dados: Partial<Produto>): Pro
   const { data, error } = await supabase.from("produtos").update(dados).eq("id", id).select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    Sentry.captureException(new Error(`Falha ao update em produtos: ${motivo}`), { extra: { tabela: "produtos", operacao: "update", produtoId: id, motivo } });
+    reportarFalhaEscrita("produtos", "update", motivo);
     return { erro: motivo };
   }
   return {};
@@ -222,11 +233,21 @@ export async function excluirProduto(id: string): Promise<{ erro?: string; inati
   if ((countVenda || 0) > 0) return { temVenda: true };
   const { count } = await supabase.from("estoque_movimentacoes").select("id", { count: "exact", head: true }).eq("produto_id", id);
   if ((count || 0) > 0) {
-    const { error } = await supabase.from("produtos").update({ status: "inativo" }).eq("id", id);
-    return error ? { erro: error.message } : { inativadoEmVezDeExcluir: true };
+    const { data, error } = await supabase.from("produtos").update({ status: "inativo" }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      const motivo = error?.message || "0 linhas afetadas (RLS?)";
+      reportarFalhaEscrita("produtos", "update (inativar)", motivo);
+      return { erro: motivo };
+    }
+    return { inativadoEmVezDeExcluir: true };
   }
-  const { error } = await supabase.from("produtos").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("produtos").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("produtos", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function uploadImagemProduto(file: File, empresaId: string, produtoId: string): Promise<{ path?: string; erro?: string }> {
@@ -304,24 +325,43 @@ export async function criarMovimentacao(empresaId: string, userId: string, mov: 
     documento_ref: mov.documento_ref || null,
     data_hora: mov.data_hora || new Date().toISOString(),
   }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("estoque_movimentacoes", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
 export async function atualizarMovimentacao(id: string, dados: Partial<NovaMovimentacao>): Promise<{ erro?: string }> {
   const { lote, ...resto } = dados;
-  const { error } = await supabase.from("estoque_movimentacoes").update(resto).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("estoque_movimentacoes").update(resto).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("estoque_movimentacoes", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirMovimentacao(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("estoque_movimentacoes").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("estoque_movimentacoes").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("estoque_movimentacoes", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function confirmarRecebimento(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("estoque_movimentacoes").update({ status_recebimento: "confirmada" }).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("estoque_movimentacoes").update({ status_recebimento: "confirmada" }).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("estoque_movimentacoes", "update (confirmar recebimento)", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================
@@ -358,7 +398,11 @@ async function obterOuCriarLote(empresaId: string, produtoId: string, lote: { nu
     data_fabricacao: lote.data_fabricacao || null, data_validade: lote.data_validade || null,
     fornecedor_id: lote.fornecedor_id || null,
   }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("estoque_lotes", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
@@ -439,16 +483,20 @@ export async function carregarConfigEstoqueEmpresa(empresaId: string): Promise<{
 // user_id, não empresa_usuarios.
 export async function definirSegmentoPadraoEmpresa(empresaId: string, segmento: string): Promise<{ erro?: string }> {
   const { data, error } = await supabase.from("empresas").update({ segmento_padrao: segmento }).eq("id", empresaId).select("id");
-  if (error) return { erro: error.message };
-  if (!data || data.length === 0) return { erro: "SEM_PERMISSAO_ESCRITA" };
+  if (error || !data || data.length === 0) {
+    reportarFalhaEscrita("empresas", "update (segmento_padrao)", error?.message || "0 linhas afetadas (RLS?)");
+    return { erro: error ? error.message : "SEM_PERMISSAO_ESCRITA" };
+  }
   return {};
 }
 
 export async function adicionarCampoPersonalizado(empresaId: string, atuais: CampoPersonalizadoEmpresa[], novo: CampoPersonalizadoEmpresa): Promise<{ erro?: string }> {
   if (atuais.length >= MAX_CAMPOS_PERSONALIZADOS) return { erro: `Limite de ${MAX_CAMPOS_PERSONALIZADOS} campos personalizados atingido` };
   const { data, error } = await supabase.from("empresas").update({ campos_personalizados_estoque: [...atuais, novo] }).eq("id", empresaId).select("id");
-  if (error) return { erro: error.message };
-  if (!data || data.length === 0) return { erro: "SEM_PERMISSAO_ESCRITA" };
+  if (error || !data || data.length === 0) {
+    reportarFalhaEscrita("empresas", "update (campos_personalizados_estoque)", error?.message || "0 linhas afetadas (RLS?)");
+    return { erro: error ? error.message : "SEM_PERMISSAO_ESCRITA" };
+  }
   return {};
 }
 
@@ -576,8 +624,13 @@ export function calcularAlertasReposicao(itens: ItemGiro[]): AlertaReposicao[] {
 // ============================================================================
 
 export async function atualizarProdutosEmLote(ids: string[], dados: Partial<Produto>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("produtos").update(dados).in("id", ids);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("produtos").update(dados).in("id", ids).select("id");
+  if (error || !data || data.length < ids.length) {
+    const motivo = error?.message || `${ids.length - (data?.length || 0)} de ${ids.length} produto(s) não foram atualizados (RLS?)`;
+    reportarFalhaEscrita("produtos", "update em lote", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 const COLUNAS_EXCEL = (p: Produto) => ({
@@ -630,8 +683,12 @@ export async function importarProdutosArquivo(file: File, empresaId: string, use
   })).filter((r) => r.nome);
 
   if (registros.length === 0) return { ok: 0, erro: "Nenhuma linha com nome válido" };
-  const { error } = await supabase.from("produtos").insert(registros);
-  if (error) return { ok: 0, erro: error.message };
+  const { data, error } = await supabase.from("produtos").insert(registros).select("id");
+  if (error || !data || data.length < registros.length) {
+    const motivo = error?.message || `só ${data?.length || 0} de ${registros.length} linha(s) foram gravadas (RLS?)`;
+    reportarFalhaEscrita("produtos", "insert em lote (importar planilha)", motivo);
+    return { ok: data?.length || 0, erro: motivo };
+  }
   return { ok: registros.length };
 }
 

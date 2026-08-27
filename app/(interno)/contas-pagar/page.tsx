@@ -421,11 +421,17 @@ export default function ContasPagarPage() {
       setSalvando(false);
       return;
     }
-    if (ignorouDuplicata) await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { duplicatas });
+    if (ignorouDuplicata) {
+      const { erro: erroAuditoria } = await registrarAuditoriaAp(resultado.id, "duplicata_ignorada", null, { duplicatas });
+      if (erroAuditoria) showToast(L("Conta salva, mas o registro de auditoria falhou.", "Bill saved, but the audit record failed.", "Cuenta guardada, pero el registro de auditoría falló."), "erro");
+    }
     // Entrega 2 Commit 4 — só DEPOIS do insert, como pedido: decide sozinha
     // (auto_aprovada) ou trava a conta em 'aguardando_aprovacao' até alguém
     // decidir na aba Aprovações Pendentes.
-    await solicitarAprovacao(resultado.id);
+    const { erro: erroAprovacao } = await solicitarAprovacao(resultado.id);
+    if (erroAprovacao) {
+      showToast(L("Conta salva, mas não foi possível definir o status de aprovação. Verifique na aba Aprovações Pendentes.", "Bill saved, but could not set the approval status. Check the Pending Approvals tab.", "Cuenta guardada, pero no se pudo definir el estado de aprobación. Revise en la pestaña Aprobaciones Pendientes."), "erro");
+    }
     fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
   }
 

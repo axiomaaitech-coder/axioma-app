@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
+import * as Sentry from '@sentry/nextjs'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import jsPDF from 'jspdf'
@@ -69,6 +70,14 @@ export default function PrecificacaoMEI() {
   const [salvandoPreco, setSalvandoPreco] = useState(false)
   const [paginaAtual, setPaginaAtual] = useState(0)
   const ITENS_POR_PAGINA = 10
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 4000)
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
+  }
 
   const txt = {
     titulo: { pt: 'MEI — Precificação', en: 'MEI — Pricing', es: 'MEI — Precios' },
@@ -135,6 +144,8 @@ export default function PrecificacaoMEI() {
     meusPrecosVazio: { pt: 'Nenhum preço salvo ainda — calcule acima e clique em "Salvar Preço".', en: 'No saved prices yet — calculate above and click "Save Price".', es: 'Ningún precio guardado todavía — calcule arriba y haga clic en "Guardar Precio".' },
     confirmarExcluir: { pt: 'Excluir "{v}"? Essa ação não pode ser desfeita.', en: 'Delete "{v}"? This action cannot be undone.', es: '¿Eliminar "{v}"? Esta acción no se puede deshacer.' },
     paginaLbl: { pt: 'Página {a} de {b}', en: 'Page {a} of {b}', es: 'Página {a} de {b}' },
+    erroSalvarPreco: { pt: 'Não foi possível salvar o preço. Tente novamente.', en: 'Could not save the price. Try again.', es: 'No se pudo guardar el precio. Intente de nuevo.' },
+    erroExcluirPreco: { pt: 'Não foi possível excluir o preço. Tente novamente.', en: 'Could not delete the price. Try again.', es: 'No se pudo eliminar el precio. Intente de nuevo.' },
   }
   const t = (key: keyof typeof txt) => txt[key][lang]
   const fmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -311,14 +322,23 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
     if (!nomePrecoSalvo.trim()) return
     setSalvandoPreco(true)
     const dados = montarSnapshotDados()
+    let erro: string | undefined
     if (editandoId) {
-      await supabase.from('mei_precos_salvos').update({ nome: nomePrecoSalvo.trim(), modo, dados, updated_at: new Date().toISOString() }).eq('id', editandoId)
+      const { data, error } = await supabase.from('mei_precos_salvos').update({ nome: nomePrecoSalvo.trim(), modo, dados, updated_at: new Date().toISOString() }).eq('id', editandoId).select('id')
+      if (error || !data || data.length === 0) erro = error?.message || '0 linhas afetadas (RLS?)'
     } else {
       const { data: { user } } = await supabase.auth.getUser()
       const empresaId = await obterEmpresaAtiva()
       if (user && empresaId) {
-        await supabase.from('mei_precos_salvos').insert({ user_id: user.id, empresa_id: empresaId, nome: nomePrecoSalvo.trim(), modo, dados })
+        const { data, error } = await supabase.from('mei_precos_salvos').insert({ user_id: user.id, empresa_id: empresaId, nome: nomePrecoSalvo.trim(), modo, dados }).select('id')
+        if (error || !data) erro = error?.message || '0 linhas afetadas (RLS?)'
       }
+    }
+    if (erro) {
+      reportarFalhaEscrita('mei_precos_salvos', editandoId ? 'update' : 'insert', erro)
+      showToast(t('erroSalvarPreco'), 'erro')
+      setSalvandoPreco(false)
+      return
     }
     setNomePrecoSalvo(''); setEditandoId(null)
     await carregarPrecosSalvos()
@@ -348,7 +368,12 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
   async function excluirPrecoSalvo(row: typeof precosSalvos[number]) {
     if (!window.confirm(t('confirmarExcluir').replace('{v}', row.nome))) return
-    await supabase.from('mei_precos_salvos').delete().eq('id', row.id)
+    const { data, error } = await supabase.from('mei_precos_salvos').delete().eq('id', row.id).select('id')
+    if (error || !data || data.length === 0) {
+      reportarFalhaEscrita('mei_precos_salvos', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+      showToast(t('erroExcluirPreco'), 'erro')
+      return
+    }
     if (editandoId === row.id) { setEditandoId(null); setNomePrecoSalvo('') }
     await carregarPrecosSalvos()
   }
@@ -754,6 +779,13 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
         cor={OURO}
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   )
 }

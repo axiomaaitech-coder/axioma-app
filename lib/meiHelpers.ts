@@ -6,12 +6,19 @@
 // no mesmo arquivo).
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import { nomeMesPt, precoPorDivisor } from "./cfoCore";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+// RLS pode bloquear a escrita e devolver 0 linhas SEM error do Postgres —
+// .select("id") é o que permite enxergar essa falha silenciosa.
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 export const LIMITE_ANUAL_MEI = 81000;
 
@@ -339,8 +346,8 @@ export async function salvarObrigacao(params: {
   status: StatusObrigacao;
   dataVencimento?: string | null;
   dataEntrega?: string | null;
-}): Promise<void> {
-  await supabase.from("mei_obrigacoes").upsert(
+}): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("mei_obrigacoes").upsert(
     {
       user_id: params.userId,
       empresa_id: params.empresaId,
@@ -352,18 +359,29 @@ export async function salvarObrigacao(params: {
       updated_at: new Date().toISOString(),
     },
     { onConflict: "empresa_id,tipo,competencia" }
-  );
+  ).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("mei_obrigacoes", "upsert", motivo);
+    return { erro: motivo };
+  }
 
   // DASN entregue vira histórico permanente em mei_declaracoes (nunca some,
   // mesmo se o status em mei_obrigacoes for corrigido depois).
   if (params.status === "Entregue" && params.tipo === "DASN") {
-    await supabase.from("mei_declaracoes").insert({
+    const { data: declaracao, error: erroDeclaracao } = await supabase.from("mei_declaracoes").insert({
       user_id: params.userId,
       empresa_id: params.empresaId,
       competencia: params.competencia,
       data_entrega: params.dataEntrega || new Date().toISOString().slice(0, 10),
-    });
+    }).select("id");
+    if (erroDeclaracao || !declaracao || declaracao.length === 0) {
+      const motivo = erroDeclaracao?.message || "0 linhas afetadas (RLS?)";
+      reportarFalhaEscrita("mei_declaracoes", "insert", motivo);
+      return { erro: motivo };
+    }
   }
+  return {};
 }
 
 export function fluxoMesMEI(

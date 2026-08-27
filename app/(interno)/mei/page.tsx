@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { createBrowserClient } from '@supabase/ssr'
+import * as Sentry from '@sentry/nextjs'
 import { AlertTriangle, X, TrendingUp, ShieldAlert, Share2, Clock } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
@@ -67,6 +68,14 @@ export default function PainelMEI() {
   const [salvando, setSalvando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 4000)
+  }
+  function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+    Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
+  }
 
   const txt = {
     titulo: { pt: 'MEI — Painel', en: 'MEI — Dashboard', es: 'MEI — Panel' },
@@ -96,6 +105,7 @@ export default function PainelMEI() {
     diaVencimentoDas: { pt: 'Dia de Vencimento do DAS', en: 'DAS Due Day', es: 'Día de Vencimiento del DAS' },
     compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
     toastBaixado: { pt: 'PDF pronto — baixado.', en: 'PDF ready — downloaded.', es: 'PDF listo — descargado.' },
+    erroSalvarConfig: { pt: 'Não foi possível salvar a configuração. Tente novamente.', en: 'Could not save the configuration. Try again.', es: 'No se pudo guardar la configuración. Intente de nuevo.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -155,7 +165,7 @@ export default function PainelMEI() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSalvando(false); return }
     const empresaId = await obterEmpresaAtiva()
-    const { error } = await supabase.from('mei_dados').upsert({
+    const { data, error } = await supabase.from('mei_dados').upsert({
       user_id: user.id,
       empresa_id: empresaId,
       categoria_mei: categoriaMei,
@@ -171,10 +181,15 @@ export default function PainelMEI() {
       limite_anual: LIMITE_ANUAL_MEI,
       regime_tributario: 'mei',
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'empresa_id' })
-    if (error) console.error('Erro ao salvar MEI:', error)
-    setModalConfig(false)
+    }, { onConflict: 'empresa_id' }).select('id')
     setSalvando(false)
+    if (error || !data || data.length === 0) {
+      const motivo = error?.message || '0 linhas afetadas (RLS?)'
+      reportarFalhaEscrita('mei_dados', 'upsert', motivo)
+      showToast(t('erroSalvarConfig'), 'erro')
+      return
+    }
+    setModalConfig(false)
     carregar()
   }
 
@@ -829,6 +844,13 @@ export default function PainelMEI() {
         onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
         cor={OURO}
       />
+
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
     </ModuloLayout>
   )
 }
