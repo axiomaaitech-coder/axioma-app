@@ -354,28 +354,76 @@ export async function registrarAuditoriaAp(contasPagarId: string, acao: string, 
 }
 
 // ----------------------------------------------------------------------------
-// IMPACTO NO CAIXA — 100% TypeScript, reaproveitando o mesmo motor do Fluxo
-// de Caixa (cfoCore.ts: detectarRupturaCaixa/projetarRecorrenciaMensal),
-// já com o dedup de custo fixo da Entrega 1. Nenhuma RPC — ver nota de
-// diagnóstico no topo do SQL da Entrega 2 sobre por quê.
+// ENTREGA 3, COMMIT 1 — AP FORECAST MULTI-HORIZONTE (7/30/60/90 dias).
+// Generaliza a antiga calcularImpactoCaixa (Entrega 2, horizonte único de
+// 30d) num array de horizontes, reaproveitando 100% o mesmo motor do Fluxo
+// de Caixa (cfoCore.ts: detectarRupturaCaixa/projetarRecorrenciaMensal) e o
+// dedup de custo fixo da Entrega 1. Nenhuma RPC — mesmo motivo de
+// diagnóstico da Entrega 2 (regra de negócio fica só em TS, nunca duplicada
+// em SQL).
+//
+// Cenário pessimista: NÃO é margem arbitrária. É o fator real de sobretaxa
+// que a PRÓPRIA empresa já pagou historicamente em contas quitadas com
+// atraso E com taxa_multa_mensal configurada — (valor_pago - valor_total) /
+// valor_total, média das ocorrências reais. Sem amostra (empresa nova, ou
+// nunca atrasou com multa combinada), o fator fica 0 e o pessimista some no
+// otimista — nunca inventa um número. Cenário otimista = o valor agendado
+// exato (pagamento em dia, sem multa) — não usa desconto_disponivel_pct
+// aqui (isso é Value Recovery, Commit 5; misturar os dois nesta função
+// duplicaria a mesma leitura de dado em dois lugares diferentes).
 // ----------------------------------------------------------------------------
 
-export type ImpactoCaixa = {
-  saldoAtual: number;
-  saldoProjetado30dComPagamentos: number;
-  saldoProjetado30dSemPagamentos: number;
+export type HorizonteForecastDias = 7 | 30 | 60 | 90;
+export const HORIZONTES_FORECAST_AP: HorizonteForecastDias[] = [7, 30, 60, 90];
+
+export type PontoForecastAp = {
+  horizonteDias: HorizonteForecastDias;
+  saldoProjetadoOtimista: number;
+  saldoProjetadoPessimista: number;
+  saldoProjetadoSemPagamentos: number;
   ruptura: RupturaCaixa | null;
 };
 
-const HORIZONTE_IMPACTO_DIAS = 30;
+export type ForecastAp = {
+  saldoAtual: number;
+  fatorAtrasoHistoricoPct: number;
+  amostraAtrasoHistorico: number;
+  amostraAtrasoSuficiente: boolean;
+  pontos: PontoForecastAp[];
+};
 
-export async function calcularImpactoCaixa(empresaId: string): Promise<ImpactoCaixa> {
+// Mesmo critério de "amostra suficiente pra confiar num número" já usado em
+// scoreMedioCarteiraAxioma (fornecedorHelpers.ts) — menos que isso, o dado é
+// real mas raso demais pra virar um percentual exibido com confiança.
+const AMOSTRA_MINIMA_ATRASO = 3;
+
+// Sobretaxa real média que a empresa já pagou em contas quitadas com atraso
+// E com multa combinada (taxa_multa_mensal preenchida). Ignora contas sem
+// esses dois dados — "sem dado não penaliza", mesmo princípio do Score
+// Axioma de Fornecedores e da Entrega 2.
+function calcularFatorAtrasoHistorico(contasPagas: { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null }[]): { fator: number; amostra: number } {
+  const atrasadasComMulta = contasPagas.filter((c) =>
+    c.data_pagamento && c.data_vencimento && c.data_pagamento > c.data_vencimento &&
+    Number(c.taxa_multa_mensal) > 0 && Number(c.valor_total) > 0
+  );
+  if (atrasadasComMulta.length === 0) return { fator: 0, amostra: 0 };
+  const soma = atrasadasComMulta.reduce((s, c) => {
+    const sobretaxa = (Number(c.valor_pago) - Number(c.valor_total)) / Number(c.valor_total);
+    return s + Math.max(0, sobretaxa);
+  }, 0);
+  return { fator: soma / atrasadasComMulta.length, amostra: atrasadasComMulta.length };
+}
+
+export async function calcularForecastAp(empresaId: string): Promise<ForecastAp> {
   const hoje = new Date().toISOString().split("T")[0];
-  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }] = await Promise.all([
+  const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
+
+  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
     supabase.from("fluxo_caixa").select("valor, tipo, status"),
     supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
     supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id"),
     supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento"),
+    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("status", "pago"),
   ]);
 
   const saldoAtual = (fc || []).filter((l: any) => l.status === "realizado")
@@ -400,28 +448,49 @@ export async function calcularImpactoCaixa(empresaId: string): Promise<ImpactoCa
   const saidasCustosFixos: EventoCaixa[] = (cf || []).flatMap((c: any) => {
     if (!c.valor_mensal || !c.dia_vencimento) return [];
     const proxima = proximaOcorrenciaDoDia(Number(c.dia_vencimento));
-    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, HORIZONTE_IMPACTO_DIAS)
+    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, maxHorizonte)
       .filter((ev) => !mesesJaGerados.has(`${c.id}|${ev.data.slice(0, 7)}`));
   });
 
-  const dentroDoHorizonte = (e: EventoCaixa) => {
-    const dias = Math.round((new Date(e.data + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000);
-    return dias >= 0 && dias <= HORIZONTE_IMPACTO_DIAS;
-  };
-  const somaNoHorizonte = (eventos: EventoCaixa[]) => eventos.filter(dentroDoHorizonte).reduce((s, e) => s + e.valor, 0);
-
-  const totalEntradas30d = somaNoHorizonte(entradas);
-  const totalSaidasCustosFixos30d = somaNoHorizonte(saidasCustosFixos);
-  const totalSaidasContasPagar30d = somaNoHorizonte(saidasContasPagar);
-
   const saidasComPagamentos = [...saidasContasPagar, ...saidasCustosFixos];
-  const ruptura = detectarRupturaCaixa(saldoAtual, entradas, saidasComPagamentos, HORIZONTE_IMPACTO_DIAS);
+
+  // Um único cálculo no horizonte máximo — a primeira ruptura encontrada
+  // dentro de 90d também é a primeira dentro de qualquer horizonte menor
+  // que a contenha; não precisa rodar detectarRupturaCaixa 4 vezes.
+  const rupturaNoMax = detectarRupturaCaixa(saldoAtual, entradas, saidasComPagamentos, maxHorizonte);
+
+  const { fator: fatorAtraso, amostra: amostraAtraso } = calcularFatorAtrasoHistorico((cpPagas as any[]) || []);
+
+  const dentroDoHorizonte = (e: EventoCaixa, horizonteDias: number) => {
+    const dias = Math.round((new Date(e.data + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000);
+    return dias >= 0 && dias <= horizonteDias;
+  };
+  const somaNoHorizonte = (eventos: EventoCaixa[], horizonteDias: number) =>
+    eventos.filter((e) => dentroDoHorizonte(e, horizonteDias)).reduce((s, e) => s + e.valor, 0);
+
+  const pontos: PontoForecastAp[] = HORIZONTES_FORECAST_AP.map((horizonteDias) => {
+    const totalEntradas = somaNoHorizonte(entradas, horizonteDias);
+    const totalSaidasCustosFixos = somaNoHorizonte(saidasCustosFixos, horizonteDias);
+    const totalSaidasContasPagar = somaNoHorizonte(saidasContasPagar, horizonteDias);
+    const saldoOtimista = saldoAtual + totalEntradas - totalSaidasCustosFixos - totalSaidasContasPagar;
+    // Só as saídas de contas_pagar levam a sobretaxa de atraso — custo fixo
+    // recorrente não carrega multa (é o mesmo valor todo mês, por natureza).
+    const saldoPessimista = saldoOtimista - totalSaidasContasPagar * fatorAtraso;
+    return {
+      horizonteDias,
+      saldoProjetadoOtimista: saldoOtimista,
+      saldoProjetadoPessimista: saldoPessimista,
+      saldoProjetadoSemPagamentos: saldoAtual + totalEntradas - totalSaidasCustosFixos,
+      ruptura: rupturaNoMax && rupturaNoMax.diasRestantes <= horizonteDias ? rupturaNoMax : null,
+    };
+  });
 
   return {
     saldoAtual,
-    saldoProjetado30dComPagamentos: saldoAtual + totalEntradas30d - totalSaidasCustosFixos30d - totalSaidasContasPagar30d,
-    saldoProjetado30dSemPagamentos: saldoAtual + totalEntradas30d - totalSaidasCustosFixos30d,
-    ruptura,
+    fatorAtrasoHistoricoPct: Math.round(fatorAtraso * 1000) / 10,
+    amostraAtrasoHistorico: amostraAtraso,
+    amostraAtrasoSuficiente: amostraAtraso >= AMOSTRA_MINIMA_ATRASO,
+    pontos,
   };
 }
 

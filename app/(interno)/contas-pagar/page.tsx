@@ -22,7 +22,7 @@ import {
   gerarContaDeCustoFixo, listarDocumentos, anexarDocumento, excluirDocumento, gerarUrlDocumento,
   classificarCategoria, checarNfeJaImportadaNoPdv,
   obterConfigAp, salvarConfigAp, detectarDuplicata, registrarAuditoriaAp,
-  calcularImpactoCaixa, priorizarPagamentos, type ImpactoCaixa, type ItemPrioridadePagamento,
+  calcularForecastAp, priorizarPagamentos, type ForecastAp, type HorizonteForecastDias, HORIZONTES_FORECAST_AP, type ItemPrioridadePagamento,
   solicitarAprovacao, listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
   listarAuditoriaConta, type AuditoriaAp,
 } from "../../../lib/contasPagarHelpers";
@@ -179,20 +179,24 @@ export default function ContasPagarPage() {
     ),
   ].join("\n");
 
-  // ========== COMMIT 3 — ABA INTELIGÊNCIA (impacto no caixa + prioridade) ==========
+  // ========== COMMIT 3 (Entrega 2) — ABA INTELIGÊNCIA (prioridade) ==========
+  // ========== ENTREGA 3, COMMIT 1 — FORECAST MULTI-HORIZONTE ==========
   const [aba, setAba] = useState<"central" | "inteligencia" | "aprovacoes" | "historico">("central");
-  const [impactoCaixa, setImpactoCaixa] = useState<ImpactoCaixa | null>(null);
-  const [carregandoImpacto, setCarregandoImpacto] = useState(false);
+  const [forecastAp, setForecastAp] = useState<ForecastAp | null>(null);
+  const [carregandoForecast, setCarregandoForecast] = useState(false);
+  const [horizonteSelecionado, setHorizonteSelecionado] = useState<HorizonteForecastDias>(30);
   const [proximasAPagar, setProximasAPagar] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (aba !== "inteligencia" || !empresaId || impactoCaixa) return;
+    if (aba !== "inteligencia" || !empresaId || forecastAp) return;
     (async () => {
-      setCarregandoImpacto(true);
-      setImpactoCaixa(await calcularImpactoCaixa(empresaId));
-      setCarregandoImpacto(false);
+      setCarregandoForecast(true);
+      setForecastAp(await calcularForecastAp(empresaId));
+      setCarregandoForecast(false);
     })();
   }, [aba, empresaId]);
+
+  const pontoForecast = forecastAp?.pontos.find((p) => p.horizonteDias === horizonteSelecionado) || null;
 
   const prioridades: ItemPrioridadePagamento[] = useMemo(
     () => priorizarPagamentos(contas, fornecedores, idioma as "pt" | "en" | "es"),
@@ -837,44 +841,70 @@ export default function ContasPagarPage() {
 
       {aba === "inteligencia" && (
         <div className="space-y-4">
-          {/* Card Impacto no Caixa */}
-          <CanvasBox cor={impactoCaixa && impactoCaixa.ruptura ? VERMELHO : AZUL}>
-            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: impactoCaixa && impactoCaixa.ruptura ? VERMELHO : AZUL }}>AXIOMA AI.TECH</p>
+          {/* Card Forecast AP Multi-Horizonte (Entrega 3, Commit 1) */}
+          <CanvasBox cor={pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
-              {impactoCaixa && impactoCaixa.ruptura ? <TrendingDown size={18} style={{ color: VERMELHO }} /> : <TrendingUp size={18} style={{ color: AZUL }} />}
-              {L("Impacto no Caixa (próximos 30 dias)", "Cash Impact (next 30 days)", "Impacto en Caja (próximos 30 días)")}
+              {pontoForecast && pontoForecast.ruptura ? <TrendingDown size={18} style={{ color: VERMELHO }} /> : <TrendingUp size={18} style={{ color: AZUL }} />}
+              {L("Previsão de Caixa (AP Forecast)", "Cash Forecast (AP Forecast)", "Previsión de Caja (AP Forecast)")}
             </h3>
-            {carregandoImpacto ? (
+            {carregandoForecast ? (
               <p className="text-sm" style={{ color: CINZA }}>{L("Calculando...", "Calculating...", "Calculando...")}</p>
-            ) : !impactoCaixa ? (
+            ) : !forecastAp || !pontoForecast ? (
               <p className="text-sm" style={{ color: CINZA }}>{L("Sem dados suficientes.", "Not enough data.", "Datos insuficientes.")}</p>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                <div className="flex gap-2 mb-3">
+                  {HORIZONTES_FORECAST_AP.map((h) => (
+                    <button key={h} onClick={() => setHorizonteSelecionado(h)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                      style={horizonteSelecionado === h
+                        ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }
+                        : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+                      {L(`${h} dias`, `${h} days`, `${h} días`)}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.15)" }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
-                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(impactoCaixa.saldoAtual)}</p>
+                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(forecastAp.saldoAtual)}</p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${impactoCaixa.saldoProjetado30dComPagamentos < 0 ? VERMELHO : VERDE}30` }}>
-                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado em 30d (pagando pendentes)", "Projected in 30d (paying pending)", "Proyectado en 30d (pagando pendientes)")}</p>
-                    <p className="text-lg font-black" style={{ color: impactoCaixa.saldoProjetado30dComPagamentos < 0 ? VERMELHO : VERDE }}>{fmt(impactoCaixa.saldoProjetado30dComPagamentos)}</p>
+                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
+                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Otimista (em dia, sem multa)", "Optimistic Scenario (on time, no fee)", "Escenario Optimista (a tiempo, sin multa)")}</p>
+                    <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE }}>{fmt(pontoForecast.saldoProjetadoOtimista)}</p>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
+                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Pessimista (com desvio real de atraso)", "Pessimistic Scenario (real delay deviation)", "Escenario Pesimista (con desvío real de atraso)")}</p>
+                    <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR }}>{fmt(pontoForecast.saldoProjetadoPessimista)}</p>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado em 30d (sem pagar pendentes)", "Projected in 30d (not paying pending)", "Proyectado en 30d (sin pagar pendientes)")}</p>
-                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(impactoCaixa.saldoProjetado30dSemPagamentos)}</p>
+                    <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado sem pagar pendentes", "Projected without paying pending", "Proyectado sin pagar pendientes")}</p>
+                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(pontoForecast.saldoProjetadoSemPagamentos)}</p>
                   </div>
                 </div>
-                {impactoCaixa.ruptura ? (
+                <p className="text-xs mb-3" style={{ color: CINZA }}>
+                  {forecastAp.amostraAtrasoSuficiente
+                    ? L(`Cenário pessimista baseado no histórico real desta empresa: em média, ${forecastAp.fatorAtrasoHistoricoPct}% de sobretaxa em contas pagas com atraso e multa combinada (${forecastAp.amostraAtrasoHistorico} ocorrência(s)).`,
+                        `Pessimistic scenario based on this company's real history: on average, ${forecastAp.fatorAtrasoHistoricoPct}% overpay on bills paid late with an agreed fee (${forecastAp.amostraAtrasoHistorico} occurrence(s)).`,
+                        `Escenario pesimista basado en el historial real de esta empresa: en promedio, ${forecastAp.fatorAtrasoHistoricoPct}% de sobrecosto en cuentas pagadas con atraso y multa acordada (${forecastAp.amostraAtrasoHistorico} ocurrencia(s)).`)
+                    : L("Sem histórico suficiente de atraso com multa combinada ainda — cenário pessimista igual ao otimista (nada é estimado sem dado real).",
+                        "Not enough history of late payments with an agreed fee yet — pessimistic scenario equals the optimistic one (nothing is estimated without real data).",
+                        "Sin historial suficiente de atraso con multa acordada todavía — el escenario pesimista es igual al optimista (nada se estima sin datos reales).")}
+                </p>
+                {pontoForecast.ruptura ? (
                   <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.35)" }}>
                     <AlertTriangle size={16} style={{ color: VERMELHO }} />
                     <p className="text-sm font-semibold" style={{ color: VERMELHO }}>
-                      {L(`Saldo fica negativo em ${impactoCaixa.ruptura.diasRestantes} dias (${new Date(impactoCaixa.ruptura.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fmt(impactoCaixa.ruptura.saldoProjetado)}.`,
-                        `Balance goes negative in ${impactoCaixa.ruptura.diasRestantes} days (${new Date(impactoCaixa.ruptura.data + "T00:00:00").toLocaleDateString("en-US")}), projected at ${fmt(impactoCaixa.ruptura.saldoProjetado)}.`,
-                        `El saldo queda negativo en ${impactoCaixa.ruptura.diasRestantes} días (${new Date(impactoCaixa.ruptura.data + "T00:00:00").toLocaleDateString("es-ES")}), proyectado en ${fmt(impactoCaixa.ruptura.saldoProjetado)}.`)}
+                      {L(`Saldo fica negativo em ${pontoForecast.ruptura.diasRestantes} dias (${new Date(pontoForecast.ruptura.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fmt(pontoForecast.ruptura.saldoProjetado)}.`,
+                        `Balance goes negative in ${pontoForecast.ruptura.diasRestantes} days (${new Date(pontoForecast.ruptura.data + "T00:00:00").toLocaleDateString("en-US")}), projected at ${fmt(pontoForecast.ruptura.saldoProjetado)}.`,
+                        `El saldo queda negativo en ${pontoForecast.ruptura.diasRestantes} días (${new Date(pontoForecast.ruptura.data + "T00:00:00").toLocaleDateString("es-ES")}), proyectado en ${fmt(pontoForecast.ruptura.saldoProjetado)}.`)}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs" style={{ color: VERDE }}>{L("Sem ruptura de caixa prevista nos próximos 30 dias.", "No cash shortfall expected in the next 30 days.", "Sin ruptura de caja prevista en los próximos 30 días.")}</p>
+                  <p className="text-xs" style={{ color: VERDE }}>
+                    {L(`Sem ruptura de caixa prevista nos próximos ${horizonteSelecionado} dias.`, `No cash shortfall expected in the next ${horizonteSelecionado} days.`, `Sin ruptura de caja prevista en los próximos ${horizonteSelecionado} días.`)}
+                  </p>
                 )}
               </>
             )}
