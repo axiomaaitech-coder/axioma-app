@@ -418,7 +418,7 @@ export async function registrarEventoTimeline(params: {
   dados?: any;
 }): Promise<void> {
   if (!params.empresaId) return;
-  await supabase.from("importacao_timeline").insert({
+  const { error } = await supabase.from("importacao_timeline").insert({
     empresa_id: params.empresaId,
     user_id: params.userId,
     importacao_id: params.importacaoId,
@@ -426,6 +426,9 @@ export async function registrarEventoTimeline(params: {
     descricao: params.descricao || null,
     dados: params.dados || null,
   });
+  // Log de timeline não bloqueia nem avisa o usuário (dispara várias vezes por
+  // importação, avisar cada falha seria ruído) — só reporta pro Sentry.
+  if (error) reportarFalhaEscrita("importacao_timeline", "insert", error.message);
 }
 
 export async function listarTimeline(importacaoId: string): Promise<any[]> {
@@ -459,7 +462,8 @@ async function abrirExcecoes(params: {
     status: "pendente",
   }));
   for (let i = 0; i < rows.length; i += 500) {
-    await supabase.from("importacao_excecoes").insert(rows.slice(i, i + 500));
+    const { error } = await supabase.from("importacao_excecoes").insert(rows.slice(i, i + 500));
+    if (error) reportarFalhaEscrita("importacao_excecoes", "insert", error.message);
   }
 }
 
@@ -499,11 +503,17 @@ export async function listarExcecoes(importacaoId: string): Promise<any[]> {
 }
 
 export async function resolverExcecao(excecaoId: string, resolucao: string): Promise<{ erro: string | null }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("importacao_excecoes")
     .update({ status: "resolvida", resolucao, resolvido_em: new Date().toISOString() })
-    .eq("id", excecaoId);
-  return { erro: error?.message || null };
+    .eq("id", excecaoId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacao_excecoes", "update (resolver)", motivo);
+    return { erro: motivo };
+  }
+  return { erro: null };
 }
 
 // ============================================================================
@@ -566,9 +576,12 @@ async function atualizarPadroesClassificacao(
     };
   });
 
-  await supabase
+  const { error } = await supabase
     .from("importacao_padroes_classificacao")
     .upsert(linhasUpsert, { onConflict: "empresa_id,padrao_chave,destino_tabela" });
+  // Cache de sugestão — se falhar, só perde o aprendizado desta leva (a
+  // importação em si já terminou); não bloqueia nem avisa o usuário.
+  if (error) reportarFalhaEscrita("importacao_padroes_classificacao", "upsert", error.message);
 }
 
 export type SugestaoClassificacao = { destino: DestinoTabela; categoria: string | null; confianca: number };
@@ -993,10 +1006,16 @@ export async function gravarLinhas(params: {
 
   if (dryRun) return resultado;
 
-  // Insere auditoria em lote (chunks de 500)
+  // Insere auditoria em lote (chunks de 500) — trilha da importação; se
+  // falhar, os lançamentos já foram gravados nos destinos reais acima, então
+  // não bloqueia, só avisa (mensagens_erro já é mostrado na tela de resultado).
   for (let i = 0; i < auditoriaRows.length; i += 500) {
     const chunk = auditoriaRows.slice(i, i + 500);
-    await supabase.from("importacao_linhas").insert(chunk);
+    const { error: erroAuditoria } = await supabase.from("importacao_linhas").insert(chunk);
+    if (erroAuditoria) {
+      reportarFalhaEscrita("importacao_linhas", "insert", erroAuditoria.message);
+      resultado.mensagens_erro.push(`Trilha de auditoria: ${erroAuditoria.message}`);
+    }
   }
 
   // Atualiza cabeçalho com status final
@@ -1004,7 +1023,7 @@ export async function gravarLinhas(params: {
   if (resultado.importadas === 0 && resultado.erro > 0) statusFinal = "erro";
   else if (resultado.erro > 0 || resultado.duplicadas > 0) statusFinal = "parcialmente";
 
-  await supabase
+  const { data: cabecalhoAtualizado, error: erroCabecalho } = await supabase
     .from("importacoes")
     .update({
       status: statusFinal,
@@ -1016,7 +1035,13 @@ export async function gravarLinhas(params: {
       mensagem_erro: resultado.mensagens_erro.slice(0, 5).join(" | ") || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", importacaoId);
+    .eq("id", importacaoId)
+    .select("id");
+  if (erroCabecalho || !cabecalhoAtualizado || cabecalhoAtualizado.length === 0) {
+    const motivo = erroCabecalho?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacoes", "update (status final)", motivo);
+    resultado.mensagens_erro.push(`Status final da importação não foi salvo: ${motivo}`);
+  }
 
   // Fila de exceções: toda linha que deu erro (parser recusou ou builder
   // rejeitou) vira 1 item pra revisão humana, em vez de só uma mensagem
@@ -1096,7 +1121,7 @@ export async function editarLinhaImportada(
     descricao?: string;
     categoria?: string;
   }
-): Promise<{ erro: string | null }> {
+): Promise<{ erro: string | null; avisoTrilha?: string }> {
   // 1) Busca auditoria
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
@@ -1172,13 +1197,22 @@ export async function editarLinhaImportada(
   if (novosDados.descricao !== undefined) auditUpdate.descricao = novosDados.descricao;
   if (novosDados.categoria !== undefined) auditUpdate.categoria = novosDados.categoria;
 
-  await supabase
+  let avisoTrilha: string | undefined;
+
+  const { data: linhaAtualizada, error: erroAuditUpdate } = await supabase
     .from("importacao_linhas")
     .update(auditUpdate)
-    .eq("id", linhaAuditoriaId);
+    .eq("id", linhaAuditoriaId)
+    .select("id");
+  if (erroAuditUpdate || !linhaAtualizada || linhaAtualizada.length === 0) {
+    const motivo = erroAuditUpdate?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacao_linhas", "update (edição)", motivo);
+    avisoTrilha = motivo;
+  }
 
   // 5) Recalcula totais da importação
-  await recalcularTotaisImportacao(aud.importacao_id);
+  const { erro: erroRecalculo } = await recalcularTotaisImportacao(aud.importacao_id);
+  if (erroRecalculo) avisoTrilha = avisoTrilha ? `${avisoTrilha}; ${erroRecalculo}` : erroRecalculo;
 
   await registrarEventoTimeline({
     empresaId: aud.empresa_id,
@@ -1188,7 +1222,7 @@ export async function editarLinhaImportada(
     descricao: `Linha ${linhaAuditoriaId} editada`,
   });
 
-  return { erro: null };
+  return { erro: null, avisoTrilha };
 }
 
 // ============================================================================
@@ -1198,7 +1232,7 @@ export async function editarLinhaImportada(
 export async function deletarLinhaImportada(
   linhaAuditoriaId: string,
   userId: string
-): Promise<{ erro: string | null }> {
+): Promise<{ erro: string | null; avisoTrilha?: string }> {
   // 1) Busca auditoria
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
@@ -1210,24 +1244,38 @@ export async function deletarLinhaImportada(
   if (!aud || !aud.destino_id) return { erro: "Linha nao encontrada ou ja foi removida" };
 
   // 2) Deleta no destino real
-  const { error: errDel } = await supabase
+  const { data: deletado, error: errDel } = await supabase
     .from(aud.destino_tabela)
     .delete()
-    .eq("id", aud.destino_id);
+    .eq("id", aud.destino_id)
+    .select("id");
 
-  if (errDel) return { erro: errDel.message };
+  if (errDel || !deletado || deletado.length === 0) {
+    const motivo = errDel?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita(aud.destino_tabela, "delete (linha importada)", motivo);
+    return { erro: motivo };
+  }
+
+  let avisoTrilha: string | undefined;
 
   // 3) Marca auditoria como revertida
-  await supabase
+  const { data: linhaMarcada, error: erroMarcar } = await supabase
     .from("importacao_linhas")
     .update({
       status: "revertida",
       mensagem: `Removida em ${new Date().toLocaleString("pt-BR")}`,
     })
-    .eq("id", linhaAuditoriaId);
+    .eq("id", linhaAuditoriaId)
+    .select("id");
+  if (erroMarcar || !linhaMarcada || linhaMarcada.length === 0) {
+    const motivo = erroMarcar?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacao_linhas", "update (marcar revertida)", motivo);
+    avisoTrilha = motivo;
+  }
 
   // 4) Recalcula totais da importação
-  await recalcularTotaisImportacao(aud.importacao_id);
+  const { erro: erroRecalculo } = await recalcularTotaisImportacao(aud.importacao_id);
+  if (erroRecalculo) avisoTrilha = avisoTrilha ? `${avisoTrilha}; ${erroRecalculo}` : erroRecalculo;
 
   await registrarEventoTimeline({
     empresaId: aud.empresa_id,
@@ -1237,14 +1285,14 @@ export async function deletarLinhaImportada(
     descricao: `Linha ${linhaAuditoriaId} removida do destino`,
   });
 
-  return { erro: null };
+  return { erro: null, avisoTrilha };
 }
 
 // ============================================================================
 // RECALCULAR TOTAIS DE UMA IMPORTAÇÃO (após edição ou exclusão de linha)
 // ============================================================================
 
-async function recalcularTotaisImportacao(importacaoId: string): Promise<void> {
+async function recalcularTotaisImportacao(importacaoId: string): Promise<{ erro?: string }> {
   const { data: linhasImp } = await supabase
     .from("importacao_linhas")
     .select("valor, status")
@@ -1259,7 +1307,7 @@ async function recalcularTotaisImportacao(importacaoId: string): Promise<void> {
     .filter((l: any) => l.status === "importada")
     .reduce((s: number, l: any) => s + (Number(l.valor) || 0), 0);
 
-  await supabase
+  const { data, error: erroUpdate } = await supabase
     .from("importacoes")
     .update({
       linhas_importadas: importadas,
@@ -1269,7 +1317,14 @@ async function recalcularTotaisImportacao(importacaoId: string): Promise<void> {
       valor_total_importado: valorTotal,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", importacaoId);
+    .eq("id", importacaoId)
+    .select("id");
+  if (erroUpdate || !data || data.length === 0) {
+    const motivo = erroUpdate?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacoes", "update (recalcular totais)", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================
@@ -1349,13 +1404,17 @@ export async function reverterImportacao(
     removidas++;
   }
 
-  await supabase
+  const { error: erroStatusLinhas } = await supabase
     .from("importacao_linhas")
     .update({ status: "revertida" })
     .eq("importacao_id", importacaoId)
     .in("status", ["importada", "somada"]);
+  if (erroStatusLinhas) {
+    reportarFalhaEscrita("importacao_linhas", "update (status revertida)", erroStatusLinhas.message);
+    erros.push(`importacao_linhas: ${erroStatusLinhas.message}`);
+  }
 
-  await supabase
+  const { error: erroStatusImportacao } = await supabase
     .from("importacoes")
     .update({
       status: "revertido",
@@ -1363,6 +1422,10 @@ export async function reverterImportacao(
       updated_at: new Date().toISOString(),
     })
     .eq("id", importacaoId);
+  if (erroStatusImportacao) {
+    reportarFalhaEscrita("importacoes", "update (status revertido)", erroStatusImportacao.message);
+    erros.push(`importacoes: ${erroStatusImportacao.message}`);
+  }
 
   await registrarEventoTimeline({
     empresaId,
@@ -1453,8 +1516,8 @@ export async function salvarTemplate(params: {
   tipoArquivo: string;
   destinoPadrao: string;
   mapeamento: any;
-}): Promise<void> {
-  await supabase.from("importacao_templates").insert({
+}): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("importacao_templates").insert({
     user_id: params.userId,
     empresa_id: params.empresaId,
     nome: params.nome,
@@ -1463,5 +1526,11 @@ export async function salvarTemplate(params: {
     mapeamento: params.mapeamento,
     ultimo_uso: new Date().toISOString(),
     vezes_usado: 1,
-  });
+  }).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("importacao_templates", "insert", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }

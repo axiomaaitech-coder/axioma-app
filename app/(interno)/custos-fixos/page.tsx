@@ -91,7 +91,8 @@ export default function CustosFixos() {
         setSalvando(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: editando.id, acao: "editar", descricao: `Custo fixo editado: ${novo.descricao}` });
+      if (auditoria.erro) showToast(L("Custo fixo salvo, mas o registro de auditoria falhou.", "Fixed cost saved, but the audit record failed.", "Costo fijo guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarCustos();
     } else {
       const { data, error } = await supabase.from("custos_fixos").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
@@ -101,7 +102,8 @@ export default function CustosFixos() {
         setSalvando(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_fixos", registroId: data.id, acao: "criar", descricao: `Custo fixo criado: ${novo.descricao}` });
+      if (auditoria.erro) showToast(L("Custo fixo salvo, mas o registro de auditoria falhou.", "Fixed cost saved, but the audit record failed.", "Costo fijo guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarCustos();
     }
     setSalvando(false);
@@ -117,7 +119,10 @@ export default function CustosFixos() {
       reportarFalhaEscrita("custos_fixos", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
-    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_fixos", registroId: id, acao: "excluir", descricao: `Custo fixo excluído: ${custo?.descricao || id}` });
+    if (user) {
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_fixos", registroId: id, acao: "excluir", descricao: `Custo fixo excluído: ${custo?.descricao || id}` });
+      if (auditoria.erro) showToast(L("Custo fixo excluído, mas o registro de auditoria falhou.", "Fixed cost deleted, but the audit record failed.", "Costo fijo eliminado, pero el registro de auditoría falló."), "erro");
+    }
     setCustos(custos.filter(c => c.id !== id));
   };
 

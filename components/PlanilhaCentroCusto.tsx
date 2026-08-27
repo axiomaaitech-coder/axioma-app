@@ -124,9 +124,10 @@ export type PlanilhaCentroCustoProps = {
   idioma: Lang;
   onSalvo: () => void;
   onEditarRateio: (tabela: OrigemTabela, origemId: string) => void;
+  onAvisoAuditoria?: () => void;
 };
 
-export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, empresaId, idioma, onSalvo, onEditarRateio }: PlanilhaCentroCustoProps) {
+export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, empresaId, idioma, onSalvo, onEditarRateio, onAvisoAuditoria }: PlanilhaCentroCustoProps) {
   const t = T[idioma];
 
   const [busca, setBusca] = useState("");
@@ -345,11 +346,12 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       : coluna === "data" && linha.tabela === "custos_fixos" ? "dia_vencimento" : (coluna as CampoEditavel);
 
     setSalvandoId(linha.id);
-    const { erro } = await atualizarCampoOrigem(userId, empresaId, linha.tabela, linha.id, campo, valorFinal || null, {
+    const { erro, avisoAuditoria } = await atualizarCampoOrigem(userId, empresaId, linha.tabela, linha.id, campo, valorFinal || null, {
       centroId: linha.centroId, valorPagoAtual: linha.valorPago, dataVencimentoAtual: linha.data,
     });
     setSalvandoId(null);
     if (erro) { setErroEdicao(erro); return; }
+    if (avisoAuditoria) onAvisoAuditoria?.();
     cancelarEdicao();
     onSalvo();
   }

@@ -1280,6 +1280,7 @@ export default function CentrosCustoPage() {
             linhas={linhasPlanilha} centros={centros} orcamentos={orcamentos} fornecedores={fornecedoresLeves}
             categoriasPorTabela={categoriasPorTabelaPlanilha} userId={userId} empresaId={empresaId} idioma={langF2} onSalvo={carregarDados}
             onEditarRateio={abrirEditarRateio}
+            onAvisoAuditoria={() => showToast(Lt("Editado, mas o registro de auditoria falhou.", "Edited, but the audit record failed.", "Editado, pero el registro de auditoría falló."), "erro")}
           />
         )}
       </div>

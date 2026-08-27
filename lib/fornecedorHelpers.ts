@@ -257,18 +257,32 @@ export async function listarInteracoes(fornecedorId: string): Promise<Fornecedor
 export async function criarInteracao(fornecedorId: string, userId: string, empresaId: string | null, dados: Partial<FornecedorInteracao>): Promise<{ id?: string; erro?: string }> {
   const { data, error } = await supabase.from("fornecedor_interacoes")
     .insert({ ...dados, fornecedor_id: fornecedorId, user_id: userId, empresa_id: empresaId }).select("id").single();
-  if (error) return { erro: error.message };
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_interacoes", "insert", motivo);
+    return { erro: motivo };
+  }
   return { id: data.id };
 }
 
 export async function atualizarInteracao(id: string, dados: Partial<FornecedorInteracao>): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_interacoes").update(dados).eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_interacoes").update(dados).eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_interacoes", "update", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("fornecedor_interacoes").delete().eq("id", id);
-  return error ? { erro: error.message } : {};
+  const { data, error } = await supabase.from("fornecedor_interacoes").delete().eq("id", id).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("fornecedor_interacoes", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
 }
 
 // ============================================================================

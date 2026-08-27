@@ -134,7 +134,8 @@ export default function CustosVariaveis() {
         setSalvando(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: editando.id, acao: "editar", descricao: `Custo variável editado: ${novo.descricao}` });
+      if (auditoria.erro) showToast(L("Custo variável salvo, mas o registro de auditoria falhou.", "Variable cost saved, but the audit record failed.", "Costo variable guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarTudo();
     } else {
       const { data, error } = await supabase.from("custos_variaveis").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
@@ -144,7 +145,8 @@ export default function CustosVariaveis() {
         setSalvando(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "custos_variaveis", registroId: data.id, acao: "criar", descricao: `Custo variável criado: ${novo.descricao}` });
+      if (auditoria.erro) showToast(L("Custo variável salvo, mas o registro de auditoria falhou.", "Variable cost saved, but the audit record failed.", "Costo variable guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarTudo();
     }
     setSalvando(false);
@@ -160,7 +162,10 @@ export default function CustosVariaveis() {
       reportarFalhaEscrita("custos_variaveis", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
-    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_variaveis", registroId: id, acao: "excluir", descricao: `Custo variável excluído: ${custo?.descricao || id}` });
+    if (user) {
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: custo?.centro_custo_id || null, tabela: "custos_variaveis", registroId: id, acao: "excluir", descricao: `Custo variável excluído: ${custo?.descricao || id}` });
+      if (auditoria.erro) showToast(L("Custo variável excluído, mas o registro de auditoria falhou.", "Variable cost deleted, but the audit record failed.", "Costo variable eliminado, pero el registro de auditoría falló."), "erro");
+    }
     setCustos(custos.filter(c => c.id !== id));
   };
 

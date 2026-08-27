@@ -97,7 +97,8 @@ export default function Receitas() {
         setSalvando(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: editando.id, acao: "editar", descricao: `Receita editada: ${novo.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: editando.id, acao: "editar", descricao: `Receita editada: ${novo.descricao}` });
+      if (auditoria.erro) showToast(L("Receita salva, mas o registro de auditoria falhou.", "Revenue saved, but the audit record failed.", "Ingreso guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarReceitas();
     } else {
       const { data, error } = await supabase.from("receitas").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id").single();
@@ -107,7 +108,8 @@ export default function Receitas() {
         setSalvando(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: data.id, acao: "criar", descricao: `Receita criada: ${novo.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: novo.centro_custo_id || null, tabela: "receitas", registroId: data.id, acao: "criar", descricao: `Receita criada: ${novo.descricao}` });
+      if (auditoria.erro) showToast(L("Receita salva, mas o registro de auditoria falhou.", "Revenue saved, but the audit record failed.", "Ingreso guardado, pero el registro de auditoría falló."), "erro");
       fecharModal(); await carregarReceitas();
     }
     setSalvando(false);
@@ -122,7 +124,10 @@ export default function Receitas() {
       reportarFalhaEscrita("receitas", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
-    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: receita?.centro_custo_id || null, tabela: "receitas", registroId: id, acao: "excluir", descricao: `Receita excluída: ${receita?.descricao || id}` });
+    if (user) {
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: receita?.centro_custo_id || null, tabela: "receitas", registroId: id, acao: "excluir", descricao: `Receita excluída: ${receita?.descricao || id}` });
+      if (auditoria.erro) showToast(L("Receita excluída, mas o registro de auditoria falhou.", "Revenue deleted, but the audit record failed.", "Ingreso eliminado, pero el registro de auditoría falló."), "erro");
+    }
     setReceitas(receitas.filter(r => r.id !== id));
   };
 

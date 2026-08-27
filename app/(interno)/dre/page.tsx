@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Share2, AlertTriangle, Sparkles, Zap, MessageSquareText, History, X, ShieldCheck, Clock } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -324,8 +325,16 @@ export default function DREPage() {
       resultado_completo: { fatoresVariacao, ponte, sinaisSaude, gatilhosConselho, runwayMeses },
       updated_at: new Date().toISOString(),
     };
-    if (existente) await supabase.from("dre_historico").update(payload).eq("id", existente.id);
-    else await supabase.from("dre_historico").insert(payload);
+    // Snapshot automático (dispara sozinho ao trocar de período, não é uma ação
+    // do usuário) — se falhar, não interrompe a tela nem avisa com toast (seria
+    // ruído sem contexto pro usuário); só reporta pro Sentry.
+    const { data: linhaSalva, error: erroSnapshot } = existente
+      ? await supabase.from("dre_historico").update(payload).eq("id", existente.id).select("id")
+      : await supabase.from("dre_historico").insert(payload).select("id");
+    if (erroSnapshot || !linhaSalva || linhaSalva.length === 0) {
+      const motivo = erroSnapshot?.message || "0 linhas afetadas (RLS?)";
+      Sentry.captureException(new Error(`Falha ao ${existente ? "update" : "insert"} em dre_historico: ${motivo}`), { extra: { tabela: "dre_historico", operacao: existente ? "update" : "insert", motivo } });
+    }
     carregarHistorico(userId);
   }
 

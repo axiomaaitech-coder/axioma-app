@@ -231,7 +231,7 @@ const COLUNA_POR_CAMPO: Partial<Record<CampoEditavel, Partial<Record<OrigemTabel
 export async function atualizarCampoOrigem(
   userId: string, empresaId: string | null, tabela: OrigemTabela, id: string, campo: CampoEditavel, valor: any,
   contexto?: { centroId?: string | null; valorPagoAtual?: number; dataVencimentoAtual?: string | null },
-): Promise<{ erro?: string }> {
+): Promise<{ erro?: string; avisoAuditoria?: string }> {
   const coluna = COLUNA_POR_CAMPO[campo]?.[tabela] || campo;
   const payload: any = { [coluna]: valor };
 
@@ -246,9 +246,12 @@ export async function atualizarCampoOrigem(
     return { erro: motivo };
   }
 
-  await registrarAuditoriaCentro({
+  // Falha de auditoria aqui NUNCA reverte nem bloqueia a edição da célula, que
+  // já aconteceu de verdade — só avisa, sem impedir o fluxo (mesma regra das
+  // outras 11 chamadas de registrarAuditoriaCentro no projeto).
+  const auditoria = await registrarAuditoriaCentro({
     userId, empresaId, centroId: contexto?.centroId, tabela, registroId: id, acao: "editar",
     descricao: `Editado via Planilha: ${campo} = ${valor}`,
   });
-  return {};
+  return auditoria.erro ? { avisoAuditoria: auditoria.erro } : {};
 }

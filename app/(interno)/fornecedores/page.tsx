@@ -722,6 +722,10 @@ export default function Fornecedores() {
     erroExcluirDocumento: idioma === "pt" ? "Não foi possível excluir o documento. Tente novamente." : idioma === "en" ? "Could not delete the document. Try again." : "No se pudo eliminar el documento. Intente de nuevo.",
     erroSalvarContrato: idioma === "pt" ? "Não foi possível salvar o contrato. Tente novamente." : idioma === "en" ? "Could not save the contract. Try again." : "No se pudo guardar el contrato. Intente de nuevo.",
     erroExcluirContrato: idioma === "pt" ? "Não foi possível excluir o contrato. Tente novamente." : idioma === "en" ? "Could not delete the contract. Try again." : "No se pudo eliminar el contrato. Intente de nuevo.",
+    avisoAuditoriaContaSalva: idioma === "pt" ? "Conta salva, mas o registro de auditoria falhou." : idioma === "en" ? "Bill saved, but the audit record failed." : "Cuenta guardada, pero el registro de auditoría falló.",
+    avisoAuditoriaContaExcluida: idioma === "pt" ? "Conta excluída, mas o registro de auditoria falhou." : idioma === "en" ? "Bill deleted, but the audit record failed." : "Cuenta eliminada, pero el registro de auditoría falló.",
+    erroSalvarInteracao: idioma === "pt" ? "Não foi possível salvar a interação. Tente novamente." : idioma === "en" ? "Could not save the interaction. Try again." : "No se pudo guardar la interacción. Intente de nuevo.",
+    erroExcluirInteracao: idioma === "pt" ? "Não foi possível excluir a interação. Tente novamente." : idioma === "en" ? "Could not delete the interaction. Try again." : "No se pudo eliminar la interacción. Intente de nuevo.",
   };
 
   const [aba, setAba] = useState<"fornecedores" | "contas">("fornecedores");
@@ -1196,8 +1200,10 @@ export default function Fornecedores() {
     if (!fornecedorAtualId || !novaInteracao.descricao.trim()) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    if (editandoInteracaoId) await atualizarInteracao(editandoInteracaoId, novaInteracao);
-    else await criarInteracao(fornecedorAtualId, user.id, empresaId, novaInteracao);
+    const { erro } = editandoInteracaoId
+      ? await atualizarInteracao(editandoInteracaoId, novaInteracao)
+      : await criarInteracao(fornecedorAtualId, user.id, empresaId, novaInteracao);
+    if (erro) { showToast(txt.erroSalvarInteracao, "erro"); return; }
     setNovaInteracao({ data: hoje0, tipo: "", descricao: "" });
     setEditandoInteracaoId(null);
     setInteracoesForn(await listarInteracoes(fornecedorAtualId));
@@ -1211,7 +1217,8 @@ export default function Fornecedores() {
     setEditandoInteracaoId(null);
   };
   const removerInteracao = async (id: string) => {
-    await excluirInteracao(id);
+    const { erro } = await excluirInteracao(id);
+    if (erro) { showToast(txt.erroExcluirInteracao, "erro"); return; }
     if (editandoInteracaoId === id) cancelarEdicaoInteracao();
     if (fornecedorAtualId) setInteracoesForn(await listarInteracoes(fornecedorAtualId));
   };
@@ -1259,7 +1266,8 @@ export default function Fornecedores() {
         setSalvandoConta(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: editandoConta.id, acao: "editar", descricao: `Conta a pagar editada: ${nc.descricao}` });
+      if (auditoria.erro) showToast(txt.avisoAuditoriaContaSalva, "erro");
     } else {
       const { data, error } = await supabase.from("contas_pagar").insert({ ...payload, user_id: user.id }).select("id").single();
       if (error || !data) {
@@ -1268,7 +1276,8 @@ export default function Fornecedores() {
         setSalvandoConta(false);
         return;
       }
-      await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: nc.centro_custo_id || null, tabela: "contas_pagar", registroId: data.id, acao: "criar", descricao: `Conta a pagar criada: ${nc.descricao}` });
+      if (auditoria.erro) showToast(txt.avisoAuditoriaContaSalva, "erro");
     }
     fecharModalConta(); await carregarDados(); setSalvandoConta(false);
   };
@@ -1282,7 +1291,10 @@ export default function Fornecedores() {
       reportarFalhaEscrita("contas_pagar", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
-    if (user) await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: conta?.centro_custo_id || null, tabela: "contas_pagar", registroId: id, acao: "excluir", descricao: `Conta a pagar excluída: ${conta?.descricao || id}` });
+    if (user) {
+      const auditoria = await registrarAuditoriaCentro({ userId: user.id, empresaId, centroId: conta?.centro_custo_id || null, tabela: "contas_pagar", registroId: id, acao: "excluir", descricao: `Conta a pagar excluída: ${conta?.descricao || id}` });
+      if (auditoria.erro) showToast(txt.avisoAuditoriaContaExcluida, "erro");
+    }
     await carregarDados();
   };
 

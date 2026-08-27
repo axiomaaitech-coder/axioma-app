@@ -408,7 +408,8 @@ export default function ContasPagarPage() {
     setDadosPendentes(dados);
     setSenhaForcar(""); setErroForcar("");
     setModalDuplicata(true);
-    await registrarAuditoriaAp(relevantes[0].contas_pagar_id, "duplicata_detectada", null, { candidata: dados, similares: relevantes });
+    const { erro: erroAuditoria } = await registrarAuditoriaAp(relevantes[0].contas_pagar_id, "duplicata_detectada", null, { candidata: dados, similares: relevantes });
+    if (erroAuditoria) showToast(L("O registro de auditoria desta duplicidade falhou.", "The audit record for this duplicate failed.", "El registro de auditoría de este duplicado falló."), "erro");
     setSalvando(false);
   }
 

@@ -51,6 +51,7 @@ const T = {
     chatAnalisando: "Analisando seus dados...",
     chatLimpar: "🗑️ Limpar histórico",
     chatLimparConfirm: "Limpar todo o histórico de conversas?",
+    chatErroLimpar: "Não foi possível limpar o histórico no servidor — pode reaparecer ao recarregar. Tente novamente.",
     chatSugestoes: ["Qual minha margem líquida?", "Como reduzir custos?", "Como está meu fluxo de caixa?", "Qual meu score empresarial?"],
     // Anomalias
     anomaliasTitulo: "🔍 Anomalias & Alertas",
@@ -125,6 +126,7 @@ const T = {
     chatAnalisando: "Analyzing your data...",
     chatLimpar: "🗑️ Clear history",
     chatLimparConfirm: "Clear all conversation history?",
+    chatErroLimpar: "Could not clear the history on the server — it may reappear on reload. Try again.",
     chatSugestoes: ["What's my net margin?", "How to reduce costs?", "How's my cash flow?", "What's my business score?"],
     anomaliasTitulo: "🔍 Anomalies & Alerts",
     anomaliasVazio: "No anomalies detected. Your indicators are within expected range.",
@@ -192,6 +194,7 @@ const T = {
     chatAnalisando: "Analizando sus datos...",
     chatLimpar: "🗑️ Limpiar historial",
     chatLimparConfirm: "¿Limpiar todo el historial de conversaciones?",
+    chatErroLimpar: "No se pudo limpiar el historial en el servidor — puede reaparecer al recargar. Intente de nuevo.",
     chatSugestoes: ["¿Cuál es mi margen neto?", "¿Cómo reducir costos?", "¿Cómo está mi flujo de caja?", "¿Cuál es mi score empresarial?"],
     anomaliasTitulo: "🔍 Anomalías & Alertas",
     anomaliasVazio: "Sin anomalías detectadas. Sus indicadores están dentro de lo esperado.",
@@ -388,7 +391,8 @@ export default function IAFinanceiraPage() {
   async function onLimparHistorico() {
     if (!userId) return;
     if (!window.confirm(tt.chatLimparConfirm)) return;
-    await limparHistorico(userId);
+    const { erro } = await limparHistorico(userId);
+    if (erro) showToast(tt.chatErroLimpar, "erro");
     setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared. How can I help?" : lang === "es" ? "Historial limpio. ¿Cómo puedo ayudar?" : "Histórico limpo. Como posso ajudar?" }]);
   }
 

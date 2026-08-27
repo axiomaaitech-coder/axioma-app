@@ -28,6 +28,7 @@ const T = {
     chatTitulo: "💬 Chat com seu Consultor Fiscal Digital", chatPlaceholder: "Pergunte sobre impostos, regime, DAS...",
     chatAnalisando: "Consultando legislação...", chatLimpar: "🗑️ Limpar",
     chatLimparConfirm: "Limpar todo o histórico?",
+    chatErroLimpar: "Não foi possível limpar o histórico no servidor — pode reaparecer ao recarregar. Tente novamente.",
     chatSugestoes: ["Qual o melhor regime pra mim?", "Quanto pago de imposto?", "O que muda com a reforma?", "Como calcular o DAS?"],
     simuladorTitulo: "🏛️ Comparativo de Regimes Tributários", simuladorDesc: "Simulação com seus dados reais. O mais barato aparece primeiro.",
     regimeAtual: "Atual", recomendado: "MAIS BARATO", inelegivel: "Inelegível", porMes: "/mês", porAno: "/ano",
@@ -56,6 +57,7 @@ const T = {
     chatTitulo: "💬 Chat with your Digital Tax Consultant", chatPlaceholder: "Ask about taxes, regime, DAS...",
     chatAnalisando: "Consulting legislation...", chatLimpar: "🗑️ Clear",
     chatLimparConfirm: "Clear all history?",
+    chatErroLimpar: "Could not clear the history on the server — it may reappear on reload. Try again.",
     chatSugestoes: ["What's the best regime for me?", "How much tax do I pay?", "What changes with the reform?", "How to calculate DAS?"],
     simuladorTitulo: "🏛️ Tax Regime Comparison", simuladorDesc: "Simulation with your real data. Cheapest appears first.",
     regimeAtual: "Current", recomendado: "CHEAPEST", inelegivel: "Ineligible", porMes: "/mo", porAno: "/yr",
@@ -84,6 +86,7 @@ const T = {
     chatTitulo: "💬 Chat con su Consultor Fiscal Digital", chatPlaceholder: "Pregunte sobre impuestos, régimen, DAS...",
     chatAnalisando: "Consultando legislación...", chatLimpar: "🗑️ Limpiar",
     chatLimparConfirm: "¿Limpiar todo el historial?",
+    chatErroLimpar: "No se pudo limpiar el historial en el servidor — puede reaparecer al recargar. Intente de nuevo.",
     chatSugestoes: ["¿Cuál es el mejor régimen?", "¿Cuánto pago de impuesto?", "¿Qué cambia con la reforma?", "¿Cómo calcular el DAS?"],
     simuladorTitulo: "🏛️ Comparativo de Regímenes", simuladorDesc: "Simulación con sus datos reales. El más barato aparece primero.",
     regimeAtual: "Actual", recomendado: "MÁS BARATO", inelegivel: "No elegible", porMes: "/mes", porAno: "/año",
@@ -200,7 +203,8 @@ export default function IATributariaPage() {
 
   async function onLimpar() {
     if (!userId || !window.confirm(tt.chatLimparConfirm)) return;
-    await limparHistoricoTrib(userId);
+    const { erro } = await limparHistoricoTrib(userId);
+    if (erro) showToast(tt.chatErroLimpar, "erro");
     setMensagens([{ role: "assistant", texto: lang === "en" ? "History cleared." : lang === "es" ? "Historial limpio." : "Histórico limpo." }]);
   }
 

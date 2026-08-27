@@ -134,6 +134,8 @@ const T = {
     desfazerConfirma: "Tem certeza? Isso vai REMOVER todos os lançamentos criados por esta importação.",
     desfazendo: "Desfazendo...",
     desfeito: "Importação desfeita",
+    desfeitoComFalhas: "Desfeito, mas alguns registros de controle da reversão falharam.",
+    editadoComAvisoTrilha: "Linha atualizada, mas o registro de auditoria/totais falhou.",
     compartilharTitulo: "Resumo da importação",
     arquivoCopiado: "Resumo copiado para área de transferência",
     arquivoLabel: "Arquivo",
@@ -251,6 +253,8 @@ const T = {
     desfazerConfirma: "Are you sure? This will REMOVE all entries created by this import.",
     desfazendo: "Undoing...",
     desfeito: "Import undone",
+    desfeitoComFalhas: "Undone, but some rollback control records failed.",
+    editadoComAvisoTrilha: "Entry updated, but the audit/totals record failed.",
     compartilharTitulo: "Import summary",
     arquivoCopiado: "Summary copied to clipboard",
     arquivoLabel: "File",
@@ -368,6 +372,8 @@ const T = {
     desfazerConfirma: "¿Estás seguro? Esto ELIMINARÁ todas las entradas creadas por esta importación.",
     desfazendo: "Deshaciendo...",
     desfeito: "Importación deshecha",
+    desfeitoComFalhas: "Deshecho, pero algunos registros de control de la reversión fallaron.",
+    editadoComAvisoTrilha: "Línea actualizada, pero el registro de auditoría/totales falló.",
     compartilharTitulo: "Resumen de importación",
     arquivoCopiado: "Resumen copiado al portapapeles",
     arquivoLabel: "Archivo",
@@ -820,7 +826,7 @@ export default function ImportarDocumentosPage() {
     if (!userId || !nomeNovoTemplate.trim() || !arquivoSelecionado) return;
     try {
       const ext = arquivoSelecionado.name.toLowerCase().split(".").pop() || "csv";
-      await salvarTemplate({
+      const { erro } = await salvarTemplate({
         userId,
         empresaId,
         nome: nomeNovoTemplate.trim(),
@@ -828,6 +834,7 @@ export default function ImportarDocumentosPage() {
         destinoPadrao: destinoPredominante(destinos),
         mapeamento,
       });
+      if (erro) { showToast(erro, "erro"); return; }
       setNomeNovoTemplate("");
       setMostrarSalvarTemplate(false);
       const novos = await carregarTemplates(userId);
@@ -1044,7 +1051,7 @@ export default function ImportarDocumentosPage() {
       if (r.erro) {
         showToast(r.erro, "erro");
       } else {
-        showToast("Linha atualizada", "ok");
+        showToast(r.avisoTrilha ? tt.editadoComAvisoTrilha : "Linha atualizada", r.avisoTrilha ? "erro" : "ok");
         // Recarrega as linhas dessa importação + histórico + stats
         const impId = linhaEditando.importacao_id;
         const lns = await listarLinhasImportacao(impId, userId);
@@ -1070,7 +1077,7 @@ export default function ImportarDocumentosPage() {
       if (r.erro) {
         showToast(r.erro, "erro");
       } else {
-        showToast("Linha removida", "ok");
+        showToast(r.avisoTrilha ? tt.editadoComAvisoTrilha : "Linha removida", r.avisoTrilha ? "erro" : "ok");
         const impId = linha.importacao_id;
         const lns = await listarLinhasImportacao(impId, userId);
         setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
@@ -1091,7 +1098,11 @@ export default function ImportarDocumentosPage() {
     setRevertendo(id);
     try {
       const r = await reverterImportacao(id, userId);
-      showToast(`${tt.desfeito} (${r.removidas} ${tt.importadas})`, "ok");
+      if (r.erros.length > 0) {
+        showToast(`${tt.desfeitoComFalhas} (${r.removidas} ${tt.importadas})`, "erro");
+      } else {
+        showToast(`${tt.desfeito} (${r.removidas} ${tt.importadas})`, "ok");
+      }
       await Promise.all([
         carregarStatsMes(userId).then(setStats),
         carregarHistoricoLista(userId),

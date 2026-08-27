@@ -2,12 +2,17 @@
 // Simulador de regime, Score Fiscal, carga tributária, economia estimada, reforma 2026.
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 import { dasMensalPorCategoria } from "./meiHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 // ============================================================================
 // TIPOS
@@ -585,7 +590,10 @@ export function respostaTributariaPorRegras(dados: DadosFiscais, scoreFiscal: Sc
 // ============================================================================
 
 export async function salvarMensagemTrib(userId: string, empresaId: string | null, role: string, mensagem: string, contexto?: any, modelo?: string): Promise<void> {
-  await supabase.from("ia_tributaria_historico").insert({ user_id: userId, empresa_id: empresaId, role, mensagem, contexto, modelo: modelo || "regras" });
+  // Log de conversa — a mensagem já apareceu na tela pro usuário; se o salvamento
+  // falhar, só perde o histórico, nunca a resposta em si. Não bloqueia, só reporta.
+  const { error } = await supabase.from("ia_tributaria_historico").insert({ user_id: userId, empresa_id: empresaId, role, mensagem, contexto, modelo: modelo || "regras" });
+  if (error) reportarFalhaEscrita("ia_tributaria_historico", "insert", error.message);
 }
 
 export async function carregarHistoricoTrib(userId: string, limit: number = 50): Promise<any[]> {
@@ -593,6 +601,11 @@ export async function carregarHistoricoTrib(userId: string, limit: number = 50):
   return data || [];
 }
 
-export async function limparHistoricoTrib(userId: string): Promise<void> {
-  await supabase.from("ia_tributaria_historico").delete().not("id", "is", null);
+export async function limparHistoricoTrib(userId: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("ia_tributaria_historico").delete().not("id", "is", null);
+  if (error) {
+    reportarFalhaEscrita("ia_tributaria_historico", "delete", error.message);
+    return { erro: error.message };
+  }
+  return {};
 }

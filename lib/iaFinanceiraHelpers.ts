@@ -3,11 +3,16 @@
 // Funciona com dados reais do Supabase. Chat via Claude API (ou regras se API indisponível).
 
 import { createBrowserClient } from "@supabase/ssr";
+import * as Sentry from "@sentry/nextjs";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
+  Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
 
 // ============================================================================
 // TIPOS
@@ -768,7 +773,9 @@ export function respostaPorRegras(snap: SnapshotFinanceiro, score: Score360, ben
 // ============================================================================
 
 export async function salvarMensagem(userId: string, empresaId: string | null, role: string, mensagem: string, contexto?: any, modelo?: string): Promise<void> {
-  await supabase.from("ia_financeira_historico").insert({
+  // Log de conversa — a mensagem já apareceu na tela pro usuário; se o salvamento
+  // falhar, só perde o histórico, nunca a resposta em si. Não bloqueia, só reporta.
+  const { error } = await supabase.from("ia_financeira_historico").insert({
     user_id: userId,
     empresa_id: empresaId,
     role,
@@ -776,6 +783,7 @@ export async function salvarMensagem(userId: string, empresaId: string | null, r
     contexto,
     modelo: modelo || "regras",
   });
+  if (error) reportarFalhaEscrita("ia_financeira_historico", "insert", error.message);
 }
 
 export async function carregarHistorico(userId: string, limit: number = 50): Promise<any[]> {
@@ -787,6 +795,11 @@ export async function carregarHistorico(userId: string, limit: number = 50): Pro
   return data || [];
 }
 
-export async function limparHistorico(userId: string): Promise<void> {
-  await supabase.from("ia_financeira_historico").delete().not("id", "is", null);
+export async function limparHistorico(userId: string): Promise<{ erro?: string }> {
+  const { error } = await supabase.from("ia_financeira_historico").delete().not("id", "is", null);
+  if (error) {
+    reportarFalhaEscrita("ia_financeira_historico", "delete", error.message);
+    return { erro: error.message };
+  }
+  return {};
 }

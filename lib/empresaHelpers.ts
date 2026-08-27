@@ -922,7 +922,11 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
   if (pendente) {
     const expirado = pendente.expira_em && new Date(pendente.expira_em) < new Date();
     if (!expirado) return { erro: "duplicado", codigo: "AX008" };
-    await supabase.from("empresa_equipe").delete().eq("id", pendente.id);
+    // Limpeza best-effort do convite expirado antes de criar o novo — se falhar,
+    // não bloqueia o convite novo (o insert abaixo segue e é conferido normalmente);
+    // só reporta pro Sentry pra não perder visibilidade de que sobrou um registro.
+    const { error: erroLimpeza } = await supabase.from("empresa_equipe").delete().eq("id", pendente.id);
+    if (erroLimpeza) reportarFalhaEscrita("empresa_equipe", "delete (limpeza convite expirado)", erroLimpeza.message);
   }
 
   const token = typeof crypto !== "undefined" && (crypto as any).randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
