@@ -66,10 +66,12 @@ export default function Receitas() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
+    const empresaId = await obterEmpresaAtiva();
+    if (!empresaId) { setCarregando(false); return; }
     const [{ data }, { data: clientesData }, { data: centrosData }] = await Promise.all([
-      supabase.from("receitas").select("*").order("data", { ascending: false }),
-      supabase.from("clientes").select("id, nome").order("nome", { ascending: true }),
-      supabase.from("centros_custo").select("id, nome"),
+      supabase.from("receitas").select("*").eq("empresa_id", empresaId).order("data", { ascending: false }),
+      supabase.from("clientes").select("id, nome").eq("empresa_id", empresaId).order("nome", { ascending: true }),
+      supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId),
     ]);
     setReceitas(data || []);
     setClientesOpcoes(clientesData || []);

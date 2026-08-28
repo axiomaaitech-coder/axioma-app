@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling } from "../lib/cfoCore";
+import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import ReactECharts from "echarts-for-react";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -202,6 +203,9 @@ export default function DashComercial() {
       const hojeStr = hoje.toISOString().slice(0, 10);
       const em30 = new Date(hoje.getTime() + 30 * 86400000).toISOString().slice(0, 10);
       const doze = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1).toISOString().slice(0, 10);
+      const empresaId = await obterEmpresaAtiva();
+      if (!ativo) return;
+      if (!empresaId) return;
 
       const [
         { count: clientesAtivos },
@@ -210,11 +214,11 @@ export default function DashComercial() {
         { data: contasReceber },
         { data: investimentos },
       ] = await Promise.all([
-        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("status", "ativo"),
-        supabase.from("clientes").select("created_at").gte("created_at", doze),
-        supabase.from("metas").select("id", { count: "exact", head: true }),
-        supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento"),
-        supabase.from("investimentos").select("valor, categoria"),
+        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId).eq("status", "ativo"),
+        supabase.from("clientes").select("created_at").eq("empresa_id", empresaId).gte("created_at", doze),
+        supabase.from("metas").select("id", { count: "exact", head: true }).eq("empresa_id", empresaId),
+        supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId),
+        supabase.from("investimentos").select("valor, categoria").eq("empresa_id", empresaId),
       ]);
       if (!ativo) return;
 

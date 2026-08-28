@@ -274,13 +274,13 @@ export default function Metas() {
     const empresaId = await obterEmpresaAtiva();
 
     const [{ data: mt }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: cli }, { data: emp }] = await Promise.all([
-      supabase.from("metas").select("*").order("created_at", { ascending: false }),
-      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", hoje),
-      supabase.from("custos_fixos").select("valor_mensal"),
-      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", hoje),
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
-      supabase.from("fluxo_caixa").select("tipo, valor, data, status").gte("data", inicioHist).lte("data", hoje),
-      supabase.from("clientes").select("status, created_at"),
+      empresaId ? supabase.from("metas").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", hoje) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("clientes").select("status, created_at").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
       empresaId ? supabase.from("empresas").select("regime_tributario").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 

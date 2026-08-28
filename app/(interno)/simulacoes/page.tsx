@@ -12,6 +12,7 @@ import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import {
   fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
   resolverPeriodo, montarDRE,
@@ -103,14 +104,15 @@ export default function Simulacoes() {
     if (!user) { setCarregando(false); return; }
 
     const inicioHist = inicioJanela12m(periodo.fim);
+    const empresaId = await obterEmpresaAtiva();
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
-      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("valor_mensal"),
-      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
+      empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — nunca escreve em dividas.
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
+      empresaId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
       // Mesma definição de "caixa disponível" do Fluxo de Caixa/Investimentos.
-      supabase.from("fluxo_caixa").select("tipo, valor, status"),
+      empresaId ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
       supabase.from("empresas").select("regime_tributario").eq("user_id", user.id).limit(1).maybeSingle(),
     ]);
 

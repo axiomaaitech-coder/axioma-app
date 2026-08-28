@@ -86,24 +86,26 @@ export default function CustosVariaveis() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
+    const empresaId = await obterEmpresaAtiva();
+    if (!empresaId) { setCarregando(false); return; }
 
     const inicioHistorico = inicioJanelaHistorica(periodo.fim);
 
     const [{ data: cv }, { data: cf }, { data: rec }] = await Promise.all([
-      supabase.from("custos_variaveis").select("*")
+      supabase.from("custos_variaveis").select("*").eq("empresa_id", empresaId)
         .gte("data", inicioHistorico).lte("data", periodo.fim).order("data", { ascending: false }),
       // Leitura só (SELECT) de Custos Fixos — necessária pro Ponto de Equilíbrio. Nunca escreve nessa tabela.
-      supabase.from("custos_fixos").select("valor_mensal"),
+      supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId),
       // Leitura só (SELECT) de Receitas — necessária pra Margem de Contribuição. Nunca escreve nessa tabela.
       // Limitada à mesma janela histórica — não traz o histórico inteiro da empresa de uma vez.
-      supabase.from("receitas").select("valor, data")
+      supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId)
         .gte("data", inicioHistorico).lte("data", periodo.fim),
     ]);
 
     setCustos(cv || []);
     setCustoFixoTotal((cf || []).reduce((s, c: any) => s + Number(c.valor_mensal || 0), 0));
     setReceitas((rec || []).map((r: any) => ({ valor: Number(r.valor || 0), data: r.data })));
-    supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
+    supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
   };
 

@@ -131,15 +131,15 @@ export default function DREPage() {
     const inicioHist = inicioJanelaHistorica(periodo.fim);
 
     const [{ data: rec }, { data: cv }, { data: cf }, { data: dv }, { data: fc }, { data: cr }, { data: emp }] = await Promise.all([
-      supabase.from("receitas").select("valor, data, categoria").gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_variaveis").select("descricao, valor, data, categoria").gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("descricao, valor_mensal, categoria"),
+      empId ? supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_variaveis").select("descricao, valor, data, categoria").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_fixos").select("descricao, valor_mensal, categoria").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — base das despesas financeiras (juros) e da amortização estimada. Nunca escreve em "dividas".
-      supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros"),
+      empId ? supabase.from("dividas").select("valor_total, valor_pago, parcelas, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base da Ponte Lucro x Caixa.
-      supabase.from("fluxo_caixa").select("tipo, valor, data, status").gte("data", periodo.inicio).lte("data", periodo.fim),
+      empId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — recebíveis parados, base da Ponte Lucro x Caixa e do Conselho CFO.
-      supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
+      empId ? supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empId).neq("status", "recebido") : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
@@ -308,7 +308,7 @@ export default function DREPage() {
     if (!userId || !empresaId) return;
     const periodoJaFechado = periodo.fim < isoHoje();
     const { data: existente } = await supabase.from("dre_historico").select("id")
-      .eq("periodo_inicio", periodo.inicio).eq("periodo_fim", periodo.fim).maybeSingle();
+      .eq("empresa_id", empresaId).eq("periodo_inicio", periodo.inicio).eq("periodo_fim", periodo.fim).maybeSingle();
     if (existente && periodoJaFechado) return; // período fechado — nunca sobrescreve, fica congelado
 
     const labelPeriodo = presetPeriodo === "mes_atual" ? cx.periodoMesAtual

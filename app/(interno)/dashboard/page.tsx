@@ -414,8 +414,8 @@ export default function DashboardPage() {
 
       setEvolucao(temDadosEvolucao ? evolReal : evolExemplo);
 
-      const { data: cv } = await supabase.from("custos_variaveis").select("valor, categoria");
-      const { data: cf } = await supabase.from("custos_fixos").select("valor_mensal, categoria");
+      const { data: cv } = empresaId ? await supabase.from("custos_variaveis").select("valor, categoria").eq("empresa_id", empresaId) : { data: [] };
+      const { data: cf } = empresaId ? await supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId) : { data: [] };
       const m = new Map<string, number>();
       (cv || []).forEach((r: any) => { const c = r.categoria || "Variáveis"; m.set(c, (m.get(c) || 0) + Number(r.valor || 0)); });
       (cf || []).forEach((r: any) => { const c = r.categoria || "Fixos"; m.set(c, (m.get(c) || 0) + Number(r.valor_mensal || 0)); });
@@ -435,8 +435,8 @@ export default function DashboardPage() {
       setTopCustos(sorted.length > 0 ? sorted.slice(0, 5) : exemploDistribuicao);
       setDistribuicao(sorted.length > 0 ? sorted.slice(0, 6) : exemploDistribuicao);
 
-      const { data: ob } = await supabase.from("empresa_obrigacoes").select("nome, data_vencimento, status, valor_estimado")
-        .eq("status", "pendente").order("data_vencimento", { ascending: true }).limit(4);
+      const { data: ob } = empresaId ? await supabase.from("empresa_obrigacoes").select("nome, data_vencimento, status, valor_estimado")
+        .eq("empresa_id", empresaId).eq("status", "pendente").order("data_vencimento", { ascending: true }).limit(4) : { data: [] };
       setObrigacoes(ob || []);
 
       // Dados extras pro Painel de Módulos (barras grossas estilo Power BI)
@@ -448,12 +448,12 @@ export default function DashboardPage() {
         { data: metasRows },
         { data: investRows },
       ] = await Promise.all([
-        Promise.resolve(supabase.from("clientes").select("id")).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("fornecedores").select("id")).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("contas_receber").select("valor, valor_recebido, status").neq("status", "recebido")).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("contas_pagar").select("valor_total, valor_pago, status").neq("status", "pago")).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("metas").select("id, valor_meta, valor_atual")).catch(() => ({ data: [] })),
-        Promise.resolve(supabase.from("investimentos").select("id, valor")).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("clientes").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("fornecedores").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido") : { data: [] }).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago") : { data: [] }).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("metas").select("id, valor_meta, valor_atual").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("investimentos").select("id, valor").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
       ]);
 
       setModulosData({

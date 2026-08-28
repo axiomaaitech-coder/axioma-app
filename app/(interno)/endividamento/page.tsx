@@ -112,12 +112,12 @@ export default function Endividamento() {
     const empId = await obterEmpresaAtiva();
 
     const [{ data: dv }, { data: rec }, { data: cf }, { data: cv }, { data: fc }, { data: emp }] = await Promise.all([
-      supabase.from("dividas").select("*").order("vencimento", { ascending: true }),
-      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("valor_mensal"),
-      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
+      empId ? supabase.from("dividas").select("*").eq("empresa_id", empId).order("vencimento", { ascending: true }) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — caixa realmente movimentado no período, base do indicador Fluxo de Caixa/Dívida. Nunca escreve.
-      supabase.from("fluxo_caixa").select("tipo, valor, data, status").gte("data", periodo.inicio).lte("data", periodo.fim),
+      empId ? supabase.from("fluxo_caixa").select("tipo, valor, data, status").eq("empresa_id", empId).gte("data", periodo.inicio).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 

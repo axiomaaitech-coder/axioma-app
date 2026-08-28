@@ -182,16 +182,16 @@ export default function Investimentos() {
     const empresaIdAtiva = await obterEmpresaAtiva();
 
     const [{ data: inv }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp }] = await Promise.all([
-      supabase.from("investimentos")
+      empresaIdAtiva ? supabase.from("investimentos")
         .select("id, nome:descricao, valor, tipo:categoria, data, rentabilidade:retorno_esperado, data_vencimento, indexador, instituicao, liquidez, status, created_at")
-        .order("created_at", { ascending: false }),
-      supabase.from("receitas").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
-      supabase.from("custos_fixos").select("valor_mensal"),
-      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioHist).lte("data", periodo.fim),
+        .eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioHist).lte("data", periodo.fim) : Promise.resolve({ data: [] }),
       // Leitura só (SELECT) — nunca escreve em dividas. Base do custo de oportunidade real.
-      supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros"),
+      empresaIdAtiva ? supabase.from("dividas").select("descricao, valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
       // Todo o histórico realizado — mesma definição de "caixa disponível" do Fluxo de Caixa.
-      supabase.from("fluxo_caixa").select("tipo, valor, status"),
+      empresaIdAtiva ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("empresas").select("regime_tributario").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 

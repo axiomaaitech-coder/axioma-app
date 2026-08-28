@@ -417,7 +417,10 @@ export default function ClientesPage() {
     buscarEstados().then((r) => setEstados(r.dados));
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
+      obterEmpresaAtiva().then((empId) => {
+        if (!empId) return;
+        supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).then(({ data }) => setCentrosCusto(data || []));
+      });
     });
   }, []);
 
@@ -431,11 +434,13 @@ export default function ClientesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    setEmpresaId(await obterEmpresaAtiva());
+    const empId = await obterEmpresaAtiva();
+    setEmpresaId(empId);
+    if (!empId) { setLoading(false); return; }
     const [{ data: clientesData }, { data: contasData }, { data: inadData }] = await Promise.all([
-      supabase.from("clientes").select("*").order("created_at", { ascending: false }),
-      supabase.from("contas_receber").select("*").order("data_vencimento", { ascending: true }),
-      supabase.from("inadimplencia").select("*"),
+      supabase.from("clientes").select("*").eq("empresa_id", empId).order("created_at", { ascending: false }),
+      supabase.from("contas_receber").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }),
+      supabase.from("inadimplencia").select("*").eq("empresa_id", empId),
     ]);
     setClientes(clientesData || []);
     setContas(contasData || []);

@@ -813,7 +813,10 @@ export default function Fornecedores() {
     buscarEstados().then((r) => setEstados(r.dados));
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
+      obterEmpresaAtiva().then((empId) => {
+        if (!empId) return;
+        supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).then(({ data }) => setCentrosCusto(data || []));
+      });
     });
   }, []);
 
@@ -829,21 +832,21 @@ export default function Fornecedores() {
     if (!user) { setCarregando(false); return; }
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
-    const { data: forn } = await supabase.from("fornecedores").select("*").order("nome", { ascending: true });
-    const { data: cp } = await supabase.from("contas_pagar").select("*").order("data_vencimento", { ascending: true });
-    const { data: docs } = await supabase.from("fornecedor_documentos").select("*");
-    const { data: contratos } = await supabase.from("fornecedor_contratos").select("*");
-    const { data: interacoes } = await supabase.from("fornecedor_interacoes").select("*");
+    const { data: forn } = empId ? await supabase.from("fornecedores").select("*").eq("empresa_id", empId).order("nome", { ascending: true }) : { data: [] };
+    const { data: cp } = empId ? await supabase.from("contas_pagar").select("*").eq("empresa_id", empId).order("data_vencimento", { ascending: true }) : { data: [] };
+    const { data: docs } = empId ? await supabase.from("fornecedor_documentos").select("*").eq("empresa_id", empId) : { data: [] };
+    const { data: contratos } = empId ? await supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId) : { data: [] };
+    const { data: interacoes } = empId ? await supabase.from("fornecedor_interacoes").select("*").eq("empresa_id", empId) : { data: [] };
 
     // Ponto de partida real da empresa pro Simulador Executivo (Fase 5) — leitura, nunca escreve.
     // Mesmo padrão de fetch já usado em Simulações/Investimentos.
     const inicioJanela = (() => { const d = new Date(); d.setMonth(d.getMonth() - 11); d.setDate(1); return d.toISOString().slice(0, 10); })();
     const [{ data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: fc }, { data: emp2 }] = await Promise.all([
-      supabase.from("receitas").select("valor, data").gte("data", inicioJanela),
-      supabase.from("custos_fixos").select("valor_mensal"),
-      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioJanela),
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
-      supabase.from("fluxo_caixa").select("tipo, valor, status"),
+      empId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empId).gte("data", inicioJanela) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       empId ? supabase.from("empresas").select("regime_tributario").eq("id", empId).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 

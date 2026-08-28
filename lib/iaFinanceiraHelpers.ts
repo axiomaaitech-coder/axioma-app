@@ -126,14 +126,14 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
     { data: dividas },
     { data: empresa },
   ] = await Promise.all([
-    supabase.from("receitas").select("valor, data").gte("data", inicio).lte("data", fim),
-    supabase.from("custos_variaveis").select("valor, data, categoria").gte("data", inicio).lte("data", fim),
-    supabase.from("custos_fixos").select("valor_mensal, categoria"),
-    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento"),
+    empresaId ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("custos_variaveis").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
     // Tabela real é "dividas" (a que a página Endividamento usa) — "endividamento" era
     // uma tabela órfã com schema diferente, nunca alimentada pela UI.
-    Promise.resolve(supabase.from("dividas").select("valor_total, valor_pago")).catch(() => ({ data: [] })),
+    Promise.resolve(empresaId ? supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
     empresaId ? supabase.from("empresas").select("setor, regime_tributario, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
 
@@ -165,8 +165,8 @@ export async function carregarSnapshot(userId: string, empresaId: string | null)
     const d = new Date(anoAtual, mesAtual - 1 - i, 1);
     const mInicio = d.toISOString().slice(0, 10);
     const mFim = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-    const { data: mRec } = await supabase.from("receitas").select("valor").gte("data", mInicio).lte("data", mFim);
-    const { data: mCv } = await supabase.from("custos_variaveis").select("valor").gte("data", mInicio).lte("data", mFim);
+    const { data: mRec } = empresaId ? await supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim) : { data: [] };
+    const { data: mCv } = empresaId ? await supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", mInicio).lte("data", mFim) : { data: [] };
     receitas6m.push((mRec || []).reduce((s, r) => s + Number(r.valor || 0), 0));
     custos6m.push((mCv || []).reduce((s, r) => s + Number(r.valor || 0), 0) + custos_fixos);
   }
@@ -790,13 +790,14 @@ export async function carregarHistorico(userId: string, limit: number = 50): Pro
   const { data } = await supabase
     .from("ia_financeira_historico")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: true })
     .limit(limit);
   return data || [];
 }
 
 export async function limparHistorico(userId: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("ia_financeira_historico").delete().not("id", "is", null);
+  const { error } = await supabase.from("ia_financeira_historico").delete().eq("user_id", userId);
   if (error) {
     reportarFalhaEscrita("ia_financeira_historico", "delete", error.message);
     return { erro: error.message };

@@ -89,12 +89,12 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
     { data: empresa },
     { data: obrigacoes },
   ] = await Promise.all([
-    supabase.from("receitas").select("valor").gte("data", inicio12m).lte("data", fim),
-    supabase.from("receitas").select("valor").gte("data", inicio).lte("data", fim),
-    supabase.from("custos_fixos").select("valor_mensal"),
-    supabase.from("custos_variaveis").select("valor").gte("data", inicio).lte("data", fim),
+    empresaId ? supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", fim) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaId) : Promise.resolve({ data: [] }),
+    empresaId ? supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim) : Promise.resolve({ data: [] }),
     empresaId ? supabase.from("empresas").select("regime_tributario, setor, cnae_principal").eq("id", empresaId).maybeSingle() : Promise.resolve({ data: null }),
-    Promise.resolve(supabase.from("empresa_obrigacoes").select("status, data_vencimento")).catch(() => ({ data: [] })),
+    Promise.resolve(empresaId ? supabase.from("empresa_obrigacoes").select("status, data_vencimento").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
   ]);
 
   const receita_bruta_12m = (rec12m || []).reduce((s, r) => s + Number(r.valor || 0), 0);
@@ -597,12 +597,12 @@ export async function salvarMensagemTrib(userId: string, empresaId: string | nul
 }
 
 export async function carregarHistoricoTrib(userId: string, limit: number = 50): Promise<any[]> {
-  const { data } = await supabase.from("ia_tributaria_historico").select("*").order("created_at", { ascending: true }).limit(limit);
+  const { data } = await supabase.from("ia_tributaria_historico").select("*").eq("user_id", userId).order("created_at", { ascending: true }).limit(limit);
   return data || [];
 }
 
 export async function limparHistoricoTrib(userId: string): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("ia_tributaria_historico").delete().not("id", "is", null);
+  const { error } = await supabase.from("ia_tributaria_historico").delete().eq("user_id", userId);
   if (error) {
     reportarFalhaEscrita("ia_tributaria_historico", "delete", error.message);
     return { erro: error.message };

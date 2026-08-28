@@ -213,21 +213,22 @@ export default function CentrosCustoPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
     setUserId(user.id);
-    setEmpresaId(await obterEmpresaAtiva());
+    const empId = await obterEmpresaAtiva();
+    setEmpresaId(empId);
     const [
       { data: centrosData }, { data: lancamentosData }, origensData, rateiosData, orcamentosData,
       receitasData, { data: fornecedoresData }, { data: contasPagarData }, { data: contratosData },
       auditoriaData, planosData,
     ] = await Promise.all([
-      supabase.from("centros_custo").select("*").order("created_at", { ascending: true }),
-      supabase.from("lancamentos_centro").select("*").order("data", { ascending: false }),
+      empId ? supabase.from("centros_custo").select("*").eq("empresa_id", empId).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("lancamentos_centro").select("*").eq("empresa_id", empId).order("data", { ascending: false }) : Promise.resolve({ data: [] }),
       carregarTodosLancamentosOrigem(user.id),
       carregarRateios(user.id),
       carregarOrcamentos(user.id),
       carregarReceitasOrigem(user.id),
-      supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id"),
-      supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status"),
-      supabase.from("fornecedor_contratos").select("*"),
+      empId ? supabase.from("fornecedores").select("id, nome, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("contas_pagar").select("id, fornecedor_id, descricao, categoria, valor_total, valor_pago, data_emissao, data_vencimento, data_pagamento, status").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from("fornecedor_contratos").select("*").eq("empresa_id", empId) : Promise.resolve({ data: [] }),
       carregarAuditoriaCentro(user.id),
       carregarPlanosAcao(user.id),
     ]);

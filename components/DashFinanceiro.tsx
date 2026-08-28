@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling } from "../lib/cfoCore";
+import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import ReactECharts from "echarts-for-react";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -196,14 +197,17 @@ export default function DashFinanceiro() {
       const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10);
       const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10);
       const doze = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1).toISOString().slice(0, 10);
+      const empresaId = await obterEmpresaAtiva();
+      if (!ativo) return;
+      if (!empresaId) return;
 
       const [{ data: receitasMes }, { data: receitas12m }, { data: custosFix }, { data: custosVar12m }, { data: custosVarMes }, { data: dividas }] = await Promise.all([
-        supabase.from("receitas").select("valor").gte("data", inicioMes).lte("data", fimMes),
-        supabase.from("receitas").select("valor, data, categoria").gte("data", doze),
-        supabase.from("custos_fixos").select("valor_mensal, categoria"),
-        supabase.from("custos_variaveis").select("valor, data").gte("data", doze),
-        supabase.from("custos_variaveis").select("valor").gte("data", inicioMes).lte("data", fimMes),
-        supabase.from("dividas").select("valor_total, valor_pago"),
+        supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicioMes).lte("data", fimMes),
+        supabase.from("receitas").select("valor, data, categoria").eq("empresa_id", empresaId).gte("data", doze),
+        supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId),
+        supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaId).gte("data", doze),
+        supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicioMes).lte("data", fimMes),
+        supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId),
       ]);
       if (!ativo) return;
 

@@ -161,13 +161,13 @@ export default function Precificacao() {
     const empresaIdAtiva = await obterEmpresaAtiva();
 
     const [{ data: prod }, { data: conc }, { data: dec }, { data: rec }, { data: cf }, { data: cv }, { data: dv }, { data: emp }] = await Promise.all([
-      supabase.from("precificacao").select("*").order("created_at", { ascending: false }),
-      supabase.from("concorrentes").select("*"),
-      supabase.from("decisoes_precificacao").select("*").order("created_at", { ascending: true }),
-      supabase.from("receitas").select("valor, data").gte("data", inicioIso).lte("data", hoje),
-      supabase.from("custos_fixos").select("valor_mensal"),
-      supabase.from("custos_variaveis").select("valor, data").gte("data", inicioIso).lte("data", hoje),
-      supabase.from("dividas").select("valor_total, valor_pago, taxa_juros"),
+      empresaIdAtiva ? supabase.from("precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: false }) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("concorrentes").select("*").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("decisoes_precificacao").select("*").eq("empresa_id", empresaIdAtiva).order("created_at", { ascending: true }) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("receitas").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("custos_fixos").select("valor_mensal").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("custos_variaveis").select("valor, data").eq("empresa_id", empresaIdAtiva).gte("data", inicioIso).lte("data", hoje) : Promise.resolve({ data: [] }),
+      empresaIdAtiva ? supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaIdAtiva) : Promise.resolve({ data: [] }),
       empresaIdAtiva ? supabase.from("empresas").select("regime_tributario").eq("id", empresaIdAtiva).maybeSingle() : Promise.resolve({ data: null }),
     ]);
 
