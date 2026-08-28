@@ -39,6 +39,8 @@ export type ContaPagar = {
   centro_custo_id?: string | null;
   custo_fixo_id?: string | null;
   taxa_multa_mensal?: number | null;
+  desconto_disponivel_pct?: number | null;
+  desconto_data_limite?: string | null;
   user_id?: string;
   empresa_id?: string | null;
   created_at?: string;
@@ -929,4 +931,79 @@ export function detectarDuplicidadesPassadas(contas: ContaPagar[]): ParDuplicida
   });
 
   return pares.sort((x, y) => y.score - x.score);
+}
+
+// ----------------------------------------------------------------------------
+// ENTREGA 3, COMMIT 5 — VALUE RECOVERY (parte 2): DESCONTO POR PAGAMENTO
+// ANTECIPADO. Usa as 2 colunas já aplicadas em contas_pagar
+// (desconto_disponivel_pct, desconto_data_limite — ambas nullable, ver
+// CONTAS-A-PAGAR-ENTREGA3-SQL.txt). "Foi usado?" é 100% derivado de
+// status + data_pagamento vs desconto_data_limite — nunca um campo próprio
+// (evita estado duplicado que dessincroniza, ex: numa baixa estornada).
+// Funções puras sobre as contas já carregadas pela tela, mesmo padrão de
+// priorizarPagamentos/detectarDespesasRecorrentes — sem fetch próprio.
+// ----------------------------------------------------------------------------
+
+// Conta sem desconto_data_limite preenchida não entra em NENHUMA das duas
+// funções abaixo — sem prazo não dá pra dizer se ainda dá tempo ou se já
+// passou ("sem prazo definido", nunca quebra, nunca chuta).
+
+export type DescontoAproveitavel = {
+  contaId: string;
+  descricao: string;
+  fornecedorId: string | null;
+  valorTotal: number;
+  percentual: number;
+  dataLimite: string;
+  diasRestantes: number;
+  valorDesconto: number;
+};
+
+// Oportunidade FUTURA: conta ainda não paga, com desconto negociado e prazo
+// que ainda não venceu. Ordenado por urgência (prazo mais próximo primeiro).
+export function detectarDescontosAproveitaveis(contas: ContaPagar[]): DescontoAproveitavel[] {
+  const hoje = new Date().toISOString().slice(0, 10);
+  return contas
+    .filter((c) => c.status !== "pago" && Number(c.desconto_disponivel_pct) > 0 && !!c.desconto_data_limite && (c.desconto_data_limite as string) >= hoje)
+    .map((c) => {
+      const percentual = Number(c.desconto_disponivel_pct);
+      const dataLimite = c.desconto_data_limite as string;
+      const valorDesconto = Math.round(c.valor_total * (percentual / 100) * 100) / 100;
+      const diasRestantes = Math.round(
+        (new Date(dataLimite + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000
+      );
+      return { contaId: c.id, descricao: c.descricao, fornecedorId: c.fornecedor_id, valorTotal: c.valor_total, percentual, dataLimite, diasRestantes, valorDesconto };
+    })
+    .sort((a, b) => a.dataLimite.localeCompare(b.dataLimite));
+}
+
+export type DescontoPerdido = {
+  contaId: string;
+  descricao: string;
+  fornecedorId: string | null;
+  valorTotal: number;
+  percentual: number;
+  dataLimite: string;
+  valorPerdido: number;
+  motivo: "pago_apos_limite" | "prazo_expirado_pendente";
+};
+
+// Desconto que já era: pagou depois do prazo (pago_apos_limite), ou o prazo
+// passou sem a conta ter sido paga ainda (prazo_expirado_pendente). Sempre
+// informação/sugestão — nunca acusação; o dono decide se valia a pena.
+export function detectarDescontosPerdidos(contas: ContaPagar[]): DescontoPerdido[] {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const out: DescontoPerdido[] = [];
+  contas.forEach((c) => {
+    if (!(Number(c.desconto_disponivel_pct) > 0) || !c.desconto_data_limite) return;
+    const dataLimite = c.desconto_data_limite as string;
+    let motivo: DescontoPerdido["motivo"] | null = null;
+    if (c.status === "pago" && c.data_pagamento && c.data_pagamento > dataLimite) motivo = "pago_apos_limite";
+    else if (c.status !== "pago" && dataLimite < hoje) motivo = "prazo_expirado_pendente";
+    if (!motivo) return;
+    const percentual = Number(c.desconto_disponivel_pct);
+    const valorPerdido = Math.round(c.valor_total * (percentual / 100) * 100) / 100;
+    out.push({ contaId: c.id, descricao: c.descricao, fornecedorId: c.fornecedor_id, valorTotal: c.valor_total, percentual, dataLimite, valorPerdido, motivo });
+  });
+  return out.sort((a, b) => b.valorPerdido - a.valorPerdido);
 }

@@ -30,6 +30,8 @@ import {
   detectarCobrancasAcimaMedia, type CobrancaAcimaMedia,
   detectarMultasEvitaveis, type MultaEvitavel,
   detectarDuplicidadesPassadas, type ParDuplicidadePassada,
+  detectarDescontosAproveitaveis, type DescontoAproveitavel,
+  detectarDescontosPerdidos, type DescontoPerdido,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -62,6 +64,7 @@ const contaVazia = {
   fornecedor_id: "", descricao: "", numero_nota: "", categoria: "" as string,
   valor_total: "", data_emissao: "", data_vencimento: "", forma_pagamento: FORMAS_PAGAMENTO[0],
   parcelas: "1", centro_custo_id: "", observacoes: "", taxa_multa_mensal: "",
+  desconto_disponivel_pct: "", desconto_data_limite: "",
 };
 
 export default function ContasPagarPage() {
@@ -329,11 +332,25 @@ export default function ContasPagarPage() {
     return () => { ativo = false; };
   }, [aba, empresaId]);
 
+  // ========== ENTREGA 3, COMMIT 5 — VALUE RECOVERY (parte 2, desconto por
+  // pagamento antecipado) ==========
+  const descontosAproveitaveis: DescontoAproveitavel[] = useMemo(
+    () => detectarDescontosAproveitaveis(contas),
+    [contas]
+  );
+
+  const descontosPerdidos: DescontoPerdido[] = useMemo(
+    () => detectarDescontosPerdidos(contas),
+    [contas]
+  );
+
   const totalRecuperacaoEstimada = useMemo(
     () =>
       cobrancasAcimaMedia.reduce((s, c) => s + c.valorRecuperavelEstimado, 0) +
-      totalMultasEvitaveis,
-    [cobrancasAcimaMedia, totalMultasEvitaveis]
+      totalMultasEvitaveis +
+      descontosAproveitaveis.reduce((s, d) => s + d.valorDesconto, 0) +
+      descontosPerdidos.reduce((s, d) => s + d.valorPerdido, 0),
+    [cobrancasAcimaMedia, totalMultasEvitaveis, descontosAproveitaveis, descontosPerdidos]
   );
 
   // "Revisar" reaproveita 100% o filtro já existente da aba Central — nunca
@@ -499,6 +516,8 @@ export default function ContasPagarPage() {
       forma_pagamento: c.forma_pagamento || FORMAS_PAGAMENTO[0], parcelas: String(c.parcelas || "1"),
       centro_custo_id: c.centro_custo_id || "", observacoes: c.observacoes || "",
       taxa_multa_mensal: c.taxa_multa_mensal != null ? String(c.taxa_multa_mensal) : "",
+      desconto_disponivel_pct: c.desconto_disponivel_pct != null ? String(c.desconto_disponivel_pct) : "",
+      desconto_data_limite: c.desconto_data_limite || "",
     });
     setSugestaoCategoria(null);
     setModalConta(true);
@@ -513,6 +532,32 @@ export default function ContasPagarPage() {
 
   async function salvarConta() {
     if (!nc.descricao || !nc.valor_total || !nc.data_vencimento || !userId) return;
+
+    // Desconto por pagamento antecipado — os dois campos são opcionais, mas
+    // se preenchidos precisam fazer sentido: 0% não é desconto (é ausência
+    // dele, deixa em branco), e prazo já vencido no ato do cadastro não serve
+    // pra nada. Barra aqui pra nunca gravar lixo nas colunas novas.
+    let descontoPct: number | null = null;
+    if (nc.desconto_disponivel_pct.trim()) {
+      descontoPct = parseFloat(nc.desconto_disponivel_pct);
+      if (isNaN(descontoPct) || descontoPct <= 0 || descontoPct > 100) {
+        showToast(L("O desconto deve ser um percentual entre 0 e 100 (ex: 2 para 2%).", "The discount must be a percentage between 0 and 100 (e.g. 2 for 2%).", "El descuento debe ser un porcentaje entre 0 y 100 (ej: 2 para 2%)."), "erro");
+        return;
+      }
+    }
+    let descontoDataLimite: string | null = null;
+    if (nc.desconto_data_limite.trim()) {
+      // Só barra data no passado quando o valor está sendo definido/alterado
+      // agora — editar outro campo de uma conta antiga cujo prazo de desconto
+      // já passou não pode travar por causa disso.
+      const dataMudou = nc.desconto_data_limite !== (editando?.desconto_data_limite || "");
+      if (dataMudou && nc.desconto_data_limite < hoje) {
+        showToast(L("A data limite do desconto já passou. Corrija a data ou deixe o campo em branco.", "The discount deadline has already passed. Fix the date or leave the field blank.", "La fecha límite del descuento ya pasó. Corrija la fecha o deje el campo en blanco."), "erro");
+        return;
+      }
+      descontoDataLimite = nc.desconto_data_limite;
+    }
+
     const dados = {
       fornecedor_id: nc.fornecedor_id || null, descricao: nc.descricao, numero_nota: nc.numero_nota || null,
       categoria: nc.categoria || "Outros", valor_total: parseFloat(nc.valor_total || "0"),
@@ -520,6 +565,7 @@ export default function ContasPagarPage() {
       forma_pagamento: nc.forma_pagamento, parcelas: parseInt(nc.parcelas || "1"),
       centro_custo_id: nc.centro_custo_id || null, observacoes: nc.observacoes || null,
       taxa_multa_mensal: nc.taxa_multa_mensal ? parseFloat(nc.taxa_multa_mensal) : null,
+      desconto_disponivel_pct: descontoPct, desconto_data_limite: descontoDataLimite,
     };
 
     if (editando) {
@@ -1231,7 +1277,7 @@ export default function ContasPagarPage() {
             </div>
 
             {/* 3) Duplicidades passadas */}
-            <div>
+            <div className="mb-4">
               <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
                 {L("Possíveis Duplicidades (revisão sugerida)", "Possible Duplicates (suggested review)", "Posibles Duplicados (revisión sugerida)")}
               </h4>
@@ -1253,6 +1299,68 @@ export default function ContasPagarPage() {
                         {p.score}
                       </span>
                       <button onClick={() => revisarNoCentral(p.contaA.fornecedor_id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                        {L("Revisar", "Review", "Revisar")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 4) Desconto ainda aproveitável (Commit 5) */}
+            <div className="mb-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                {L("Desconto Ainda Aproveitável", "Discount Still Available", "Descuento Todavía Aprovechable")}
+              </h4>
+              {descontosAproveitaveis.length === 0 ? (
+                <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum desconto por pagamento antecipado em aberto.", "No open early-payment discount.", "Ningún descuento por pago anticipado abierto.")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {descontosAproveitaveis.map((d) => (
+                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
+                        <p className="text-xs" style={{ color: CINZA }}>
+                          {L(`Pague até ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("pt-BR")} (${d.diasRestantes} dias) e economize ${fmt(d.valorDesconto)} — ${d.percentual}% de desconto`,
+                            `Pay by ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("en-US")} (${d.diasRestantes} days) and save ${fmt(d.valorDesconto)} — ${d.percentual}% discount`,
+                            `Pague antes del ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("es-ES")} (${d.diasRestantes} días) y ahorre ${fmt(d.valorDesconto)} — ${d.percentual}% de descuento`)}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(d.valorDesconto)}</span>
+                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                        {L("Revisar", "Review", "Revisar")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 5) Desconto perdido (Commit 5) */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                {L("Desconto Perdido", "Missed Discount", "Descuento Perdido")}
+              </h4>
+              {descontosPerdidos.length === 0 ? (
+                <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum desconto por pagamento antecipado perdido.", "No early-payment discount missed.", "Ningún descuento por pago anticipado perdido.")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {descontosPerdidos.map((d) => (
+                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
+                        <p className="text-xs" style={{ color: CINZA }}>
+                          {d.motivo === "pago_apos_limite"
+                            ? L(`Paga depois do prazo (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("pt-BR")}) — deixou de economizar ${fmt(d.valorPerdido)} (${d.percentual}%)`,
+                                `Paid after the deadline (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("en-US")}) — missed saving ${fmt(d.valorPerdido)} (${d.percentual}%)`,
+                                `Pagada después del plazo (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("es-ES")}) — dejó de ahorrar ${fmt(d.valorPerdido)} (${d.percentual}%)`)
+                            : L(`Prazo (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("pt-BR")}) passou e a conta ainda não foi paga — ${fmt(d.valorPerdido)} (${d.percentual}%) em risco`,
+                                `Deadline (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("en-US")}) passed and the bill isn't paid yet — ${fmt(d.valorPerdido)} (${d.percentual}%) at risk`,
+                                `El plazo (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("es-ES")}) pasó y la cuenta todavía no fue pagada — ${fmt(d.valorPerdido)} (${d.percentual}%) en riesgo`)}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(d.valorPerdido)}</span>
+                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -1458,6 +1566,20 @@ export default function ContasPagarPage() {
                         <input type="number" step="0.01" value={nc.taxa_multa_mensal} onChange={(e) => setNc({ ...nc, taxa_multa_mensal: e.target.value })}
                           placeholder={L("Opcional", "Optional", "Opcional")}
                           className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Desconto por Pagamento Antecipado (%)", "Early Payment Discount (%)", "Descuento por Pago Anticipado (%)")}</label>
+                        <input type="number" step="0.01" min="0" max="100" value={nc.desconto_disponivel_pct}
+                          onChange={(e) => setNc({ ...nc, desconto_disponivel_pct: e.target.value, desconto_data_limite: e.target.value.trim() ? nc.desconto_data_limite : "" })}
+                          placeholder={L("Opcional, ex: 2 para 2%", "Optional, e.g. 2 for 2%", "Opcional, ej: 2 para 2%")}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Desconto Válido Até", "Discount Valid Until", "Descuento Válido Hasta")}</label>
+                        <input type="date" value={nc.desconto_data_limite} onChange={(e) => setNc({ ...nc, desconto_data_limite: e.target.value })}
+                          disabled={!nc.desconto_disponivel_pct.trim()}
+                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-50" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Preencha os dois só se o fornecedor oferecer desconto por antecipar o pagamento.", "Only fill both if the supplier offers a discount for early payment.", "Complete ambos solo si el proveedor ofrece descuento por pago anticipado.")}</p>
                       </div>
                     </div>
                     <div>
