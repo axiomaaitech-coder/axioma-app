@@ -5,6 +5,7 @@ import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
   TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight, Link2,
+  Send, MessageCircleQuestion,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -37,6 +38,8 @@ import {
   avaliarDescontosComForecast, type DescontoComForecast,
   montarEvidenceGraph, type EvidenceGraphAp,
   avaliarAntecipacaoConjunta, type ResultadoAntecipacaoConjunta,
+  montarBriefingAp, type ItemBriefingAp,
+  responderPerguntaApPorRegra,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -624,7 +627,10 @@ export default function ContasPagarPage() {
   const [decidindoId, setDecidindoId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (aba !== "aprovacoes" || !empresaId) return;
+    // Também carrega na aba Inteligência — o CFO AP Briefing (Entrega 4,
+    // Commit 5) precisa saber quantas aprovações estão pendentes mesmo que
+    // o dono nunca tenha aberto a aba Aprovações nesta sessão.
+    if ((aba !== "aprovacoes" && aba !== "inteligencia") || !empresaId) return;
     const empId = empresaId;
     (async () => {
       setCarregandoAprovacoes(true);
@@ -632,6 +638,56 @@ export default function ContasPagarPage() {
       setCarregandoAprovacoes(false);
     })();
   }, [aba, empresaId]);
+
+  // ========== ENTREGA 4, COMMIT 5 — CFO AP BRIEFING V1 + NATURAL LANGUAGE CFO V1 ==========
+  // Puramente derivado do que a tela já carregou/calculou — zero fetch novo,
+  // zero motor novo. montarBriefingAp/responderPerguntaApPorRegra (lib) são o
+  // único ponto de geração de texto, prontos pra virar IA real (/api/ia-chat,
+  // mesmo padrão ZIA) sem mexer nesta tela.
+  const aprovacoesPendentesValor = useMemo(() => aprovacoes.reduce((s, a) => s + (a.valor || 0), 0), [aprovacoes]);
+
+  const briefingAp = useMemo(() => montarBriefingAp({
+    lang: idioma as "pt" | "en" | "es",
+    forecastAp,
+    totalVencido: kpis.vencidas,
+    totalVencendo7: kpis.vencendoEm7,
+    aprovacoesPendentesQtd: aprovacoes.length,
+    aprovacoesPendentesValor,
+    totalRecuperacaoEstimada,
+    duplicidadesPassadas,
+    anomalias: anomaliasContasPagar,
+  }), [idioma, forecastAp, kpis.vencidas, kpis.vencendoEm7, aprovacoes.length, aprovacoesPendentesValor, totalRecuperacaoEstimada, duplicidadesPassadas, anomaliasContasPagar]);
+
+  function irParaItemBriefing(item: ItemBriefingAp) {
+    setAba(item.abaAlvo);
+    if (item.filtroStatus) setFiltroStatus(item.filtroStatus);
+  }
+
+  const [perguntaCfo, setPerguntaCfo] = useState("");
+  const [respostaCfo, setRespostaCfo] = useState<string | null>(null);
+
+  function perguntarAoCfo(perguntaDireta?: string) {
+    const pergunta = (perguntaDireta ?? perguntaCfo).trim();
+    if (!pergunta) return;
+    if (perguntaDireta) setPerguntaCfo(perguntaDireta);
+    setRespostaCfo(responderPerguntaApPorRegra(pergunta, {
+      lang: idioma as "pt" | "en" | "es",
+      forecastAp,
+      spendPorCategoria,
+      spendPorFornecedor,
+      duplicidadesPassadas,
+      descontosComForecast,
+      multasEvitaveis,
+      anomalias: anomaliasContasPagar,
+      aprovacoesPendentesQtd: aprovacoes.length,
+    }));
+  }
+
+  const PERGUNTAS_SUGERIDAS_CFO: Record<"pt" | "en" | "es", string[]> = {
+    pt: ["Quanto vou pagar em 30 dias?", "Onde estou gastando mais?", "Tem conta duplicada?", "Algum desconto pra aproveitar?", "Meu caixa aguenta?"],
+    en: ["How much will I pay in 30 days?", "Where am I spending the most?", "Any duplicate bills?", "Any discount to grab?", "Can my cash handle it?"],
+    es: ["¿Cuánto voy a pagar en 30 días?", "¿Dónde estoy gastando más?", "¿Hay cuentas duplicadas?", "¿Algún descuento para aprovechar?", "¿Mi caja aguanta?"],
+  };
 
   // Carregado sempre que a empresa é conhecida (não só pra quem aprova) —
   // tanto a fila de Aprovações Pendentes quanto o Histórico precisam
@@ -1260,6 +1316,65 @@ export default function ContasPagarPage() {
 
       {aba === "inteligencia" && (
         <div className="space-y-4">
+          {/* Card CFO AP Briefing V1 + Natural Language CFO V1 (Entrega 4, Commit 5) */}
+          <CanvasBox cor={ROXO}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+              <Sparkles size={18} style={{ color: ROXO }} />
+              {L("O que merece sua atenção hoje", "What deserves your attention today", "Qué merece su atención hoy")}
+            </h3>
+            {briefingAp.length === 0 ? (
+              <p className="text-sm" style={{ color: CINZA }}>
+                {L("Tudo tranquilo — nenhum ponto crítico detectado no momento.", "All clear — no critical point detected right now.", "Todo tranquilo — ningún punto crítico detectado por el momento.")}
+              </p>
+            ) : (
+              <div className="space-y-2 mb-4">
+                {briefingAp.map((item, i) => {
+                  const cor = item.severidade === "critico" ? VERMELHO : item.severidade === "atencao" ? AMBAR : AZUL;
+                  return (
+                    <button key={i} onClick={() => irParaItemBriefing(item)}
+                      className="w-full text-left rounded-xl p-3 flex items-center justify-between gap-3"
+                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${cor}30` }}>
+                      <span className="text-sm flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cor }} />
+                        {item.texto}
+                      </span>
+                      <ChevronRight size={16} style={{ color: CINZA }} className="flex-shrink-0" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+              <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
+                <MessageCircleQuestion size={14} />
+                {L("Pergunte ao Axioma CFO (V1 por regra)", "Ask Axioma CFO (rule-based V1)", "Pregunte al Axioma CFO (V1 por regla)")}
+              </p>
+              <div className="flex gap-2 mb-2">
+                <input value={perguntaCfo} onChange={(e) => setPerguntaCfo(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") perguntarAoCfo(); }}
+                  placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(167,139,250,0.2)", color: "#c8d8f0" }} />
+                <button onClick={() => perguntarAoCfo()} className="px-3 py-2.5 rounded-xl flex items-center justify-center" style={{ background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }}>
+                  <Send size={16} />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {(PERGUNTAS_SUGERIDAS_CFO[idioma as "pt" | "en" | "es"] || PERGUNTAS_SUGERIDAS_CFO.pt).map((sug) => (
+                  <button key={sug} onClick={() => perguntarAoCfo(sug)} className="px-2.5 py-1 rounded-full text-[11px]" style={{ background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+                    {sug}
+                  </button>
+                ))}
+              </div>
+              {respostaCfo && (
+                <div className="rounded-xl p-3" style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.25)" }}>
+                  <p className="text-sm" style={{ color: "#c8d8f0" }}>{respostaCfo}</p>
+                </div>
+              )}
+            </div>
+          </CanvasBox>
+
           {/* Card Forecast AP Multi-Horizonte (Entrega 3, Commit 1) */}
           <CanvasBox cor={pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL }}>AXIOMA AI.TECH</p>

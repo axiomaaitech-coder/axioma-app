@@ -7,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
-import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, type EventoCaixa, type RupturaCaixa } from "./cfoCore";
+import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 
 const supabase = createBrowserClient(
@@ -1306,4 +1306,245 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
     rupturaCausada: rupturaNoMax,
     motivoSemDados: null,
   };
+}
+
+// ----------------------------------------------------------------------------
+// ENTREGA 4, COMMIT 5 — CFO AP BRIEFING V1 + NATURAL LANGUAGE CFO V1.
+// Determinístico, sem IA/LLM real — mesmo molde já em produção em Centro de
+// Custos: montarCentralInsights (agrupa/prioriza achados) e
+// respostaPorRegrasCentro/respostaZIAPorRegras (copiloto por palavra-chave).
+// Funções PURAS sobre dado já calculado pela tela — zero fetch, zero
+// duplicação dos motores (forecast, spend analytics, value recovery,
+// anomalias) que já existem. Ponto único de geração de texto: no dia em
+// que a ANTHROPIC_API_KEY for ativada, é só trocar o corpo desta função
+// por uma chamada a /api/ia-chat (mesmo padrão ZIA de
+// clienteIntelHelpers.ts) — a tela não muda uma linha.
+// ----------------------------------------------------------------------------
+
+// ============================================================================
+// PARTE 1 — CFO AP BRIEFING V1
+// ============================================================================
+
+export type SeveridadeBriefingAp = "critico" | "atencao" | "info";
+export type AbaAlvoBriefingAp = "central" | "inteligencia" | "aprovacoes";
+
+export type ItemBriefingAp = {
+  severidade: SeveridadeBriefingAp;
+  texto: string;
+  abaAlvo: AbaAlvoBriefingAp;
+  filtroStatus?: string; // reaproveita o filtro de status já existente na aba Central
+  impacto: number; // só pra ordenar dentro da mesma severidade, nunca exibido
+};
+
+export type ContextoBriefingAp = {
+  lang: "pt" | "en" | "es";
+  forecastAp: ForecastAp | null;
+  totalVencido: number;
+  totalVencendo7: number;
+  aprovacoesPendentesQtd: number;
+  aprovacoesPendentesValor: number;
+  totalRecuperacaoEstimada: number;
+  duplicidadesPassadas: ParDuplicidadePassada[];
+  anomalias: AnomaliaHistorica[];
+};
+
+// Score de "alta confiança" reaproveitado do mesmo limiar já usado na UI de
+// Recuperação de Valor (>=85 = vermelho/alta confiança) — não inventa um
+// novo corte aqui.
+const SCORE_DUPLICATA_ALTA_CONFIANCA = 85;
+
+export function montarBriefingAp(ctx: ContextoBriefingAp): ItemBriefingAp[] {
+  const L = (pt: string, en: string, es: string) => (ctx.lang === "en" ? en : ctx.lang === "es" ? es : pt);
+  const itens: ItemBriefingAp[] = [];
+
+  // 1) Ruptura de caixa à vista — o dado mais grave que a tela conhece.
+  const ruptura = ctx.forecastAp?.pontos.find((p) => p.horizonteDias === 90)?.ruptura ?? null;
+  if (ruptura) {
+    itens.push({
+      severidade: "critico",
+      texto: L(`Seu caixa fica negativo em ${ruptura.diasRestantes} dias (${new Date(ruptura.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fBRL(ruptura.saldoProjetado)}.`,
+        `Your cash goes negative in ${ruptura.diasRestantes} days (${new Date(ruptura.data + "T00:00:00").toLocaleDateString("en-US")}), projected at ${fBRL(ruptura.saldoProjetado)}.`,
+        `Su caja queda negativa en ${ruptura.diasRestantes} días (${new Date(ruptura.data + "T00:00:00").toLocaleDateString("es-ES")}), proyectada en ${fBRL(ruptura.saldoProjetado)}.`),
+      abaAlvo: "inteligencia",
+      impacto: 100000 - ruptura.diasRestantes,
+    });
+  }
+
+  // 2) Contas vencidas
+  if (ctx.totalVencido > 0) {
+    itens.push({
+      severidade: "critico",
+      texto: L(`${fBRL(ctx.totalVencido)} em contas vencidas agora.`, `${fBRL(ctx.totalVencido)} in overdue bills right now.`, `${fBRL(ctx.totalVencido)} en cuentas vencidas ahora.`),
+      abaAlvo: "central", filtroStatus: "vencido", impacto: ctx.totalVencido,
+    });
+  }
+
+  // 3) Aprovações pendentes
+  if (ctx.aprovacoesPendentesQtd > 0) {
+    itens.push({
+      severidade: ctx.aprovacoesPendentesQtd >= 3 ? "atencao" : "info",
+      texto: L(`${ctx.aprovacoesPendentesQtd} conta(s) aguardando sua aprovação, totalizando ${fBRL(ctx.aprovacoesPendentesValor)}.`,
+        `${ctx.aprovacoesPendentesQtd} bill(s) awaiting your approval, totaling ${fBRL(ctx.aprovacoesPendentesValor)}.`,
+        `${ctx.aprovacoesPendentesQtd} cuenta(s) esperando su aprobación, totalizando ${fBRL(ctx.aprovacoesPendentesValor)}.`),
+      abaAlvo: "aprovacoes", impacto: ctx.aprovacoesPendentesValor,
+    });
+  }
+
+  // 4) Duplicidade de alta confiança
+  const duplicatasAltas = ctx.duplicidadesPassadas.filter((p) => p.score >= SCORE_DUPLICATA_ALTA_CONFIANCA);
+  if (duplicatasAltas.length > 0) {
+    itens.push({
+      severidade: "atencao",
+      texto: L(`${duplicatasAltas.length} par(es) de lançamento com alta chance de duplicidade — vale revisar.`,
+        `${duplicatasAltas.length} pair(s) of entries with a high chance of being duplicates — worth reviewing.`,
+        `${duplicatasAltas.length} par(es) de lanzamientos con alta probabilidad de duplicidad — vale revisar.`),
+      abaAlvo: "inteligencia", impacto: duplicatasAltas.length * 1000,
+    });
+  }
+
+  // 5) Pontos de atenção (anomalias)
+  if (ctx.anomalias.length > 0) {
+    itens.push({
+      severidade: "atencao",
+      texto: L(`${ctx.anomalias.length} ponto(s) de atenção detectado(s) nos lançamentos — pode ter explicação legítima, mas vale revisar.`,
+        `${ctx.anomalias.length} point(s) to review found in your bills — may have a legitimate explanation, but worth checking.`,
+        `${ctx.anomalias.length} punto(s) de atención detectado(s) en los lanzamientos — puede tener explicación legítima, pero vale revisar.`),
+      abaAlvo: "inteligencia", impacto: ctx.anomalias.length * 800,
+    });
+  }
+
+  // 6) Recuperação de valor (total agregado das 5 fontes já calculadas)
+  if (ctx.totalRecuperacaoEstimada > 0) {
+    itens.push({
+      severidade: "info",
+      texto: L(`Até ${fBRL(ctx.totalRecuperacaoEstimada)} em oportunidades de recuperação de valor detectadas — sugestões a revisar, não valores confirmados.`,
+        `Up to ${fBRL(ctx.totalRecuperacaoEstimada)} in value-recovery opportunities detected — suggestions to review, not confirmed values.`,
+        `Hasta ${fBRL(ctx.totalRecuperacaoEstimada)} en oportunidades de recuperación de valor detectadas — sugerencias a revisar, no valores confirmados.`),
+      abaAlvo: "inteligencia", impacto: ctx.totalRecuperacaoEstimada,
+    });
+  }
+
+  // 7) Vencendo em 7 dias — o item mais "operacional", menor severidade.
+  if (ctx.totalVencendo7 > 0) {
+    itens.push({
+      severidade: "info",
+      texto: L(`${fBRL(ctx.totalVencendo7)} vencendo nos próximos 7 dias.`, `${fBRL(ctx.totalVencendo7)} due in the next 7 days.`, `${fBRL(ctx.totalVencendo7)} venciendo en los próximos 7 días.`),
+      abaAlvo: "central", impacto: ctx.totalVencendo7,
+    });
+  }
+
+  const rankSeveridade: Record<SeveridadeBriefingAp, number> = { critico: 0, atencao: 1, info: 2 };
+  return itens.sort((a, b) => rankSeveridade[a.severidade] - rankSeveridade[b.severidade] || b.impacto - a.impacto);
+}
+
+// ============================================================================
+// PARTE 2 — NATURAL LANGUAGE CFO V1 (por regra/palavra-chave)
+// ============================================================================
+
+export type ContextoCfoAp = {
+  lang: "pt" | "en" | "es";
+  forecastAp: ForecastAp | null;
+  spendPorCategoria: { label: string; valor: number; pct: number }[];
+  spendPorFornecedor: { nome: string; valor: number }[];
+  duplicidadesPassadas: ParDuplicidadePassada[];
+  descontosComForecast: DescontoComForecast[];
+  multasEvitaveis: MultaEvitavel[];
+  anomalias: AnomaliaHistorica[];
+  aprovacoesPendentesQtd: number;
+};
+
+const TOPICOS_SUPORTADOS_PT = "quanto você vai pagar em X dias, onde está gastando mais, se tem conta duplicada, se tem desconto pra aproveitar, se seu caixa aguenta, multas evitáveis, pontos de atenção e aprovações pendentes";
+const TOPICOS_SUPORTADOS_EN = "how much you'll pay in X days, where you're spending the most, whether you have duplicate bills, whether there's a discount to grab, whether your cash can handle it, avoidable late fees, points to review, and pending approvals";
+const TOPICOS_SUPORTADOS_ES = "cuánto va a pagar en X días, dónde está gastando más, si tiene cuentas duplicadas, si hay descuento para aprovechar, si su caja aguanta, multas evitables, puntos de atención y aprobaciones pendientes";
+
+export function responderPerguntaApPorRegra(pergunta: string, ctx: ContextoCfoAp): string {
+  const lang = ctx.lang;
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const q = normalizarTexto(pergunta);
+  const semForecast = () => L("Ainda não tenho um forecast de caixa calculado — abra a aba Inteligência primeiro.", "I don't have a cash forecast calculated yet — open the Intelligence tab first.", "Todavía no tengo un forecast de caja calculado — abra la pestaña Inteligencia primero.");
+
+  // 1) Quanto vou pagar em N dias
+  if (q.includes("quanto vou pagar") || q.includes("quanto vai pagar") || q.includes("quanto pagar") || q.includes("quanto tenho que pagar")
+    || q.includes("how much will i pay") || q.includes("how much to pay") || q.includes("how much do i pay")
+    || q.includes("cuanto voy a pagar") || q.includes("cuanto tengo que pagar") || q.includes("cuanto pagar")) {
+    if (!ctx.forecastAp) return semForecast();
+    const horizontesMencionados = HORIZONTES_FORECAST_AP.filter((h) => pergunta.includes(String(h)));
+    const horizonte = horizontesMencionados[0] || 30;
+    const ponto = ctx.forecastAp.pontos.find((p) => p.horizonteDias === horizonte);
+    if (!ponto) return semForecast();
+    // Derivado dos 2 campos que já existem (nunca um cálculo novo de caixa):
+    // "sem pagamentos" menos "otimista" = exatamente o total de saídas de
+    // contas_pagar previstas nesse horizonte.
+    const totalAPagar = Math.max(0, ponto.saldoProjetadoSemPagamentos - ponto.saldoProjetadoOtimista);
+    return L(`Você tem ${fBRL(totalAPagar)} previstos em contas a pagar nos próximos ${horizonte} dias.`,
+      `You have ${fBRL(totalAPagar)} in accounts payable expected over the next ${horizonte} days.`,
+      `Tiene ${fBRL(totalAPagar)} previstos en cuentas por pagar en los próximos ${horizonte} días.`);
+  }
+
+  // 2) Onde estou gastando mais
+  if ((q.includes("onde") && (q.includes("gastando") || q.includes("gasto"))) || (q.includes("where") && q.includes("spend")) || (q.includes("donde") && (q.includes("gastando") || q.includes("gasto")))) {
+    if (ctx.spendPorCategoria.length === 0) return L("Ainda não tenho gasto suficiente registrado pra apontar uma categoria.", "I don't have enough recorded spend yet to point to a category.", "Todavía no tengo gasto suficiente registrado para señalar una categoría.");
+    const top = ctx.spendPorCategoria[0];
+    return L(`Sua maior categoria de gasto é "${top.label}", com ${fBRL(top.valor)} (${top.pct}% do total).`,
+      `Your biggest spending category is "${top.label}", at ${fBRL(top.valor)} (${top.pct}% of the total).`,
+      `Su mayor categoría de gasto es "${top.label}", con ${fBRL(top.valor)} (${top.pct}% del total).`);
+  }
+
+  // 3) Tem conta duplicada
+  if (q.includes("duplicad") || q.includes("duplicate") || q.includes("lancada 2x") || q.includes("lancado 2x")) {
+    if (ctx.duplicidadesPassadas.length === 0) return L("Não encontrei nenhum par de lançamentos parecido no que já foi gravado.", "I didn't find any pair of similar bills in what's already recorded.", "No encontré ningún par de lanzamientos parecidos en lo que ya está registrado.");
+    const top = ctx.duplicidadesPassadas[0];
+    return L(`Encontrei ${ctx.duplicidadesPassadas.length} par(es) de lançamentos parecidos — o mais forte: "${top.contaA.descricao}" e "${top.contaB.descricao}" (score ${top.score}). Revise antes de assumir que é erro.`,
+      `I found ${ctx.duplicidadesPassadas.length} pair(s) of similar bills — the strongest: "${top.contaA.descricao}" and "${top.contaB.descricao}" (score ${top.score}). Review before assuming it's a mistake.`,
+      `Encontré ${ctx.duplicidadesPassadas.length} par(es) de lanzamientos parecidos — el más fuerte: "${top.contaA.descricao}" y "${top.contaB.descricao}" (score ${top.score}). Revise antes de asumir que es un error.`);
+  }
+
+  // 4) Algum desconto pra aproveitar
+  if (q.includes("desconto") || q.includes("discount") || q.includes("descuento")) {
+    if (ctx.descontosComForecast.length === 0) return L("Nenhum desconto por pagamento antecipado em aberto no momento.", "No open early-payment discount right now.", "Ningún descuento por pago anticipado abierto en este momento.");
+    const totalEconomia = ctx.descontosComForecast.reduce((s, d) => s + d.valorDesconto, 0);
+    const seguros = ctx.descontosComForecast.filter((d) => d.veredicto === "seguro").length;
+    return L(`Você tem ${ctx.descontosComForecast.length} desconto(s) por pagamento antecipado em aberto, até ${fBRL(totalEconomia)} de economia — ${seguros} deles com caixa confirmado seguro pra antecipar.`,
+      `You have ${ctx.descontosComForecast.length} open early-payment discount(s), up to ${fBRL(totalEconomia)} in savings — ${seguros} of them with cash confirmed safe to move up.`,
+      `Tiene ${ctx.descontosComForecast.length} descuento(s) por pago anticipado abierto(s), hasta ${fBRL(totalEconomia)} de ahorro — ${seguros} de ellos con caja confirmada segura para anticipar.`);
+  }
+
+  // 5) Meu caixa aguenta
+  if ((q.includes("caixa") && (q.includes("aguenta") || q.includes("aguent"))) || (q.includes("cash") && q.includes("handle")) || (q.includes("caja") && q.includes("aguanta"))) {
+    if (!ctx.forecastAp) return semForecast();
+    const ruptura90 = ctx.forecastAp.pontos.find((p) => p.horizonteDias === 90)?.ruptura ?? null;
+    if (!ruptura90) return L("Sim — não há ruptura de caixa prevista nos próximos 90 dias, no cenário atual.", "Yes — no cash shortfall is expected in the next 90 days, in the current scenario.", "Sí — no hay ruptura de caja prevista en los próximos 90 días, en el escenario actual.");
+    return L(`Atenção: seu caixa fica negativo em ${ruptura90.diasRestantes} dias (${new Date(ruptura90.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fBRL(ruptura90.saldoProjetado)}.`,
+      `Careful: your cash goes negative in ${ruptura90.diasRestantes} days (${new Date(ruptura90.data + "T00:00:00").toLocaleDateString("en-US")}), projected at ${fBRL(ruptura90.saldoProjetado)}.`,
+      `Atención: su caja queda negativa en ${ruptura90.diasRestantes} días (${new Date(ruptura90.data + "T00:00:00").toLocaleDateString("es-ES")}), proyectada en ${fBRL(ruptura90.saldoProjetado)}.`);
+  }
+
+  // 6) Multas evitáveis
+  if (q.includes("multa") || q.includes("late fee") || q.includes("penalty")) {
+    if (ctx.multasEvitaveis.length === 0) return L("Nenhuma multa evitável identificada no histórico.", "No avoidable late fee found in the history.", "Ninguna multa evitable identificada en el historial.");
+    const total = ctx.multasEvitaveis.reduce((s, m) => s + m.valorMulta, 0);
+    return L(`Encontrei ${ctx.multasEvitaveis.length} multa(s) que provavelmente dava pra evitar (tinha caixa pra pagar em dia), somando ${fBRL(total)}.`,
+      `I found ${ctx.multasEvitaveis.length} late fee(s) that could likely have been avoided (cash was available to pay on time), totaling ${fBRL(total)}.`,
+      `Encontré ${ctx.multasEvitaveis.length} multa(s) que probablemente se podían evitar (había caja para pagar a tiempo), sumando ${fBRL(total)}.`);
+  }
+
+  // 7) Anomalia / algo estranho
+  if (q.includes("anomalia") || q.includes("estranho") || q.includes("unusual") || q.includes("anomaly") || q.includes("extrano") || q.includes("raro") || q.includes("suspeito")) {
+    if (ctx.anomalias.length === 0) return L("Nada fora do padrão nos lançamentos até agora.", "Nothing out of pattern in your bills so far.", "Nada fuera de patrón en los lanzamientos hasta ahora.");
+    return L(`${ctx.anomalias.length} ponto(s) de atenção detectado(s) nos lançamentos — dá pra ver os detalhes na aba Inteligência, em "Pontos de Atenção".`,
+      `${ctx.anomalias.length} point(s) to review found in your bills — see the details in the Intelligence tab, under "Points to Review".`,
+      `${ctx.anomalias.length} punto(s) de atención detectado(s) en los lanzamientos — puede ver los detalles en la pestaña Inteligencia, en "Puntos de Atención".`);
+  }
+
+  // 8) Aprovação pendente
+  if (q.includes("aprova") || q.includes("approv")) {
+    if (ctx.aprovacoesPendentesQtd === 0) return L("Nenhuma aprovação pendente no momento.", "No pending approval right now.", "Ninguna aprobación pendiente en este momento.");
+    return L(`${ctx.aprovacoesPendentesQtd} conta(s) aguardando aprovação.`, `${ctx.aprovacoesPendentesQtd} bill(s) awaiting approval.`, `${ctx.aprovacoesPendentesQtd} cuenta(s) esperando aprobación.`);
+  }
+
+  return L(
+    `Ainda não sei responder isso — essa é a V1 por regra, a inteligência completa chega depois. Posso ajudar com: ${TOPICOS_SUPORTADOS_PT}.`,
+    `I can't answer that yet — this is the rule-based V1, full intelligence comes later. I can help with: ${TOPICOS_SUPORTADOS_EN}.`,
+    `Todavía no sé responder eso — esta es la V1 por regla, la inteligencia completa llega después. Puedo ayudar con: ${TOPICOS_SUPORTADOS_ES}.`
+  );
 }
