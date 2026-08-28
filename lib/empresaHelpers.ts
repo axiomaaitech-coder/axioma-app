@@ -901,7 +901,7 @@ export type MembroEquipe = {
 // daquela empresa (checagem dentro da própria função, não só na RLS).
 export async function listarEquipe(empresaId: string): Promise<{ dados: MembroEquipe[]; erro?: string; codigo?: string }> {
   const { data, error } = await supabase.rpc("listar_equipe", { p_empresa_id: empresaId });
-  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  if (error) return { dados: [], erro: error.message, codigo: error.code };
   return { dados: (data as MembroEquipe[]) || [] };
 }
 
@@ -932,7 +932,7 @@ export async function convidarMembro(empresaId: string, userId: string, dados: a
   const token = typeof crypto !== "undefined" && (crypto as any).randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
   const payload = { ...dados, email_convidado: emailNorm, empresa_id: empresaId, user_id: userId, token_convite: token };
   const { data, error } = await supabase.from("empresa_equipe").insert(payload).select("id").single();
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   await registrarAuditoria({
     empresaId, userId,
     tabela: "empresa_equipe",
@@ -958,7 +958,7 @@ export async function obterConvitePorToken(token: string): Promise<{
 // gravava o convite, nunca dava acesso de fato a ninguém).
 export async function aceitarConvite(token: string): Promise<{ empresaId?: string; erro?: string; codigo?: string }> {
   const { data, error } = await supabase.rpc("aceitar_convite", { p_token: token });
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   limparCacheEmpresaAtiva();
   return { empresaId: data as string };
 }
@@ -973,7 +973,7 @@ export async function alterarPapelMembro(
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita(tabela, "update (papel)", motivo);
-    return error ? { erro: motivo, codigo: (error as any).code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+    return error ? { erro: motivo, codigo: error.code } : { erro: "SEM_PERMISSAO_ESCRITA" };
   }
   await registrarAuditoria({
     empresaId, userId, tabela, registroId: membro.id, acao: "editar",
@@ -995,7 +995,7 @@ export async function removerAcessoMembro(
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita(tabela, "delete (acesso)", motivo);
-    return error ? { erro: motivo, codigo: (error as any).code } : { erro: "SEM_PERMISSAO_ESCRITA" };
+    return error ? { erro: motivo, codigo: error.code } : { erro: "SEM_PERMISSAO_ESCRITA" };
   }
   await registrarAuditoria({
     empresaId, userId, tabela, registroId: membro.id, acao: "excluir",

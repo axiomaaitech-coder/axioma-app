@@ -53,9 +53,10 @@ export async function listarCategoriasReais(empresaId: string, segmento: string)
   const { data } = await supabase.from("produtos").select("categoria")
     .eq("empresa_id", empresaId).eq("segmento", segmento).eq("status", "ativo")
     .not("categoria", "is", null).limit(500);
+  const linhas = (data || []) as { categoria: string | null }[];
   const vistos = new Set<string>();
-  for (const linha of data || []) {
-    const valor = (linha as any).categoria?.trim();
+  for (const linha of linhas) {
+    const valor = linha.categoria?.trim();
     if (valor) vistos.add(valor);
   }
   return Array.from(vistos).sort();
@@ -65,9 +66,10 @@ export async function listarSubNichosReais(empresaId: string, segmento: string, 
   const { data } = await supabase.from("produtos").select("subcategoria")
     .eq("empresa_id", empresaId).eq("segmento", segmento).eq("categoria", categoria).eq("status", "ativo")
     .not("subcategoria", "is", null).limit(500);
+  const linhas = (data || []) as { subcategoria: string | null }[];
   const vistos = new Set<string>();
-  for (const linha of data || []) {
-    const valor = (linha as any).subcategoria?.trim();
+  for (const linha of linhas) {
+    const valor = linha.subcategoria?.trim();
     if (valor) vistos.add(valor);
   }
   return Array.from(vistos).sort();

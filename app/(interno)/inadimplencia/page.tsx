@@ -64,6 +64,11 @@ const CINZA = '#5a7a9a'
 const BG_CARD = 'rgba(10,22,40,0.8)'
 const CATEGORIAS_CASO = ['Vendas', 'Serviços', 'Mensalidade', 'Consultoria', 'Outros']
 
+type DreHistoricoAtual = {
+  id: string; periodo_inicio: string; periodo_fim: string; receita_bruta: number;
+  deducoes: number; custo_variavel: number; custo_fixo: number; despesas_financeiras: number;
+}
+
 export default function Inadimplencia() {
   const { idioma } = useLanguage()
   const lang = idioma as Idioma3
@@ -96,7 +101,7 @@ export default function Inadimplencia() {
   const [custosVarRows, setCustosVarRows] = useState<{ valor: number }[]>([])
   const [dividasRows, setDividasRows] = useState<{ valor_total: number; valor_pago: number; taxa_juros: number }[]>([])
   const [regimeTributario, setRegimeTributario] = useState('')
-  const [dreHistoricoAtual, setDreHistoricoAtual] = useState<{ id: string; periodo_inicio: string; periodo_fim: string; receita_bruta: number; deducoes: number; custo_variavel: number; custo_fixo: number; despesas_financeiras: number } | null>(null)
+  const [dreHistoricoAtual, setDreHistoricoAtual] = useState<DreHistoricoAtual | null>(null)
 
   const [descontoAVistaPct, setDescontoAVistaPct] = useState('10')
   const [pctAceitaParcelamento, setPctAceitaParcelamento] = useState('30')
@@ -173,7 +178,7 @@ export default function Inadimplencia() {
     setCustosFixosRows(cf || [])
     setCustosVarRows(cv || [])
     setDividasRows(div || [])
-    setDreHistoricoAtual(dreRows as any || null)
+    setDreHistoricoAtual((dreRows as DreHistoricoAtual) || null)
     setLoading(false)
   }
 

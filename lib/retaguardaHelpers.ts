@@ -54,7 +54,7 @@ export async function salvarConfigRetaguarda(
   });
   if (error) {
     Sentry.captureException(new Error(`Falha ao salvar config da retaguarda: ${error.message}`), { extra: { operacao: "rpc:retaguarda_salvar_config", empresaId, motivo: error.message } });
-    return { erro: error.message, codigo: (error as any).code };
+    return { erro: error.message, codigo: error.code };
   }
   return {};
 }
@@ -77,7 +77,7 @@ export type ResumoDia = {
 
 export async function obterResumoDia(empresaId: string, data: string): Promise<{ resumo?: ResumoDia; erro?: string; codigo?: string }> {
   const { data: linhas, error } = await supabase.rpc("retaguarda_resumo_dia", { p_empresa_id: empresaId, p_data: data });
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   const l = Array.isArray(linhas) ? linhas[0] : linhas;
   if (!l) return { resumo: { totalVendido: 0, qtdVendas: 0, ticketMedio: 0, lucroReal: null, itensSemCusto: 0 } };
   return {
@@ -98,7 +98,7 @@ export type VendaPorCategoria = {
 
 export async function obterVendasPorCategoria(empresaId: string, data: string): Promise<{ dados: VendaPorCategoria[]; erro?: string; codigo?: string }> {
   const { data: linhas, error } = await supabase.rpc("retaguarda_vendas_por_categoria", { p_empresa_id: empresaId, p_data: data });
-  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  if (error) return { dados: [], erro: error.message, codigo: error.code };
   return {
     dados: (linhas || []).map((l: any) => ({
       nicho: l.nicho, categoria: l.categoria, subNicho: l.sub_nicho,
@@ -118,7 +118,7 @@ export type VendaPorProduto = {
 // (Categoria → Sub-nicho → Produtos) sem uma chamada por nível.
 export async function obterVendasPorProduto(empresaId: string, data: string): Promise<{ dados: VendaPorProduto[]; erro?: string; codigo?: string }> {
   const { data: linhas, error } = await supabase.rpc("retaguarda_vendas_por_produto", { p_empresa_id: empresaId, p_data: data });
-  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  if (error) return { dados: [], erro: error.message, codigo: error.code };
   return {
     dados: (linhas || []).map((l: any) => ({
       produtoId: l.produto_id, produtoNome: l.produto_nome, nicho: l.nicho, categoria: l.categoria, subNicho: l.sub_nicho,
@@ -137,7 +137,7 @@ export type VendaDetalheProduto = {
 // dono abre o modal de detalhe de um produto específico (Nível 4).
 export async function obterVendasProdutoDetalhe(empresaId: string, produtoId: string, data: string): Promise<{ dados: VendaDetalheProduto[]; erro?: string; codigo?: string }> {
   const { data: linhas, error } = await supabase.rpc("retaguarda_vendas_produto_detalhe", { p_empresa_id: empresaId, p_produto_id: produtoId, p_data: data });
-  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  if (error) return { dados: [], erro: error.message, codigo: error.code };
   return {
     dados: (linhas || []).map((l: any) => ({
       vendaId: l.venda_id, horario: l.horario, quantidade: Number(l.quantidade) || 0,
@@ -153,7 +153,7 @@ export type ItemPrejuizo = {
 
 export async function obterItensPrejuizo(empresaId: string, data: string): Promise<{ dados: ItemPrejuizo[]; erro?: string; codigo?: string }> {
   const { data: linhas, error } = await supabase.rpc("retaguarda_itens_prejuizo", { p_empresa_id: empresaId, p_data: data });
-  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  if (error) return { dados: [], erro: error.message, codigo: error.code };
   return {
     dados: (linhas || []).map((l: any) => ({
       vendaId: l.venda_id, produtoNome: l.produto_nome, quantidade: Number(l.quantidade) || 0,
@@ -179,7 +179,7 @@ export type ComposicaoLinha = {
 // fechamento). Funciona com o turno aberto OU fechado.
 export async function obterComposicaoEsperado(turnoCaixaId: string): Promise<{ dados: ComposicaoLinha[]; erro?: string; codigo?: string }> {
   const { data: linhas, error } = await supabase.rpc("retaguarda_composicao_esperado", { p_turno_caixa_id: turnoCaixaId });
-  if (error) return { dados: [], erro: error.message, codigo: (error as any).code };
+  if (error) return { dados: [], erro: error.message, codigo: error.code };
   return {
     dados: (linhas || []).map((l: any) => ({
       componente: l.componente, referenciaId: l.referencia_id,
@@ -219,7 +219,7 @@ export async function fecharTurno(
   const { data, error } = await supabase.rpc("retaguarda_fechar_turno", {
     p_turno_caixa_id: turnoCaixaId, p_valor_contado: valorContado, p_observacao: observacao || null,
   });
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   const l = Array.isArray(data) ? data[0] : data;
   if (!l) return { erro: "RPC retaguarda_fechar_turno não devolveu resultado" };
   return {
@@ -238,7 +238,7 @@ export async function registrarMovimentacao(
   const { data, error } = await supabase.rpc("retaguarda_registrar_movimentacao", {
     p_turno_caixa_id: turnoCaixaId, p_tipo: tipo, p_valor: valor, p_motivo: motivo || null,
   });
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   return { id: data as string };
 }
 
@@ -271,12 +271,12 @@ export async function editarMovimentacao(
   const { error } = await supabase.rpc("retaguarda_editar_movimentacao", {
     p_movimentacao_id: movimentacaoId, p_valor: valor, p_motivo: motivo || null,
   });
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   return {};
 }
 
 export async function excluirMovimentacao(movimentacaoId: string): Promise<{ erro?: string; codigo?: string }> {
   const { error } = await supabase.rpc("retaguarda_excluir_movimentacao", { p_movimentacao_id: movimentacaoId });
-  if (error) return { erro: error.message, codigo: (error as any).code };
+  if (error) return { erro: error.message, codigo: error.code };
   return {};
 }
