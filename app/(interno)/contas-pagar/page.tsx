@@ -36,6 +36,7 @@ import {
   detectarDescontosPerdidos, type DescontoPerdido,
   avaliarDescontosComForecast, type DescontoComForecast,
   montarEvidenceGraph, type EvidenceGraphAp,
+  avaliarAntecipacaoConjunta, type ResultadoAntecipacaoConjunta,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -351,6 +352,31 @@ export default function ContasPagarPage() {
     () => avaliarDescontosComForecast(descontosAproveitaveis, forecastAp),
     [descontosAproveitaveis, forecastAp]
   );
+
+  // ========== ENTREGA 4, COMMIT DE MELHORIA — IMPACTO CUMULATIVO ==========
+  const [descontosSelecionados, setDescontosSelecionados] = useState<Set<string>>(new Set());
+  const [antecipacaoConjunta, setAntecipacaoConjunta] = useState<ResultadoAntecipacaoConjunta | null>(null);
+  const [carregandoAntecipacaoConjunta, setCarregandoAntecipacaoConjunta] = useState(false);
+
+  function alternarDescontoSelecionado(contaId: string) {
+    setDescontosSelecionados((prev) => {
+      const novo = new Set(prev);
+      if (novo.has(contaId)) novo.delete(contaId); else novo.add(contaId);
+      return novo;
+    });
+  }
+
+  useEffect(() => {
+    if (!empresaId || descontosSelecionados.size === 0) { setAntecipacaoConjunta(null); return; }
+    let ativo = true;
+    setCarregandoAntecipacaoConjunta(true);
+    avaliarAntecipacaoConjunta(empresaId, Array.from(descontosSelecionados)).then((r) => {
+      if (!ativo) return;
+      setAntecipacaoConjunta(r);
+      setCarregandoAntecipacaoConjunta(false);
+    });
+    return () => { ativo = false; };
+  }, [empresaId, descontosSelecionados]);
 
   const descontosPerdidos: DescontoPerdido[] = useMemo(
     () => detectarDescontosPerdidos(contas),
@@ -1503,9 +1529,9 @@ export default function ContasPagarPage() {
                 {L("Desconto Ainda Aproveitável", "Discount Still Available", "Descuento Todavía Aprovechable")}
               </h4>
               <p className="text-[10px] mb-2" style={{ color: CINZA }}>
-                {L("Avaliação isolada, uma conta por vez — se antecipar várias ao mesmo tempo, o efeito combinado no caixa pode ser maior do que cada uma sugere aqui.",
-                  "Isolated evaluation, one bill at a time — if you move up several at once, the combined cash effect can be bigger than each one suggests here.",
-                  "Evaluación aislada, una cuenta por vez — si antecipa varias al mismo tiempo, el efecto combinado en la caja puede ser mayor de lo que cada una sugiere aquí.")}
+                {L("Avaliação isolada, uma conta por vez — marque a caixinha de mais de uma pra ver o efeito CUMULATIVO real de antecipar todas juntas.",
+                  "Isolated evaluation, one bill at a time — check the box on more than one to see the real CUMULATIVE effect of moving all of them up together.",
+                  "Evaluación aislada, una cuenta por vez — marque la casilla de más de una para ver el efecto CUMULATIVO real de anticipar todas juntas.")}
               </p>
               {descontosComForecast.length === 0 ? (
                 <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum desconto por pagamento antecipado em aberto.", "No open early-payment discount.", "Ningún descuento por pago anticipado abierto.")}</p>
@@ -1513,6 +1539,9 @@ export default function ContasPagarPage() {
                 <div className="space-y-2">
                   {descontosComForecast.map((d) => (
                     <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <input type="checkbox" checked={descontosSelecionados.has(d.contaId)} onChange={() => alternarDescontoSelecionado(d.contaId)}
+                        title={L("Incluir no cálculo de impacto cumulativo", "Include in the cumulative impact calculation", "Incluir en el cálculo de impacto acumulativo")}
+                        className="flex-shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
@@ -1549,6 +1578,58 @@ export default function ContasPagarPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Impacto cumulativo das selecionadas (Entrega 4, Commit de melhoria) */}
+              {descontosSelecionados.size > 0 && (
+                <div className="mt-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${ROXO}30` }}>
+                  <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: ROXO }}>
+                    {L(`Impacto de Antecipar as ${descontosSelecionados.size} Selecionadas Juntas`, `Impact of Moving Up the ${descontosSelecionados.size} Selected Together`, `Impacto de Anticipar las ${descontosSelecionados.size} Seleccionadas Juntas`)}
+                  </p>
+                  {carregandoAntecipacaoConjunta || !antecipacaoConjunta ? (
+                    <p className="text-xs" style={{ color: CINZA }}>{L("Recalculando o forecast com as datas antecipadas...", "Recalculating the forecast with the moved-up dates...", "Recalculando el forecast con las fechas anticipadas...")}</p>
+                  ) : antecipacaoConjunta.motivoSemDados === "sem_historico_caixa" ? (
+                    <p className="text-xs" style={{ color: CINZA }}>
+                      {L(`Economia total: ${fmt(antecipacaoConjunta.economiaTotal)}. Sem dados de fluxo suficientes pra avaliar o impacto no caixa.`,
+                        `Total savings: ${fmt(antecipacaoConjunta.economiaTotal)}. Not enough cash flow data to assess the cash impact.`,
+                        `Ahorro total: ${fmt(antecipacaoConjunta.economiaTotal)}. Sin datos de flujo suficientes para evaluar el impacto en la caja.`)}
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <p className="text-xs" style={{ color: "#c8d8f0" }}>
+                        {L(`Economia total: `, `Total savings: `, `Ahorro total: `)}
+                        <span className="font-black" style={{ color: VERDE }}>{fmt(antecipacaoConjunta.economiaTotal)}</span>
+                      </p>
+                      {antecipacaoConjunta.dataCritica && antecipacaoConjunta.saldoResultantePessimista !== null && (
+                        <p className="text-xs" style={{ color: "#c8d8f0" }}>
+                          {L(`Se antecipar todas, o saldo projetado (cenário conservador) cai pra `, `If you move up all of them, the projected balance (conservative scenario) drops to `, `Si anticipa todas, el saldo proyectado (escenario conservador) baja a `)}
+                          <span className="font-black" style={{ color: antecipacaoConjunta.saldoResultantePessimista >= 0 ? AMBAR : VERMELHO }}>{fmt(antecipacaoConjunta.saldoResultantePessimista)}</span>
+                          {L(` até ${new Date(antecipacaoConjunta.dataCritica + "T00:00:00").toLocaleDateString("pt-BR")} (prazo do desconto mais distante entre as selecionadas).`,
+                            ` by ${new Date(antecipacaoConjunta.dataCritica + "T00:00:00").toLocaleDateString("en-US")} (the furthest discount deadline among the selected bills).`,
+                            ` hasta el ${new Date(antecipacaoConjunta.dataCritica + "T00:00:00").toLocaleDateString("es-ES")} (el plazo de descuento más lejano entre las seleccionadas).`)}
+                        </p>
+                      )}
+                      {antecipacaoConjunta.rupturaCausada && (
+                        <p className="text-xs font-bold flex items-center gap-1.5 p-2 rounded-lg" style={{ color: VERMELHO, background: `${VERMELHO}15` }}>
+                          <AlertTriangle size={14} />
+                          {L(`Esse conjunto causa ruptura de caixa em ${antecipacaoConjunta.rupturaCausada.diasRestantes} dias (${new Date(antecipacaoConjunta.rupturaCausada.data + "T00:00:00").toLocaleDateString("pt-BR")}), mesmo que alguma pareça segura isolada.`,
+                            `This combination causes a cash shortfall in ${antecipacaoConjunta.rupturaCausada.diasRestantes} days (${new Date(antecipacaoConjunta.rupturaCausada.data + "T00:00:00").toLocaleDateString("en-US")}), even if some looked safe in isolation.`,
+                            `Este conjunto causa ruptura de caja en ${antecipacaoConjunta.rupturaCausada.diasRestantes} días (${new Date(antecipacaoConjunta.rupturaCausada.data + "T00:00:00").toLocaleDateString("es-ES")}), aunque alguna pareciera segura de forma aislada.`)}
+                        </p>
+                      )}
+                      {antecipacaoConjunta.contasForaDoHorizonte.length > 0 && (
+                        <p className="text-[10px]" style={{ color: CINZA }}>
+                          {L(`${antecipacaoConjunta.contasForaDoHorizonte.length} conta(s) selecionada(s) tem prazo de desconto além dos 90 dias do forecast — economia contada no total acima, mas o impacto no caixa dessas não entrou no cálculo.`,
+                            `${antecipacaoConjunta.contasForaDoHorizonte.length} selected bill(s) have a discount deadline beyond the forecast's 90 days — savings counted in the total above, but their cash impact wasn't included in the calculation.`,
+                            `${antecipacaoConjunta.contasForaDoHorizonte.length} cuenta(s) seleccionada(s) tienen plazo de descuento más allá de los 90 días del forecast — ahorro contado en el total arriba, pero el impacto en la caja de esas no entró en el cálculo.`)}
+                        </p>
+                      )}
+                      <p className="text-[10px] italic" style={{ color: CINZA }}>
+                        {L("O sistema nunca antecipa pagamento sozinho — isso é só simulação. Você decide.", "The system never moves up a payment on its own — this is only a simulation. You decide.", "El sistema nunca anticipa un pago solo — esto es solo una simulación. Usted decide.")}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -418,6 +418,54 @@ function calcularFatorAtrasoHistorico(contasPagas: { valor_total: number; valor_
   return { fator: soma / atrasadasComMulta.length, amostra: atrasadasComMulta.length };
 }
 
+// Núcleo puro do forecast — extraído pra ser o ÚNICO motor de cálculo de
+// caixa do módulo. calcularForecastAp usa direto; a simulação de
+// antecipação em conjunto (avaliarAntecipacaoConjunta, mais abaixo) também
+// usa, só com a série de saídas de contas_pagar remontada — nunca um
+// segundo cálculo de caixa que poderia discordar deste.
+function computarPontosForecast(
+  saldoAtual: number,
+  entradas: EventoCaixa[],
+  saidasContasPagar: EventoCaixa[],
+  saidasCustosFixos: EventoCaixa[],
+  fatorAtraso: number,
+  hoje: string,
+): { pontos: PontoForecastAp[]; rupturaNoMax: RupturaCaixa | null } {
+  const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
+  const saidasComPagamentos = [...saidasContasPagar, ...saidasCustosFixos];
+
+  // Um único cálculo no horizonte máximo — a primeira ruptura encontrada
+  // dentro de 90d também é a primeira dentro de qualquer horizonte menor
+  // que a contenha; não precisa rodar detectarRupturaCaixa 4 vezes.
+  const rupturaNoMax = detectarRupturaCaixa(saldoAtual, entradas, saidasComPagamentos, maxHorizonte);
+
+  const dentroDoHorizonte = (e: EventoCaixa, horizonteDias: number) => {
+    const dias = Math.round((new Date(e.data + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000);
+    return dias >= 0 && dias <= horizonteDias;
+  };
+  const somaNoHorizonte = (eventos: EventoCaixa[], horizonteDias: number) =>
+    eventos.filter((e) => dentroDoHorizonte(e, horizonteDias)).reduce((s, e) => s + e.valor, 0);
+
+  const pontos: PontoForecastAp[] = HORIZONTES_FORECAST_AP.map((horizonteDias) => {
+    const totalEntradas = somaNoHorizonte(entradas, horizonteDias);
+    const totalSaidasCustosFixos = somaNoHorizonte(saidasCustosFixos, horizonteDias);
+    const totalSaidasContasPagar = somaNoHorizonte(saidasContasPagar, horizonteDias);
+    const saldoOtimista = saldoAtual + totalEntradas - totalSaidasCustosFixos - totalSaidasContasPagar;
+    // Só as saídas de contas_pagar levam a sobretaxa de atraso — custo fixo
+    // recorrente não carrega multa (é o mesmo valor todo mês, por natureza).
+    const saldoPessimista = saldoOtimista - totalSaidasContasPagar * fatorAtraso;
+    return {
+      horizonteDias,
+      saldoProjetadoOtimista: saldoOtimista,
+      saldoProjetadoPessimista: saldoPessimista,
+      saldoProjetadoSemPagamentos: saldoAtual + totalEntradas - totalSaidasCustosFixos,
+      ruptura: rupturaNoMax && rupturaNoMax.diasRestantes <= horizonteDias ? rupturaNoMax : null,
+    };
+  });
+
+  return { pontos, rupturaNoMax };
+}
+
 export async function calcularForecastAp(empresaId: string): Promise<ForecastAp> {
   const hoje = new Date().toISOString().split("T")[0];
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
@@ -456,38 +504,9 @@ export async function calcularForecastAp(empresaId: string): Promise<ForecastAp>
       .filter((ev) => !mesesJaGerados.has(`${c.id}|${ev.data.slice(0, 7)}`));
   });
 
-  const saidasComPagamentos = [...saidasContasPagar, ...saidasCustosFixos];
-
-  // Um único cálculo no horizonte máximo — a primeira ruptura encontrada
-  // dentro de 90d também é a primeira dentro de qualquer horizonte menor
-  // que a contenha; não precisa rodar detectarRupturaCaixa 4 vezes.
-  const rupturaNoMax = detectarRupturaCaixa(saldoAtual, entradas, saidasComPagamentos, maxHorizonte);
-
   const { fator: fatorAtraso, amostra: amostraAtraso } = calcularFatorAtrasoHistorico((cpPagas as any[]) || []);
 
-  const dentroDoHorizonte = (e: EventoCaixa, horizonteDias: number) => {
-    const dias = Math.round((new Date(e.data + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000);
-    return dias >= 0 && dias <= horizonteDias;
-  };
-  const somaNoHorizonte = (eventos: EventoCaixa[], horizonteDias: number) =>
-    eventos.filter((e) => dentroDoHorizonte(e, horizonteDias)).reduce((s, e) => s + e.valor, 0);
-
-  const pontos: PontoForecastAp[] = HORIZONTES_FORECAST_AP.map((horizonteDias) => {
-    const totalEntradas = somaNoHorizonte(entradas, horizonteDias);
-    const totalSaidasCustosFixos = somaNoHorizonte(saidasCustosFixos, horizonteDias);
-    const totalSaidasContasPagar = somaNoHorizonte(saidasContasPagar, horizonteDias);
-    const saldoOtimista = saldoAtual + totalEntradas - totalSaidasCustosFixos - totalSaidasContasPagar;
-    // Só as saídas de contas_pagar levam a sobretaxa de atraso — custo fixo
-    // recorrente não carrega multa (é o mesmo valor todo mês, por natureza).
-    const saldoPessimista = saldoOtimista - totalSaidasContasPagar * fatorAtraso;
-    return {
-      horizonteDias,
-      saldoProjetadoOtimista: saldoOtimista,
-      saldoProjetadoPessimista: saldoPessimista,
-      saldoProjetadoSemPagamentos: saldoAtual + totalEntradas - totalSaidasCustosFixos,
-      ruptura: rupturaNoMax && rupturaNoMax.diasRestantes <= horizonteDias ? rupturaNoMax : null,
-    };
-  });
+  const { pontos } = computarPontosForecast(saldoAtual, entradas, saidasContasPagar, saidasCustosFixos, fatorAtraso, hoje);
 
   return {
     saldoAtual,
@@ -1143,5 +1162,148 @@ export async function montarEvidenceGraph(
       qtdEventosAuditoria: auditoria.length,
     },
     banco,
+  };
+}
+
+// ----------------------------------------------------------------------------
+// ENTREGA 4, COMMIT DE MELHORIA — IMPACTO CUMULATIVO DO DYNAMIC DISCOUNT
+// ENGINE. Fecha a limitação declarada no Commit 2 (veredito isolado): avalia
+// antecipar VÁRIAS contas selecionadas ao mesmo tempo, com efeito real
+// cumulativo no caixa — remontando a série de eventos (saídas de
+// contas_pagar com a data antecipada pro prazo do desconto, só das
+// selecionadas) e rodando pelo MESMO computarPontosForecast que
+// calcularForecastAp usa. Nenhum cálculo de caixa paralelo.
+// ----------------------------------------------------------------------------
+
+export type ResultadoAntecipacaoConjunta = {
+  qtdSelecionadas: number;
+  economiaTotal: number;
+  // Ids selecionados cujo desconto_data_limite passa dos 90 dias do
+  // forecast — a economia entra no total, mas o impacto no caixa dessa
+  // conta específica não pôde ser avaliado (permanece na data original
+  // na simulação).
+  contasForaDoHorizonte: string[];
+  saldoResultantePessimista: number | null;
+  saldoResultanteOtimista: number | null;
+  horizonteCriticoDias: HorizonteForecastDias | null;
+  dataCritica: string | null; // prazo de desconto mais distante entre as selecionadas dentro do horizonte
+  rupturaCausada: RupturaCaixa | null;
+  motivoSemDados: "sem_historico_caixa" | null;
+};
+
+export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: string[]): Promise<ResultadoAntecipacaoConjunta> {
+  const vazio: ResultadoAntecipacaoConjunta = {
+    qtdSelecionadas: 0, economiaTotal: 0, contasForaDoHorizonte: [],
+    saldoResultantePessimista: null, saldoResultanteOtimista: null,
+    horizonteCriticoDias: null, dataCritica: null, rupturaCausada: null, motivoSemDados: null,
+  };
+  if (contaIds.length === 0) return vazio;
+
+  const hoje = new Date().toISOString().split("T")[0];
+  const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
+  const selecionadas = new Set(contaIds);
+
+  const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
+    supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId),
+    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
+    supabase.from("contas_pagar").select("id, valor_total, valor_pago, status, data_vencimento, custo_fixo_id, desconto_disponivel_pct, desconto_data_limite").eq("empresa_id", empresaId),
+    supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
+    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
+  ]);
+
+  type ContaPagarParaAntecipacao = {
+    id: string; valor_total: number; valor_pago: number; status: string | null; data_vencimento: string | null;
+    custo_fixo_id: string | null; desconto_disponivel_pct: number | null; desconto_data_limite: string | null;
+  };
+  type CustoFixoParaForecast = { id: string; valor_mensal: number; dia_vencimento: number };
+  type FluxoCaixaLinha = { valor: number; tipo: string; status: string };
+  type ContaReceberParaForecast = { valor: number; valor_recebido: number; status: string; data_vencimento: string | null };
+
+  const fcTipado = (fc as FluxoCaixaLinha[]) || [];
+  const cpTipado = (cp as ContaPagarParaAntecipacao[]) || [];
+  const cfTipado = (cf as CustoFixoParaForecast[]) || [];
+  const crTipado = (cr as ContaReceberParaForecast[]) || [];
+
+  const saldoAtual = fcTipado.filter((l) => l.status === "realizado")
+    .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
+
+  // Economia total conta independente de o forecast dar veredito — mesmo
+  // sem prova de caixa, o valor do desconto em si é um fato determinístico.
+  let economiaTotal = 0;
+  cpTipado.forEach((c) => {
+    if (!selecionadas.has(c.id) || !c.desconto_data_limite || !(Number(c.desconto_disponivel_pct) > 0)) return;
+    economiaTotal += Number(c.valor_total || 0) * (Number(c.desconto_disponivel_pct) / 100);
+  });
+  economiaTotal = Math.round(economiaTotal * 100) / 100;
+
+  // Mesmo sinal de "sem histórico de caixa real" do Commit 2 — sem saber de
+  // onde parte o caixa, não dá pra avaliar segurança de antecipar nada.
+  if (saldoAtual === 0) {
+    return { ...vazio, qtdSelecionadas: contaIds.length, economiaTotal, motivoSemDados: "sem_historico_caixa" };
+  }
+
+  const entradas: EventoCaixa[] = crTipado
+    .filter((c) => c.data_vencimento && c.data_vencimento >= hoje)
+    .map((c) => ({ data: c.data_vencimento as string, valor: Math.max(0, Number(c.valor || 0) - Number(c.valor_recebido || 0)) }))
+    .filter((e) => e.valor > 0);
+
+  const contasForaDoHorizonte: string[] = [];
+  let maxDiasCritico: number | null = null;
+  let dataCriticaStr: string | null = null;
+
+  // Mesma montagem de saídas de calcularForecastAp, só que a data de cada
+  // conta SELECIONADA é substituída pelo prazo do próprio desconto — é
+  // isso que torna o efeito cumulativo real (2 pagamentos que ANTES caíam
+  // em semanas diferentes agora podem cair na MESMA semana).
+  const saidasContasPagar: EventoCaixa[] = cpTipado
+    .filter((c) => c.data_vencimento && c.data_vencimento >= hoje)
+    .map((c) => {
+      const resta = Math.max(0, Number(c.valor_total || 0) - Number(c.valor_pago || 0));
+      let dataEfetiva: string = c.data_vencimento as string;
+      if (selecionadas.has(c.id) && c.desconto_data_limite && Number(c.desconto_disponivel_pct) > 0) {
+        const diasAteLimite = Math.round(
+          (new Date(c.desconto_data_limite + "T00:00:00").getTime() - new Date(hoje + "T00:00:00").getTime()) / 86400000
+        );
+        if (diasAteLimite <= maxHorizonte) {
+          dataEfetiva = c.desconto_data_limite;
+          if (maxDiasCritico === null || diasAteLimite > maxDiasCritico) { maxDiasCritico = diasAteLimite; dataCriticaStr = c.desconto_data_limite; }
+        } else {
+          contasForaDoHorizonte.push(c.id);
+        }
+      }
+      return { data: dataEfetiva, valor: resta };
+    })
+    .filter((e) => e.valor > 0);
+
+  const mesesJaGerados = new Set(
+    cpTipado.filter((c) => c.custo_fixo_id && c.data_vencimento).map((c) => `${c.custo_fixo_id}|${String(c.data_vencimento).slice(0, 7)}`)
+  );
+  const saidasCustosFixos: EventoCaixa[] = cfTipado.flatMap((c) => {
+    if (!c.valor_mensal || !c.dia_vencimento) return [];
+    const proxima = proximaOcorrenciaDoDia(Number(c.dia_vencimento));
+    return projetarRecorrenciaMensal(Number(c.valor_mensal), proxima, maxHorizonte)
+      .filter((ev) => !mesesJaGerados.has(`${c.id}|${ev.data.slice(0, 7)}`));
+  });
+
+  const { fator: fatorAtraso } = calcularFatorAtrasoHistorico((cpPagas as { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null }[]) || []);
+
+  const { pontos, rupturaNoMax } = computarPontosForecast(saldoAtual, entradas, saidasContasPagar, saidasCustosFixos, fatorAtraso, hoje);
+
+  // Horizonte crítico: o menor bucket (7/30/60/90) que cobre a data-limite
+  // mais distante entre as selecionadas dentro do alcance do forecast —
+  // é o ponto em que TODAS as antecipações já teriam saído do caixa.
+  const horizonteCritico = maxDiasCritico !== null ? HORIZONTES_FORECAST_AP.find((h) => h >= (maxDiasCritico as number)) || null : null;
+  const pontoCritico = horizonteCritico ? pontos.find((p) => p.horizonteDias === horizonteCritico) || null : null;
+
+  return {
+    qtdSelecionadas: contaIds.length,
+    economiaTotal,
+    contasForaDoHorizonte,
+    saldoResultantePessimista: pontoCritico?.saldoProjetadoPessimista ?? null,
+    saldoResultanteOtimista: pontoCritico?.saldoProjetadoOtimista ?? null,
+    horizonteCriticoDias: horizonteCritico,
+    dataCritica: dataCriticaStr,
+    rupturaCausada: rupturaNoMax,
+    motivoSemDados: null,
   };
 }
