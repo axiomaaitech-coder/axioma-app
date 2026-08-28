@@ -1007,3 +1007,59 @@ export function detectarDescontosPerdidos(contas: ContaPagar[]): DescontoPerdido
   });
   return out.sort((a, b) => b.valorPerdido - a.valorPerdido);
 }
+
+// ----------------------------------------------------------------------------
+// ENTREGA 4, COMMIT 2 — DYNAMIC DISCOUNT ENGINE. Fecha o loop do Commit 5:
+// em vez de mostrar o desconto isolado, cruza com calcularForecastAp (já
+// existe, Entrega 3 Commit 1) pra dizer se dá pra antecipar sem apertar o
+// caixa. Nenhuma função de forecast nova — só correlaciona 2 saídas que já
+// existem: o horizonte que cobre o prazo do desconto (saldoProjetadoPessimista)
+// e a ruptura geral em 90 dias (ambos já calculados por calcularForecastAp).
+//
+// Avaliação SEMPRE ISOLADA (uma conta por vez, contra o forecast já
+// calculado com todas as contas nas datas originais) — nunca cumulativa.
+// Antecipar várias contas ao mesmo tempo tem efeito combinado maior do que
+// cada uma isolada sugere; simular esse efeito exigiria remontar a série de
+// eventos do forecast (função nova), fora do escopo deste commit. A tela
+// deixa esse limite explícito pro dono.
+// ----------------------------------------------------------------------------
+
+export type VeredictoAntecipacao = "seguro" | "aperta_caixa" | "sem_dados";
+export type MotivoSemDadosDesconto = "carregando" | "sem_historico_caixa" | "prazo_fora_do_forecast";
+
+export type DescontoComForecast = DescontoAproveitavel & {
+  veredicto: VeredictoAntecipacao;
+  motivoSemDados: MotivoSemDadosDesconto | null;
+  saldoProjetadoNoPrazo: number | null;
+};
+
+export function avaliarDescontosComForecast(
+  descontos: DescontoAproveitavel[],
+  forecast: ForecastAp | null,
+): DescontoComForecast[] {
+  if (!forecast) {
+    return descontos.map((d) => ({ ...d, veredicto: "sem_dados", motivoSemDados: "carregando", saldoProjetadoNoPrazo: null }));
+  }
+  // saldoAtual = 0 é o mesmo sinal de "sem histórico de caixa real ainda"
+  // usado no resto do módulo — não dá pra avaliar segurança de antecipar
+  // pagamento sem saber de onde parte o caixa hoje.
+  const semHistoricoCaixa = forecast.saldoAtual === 0;
+  const rupturaGeral = forecast.pontos.find((p) => p.horizonteDias === 90)?.ruptura ?? null;
+
+  return descontos.map((d) => {
+    if (semHistoricoCaixa) {
+      return { ...d, veredicto: "sem_dados", motivoSemDados: "sem_historico_caixa", saldoProjetadoNoPrazo: null };
+    }
+    const horizonte = HORIZONTES_FORECAST_AP.find((h) => h >= d.diasRestantes);
+    if (!horizonte) {
+      // Prazo do desconto vai além do maior horizonte do forecast (90 dias)
+      // — raro (a maioria dos descontos por antecipação é de dias, não meses).
+      return { ...d, veredicto: "sem_dados", motivoSemDados: "prazo_fora_do_forecast", saldoProjetadoNoPrazo: null };
+    }
+    const ponto = forecast.pontos.find((p) => p.horizonteDias === horizonte)!;
+    const rupturaAntesDoPrazo = rupturaGeral !== null && rupturaGeral.diasRestantes <= d.diasRestantes;
+    const saldoOk = ponto.saldoProjetadoPessimista >= 0;
+    const veredicto: VeredictoAntecipacao = !rupturaAntesDoPrazo && saldoOk ? "seguro" : "aperta_caixa";
+    return { ...d, veredicto, motivoSemDados: null, saldoProjetadoNoPrazo: ponto.saldoProjetadoPessimista };
+  });
+}

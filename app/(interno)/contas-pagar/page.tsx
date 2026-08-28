@@ -34,6 +34,7 @@ import {
   detectarDuplicidadesPassadas, type ParDuplicidadePassada,
   detectarDescontosAproveitaveis, type DescontoAproveitavel,
   detectarDescontosPerdidos, type DescontoPerdido,
+  avaliarDescontosComForecast, type DescontoComForecast,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -339,6 +340,15 @@ export default function ContasPagarPage() {
   const descontosAproveitaveis: DescontoAproveitavel[] = useMemo(
     () => detectarDescontosAproveitaveis(contas),
     [contas]
+  );
+
+  // ========== ENTREGA 4, COMMIT 2 — DYNAMIC DISCOUNT ENGINE ==========
+  // Cruza os descontos aproveitáveis acima com o AP Forecast (Entrega 3,
+  // Commit 1) — fecha o loop do Commit 5. Avaliação isolada por conta (ver
+  // comentário em avaliarDescontosComForecast).
+  const descontosComForecast: DescontoComForecast[] = useMemo(
+    () => avaliarDescontosComForecast(descontosAproveitaveis, forecastAp),
+    [descontosAproveitaveis, forecastAp]
   );
 
   const descontosPerdidos: DescontoPerdido[] = useMemo(
@@ -1469,16 +1479,21 @@ export default function ContasPagarPage() {
               )}
             </div>
 
-            {/* 4) Desconto ainda aproveitável (Commit 5) */}
+            {/* 4) Desconto ainda aproveitável (Commit 5) + veredicto de caixa (Entrega 4, Commit 2) */}
             <div className="mb-4">
               <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
                 {L("Desconto Ainda Aproveitável", "Discount Still Available", "Descuento Todavía Aprovechable")}
               </h4>
-              {descontosAproveitaveis.length === 0 ? (
+              <p className="text-[10px] mb-2" style={{ color: CINZA }}>
+                {L("Avaliação isolada, uma conta por vez — se antecipar várias ao mesmo tempo, o efeito combinado no caixa pode ser maior do que cada uma sugere aqui.",
+                  "Isolated evaluation, one bill at a time — if you move up several at once, the combined cash effect can be bigger than each one suggests here.",
+                  "Evaluación aislada, una cuenta por vez — si antecipa varias al mismo tiempo, el efecto combinado en la caja puede ser mayor de lo que cada una sugiere aquí.")}
+              </p>
+              {descontosComForecast.length === 0 ? (
                 <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum desconto por pagamento antecipado em aberto.", "No open early-payment discount.", "Ningún descuento por pago anticipado abierto.")}</p>
               ) : (
                 <div className="space-y-2">
-                  {descontosAproveitaveis.map((d) => (
+                  {descontosComForecast.map((d) => (
                     <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
@@ -1487,8 +1502,30 @@ export default function ContasPagarPage() {
                             `Pay by ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("en-US")} (${d.diasRestantes} days) and save ${fmt(d.valorDesconto)} — ${d.percentual}% discount`,
                             `Pague antes del ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("es-ES")} (${d.diasRestantes} días) y ahorre ${fmt(d.valorDesconto)} — ${d.percentual}% de descuento`)}
                         </p>
+                        <p className="text-xs mt-0.5" style={{ color: d.veredicto === "seguro" ? VERDE : d.veredicto === "aperta_caixa" ? AMBAR : CINZA }}>
+                          {d.veredicto === "seguro" &&
+                            L(`✓ Vale a pena e o caixa aguenta — saldo projetado até lá continua positivo (${fmt(d.saldoProjetadoNoPrazo || 0)}).`,
+                              `✓ Worth it and cash can handle it — projected balance through then stays positive (${fmt(d.saldoProjetadoNoPrazo || 0)}).`,
+                              `✓ Vale la pena y la caja aguanta — el saldo proyectado hasta entonces sigue positivo (${fmt(d.saldoProjetadoNoPrazo || 0)}).`)}
+                          {d.veredicto === "aperta_caixa" &&
+                            L(`⚠ Vale o desconto, mas aperta o caixa — saldo projetado no cenário conservador fica em ${fmt(d.saldoProjetadoNoPrazo || 0)} até o prazo.`,
+                              `⚠ Worth the discount, but tightens cash — projected balance in the conservative scenario is ${fmt(d.saldoProjetadoNoPrazo || 0)} by the deadline.`,
+                              `⚠ Vale el descuento, pero aprieta la caja — el saldo proyectado en el escenario conservador queda en ${fmt(d.saldoProjetadoNoPrazo || 0)} hasta el plazo.`)}
+                          {d.veredicto === "sem_dados" && d.motivoSemDados === "carregando" &&
+                            L("Calculando impacto no caixa...", "Calculating cash impact...", "Calculando impacto en la caja...")}
+                          {d.veredicto === "sem_dados" && d.motivoSemDados === "sem_historico_caixa" &&
+                            L("Sem dados de fluxo suficientes pra avaliar o impacto no caixa.", "Not enough cash flow data to assess the cash impact.", "Sin datos de flujo suficientes para evaluar el impacto en la caja.")}
+                          {d.veredicto === "sem_dados" && d.motivoSemDados === "prazo_fora_do_forecast" &&
+                            L("Prazo além do alcance do forecast (90 dias) — sem veredicto de caixa.", "Deadline beyond the forecast's reach (90 days) — no cash verdict.", "Plazo más allá del alcance del forecast (90 días) — sin veredicto de caja.")}
+                        </p>
                       </div>
-                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(d.valorDesconto)}</span>
+                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0"
+                        style={{
+                          background: `${d.veredicto === "aperta_caixa" ? AMBAR : d.veredicto === "sem_dados" ? CINZA : VERDE}20`,
+                          color: d.veredicto === "aperta_caixa" ? AMBAR : d.veredicto === "sem_dados" ? CINZA : VERDE,
+                        }}>
+                        {fmt(d.valorDesconto)}
+                      </span>
                       <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
