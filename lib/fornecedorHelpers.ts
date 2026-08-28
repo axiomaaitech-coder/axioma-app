@@ -344,6 +344,30 @@ export function calcStatus(total: number, pago: number, venc?: string | null): s
   return "pendente";
 }
 
+// Estados de workflow: escolha/gatilho de processo (aprovação humana, e no
+// futuro cancelamento), nunca derivável de data — sempre tem prioridade
+// sobre o cálculo por data, mesmo que a conta já esteja vencida.
+const STATUS_WORKFLOW_PASSTHROUGH = new Set(["aguardando_aprovacao", "cancelado", "cancelada"]);
+
+// calcStatus só é chamado na ESCRITA (baixa/edição/planilha) e o resultado
+// fica congelado na coluna — uma conta "pendente" que passa da data sem
+// ninguém editar a linha nunca vira "vencida" no banco. statusEfetivo
+// recalcula pago/parcial/vencido/pendente toda vez que a tela EXIBE,
+// FILTRA ou CONTA uma conta, sem depender do valor gravado pra essa parte.
+// rotuloQuitado troca "pago" por "recebido" pra Contas a Receber usar a
+// mesma função sem duplicar a lógica por causa do vocabulário.
+export function statusEfetivo(
+  status: string | null | undefined,
+  total: number,
+  pago: number,
+  venc: string | null | undefined,
+  rotuloQuitado: string = "pago",
+): string {
+  if (status && STATUS_WORKFLOW_PASSTHROUGH.has(status)) return status;
+  const derivado = calcStatus(total, pago, venc);
+  return derivado === "pago" ? rotuloQuitado : derivado;
+}
+
 // Transferência de dados Fornecedor → Conta a Pagar: só sugere o que o cadastro
 // realmente tem (nunca sobrescreve com undefined). Vencimento só entra se o
 // fornecedor tiver prazo_medio_dias — condicao_pagamento é texto livre, não dá

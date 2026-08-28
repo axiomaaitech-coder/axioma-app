@@ -17,7 +17,7 @@ import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } fro
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
-import { rankingScoreAxioma, inflacaoFornecedor, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
+import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
 import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
 import {
@@ -151,7 +151,7 @@ export default function ContasPagarPage() {
   const kpis = useMemo(() => {
     const abertas = contas.filter((c) => c.status !== "pago");
     const vencendo7 = abertas.filter((c) => c.data_vencimento && c.data_vencimento >= hoje && c.data_vencimento <= em7ISO);
-    const vencidas = contas.filter((c) => c.status === "vencido");
+    const vencidas = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) === "vencido");
     const pagasNoMes = contas.filter((c) => c.status === "pago" && (c.data_pagamento || "").slice(0, 7) === mesAtual);
     return {
       totalEmAberto: abertas.reduce((s, c) => s + resta(c), 0),
@@ -163,7 +163,7 @@ export default function ContasPagarPage() {
 
   const contasFiltradas = useMemo(() => {
     return contas.filter((c) => {
-      if (filtroStatus !== "todos" && (c.status || "pendente") !== filtroStatus) return false;
+      if (filtroStatus !== "todos" && statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) !== filtroStatus) return false;
       if (filtroFornecedor && c.fornecedor_id !== filtroFornecedor) return false;
       if (filtroCategoria && c.categoria !== filtroCategoria) return false;
       if (filtroVencDe && (!c.data_vencimento || c.data_vencimento < filtroVencDe)) return false;
@@ -199,7 +199,7 @@ export default function ContasPagarPage() {
   const textoDetalhado = [
     `🦅 AXIOMA AI.TECH — ${L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")} (${L("detalhado", "detailed", "detallado")})`,
     ...contasFiltradas.map((c) =>
-      `${c.descricao} | ${nomeFornecedor(c.fornecedor_id)} | ${c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${statusLabel(c.status)} | ${fmt(c.valor_total)}`
+      `${c.descricao} | ${nomeFornecedor(c.fornecedor_id)} | ${c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "-"} | ${statusLabel(statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento))} | ${fmt(c.valor_total)}`
     ),
   ].join("\n");
 
@@ -1260,7 +1260,8 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2">
               {contasFiltradas.map((c) => {
-                const cor = statusCor(c.status);
+                const statusExibido = statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento);
+                const cor = statusCor(statusExibido);
                 return (
                   <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
@@ -1289,7 +1290,7 @@ export default function ContasPagarPage() {
                       {L("Vence", "Due", "Vence")} {c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
                     </div>
                     <p className="text-sm font-bold w-28 text-right" style={{ color: "#c8d8f0" }}>{fmt(c.valor_total)}</p>
-                    <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span>
+                    <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span>
                     <div className="flex items-center gap-2 flex-shrink-0 justify-end">
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexos", "Attachments", "Adjuntos")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirRastreabilidade(c)} title={L("Ver rastreabilidade", "View traceability", "Ver trazabilidad")} style={{ color: ROXO }}><Link2 size={15} /></motion.button>

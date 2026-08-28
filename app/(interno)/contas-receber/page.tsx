@@ -16,6 +16,7 @@ import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fBRL2, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
+import { statusEfetivo } from '../../../lib/fornecedorHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
@@ -255,13 +256,6 @@ export default function ContasReceber() {
 
   const hoje = new Date().toISOString().split('T')[0]
 
-  function calcStatus(total: number, recebido: number, venc?: string) {
-    if (recebido >= total && total > 0) return 'recebido'
-    if (recebido > 0 && recebido < total) return 'parcial'
-    if (venc && venc < hoje) return 'vencido'
-    return 'pendente'
-  }
-
   function diasAtraso(venc?: string, status?: string | null) {
     if (!venc || status === 'recebido' || venc >= hoje) return 0
     return Math.floor((new Date(hoje + 'T00:00:00').getTime() - new Date(venc + 'T00:00:00').getTime()) / 86400000)
@@ -339,7 +333,7 @@ export default function ContasReceber() {
     const userId = user.id
     const total = parseFloat(nc.valor || '0')
     const recebido = parseFloat(nc.valor_recebido || '0')
-    const status = calcStatus(total, recebido, nc.data_vencimento)
+    const status = statusEfetivo(null, total, recebido, nc.data_vencimento, 'recebido')
     const payloadCompleto: any = {
       descricao: nc.descricao, valor: total, valor_recebido: recebido, valor_desconto: parseFloat(nc.valor_desconto || '0'),
       data_vencimento: nc.data_vencimento, data_emissao: nc.data_emissao || null, competencia: nc.competencia || null,
@@ -395,7 +389,7 @@ export default function ContasReceber() {
     if (!contaReceber) return
     setRecebendo(true)
     const novoRecebido = (contaReceber.valor_recebido || 0) + parseFloat(valorReceber || '0')
-    const status = calcStatus(contaReceber.valor, novoRecebido, contaReceber.data_vencimento)
+    const status = statusEfetivo(null, contaReceber.valor, novoRecebido, contaReceber.data_vencimento, 'recebido')
     const { data, error } = await supabase.from('contas_receber').update({
       valor_recebido: novoRecebido, status,
       data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : contaReceber.data_recebimento || null,
@@ -413,7 +407,7 @@ export default function ContasReceber() {
   const contasFiltradas = useMemo(() => {
     return contas.filter((c) => {
       if (c.data_vencimento < periodo.inicio || c.data_vencimento > periodo.fim) return false
-      if (filtroStatus !== 'todos' && (c.status || 'pendente') !== filtroStatus) return false
+      if (filtroStatus !== 'todos' && statusEfetivo(c.status, c.valor, c.valor_recebido || 0, c.data_vencimento, 'recebido') !== filtroStatus) return false
       if (!busca) return true
       const cliNome = cliente(c.cliente_id)?.nome || ''
       const alvo = `${c.descricao} ${cliNome} ${c.numero_documento || ''} ${c.responsavel || ''} ${c.projeto || ''}`.toLowerCase()
@@ -442,7 +436,7 @@ export default function ContasReceber() {
           return {
             cli: cliente(c.cliente_id)?.nome || '-', doc: c.numero_documento || '-',
             venc: c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-',
-            status: statusLabel(c.status), atual: `R$ ${fBRL2(valorAtualizado)}`, rec: `R$ ${fBRL2(c.valor_recebido || 0)}`, saldo: `R$ ${fBRL2(saldo)}`,
+            status: statusLabel(statusEfetivo(c.status, c.valor, c.valor_recebido || 0, c.data_vencimento, 'recebido')), atual: `R$ ${fBRL2(valorAtualizado)}`, rec: `R$ ${fBRL2(c.valor_recebido || 0)}`, saldo: `R$ ${fBRL2(saldo)}`,
           }
         }),
         resumo: [
@@ -463,7 +457,7 @@ export default function ContasReceber() {
     `🦅 AXIOMA AI.TECH — ${L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')} (${L('detalhado', 'detailed', 'detallado')})`,
     ...contasFiltradas.map((c) => {
       const { valorAtualizado, saldo } = calcularLinha(c)
-      return `${cliente(c.cliente_id)?.nome || '-'} | ${c.numero_documento || '-'} | ${c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-'} | ${statusLabel(c.status)} | R$ ${fBRL2(valorAtualizado)} | ${L('Saldo', 'Balance', 'Saldo')} R$ ${fBRL2(saldo)}`
+      return `${cliente(c.cliente_id)?.nome || '-'} | ${c.numero_documento || '-'} | ${c.data_vencimento ? new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-'} | ${statusLabel(statusEfetivo(c.status, c.valor, c.valor_recebido || 0, c.data_vencimento, 'recebido'))} | R$ ${fBRL2(valorAtualizado)} | ${L('Saldo', 'Balance', 'Saldo')} R$ ${fBRL2(saldo)}`
     }),
   ].join('\n')
 
@@ -1226,7 +1220,8 @@ export default function ContasReceber() {
                     const cli = cliente(c.cliente_id)
                     const cc = centrosCusto.find((x) => x.id === c.centro_custo_id)
                     const score = scoreDe(c.cliente_id)
-                    const cor = statusCor(c.status)
+                    const statusExibido = statusEfetivo(c.status, c.valor, c.valor_recebido || 0, c.data_vencimento, 'recebido')
+                    const cor = statusCor(statusExibido)
                     return (
                       <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
                         style={{ background: 'rgba(255,255,255,0.02)' }}>
@@ -1243,7 +1238,7 @@ export default function ContasReceber() {
                         <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: '#c8d8f0' }}>{fBRL(valorAtualizado)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: VERDE }}>{fBRL(c.valor_recebido || 0)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: cor }}>{fBRL(saldo)}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span></td>
+                        <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span></td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.responsavel || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{cc?.nome || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.projeto || '—'}</td>
