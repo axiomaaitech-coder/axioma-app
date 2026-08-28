@@ -10,7 +10,7 @@ import {
   carregarDadosFiscais, simularRegimes, calcularCargaTributaria, calcularScoreFiscal,
   calcularEconomiaTributaria, gerarAlertasReforma, gerarDiagnosticoFiscal,
   montarPromptTributario, respostaTributariaPorRegras, salvarMensagemTrib, carregarHistoricoTrib, limparHistoricoTrib,
-  type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma,
+  type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma, type AtividadeFiscal,
 } from "../../../lib/iaTributariaHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -112,6 +112,49 @@ function formatBRL(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR")}`;
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function formatBRL2(n: number) { return `R$ ${(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 
+// Não existe campo de atividade fiscal nem de alíquota de ISS municipal no
+// cadastro da empresa hoje — enquanto isso não vira campo real (migração
+// separada), a escolha fica aqui, manual, sempre visível quando afeta o
+// número de Lucro Presumido. Nunca assume Serviços/32% ou ISS 5% em
+// silêncio: sem escolha, mostra o aviso explícito.
+function ControleAtividadeFiscal({ lang, atividadeFiscal, setAtividadeFiscal, issMunicipalPct, setIssMunicipalPct }: {
+  lang: "pt" | "en" | "es";
+  atividadeFiscal: AtividadeFiscal | "";
+  setAtividadeFiscal: (v: AtividadeFiscal | "") => void;
+  issMunicipalPct: string;
+  setIssMunicipalPct: (v: string) => void;
+}) {
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  return (
+    <CanvasBox cor={atividadeFiscal ? "#34d399" : "#fbbf24"}>
+      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>
+        {L("Atividade fiscal (Lucro Presumido)", "Tax activity (Presumed Profit)", "Actividad fiscal (Lucro Presumido)")}
+      </p>
+      {!atividadeFiscal && (
+        <p className="text-xs mb-2" style={{ color: "#fbbf24" }}>
+          ⚠️ {L("Presumindo Serviços (32%) e ISS 5% — confirme a atividade da empresa abaixo pro número ficar exato.",
+            "Assuming Services (32%) and 5% ISS — confirm the company's activity below for an exact number.",
+            "Presumiendo Servicios (32%) e ISS 5% — confirme la actividad de la empresa abajo para un número exacto.")}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <select value={atividadeFiscal} onChange={(e) => setAtividadeFiscal(e.target.value as AtividadeFiscal | "")}
+          className="px-3 py-2 rounded-lg text-xs" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" }}>
+          <option value="">{L("Não confirmada (assume Serviços)", "Not confirmed (assumes Services)", "No confirmada (asume Servicios)")}</option>
+          <option value="servicos">{L("Serviços — presunção 32%", "Services — 32% presumption", "Servicios — presunción 32%")}</option>
+          <option value="comercio_industria">{L("Comércio/Indústria — presunção 8%", "Trade/Industry — 8% presumption", "Comercio/Industria — presunción 8%")}</option>
+          <option value="revenda_combustivel">{L("Revenda de combustível — presunção 1,6%", "Fuel resale — 1.6% presumption", "Reventa de combustible — presunción 1,6%")}</option>
+        </select>
+        {atividadeFiscal === "servicos" && (
+          <input type="number" min={2} max={5} step={0.5} value={issMunicipalPct} onChange={(e) => setIssMunicipalPct(e.target.value)}
+            placeholder={L("ISS do município (2 a 5%, padrão 5%)", "Municipal ISS (2 to 5%, default 5%)", "ISS del municipio (2 a 5%, por defecto 5%)")}
+            className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" }} />
+        )}
+      </div>
+    </CanvasBox>
+  );
+}
+
 export default function IATributariaPage() {
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
@@ -140,8 +183,34 @@ export default function IATributariaPage() {
   const [toast, setToast] = useState<{ msg: string; tipo: "info" | "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "info" | "erro" | "ok" = "info") { setToast({ msg, tipo }); setTimeout(() => setToast(null), 3000); }
 
+  // Atividade fiscal e ISS municipal: não existe campo no cadastro da
+  // empresa hoje (confirmado — precisaria de migração, fora do escopo desta
+  // correção). Enquanto isso não existe, ficam como escolha manual nesta
+  // tela, nunca um valor chutado sem avisar — vazio = "não confirmada",
+  // e o simulador/carga real usam o default documentado (Serviços 32%,
+  // ISS 5%) mostrando aviso explícito na tela.
+  const [atividadeFiscal, setAtividadeFiscal] = useState<AtividadeFiscal | "">("");
+  const [issMunicipalPct, setIssMunicipalPct] = useState("");
+
   useEffect(() => { inicializar(); }, []);
   useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [mensagens, chatCarregando]);
+
+  // Recalcula score/simulação/carga/diagnóstico sempre que os dados fiscais
+  // OU a atividade/ISS escolhidos mudarem — sem precisar recarregar do
+  // banco. Separado do carregamento de histórico do chat (que só roda uma
+  // vez, não deve reiniciar toda vez que o dono troca a atividade no
+  // dropdown).
+  useEffect(() => {
+    if (!dados) return;
+    const atividade = atividadeFiscal || undefined;
+    const issPct = issMunicipalPct ? Number(issMunicipalPct) : undefined;
+    const sf = calcularScoreFiscal(dados);
+    const sims = simularRegimes(dados, atividade, issPct);
+    const c = calcularCargaTributaria(dados, atividade, issPct);
+    const eco = calcularEconomiaTributaria(dados);
+    const diag = gerarDiagnosticoFiscal(dados, sf, c, eco, lang);
+    setScoreFiscal(sf); setSimulacoes(sims); setCarga(c); setEconomia(eco); setDiagnostico(diag);
+  }, [dados, atividadeFiscal, issMunicipalPct, lang]);
 
   async function inicializar() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -156,14 +225,10 @@ export default function IATributariaPage() {
       const empId = await obterEmpresaAtiva();
       setEmpresaId(empId);
       const d = await carregarDadosFiscais(uid, empId);
-      const sf = calcularScoreFiscal(d);
-      const sims = simularRegimes(d);
-      const c = calcularCargaTributaria(d);
-      const eco = calcularEconomiaTributaria(d);
       const alertas = gerarAlertasReforma();
-      const diag = gerarDiagnosticoFiscal(d, sf, c, eco, lang);
+      const sf = calcularScoreFiscal(d);
 
-      setDados(d); setScoreFiscal(sf); setSimulacoes(sims); setCarga(c); setEconomia(eco); setAlertasReforma(alertas); setDiagnostico(diag);
+      setDados(d); setAlertasReforma(alertas);
 
       const hist = await carregarHistoricoTrib(uid);
       if (hist.length > 0) {
@@ -371,6 +436,10 @@ export default function IATributariaPage() {
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.simuladorTitulo}</p>
                 <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.simuladorDesc}</p>
               </CanvasBox>
+              <ControleAtividadeFiscal
+                lang={lang} atividadeFiscal={atividadeFiscal} setAtividadeFiscal={setAtividadeFiscal}
+                issMunicipalPct={issMunicipalPct} setIssMunicipalPct={setIssMunicipalPct}
+              />
               {simulacoes.map((s, i) => {
                 const isAtual = s.regime === (dados.regime_atual || "").toLowerCase();
                 const cor = i === 0 && s.elegivel ? "#34d399" : s.elegivel ? "#6ab0ff" : "#5a7a9a";
@@ -404,6 +473,10 @@ export default function IATributariaPage() {
           {/* CARGA TRIBUTÁRIA */}
           {aba === "carga" && carga && (
             <div className="space-y-4">
+              <ControleAtividadeFiscal
+                lang={lang} atividadeFiscal={atividadeFiscal} setAtividadeFiscal={setAtividadeFiscal}
+                issMunicipalPct={issMunicipalPct} setIssMunicipalPct={setIssMunicipalPct}
+              />
               <CanvasBox cor={carga.carga_pct > 15 ? "#fbbf24" : "#34d399"}>
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.cargaTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.cargaDesc}</p>

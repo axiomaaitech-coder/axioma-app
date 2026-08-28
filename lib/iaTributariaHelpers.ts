@@ -126,10 +126,86 @@ export async function carregarDadosFiscais(userId: string, empresaId: string | n
 }
 
 // ============================================================================
+// LUCRO PRESUMIDO — FONTE CANÔNICA ÚNICA
+// Regra 2026 confirmada: presunção por atividade sobre receita bruta
+// (Comércio/Indústria 8%, Serviços 32%, Revenda de combustível 1,6%) — se a
+// empresa tiver mais de uma atividade, cada percentual se aplica só à
+// receita daquela atividade (fora do escopo desta função: ela recebe uma
+// receita já segregada por atividade). Sobre a base presumida: IRPJ 15% +
+// adicional de 10% sobre o excedente de R$60.000/TRIMESTRE (aproximado aqui
+// por R$20.000/mês — mesma convenção já usada no bloco de Lucro Real deste
+// arquivo, que soma por mês; não acumula histórico trimestral real). CSLL
+// 9%. PIS/COFINS cumulativo 3,65% direto sobre a receita bruta. ISS só pra
+// Serviços, alíquota municipal (2% a 5%) — não existe campo de atividade
+// nem de alíquota de ISS no cadastro da empresa hoje (confirmado: `setor`
+// é usado só pro benchmark do Dashboard, não é a mesma coisa), por isso os
+// dois são parâmetro explícito, nunca lido do banco. Sem eles, os defaults
+// abaixo são usados e sinalizados em atividadePresumida/issPresumido — quem
+// chama decide se avisa a tela, esta função nunca decide sozinha.
+// Usada por simularRegimes, calcularCargaTributaria e calcularImpostoRegime
+// — as 3 fórmulas divergentes que existiam viraram uma só.
+// ============================================================================
+
+export type AtividadeFiscal = "comercio_industria" | "servicos" | "revenda_combustivel";
+
+export const PRESUNCAO_POR_ATIVIDADE: Record<AtividadeFiscal, number> = {
+  comercio_industria: 0.08,
+  servicos: 0.32,
+  revenda_combustivel: 0.016,
+};
+
+const ATIVIDADE_FISCAL_DEFAULT: AtividadeFiscal = "servicos";
+const ISS_MUNICIPAL_DEFAULT_PCT = 5; // teto legal comum — mesma referência que já existia antes, agora explícita e sinalizada
+
+export type ResultadoLucroPresumido = {
+  irpj: number;
+  csll: number;
+  pis: number;
+  cofins: number;
+  iss: number;
+  total: number;
+  aliquotaEfetivaPct: number;
+  atividade: AtividadeFiscal;
+  atividadePresumida: boolean; // true = atividade não veio informada, usamos o default
+  issPresumido: boolean; // true = alíquota de ISS não veio informada, usamos o default (só relevante se atividade === "servicos")
+};
+
+export function calcularLucroPresumido(
+  receitaMensal: number,
+  atividade?: AtividadeFiscal,
+  aliquotaIssMunicipalPct?: number,
+  aplicarAdicionalTrimestral: boolean = true,
+): ResultadoLucroPresumido {
+  const rb = Math.max(0, receitaMensal || 0);
+  const atividadePresumida = !atividade;
+  const atividadeReal = atividade || ATIVIDADE_FISCAL_DEFAULT;
+  const ehServico = atividadeReal === "servicos";
+  const issPresumido = ehServico && (aliquotaIssMunicipalPct === undefined || aliquotaIssMunicipalPct === null);
+  const issPct = ehServico ? (aliquotaIssMunicipalPct ?? ISS_MUNICIPAL_DEFAULT_PCT) : 0;
+
+  const basePresumida = rb * PRESUNCAO_POR_ATIVIDADE[atividadeReal];
+  const limiteMensalAdicional = 60000 / 3; // R$60mil/trimestre aproximado por mês
+  const irpj = basePresumida * 0.15 + (aplicarAdicionalTrimestral ? Math.max(0, basePresumida - limiteMensalAdicional) * 0.10 : 0);
+  const csll = basePresumida * 0.09;
+  const pis = rb * 0.0065;
+  const cofins = rb * 0.03;
+  const iss = rb * (issPct / 100);
+  const total = irpj + csll + pis + cofins + iss;
+
+  return {
+    irpj, csll, pis, cofins, iss, total,
+    aliquotaEfetivaPct: rb > 0 ? (total / rb) * 100 : 0,
+    atividade: atividadeReal,
+    atividadePresumida,
+    issPresumido,
+  };
+}
+
+// ============================================================================
 // SIMULADOR DE REGIME TRIBUTÁRIO
 // ============================================================================
 
-export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
+export function simularRegimes(dados: DadosFiscais, atividade?: AtividadeFiscal, aliquotaIssMunicipalPct?: number): SimulacaoRegime[] {
   const rb12 = dados.receita_bruta_12m || dados.receita_bruta_mensal * 12;
   const rbMes = dados.receita_bruta_mensal;
   const resultados: SimulacaoRegime[] = [];
@@ -170,26 +246,19 @@ export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
     motivo_inelegivel: simplesElegivel ? undefined : "Faturamento acima de R$ 4,8M/ano",
   });
 
-  // 3. Lucro Presumido
+  // 3. Lucro Presumido — fonte canônica calcularLucroPresumido (regra 2026:
+  // presunção por atividade, adicional trimestral, ISS parametrizado).
   const presumidoElegivel = rb12 <= 78000000;
-  const presuncao = 0.32; // serviços
-  const basePresumida = rbMes * presuncao;
-  const irpj = basePresumida * 0.15;
-  const csll = basePresumida * 0.09;
-  const pis = rbMes * 0.0065;
-  const cofins = rbMes * 0.03;
-  const iss = rbMes * 0.05; // média ISS serviços
-  const presumidoMensal = irpj + csll + pis + cofins + iss;
-  const aliqPresumido = rbMes > 0 ? (presumidoMensal / rbMes) * 100 : 0;
+  const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct);
   resultados.push({
     regime: "presumido", regime_label: "Lucro Presumido",
-    imposto_mensal: Math.round(presumidoMensal),
-    imposto_anual: Math.round(presumidoMensal * 12),
-    aliquota_efetiva: parseFloat(aliqPresumido.toFixed(2)),
-    economia_vs_atual: Math.round((impostoAtual - presumidoMensal) * 12),
-    detalhamento: `IRPJ ${(irpj).toFixed(0)} + CSLL ${(csll).toFixed(0)} + PIS ${(pis).toFixed(0)} + COFINS ${(cofins).toFixed(0)} + ISS ${(iss).toFixed(0)}.`,
-    detalhamento_en: `IRPJ ${(irpj).toFixed(0)} + CSLL ${(csll).toFixed(0)} + PIS ${(pis).toFixed(0)} + COFINS ${(cofins).toFixed(0)} + ISS ${(iss).toFixed(0)}.`,
-    detalhamento_es: `IRPJ ${(irpj).toFixed(0)} + CSLL ${(csll).toFixed(0)} + PIS ${(pis).toFixed(0)} + COFINS ${(cofins).toFixed(0)} + ISS ${(iss).toFixed(0)}.`,
+    imposto_mensal: Math.round(lp.total),
+    imposto_anual: Math.round(lp.total * 12),
+    aliquota_efetiva: parseFloat(lp.aliquotaEfetivaPct.toFixed(2)),
+    economia_vs_atual: Math.round((impostoAtual - lp.total) * 12),
+    detalhamento: `IRPJ ${lp.irpj.toFixed(0)} + CSLL ${lp.csll.toFixed(0)} + PIS ${lp.pis.toFixed(0)} + COFINS ${lp.cofins.toFixed(0)}${lp.iss > 0 ? ` + ISS ${lp.iss.toFixed(0)}` : ""}. Presunção: ${lp.atividade === "servicos" ? "Serviços 32%" : lp.atividade === "comercio_industria" ? "Comércio/Indústria 8%" : "Revenda de combustível 1,6%"}${lp.atividadePresumida ? " (não confirmada — confirme a atividade da empresa)" : ""}.`,
+    detalhamento_en: `IRPJ ${lp.irpj.toFixed(0)} + CSLL ${lp.csll.toFixed(0)} + PIS ${lp.pis.toFixed(0)} + COFINS ${lp.cofins.toFixed(0)}${lp.iss > 0 ? ` + ISS ${lp.iss.toFixed(0)}` : ""}. Presumption: ${lp.atividade === "servicos" ? "Services 32%" : lp.atividade === "comercio_industria" ? "Trade/Industry 8%" : "Fuel resale 1.6%"}${lp.atividadePresumida ? " (unconfirmed — confirm the company's activity)" : ""}.`,
+    detalhamento_es: `IRPJ ${lp.irpj.toFixed(0)} + CSLL ${lp.csll.toFixed(0)} + PIS ${lp.pis.toFixed(0)} + COFINS ${lp.cofins.toFixed(0)}${lp.iss > 0 ? ` + ISS ${lp.iss.toFixed(0)}` : ""}. Presunción: ${lp.atividade === "servicos" ? "Servicios 32%" : lp.atividade === "comercio_industria" ? "Comercio/Industria 8%" : "Reventa de combustible 1,6%"}${lp.atividadePresumida ? " (no confirmada — confirme la actividad de la empresa)" : ""}.`,
     elegivel: presumidoElegivel,
   });
 
@@ -220,14 +289,25 @@ export function simularRegimes(dados: DadosFiscais): SimulacaoRegime[] {
 
 // Exportada para reuso no DRE (calcula a dedução/imposto real da empresa a partir
 // do regime tributário, em vez de um percentual fixo chutado).
-export function calcularImpostoRegime(regime: string, rb12: number, rbMes: number): number {
+export function calcularImpostoRegime(
+  regime: string,
+  rb12: number,
+  rbMes: number,
+  atividade?: AtividadeFiscal,
+  aliquotaIssMunicipalPct?: number,
+): number {
   const r = (regime || "").toLowerCase();
   if (r === "mei") return dasMensalPorCategoria("Serviços");
   if (r.includes("simples")) {
     const aliq = calcularAliquotaSimples(rb12, "III");
     return rbMes * (aliq / 100);
   }
-  if (r.includes("presumido")) return rbMes * 0.1333;
+  // Fonte canônica calcularLucroPresumido — sem atividade/ISS informados
+  // (nenhum dos ~14 chamadores desta função hoje tem isso disponível),
+  // usa os mesmos defaults documentados (Serviços 32%, ISS 5%) que o
+  // código antigo já assumia, mas agora com o adicional trimestral
+  // aplicado corretamente e a mesma fórmula do simulador/carga real.
+  if (r.includes("presumido")) return calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct).total;
   if (r.includes("real")) return rbMes * 0.15;
   // Sem regime: estima como simples
   const aliq = calcularAliquotaSimples(rb12, "III");
@@ -269,7 +349,11 @@ export function calcularAliquotaSimples(rb12: number, anexo: string): number {
 // CARGA TRIBUTÁRIA REAL
 // ============================================================================
 
-export function calcularCargaTributaria(dados: DadosFiscais): {
+export function calcularCargaTributaria(
+  dados: DadosFiscais,
+  atividade?: AtividadeFiscal,
+  aliquotaIssMunicipalPct?: number,
+): {
   carga_pct: number; imposto_mensal: number; imposto_anual: number;
   composicao: { nome: string; valor: number; pct: number }[];
 } {
@@ -287,13 +371,16 @@ export function calcularCargaTributaria(dados: DadosFiscais): {
     const das = rbMes * (aliq / 100);
     composicao = [{ nome: "DAS Simples", valor: Math.round(das), pct: aliq }];
   } else if (regime.includes("presumido")) {
-    const base = rbMes * 0.32;
+    // Fonte canônica calcularLucroPresumido — mesma regra do simulador
+    // (presunção por atividade + adicional trimestral + ISS parametrizado).
+    const lp = calcularLucroPresumido(rbMes, atividade, aliquotaIssMunicipalPct);
+    const pct = (v: number) => (rbMes > 0 ? parseFloat(((v / rbMes) * 100).toFixed(2)) : 0);
     composicao = [
-      { nome: "IRPJ", valor: Math.round(base * 0.15), pct: parseFloat(((base * 0.15 / rbMes) * 100).toFixed(2)) },
-      { nome: "CSLL", valor: Math.round(base * 0.09), pct: parseFloat(((base * 0.09 / rbMes) * 100).toFixed(2)) },
-      { nome: "PIS", valor: Math.round(rbMes * 0.0065), pct: 0.65 },
-      { nome: "COFINS", valor: Math.round(rbMes * 0.03), pct: 3 },
-      { nome: "ISS", valor: Math.round(rbMes * 0.05), pct: 5 },
+      { nome: "IRPJ", valor: Math.round(lp.irpj), pct: pct(lp.irpj) },
+      { nome: "CSLL", valor: Math.round(lp.csll), pct: pct(lp.csll) },
+      { nome: "PIS", valor: Math.round(lp.pis), pct: 0.65 },
+      { nome: "COFINS", valor: Math.round(lp.cofins), pct: 3 },
+      ...(lp.iss > 0 ? [{ nome: "ISS", valor: Math.round(lp.iss), pct: pct(lp.iss) }] : []),
     ];
   } else {
     const aliq = calcularAliquotaSimples(rb12, "III");
