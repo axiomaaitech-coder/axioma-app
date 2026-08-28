@@ -16,7 +16,9 @@ import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } fro
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
-import { rankingScoreAxioma, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
+import { rankingScoreAxioma, inflacaoFornecedor, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
+import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
+import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, type Lancamento } from "../../../lib/cfoCore";
 import {
   type ContaPagar, type ContaPagarDocumento, type NfeJaImportada, type ConfigAp, type DuplicataDetectada,
   listarContasPagar, criarContaPagar, editarContaPagar, darBaixaContaPagar, estornarBaixaContaPagar, excluirContaPagar,
@@ -359,6 +361,121 @@ export default function ContasPagarPage() {
     setAba("central");
     if (fornecedorId) setFiltroFornecedor(fornecedorId);
   }
+
+  // ========== ENTREGA 3, COMMIT 6 — SPEND ANALYTICS ==========
+  const SEM_CATEGORIA_KEY = "__sem_categoria__";
+  const SEM_FORNECEDOR_KEY = "__sem_fornecedor__";
+
+  // 1) Por categoria — groupBy inline sobre as contas já carregadas, mesmo
+  // padrão já usado no Dashboard/DashFinanceiro (sem função nova em lib).
+  const spendPorCategoria = useMemo(() => {
+    const totais = new Map<string, number>();
+    contas.forEach((c) => {
+      const chave = c.categoria || SEM_CATEGORIA_KEY;
+      totais.set(chave, (totais.get(chave) || 0) + (c.valor_total || 0));
+    });
+    const totalGeral = contas.reduce((s, c) => s + (c.valor_total || 0), 0);
+    return Array.from(totais.entries())
+      .map(([chave, valor]) => ({
+        chave,
+        label: chave === SEM_CATEGORIA_KEY ? L("Sem categoria", "No category", "Sin categoría") : cat(chave),
+        valor,
+        pct: totalGeral > 0 ? Math.round((valor / totalGeral) * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.valor - a.valor);
+  }, [contas, idioma]);
+
+  // 2) Por fornecedor — reaproveita 100% inflacaoFornecedor (fornecedorHelpers.ts,
+  // já em produção em Fornecedores) pra classificar tendência do ticket médio.
+  // Mesmo limiar de ±1% do compararPeriodos (cfoCore.ts) pra decidir "estável".
+  type TendenciaFornecedor = "subindo" | "caindo" | "estavel" | "sem_dados";
+  const spendPorFornecedor = useMemo(() => {
+    const periodoAtual = resolverPeriodo("mes_atual");
+    const periodoAnt = periodoAnterior(periodoAtual);
+    const totais = new Map<string, number>();
+    contas.forEach((c) => {
+      const chave = c.fornecedor_id || SEM_FORNECEDOR_KEY;
+      totais.set(chave, (totais.get(chave) || 0) + (c.valor_total || 0));
+    });
+    return Array.from(totais.entries())
+      .map(([chave, valor]) => {
+        if (chave === SEM_FORNECEDOR_KEY) {
+          return { fornecedorId: null as string | null, nome: L("Sem fornecedor", "No supplier", "Sin proveedor"), valor, tendencia: "sem_dados" as TendenciaFornecedor, variacaoPct: 0 };
+        }
+        const contasDoForn = contas.filter((c) => c.fornecedor_id === chave);
+        const infl = inflacaoFornecedor(contasDoForn, periodoAtual, periodoAnt);
+        const tendencia: TendenciaFornecedor = !infl.amostraSuficiente ? "sem_dados" : Math.abs(infl.variacaoPct) < 1 ? "estavel" : infl.variacaoPct > 0 ? "subindo" : "caindo";
+        return { fornecedorId: chave, nome: nomeFornecedor(chave), valor, tendencia, variacaoPct: infl.variacaoPct };
+      })
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, 10);
+  }, [contas, fornecedores, idioma]);
+
+  // 3) Por centro de custo — reaproveita carregarLancamentosOrigem +
+  // custosPorCentroReal (centroCustoHelpers.ts, já blindado por empresa_id
+  // nesta mesma auditoria) — contas_pagar já é uma das origens que esse motor
+  // cruza com rateio, nenhuma consulta nova.
+  const [origensCentroCusto, setOrigensCentroCusto] = useState<LancamentoOrigem[]>([]);
+  const [rateiosCentroCusto, setRateiosCentroCusto] = useState<RateioRow[]>([]);
+  const [carregandoSpendCentro, setCarregandoSpendCentro] = useState(false);
+
+  useEffect(() => {
+    if (aba !== "inteligencia" || !empresaId) return;
+    let ativo = true;
+    setCarregandoSpendCentro(true);
+    Promise.all([
+      carregarLancamentosOrigem(empresaId, "contas_pagar"),
+      carregarRateios(empresaId),
+    ]).then(([origens, rateios]) => {
+      if (!ativo) return;
+      setOrigensCentroCusto(origens);
+      setRateiosCentroCusto(rateios);
+      setCarregandoSpendCentro(false);
+    });
+    return () => { ativo = false; };
+  }, [aba, empresaId]);
+
+  const spendPorCentroCusto = useMemo(() => {
+    const porCentro = custosPorCentroReal(origensCentroCusto, rateiosCentroCusto);
+    // custosPorCentroReal só soma quem TEM centro atribuído (direto ou via
+    // rateio) — o restante (sem centro e sem rateio) fica de fora dela por
+    // padrão em todo o módulo de Centro de Custos; somamos à parte aqui só
+    // pra não esconder gasto nenhum do total do painel.
+    const idsComRateio = new Set(rateiosCentroCusto.map((r) => `${r.origem_tabela}:${r.origem_id}`));
+    const semCentro = origensCentroCusto
+      .filter((o) => !o.centro_custo_id && !idsComRateio.has(`${o.tabela}:${o.id}`))
+      .reduce((s, o) => s + o.valor, 0);
+    const totalGeral = Object.values(porCentro).reduce((s, v) => s + v, 0) + semCentro;
+    const linhas = Object.entries(porCentro).map(([centroId, valor]) => ({
+      centroId, nome: centrosCusto.find((c) => c.id === centroId)?.nome || centroId, valor,
+      pct: totalGeral > 0 ? Math.round((valor / totalGeral) * 1000) / 10 : 0,
+    }));
+    if (semCentro > 0) {
+      linhas.push({ centroId: "", nome: L("Sem centro de custo", "No cost center", "Sin centro de costo"), valor: semCentro, pct: totalGeral > 0 ? Math.round((semCentro / totalGeral) * 1000) / 10 : 0 });
+    }
+    return linhas.sort((a, b) => b.valor - a.valor);
+  }, [origensCentroCusto, rateiosCentroCusto, centrosCusto, idioma]);
+
+  // 4) Tendência — reaproveita 100% serieRolling (cfoCore.ts, mesmo motor do
+  // Dashboard). Só o rótulo do mês é remontado aqui pra respeitar o idioma
+  // (serieRolling sempre devolve o nome do mês em PT).
+  const MESES_TENDENCIA = 12;
+  const tendenciaMensal = useMemo(() => {
+    const lancamentos: Lancamento[] = contas
+      .filter((c) => c.data_emissao || c.data_vencimento)
+      .map((c) => ({ valor: c.valor_total || 0, data: (c.data_emissao || c.data_vencimento) as string }));
+    const valores = serieRolling(lancamentos, MESES_TENDENCIA).map((b) => b.value);
+    const hojeRef = new Date();
+    const nomesMes = mesesPorLang(idioma);
+    const labels: string[] = [];
+    for (let i = MESES_TENDENCIA - 1; i >= 0; i--) {
+      const d = new Date(hojeRef.getFullYear(), hojeRef.getMonth() - i, 1);
+      labels.push(nomesMes[d.getMonth()]);
+    }
+    return labels.map((label, i) => ({ label, valor: valores[i] || 0 }));
+  }, [contas, idioma]);
+
+  const maiorValorTendencia = Math.max(1, ...tendenciaMensal.map((t) => t.valor));
 
   function alternarProximaAPagar(id: string) {
     setProximasAPagar((prev) => {
@@ -1368,6 +1485,100 @@ export default function ContasPagarPage() {
                 </div>
               )}
             </div>
+          </CanvasBox>
+
+          {/* Card Análise de Gasto (Entrega 3, Commit 6 — Spend Analytics) */}
+          <CanvasBox cor={AZUL}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+              <Landmark size={18} style={{ color: AZUL }} />
+              {L("Análise de Gasto", "Spend Analytics", "Análisis de Gasto")}
+            </h3>
+
+            {contas.length === 0 ? (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Sem contas suficientes pra analisar ainda.", "Not enough bills to analyze yet.", "Sin cuentas suficientes para analizar todavía.")}</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1) Por categoria */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Por Categoria", "By Category", "Por Categoría")}</h4>
+                  <div className="space-y-1.5">
+                    {spendPorCategoria.map((s) => (
+                      <div key={s.chave}>
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span style={{ color: "#c8d8f0" }}>{s.label}</span>
+                          <span style={{ color: CINZA }}>{fmt(s.valor)} ({s.pct}%)</span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, s.pct)}%`, background: AZUL }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2) Por fornecedor */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Por Fornecedor (Top 10)", "By Supplier (Top 10)", "Por Proveedor (Top 10)")}</h4>
+                  <div className="space-y-1.5">
+                    {spendPorFornecedor.map((s) => (
+                      <div key={s.fornecedorId || "sem-fornecedor"} className="flex items-center justify-between text-xs">
+                        <span className="truncate flex-1" style={{ color: "#c8d8f0" }}>{s.nome}</span>
+                        <span className="flex-shrink-0 ml-2" style={{ color: CINZA }}>{fmt(s.valor)}</span>
+                        <span className="flex-shrink-0 ml-2 px-1.5 py-0.5 rounded font-bold"
+                          style={{
+                            color: s.tendencia === "subindo" ? VERMELHO : s.tendencia === "caindo" ? VERDE : CINZA,
+                            background: s.tendencia === "subindo" ? `${VERMELHO}15` : s.tendencia === "caindo" ? `${VERDE}15` : "rgba(255,255,255,0.04)",
+                          }}
+                          title={L("Tendência do ticket médio (mês atual vs. anterior)", "Average ticket trend (this month vs. last)", "Tendencia del ticket promedio (mes actual vs. anterior)")}>
+                          {s.tendencia === "subindo" ? "↑" : s.tendencia === "caindo" ? "↓" : "–"}
+                          {s.tendencia !== "sem_dados" && s.tendencia !== "estavel" ? ` ${Math.abs(Math.round(s.variacaoPct))}%` : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3) Por centro de custo */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Por Centro de Custo", "By Cost Center", "Por Centro de Costo")}</h4>
+                  {carregandoSpendCentro ? (
+                    <p className="text-xs" style={{ color: CINZA }}>{L("Calculando...", "Calculating...", "Calculando...")}</p>
+                  ) : spendPorCentroCusto.length === 0 ? (
+                    <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum gasto atribuído a centro de custo ainda.", "No spend assigned to a cost center yet.", "Ningún gasto asignado a un centro de costo todavía.")}</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {spendPorCentroCusto.map((s) => (
+                        <div key={s.centroId || "sem-centro"}>
+                          <div className="flex justify-between text-xs mb-0.5">
+                            <span style={{ color: "#c8d8f0" }}>{s.nome}</span>
+                            <span style={{ color: CINZA }}>{fmt(s.valor)} ({s.pct}%)</span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                            <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, s.pct)}%`, background: AZUL }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4) Tendência mensal */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Evolução do Gasto (12 meses)", "Spend Trend (12 months)", "Evolución del Gasto (12 meses)")}</h4>
+                  <div className="flex items-end gap-1" style={{ height: "80px" }}>
+                    {tendenciaMensal.map((t, i) => (
+                      <div key={i} className="flex-1 rounded-t" title={`${t.label}: ${fmt(t.valor)}`}
+                        style={{ height: `${Math.max(2, (t.valor / maiorValorTendencia) * 100)}%`, background: `${AZUL}80`, minWidth: "4px" }} />
+                    ))}
+                  </div>
+                  <div className="flex justify-between text-[9px] mt-1" style={{ color: CINZA }}>
+                    <span>{tendenciaMensal[0]?.label}</span>
+                    <span>{tendenciaMensal[tendenciaMensal.length - 1]?.label}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </CanvasBox>
         </div>
       )}
