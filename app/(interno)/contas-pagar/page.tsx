@@ -18,7 +18,7 @@ import { parseXMLNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
-import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, type Lancamento } from "../../../lib/cfoCore";
+import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
 import {
   type ContaPagar, type ContaPagarDocumento, type NfeJaImportada, type ConfigAp, type DuplicataDetectada,
   listarContasPagar, criarContaPagar, editarContaPagar, darBaixaContaPagar, estornarBaixaContaPagar, excluirContaPagar,
@@ -476,6 +476,51 @@ export default function ContasPagarPage() {
   }, [contas, idioma]);
 
   const maiorValorTendencia = Math.max(1, ...tendenciaMensal.map((t) => t.valor));
+
+  // ========== ENTREGA 4, COMMIT 1 — FRAUD & ANOMALY ENGINE (por regra, sem
+  // IA). Reaproveita 100% detectarAnomaliasHistoricas (cfoCore.ts) — mesma
+  // função já usada em Fornecedores sobre esta mesma tabela, mesmo
+  // mapeamento ContaPagar→Lancamento do Commit 6. Zero função nova. Sempre
+  // ALERTA pra revisar, nunca afirmação de erro — pode ter explicação
+  // legítima (reajuste combinado, nota emitida em duplicidade por engano
+  // do próprio fornecedor, etc.). Ângulo diferente do Commit 4 (Cobranças
+  // Acima da Média): aquele compara fornecedor contra os outros da mesma
+  // categoria; este compara um lançamento contra o PRÓPRIO histórico (pela
+  // descrição normalizada) — detecta inclusive quem não tem nenhum outro
+  // fornecedor comparável na categoria pra entrar no Commit 4.
+  const anomaliasContasPagar = useMemo(() => {
+    const lancamentos: Lancamento[] = contas
+      .filter((c) => c.data_emissao || c.data_vencimento)
+      .map((c) => ({ valor: c.valor_total || 0, data: (c.data_emissao || c.data_vencimento) as string, categoria: c.categoria || undefined, status: c.status || undefined, descricao: c.descricao }));
+    return detectarAnomaliasHistoricas(lancamentos);
+  }, [contas]);
+
+  // Contagem de ocorrências por descrição — só pra mostrar "com base em N
+  // lançamentos" na explicação (transparência). Mesma normalização que a
+  // própria função usa pra agrupar, não é um agrupamento novo/paralelo.
+  const contagemPorDescricaoAnomalia = useMemo(() => {
+    const m = new Map<string, number>();
+    contas.forEach((c) => {
+      if (!c.data_emissao && !c.data_vencimento) return;
+      const chave = normalizarTexto(c.descricao || "");
+      if (!chave) return;
+      m.set(chave, (m.get(chave) || 0) + 1);
+    });
+    return m;
+  }, [contas]);
+
+  const anomaliasAcimaMedia = anomaliasContasPagar.filter((a) => a.tipo === "acima_media");
+  const anomaliasAumentoRecorrente = anomaliasContasPagar.filter((a) => a.tipo === "aumento_recorrente");
+
+  function percentualAnomalia(a: AnomaliaHistorica): number | null {
+    if (a.valorReferencia <= 0) return null;
+    return Math.round(((a.valorAtual - a.valorReferencia) / a.valorReferencia) * 100);
+  }
+
+  function revisarPorDescricaoNoCentral(descricao: string) {
+    setAba("central");
+    setBusca(descricao);
+  }
 
   function alternarProximaAPagar(id: string) {
     setProximasAPagar((prev) => {
@@ -1576,6 +1621,90 @@ export default function ContasPagarPage() {
                     <span>{tendenciaMensal[0]?.label}</span>
                     <span>{tendenciaMensal[tendenciaMensal.length - 1]?.label}</span>
                   </div>
+                </div>
+              </div>
+            )}
+          </CanvasBox>
+
+          {/* Card Pontos de Atenção (Entrega 4, Commit 1 — Fraud & Anomaly Engine) */}
+          <CanvasBox cor={AMBAR}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+              <AlertTriangle size={18} style={{ color: AMBAR }} />
+              {L("Pontos de Atenção", "Points to Review", "Puntos de Atención")}
+            </h3>
+            <p className="text-xs mb-3" style={{ color: CINZA }}>
+              {L("Cada item aqui compara um lançamento com o PRÓPRIO histórico (diferente da Recuperação de Valor, que compara fornecedores entre si). Pode ter explicação legítima — reajuste combinado, nota emitida errada pelo fornecedor, etc. É só um alerta pra revisar, nunca uma afirmação de erro.",
+                "Each item here compares one bill against its OWN history (different from Value Recovery, which compares suppliers against each other). There may be a legitimate explanation — an agreed price adjustment, an invoice the supplier issued incorrectly, etc. It's only a heads-up to review, never a claim of a mistake.",
+                "Cada ítem aquí compara un lanzamiento con su PROPIO historial (diferente de Recuperación de Valor, que compara proveedores entre sí). Puede tener una explicación legítima — reajuste acordado, factura emitida por error del proveedor, etc. Es solo una alerta para revisar, nunca una afirmación de error.")}
+            </p>
+
+            {anomaliasContasPagar.length === 0 ? (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Nenhum ponto de atenção encontrado — histórico ainda curto ou tudo dentro do padrão.", "No points to review found — history still short or everything within the usual pattern.", "Ningún punto de atención encontrado — historial todavía corto o todo dentro del patrón.")}</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Muito acima do histórico */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                    {L("Muito Acima do Histórico", "Well Above History", "Muy Por Encima del Historial")}
+                  </h4>
+                  {anomaliasAcimaMedia.length === 0 ? (
+                    <p className="text-xs" style={{ color: CINZA }}>{L("Nada fora do padrão aqui.", "Nothing out of pattern here.", "Nada fuera de patrón aquí.")}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {anomaliasAcimaMedia.map((a, i) => {
+                        const pct = percentualAnomalia(a);
+                        const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
+                        return (
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{a.descricao}</p>
+                              <p className="text-xs" style={{ color: CINZA }}>
+                                {L(`${fmt(a.valorAtual)}${pct !== null ? ` está ${pct}% acima` : " acima"} da média histórica desta descrição (${fmt(a.valorReferencia)}), com base em ${n} lançamento(s).`,
+                                  `${fmt(a.valorAtual)}${pct !== null ? ` is ${pct}% above` : " above"} this description's historical average (${fmt(a.valorReferencia)}), based on ${n} bill(s).`,
+                                  `${fmt(a.valorAtual)}${pct !== null ? ` está ${pct}% por encima` : " por encima"} del promedio histórico de esta descripción (${fmt(a.valorReferencia)}), con base en ${n} cuenta(s).`)}
+                              </p>
+                            </div>
+                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                              {L("Revisar", "Review", "Revisar")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Aumento silencioso */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                    {L("Aumento Silencioso (3 altas seguidas)", "Silent Increase (3 rises in a row)", "Aumento Silencioso (3 subidas seguidas)")}
+                  </h4>
+                  {anomaliasAumentoRecorrente.length === 0 ? (
+                    <p className="text-xs" style={{ color: CINZA }}>{L("Nenhuma subida recorrente encontrada.", "No recurring increase found.", "Ninguna subida recurrente encontrada.")}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {anomaliasAumentoRecorrente.map((a, i) => {
+                        const pct = percentualAnomalia(a);
+                        const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
+                        return (
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{a.descricao}</p>
+                              <p className="text-xs" style={{ color: CINZA }}>
+                                {L(`Subiu 3 vezes seguidas: de ${fmt(a.valorReferencia)} pra ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, com base em ${n} lançamento(s).`,
+                                  `Rose 3 times in a row: from ${fmt(a.valorReferencia)} to ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, based on ${n} bill(s).`,
+                                  `Subió 3 veces seguidas: de ${fmt(a.valorReferencia)} a ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, con base en ${n} cuenta(s).`)}
+                              </p>
+                            </div>
+                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                              {L("Revisar", "Review", "Revisar")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
