@@ -166,9 +166,9 @@ export async function gerarUrlDocumentoFornecedor(path: string, segundos: number
 // CONTRATOS
 // ============================================================================
 
-export async function listarContratos(fornecedorId: string): Promise<FornecedorContrato[]> {
+export async function listarContratos(fornecedorId: string, empresaId: string): Promise<FornecedorContrato[]> {
   const { data } = await supabase.from("fornecedor_contratos").select("*")
-    .eq("fornecedor_id", fornecedorId).order("data_fim", { ascending: true, nullsFirst: false });
+    .eq("fornecedor_id", fornecedorId).eq("empresa_id", empresaId).order("data_fim", { ascending: true, nullsFirst: false });
   return data || [];
 }
 

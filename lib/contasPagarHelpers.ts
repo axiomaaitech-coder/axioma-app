@@ -5,7 +5,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
-import { calcStatus, precoAcimaMediaInterna, type FornecedorRow, type FornecedorPrecoAlto } from "./fornecedorHelpers";
+import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow, type FornecedorPrecoAlto, type FornecedorContrato } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, type EventoCaixa, type RupturaCaixa } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
@@ -1062,4 +1062,86 @@ export function avaliarDescontosComForecast(
     const veredicto: VeredictoAntecipacao = !rupturaAntesDoPrazo && saldoOk ? "seguro" : "aperta_caixa";
     return { ...d, veredicto, motivoSemDados: null, saldoProjetadoNoPrazo: ponto.saldoProjetadoPessimista };
   });
+}
+
+// ----------------------------------------------------------------------------
+// ENTREGA 4, COMMIT 3 — EVIDENCE GRAPH V1. Rastreabilidade de uma conta:
+// Fornecedor → Contrato → [Pedido] → [Recebimento] → Fatura → Pagamento →
+// Banco. Monta com dado que já existe — reaproveita listarContratos
+// (fornecedorHelpers.ts, corrigido nesta mesma entrega pra filtrar por
+// empresa), listarDocumentos e listarAuditoriaConta (já existem neste
+// arquivo). Pedido e Recebimento não têm tabela hoje (decisão PO-first
+// pendente, ver Commit 4 futuro) — aparecem como "não capturado", nunca
+// inventados. Zero schema novo, zero escrita.
+// ----------------------------------------------------------------------------
+
+export type EvidenciaFornecedor = { presente: boolean; nome: string };
+export type EvidenciaContrato = { status: "ativo" | "encerrado" | "sem_contrato"; descricao?: string | null; dataFim?: string | null; valorContratado?: number | null };
+export type EvidenciaNaoCapturada = { status: "nao_capturado" };
+export type EvidenciaFatura = { numeroNota: string | null; valorTotal: number; qtdDocumentosAnexados: number };
+export type EvidenciaPagamento = { status: "pago" | "pendente"; dataPagamento: string | null; valorPago: number; qtdEventosAuditoria: number };
+export type EvidenciaBanco = {
+  status: "reconciliado" | "nao_reconciliado" | "nao_conectado";
+  transacao: { descricao: string; valor: number; data: string } | null;
+};
+
+export type EvidenceGraphAp = {
+  contaId: string;
+  fornecedor: EvidenciaFornecedor;
+  contrato: EvidenciaContrato;
+  pedido: EvidenciaNaoCapturada;
+  recebimento: EvidenciaNaoCapturada;
+  fatura: EvidenciaFatura;
+  pagamento: EvidenciaPagamento;
+  banco: EvidenciaBanco;
+};
+
+export async function montarEvidenceGraph(
+  conta: ContaPagar,
+  fornecedorNome: string | null,
+  empresaId: string,
+): Promise<EvidenceGraphAp> {
+  const [contratos, documentos, auditoria, conexaoOF, transacaoLigada] = await Promise.all([
+    conta.fornecedor_id ? listarContratos(conta.fornecedor_id, empresaId) : Promise.resolve([] as FornecedorContrato[]),
+    listarDocumentos(conta.id, empresaId),
+    listarAuditoriaConta(conta.id, empresaId),
+    supabase.from("open_finance").select("id").eq("empresa_id", empresaId).limit(1),
+    supabase.from("of_transacoes").select("descricao, valor, data")
+      .eq("empresa_id", empresaId).eq("lancamento_tabela", "contas_pagar").eq("lancamento_id", conta.id).maybeSingle(),
+  ]);
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  // listarContratos já devolve ordenado por data_fim asc com indefinidos
+  // (data_fim null) por último — o último item da lista é o contrato mais
+  // relevante pra representar aqui (vigente, ou o mais recente encerrado).
+  const contratoRelevante = contratos[contratos.length - 1] || null;
+  const contrato: EvidenciaContrato = !contratoRelevante
+    ? { status: "sem_contrato" }
+    : {
+        status: !contratoRelevante.data_fim || contratoRelevante.data_fim >= hoje ? "ativo" : "encerrado",
+        descricao: contratoRelevante.descricao, dataFim: contratoRelevante.data_fim, valorContratado: contratoRelevante.valor_contratado,
+      };
+
+  const temConexaoOF = !!(conexaoOF.data && conexaoOF.data.length > 0);
+  const banco: EvidenciaBanco = !temConexaoOF
+    ? { status: "nao_conectado", transacao: null }
+    : transacaoLigada.data
+    ? { status: "reconciliado", transacao: { descricao: transacaoLigada.data.descricao, valor: Number(transacaoLigada.data.valor) || 0, data: transacaoLigada.data.data } }
+    : { status: "nao_reconciliado", transacao: null };
+
+  return {
+    contaId: conta.id,
+    fornecedor: { presente: !!conta.fornecedor_id, nome: fornecedorNome || "—" },
+    contrato,
+    pedido: { status: "nao_capturado" },
+    recebimento: { status: "nao_capturado" },
+    fatura: { numeroNota: conta.numero_nota || null, valorTotal: conta.valor_total, qtdDocumentosAnexados: documentos.length },
+    pagamento: {
+      status: conta.status === "pago" ? "pago" : "pendente",
+      dataPagamento: conta.data_pagamento || null,
+      valorPago: conta.valor_pago || 0,
+      qtdEventosAuditoria: auditoria.length,
+    },
+    banco,
+  };
 }

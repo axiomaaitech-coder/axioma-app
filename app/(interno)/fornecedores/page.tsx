@@ -917,8 +917,9 @@ export default function Fornecedores() {
     setEtapaCadastro(0);
     limparEdicaoItens();
     setModalForn(true);
+    if (!empresaId) return;
     const [ct, dc, cr, pr, it] = await Promise.all([
-      listarContatos(f.id), listarDocumentos(f.id), listarContratos(f.id), listarProdutos(f.id), listarInteracoes(f.id),
+      listarContatos(f.id), listarDocumentos(f.id), listarContratos(f.id, empresaId), listarProdutos(f.id), listarInteracoes(f.id),
     ]);
     setContatosForn(ct); setDocumentosForn(dc); setContratosForn(cr); setProdutosForn(pr); setInteracoesForn(it);
   };
@@ -1119,7 +1120,7 @@ export default function Fornecedores() {
 
   // ---------- CONTRATOS ----------
   const adicionarContrato = async () => {
-    if (!fornecedorAtualId || !novoContrato.descricao.trim()) return;
+    if (!fornecedorAtualId || !novoContrato.descricao.trim() || !empresaId) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const dados = {
@@ -1134,7 +1135,7 @@ export default function Fornecedores() {
     if (erro) { showToast(txt.erroSalvarContrato, "erro"); return; }
     setNovoContrato({ descricao: "", data_inicio: "", data_fim: "", renovacao_automatica: false, indice_reajuste: "", valor_contratado: "", valor_utilizado: "" });
     setEditandoContratoId(null);
-    setContratosForn(await listarContratos(fornecedorAtualId));
+    setContratosForn(await listarContratos(fornecedorAtualId, empresaId));
     carregarDados();
   };
   const editarContrato = (c: FornecedorContrato) => {
@@ -1153,7 +1154,7 @@ export default function Fornecedores() {
     const { erro } = await excluirContrato(id);
     if (erro) { showToast(txt.erroExcluirContrato, "erro"); return; }
     if (editandoContratoId === id) cancelarEdicaoContrato();
-    if (fornecedorAtualId) setContratosForn(await listarContratos(fornecedorAtualId));
+    if (fornecedorAtualId && empresaId) setContratosForn(await listarContratos(fornecedorAtualId, empresaId));
     carregarDados();
   };
 

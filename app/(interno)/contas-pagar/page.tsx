@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
-  TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight,
+  TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight, Link2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -35,6 +35,7 @@ import {
   detectarDescontosAproveitaveis, type DescontoAproveitavel,
   detectarDescontosPerdidos, type DescontoPerdido,
   avaliarDescontosComForecast, type DescontoComForecast,
+  montarEvidenceGraph, type EvidenceGraphAp,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -654,6 +655,22 @@ export default function ContasPagarPage() {
     })();
   }, [contaHistoricoId, empresaId]);
 
+  // ========== ENTREGA 4, COMMIT 3 — EVIDENCE GRAPH V1 ==========
+  const [contaRastreabilidade, setContaRastreabilidade] = useState<ContaPagar | null>(null);
+  const [evidenceGraph, setEvidenceGraph] = useState<EvidenceGraphAp | null>(null);
+  const [carregandoEvidenceGraph, setCarregandoEvidenceGraph] = useState(false);
+
+  async function abrirRastreabilidade(c: ContaPagar) {
+    if (!empresaId) return;
+    setContaRastreabilidade(c);
+    setEvidenceGraph(null);
+    setCarregandoEvidenceGraph(true);
+    const grafo = await montarEvidenceGraph(c, nomeFornecedor(c.fornecedor_id), empresaId);
+    setEvidenceGraph(grafo);
+    setCarregandoEvidenceGraph(false);
+  }
+  function fecharRastreabilidade() { setContaRastreabilidade(null); setEvidenceGraph(null); }
+
   function acaoLabel(acao: string): string {
     const mapa: Record<string, [string, string, string]> = {
       criou: ["Criou", "Created", "Creó"], editou: ["Editou", "Edited", "Editó"],
@@ -1193,6 +1210,7 @@ export default function ContasPagarPage() {
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(c.status)}</span>
                     <div className="flex items-center gap-2 flex-shrink-0 justify-end">
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexos", "Attachments", "Adjuntos")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirRastreabilidade(c)} title={L("Ver rastreabilidade", "View traceability", "Ver trazabilidad")} style={{ color: ROXO }}><Link2 size={15} /></motion.button>
                       {podeEditar && (
                         <>
                           {c.status !== "pago" && c.status !== "aguardando_aprovacao" && (
@@ -2210,6 +2228,125 @@ export default function ContasPagarPage() {
                           )}
                         </div>
                       ))}
+                    </div>
+                  )}
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL RASTREABILIDADE (Entrega 4, Commit 3 — Evidence Graph V1) ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {contaRastreabilidade && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
+                <CanvasBox cor={ROXO}>
+                  <div className="flex justify-between items-center mb-1">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><Link2 size={18} />{L("Rastreabilidade", "Traceability", "Trazabilidad")}</h3>
+                    </div>
+                    <button onClick={fecharRastreabilidade} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>{contaRastreabilidade.descricao} · {fmt(contaRastreabilidade.valor_total)}</p>
+
+                  {carregandoEvidenceGraph || !evidenceGraph ? (
+                    <p className="text-sm" style={{ color: CINZA }}>{L("Montando a cadeia de evidências...", "Assembling the evidence chain...", "Armando la cadena de evidencias...")}</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {/* 1. Fornecedor */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.fornecedor.presente ? VERDE : CINZA)}30` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.fornecedor.presente ? VERDE : CINZA }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Fornecedor", "Supplier", "Proveedor")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {evidenceGraph.fornecedor.presente ? evidenceGraph.fornecedor.nome : L("Sem fornecedor vinculado", "No supplier linked", "Sin proveedor vinculado")}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 2. Contrato */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.contrato.status === "ativo" ? VERDE : AMBAR)}30` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.contrato.status === "ativo" ? VERDE : evidenceGraph.contrato.status === "encerrado" ? AMBAR : CINZA }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Contrato", "Contract", "Contrato")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {evidenceGraph.contrato.status === "sem_contrato" && L("Nenhum contrato cadastrado pra este fornecedor", "No contract registered for this supplier", "Ningún contrato registrado para este proveedor")}
+                            {evidenceGraph.contrato.status === "ativo" && L(`Contrato vigente${evidenceGraph.contrato.descricao ? `: ${evidenceGraph.contrato.descricao}` : ""}`, `Active contract${evidenceGraph.contrato.descricao ? `: ${evidenceGraph.contrato.descricao}` : ""}`, `Contrato vigente${evidenceGraph.contrato.descricao ? `: ${evidenceGraph.contrato.descricao}` : ""}`)}
+                            {evidenceGraph.contrato.status === "encerrado" && L(`Contrato encerrado${evidenceGraph.contrato.dataFim ? ` em ${new Date(evidenceGraph.contrato.dataFim + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}`, `Contract ended${evidenceGraph.contrato.dataFim ? ` on ${new Date(evidenceGraph.contrato.dataFim + "T00:00:00").toLocaleDateString("en-US")}` : ""}`, `Contrato finalizado${evidenceGraph.contrato.dataFim ? ` el ${new Date(evidenceGraph.contrato.dataFim + "T00:00:00").toLocaleDateString("es-ES")}` : ""}`)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 3. Pedido — não capturado hoje */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)", border: `1px dashed ${CINZA}40` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Pedido de Compra", "Purchase Order", "Pedido de Compra")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>{L("Não capturado hoje — depende do futuro módulo de Pedido de Compra.", "Not captured today — depends on the future Purchase Order module.", "No capturado hoy — depende del futuro módulo de Pedido de Compra.")}</p>
+                        </div>
+                      </div>
+
+                      {/* 4. Recebimento — não capturado hoje */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)", border: `1px dashed ${CINZA}40` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Recebimento", "Goods Receipt", "Recepción")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>{L("Não capturado hoje — depende do futuro módulo de Pedido de Compra.", "Not captured today — depends on the future Purchase Order module.", "No capturado hoy — depende del futuro módulo de Pedido de Compra.")}</p>
+                        </div>
+                      </div>
+
+                      {/* 5. Fatura */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${VERDE}30` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: VERDE }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Fatura", "Invoice", "Factura")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {L(`${fmt(evidenceGraph.fatura.valorTotal)}${evidenceGraph.fatura.numeroNota ? ` · Nota ${evidenceGraph.fatura.numeroNota}` : ""} · ${evidenceGraph.fatura.qtdDocumentosAnexados} anexo(s)`,
+                              `${fmt(evidenceGraph.fatura.valorTotal)}${evidenceGraph.fatura.numeroNota ? ` · Invoice ${evidenceGraph.fatura.numeroNota}` : ""} · ${evidenceGraph.fatura.qtdDocumentosAnexados} attachment(s)`,
+                              `${fmt(evidenceGraph.fatura.valorTotal)}${evidenceGraph.fatura.numeroNota ? ` · Nota ${evidenceGraph.fatura.numeroNota}` : ""} · ${evidenceGraph.fatura.qtdDocumentosAnexados} adjunto(s)`)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 6. Pagamento */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR)}30` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Pagamento", "Payment", "Pago")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {evidenceGraph.pagamento.status === "pago"
+                              ? L(`Pago em ${evidenceGraph.pagamento.dataPagamento ? new Date(evidenceGraph.pagamento.dataPagamento + "T00:00:00").toLocaleDateString("pt-BR") : "—"} (${fmt(evidenceGraph.pagamento.valorPago)}) · ${evidenceGraph.pagamento.qtdEventosAuditoria} evento(s) na trilha`,
+                                  `Paid on ${evidenceGraph.pagamento.dataPagamento ? new Date(evidenceGraph.pagamento.dataPagamento + "T00:00:00").toLocaleDateString("en-US") : "—"} (${fmt(evidenceGraph.pagamento.valorPago)}) · ${evidenceGraph.pagamento.qtdEventosAuditoria} audit event(s)`,
+                                  `Pagado el ${evidenceGraph.pagamento.dataPagamento ? new Date(evidenceGraph.pagamento.dataPagamento + "T00:00:00").toLocaleDateString("es-ES") : "—"} (${fmt(evidenceGraph.pagamento.valorPago)}) · ${evidenceGraph.pagamento.qtdEventosAuditoria} evento(s) en la trilla`)
+                              : L(`Ainda pendente · ${evidenceGraph.pagamento.qtdEventosAuditoria} evento(s) na trilha`,
+                                  `Still pending · ${evidenceGraph.pagamento.qtdEventosAuditoria} audit event(s)`,
+                                  `Todavía pendiente · ${evidenceGraph.pagamento.qtdEventosAuditoria} evento(s) en la trilla`)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 7. Banco */}
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA)}30` }}>
+                        <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA }} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Banco", "Bank", "Banco")}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
+                            {evidenceGraph.banco.status === "nao_conectado" && L("Open Finance não conectado nesta empresa.", "Open Finance not connected for this company.", "Open Finance no conectado en esta empresa.")}
+                            {evidenceGraph.banco.status === "nao_reconciliado" && L("Conectado, mas nenhuma transação bancária reconciliada com esta conta ainda.", "Connected, but no bank transaction reconciled with this bill yet.", "Conectado, pero ninguna transacción bancaria reconciliada con esta cuenta todavía.")}
+                            {evidenceGraph.banco.status === "reconciliado" && evidenceGraph.banco.transacao &&
+                              L(`Reconciliado: ${evidenceGraph.banco.transacao.descricao} (${fmt(evidenceGraph.banco.transacao.valor)}) em ${new Date(evidenceGraph.banco.transacao.data + "T00:00:00").toLocaleDateString("pt-BR")}`,
+                                `Reconciled: ${evidenceGraph.banco.transacao.descricao} (${fmt(evidenceGraph.banco.transacao.valor)}) on ${new Date(evidenceGraph.banco.transacao.data + "T00:00:00").toLocaleDateString("en-US")}`,
+                                `Reconciliado: ${evidenceGraph.banco.transacao.descricao} (${fmt(evidenceGraph.banco.transacao.valor)}) el ${new Date(evidenceGraph.banco.transacao.data + "T00:00:00").toLocaleDateString("es-ES")}`)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CanvasBox>
