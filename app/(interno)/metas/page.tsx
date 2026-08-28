@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
@@ -566,8 +567,8 @@ export default function Metas() {
           { label: cx.metaKpiTaxaSucesso, valor: fPct(taxaSucesso) },
         ],
         nomeArquivo: `axioma-metas-${hoje}.pdf`,
-      });
-    } catch (err) { console.error(err); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("metas.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 

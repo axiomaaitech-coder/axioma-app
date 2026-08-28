@@ -15,6 +15,7 @@ import {
 } from '../../../../lib/meiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -35,6 +36,11 @@ export default function ReformaTributaria() {
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [exportando, setExportando] = useState(false)
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 4000)
+  }
   const [shareAberto, setShareAberto] = useState(false)
   const [analiseIA, setAnaliseIA] = useState<string | null>(null)
   const [analisandoIA, setAnalisandoIA] = useState(false)
@@ -152,7 +158,7 @@ export default function ReformaTributaria() {
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-mei-reforma-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) { console.error(err) }
+    } catch (err) { showToast(tratarFalhaExportacao('mei.reforma.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 
@@ -276,6 +282,12 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         </button>
       }
     >
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
       <div ref={conteudoRef} className="space-y-4">
 
         <LetreiroExecutivo itens={marquee} cor={VERDE} />
@@ -448,7 +460,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         textoResumo={textoResumoPdf(montarArgsPdfAtual())}
         textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
         assunto={`${t('titulo')} — Axioma`}
-        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)}
         cor={OURO}
       />
     </ModuloLayout>

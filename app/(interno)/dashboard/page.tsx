@@ -9,6 +9,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { reportarFalhaLeitura, tratarFalhaCarregamento, tratarFalhaExportacao, mensagemFalhaCarregamento } from "../../../lib/erroUiHelpers";
 import ReactECharts from "echarts-for-react";
 import DashFinanceiro from "../../../components/DashFinanceiro";
 import DashComercial from "../../../components/DashComercial";
@@ -440,6 +441,17 @@ export default function DashboardPage() {
       setObrigacoes(ob || []);
 
       // Dados extras pro Painel de Módulos (barras grossas estilo Power BI)
+      // Cada query tem seu próprio .catch pra uma falha isolada (ex.: só
+      // investimentos) não derrubar o Painel de Módulos inteiro — mas antes
+      // o .catch devolvia [] em silêncio total, nem o Sentry ficava sabendo.
+      // Agora cada falha é reportada com o nome do módulo, e falhasModulos
+      // vira um único toast (a tela nunca trava, só avisa).
+      const falhasModulos: string[] = [];
+      const catchModulo = (nome: string) => (err: unknown) => {
+        falhasModulos.push(nome);
+        reportarFalhaLeitura(`dashboard.modulos.${nome}`, err);
+        return { data: [] };
+      };
       const [
         { data: clientesRows },
         { data: fornecedoresRows },
@@ -448,13 +460,14 @@ export default function DashboardPage() {
         { data: metasRows },
         { data: investRows },
       ] = await Promise.all([
-        Promise.resolve(empresaId ? supabase.from("clientes").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
-        Promise.resolve(empresaId ? supabase.from("fornecedores").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
-        Promise.resolve(empresaId ? supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido") : { data: [] }).catch(() => ({ data: [] })),
-        Promise.resolve(empresaId ? supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago") : { data: [] }).catch(() => ({ data: [] })),
-        Promise.resolve(empresaId ? supabase.from("metas").select("id, valor_meta, valor_atual").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
-        Promise.resolve(empresaId ? supabase.from("investimentos").select("id, valor").eq("empresa_id", empresaId) : { data: [] }).catch(() => ({ data: [] })),
+        Promise.resolve(empresaId ? supabase.from("clientes").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("clientes")),
+        Promise.resolve(empresaId ? supabase.from("fornecedores").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("fornecedores")),
+        Promise.resolve(empresaId ? supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido") : { data: [] }).catch(catchModulo("contas_receber")),
+        Promise.resolve(empresaId ? supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago") : { data: [] }).catch(catchModulo("contas_pagar")),
+        Promise.resolve(empresaId ? supabase.from("metas").select("id, valor_meta, valor_atual").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("metas")),
+        Promise.resolve(empresaId ? supabase.from("investimentos").select("id, valor").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("investimentos")),
       ]);
+      if (falhasModulos.length > 0) showToast(mensagemFalhaCarregamento(lang), "erro");
 
       setModulosData({
         clientesCount: (clientesRows || []).length,
@@ -468,7 +481,7 @@ export default function DashboardPage() {
         investTotal: (investRows || []).reduce((sm: number, r: any) => sm + Number(r.valor || 0), 0),
         investCount: (investRows || []).length,
       });
-    } catch (err) { console.error(err); }
+    } catch (err) { showToast(tratarFalhaCarregamento("dashboard.init", err, lang), "erro"); }
     setCarregando(false);
   }
 
@@ -499,8 +512,8 @@ export default function DashboardPage() {
       colunas: [{ header: "MÉTRICA", key: "m", width: 55, align: "left" as const }, { header: "VALOR", key: "v", width: 40, align: "right" as const }],
       linhas: [{ m: tt.receita, v: fBRL2(snap.receita_bruta) }, { m: tt.custos, v: fBRL2(snap.custos_totais) }, { m: tt.lucro, v: fBRL2(snap.lucro_liquido) }, { m: tt.margem, v: `${snap.margem_liquida.toFixed(1)}%` },
         ...score360.dimensoes.map(d => ({ m: lang === "en" ? d.nome_en : d.nome, v: `${d.score}/100` }))],
-      resumo: [{ label: "Score 360°", valor: `${score360.total}/100` }], nomeArquivo: "axioma-dashboard.pdf" });
-    } catch (e: any) { showToast(e.message, "erro"); } setExportando(false);
+      resumo: [{ label: "Score 360°", valor: `${score360.total}/100` }], nomeArquivo: "axioma-dashboard.pdf" }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("dashboard.exportarPDF", err, lang), "erro"); } setExportando(false);
   }
 
   const dN = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;

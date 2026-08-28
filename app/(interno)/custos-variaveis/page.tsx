@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -247,8 +248,8 @@ export default function CustosVariaveis() {
           { label: "Ponto de Equilíbrio", valor: pe !== null ? `R$ ${fBRL2(pe)}` : cx.semBreakeven },
         ],
         nomeArquivo: `axioma-custos-variaveis-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
-    } catch (err) { console.error(err); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("custos-variaveis.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 

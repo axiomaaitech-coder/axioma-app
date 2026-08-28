@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   Pencil, Trash2, X, Phone, Mail, MapPin, FileText, ChevronRight, ChevronLeft,
   Award, Users, AlertTriangle, Clock, MessageCircle, Send, HeartPulse, Layers,
@@ -725,7 +726,7 @@ export default function ClientesPage() {
             { label: cl.totalVencido, valor: `R$ ${fmtN(totalVencido)}` },
           ],
           nomeArquivo: `axioma-cobrancas-${new Date().toISOString().slice(0, 10)}.pdf`,
-        });
+        }, (msg) => showToast(msg, "erro"), lang);
       } else {
         gerarPdfTabela({
           titulo: `${cl.titulo} - ${tt.carteiraExecutiva}`,
@@ -748,9 +749,9 @@ export default function ClientesPage() {
             { label: tt.inadimplenciaCarteira, valor: `${fmtN(inadimplenciaCarteiraPct)}%` },
           ],
           nomeArquivo: `axioma-carteira-clientes-${new Date().toISOString().slice(0, 10)}.pdf`,
-        });
+        }, (msg) => showToast(msg, "erro"), lang);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { showToast(tratarFalhaExportacao("clientes.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 

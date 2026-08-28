@@ -15,6 +15,7 @@ import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
 import { buscarIndicadoresMacro } from '../../../lib/bcbApi'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { meiT } from '../../../lib/meiTextos'
@@ -315,7 +316,7 @@ export default function PainelMEI() {
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-mei-painel-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) { console.error(err) }
+    } catch (err) { showToast(tratarFalhaExportacao('mei.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 
@@ -842,7 +843,7 @@ export default function PainelMEI() {
         textoResumo={textoResumoPdf(montarArgsPdfAtual())}
         textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
         assunto={`${t('titulo')} — Axioma`}
-        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)}
         cor={OURO}
       />
 

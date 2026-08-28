@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -468,8 +469,8 @@ export default function Investimentos() {
           { label: cx.invRentabilidadeConsolidada, valor: `${rentabilidadeMediaLiquidaAA.toFixed(1)}% a.a.` },
         ],
         nomeArquivo: `axioma-investimentos-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
-    } catch (err) { console.error(err); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("investimentos.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 

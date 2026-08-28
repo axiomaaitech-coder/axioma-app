@@ -9,6 +9,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
@@ -60,6 +61,12 @@ export default function Simulacoes() {
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
+
+  const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
+  function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
+    setToast({ msg, tipo });
+    setTimeout(() => setToast(null), 4000);
+  }
 
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
@@ -283,8 +290,8 @@ export default function Simulacoes() {
           { label: cx.simNivelConfiancaLabel, valor: NIVEL_LABEL[nivelConfianca] },
         ] : [],
         nomeArquivo: `axioma-simulacoes-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
-    } catch (err) { console.error(err); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("simulacoes.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 
@@ -307,6 +314,12 @@ export default function Simulacoes() {
 
   return (
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">

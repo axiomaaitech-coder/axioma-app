@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
@@ -446,8 +447,8 @@ export default function Precificacao() {
           { label: txt.margemMedia, valor: `${margemMedia}%` },
         ],
         nomeArquivo: `axioma-precificacao-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
-    } catch (err) { console.error(err); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("precificacao.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 

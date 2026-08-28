@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { reportarFalhaLeitura, mensagemFalhaExportacao, type LangUi } from "./erroUiHelpers";
 
 export type ColunaPDF = {
   header: string;
@@ -151,8 +152,21 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
 }
 
 // Gera e baixa o PDF direto (comportamento original, usado pelo botão "Exportar PDF").
-export function gerarPdfTabela(args: ArgsPdfTabela) {
-  montarDocumentoPdf(args).save(args.nomeArquivo);
+// aoErro é opcional (compatível com todo chamador existente sem mudança) —
+// quando passado, a tela mostra um toast em vez de falhar calada. Em
+// qualquer caso, a falha SEMPRE vai pro Sentry: antes cada uma das ~30
+// telas que chamam essa função tinha seu próprio catch (err) {
+// console.error(err) } — falha nunca chegava ao Sentry, só ao console do
+// navegador. Corrigido uma vez aqui, vale pra todo chamador, atual e futuro.
+export function gerarPdfTabela(args: ArgsPdfTabela, aoErro?: (mensagem: string) => void, lang: LangUi = "pt"): boolean {
+  try {
+    montarDocumentoPdf(args).save(args.nomeArquivo);
+    return true;
+  } catch (err) {
+    reportarFalhaLeitura(`gerarPdfTabela:${args.nomeArquivo}`, err);
+    aoErro?.(mensagemFalhaExportacao(lang));
+    return false;
+  }
 }
 
 // Deriva o texto de compartilhamento (resumo/detalhado) do mesmo ArgsPdfTabela
@@ -174,9 +188,22 @@ export function textoDetalhadoPdf(args: ArgsPdfTabela): string {
 // Gera o PDF e tenta abrir o menu nativo de compartilhamento (mobile, via Web Share API
 // com arquivo). Onde não tem suporte (a maioria dos desktops), baixa o arquivo e avisa
 // pelo callback — o botão "Compartilhar" nunca fica sem fazer nada.
-export async function compartilharOuBaixarPdf(args: ArgsPdfTabela, aoConcluir: (baixouComoFallback: boolean) => void) {
-  const pdf = montarDocumentoPdf(args);
-  const blob = pdf.output("blob");
+export async function compartilharOuBaixarPdf(
+  args: ArgsPdfTabela,
+  aoConcluir: (baixouComoFallback: boolean) => void,
+  aoErro?: (mensagem: string) => void,
+  lang: LangUi = "pt",
+) {
+  let pdf: jsPDF;
+  let blob: Blob;
+  try {
+    pdf = montarDocumentoPdf(args);
+    blob = pdf.output("blob");
+  } catch (err) {
+    reportarFalhaLeitura(`compartilharOuBaixarPdf:montar:${args.nomeArquivo}`, err);
+    aoErro?.(mensagemFalhaExportacao(lang));
+    return;
+  }
   const arquivo = new File([blob], args.nomeArquivo, { type: "application/pdf" });
 
   const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean; share?: (data: ShareData) => Promise<void> };
@@ -192,6 +219,11 @@ export async function compartilharOuBaixarPdf(args: ArgsPdfTabela, aoConcluir: (
     }
   }
 
-  pdf.save(args.nomeArquivo);
-  aoConcluir(true);
+  try {
+    pdf.save(args.nomeArquivo);
+    aoConcluir(true);
+  } catch (err) {
+    reportarFalhaLeitura(`compartilharOuBaixarPdf:fallbackSave:${args.nomeArquivo}`, err);
+    aoErro?.(mensagemFalhaExportacao(lang));
+  }
 }

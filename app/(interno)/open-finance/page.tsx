@@ -20,6 +20,7 @@ import {
 } from '../../../lib/cfoCore'
 import { cfoT } from '../../../lib/cfoTextos'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import {
   classificarTransacoes, calcularSaldoSistema, calcularKPIsOpenFinance,
   type TransacaoOF, type LancamentoConciliavel, type TransacaoClassificada,
@@ -205,6 +206,12 @@ export default function OpenFinancePage() {
   const t = textos[lang] || textos.pt
   const cx = cfoT(lang)
   const fmt = (v: number) => fBRL(v)
+
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
+    setToast({ msg, tipo })
+    setTimeout(() => setToast(null), 4000)
+  }
 
   const [empresaIdAtual, setEmpresaIdAtual] = useState<string | null>(null)
   const [conexoes, setConexoes] = useState<any[]>([])
@@ -553,8 +560,8 @@ export default function OpenFinancePage() {
           { label: t.kpiPctConciliado, valor: fPctOuTraco(kpis.percentualConciliado) },
         ],
         nomeArquivo: `axioma-open-finance-${new Date().toISOString().slice(0, 10)}.pdf`,
-      })
-    } catch (err) { console.error(err) }
+      }, (msg) => showToast(msg, 'erro'), lang)
+    } catch (err) { showToast(tratarFalhaExportacao('open-finance.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 
@@ -578,6 +585,12 @@ export default function OpenFinancePage() {
 
   return (
     <ModuloLayout titulo={t.titulo} subtitulo={t.sub} onExportarPDF={exportarPDF} exportando={exportando}>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
       <div className="space-y-4">
 
         {temBanco && <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />}

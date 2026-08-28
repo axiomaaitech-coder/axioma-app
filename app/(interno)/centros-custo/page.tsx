@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { Pencil, Trash2, X, Split } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { consultarCEP, validarCPF, formatarCPF, formatarCEP } from "../../../lib/enderecoHelpers";
@@ -1619,8 +1620,8 @@ export default function CentrosCustoPage() {
           { label: L.resultado + " Geral", valor: `R$ ${fmtN(resultadoGeral)}` },
         ],
         nomeArquivo: `axioma-centros-custo-${periodo}.pdf`,
-      });
-    } catch (err) { console.error(err); }
+      }, (msg) => showToast(msg, "erro"), langF2);
+    } catch (err) { showToast(tratarFalhaExportacao("centros-custo.exportarPDF", err, langF2), "erro"); }
     setExportando(false);
   }
 }

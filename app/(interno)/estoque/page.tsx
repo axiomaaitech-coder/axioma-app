@@ -207,6 +207,7 @@ const UNIDADES = ["UN", "CX", "KG", "L", "PC", "PAR", "M", "M2", "M3"];
 
 export default function EstoquePage() {
   const { t, idioma } = useLanguage();
+  const lang = (idioma as "pt" | "en" | "es") || "pt";
   const et = t.estoque;
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -896,7 +897,7 @@ export default function EstoquePage() {
     if (!args) return;
     setExportando(true);
     try {
-      gerarPdfTabela(args);
+      gerarPdfTabela(args, (msg) => mostrarToast(msg, "erro"), lang);
     } finally {
       setExportando(false);
     }
@@ -1891,7 +1892,7 @@ export default function EstoquePage() {
         textoResumo={argsShare ? textoResumoPdf(argsShare) : et.titulo}
         textoDetalhado={argsShare ? textoDetalhadoPdf(argsShare) : undefined}
         assunto={`${et.titulo} — Axioma`}
-        onExportarPDF={argsShare ? () => gerarPdfTabela(argsShare) : undefined}
+        onExportarPDF={argsShare ? () => gerarPdfTabela(argsShare, (msg) => mostrarToast(msg, "erro"), lang) : undefined}
         cor={JADE}
       />
     </ModuloLayout>

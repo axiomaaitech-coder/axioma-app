@@ -17,6 +17,7 @@ import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fBRL2, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { statusEfetivo } from '../../../lib/fornecedorHelpers'
+import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
@@ -446,8 +447,8 @@ export default function ContasReceber() {
           { label: L('Score Médio da Carteira', 'Avg. Portfolio Score', 'Score Promedio de Cartera'), valor: kpis.scoreMedioCarteira != null ? `${kpis.scoreMedioCarteira}/1000` : '—' },
         ],
         nomeArquivo: `axioma-contas-receber-${new Date().toISOString().slice(0, 10)}.pdf`,
-      })
-    } catch (err) { console.error(err) }
+      }, (msg) => showToast(msg, 'erro'), lang)
+    } catch (err) { showToast(tratarFalhaExportacao('contas-receber.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 

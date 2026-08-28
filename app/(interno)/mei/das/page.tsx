@@ -11,6 +11,7 @@ import { Pencil, Check, X, FileText, Bell, Share2, AlertTriangle } from 'lucide-
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -256,7 +257,7 @@ export default function DASObrigacoes() {
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-mei-das-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) { console.error(err) }
+    } catch (err) { showToast(tratarFalhaExportacao('mei.das.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 
@@ -636,7 +637,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         textoResumo={textoResumoPdf(montarArgsPdfAtual())}
         textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
         assunto={`${t('titulo')} — Axioma`}
-        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)}
         cor={OURO}
       />
 

@@ -12,6 +12,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
@@ -1390,7 +1391,7 @@ export default function Fornecedores() {
             { label: "Total Pago", valor: `R$ ${fmtN(totalPago)}` },
           ],
           nomeArquivo: `axioma-fornecedores-${new Date().toISOString().slice(0, 10)}.pdf`,
-        });
+        }, (msg) => showToast(msg, "erro"), lang);
       } else {
         gerarPdfTabela({
           titulo: `${t.fornecedores.titulo} - Contas a Pagar`,
@@ -1422,9 +1423,9 @@ export default function Fornecedores() {
             { label: "Vencido", valor: `R$ ${fmtN(totalVencido)}` },
           ],
           nomeArquivo: `axioma-contas-pagar-${new Date().toISOString().slice(0, 10)}.pdf`,
-        });
+        }, (msg) => showToast(msg, "erro"), lang);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { showToast(tratarFalhaExportacao("fornecedores.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   };
 

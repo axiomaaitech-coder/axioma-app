@@ -15,6 +15,7 @@ import {
   custoProprioRateado, fracaoDASSobrePreco, fracaoIRPFExposicao, detectarTrabalhoDeGraca,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
@@ -410,7 +411,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-mei-precificacao-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) { console.error(err) }
+    } catch (err) { showToast(tratarFalhaExportacao('mei.precificacao.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 
@@ -777,7 +778,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         textoResumo={textoResumoPdf(montarArgsPdfAtual())}
         textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
         assunto={`${t('titulo')} — Axioma`}
-        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual(), (msg) => showToast(msg, 'erro'), lang)}
         cor={OURO}
       />
 

@@ -14,6 +14,7 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { fBRL, fBRL2, fPct, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
@@ -549,8 +550,8 @@ export default function Inadimplencia() {
           { label: L('Recuperado no Ano', 'Recovered this Year', 'Recuperado este Año'), valor: `R$ ${fBRL2(kpis.valorRecuperadoAno)}` },
         ],
         nomeArquivo: `axioma-inadimplencia-${new Date().toISOString().slice(0, 10)}.pdf`,
-      })
-    } catch (err) { console.error(err) }
+      }, (msg) => showToast(msg, 'erro'), lang)
+    } catch (err) { showToast(tratarFalhaExportacao('inadimplencia.exportarPDF', err, lang), 'erro') }
     setExportando(false)
   }
 

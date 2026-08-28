@@ -10,6 +10,7 @@ import { AlertTriangle, Pencil, Trash2, X, Share2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -252,7 +253,7 @@ export default function FaturamentoMEI() {
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-mei-faturamento-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) { console.error(err) }
+    } catch (err) { showToast(tratarFalhaExportacao('mei.faturamento.exportarPDF', err, lang)) }
     setExportando(false)
   }
 
@@ -536,7 +537,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
             <span className="text-sm font-semibold" style={{ color: '#c8d8f0' }}>{t('total')} {anoAtual}</span>
             <span className="text-sm font-black" style={{ color: OURO }}>{fmt(faturamentoAnual)}</span>
           </div>
-          <button onClick={() => gerarPdfTabela(montarArgsRelatorioReceitasBrutas())}
+          <button onClick={() => gerarPdfTabela(montarArgsRelatorioReceitasBrutas(), (msg) => showToast(msg), lang)}
             className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold"
             style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)', color: '#dc2626' }}>
             {t('relatorioBrutas')}
@@ -671,7 +672,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         textoResumo={textoResumoPdf(montarArgsPdfAtual())}
         textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
         assunto={`${t('titulo')} — Axioma`}
-        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual(), (msg) => showToast(msg), lang)}
         cor={OURO}
       />
     </ModuloLayout>

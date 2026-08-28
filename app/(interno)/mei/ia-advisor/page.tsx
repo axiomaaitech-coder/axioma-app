@@ -13,6 +13,7 @@ import {
   type ContaPagarMEI,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
@@ -284,7 +285,7 @@ DADOS REAIS DESTE MEI:
         if (remaining > 0) { pdf.addPage(); position = 0 }
       }
       pdf.save(`axioma-mei-ia-${new Date().toISOString().slice(0, 10)}.pdf`)
-    } catch (err) { console.error(err) }
+    } catch (err) { setToast(tratarFalhaExportacao('mei.iaAdvisor.exportarPDF', err, lang)); setTimeout(() => setToast(null), 4000) }
     setExportando(false)
   }
 
@@ -413,7 +414,7 @@ DADOS REAIS DESTE MEI:
         textoResumo={textoResumoPdf(montarArgsPdfAtual())}
         textoDetalhado={textoDetalhadoPdf(montarArgsPdfAtual())}
         assunto={`${t('titulo') as string} — Axioma`}
-        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual())}
+        onExportarPDF={() => gerarPdfTabela(montarArgsPdfAtual(), (msg) => { setToast(msg); setTimeout(() => setToast(null), 4000) }, lang)}
         cor={OURO}
       />
     </ModuloLayout>
