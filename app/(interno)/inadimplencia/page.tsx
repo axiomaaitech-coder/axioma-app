@@ -148,17 +148,17 @@ export default function Inadimplencia() {
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: dreRows },
     ] = await Promise.all([
       empId ? supabase.from('empresas').select('regime_tributario').eq('id', empId).maybeSingle() : Promise.resolve({ data: null }),
-      supabase.from('clientes').select('*').order('nome'),
-      supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true }),
-      listarCompromissos(),
-      listarInteracoes(),
-      listarEtapasRegua(user.id),
-      supabase.from('fluxo_caixa').select('valor, tipo, status'),
-      supabase.from('receitas').select('valor, data'),
-      supabase.from('custos_fixos').select('valor_mensal'),
-      supabase.from('custos_variaveis').select('valor'),
-      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros'),
-      supabase.from('dre_historico').select('*').eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle(),
+      empId ? supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
+      empId ? supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }) : Promise.resolve({ data: [] }),
+      empId ? listarCompromissos(empId) : Promise.resolve([]),
+      empId ? listarInteracoes(empId) : Promise.resolve([]),
+      empId ? listarEtapasRegua(empId) : Promise.resolve([]),
+      empId ? supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('receitas').select('valor, data').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('dre_historico').select('*').eq('empresa_id', empId).eq('periodo_inicio', resolverPeriodo('mes_atual').inicio).eq('periodo_fim', resolverPeriodo('mes_atual').fim).maybeSingle() : Promise.resolve({ data: null }),
     ])
     setEmpresaId(empId)
     setRegimeTributario(empresa?.regime_tributario || '')
@@ -241,9 +241,9 @@ export default function Inadimplencia() {
   const rankingRecuperacao = useMemo(() => rankingMaiorRecuperacao(carteira), [carteira])
 
   async function salvarProvisaoDRE() {
-    if (!userId || !dreHistoricoAtual || kpis.perdaProvavel == null) return
+    if (!userId || !empresaId || !dreHistoricoAtual || kpis.perdaProvavel == null) return
     setSalvandoProvisao(true)
-    const r = await atualizarProvisaoNaDRE(userId, dreHistoricoAtual.periodo_inicio, dreHistoricoAtual.periodo_fim, kpis.perdaProvavel)
+    const r = await atualizarProvisaoNaDRE(userId, empresaId, dreHistoricoAtual.periodo_inicio, dreHistoricoAtual.periodo_fim, kpis.perdaProvavel)
     setSalvandoProvisao(false)
     setProvisaoSalva(r.atualizado)
     if (r.erro) showToast(L('Não foi possível salvar a provisão na DRE. Tente novamente.', 'Could not save the provision to the DRE. Try again.', 'No se pudo guardar la provisión en el DRE. Intente de nuevo.'), 'erro')
@@ -327,7 +327,7 @@ export default function Inadimplencia() {
       setSalvandoCompromisso(false)
       return
     }
-    setCompromissos(await listarCompromissos())
+    if (empresaId) setCompromissos(await listarCompromissos(empresaId))
     setNovoCompromisso({ ...compromissoVazio })
     setEditandoCompromissoId(null)
     setSalvandoCompromisso(false)
@@ -348,11 +348,11 @@ export default function Inadimplencia() {
   async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
     const { erro } = await atualizarStatusCompromisso(id, status)
     if (erro) { showToast(L('Não foi possível atualizar o compromisso. Tente novamente.', 'Could not update the commitment. Try again.', 'No se pudo actualizar el compromiso. Intente de nuevo.'), 'erro'); return }
-    setCompromissos(await listarCompromissos())
+    if (empresaId) setCompromissos(await listarCompromissos(empresaId))
   }
 
   async function registrarContato() {
-    if (!linhaAberta || !userId || !novoContato.conta_id || !novoContato.descricao.trim()) return
+    if (!linhaAberta || !userId || !empresaId || !novoContato.conta_id || !novoContato.descricao.trim()) return
     setSalvandoContato(true)
     const { erro } = await criarInteracao(userId, empresaId, {
       conta_id: novoContato.conta_id, cliente_id: linhaAberta.s.cliente.id,
@@ -364,7 +364,7 @@ export default function Inadimplencia() {
       setSalvandoContato(false)
       return
     }
-    setInteracoes(await listarInteracoes())
+    setInteracoes(await listarInteracoes(empresaId))
     setNovoContato({ ...contatoVazio, conta_id: novoContato.conta_id })
     setSalvandoContato(false)
   }
@@ -374,10 +374,10 @@ export default function Inadimplencia() {
     setEditandoEtapa({ dias_relativos: 1, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasEscalonamento.length, estagio: estagio || 'amigavel' })
   }
   async function salvarEtapa() {
-    if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
+    if (!editandoEtapa || !userId || !empresaId || !editandoEtapa.mensagem_modelo?.trim()) return
     const { erro } = await salvarEtapaRegua(userId, empresaId, editandoEtapa)
     if (erro) { showToast(L('Não foi possível salvar a etapa. Tente novamente.', 'Could not save the step. Try again.', 'No se pudo guardar la etapa. Intente de nuevo.'), 'erro'); return }
-    setEtapasRegua(await listarEtapasRegua(userId))
+    setEtapasRegua(await listarEtapasRegua(empresaId))
     setEditandoEtapa(null)
   }
   async function excluirEtapa(id: string) {
@@ -386,12 +386,12 @@ export default function Inadimplencia() {
     setEtapasRegua(etapasRegua.filter((e) => e.id !== id))
   }
   async function usarEscalonamentoPadrao() {
-    if (!userId) return
+    if (!userId || !empresaId) return
     for (const etapa of etapasEscalonamentoPadrao()) {
       const { erro } = await salvarEtapaRegua(userId, empresaId, etapa)
       if (erro) { showToast(L('Não foi possível aplicar o escalonamento padrão. Tente novamente.', 'Could not apply the default escalation. Try again.', 'No se pudo aplicar el escalonamiento predeterminado. Intente de nuevo.'), 'erro'); return }
     }
-    setEtapasRegua(await listarEtapasRegua(userId))
+    setEtapasRegua(await listarEtapasRegua(empresaId))
   }
 
   // ========== NOVO CASO — registra manualmente um título vencido que ainda não

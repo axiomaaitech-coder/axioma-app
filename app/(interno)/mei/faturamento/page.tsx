@@ -13,6 +13,7 @@ import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela }
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
+import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import {
@@ -111,9 +112,10 @@ export default function FaturamentoMEI() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
+    const empresaId = await obterEmpresaAtiva()
     const [{ data }, { data: mei }] = await Promise.all([
-      supabase.from('receitas').select('*').order('data', { ascending: false }),
-      supabase.from('mei_dados').select('*').maybeSingle(),
+      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId).order('data', { ascending: false }) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
     ])
     setReceitas((data || []) as Receita[])
     setMeiDados(mei || null)

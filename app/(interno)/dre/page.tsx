@@ -118,7 +118,7 @@ export default function DREPage() {
   const periodoAnt = periodoAnterior(periodo);
 
   useEffect(() => { carregarTudo(); }, [presetPeriodo, personalizado.inicio, personalizado.fim]);
-  useEffect(() => { if (userId) carregarHistorico(userId); }, [userId]);
+  useEffect(() => { if (empresaId) carregarHistorico(empresaId); }, [empresaId]);
 
   async function carregarTudo() {
     setCarregando(true);
@@ -156,8 +156,8 @@ export default function DREPage() {
     setCarregando(false);
   }
 
-  async function carregarHistorico(uid: string) {
-    const { data } = await supabase.from("dre_historico").select("*").order("periodo_fim", { ascending: false }).limit(24);
+  async function carregarHistorico(empId: string) {
+    const { data } = await supabase.from("dre_historico").select("*").eq("empresa_id", empId).order("periodo_fim", { ascending: false }).limit(24);
     setHistorico((data as HistoricoRow[]) || []);
   }
 
@@ -335,7 +335,7 @@ export default function DREPage() {
       const motivo = erroSnapshot?.message || "0 linhas afetadas (RLS?)";
       Sentry.captureException(new Error(`Falha ao ${existente ? "update" : "insert"} em dre_historico: ${motivo}`), { extra: { tabela: "dre_historico", operacao: existente ? "update" : "insert", motivo } });
     }
-    carregarHistorico(userId);
+    carregarHistorico(empresaId);
   }
 
   // ═══════════════════════ PDF ═══════════════════════

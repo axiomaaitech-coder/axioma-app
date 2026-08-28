@@ -210,16 +210,16 @@ export default function ContasReceber() {
       { data: cli }, { data: cc }, { data: ct }, compromissosData, etapasData,
       { data: rec }, { data: cf }, { data: cv }, { data: div }, { data: fc },
     ] = await Promise.all([
-      supabase.from('clientes').select('*').order('nome'),
-      supabase.from('centros_custo').select('id, nome').order('nome'),
-      supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true }),
-      listarCompromissos(),
-      listarEtapasRegua(user.id),
-      supabase.from('receitas').select('valor, data'),
-      supabase.from('custos_fixos').select('valor_mensal'),
-      supabase.from('custos_variaveis').select('valor'),
-      supabase.from('dividas').select('valor_total, valor_pago, taxa_juros'),
-      supabase.from('fluxo_caixa').select('valor, tipo, status'),
+      empId ? supabase.from('clientes').select('*').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
+      empId ? supabase.from('centros_custo').select('id, nome').eq('empresa_id', empId).order('nome') : Promise.resolve({ data: [] }),
+      empId ? supabase.from('contas_receber').select('*').eq('empresa_id', empId).order('data_vencimento', { ascending: true }) : Promise.resolve({ data: [] }),
+      empId ? listarCompromissos(empId) : Promise.resolve([]),
+      empId ? listarEtapasRegua(empId) : Promise.resolve([]),
+      empId ? supabase.from('receitas').select('valor, data').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('custos_variaveis').select('valor').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('dividas').select('valor_total, valor_pago, taxa_juros').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
+      empId ? supabase.from('fluxo_caixa').select('valor, tipo, status').eq('empresa_id', empId) : Promise.resolve({ data: [] }),
     ])
     setClientes((cli as ClienteRow[]) || [])
     setCentrosCusto(cc || [])
@@ -549,14 +549,15 @@ export default function ContasReceber() {
     setContaCobranca(c)
     setNovoContato({ tipo: 'contato', canal: 'telefone', descricao: '' })
     setNovoCompromisso({ tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
+    if (!empresaId) return
     setCarregandoInteracoes(true)
-    setInteracoesConta(await listarInteracoes(c.id))
+    setInteracoesConta(await listarInteracoes(empresaId, c.id))
     setCarregandoInteracoes(false)
   }
   function fecharCobranca() { setContaCobranca(null); setInteracoesConta([]) }
 
   async function salvarContato() {
-    if (!contaCobranca || !userId || !novoContato.descricao.trim()) return
+    if (!contaCobranca || !userId || !empresaId || !novoContato.descricao.trim()) return
     setSalvandoCobranca(true)
     const { erro } = await criarInteracao(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
@@ -567,13 +568,13 @@ export default function ContasReceber() {
       setSalvandoCobranca(false)
       return
     }
-    setInteracoesConta(await listarInteracoes(contaCobranca.id))
+    setInteracoesConta(await listarInteracoes(empresaId, contaCobranca.id))
     setNovoContato({ tipo: 'contato', canal: 'telefone', descricao: '' })
     setSalvandoCobranca(false)
   }
 
   async function salvarCompromisso() {
-    if (!contaCobranca || !userId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
+    if (!contaCobranca || !userId || !empresaId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
     setSalvandoCobranca(true)
     const { erro } = await criarCompromisso(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
@@ -586,7 +587,7 @@ export default function ContasReceber() {
       setSalvandoCobranca(false)
       return
     }
-    setCompromissos(await listarCompromissos())
+    setCompromissos(await listarCompromissos(empresaId))
     setNovoCompromisso({ tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
     setSalvandoCobranca(false)
   }
@@ -594,31 +595,31 @@ export default function ContasReceber() {
   async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
     const { erro } = await atualizarStatusCompromisso(id, status)
     if (erro) { showToast(L('Não foi possível atualizar o compromisso. Tente novamente.', 'Could not update the commitment. Try again.', 'No se pudo actualizar el compromiso. Intente de nuevo.'), 'erro'); return }
-    setCompromissos(await listarCompromissos())
+    if (empresaId) setCompromissos(await listarCompromissos(empresaId))
   }
 
   function compromissosDaConta(contaId: string) { return compromissos.filter((c) => c.conta_id === contaId) }
 
   function abrirNovaEtapa() { setEditandoEtapa({ dias_relativos: 0, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasRegua.length }) }
   async function salvarEtapa() {
-    if (!editandoEtapa || !userId || !editandoEtapa.mensagem_modelo?.trim()) return
+    if (!editandoEtapa || !userId || !empresaId || !editandoEtapa.mensagem_modelo?.trim()) return
     const { erro } = await salvarEtapaRegua(userId, empresaId, editandoEtapa)
     if (erro) { showToast(L('Não foi possível salvar a etapa. Tente novamente.', 'Could not save the step. Try again.', 'No se pudo guardar la etapa. Intente de nuevo.'), 'erro'); return }
-    setEtapasRegua(await listarEtapasRegua(userId))
+    setEtapasRegua(await listarEtapasRegua(empresaId))
     setEditandoEtapa(null)
   }
   async function excluirEtapa(id: string) {
     const { erro } = await excluirEtapaRegua(id)
     if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
-    if (userId) setEtapasRegua(await listarEtapasRegua(userId))
+    if (empresaId) setEtapasRegua(await listarEtapasRegua(empresaId))
   }
   async function usarReguaPadrao() {
-    if (!userId) return
+    if (!userId || !empresaId) return
     for (const e of etapasReguaPadrao()) {
       const { erro } = await salvarEtapaRegua(userId, empresaId, e)
       if (erro) { showToast(L('Não foi possível aplicar a régua padrão. Tente novamente.', 'Could not apply the default reminder ladder. Try again.', 'No se pudo aplicar la regla predeterminada. Intente de nuevo.'), 'erro'); return }
     }
-    setEtapasRegua(await listarEtapasRegua(userId))
+    setEtapasRegua(await listarEtapasRegua(empresaId))
   }
 
   // ========== FASE 3 — PREVISÃO DE CAIXA MULTI-HORIZONTE ==========

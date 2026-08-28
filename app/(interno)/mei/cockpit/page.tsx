@@ -168,7 +168,7 @@ export default function CockpitMEI() {
       supabase.from('custos_variaveis').select('valor, data').eq('empresa_id', empresaId),
       supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empresaId),
       supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes),
-      carregarObrigacoesAno(anoAtual),
+      carregarObrigacoesAno(empresaId, anoAtual),
       supabase.from('mei_precos_salvos').select('*').eq('empresa_id', empresaId).order('updated_at', { ascending: false }).limit(1).maybeSingle(),
     ])
 

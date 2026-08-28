@@ -164,11 +164,12 @@ export default function PrecificacaoMEI() {
     const inicio12m = new Date(); inicio12m.setMonth(inicio12m.getMonth() - 11)
     const inicioIso = inicio12m.toISOString().slice(0, 10)
     const hoje = new Date().toISOString().slice(0, 10)
+    const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: cf }, { data: cv }, { data: rec }] = await Promise.all([
-      supabase.from('mei_dados').select('*').maybeSingle(),
-      supabase.from('custos_fixos').select('valor_mensal'),
-      supabase.from('custos_variaveis').select('valor, data').gte('data', inicioIso).lte('data', hoje),
-      supabase.from('receitas').select('valor, data').gte('data', inicioIso).lte('data', hoje),
+      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from('custos_fixos').select('valor_mensal').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('custos_variaveis').select('valor, data').eq('empresa_id', empresaId).gte('data', inicioIso).lte('data', hoje) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('receitas').select('valor, data').eq('empresa_id', empresaId).gte('data', inicioIso).lte('data', hoje) : Promise.resolve({ data: [] }),
     ])
     setMeiDados(mei)
     setReceitasRows(rec || [])

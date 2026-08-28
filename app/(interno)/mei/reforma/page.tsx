@@ -13,6 +13,7 @@ import {
   dasMensalPorCategoria, tetoProporcionalMEI, faturamentoAnoMEI,
   MARCOS_REFORMA_MEI, faseAtualReformaMEI, LIMITE_NANOEMPREENDEDOR,
 } from '../../../../lib/meiHelpers'
+import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
@@ -104,9 +105,10 @@ export default function ReformaTributaria() {
   async function carregar() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+    const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: rec }] = await Promise.all([
-      supabase.from('mei_dados').select('*').maybeSingle(),
-      supabase.from('receitas').select('*'),
+      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
     ])
     setMeiDados(mei)
     setReceitas(rec || [])

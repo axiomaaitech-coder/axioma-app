@@ -13,6 +13,7 @@ import {
   type ContaPagarMEI,
 } from '../../../../lib/meiHelpers'
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from '../../../../lib/gerarPdfTabela'
+import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
@@ -151,12 +152,13 @@ export default function IAMEIAdvisor() {
     const hoje = new Date()
     const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().slice(0, 10)
     const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
+    const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, { data: cp }] = await Promise.all([
-      supabase.from('mei_dados').select('*').maybeSingle(),
-      supabase.from('receitas').select('*'),
-      supabase.from('custos_variaveis').select('valor, data, descricao'),
-      supabase.from('custos_fixos').select('valor_mensal, descricao'),
-      supabase.from('contas_pagar').select('valor_total, valor_pago').neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes),
+      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('custos_variaveis').select('valor, data, descricao').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('custos_fixos').select('valor_mensal, descricao').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes) : Promise.resolve({ data: [] }),
     ])
     setMeiDados(mei)
     setReceitas(rec || [])

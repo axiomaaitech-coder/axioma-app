@@ -115,10 +115,11 @@ export default function DASObrigacoes() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const anoAtual = new Date().getFullYear()
+    const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: rec }, obr, macro] = await Promise.all([
-      supabase.from('mei_dados').select('*').maybeSingle(),
-      supabase.from('receitas').select('*'),
-      carregarObrigacoesAno(anoAtual),
+      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? carregarObrigacoesAno(empresaId, anoAtual) : Promise.resolve([]),
       buscarIndicadoresMacro(),
     ])
     setMeiDados(mei)

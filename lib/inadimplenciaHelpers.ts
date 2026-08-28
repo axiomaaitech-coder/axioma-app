@@ -598,9 +598,9 @@ export function simularImpactoProvisaoNaDRE(
   return { dreAtual, dreComProvisao };
 }
 
-export async function atualizarProvisaoNaDRE(userId: string, periodoInicio: string, periodoFim: string, provisaoPcld: number): Promise<{ atualizado: boolean; erro?: string }> {
+export async function atualizarProvisaoNaDRE(userId: string, empresaId: string, periodoInicio: string, periodoFim: string, provisaoPcld: number): Promise<{ atualizado: boolean; erro?: string }> {
   const { data: existente } = await supabase.from("dre_historico").select("id")
-    .eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
+    .eq("empresa_id", empresaId).eq("periodo_inicio", periodoInicio).eq("periodo_fim", periodoFim).maybeSingle();
   if (!existente) return { atualizado: false };
   const { data, error } = await supabase.from("dre_historico").update({ provisao_pcld: provisaoPcld }).eq("id", existente.id).select("id");
   if (error || !data || data.length === 0) {

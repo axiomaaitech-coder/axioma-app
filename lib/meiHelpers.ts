@@ -333,8 +333,8 @@ export type ObrigacaoMEI = {
   data_entrega: string | null;
 };
 
-export async function carregarObrigacoesAno(ano: number): Promise<ObrigacaoMEI[]> {
-  const { data } = await supabase.from("mei_obrigacoes").select("*").like("competencia", `${ano}%`);
+export async function carregarObrigacoesAno(empresaId: string, ano: number): Promise<ObrigacaoMEI[]> {
+  const { data } = await supabase.from("mei_obrigacoes").select("*").eq("empresa_id", empresaId).like("competencia", `${ano}%`);
   return (data || []) as ObrigacaoMEI[];
 }
 

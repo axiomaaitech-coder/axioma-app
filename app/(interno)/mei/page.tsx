@@ -124,13 +124,14 @@ export default function PainelMEI() {
     const inicioMes = new Date(anoAtual, hoje.getMonth(), 1).toISOString().slice(0, 10)
     const fimMes = new Date(anoAtual, hoje.getMonth() + 1, 0).toISOString().slice(0, 10)
     const competenciaDas = `${anoAtual}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    const empresaId = await obterEmpresaAtiva()
     const [{ data: mei }, { data: rec }, { data: cv }, { data: cf }, { data: cp }, obrigacoes, macro] = await Promise.all([
-      supabase.from('mei_dados').select('*').maybeSingle(),
-      supabase.from('receitas').select('*').order('data', { ascending: false }),
-      supabase.from('custos_variaveis').select('valor, data, descricao').order('data', { ascending: false }),
-      supabase.from('custos_fixos').select('valor_mensal, descricao'),
-      supabase.from('contas_pagar').select('valor_total, valor_pago').neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes),
-      carregarObrigacoesAno(anoAtual),
+      empresaId ? supabase.from('mei_dados').select('*').eq('empresa_id', empresaId).maybeSingle() : Promise.resolve({ data: null }),
+      empresaId ? supabase.from('receitas').select('*').eq('empresa_id', empresaId).order('data', { ascending: false }) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('custos_variaveis').select('valor, data, descricao').eq('empresa_id', empresaId).order('data', { ascending: false }) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('custos_fixos').select('valor_mensal, descricao').eq('empresa_id', empresaId) : Promise.resolve({ data: [] }),
+      empresaId ? supabase.from('contas_pagar').select('valor_total, valor_pago').eq('empresa_id', empresaId).neq('status', 'pago').gte('data_vencimento', inicioMes).lte('data_vencimento', fimMes) : Promise.resolve({ data: [] }),
+      empresaId ? carregarObrigacoesAno(empresaId, anoAtual) : Promise.resolve([]),
       buscarIndicadoresMacro(),
     ])
     setMeiDados(mei || null)

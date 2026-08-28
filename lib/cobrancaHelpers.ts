@@ -64,8 +64,8 @@ export const CANAIS_REGUA = ["email", "sms", "whatsapp"] as const;
 // CRUD — histórico de contato/negociação
 // ============================================================================
 
-export async function listarInteracoes(contaId?: string): Promise<CobrancaInteracao[]> {
-  let q = supabase.from("cobranca_interacoes").select("*").order("data", { ascending: false });
+export async function listarInteracoes(empresaId: string, contaId?: string): Promise<CobrancaInteracao[]> {
+  let q = supabase.from("cobranca_interacoes").select("*").eq("empresa_id", empresaId).order("data", { ascending: false });
   if (contaId) q = q.eq("conta_id", contaId);
   const { data } = await q;
   return data || [];
@@ -98,8 +98,8 @@ export async function excluirInteracao(id: string): Promise<{ erro?: string }> {
 // tabela só por causa do rótulo)
 // ============================================================================
 
-export async function listarCompromissos(contaId?: string): Promise<CobrancaCompromisso[]> {
-  let q = supabase.from("cobranca_compromissos").select("*").order("data_compromissada", { ascending: true });
+export async function listarCompromissos(empresaId: string, contaId?: string): Promise<CobrancaCompromisso[]> {
+  let q = supabase.from("cobranca_compromissos").select("*").eq("empresa_id", empresaId).order("data_compromissada", { ascending: true });
   if (contaId) q = q.eq("conta_id", contaId);
   const { data } = await q;
   return data || [];
@@ -151,8 +151,8 @@ export function etapasReguaPadrao(): Omit<EtapaRegua, "id" | "user_id">[] {
   ];
 }
 
-export async function listarEtapasRegua(userId: string): Promise<EtapaRegua[]> {
-  const { data } = await supabase.from("cobranca_regua_etapas").select("*").order("ordem", { ascending: true });
+export async function listarEtapasRegua(empresaId: string): Promise<EtapaRegua[]> {
+  const { data } = await supabase.from("cobranca_regua_etapas").select("*").eq("empresa_id", empresaId).order("ordem", { ascending: true });
   return data || [];
 }
 
