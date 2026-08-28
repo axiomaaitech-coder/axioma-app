@@ -5,7 +5,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
-import { calcStatus } from "./fornecedorHelpers";
+import { calcStatus, precoAcimaMediaInterna, type FornecedorRow, type FornecedorPrecoAlto } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, type EventoCaixa, type RupturaCaixa } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
@@ -775,4 +775,158 @@ export async function transformarPadraoEmCustoFixo(
   );
   if (resultado.erro) return { custoFixoId, erro: resultado.erro };
   return { custoFixoId, contaGeradaId: resultado.id };
+}
+
+// ----------------------------------------------------------------------------
+// ENTREGA 3, COMMIT 4 — VALUE RECOVERY (parte 1). Três detecções, todas
+// conservadoras: preferem não apontar a arriscar um falso positivo (acusar o
+// dono de um erro que ele não cometeu). Nenhuma escreve nada — é sempre
+// sugestão de revisão, o dono decide. Sem RPC nova, sem tabela nova.
+// ----------------------------------------------------------------------------
+
+// 1) COBRANÇAS ACIMA DA MÉDIA HISTÓRICA — reaproveita 100% precoAcimaMediaInterna
+// (fornecedorHelpers.ts, já em produção em Fornecedores), só adiciona o piso de
+// amostra mínima (um fornecedor com 1 compra não tem "média" que signifique
+// nada) e converte o percentual em valor estimado recuperável.
+const AMOSTRA_MINIMA_COBRANCA_ACIMA_MEDIA = 3;
+
+export type CobrancaAcimaMedia = FornecedorPrecoAlto & { qtdCompras: number; valorRecuperavelEstimado: number };
+
+export function detectarCobrancasAcimaMedia(fornecedores: FornecedorRow[], contas: ContaPagar[]): CobrancaAcimaMedia[] {
+  return precoAcimaMediaInterna(fornecedores, contas)
+    .map((f) => {
+      const qtdCompras = contas.filter((c) => c.fornecedor_id === f.id).length;
+      const valorRecuperavelEstimado = Math.round(Math.max(0, f.ticketMedio - f.mediaGrupo) * qtdCompras * 100) / 100;
+      return { ...f, qtdCompras, valorRecuperavelEstimado };
+    })
+    .filter((f) => f.qtdCompras >= AMOSTRA_MINIMA_COBRANCA_ACIMA_MEDIA)
+    .sort((a, b) => b.valorRecuperavelEstimado - a.valorRecuperavelEstimado);
+}
+
+// 2) MULTAS EVITÁVEIS — só marca como evitável quando o caixa REALIZADO
+// acumulado até a data de vencimento (soma de todo fluxo_caixa "realizado"
+// até aquele dia, a mesma noção de saldo usada no AP Forecast) já cobria o
+// valor da conta. Sem essa prova, não marca — nunca estima "podia ter pago".
+// Valor da multa = mesma fórmula de calcularFatorAtrasoHistorico (sobretaxa
+// real paga = valor_pago - valor_total), não um percentual chutado.
+export type MultaEvitavel = {
+  contaId: string;
+  descricao: string;
+  fornecedorId: string | null;
+  dataVencimento: string;
+  dataPagamento: string;
+  diasAtraso: number;
+  valorMulta: number;
+  saldoNaData: number;
+};
+
+export async function detectarMultasEvitaveis(empresaId: string): Promise<{ multas: MultaEvitavel[]; totalRecuperavel: number }> {
+  const [{ data: cp }, { data: fc }] = await Promise.all([
+    supabase.from("contas_pagar")
+      .select("id, descricao, fornecedor_id, valor_total, valor_pago, data_vencimento, data_pagamento, taxa_multa_mensal")
+      .eq("empresa_id", empresaId).eq("status", "pago"),
+    supabase.from("fluxo_caixa").select("data, valor, tipo").eq("empresa_id", empresaId).eq("status", "realizado"),
+  ]);
+
+  const linhasCaixa = ((fc as { data: string; valor: number; tipo: string }[]) || [])
+    .filter((l) => l.data)
+    .sort((a, b) => a.data.localeCompare(b.data));
+
+  // Saldo acumulado realizado até (e incluindo) uma data — mesma soma
+  // entrada/saída do AP Forecast, só que travada num ponto do passado em vez
+  // de "hoje".
+  function saldoAte(data: string): number {
+    return linhasCaixa
+      .filter((l) => l.data <= data)
+      .reduce((s, l) => s + (l.tipo === "entrada" ? Number(l.valor || 0) : -Number(l.valor || 0)), 0);
+  }
+
+  type ContaPagaComMulta = {
+    id: string; descricao: string; fornecedor_id: string | null;
+    valor_total: number; valor_pago: number; data_vencimento: string | null; data_pagamento: string | null;
+    taxa_multa_mensal: number | null;
+  };
+  const multas: MultaEvitavel[] = [];
+  ((cp as ContaPagaComMulta[]) || []).forEach((c) => {
+    if (!c.data_pagamento || !c.data_vencimento) return;
+    if (c.data_pagamento <= c.data_vencimento) return; // não atrasou
+    if (!(Number(c.taxa_multa_mensal) > 0)) return; // sem multa combinada, nada a recuperar aqui
+    const valorMulta = Number(c.valor_pago || 0) - Number(c.valor_total || 0);
+    if (valorMulta <= 0) return; // multa combinada mas não efetivamente cobrada
+
+    const saldoNaData = saldoAte(c.data_vencimento);
+    if (saldoNaData < Number(c.valor_total || 0)) return; // sem prova de caixa disponível — não marca
+
+    const diasAtraso = Math.round(
+      (new Date(c.data_pagamento + "T00:00:00").getTime() - new Date(c.data_vencimento + "T00:00:00").getTime()) / 86400000
+    );
+    multas.push({
+      contaId: c.id, descricao: c.descricao, fornecedorId: c.fornecedor_id,
+      dataVencimento: c.data_vencimento, dataPagamento: c.data_pagamento, diasAtraso,
+      valorMulta: Math.round(valorMulta * 100) / 100, saldoNaData: Math.round(saldoNaData * 100) / 100,
+    });
+  });
+
+  multas.sort((a, b) => b.valorMulta - a.valorMulta);
+  const totalRecuperavel = Math.round(multas.reduce((s, m) => s + m.valorMulta, 0) * 100) / 100;
+  return { multas, totalRecuperavel };
+}
+
+// 3) DUPLICIDADES PASSADAS — varredura no que já está gravado (não é checagem
+// no ato de lançar, essa já existe desde a Entrega 2 via ap_detectar_duplicata).
+// Mesmo peso de score do RPC (60 base + 25 nº nota + 15 mesmo dia de emissão)
+// pra manter a leitura do score consistente em todo o módulo. Conta já
+// vinculada a um custo_fixo_id nunca entra no par com OUTRA conta do MESMO
+// custo fixo — isso já é recorrência conhecida (Commit 3), não duplicata.
+const TOLERANCIA_VALOR_DUPLICATA_PASSADA_PCT = 0.01; // ±1%, igual ap_detectar_duplicata
+const JANELA_DIAS_DUPLICATA_PASSADA = 30; // igual ao default de ap_detectar_duplicata
+
+export type ParDuplicidadePassada = {
+  contaA: ContaPagar;
+  contaB: ContaPagar;
+  score: number;
+  motivos: string[];
+};
+
+export function detectarDuplicidadesPassadas(contas: ContaPagar[]): ParDuplicidadePassada[] {
+  const elegiveis = contas.filter((c) => c.fornecedor_id && c.data_emissao && Number(c.valor_total) > 0);
+
+  // Agrupa por fornecedor primeiro — duplicata só existe dentro do mesmo
+  // fornecedor, então nunca precisa comparar entre fornecedores diferentes.
+  const porFornecedor = new Map<string, ContaPagar[]>();
+  elegiveis.forEach((c) => {
+    const key = c.fornecedor_id as string;
+    if (!porFornecedor.has(key)) porFornecedor.set(key, []);
+    porFornecedor.get(key)!.push(c);
+  });
+
+  const pares: ParDuplicidadePassada[] = [];
+  porFornecedor.forEach((lista) => {
+    for (let i = 0; i < lista.length; i++) {
+      for (let j = i + 1; j < lista.length; j++) {
+        const a = lista[i], b = lista[j];
+        // Mesmo custo fixo = recorrência já conhecida (Commit 3), nunca duplicata.
+        if (a.custo_fixo_id && a.custo_fixo_id === b.custo_fixo_id) continue;
+
+        const diasEntre = Math.abs(
+          (new Date(a.data_emissao + "T00:00:00").getTime() - new Date(b.data_emissao + "T00:00:00").getTime()) / 86400000
+        );
+        if (diasEntre > JANELA_DIAS_DUPLICATA_PASSADA) continue;
+
+        const notaBate = !!(a.numero_nota && b.numero_nota && a.numero_nota === b.numero_nota);
+        const valorBate = Math.abs(a.valor_total - b.valor_total) <= a.valor_total * TOLERANCIA_VALOR_DUPLICATA_PASSADA_PCT;
+        if (!valorBate && !notaBate) continue;
+
+        let score = 60;
+        const motivos: string[] = [];
+        if (valorBate) motivos.push("valor_igual");
+        if (notaBate) { score += 25; motivos.push("mesma_nota"); }
+        if (a.data_emissao === b.data_emissao) { score += 15; motivos.push("mesma_data_emissao"); }
+
+        pares.push({ contaA: a, contaB: b, score, motivos });
+      }
+    }
+  });
+
+  return pares.sort((x, y) => y.score - x.score);
 }

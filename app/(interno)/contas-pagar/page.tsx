@@ -27,6 +27,9 @@ import {
   solicitarAprovacao, listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
   listarAuditoriaConta, type AuditoriaAp,
   detectarDespesasRecorrentes, transformarPadraoEmCustoFixo, type PadraoRecorrenteDetectado,
+  detectarCobrancasAcimaMedia, type CobrancaAcimaMedia,
+  detectarMultasEvitaveis, type MultaEvitavel,
+  detectarDuplicidadesPassadas, type ParDuplicidadePassada,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -296,6 +299,48 @@ export default function ContasPagarPage() {
     showToast(L("Custo fixo criado a partir do padrão detectado.", "Fixed cost created from the detected pattern.", "Costo fijo creado a partir del patrón detectado."), "ok");
     setPadraoParaTransformar(null);
     await carregar();
+  }
+
+  // ========== ENTREGA 3, COMMIT 4 — VALUE RECOVERY (parte 1) ==========
+  const cobrancasAcimaMedia: CobrancaAcimaMedia[] = useMemo(
+    () => detectarCobrancasAcimaMedia(fornecedores, contas),
+    [fornecedores, contas]
+  );
+
+  const duplicidadesPassadas: ParDuplicidadePassada[] = useMemo(
+    () => detectarDuplicidadesPassadas(contas),
+    [contas]
+  );
+
+  const [multasEvitaveis, setMultasEvitaveis] = useState<MultaEvitavel[]>([]);
+  const [totalMultasEvitaveis, setTotalMultasEvitaveis] = useState(0);
+  const [carregandoValueRecovery, setCarregandoValueRecovery] = useState(false);
+
+  useEffect(() => {
+    if (aba !== "inteligencia" || !empresaId) return;
+    let ativo = true;
+    setCarregandoValueRecovery(true);
+    detectarMultasEvitaveis(empresaId).then((r) => {
+      if (!ativo) return;
+      setMultasEvitaveis(r.multas);
+      setTotalMultasEvitaveis(r.totalRecuperavel);
+      setCarregandoValueRecovery(false);
+    });
+    return () => { ativo = false; };
+  }, [aba, empresaId]);
+
+  const totalRecuperacaoEstimada = useMemo(
+    () =>
+      cobrancasAcimaMedia.reduce((s, c) => s + c.valorRecuperavelEstimado, 0) +
+      totalMultasEvitaveis,
+    [cobrancasAcimaMedia, totalMultasEvitaveis]
+  );
+
+  // "Revisar" reaproveita 100% o filtro já existente da aba Central — nunca
+  // marca/exclui nada sozinho, só leva o dono pro contexto certo pra decidir.
+  function revisarNoCentral(fornecedorId?: string | null) {
+    setAba("central");
+    if (fornecedorId) setFiltroFornecedor(fornecedorId);
   }
 
   function alternarProximaAPagar(id: string) {
@@ -1107,6 +1152,114 @@ export default function ContasPagarPage() {
                 ))}
               </div>
             )}
+          </CanvasBox>
+
+          {/* Card Recuperação de Valor (Entrega 3, Commit 4 — Value Recovery parte 1) */}
+          <CanvasBox cor={VERDE}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+              <Sparkles size={18} style={{ color: VERDE }} />
+              {L("Recuperação de Valor", "Value Recovery", "Recuperación de Valor")}
+            </h3>
+            <p className="text-xs mb-3" style={{ color: CINZA }}>
+              {L("Potencial de recuperação estimado: ", "Estimated recovery potential: ", "Potencial de recuperación estimado: ")}
+              <span className="font-black" style={{ color: VERDE }}>{fmt(totalRecuperacaoEstimada)}</span>
+              {" — "}
+              {L("são sugestões pra revisar, não valores confirmados. Nada aqui é excluído ou alterado sozinho.",
+                "these are suggestions to review, not confirmed values. Nothing here is deleted or changed automatically.",
+                "son sugerencias para revisar, no valores confirmados. Nada aquí se elimina o cambia solo.")}
+            </p>
+
+            {/* 1) Cobranças acima da média histórica */}
+            <div className="mb-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                {L("Cobranças Acima da Média Histórica", "Bills Above Historical Average", "Cobros Por Encima del Promedio Histórico")}
+              </h4>
+              {cobrancasAcimaMedia.length === 0 ? (
+                <p className="text-xs" style={{ color: CINZA }}>{L("Nenhuma cobrança fora do padrão encontrada.", "No out-of-pattern bill found.", "Ningún cobro fuera de patrón encontrado.")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {cobrancasAcimaMedia.map((c) => (
+                    <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{c.nome}</p>
+                        <p className="text-xs" style={{ color: CINZA }}>
+                          {L(`Ticket médio ${fmt(c.ticketMedio)} vs. média de ${cat(c.categoria)} de ${fmt(c.mediaGrupo)} (${c.percentualAcima}% acima, ${c.qtdCompras} compras)`,
+                            `Average ticket ${fmt(c.ticketMedio)} vs. ${cat(c.categoria)} average of ${fmt(c.mediaGrupo)} (${c.percentualAcima}% above, ${c.qtdCompras} purchases)`,
+                            `Ticket promedio ${fmt(c.ticketMedio)} vs. promedio de ${cat(c.categoria)} de ${fmt(c.mediaGrupo)} (${c.percentualAcima}% arriba, ${c.qtdCompras} compras)`)}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(c.valorRecuperavelEstimado)}</span>
+                      <button onClick={() => revisarNoCentral(c.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                        {L("Revisar", "Review", "Revisar")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2) Multas evitáveis */}
+            <div className="mb-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                {L("Multas Evitáveis", "Avoidable Late Fees", "Multas Evitables")}
+              </h4>
+              {carregandoValueRecovery ? (
+                <p className="text-xs" style={{ color: CINZA }}>{L("Calculando...", "Calculating...", "Calculando...")}</p>
+              ) : multasEvitaveis.length === 0 ? (
+                <p className="text-xs" style={{ color: CINZA }}>{L("Nenhuma multa com caixa comprovado pra pagar em dia.", "No late fee with proven cash to pay on time.", "Ninguna multa con caja comprobada para pagar a tiempo.")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {multasEvitaveis.map((m) => (
+                    <div key={m.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{m.descricao} · {nomeFornecedor(m.fornecedorId)}</p>
+                        <p className="text-xs" style={{ color: CINZA }}>
+                          {L(`Paga com ${m.diasAtraso} dias de atraso — o caixa realizado em ${new Date(m.dataVencimento + "T00:00:00").toLocaleDateString("pt-BR")} já era ${fmt(m.saldoNaData)}, suficiente pra pagar em dia.`,
+                            `Paid ${m.diasAtraso} days late — realized cash on ${new Date(m.dataVencimento + "T00:00:00").toLocaleDateString("en-US")} was already ${fmt(m.saldoNaData)}, enough to pay on time.`,
+                            `Pagada con ${m.diasAtraso} días de atraso — la caja realizada el ${new Date(m.dataVencimento + "T00:00:00").toLocaleDateString("es-ES")} ya era ${fmt(m.saldoNaData)}, suficiente para pagar a tiempo.`)}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(m.valorMulta)}</span>
+                      <button onClick={() => revisarNoCentral(m.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                        {L("Revisar", "Review", "Revisar")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 3) Duplicidades passadas */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                {L("Possíveis Duplicidades (revisão sugerida)", "Possible Duplicates (suggested review)", "Posibles Duplicados (revisión sugerida)")}
+              </h4>
+              {duplicidadesPassadas.length === 0 ? (
+                <p className="text-xs" style={{ color: CINZA }}>{L("Nenhum par parecido encontrado.", "No similar pair found.", "Ningún par parecido encontrado.")}</p>
+              ) : (
+                <div className="space-y-2">
+                  {duplicidadesPassadas.map((p) => (
+                    <div key={`${p.contaA.id}-${p.contaB.id}`} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>
+                          {p.contaA.descricao} ({fmt(p.contaA.valor_total)}) {L("e", "and", "y")} {p.contaB.descricao} ({fmt(p.contaB.valor_total)})
+                        </p>
+                        <p className="text-xs" style={{ color: CINZA }}>
+                          {nomeFornecedor(p.contaA.fornecedor_id)} — {L("verifique estes pares: podem ser a mesma conta lançada 2x, ou duas cobranças legítimas parecidas.", "check these pairs: they may be the same bill entered twice, or two legitimate similar charges.", "revise estos pares: pueden ser la misma cuenta registrada 2 veces, o dos cobros legítimos parecidos.")}
+                        </p>
+                      </div>
+                      <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" title={L("Score de semelhança", "Similarity score", "Score de semejanza")} style={{ background: `${p.score >= 85 ? VERMELHO : AMBAR}20`, color: p.score >= 85 ? VERMELHO : AMBAR }}>
+                        {p.score}
+                      </span>
+                      <button onClick={() => revisarNoCentral(p.contaA.fornecedor_id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                        {L("Revisar", "Review", "Revisar")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CanvasBox>
         </div>
       )}
