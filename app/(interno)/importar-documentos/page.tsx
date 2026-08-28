@@ -589,16 +589,17 @@ export default function ImportarDocumentosPage() {
 
     await Promise.all([
       empId ? carregarStatsMes(empId).then(setStats) : Promise.resolve(),
-      carregarHistoricoLista(user.id),
+      empId ? carregarHistoricoLista(empId) : Promise.resolve(),
       empId ? carregarTemplates(empId).then(setTemplates) : Promise.resolve(),
     ]);
   }
 
-  async function carregarHistoricoLista(uid: string) {
+  async function carregarHistoricoLista(empId: string) {
     setLoadingHistorico(true);
     const { data } = await supabase
       .from("importacoes")
       .select("*")
+      .eq("empresa_id", empId)
       .order("created_at", { ascending: false })
       .limit(50);
     setHistorico(data || []);
@@ -622,7 +623,7 @@ export default function ImportarDocumentosPage() {
   }
 
   async function processarArquivo(file: File) {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     setArquivoSelecionado(file);
     setResultado(null);
     setSucesso(null);
@@ -634,7 +635,7 @@ export default function ImportarDocumentosPage() {
       const hash = await hashArquivo(file);
       setHashFile(hash);
 
-      const dup = await buscarImportacaoPorHash(userId, hash);
+      const dup = await buscarImportacaoPorHash(empresaId, hash);
       if (dup) {
         setDuplicataGlobal(dup);
         setEtapa("");
@@ -650,7 +651,7 @@ export default function ImportarDocumentosPage() {
   }
 
   async function processarParse(file: File) {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     setEtapa("parse");
     const res = await parseArquivo(file, empresaCnpj || undefined, langAtual);
 
@@ -664,7 +665,7 @@ export default function ImportarDocumentosPage() {
 
     // 3) Dedup por linha (hash idêntico — camada de baixo)
     setEtapa("dedup");
-    const dups = await marcarDuplicatasPorLinha(userId, res.linhas, destinosIniciais);
+    const dups = await marcarDuplicatasPorLinha(empresaId, res.linhas, destinosIniciais);
     setDuplicadas(dups);
     // Linhas duplicadas começam desmarcadas
     setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
@@ -789,8 +790,8 @@ export default function ImportarDocumentosPage() {
       setDestinos(novosDestinos);
       setPossiveisDuplicatas(novoResult.linhas.map(() => null));
       setDecisoesDuplicata(novoResult.linhas.map(() => null));
-      if (userId) {
-        const dups = await marcarDuplicatasPorLinha(userId, novoResult.linhas, novosDestinos);
+      if (empresaId) {
+        const dups = await marcarDuplicatasPorLinha(empresaId, novoResult.linhas, novosDestinos);
         setDuplicadas(dups);
         setSelecionadas((prev) => prev.map((s, i) => s && !dups[i]));
       }
@@ -963,7 +964,7 @@ export default function ImportarDocumentosPage() {
       // Refresh
       await Promise.all([
         (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
-        carregarHistoricoLista(userId),
+        (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
       ]);
     } catch (err: any) {
       showToast(err.message || "Erro ao confirmar", "erro");
@@ -982,13 +983,13 @@ export default function ImportarDocumentosPage() {
       return;
     }
     setExpandida(id);
-    if (!linhasPorImportacao[id] && userId) {
+    if (!linhasPorImportacao[id] && userId && empresaId) {
       setCarregandoLinhas(id);
       try {
         const [lns, excs, tml] = await Promise.all([
-          listarLinhasImportacao(id, userId),
-          listarExcecoes(id),
-          listarTimeline(id),
+          listarLinhasImportacao(id, empresaId),
+          listarExcecoes(id, empresaId),
+          listarTimeline(id, empresaId),
         ]);
         setLinhasPorImportacao((prev) => ({ ...prev, [id]: lns }));
         setExcecoesPorImportacao((prev) => ({ ...prev, [id]: excs }));
@@ -1001,13 +1002,14 @@ export default function ImportarDocumentosPage() {
   }
 
   async function resolverExcecaoUI(excecaoId: string, importacaoId: string) {
+    if (!empresaId) return;
     setResolvendoExcecao(excecaoId);
     try {
-      const r = await resolverExcecao(excecaoId, `Resolvida em ${new Date().toLocaleString("pt-BR")}`);
+      const r = await resolverExcecao(excecaoId, empresaId, `Resolvida em ${new Date().toLocaleString("pt-BR")}`);
       if (r.erro) {
         showToast(r.erro, "erro");
       } else {
-        const excs = await listarExcecoes(importacaoId);
+        const excs = await listarExcecoes(importacaoId, empresaId);
         setExcecoesPorImportacao((prev) => ({ ...prev, [importacaoId]: excs }));
         showToast(tt.excecaoResolvida, "ok");
       }
@@ -1033,7 +1035,7 @@ export default function ImportarDocumentosPage() {
   }
 
   async function salvarEdicao() {
-    if (!linhaEditando || !userId) return;
+    if (!linhaEditando || !userId || !empresaId) return;
     setSalvandoEdicao(true);
     try {
       const valorNum = parseFloat(formEdicao.valor.replace(",", "."));
@@ -1042,7 +1044,7 @@ export default function ImportarDocumentosPage() {
         setSalvandoEdicao(false);
         return;
       }
-      const r = await editarLinhaImportada(linhaEditando.id, userId, {
+      const r = await editarLinhaImportada(linhaEditando.id, userId, empresaId, {
         data: formEdicao.data || undefined,
         valor: valorNum,
         descricao: formEdicao.descricao || undefined,
@@ -1054,11 +1056,11 @@ export default function ImportarDocumentosPage() {
         showToast(r.avisoTrilha ? tt.editadoComAvisoTrilha : "Linha atualizada", r.avisoTrilha ? "erro" : "ok");
         // Recarrega as linhas dessa importação + histórico + stats
         const impId = linhaEditando.importacao_id;
-        const lns = await listarLinhasImportacao(impId, userId);
+        const lns = await listarLinhasImportacao(impId, empresaId);
         setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
         await Promise.all([
           (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
-          carregarHistoricoLista(userId),
+          (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
         ]);
         fecharEdicao();
       }
@@ -1069,21 +1071,21 @@ export default function ImportarDocumentosPage() {
   }
 
   async function deletarLinha(linha: any) {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     if (!window.confirm("Tem certeza? Esta linha será removida do destino.")) return;
     setDeletandoLinha(linha.id);
     try {
-      const r = await deletarLinhaImportada(linha.id, userId);
+      const r = await deletarLinhaImportada(linha.id, userId, empresaId);
       if (r.erro) {
         showToast(r.erro, "erro");
       } else {
         showToast(r.avisoTrilha ? tt.editadoComAvisoTrilha : "Linha removida", r.avisoTrilha ? "erro" : "ok");
         const impId = linha.importacao_id;
-        const lns = await listarLinhasImportacao(impId, userId);
+        const lns = await listarLinhasImportacao(impId, empresaId);
         setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
         await Promise.all([
           (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
-          carregarHistoricoLista(userId),
+          (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
         ]);
       }
     } catch (err: any) {
@@ -1093,11 +1095,11 @@ export default function ImportarDocumentosPage() {
   }
 
   async function desfazerImportacao(id: string) {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     if (!window.confirm(tt.desfazerConfirma)) return;
     setRevertendo(id);
     try {
-      const r = await reverterImportacao(id, userId);
+      const r = await reverterImportacao(id, userId, empresaId);
       if (r.erros.length > 0) {
         showToast(`${tt.desfeitoComFalhas} (${r.removidas} ${tt.importadas})`, "erro");
       } else {
@@ -1105,7 +1107,7 @@ export default function ImportarDocumentosPage() {
       }
       await Promise.all([
         (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
-        carregarHistoricoLista(userId),
+        (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
       ]);
     } catch (err: any) {
       showToast(err.message || "Erro ao desfazer", "erro");
@@ -1219,13 +1221,13 @@ export default function ImportarDocumentosPage() {
   }
 
   async function shareBaixarPdfIndividual() {
-    if (!shareModal || !userId) return;
+    if (!shareModal || !userId || !empresaId) return;
     setGerandoPdfIndividual(true);
     try {
       // Carrega as linhas dessa importação (com cache)
       let lns = linhasPorImportacao[shareModal.id];
       if (!lns) {
-        lns = await listarLinhasImportacao(shareModal.id, userId);
+        lns = await listarLinhasImportacao(shareModal.id, empresaId);
         setLinhasPorImportacao((prev) => ({ ...prev, [shareModal.id]: lns }));
       }
 
@@ -1279,20 +1281,20 @@ export default function ImportarDocumentosPage() {
   // ========== EXCLUIR REGISTRO (só erro/revertido) ==========================
 
   async function excluirRegistro(item: any) {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     if (!window.confirm(`Tem certeza que deseja excluir o registro de "${item.nome_arquivo}"?\n\nIsso remove APENAS o histórico desta importação (status: ${item.status}). Nenhum lançamento será afetado.`)) {
       return;
     }
     setExcluindoRegistro(item.id);
     try {
-      const r = await excluirRegistroImportacao(item.id, userId);
+      const r = await excluirRegistroImportacao(item.id, userId, empresaId);
       if (r.erro) {
         showToast(r.erro, "erro");
       } else {
         showToast("Registro removido do historico", "ok");
         await Promise.all([
           (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
-          carregarHistoricoLista(userId),
+          (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
         ]);
       }
     } catch (err: any) {

@@ -304,11 +304,12 @@ function valorBate(a: number, b: number): boolean {
 // 1 consulta por tabela (+ no máximo 1 pra resolver fornecedor/cliente) — nunca
 // uma consulta por linha, mesmo com centenas de linhas na leva.
 async function buscarCandidatosPorTabela(
+  empresaId: string,
   cfg: ConfigTabelaTransacao,
   datas: string[],
   valores: number[]
 ): Promise<CandidatoDuplicata[]> {
-  const { data } = await supabase.from(cfg.tabela).select("*").in(cfg.colData, datas);
+  const { data } = await supabase.from(cfg.tabela).select("*").eq("empresa_id", empresaId).in(cfg.colData, datas);
   const linhas = (data || []).filter((r: any) => valores.some((v) => valorBate(v, Number(r[cfg.colValor]))));
   if (linhas.length === 0) return [];
 
@@ -316,7 +317,7 @@ async function buscarCandidatosPorTabela(
   if (cfg.colContraparteId && cfg.tabelaContraparte) {
     const ids = Array.from(new Set(linhas.map((r: any) => r[cfg.colContraparteId!]).filter(Boolean)));
     if (ids.length > 0) {
-      const { data: cad } = await supabase.from(cfg.tabelaContraparte).select("id, documento").in("id", ids);
+      const { data: cad } = await supabase.from(cfg.tabelaContraparte).select("id, documento").eq("empresa_id", empresaId).in("id", ids);
       (cad || []).forEach((c: any) => contrapartes.set(c.id, c.documento || null));
     }
   }
@@ -352,7 +353,7 @@ export async function detectarPossiveisDuplicatas(
   const datas = Array.from(new Set(comData.map(({ l }) => l.data!)));
   const valores = Array.from(new Set(comData.map(({ l }) => Number(l.valor))));
 
-  const porTabela = await Promise.all(TABELAS_TRANSACAO.map((cfg) => buscarCandidatosPorTabela(cfg, datas, valores)));
+  const porTabela = await Promise.all(TABELAS_TRANSACAO.map((cfg) => buscarCandidatosPorTabela(empresaId, cfg, datas, valores)));
   const todosCandidatos = porTabela.flat();
 
   for (const { l, i } of comData) {
@@ -431,11 +432,12 @@ export async function registrarEventoTimeline(params: {
   if (error) reportarFalhaEscrita("importacao_timeline", "insert", error.message);
 }
 
-export async function listarTimeline(importacaoId: string): Promise<any[]> {
+export async function listarTimeline(importacaoId: string, empresaId: string): Promise<any[]> {
   const { data } = await supabase
     .from("importacao_timeline")
     .select("*")
     .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId)
     .order("created_at", { ascending: true });
   return data || [];
 }
@@ -493,20 +495,22 @@ export async function abrirExcecaoFormatoReforma(params: {
   });
 }
 
-export async function listarExcecoes(importacaoId: string): Promise<any[]> {
+export async function listarExcecoes(importacaoId: string, empresaId: string): Promise<any[]> {
   const { data } = await supabase
     .from("importacao_excecoes")
     .select("*")
     .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId)
     .order("created_at", { ascending: true });
   return data || [];
 }
 
-export async function resolverExcecao(excecaoId: string, resolucao: string): Promise<{ erro: string | null }> {
+export async function resolverExcecao(excecaoId: string, empresaId: string, resolucao: string): Promise<{ erro: string | null }> {
   const { data, error } = await supabase
     .from("importacao_excecoes")
     .update({ status: "resolvida", resolucao, resolvido_em: new Date().toISOString() })
     .eq("id", excecaoId)
+    .eq("empresa_id", empresaId)
     .select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
@@ -635,12 +639,13 @@ export function hashLinha(linha: LinhaImportada): string {
 // ============================================================================
 
 export async function buscarImportacaoPorHash(
-  userId: string,
+  empresaId: string,
   hash: string
 ): Promise<any | null> {
   const { data } = await supabase
     .from("importacoes")
     .select("id, nome_arquivo, created_at, status, linhas_importadas")
+    .eq("empresa_id", empresaId)
     .eq("hash_arquivo", hash)
     .neq("status", "revertido")
     .maybeSingle();
@@ -652,7 +657,7 @@ export async function buscarImportacaoPorHash(
 // ============================================================================
 
 export async function marcarDuplicatasPorLinha(
-  userId: string,
+  empresaId: string,
   linhas: LinhaImportada[],
   destinos: DestinoTabela[]
 ): Promise<boolean[]> {
@@ -674,6 +679,7 @@ export async function marcarDuplicatasPorLinha(
       const { data } = await supabase
         .from("importacao_linhas")
         .select("hash_linha")
+        .eq("empresa_id", empresaId)
         .eq("destino_tabela", destino)
         .eq("status", "importada")
         .in("hash_linha", hashes);
@@ -720,13 +726,18 @@ export async function gerarUrlAssinada(path: string, segundos: number = 3600): P
 
 export async function excluirRegistroImportacao(
   importacaoId: string,
-  userId: string
+  userId: string,
+  empresaId: string
 ): Promise<{ erro: string | null }> {
-  // 1) Valida que a importação existe e pertence ao usuário
+  // 1) Valida que a importação existe e pertence à empresa ativa (userId
+  // era recebido mas nunca usado pra travar nada — a chave de posse aqui é
+  // a empresa, não a pessoa, senão um colega de equipe não conseguiria
+  // limpar um registro com erro que outro colega enviou).
   const { data: imp, error: errBusca } = await supabase
     .from("importacoes")
     .select("id, status, linhas_importadas")
     .eq("id", importacaoId)
+    .eq("empresa_id", empresaId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
@@ -744,17 +755,25 @@ export async function excluirRegistroImportacao(
   const { error: errLinhas } = await supabase
     .from("importacao_linhas")
     .delete()
-    .eq("importacao_id", importacaoId);
+    .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId);
 
-  if (errLinhas) return { erro: `Erro ao limpar linhas: ${errLinhas.message}` };
+  if (errLinhas) {
+    reportarFalhaEscrita("importacao_linhas", "delete (excluir registro de importação)", errLinhas.message);
+    return { erro: `Erro ao limpar linhas: ${errLinhas.message}` };
+  }
 
   // 4) Deleta o cabeçalho
   const { error: errImp } = await supabase
     .from("importacoes")
     .delete()
-    .eq("id", importacaoId);
+    .eq("id", importacaoId)
+    .eq("empresa_id", empresaId);
 
-  if (errImp) return { erro: `Erro ao remover registro: ${errImp.message}` };
+  if (errImp) {
+    reportarFalhaEscrita("importacoes", "delete (excluir registro de importação)", errImp.message);
+    return { erro: `Erro ao remover registro: ${errImp.message}` };
+  }
 
   return { erro: null };
 }
@@ -797,7 +816,10 @@ export async function criarImportacao(params: {
     .select("id")
     .single();
 
-  if (error) throw new Error(`Erro ao criar importacao: ${error.message}`);
+  if (error) {
+    reportarFalhaEscrita("importacoes", "insert (criar importação)", error.message);
+    throw new Error(`Erro ao criar importacao: ${error.message}`);
+  }
 
   await registrarEventoTimeline({
     empresaId: params.empresaId,
@@ -932,7 +954,15 @@ export async function gravarLinhas(params: {
 
     // 4b) Confirmação de possível duplicata = "Somar": soma no registro
     // existente (que pode estar em outra tabela) em vez de criar um novo.
+    // Sem empresa ativa confirmada, não há como garantir de quem é o registro
+    // — bloqueia em vez de arriscar somar em cima de dado de outra empresa.
     if (alvoSomar) {
+      if (!empresaId) {
+        resultado.erro++;
+        resultado.mensagens_erro.push(`Linha ${numLinha}: empresa ativa não identificada, não é possível confirmar o dono do registro para somar`);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: "Empresa ativa não identificada" });
+        continue;
+      }
       const colValor = COLUNA_VALOR_DESTINO[alvoSomar.tabela];
       if (!colValor) {
         resultado.erro++;
@@ -940,20 +970,24 @@ export async function gravarLinhas(params: {
         auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: "Destino sem coluna de valor conhecida para somar" });
         continue;
       }
+      // Filtro por empresa_id no SELECT e no UPDATE: garante que o registro
+      // alvo pertence à empresa ativa ANTES de ler/gravar — nunca soma em
+      // cima de lançamento de outra empresa, mesmo que o id seja válido.
       const { data: atual, error: errBusca } = await supabase
         .from(alvoSomar.tabela)
         .select(colValor)
         .eq("id", alvoSomar.id)
+        .eq("empresa_id", empresaId)
         .maybeSingle();
       if (errBusca || !atual) {
         resultado.erro++;
-        const msg = errBusca?.message || "Registro para somar não encontrado";
+        const msg = errBusca?.message || "Registro para somar não encontrado nesta empresa";
         resultado.mensagens_erro.push(`Linha ${numLinha}: ${msg}`);
         auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: msg });
         continue;
       }
       const novoValor = Number((atual as any)[colValor] || 0) + (linha.valor || 0);
-      const { data: somado, error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id).select("id");
+      const { data: somado, error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id).eq("empresa_id", empresaId).select("id");
       if (errUpdate || !somado || somado.length === 0) {
         const msg = errUpdate?.message || "0 linhas afetadas (RLS?)";
         resultado.erro++;
@@ -986,6 +1020,7 @@ export async function gravarLinhas(params: {
       resultado.erro++;
       const msg = error?.message || "Erro desconhecido ao inserir";
       resultado.mensagens_erro.push(`Linha ${numLinha}: ${msg}`);
+      reportarFalhaEscrita(destino, "insert (gravar linha importada)", msg);
       auditoriaRows.push({
         ...auditoriaBase,
         status: "erro",
@@ -1023,7 +1058,7 @@ export async function gravarLinhas(params: {
   if (resultado.importadas === 0 && resultado.erro > 0) statusFinal = "erro";
   else if (resultado.erro > 0 || resultado.duplicadas > 0) statusFinal = "parcialmente";
 
-  const { data: cabecalhoAtualizado, error: erroCabecalho } = await supabase
+  let qCabecalho = supabase
     .from("importacoes")
     .update({
       status: statusFinal,
@@ -1035,8 +1070,9 @@ export async function gravarLinhas(params: {
       mensagem_erro: resultado.mensagens_erro.slice(0, 5).join(" | ") || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", importacaoId)
-    .select("id");
+    .eq("id", importacaoId);
+  if (empresaId) qCabecalho = qCabecalho.eq("empresa_id", empresaId);
+  const { data: cabecalhoAtualizado, error: erroCabecalho } = await qCabecalho.select("id");
   if (erroCabecalho || !cabecalhoAtualizado || cabecalhoAtualizado.length === 0) {
     const motivo = erroCabecalho?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("importacoes", "update (status final)", motivo);
@@ -1098,12 +1134,13 @@ export async function gravarLinhas(params: {
 
 export async function listarLinhasImportacao(
   importacaoId: string,
-  userId: string
+  empresaId: string
 ): Promise<any[]> {
   const { data } = await supabase
     .from("importacao_linhas")
     .select("*")
     .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId)
     .order("linha_numero", { ascending: true });
   return data || [];
 }
@@ -1115,6 +1152,7 @@ export async function listarLinhasImportacao(
 export async function editarLinhaImportada(
   linhaAuditoriaId: string,
   userId: string,
+  empresaId: string,
   novosDados: {
     data?: string;
     valor?: number;
@@ -1122,11 +1160,13 @@ export async function editarLinhaImportada(
     categoria?: string;
   }
 ): Promise<{ erro: string | null; avisoTrilha?: string }> {
-  // 1) Busca auditoria
+  // 1) Busca auditoria — filtrada pela empresa ativa: se a linha for de outra
+  // empresa, o filtro já devolve "não encontrada" (nunca chega a editar).
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
     .select("destino_tabela, destino_id, importacao_id, empresa_id")
     .eq("id", linhaAuditoriaId)
+    .eq("empresa_id", empresaId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
@@ -1175,11 +1215,14 @@ export async function editarLinhaImportada(
     return { erro: "Nenhum campo para atualizar" };
   }
 
-  // 3) UPDATE no destino real
+  // 3) UPDATE no destino real — trava dupla de empresa (a linha de auditoria
+  // já foi confirmada da empresa ativa acima; aqui filtra de novo, direto na
+  // tabela de destino, defesa em profundidade caso as duas divirjam).
   const { data: editado, error: errUpdate } = await supabase
     .from(destino)
     .update(payload)
     .eq("id", aud.destino_id)
+    .eq("empresa_id", empresaId)
     .select("id");
 
   if (errUpdate || !editado || editado.length === 0) {
@@ -1203,6 +1246,7 @@ export async function editarLinhaImportada(
     .from("importacao_linhas")
     .update(auditUpdate)
     .eq("id", linhaAuditoriaId)
+    .eq("empresa_id", empresaId)
     .select("id");
   if (erroAuditUpdate || !linhaAtualizada || linhaAtualizada.length === 0) {
     const motivo = erroAuditUpdate?.message || "0 linhas afetadas (RLS?)";
@@ -1211,7 +1255,7 @@ export async function editarLinhaImportada(
   }
 
   // 5) Recalcula totais da importação
-  const { erro: erroRecalculo } = await recalcularTotaisImportacao(aud.importacao_id);
+  const { erro: erroRecalculo } = await recalcularTotaisImportacao(aud.importacao_id, empresaId);
   if (erroRecalculo) avisoTrilha = avisoTrilha ? `${avisoTrilha}; ${erroRecalculo}` : erroRecalculo;
 
   await registrarEventoTimeline({
@@ -1231,23 +1275,28 @@ export async function editarLinhaImportada(
 
 export async function deletarLinhaImportada(
   linhaAuditoriaId: string,
-  userId: string
+  userId: string,
+  empresaId: string
 ): Promise<{ erro: string | null; avisoTrilha?: string }> {
-  // 1) Busca auditoria
+  // 1) Busca auditoria — filtrada pela empresa ativa: se a linha for de outra
+  // empresa, o filtro já devolve "não encontrada" (nunca chega a excluir).
   const { data: aud, error: errBusca } = await supabase
     .from("importacao_linhas")
     .select("destino_tabela, destino_id, importacao_id, empresa_id")
     .eq("id", linhaAuditoriaId)
+    .eq("empresa_id", empresaId)
     .maybeSingle();
 
   if (errBusca) return { erro: errBusca.message };
   if (!aud || !aud.destino_id) return { erro: "Linha nao encontrada ou ja foi removida" };
 
-  // 2) Deleta no destino real
+  // 2) Deleta no destino real — trava dupla de empresa (defesa em
+  // profundidade, mesmo já tendo confirmado a dona da linha de auditoria acima).
   const { data: deletado, error: errDel } = await supabase
     .from(aud.destino_tabela)
     .delete()
     .eq("id", aud.destino_id)
+    .eq("empresa_id", empresaId)
     .select("id");
 
   if (errDel || !deletado || deletado.length === 0) {
@@ -1266,6 +1315,7 @@ export async function deletarLinhaImportada(
       mensagem: `Removida em ${new Date().toLocaleString("pt-BR")}`,
     })
     .eq("id", linhaAuditoriaId)
+    .eq("empresa_id", empresaId)
     .select("id");
   if (erroMarcar || !linhaMarcada || linhaMarcada.length === 0) {
     const motivo = erroMarcar?.message || "0 linhas afetadas (RLS?)";
@@ -1274,7 +1324,7 @@ export async function deletarLinhaImportada(
   }
 
   // 4) Recalcula totais da importação
-  const { erro: erroRecalculo } = await recalcularTotaisImportacao(aud.importacao_id);
+  const { erro: erroRecalculo } = await recalcularTotaisImportacao(aud.importacao_id, empresaId);
   if (erroRecalculo) avisoTrilha = avisoTrilha ? `${avisoTrilha}; ${erroRecalculo}` : erroRecalculo;
 
   await registrarEventoTimeline({
@@ -1292,11 +1342,12 @@ export async function deletarLinhaImportada(
 // RECALCULAR TOTAIS DE UMA IMPORTAÇÃO (após edição ou exclusão de linha)
 // ============================================================================
 
-async function recalcularTotaisImportacao(importacaoId: string): Promise<{ erro?: string }> {
+async function recalcularTotaisImportacao(importacaoId: string, empresaId: string): Promise<{ erro?: string }> {
   const { data: linhasImp } = await supabase
     .from("importacao_linhas")
     .select("valor, status")
-    .eq("importacao_id", importacaoId);
+    .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId);
 
   const lista = linhasImp || [];
   const importadas = lista.filter((l: any) => l.status === "importada").length;
@@ -1318,6 +1369,7 @@ async function recalcularTotaisImportacao(importacaoId: string): Promise<{ erro?
       updated_at: new Date().toISOString(),
     })
     .eq("id", importacaoId)
+    .eq("empresa_id", empresaId)
     .select("id");
   if (erroUpdate || !data || data.length === 0) {
     const motivo = erroUpdate?.message || "0 linhas afetadas (RLS?)";
@@ -1333,15 +1385,18 @@ async function recalcularTotaisImportacao(importacaoId: string): Promise<{ erro?
 
 export async function reverterImportacao(
   importacaoId: string,
-  userId: string
+  userId: string,
+  empresaId: string
 ): Promise<{ removidas: number; erros: string[] }> {
+  // Filtrado pela empresa ativa: linha de outra empresa nem entra na lista
+  // do que será desfeito.
   const { data: linhas } = await supabase
     .from("importacao_linhas")
     .select("id, destino_tabela, destino_id, empresa_id, valor, status")
     .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId)
     .in("status", ["importada", "somada"]);
 
-  const empresaId: string | null = linhas?.[0]?.empresa_id ?? null;
   const erros: string[] = [];
   let removidas = 0;
 
@@ -1361,7 +1416,8 @@ export async function reverterImportacao(
       const { error, count } = await supabase
         .from(tabela)
         .delete({ count: "exact" })
-        .in("id", chunk);
+        .in("id", chunk)
+        .eq("empresa_id", empresaId);
 
       const qtdRemovida = count ?? 0;
       if (error || qtdRemovida < chunk.length) {
@@ -1388,13 +1444,14 @@ export async function reverterImportacao(
       .from(l.destino_tabela)
       .select(colValor)
       .eq("id", l.destino_id)
+      .eq("empresa_id", empresaId)
       .maybeSingle();
     if (errBusca || !atual) {
       erros.push(`${l.destino_tabela}: registro ${l.destino_id} não encontrado pra desfazer soma`);
       continue;
     }
     const novoValor = Number((atual as any)[colValor] || 0) - Number(l.valor || 0);
-    const { data: subtraido, error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id).select("id");
+    const { data: subtraido, error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id).eq("empresa_id", empresaId).select("id");
     if (errUpdate || !subtraido || subtraido.length === 0) {
       const motivo = errUpdate?.message || "0 linhas afetadas (RLS?)";
       erros.push(`${l.destino_tabela}: ${motivo}`);
@@ -1408,6 +1465,7 @@ export async function reverterImportacao(
     .from("importacao_linhas")
     .update({ status: "revertida" })
     .eq("importacao_id", importacaoId)
+    .eq("empresa_id", empresaId)
     .in("status", ["importada", "somada"]);
   if (erroStatusLinhas) {
     reportarFalhaEscrita("importacao_linhas", "update (status revertida)", erroStatusLinhas.message);
@@ -1421,7 +1479,8 @@ export async function reverterImportacao(
       revertido_em: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", importacaoId);
+    .eq("id", importacaoId)
+    .eq("empresa_id", empresaId);
   if (erroStatusImportacao) {
     reportarFalhaEscrita("importacoes", "update (status revertido)", erroStatusImportacao.message);
     erros.push(`importacoes: ${erroStatusImportacao.message}`);
