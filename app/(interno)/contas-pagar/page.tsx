@@ -16,6 +16,7 @@ import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } fro
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
+import { rankingScoreAxioma, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import {
   type ContaPagar, type ContaPagarDocumento, type NfeJaImportada, type ConfigAp, type DuplicataDetectada,
   listarContasPagar, criarContaPagar, editarContaPagar, darBaixaContaPagar, estornarBaixaContaPagar, excluirContaPagar,
@@ -49,7 +50,7 @@ const TIPOS_DOC = [
 ];
 const TAMANHO_MAX_ANEXO = 10 * 1024 * 1024;
 
-type Fornecedor = { id: string; nome: string; nivel_dependencia?: string | null };
+type Fornecedor = FornecedorRow & { nivel_dependencia?: string | null };
 type CentroCusto = { id: string; nome: string };
 type CustoFixo = { id: string; descricao: string; valor_mensal: number; dia_vencimento: number; categoria?: string | null; centro_custo_id?: string | null };
 
@@ -101,10 +102,18 @@ export default function ContasPagarPage() {
     setEmpresaId(empId);
     if (empId) setPapel(await obterMeuPapel(empId));
     const [cp, { data: forn }, { data: cc }, { data: cf }, cfgAp] = await Promise.all([
-      listarContasPagar(),
-      supabase.from("fornecedores").select("id, nome, nivel_dependencia").order("nome"),
-      supabase.from("centros_custo").select("id, nome").order("nome"),
-      supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").order("dia_vencimento"),
+      empId ? listarContasPagar(empId) : Promise.resolve([]),
+      empId
+        ? supabase.from("fornecedores")
+            .select("id, nome, nivel_dependencia, status, categoria, nivel_qualidade, classificacao_risco, uf, cidade, created_at, tipo_pessoa, regime_tributario, contribuinte_icms, valor_mensal, centro_custo_id")
+            .eq("empresa_id", empId).order("nome")
+        : Promise.resolve({ data: [] as Fornecedor[] }),
+      empId
+        ? supabase.from("centros_custo").select("id, nome").eq("empresa_id", empId).order("nome")
+        : Promise.resolve({ data: [] as CentroCusto[] }),
+      empId
+        ? supabase.from("custos_fixos").select("id, descricao, valor_mensal, dia_vencimento, categoria, centro_custo_id").eq("empresa_id", empId).order("dia_vencimento")
+        : Promise.resolve({ data: [] as CustoFixo[] }),
       empId ? obterConfigAp(empId) : Promise.resolve(null),
     ]);
     setContas(cp);
@@ -198,6 +207,42 @@ export default function ContasPagarPage() {
 
   const pontoForecast = forecastAp?.pontos.find((p) => p.horizonteDias === horizonteSelecionado) || null;
 
+  // ========== ENTREGA 3, COMMIT 2 — SUPPLIER HEALTH SCORE NO CONTEXTO DE AP ==========
+  // Reaproveita 100% rankingScoreAxioma (fornecedorHelpers.ts, já em produção em
+  // Fornecedores) — aqui só busca os 2 dados extras que o cálculo precisa
+  // (documentos e interações do fornecedor) e traz o resultado pro contexto de
+  // pagamento. Carrega 1 vez (não é por aba, precisa em "central" e "inteligencia").
+  const [scoreFornecedores, setScoreFornecedores] = useState<{ fornecedor: FornecedorRow; score: ScoreAxiomaFornecedor }[]>([]);
+  const [scoreCarregado, setScoreCarregado] = useState(false);
+
+  useEffect(() => {
+    if (!empresaId || fornecedores.length === 0 || scoreCarregado) return;
+    const empId = empresaId;
+    (async () => {
+      const [{ data: docs }, { data: interacoes }] = await Promise.all([
+        supabase.from("fornecedor_documentos").select("*").eq("empresa_id", empId),
+        supabase.from("fornecedor_interacoes").select("*").eq("empresa_id", empId),
+      ]);
+      setScoreFornecedores(rankingScoreAxioma(fornecedores, contas, docs || [], interacoes || []));
+      setScoreCarregado(true);
+    })();
+  }, [empresaId, fornecedores, contas, scoreCarregado]);
+
+  // Edge case obrigatório: conta sem fornecedor_id, fornecedor sem entrada no
+  // ranking (ainda não carregou) ou score sem NENHUM critério com dado real —
+  // nunca vira NaN nem quebra a fila, só mostra "sem score".
+  function scoreDoFornecedor(fornecedorId: string | null | undefined): ScoreAxiomaFornecedor | null {
+    if (!fornecedorId) return null;
+    const item = scoreFornecedores.find((r) => r.fornecedor.id === fornecedorId);
+    if (!item) return null;
+    if (item.score.criterios.every((c) => c.semDados)) return null;
+    return item.score;
+  }
+
+  function corDoNivelScore(nivel: ScoreAxiomaFornecedor["nivel"]): string {
+    return nivel === "critico" ? VERMELHO : nivel === "atencao" ? AMBAR : VERDE;
+  }
+
   const prioridades: ItemPrioridadePagamento[] = useMemo(
     () => priorizarPagamentos(contas, fornecedores, idioma as "pt" | "en" | "es"),
     [contas, fornecedores, idioma]
@@ -269,9 +314,10 @@ export default function ContasPagarPage() {
 
   useEffect(() => {
     if (aba !== "aprovacoes" || !empresaId) return;
+    const empId = empresaId;
     (async () => {
       setCarregandoAprovacoes(true);
-      setAprovacoes(await listarAprovacoesPendentes());
+      setAprovacoes(await listarAprovacoesPendentes(empId));
       setCarregandoAprovacoes(false);
     })();
   }, [aba, empresaId]);
@@ -290,6 +336,7 @@ export default function ContasPagarPage() {
   }
 
   async function decidir(aprovacaoId: string, decisao: "aprovada" | "rejeitada") {
+    if (!empresaId) return;
     const motivo = (motivoDecisao[aprovacaoId] || "").trim();
     if (decisao === "rejeitada" && !motivo) {
       showToast(L("Informe o motivo da rejeição.", "Enter the rejection reason.", "Informe el motivo del rechazo."), "erro");
@@ -302,7 +349,7 @@ export default function ContasPagarPage() {
       setDecidindoId(null);
       return;
     }
-    setAprovacoes(await listarAprovacoesPendentes());
+    setAprovacoes(await listarAprovacoesPendentes(empresaId));
     await carregar();
     setDecidindoId(null);
   }
@@ -314,13 +361,14 @@ export default function ContasPagarPage() {
   const [expandido, setExpandido] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!contaHistoricoId) { setAuditoria([]); return; }
+    if (!contaHistoricoId || !empresaId) { setAuditoria([]); return; }
+    const empId = empresaId;
     (async () => {
       setCarregandoAuditoria(true);
-      setAuditoria(await listarAuditoriaConta(contaHistoricoId));
+      setAuditoria(await listarAuditoriaConta(contaHistoricoId, empId));
       setCarregandoAuditoria(false);
     })();
-  }, [contaHistoricoId]);
+  }, [contaHistoricoId, empresaId]);
 
   function acaoLabel(acao: string): string {
     const mapa: Record<string, [string, string, string]> = {
@@ -540,7 +588,7 @@ export default function ContasPagarPage() {
   const [gerando, setGerando] = useState<string | null>(null);
 
   async function gerarDeCustoFixo(cf: CustoFixo) {
-    if (!userId) return;
+    if (!userId || !empresaId) return;
     setGerando(cf.id);
     const resultado = await gerarContaDeCustoFixo(userId, empresaId, cf, mesAtual);
     if (resultado.erro) {
@@ -562,8 +610,9 @@ export default function ContasPagarPage() {
   const [enviandoDoc, setEnviandoDoc] = useState(false);
 
   async function abrirAnexo(c: ContaPagar) {
+    if (!empresaId) return;
     setContaAnexo(c);
-    setDocumentos(await listarDocumentos(c.id));
+    setDocumentos(await listarDocumentos(c.id, empresaId));
     setModalAnexo(true);
   }
   function fecharAnexo() { setModalAnexo(false); setContaAnexo(null); setDocumentos([]); }
@@ -585,7 +634,7 @@ export default function ContasPagarPage() {
       setEnviandoDoc(false);
       return;
     }
-    setDocumentos(await listarDocumentos(contaAnexo.id));
+    setDocumentos(await listarDocumentos(contaAnexo.id, empresaId));
     setEnviandoDoc(false);
   }
 
@@ -600,7 +649,7 @@ export default function ContasPagarPage() {
       showToast(L("Não foi possível excluir o documento. Tente novamente.", "Could not delete the document. Try again.", "No se pudo eliminar el documento. Intente de nuevo."), "erro");
       return;
     }
-    if (contaAnexo) setDocumentos(await listarDocumentos(contaAnexo.id));
+    if (contaAnexo && empresaId) setDocumentos(await listarDocumentos(contaAnexo.id, empresaId));
   }
 
   // ========== IMPORTAR XML NF-E (com trava anti-duplicação) ==========
@@ -809,7 +858,20 @@ export default function ContasPagarPage() {
                         {proximasAPagar.has(c.id) && <Pin size={12} style={{ color: ROXO }} />}
                         {c.descricao}
                       </p>
-                      <p className="text-xs" style={{ color: CINZA }}>{nomeFornecedor(c.fornecedor_id)} · {c.categoria ? cat(c.categoria) : "—"}</p>
+                      <p className="text-xs flex items-center gap-1.5" style={{ color: CINZA }}>
+                        {nomeFornecedor(c.fornecedor_id)} · {c.categoria ? cat(c.categoria) : "—"}
+                        {(() => {
+                          const scoreForn = scoreDoFornecedor(c.fornecedor_id);
+                          return scoreForn ? (
+                            <span className="px-1.5 py-0.5 rounded font-bold" title={L("Score de saúde do fornecedor", "Supplier health score", "Score de salud del proveedor")}
+                              style={{ background: `${corDoNivelScore(scoreForn.nivel)}20`, color: corDoNivelScore(scoreForn.nivel) }}>
+                              {scoreForn.total}
+                            </span>
+                          ) : (
+                            <span title={L("Sem score ainda", "No score yet", "Sin score todavía")} style={{ opacity: 0.5 }}>{L("sem score", "no score", "sin score")}</span>
+                          );
+                        })()}
+                      </p>
                     </div>
                     <div className="text-xs" style={{ color: CINZA }}>
                       {L("Vence", "Due", "Vence")} {c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
@@ -925,9 +987,23 @@ export default function ContasPagarPage() {
                       <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{item.conta.descricao} · {nomeFornecedor(item.conta.fornecedor_id)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>{item.explicacao}</p>
                     </div>
-                    <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${item.score >= 70 ? VERMELHO : item.score >= 40 ? AMBAR : VERDE}20`, color: item.score >= 70 ? VERMELHO : item.score >= 40 ? AMBAR : VERDE }}>
+                    <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" title={L("Score de prioridade de pagamento", "Payment priority score", "Score de prioridad de pago")}
+                      style={{ background: `${item.score >= 70 ? VERMELHO : item.score >= 40 ? AMBAR : VERDE}20`, color: item.score >= 70 ? VERMELHO : item.score >= 40 ? AMBAR : VERDE }}>
                       {item.score}
                     </span>
+                    {(() => {
+                      const scoreForn = scoreDoFornecedor(item.conta.fornecedor_id);
+                      return scoreForn ? (
+                        <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" title={L("Score de saúde do fornecedor", "Supplier health score", "Score de salud del proveedor")}
+                          style={{ background: `${corDoNivelScore(scoreForn.nivel)}20`, color: corDoNivelScore(scoreForn.nivel) }}>
+                          {L("Forn.", "Sup.", "Prov.")} {scoreForn.total}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 rounded-lg text-xs flex-shrink-0" style={{ color: CINZA, background: "rgba(255,255,255,0.04)" }}>
+                          {L("sem score", "no score", "sin score")}
+                        </span>
+                      );
+                    })()}
                     <button onClick={() => alternarProximaAPagar(item.conta.id)} title={L("Marcar como próxima a pagar", "Mark as next to pay", "Marcar como próxima a pagar")}
                       className="flex-shrink-0" style={{ color: proximasAPagar.has(item.conta.id) ? ROXO : CINZA }}>
                       <Pin size={16} />

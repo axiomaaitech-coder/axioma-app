@@ -72,8 +72,8 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 // CRUD — CONTAS A PAGAR
 // ============================================================================
 
-export async function listarContasPagar(filtros: FiltrosContasPagar = {}): Promise<ContaPagar[]> {
-  let q = supabase.from("contas_pagar").select("*").order("data_vencimento", { ascending: true, nullsFirst: false });
+export async function listarContasPagar(empresaId: string, filtros: FiltrosContasPagar = {}): Promise<ContaPagar[]> {
+  let q = supabase.from("contas_pagar").select("*").eq("empresa_id", empresaId).order("data_vencimento", { ascending: true, nullsFirst: false });
   if (filtros.status) q = q.eq("status", filtros.status);
   if (filtros.fornecedor_id) q = q.eq("fornecedor_id", filtros.fornecedor_id);
   if (filtros.categoria) q = q.eq("categoria", filtros.categoria);
@@ -167,11 +167,12 @@ export async function gerarContaDeCustoFixo(
   custoFixo: { id: string; descricao: string; valor_mensal: number; dia_vencimento: number; categoria?: string | null; centro_custo_id?: string | null },
   mesReferencia: string, // "YYYY-MM"
 ): Promise<{ id?: string; erro?: string; jaExiste?: boolean }> {
-  const { data: existente } = await supabase.from("contas_pagar").select("id")
+  let qExistente = supabase.from("contas_pagar").select("id")
     .eq("custo_fixo_id", custoFixo.id)
     .gte("data_vencimento", `${mesReferencia}-01`)
-    .lte("data_vencimento", `${mesReferencia}-31`)
-    .maybeSingle();
+    .lte("data_vencimento", `${mesReferencia}-31`);
+  if (empresaId) qExistente = qExistente.eq("empresa_id", empresaId);
+  const { data: existente } = await qExistente.maybeSingle();
   if (existente) return { id: existente.id, jaExiste: true };
 
   const dia = String(Math.min(28, Math.max(1, custoFixo.dia_vencimento || 1))).padStart(2, "0");
@@ -196,9 +197,9 @@ export async function gerarContaDeCustoFixo(
 // bucket próprio "contas-pagar-documentos".
 // ============================================================================
 
-export async function listarDocumentos(contasPagarId: string): Promise<ContaPagarDocumento[]> {
+export async function listarDocumentos(contasPagarId: string, empresaId: string): Promise<ContaPagarDocumento[]> {
   const { data } = await supabase.from("contas_pagar_documentos").select("*")
-    .eq("contas_pagar_id", contasPagarId).order("criado_em", { ascending: false });
+    .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false });
   return (data as ContaPagarDocumento[]) || [];
 }
 
@@ -419,11 +420,11 @@ export async function calcularForecastAp(empresaId: string): Promise<ForecastAp>
   const maxHorizonte = Math.max(...HORIZONTES_FORECAST_AP);
 
   const [{ data: fc }, { data: cr }, { data: cp }, { data: cf }, { data: cpPagas }] = await Promise.all([
-    supabase.from("fluxo_caixa").select("valor, tipo, status"),
-    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").neq("status", "recebido"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id"),
-    supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("status", "pago"),
+    supabase.from("fluxo_caixa").select("valor, tipo, status").eq("empresa_id", empresaId),
+    supabase.from("contas_receber").select("valor, valor_recebido, status, data_vencimento").eq("empresa_id", empresaId).neq("status", "recebido"),
+    supabase.from("contas_pagar").select("valor_total, valor_pago, status, data_vencimento, custo_fixo_id").eq("empresa_id", empresaId),
+    supabase.from("custos_fixos").select("id, valor_mensal, dia_vencimento").eq("empresa_id", empresaId),
+    supabase.from("contas_pagar").select("valor_total, valor_pago, data_pagamento, data_vencimento, taxa_multa_mensal").eq("empresa_id", empresaId).eq("status", "pago"),
   ]);
 
   const saldoAtual = (fc || []).filter((l: any) => l.status === "realizado")
@@ -567,10 +568,10 @@ export type AprovacaoPendente = {
   contas_pagar?: { descricao: string; valor_total: number; data_vencimento: string | null; fornecedor_id: string | null } | null;
 };
 
-export async function listarAprovacoesPendentes(): Promise<AprovacaoPendente[]> {
+export async function listarAprovacoesPendentes(empresaId: string): Promise<AprovacaoPendente[]> {
   const { data } = await supabase.from("contas_pagar_aprovacao")
     .select("*, contas_pagar(descricao, valor_total, data_vencimento, fornecedor_id)")
-    .eq("status", "pendente").order("criado_em", { ascending: true });
+    .eq("empresa_id", empresaId).eq("status", "pendente").order("criado_em", { ascending: true });
   return (data as AprovacaoPendente[]) || [];
 }
 
@@ -593,8 +594,8 @@ export type AuditoriaAp = {
   acao: string; antes: any; depois: any; ip: string | null; criado_em: string;
 };
 
-export async function listarAuditoriaConta(contasPagarId: string): Promise<AuditoriaAp[]> {
+export async function listarAuditoriaConta(contasPagarId: string, empresaId: string): Promise<AuditoriaAp[]> {
   const { data } = await supabase.from("contas_pagar_auditoria").select("*")
-    .eq("contas_pagar_id", contasPagarId).order("criado_em", { ascending: false });
+    .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false });
   return (data as AuditoriaAp[]) || [];
 }
