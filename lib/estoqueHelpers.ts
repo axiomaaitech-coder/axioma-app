@@ -87,6 +87,35 @@ export type Produto = {
   updated_at: string;
 };
 
+// Lista fechada dos campos reais de Produto — `satisfies` garante em tempo
+// de compilação que todo nome aqui é uma chave de Produto (typo vira erro
+// de build, não bug silencioso). Usada como guarda em runtime por quem
+// monta payload de update por chave dinâmica (ex.: edição em lote no
+// Estoque) — TypeScript sozinho não protege em runtime, essa lista sim.
+export const CAMPOS_PRODUTO = [
+  "id", "empresa_id", "user_id", "codigo_interno", "codigo_barras", "sku", "nome", "descricao",
+  "categoria", "subcategoria", "marca", "fabricante", "fornecedor_id", "unidade", "peso", "altura",
+  "largura", "comprimento", "volume", "cor", "modelo", "rua", "prateleira", "nivel", "posicao",
+  "centro_custo_id", "conta_contabil", "preco_custo", "preco_medio", "preco_medio_anterior",
+  "preco_sugerido", "preco_minimo", "preco_promocional", "margem", "markup", "ncm", "cest",
+  "cfop_padrao", "ipi", "icms", "pis", "cofins", "iss", "estoque_minimo", "estoque_maximo", "status",
+  "imagem_principal", "observacoes", "saldo_disponivel", "saldo_reservado", "saldo_transito",
+  "segmento", "atributos_nicho", "lead_time_dias", "preco_venda", "controla_estoque",
+  "created_at", "updated_at",
+] as const satisfies readonly (keyof Produto)[];
+
+// Atribui payload[k] = v com o tipo correto (K correlacionado a Produto[K]
+// dentro da função genérica — por isso não precisa de as any) E valida k
+// contra CAMPOS_PRODUTO antes de gravar. Chave fora da lista não é
+// atribuída e reporta pro Sentry — na dúvida, não grava, nunca assume.
+export function setCampoProduto<K extends keyof Produto>(payload: Partial<Produto>, k: K, v: Produto[K]) {
+  if (!(CAMPOS_PRODUTO as readonly string[]).includes(k as string)) {
+    reportarFalhaEscrita("produtos", "montar payload de edição em lote", `campo "${String(k)}" fora da lista de campos válidos de Produto`);
+    return;
+  }
+  payload[k] = v;
+}
+
 export type TipoMovimentacao = "entrada" | "saida" | "transferencia" | "perda" | "ajuste" | "inventario" | "devolucao";
 export type OrigemMovimentacao = "manual" | "nfe" | "pdv" | "importacao";
 

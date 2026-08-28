@@ -279,6 +279,19 @@ const COLUNA_VALOR_DESTINO: Partial<Record<DestinoTabela, string>> = Object.from
   TABELAS_TRANSACAO.map((t) => [t.tabela, t.colValor])
 );
 
+// Lê o valor atual de uma coluna cujo NOME é dinâmico (vem de
+// COLUNA_VALOR_DESTINO, não de input externo) sem confiar cegamente no
+// shape do retorno do Supabase. null é 0 legítimo (saldo nunca populado —
+// começa a somar do zero). Qualquer outro caso (chave ausente, tipo
+// inesperado) devolve null pra quem chama CANCELAR a operação em vez de
+// gravar um saldo possivelmente errado — gravar errado é pior que falhar.
+function lerValorColunaDinamica(atual: unknown, colValor: string): number | null {
+  if (!atual || typeof atual !== "object" || !(colValor in atual)) return null;
+  const bruto = (atual as Record<string, unknown>)[colValor];
+  if (bruto === null) return 0;
+  return typeof bruto === "number" ? bruto : null;
+}
+
 export type CandidatoDuplicata = {
   tabela: DestinoTabela;
   id: string;
@@ -986,7 +999,16 @@ export async function gravarLinhas(params: {
         auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: msg });
         continue;
       }
-      const novoValor = Number((atual as any)[colValor] || 0) + (linha.valor || 0);
+      const valorAtual = lerValorColunaDinamica(atual, colValor);
+      if (valorAtual === null) {
+        resultado.erro++;
+        const msg = `Linha ${numLinha}: coluna de valor "${colValor}" não veio como número em ${alvoSomar.tabela} — operação de somar cancelada por segurança`;
+        resultado.mensagens_erro.push(msg);
+        auditoriaRows.push({ ...auditoriaBase, status: "erro", mensagem: msg });
+        reportarFalhaEscrita(alvoSomar.tabela, "somar importação (leitura de valor atual)", `coluna ${colValor} ausente ou com tipo inesperado`);
+        continue;
+      }
+      const novoValor = valorAtual + (linha.valor || 0);
       const { data: somado, error: errUpdate } = await supabase.from(alvoSomar.tabela).update({ [colValor]: novoValor }).eq("id", alvoSomar.id).eq("empresa_id", empresaId).select("id");
       if (errUpdate || !somado || somado.length === 0) {
         const msg = errUpdate?.message || "0 linhas afetadas (RLS?)";
@@ -1450,7 +1472,13 @@ export async function reverterImportacao(
       erros.push(`${l.destino_tabela}: registro ${l.destino_id} não encontrado pra desfazer soma`);
       continue;
     }
-    const novoValor = Number((atual as any)[colValor] || 0) - Number(l.valor || 0);
+    const valorAtual = lerValorColunaDinamica(atual, colValor);
+    if (valorAtual === null) {
+      erros.push(`${l.destino_tabela}: coluna de valor "${colValor}" não veio como número — reversão da soma cancelada por segurança`);
+      reportarFalhaEscrita(l.destino_tabela, "desfazer soma na reversão (leitura de valor atual)", `coluna ${colValor} ausente ou com tipo inesperado`);
+      continue;
+    }
+    const novoValor = valorAtual - Number(l.valor || 0);
     const { data: subtraido, error: errUpdate } = await supabase.from(l.destino_tabela).update({ [colValor]: novoValor }).eq("id", l.destino_id).eq("empresa_id", empresaId).select("id");
     if (errUpdate || !subtraido || subtraido.length === 0) {
       const motivo = errUpdate?.message || "0 linhas afetadas (RLS?)";

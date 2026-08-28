@@ -31,7 +31,7 @@ import {
   carregarGiroEstoque, carregarCurvaABC, carregarCapitalImobilizado,
   carregarRentabilidadePorCategoria, carregarRentabilidadePorFornecedor, carregarRentabilidadePorMarca,
   carregarComparativoFornecedores, calcularAlertasReposicao,
-  atualizarProdutosEmLote, exportarProdutosExcel, exportarProdutosCsv, importarProdutosArquivo,
+  atualizarProdutosEmLote, exportarProdutosExcel, exportarProdutosCsv, importarProdutosArquivo, setCampoProduto,
   type ConsultaEanResposta, consultarEan,
 } from "../../../lib/estoqueHelpers";
 import {
@@ -724,7 +724,7 @@ export default function EstoquePage() {
     const payload: Partial<Produto> = {};
     (Object.keys(formLote) as (keyof Produto)[]).forEach((k) => {
       const v = formLote[k];
-      if (v !== undefined && v !== "") (payload as any)[k] = v;
+      if (v !== undefined && v !== "") setCampoProduto(payload, k, v);
     });
     if (Object.keys(payload).length === 0) { setModalLoteAberto(false); return; }
     setSalvandoLote(true);
