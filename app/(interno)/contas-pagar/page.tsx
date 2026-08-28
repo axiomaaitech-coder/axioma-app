@@ -26,6 +26,7 @@ import {
   calcularForecastAp, priorizarPagamentos, type ForecastAp, type HorizonteForecastDias, HORIZONTES_FORECAST_AP, type ItemPrioridadePagamento,
   solicitarAprovacao, listarAprovacoesPendentes, decidirAprovacao, type AprovacaoPendente,
   listarAuditoriaConta, type AuditoriaAp,
+  detectarDespesasRecorrentes, transformarPadraoEmCustoFixo, type PadraoRecorrenteDetectado,
 } from "../../../lib/contasPagarHelpers";
 
 const supabase = createBrowserClient(
@@ -247,6 +248,55 @@ export default function ContasPagarPage() {
     () => priorizarPagamentos(contas, fornecedores, idioma as "pt" | "en" | "es"),
     [contas, fornecedores, idioma]
   );
+
+  // ========== ENTREGA 3, COMMIT 3 — RECURRING EXPENSE INTELLIGENCE ==========
+  const padroesRecorrentes: PadraoRecorrenteDetectado[] = useMemo(
+    () => detectarDespesasRecorrentes(contas),
+    [contas]
+  );
+
+  const [padraoParaTransformar, setPadraoParaTransformar] = useState<PadraoRecorrenteDetectado | null>(null);
+  const [formCustoFixo, setFormCustoFixo] = useState({ descricao: "", valorMensal: "", diaVencimento: "", categoria: "", centroCustoId: "" });
+  const [transformando, setTransformando] = useState(false);
+
+  function abrirTransformarPadrao(padrao: PadraoRecorrenteDetectado) {
+    const dia = padrao.ultimaConta.data_vencimento ? Math.min(28, new Date(padrao.ultimaConta.data_vencimento + "T00:00:00").getDate()) : 1;
+    setFormCustoFixo({
+      descricao: padrao.descricaoExemplo,
+      valorMensal: padrao.valorMedio.toFixed(2),
+      diaVencimento: String(dia),
+      categoria: padrao.categoria || "",
+      centroCustoId: padrao.centroCustoId || "",
+    });
+    setPadraoParaTransformar(padrao);
+  }
+
+  async function confirmarTransformarPadrao() {
+    if (!padraoParaTransformar || !userId || !empresaId) return;
+    const valorMensal = Number(formCustoFixo.valorMensal);
+    if (!formCustoFixo.descricao.trim() || !valorMensal || valorMensal <= 0) {
+      showToast(L("Preencha descrição e valor mensal.", "Fill in description and monthly amount.", "Complete descripción y valor mensual."), "erro");
+      return;
+    }
+    setTransformando(true);
+    const resultado = await transformarPadraoEmCustoFixo(
+      userId, empresaId,
+      {
+        descricao: formCustoFixo.descricao.trim(), valorMensal,
+        diaVencimento: Number(formCustoFixo.diaVencimento) || 1,
+        categoria: formCustoFixo.categoria || null, centroCustoId: formCustoFixo.centroCustoId || null,
+      },
+      padraoParaTransformar.idsContas, mesAtual,
+    );
+    setTransformando(false);
+    if (resultado.erro) {
+      showToast(L("Não foi possível criar o custo fixo. Tente novamente.", "Could not create the fixed cost. Try again.", "No se pudo crear el costo fijo. Intente de nuevo."), "erro");
+      return;
+    }
+    showToast(L("Custo fixo criado a partir do padrão detectado.", "Fixed cost created from the detected pattern.", "Costo fijo creado a partir del patrón detectado."), "ok");
+    setPadraoParaTransformar(null);
+    await carregar();
+  }
 
   function alternarProximaAPagar(id: string) {
     setProximasAPagar((prev) => {
@@ -1013,6 +1063,51 @@ export default function ContasPagarPage() {
               </div>
             )}
           </CanvasBox>
+
+          {/* Card Despesas Recorrentes Detectadas (Entrega 3, Commit 3) */}
+          <CanvasBox cor={AMBAR}>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+              <RotateCcw size={18} style={{ color: AMBAR }} />
+              {L("Despesas Recorrentes Detectadas", "Detected Recurring Expenses", "Gastos Recurrentes Detectados")}
+            </h3>
+            <p className="text-xs mb-3" style={{ color: CINZA }}>
+              {L("Mesmo fornecedor, valor parecido (±10%) e intervalo regular em pelo menos 3 lançamentos que ainda não viraram Custo Fixo.",
+                "Same supplier, similar amount (±10%) and a regular interval across at least 3 entries that haven't become a Fixed Cost yet.",
+                "Mismo proveedor, valor parecido (±10%) e intervalo regular en al menos 3 lanzamientos que todavía no son Costo Fijo.")}
+            </p>
+            {padroesRecorrentes.length === 0 ? (
+              <p className="text-sm" style={{ color: CINZA }}>{L("Nenhum padrão recorrente novo encontrado.", "No new recurring pattern found.", "Ningún patrón recurrente nuevo encontrado.")}</p>
+            ) : (
+              <div className="space-y-2">
+                {padroesRecorrentes.map((p) => (
+                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{p.descricaoExemplo} · {nomeFornecedor(p.fornecedorId)}</p>
+                      <p className="text-xs" style={{ color: CINZA }}>
+                        {L(`${p.ocorrencias} ocorrências · ~${fmt(p.valorMedio)} a cada ~${p.intervaloMedioDias} dias`,
+                          `${p.ocorrencias} occurrences · ~${fmt(p.valorMedio)} every ~${p.intervaloMedioDias} days`,
+                          `${p.ocorrencias} ocurrencias · ~${fmt(p.valorMedio)} cada ~${p.intervaloMedioDias} días`)}
+                      </p>
+                    </div>
+                    {p.podeVirarCustoFixo ? (
+                      podeEditar && (
+                        <button onClick={() => abrirTransformarPadrao(p)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
+                          style={{ background: "rgba(245,158,11,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
+                          {L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}
+                        </button>
+                      )
+                    ) : (
+                      <span className="px-2 py-1 rounded-lg text-[10px] flex-shrink-0" style={{ color: CINZA, background: "rgba(255,255,255,0.04)" }} title={L("Recorrência não mensal — Custo Fixo hoje só modela despesa mensal.", "Non-monthly recurrence — Fixed Cost today only models monthly expenses.", "Recurrencia no mensual — Costo Fijo hoy solo modela gasto mensual.")}>
+                        {L("recorrência não mensal", "non-monthly recurrence", "recurrencia no mensual")}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CanvasBox>
         </div>
       )}
 
@@ -1523,6 +1618,81 @@ export default function ContasPagarPage() {
                       <button onClick={() => setModalConfigAp(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
                       <button onClick={salvarConfiguracaoAp} disabled={salvandoConfig} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #334155, #64748b)", color: "#fff" }}>
                         {salvandoConfig ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Configuração", "Save Configuration", "Guardar Configuración")}
+                      </button>
+                    </div>
+                  </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL TRANSFORMAR PADRÃO RECORRENTE EM CUSTO FIXO ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {padraoParaTransformar && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
+                <CanvasBox cor={AMBAR}>
+                  <div className="flex justify-between items-center mb-4">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><RotateCcw size={18} />{L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}</h3>
+                    </div>
+                    <button onClick={() => setPadraoParaTransformar(null)} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <p className="text-xs mb-3" style={{ color: CINZA }}>
+                    {L(`Detectado com ${padraoParaTransformar.ocorrencias} lançamentos de ${nomeFornecedor(padraoParaTransformar.fornecedorId)}. Confira os dados antes de confirmar — nada é criado sem sua aprovação.`,
+                      `Detected across ${padraoParaTransformar.ocorrencias} entries from ${nomeFornecedor(padraoParaTransformar.fornecedorId)}. Review the data before confirming — nothing is created without your approval.`,
+                      `Detectado con ${padraoParaTransformar.ocorrencias} lanzamientos de ${nomeFornecedor(padraoParaTransformar.fornecedorId)}. Revise los datos antes de confirmar — nada se crea sin su aprobación.`)}
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Descrição", "Description", "Descripción")} *</label>
+                      <input value={formCustoFixo.descricao} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, descricao: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Mensal (R$)", "Monthly Amount (R$)", "Valor Mensual (R$)")} *</label>
+                        <input type="number" step="0.01" value={formCustoFixo.valorMensal} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, valorMensal: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Dia de Vencimento", "Due Day", "Día de Vencimiento")} *</label>
+                        <input type="number" min={1} max={28} value={formCustoFixo.diaVencimento} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, diaVencimento: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Categoria", "Category", "Categoría")}</label>
+                        <select value={formCustoFixo.categoria} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, categoria: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
+                          {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Centro de Custo", "Cost Center", "Centro de Costo")}</label>
+                        <select value={formCustoFixo.centroCustoId} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, centroCustoId: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          <option value="">-- {L("Sem centro de custo", "No cost center", "Sin centro de costo")} --</option>
+                          {centrosCusto.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <p className="text-[10px]" style={{ color: CINZA }}>
+                      {L("As contas antigas desse padrão passam a ficar vinculadas a este Custo Fixo, e a conta deste mês é gerada automaticamente (sem duplicar se já existir).",
+                        "The old bills from this pattern get linked to this Fixed Cost, and this month's bill is generated automatically (no duplicate if one already exists).",
+                        "Las cuentas antiguas de ese patrón quedan vinculadas a este Costo Fijo, y la cuenta de este mes se genera automáticamente (sin duplicar si ya existe).")}
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setPadraoParaTransformar(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #d97706, #f59e0b)", color: "#fff" }}>
+                        {transformando ? L("Criando...", "Creating...", "Creando...") : L("Confirmar e Criar", "Confirm and Create", "Confirmar y Crear")}
                       </button>
                     </div>
                   </div>

@@ -66,9 +66,11 @@ export default function CustosFixos() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
-    const { data } = await supabase.from("custos_fixos").select("*").order("dia_vencimento", { ascending: true });
+    const empresaId = await obterEmpresaAtiva();
+    if (!empresaId) { setCarregando(false); return; }
+    const { data } = await supabase.from("custos_fixos").select("*").eq("empresa_id", empresaId).order("dia_vencimento", { ascending: true });
     setCustos(data || []);
-    supabase.from("centros_custo").select("id, nome").then(({ data }) => setCentrosCusto(data || []));
+    supabase.from("centros_custo").select("id, nome").eq("empresa_id", empresaId).then(({ data }) => setCentrosCusto(data || []));
     setCarregando(false);
   };
 

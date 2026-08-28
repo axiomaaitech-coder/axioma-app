@@ -8,6 +8,7 @@ import * as Sentry from "@sentry/nextjs";
 import { calcStatus } from "./fornecedorHelpers";
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, type EventoCaixa, type RupturaCaixa } from "./cfoCore";
+import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -598,4 +599,180 @@ export async function listarAuditoriaConta(contasPagarId: string, empresaId: str
   const { data } = await supabase.from("contas_pagar_auditoria").select("*")
     .eq("contas_pagar_id", contasPagarId).eq("empresa_id", empresaId).order("criado_em", { ascending: false });
   return (data as AuditoriaAp[]) || [];
+}
+
+// ----------------------------------------------------------------------------
+// ENTREGA 3, COMMIT 3 — RECURRING EXPENSE INTELLIGENCE. Função pura sobre as
+// contas já carregadas pela tela (mesmo padrão de priorizarPagamentos, sem
+// fetch próprio). Agrupa por fornecedor + normalizarPadraoChave(descricao) —
+// mesma normalização de texto do motor de aprendizado do Importar Documentos
+// (importarHelpers.ts), reaproveitada aqui pra não reescrever a lógica de
+// "que texto é essa a mesma despesa" duas vezes. Conta sem fornecedor, sem
+// vencimento, sem valor ou já vinculada a um custo_fixo_id fica de fora —
+// já é recorrência conhecida ou não tem dado suficiente pra afirmar nada.
+// ----------------------------------------------------------------------------
+
+const OCORRENCIAS_MINIMAS_RECORRENCIA = 3;
+// ±10% — cobre a variação normal de conta de consumo (água/luz) sem deixar
+// passar duas despesas de valor bem diferente como se fossem o mesmo padrão.
+const TOLERANCIA_VALOR_RECORRENCIA_PCT = 0.10;
+
+export type PeriodicidadeRecorrencia = "semanal" | "quinzenal" | "mensal" | "trimestral" | "outra";
+
+// custos_fixos (tabela reaproveitada) só modela recorrência MENSAL
+// (valor_mensal + dia_vencimento). Virar Custo Fixo só é oferecido pra quem
+// bate nessa janela — do contrário uma despesa trimestral vinculada ali
+// passaria a gerar conta TODO mês (3x o valor real), um bug silencioso.
+// Suportar outras periodicidades exige campo novo em custos_fixos (schema).
+function classificarPeriodicidade(intervaloMedioDias: number): PeriodicidadeRecorrencia {
+  if (intervaloMedioDias >= 6 && intervaloMedioDias <= 8) return "semanal";
+  if (intervaloMedioDias >= 13 && intervaloMedioDias <= 16) return "quinzenal";
+  if (intervaloMedioDias >= 27 && intervaloMedioDias <= 33) return "mensal";
+  if (intervaloMedioDias >= 85 && intervaloMedioDias <= 95) return "trimestral";
+  return "outra";
+}
+
+export type PadraoRecorrenteDetectado = {
+  fornecedorId: string;
+  descricaoExemplo: string;
+  categoria: string | null;
+  centroCustoId: string | null;
+  ocorrencias: number;
+  valorMedio: number;
+  intervaloMedioDias: number;
+  periodicidade: PeriodicidadeRecorrencia;
+  podeVirarCustoFixo: boolean;
+  idsContas: string[];
+  ultimaConta: ContaPagar;
+};
+
+export function detectarDespesasRecorrentes(contas: ContaPagar[]): PadraoRecorrenteDetectado[] {
+  const elegiveis = contas.filter((c) =>
+    c.fornecedor_id && !c.custo_fixo_id && c.data_vencimento && Number(c.valor_total) > 0
+  );
+
+  const grupos = new Map<string, ContaPagar[]>();
+  elegiveis.forEach((c) => {
+    const chaveDescricao = normalizarPadraoChave(c.descricao || "");
+    if (!chaveDescricao) return; // sem texto suficiente pra afirmar "é o mesmo padrão"
+    const chave = `${c.fornecedor_id}|${chaveDescricao}`;
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave)!.push(c);
+  });
+
+  const padroes: PadraoRecorrenteDetectado[] = [];
+  grupos.forEach((lista) => {
+    if (lista.length < OCORRENCIAS_MINIMAS_RECORRENCIA) return;
+
+    const ordenadas = [...lista].sort((a, b) => (a.data_vencimento || "").localeCompare(b.data_vencimento || ""));
+    const valores = ordenadas.map((c) => Number(c.valor_total));
+    const valorMedio = valores.reduce((s, v) => s + v, 0) / valores.length;
+    if (valorMedio <= 0) return;
+    const valorRegular = valores.every((v) => Math.abs(v - valorMedio) / valorMedio <= TOLERANCIA_VALOR_RECORRENCIA_PCT);
+    if (!valorRegular) return;
+
+    const intervalos: number[] = [];
+    for (let i = 1; i < ordenadas.length; i++) {
+      const dias = Math.round(
+        (new Date(ordenadas[i].data_vencimento + "T00:00:00").getTime() - new Date(ordenadas[i - 1].data_vencimento + "T00:00:00").getTime()) / 86400000
+      );
+      intervalos.push(dias);
+    }
+    const intervaloMedio = intervalos.reduce((s, v) => s + v, 0) / intervalos.length;
+    if (intervaloMedio <= 0) return;
+    // Tolera vencimento caindo em fim de semana / mês de 28 a 31 dias — não
+    // exige intervalo exato ao dia, só que não fuja demais da própria média.
+    const toleranciaDias = Math.max(5, intervaloMedio * 0.2);
+    const intervaloRegular = intervalos.every((d) => Math.abs(d - intervaloMedio) <= toleranciaDias);
+    if (!intervaloRegular) return;
+
+    const ultimaConta = ordenadas[ordenadas.length - 1];
+    const periodicidade = classificarPeriodicidade(intervaloMedio);
+    padroes.push({
+      fornecedorId: ultimaConta.fornecedor_id as string,
+      descricaoExemplo: ultimaConta.descricao,
+      categoria: ultimaConta.categoria || null,
+      centroCustoId: ultimaConta.centro_custo_id || null,
+      ocorrencias: ordenadas.length,
+      valorMedio,
+      intervaloMedioDias: Math.round(intervaloMedio),
+      periodicidade,
+      podeVirarCustoFixo: periodicidade === "mensal",
+      idsContas: ordenadas.map((c) => c.id),
+      ultimaConta,
+    });
+  });
+
+  return padroes.sort((a, b) => b.valorMedio - a.valorMedio);
+}
+
+// ----------------------------------------------------------------------------
+// TRANSFORMAR PADRÃO EM CUSTO FIXO — sempre por confirmação explícita do
+// dono (é sugestão, nunca ação automática). Cria a linha em custos_fixos
+// (mesmo formato de payload da tela Custos Fixos), audita via
+// registrarAuditoriaCentro (reaproveitado de centroCustoHelpers.ts, mesma
+// trilha que a tela de Custos Fixos já usa), vincula as contas de origem ao
+// novo custo_fixo_id (pra não sugerir de novo o que já virou custo fixo, e
+// pra não gerar duplicata no mês corrente — mesma regra de
+// gerarContaDeCustoFixo) e por fim gera a conta do mês corrente reaproveitando
+// gerarContaDeCustoFixo (já existe, já dedupa por mês — nenhuma função nova
+// de geração de custo fixo).
+// ----------------------------------------------------------------------------
+
+export type NovoCustoFixoDePadrao = {
+  descricao: string;
+  valorMensal: number;
+  diaVencimento: number;
+  categoria?: string | null;
+  centroCustoId?: string | null;
+};
+
+export async function transformarPadraoEmCustoFixo(
+  userId: string,
+  empresaId: string,
+  dados: NovoCustoFixoDePadrao,
+  idsContasOrigem: string[],
+  mesReferencia: string, // "YYYY-MM"
+): Promise<{ custoFixoId?: string; contaGeradaId?: string; erro?: string }> {
+  const payload = {
+    descricao: dados.descricao,
+    valor_mensal: dados.valorMensal,
+    dia_vencimento: dados.diaVencimento,
+    categoria: dados.categoria || "Outros",
+    centro_custo_id: dados.centroCustoId || null,
+    user_id: userId,
+    empresa_id: empresaId,
+  };
+  const { data, error } = await supabase.from("custos_fixos").insert(payload).select("id").single();
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("custos_fixos", "insert (transformar padrão recorrente)", motivo);
+    return { erro: motivo };
+  }
+  const custoFixoId = data.id as string;
+
+  const auditoria = await registrarAuditoriaCentro({
+    userId, empresaId, centroId: dados.centroCustoId || null, tabela: "custos_fixos", registroId: custoFixoId,
+    acao: "criar", descricao: `Custo fixo criado a partir de padrão recorrente detectado: ${dados.descricao}`,
+  });
+  if (auditoria.erro) reportarFalhaEscrita("centro_custo_auditoria", "insert (padrão recorrente)", auditoria.erro);
+
+  if (idsContasOrigem.length > 0) {
+    const { data: vinculadas, error: erroVinculo } = await supabase.from("contas_pagar")
+      .update({ custo_fixo_id: custoFixoId }).eq("empresa_id", empresaId).in("id", idsContasOrigem).select("id");
+    if (erroVinculo || !vinculadas || vinculadas.length === 0) {
+      // Não bloqueia o fluxo — o custo fixo já foi criado; só o vínculo
+      // retroativo falhou, e por isso precisa ficar registrado (senão essas
+      // contas antigas voltam a aparecer como "sugestão" no próximo cálculo).
+      reportarFalhaEscrita("contas_pagar", "update (vincular histórico ao custo fixo)", erroVinculo?.message || "0 linhas afetadas (RLS?)");
+    }
+  }
+
+  const resultado = await gerarContaDeCustoFixo(
+    userId, empresaId,
+    { id: custoFixoId, descricao: dados.descricao, valor_mensal: dados.valorMensal, dia_vencimento: dados.diaVencimento, categoria: dados.categoria, centro_custo_id: dados.centroCustoId },
+    mesReferencia,
+  );
+  if (resultado.erro) return { custoFixoId, erro: resultado.erro };
+  return { custoFixoId, contaGeradaId: resultado.id };
 }
