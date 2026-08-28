@@ -40,32 +40,32 @@ export type LancamentoOrigem = {
   valor_pago?: number;       // só contas_pagar
 };
 
-export async function carregarLancamentosOrigem(userId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
+export async function carregarLancamentosOrigem(empresaId: string, tabela: OrigemTabela): Promise<LancamentoOrigem[]> {
   if (tabela === "custos_fixos") {
-    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").order("descricao");
+    const { data } = await supabase.from("custos_fixos").select("id, descricao, valor_mensal, categoria, centro_custo_id, dia_vencimento").eq("empresa_id", empresaId).order("descricao");
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_mensal || 0), data: "", categoria: d.categoria, centro_custo_id: d.centro_custo_id, dia_vencimento: d.dia_vencimento }));
   }
   if (tabela === "custos_variaveis") {
-    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").order("data", { ascending: false }).limit(5000);
+    const { data } = await supabase.from("custos_variaveis").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).limit(5000);
     return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
   }
-  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").order("data_vencimento", { ascending: false }).limit(5000);
+  const { data } = await supabase.from("contas_pagar").select("id, descricao, valor_total, valor_pago, categoria, data_vencimento, fornecedor_id, centro_custo_id, status").eq("empresa_id", empresaId).order("data_vencimento", { ascending: false }).limit(5000);
   return (data || []).map((d: any) => ({ tabela, id: d.id, descricao: d.descricao, valor: Number(d.valor_total || 0), data: d.data_vencimento || "", categoria: d.categoria, fornecedor_id: d.fornecedor_id, centro_custo_id: d.centro_custo_id, status: d.status, valor_pago: Number(d.valor_pago || 0) }));
 }
 
-export async function carregarTodosLancamentosOrigem(userId: string): Promise<LancamentoOrigem[]> {
+export async function carregarTodosLancamentosOrigem(empresaId: string): Promise<LancamentoOrigem[]> {
   const [cf, cv, cp] = await Promise.all([
-    carregarLancamentosOrigem(userId, "custos_fixos"),
-    carregarLancamentosOrigem(userId, "custos_variaveis"),
-    carregarLancamentosOrigem(userId, "contas_pagar"),
+    carregarLancamentosOrigem(empresaId, "custos_fixos"),
+    carregarLancamentosOrigem(empresaId, "custos_variaveis"),
+    carregarLancamentosOrigem(empresaId, "contas_pagar"),
   ]);
   return [...cf, ...cv, ...cp];
 }
 
 export type ReceitaOrigem = { id: string; descricao: string; valor: number; data: string; categoria?: string; centro_custo_id: string | null };
 
-export async function carregarReceitasOrigem(userId: string): Promise<ReceitaOrigem[]> {
-  const { data } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").order("data", { ascending: false }).limit(5000);
+export async function carregarReceitasOrigem(empresaId: string): Promise<ReceitaOrigem[]> {
+  const { data } = await supabase.from("receitas").select("id, descricao, valor, data, categoria, centro_custo_id").eq("empresa_id", empresaId).order("data", { ascending: false }).limit(5000);
   return (data || []).map((d: any) => ({ id: d.id, descricao: d.descricao, valor: Number(d.valor || 0), data: d.data || "", categoria: d.categoria, centro_custo_id: d.centro_custo_id }));
 }
 
@@ -82,8 +82,8 @@ export type RateioRow = {
   percentual: number; base_tipo: string; descricao: string | null; created_at: string;
 };
 
-export async function carregarRateios(userId: string): Promise<RateioRow[]> {
-  const { data } = await supabase.from("centro_custo_rateio").select("*");
+export async function carregarRateios(empresaId: string): Promise<RateioRow[]> {
+  const { data } = await supabase.from("centro_custo_rateio").select("*").eq("empresa_id", empresaId);
   return data || [];
 }
 
@@ -159,8 +159,8 @@ export function sugerirPercentuaisPorBase(
 
 export type OrcamentoRow = { id: string; centro_custo_id: string; periodo: string; valor_orcado: number };
 
-export async function carregarOrcamentos(userId: string): Promise<OrcamentoRow[]> {
-  const { data } = await supabase.from("centro_custo_orcamento").select("*");
+export async function carregarOrcamentos(empresaId: string): Promise<OrcamentoRow[]> {
+  const { data } = await supabase.from("centro_custo_orcamento").select("*").eq("empresa_id", empresaId);
   return data || [];
 }
 
@@ -203,8 +203,8 @@ export type AuditoriaRow = {
   acao: string; descricao: string | null; created_at: string;
 };
 
-export async function carregarAuditoriaCentro(userId: string, limit = 500): Promise<AuditoriaRow[]> {
-  const { data } = await supabase.from("centro_custo_auditoria").select("*").order("created_at", { ascending: false }).limit(limit);
+export async function carregarAuditoriaCentro(empresaId: string, limit = 500): Promise<AuditoriaRow[]> {
+  const { data } = await supabase.from("centro_custo_auditoria").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false }).limit(limit);
   return data || [];
 }
 

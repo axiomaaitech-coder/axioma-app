@@ -86,11 +86,12 @@ export function montarPeriodo(ano: number, mes: number): Periodo {
 // DRE GERENCIAL (Demonstração do Resultado do Exercício)
 // ============================================================================
 
-export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE> {
+export async function carregarDRE(empresaId: string, periodo: Periodo): Promise<DRE> {
   // 1) Receitas do período
   const { data: receitas } = await supabase
     .from("receitas")
     .select("valor")
+    .eq("empresa_id", empresaId)
     .gte("data", periodo.inicio)
     .lte("data", periodo.fim);
   const receita_bruta = (receitas || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -99,6 +100,7 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
   const { data: custosVar } = await supabase
     .from("custos_variaveis")
     .select("valor")
+    .eq("empresa_id", empresaId)
     .gte("data", periodo.inicio)
     .lte("data", periodo.fim);
   const custos_variaveis = (custosVar || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -106,7 +108,8 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
   // 3) Custos fixos (mensais — todos cadastrados)
   const { data: custosFix } = await supabase
     .from("custos_fixos")
-    .select("valor_mensal");
+    .select("valor_mensal")
+    .eq("empresa_id", empresaId);
   const custos_fixos = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
 
   // 4) Despesas financeiras (juros de endividamento — estimativa simples)
@@ -116,7 +119,8 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
   try {
     const { data: dividas } = await supabase
       .from("dividas")
-      .select("valor_total, valor_pago, taxa_juros");
+      .select("valor_total, valor_pago, taxa_juros")
+      .eq("empresa_id", empresaId);
     if (dividas) {
       despesas_financeiras = dividas.reduce((s: number, d: any) => {
         const saldoDevedor = Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0));
@@ -131,8 +135,8 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
   // módulo IA Tributária), em vez de um percentual fixo chutado.
   const inicio12m = new Date(periodo.ano, periodo.mes - 12, 1).toISOString().slice(0, 10);
   const [{ data: empresa }, { data: rec12m }] = await Promise.all([
-    supabase.from("empresas").select("regime_tributario").eq("user_id", userId).limit(1).maybeSingle(),
-    supabase.from("receitas").select("valor").gte("data", inicio12m).lte("data", periodo.fim),
+    supabase.from("empresas").select("regime_tributario").eq("id", empresaId).maybeSingle(),
+    supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", inicio12m).lte("data", periodo.fim),
   ]);
   const receita_bruta_12m = (rec12m || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
   const deducoes = Math.round(calcularImpostoRegime(empresa?.regime_tributario || "", receita_bruta_12m, receita_bruta));
@@ -167,7 +171,7 @@ export async function carregarDRE(userId: string, periodo: Periodo): Promise<DRE
 // ============================================================================
 
 export async function carregarEvolucao12Meses(
-  userId: string,
+  empresaId: string,
   referenciaAno: number,
   referenciaMes: number
 ): Promise<PontoEvolucao[]> {
@@ -176,7 +180,8 @@ export async function carregarEvolucao12Meses(
   // Custos fixos são recorrentes — totaliza uma vez
   const { data: custosFix } = await supabase
     .from("custos_fixos")
-    .select("valor_mensal");
+    .select("valor_mensal")
+    .eq("empresa_id", empresaId);
   const custos_fixos_mes = (custosFix || []).reduce((s: number, r: any) => s + Number(r.valor_mensal || 0), 0);
 
   for (let i = 11; i >= 0; i--) {
@@ -186,8 +191,8 @@ export async function carregarEvolucao12Meses(
     const periodo = montarPeriodo(ano, mes);
 
     const [{ data: rec }, { data: cv }] = await Promise.all([
-      supabase.from("receitas").select("valor").gte("data", periodo.inicio).lte("data", periodo.fim),
-      supabase.from("custos_variaveis").select("valor").gte("data", periodo.inicio).lte("data", periodo.fim),
+      supabase.from("receitas").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim),
+      supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", periodo.inicio).lte("data", periodo.fim),
     ]);
 
     const receita = (rec || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -216,7 +221,7 @@ export async function carregarEvolucao12Meses(
 const CORES_CATEGORIA = ["#6ab0ff", "#f87171", "#fbbf24", "#a78bfa", "#34d399", "#fb923c", "#22d3ee", "#f472b6"];
 
 export async function carregarDistribuicaoCustos(
-  userId: string,
+  empresaId: string,
   periodo: Periodo
 ): Promise<CategoriaCusto[]> {
   const agregado = new Map<string, number>();
@@ -225,6 +230,7 @@ export async function carregarDistribuicaoCustos(
   const { data: cv } = await supabase
     .from("custos_variaveis")
     .select("valor, categoria")
+    .eq("empresa_id", empresaId)
     .gte("data", periodo.inicio)
     .lte("data", periodo.fim);
   (cv || []).forEach((r: any) => {
@@ -235,7 +241,8 @@ export async function carregarDistribuicaoCustos(
   // 2) Custos fixos (mensal)
   const { data: cf } = await supabase
     .from("custos_fixos")
-    .select("valor_mensal, categoria");
+    .select("valor_mensal, categoria")
+    .eq("empresa_id", empresaId);
   (cf || []).forEach((r: any) => {
     const cat = r.categoria || "Custos Fixos";
     agregado.set(cat, (agregado.get(cat) || 0) + Number(r.valor_mensal || 0));
@@ -245,6 +252,7 @@ export async function carregarDistribuicaoCustos(
   const { data: cp } = await supabase
     .from("contas_pagar")
     .select("valor_total, categoria")
+    .eq("empresa_id", empresaId)
     .gte("data_vencimento", periodo.inicio)
     .lte("data_vencimento", periodo.fim);
   (cp || []).forEach((r: any) => {
@@ -279,7 +287,7 @@ function formatPct(n: number): string {
   return `${n.toFixed(1)}%`;
 }
 
-export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): Promise<KPI[]> {
+export async function carregarKPIs(empresaId: string, periodo: Periodo, dre: DRE): Promise<KPI[]> {
   const kpis: KPI[] = [];
 
   // ---- 1. MARGEM BRUTA (sobre receita líquida) ----
@@ -343,8 +351,8 @@ export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): 
 
   // ---- 5. LIQUIDEZ CORRENTE ----
   const [{ data: cRecAtiv }, { data: cPagAtiv }] = await Promise.all([
-    supabase.from("contas_receber").select("valor, valor_recebido, status").neq("status", "recebido"),
-    supabase.from("contas_pagar").select("valor_total, valor_pago, status").neq("status", "pago"),
+    supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido"),
+    supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago"),
   ]);
   const ativoCirc = (cRecAtiv || []).reduce((s: number, r: any) => s + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0);
   const passivoCirc = (cPagAtiv || []).reduce((s: number, r: any) => s + (Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
@@ -364,7 +372,7 @@ export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): 
   // ---- 6. ENDIVIDAMENTO ----
   let totalDividas = 0;
   try {
-    const { data: div } = await supabase.from("dividas").select("valor_total, valor_pago");
+    const { data: div } = await supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId);
     totalDividas = (div || []).reduce((s: number, r: any) => s + Math.max(0, Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0);
   } catch {}
   const patrimonio = Math.max(dre.receita_bruta * 3, 1); // estimativa: 3x receita do mês
@@ -384,7 +392,8 @@ export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): 
   // ---- 7. INADIMPLÊNCIA ----
   const { data: cRecTodos } = await supabase
     .from("contas_receber")
-    .select("valor, status, data_vencimento");
+    .select("valor, status, data_vencimento")
+    .eq("empresa_id", empresaId);
   const hoje = new Date().toISOString().slice(0, 10);
   const vencidos = (cRecTodos || []).filter(
     (r: any) => r.status !== "recebido" && r.data_vencimento && r.data_vencimento < hoje
@@ -441,6 +450,7 @@ export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): 
   const { data: recAnt } = await supabase
     .from("receitas")
     .select("valor")
+    .eq("empresa_id", empresaId)
     .gte("data", mesAnterior.inicio)
     .lte("data", mesAnterior.fim);
   const receitaAnt = (recAnt || []).reduce((s: number, r: any) => s + Number(r.valor || 0), 0);
@@ -475,6 +485,7 @@ export async function carregarKPIs(userId: string, periodo: Periodo, dre: DRE): 
   const { data: recCount } = await supabase
     .from("receitas")
     .select("valor", { count: "exact" })
+    .eq("empresa_id", empresaId)
     .gte("data", periodo.inicio)
     .lte("data", periodo.fim);
   const qtdLanc = (recCount || []).length;

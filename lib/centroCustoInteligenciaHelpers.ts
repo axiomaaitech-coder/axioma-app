@@ -533,8 +533,8 @@ export type PlanoAcao = {
   created_at: string; updated_at: string;
 };
 
-export async function carregarPlanosAcao(userId: string): Promise<PlanoAcao[]> {
-  const { data } = await supabase.from("centro_custo_plano_acao").select("*").order("created_at", { ascending: false });
+export async function carregarPlanosAcao(empresaId: string): Promise<PlanoAcao[]> {
+  const { data } = await supabase.from("centro_custo_plano_acao").select("*").eq("empresa_id", empresaId).order("created_at", { ascending: false });
   return data || [];
 }
 

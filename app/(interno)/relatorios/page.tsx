@@ -6,6 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import {
   montarPeriodo,
   carregarDRE,
@@ -202,7 +203,7 @@ export default function Relatorios() {
   const [carregando, setCarregando] = useState(true);
 
   // Dados reais
-  const [userId, setUserId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [dre, setDre] = useState<DRE | null>(null);
   const [evolucao, setEvolucao] = useState<PontoEvolucao[]>([]);
   const [distribuicao, setDistribuicao] = useState<CategoriaCusto[]>([]);
@@ -225,24 +226,25 @@ export default function Relatorios() {
   }, []);
 
   useEffect(() => {
-    if (userId) carregarTudo(userId);
+    if (empresaId) carregarTudo(empresaId);
     // eslint-disable-next-line
-  }, [ano, mes, userId]);
+  }, [ano, mes, empresaId]);
 
   async function inicializar() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) setUserId(user.id);
+    if (!user) return;
+    setEmpresaId(await obterEmpresaAtiva());
   }
 
-  async function carregarTudo(uid: string) {
+  async function carregarTudo(empId: string) {
     setCarregando(true);
     try {
       const periodo = montarPeriodo(ano, mes);
-      const dreNovo = await carregarDRE(uid, periodo);
+      const dreNovo = await carregarDRE(empId, periodo);
       const [evNovo, distNovo, kpisNovos] = await Promise.all([
-        carregarEvolucao12Meses(uid, ano, mes),
-        carregarDistribuicaoCustos(uid, periodo),
-        carregarKPIs(uid, periodo, dreNovo),
+        carregarEvolucao12Meses(empId, ano, mes),
+        carregarDistribuicaoCustos(empId, periodo),
+        carregarKPIs(empId, periodo, dreNovo),
       ]);
       const score = calcularScoreCFO(kpisNovos);
       const insightsNovos = gerarInsights(dreNovo, evNovo, kpisNovos, distNovo, score);

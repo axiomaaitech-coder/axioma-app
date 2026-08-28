@@ -588,9 +588,9 @@ export default function ImportarDocumentosPage() {
     }
 
     await Promise.all([
-      carregarStatsMes(user.id).then(setStats),
+      empId ? carregarStatsMes(empId).then(setStats) : Promise.resolve(),
       carregarHistoricoLista(user.id),
-      carregarTemplates(user.id).then(setTemplates),
+      empId ? carregarTemplates(empId).then(setTemplates) : Promise.resolve(),
     ]);
   }
 
@@ -823,7 +823,7 @@ export default function ImportarDocumentosPage() {
   }
 
   async function salvarComoTemplate() {
-    if (!userId || !nomeNovoTemplate.trim() || !arquivoSelecionado) return;
+    if (!userId || !empresaId || !nomeNovoTemplate.trim() || !arquivoSelecionado) return;
     try {
       const ext = arquivoSelecionado.name.toLowerCase().split(".").pop() || "csv";
       const { erro } = await salvarTemplate({
@@ -837,7 +837,7 @@ export default function ImportarDocumentosPage() {
       if (erro) { showToast(erro, "erro"); return; }
       setNomeNovoTemplate("");
       setMostrarSalvarTemplate(false);
-      const novos = await carregarTemplates(userId);
+      const novos = await carregarTemplates(empresaId);
       setTemplates(novos);
       showToast("Template salvo!", "ok");
     } catch (err: any) {
@@ -962,7 +962,7 @@ export default function ImportarDocumentosPage() {
 
       // Refresh
       await Promise.all([
-        carregarStatsMes(userId).then(setStats),
+        (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
         carregarHistoricoLista(userId),
       ]);
     } catch (err: any) {
@@ -1057,7 +1057,7 @@ export default function ImportarDocumentosPage() {
         const lns = await listarLinhasImportacao(impId, userId);
         setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
         await Promise.all([
-          carregarStatsMes(userId).then(setStats),
+          (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
           carregarHistoricoLista(userId),
         ]);
         fecharEdicao();
@@ -1082,7 +1082,7 @@ export default function ImportarDocumentosPage() {
         const lns = await listarLinhasImportacao(impId, userId);
         setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
         await Promise.all([
-          carregarStatsMes(userId).then(setStats),
+          (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
           carregarHistoricoLista(userId),
         ]);
       }
@@ -1104,7 +1104,7 @@ export default function ImportarDocumentosPage() {
         showToast(`${tt.desfeito} (${r.removidas} ${tt.importadas})`, "ok");
       }
       await Promise.all([
-        carregarStatsMes(userId).then(setStats),
+        (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
         carregarHistoricoLista(userId),
       ]);
     } catch (err: any) {
@@ -1291,7 +1291,7 @@ export default function ImportarDocumentosPage() {
       } else {
         showToast("Registro removido do historico", "ok");
         await Promise.all([
-          carregarStatsMes(userId).then(setStats),
+          (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
           carregarHistoricoLista(userId),
         ]);
       }

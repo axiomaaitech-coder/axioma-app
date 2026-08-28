@@ -1468,13 +1468,14 @@ export type StatsMes = {
   horas_economizadas: number;
 };
 
-export async function carregarStatsMes(userId: string): Promise<StatsMes> {
+export async function carregarStatsMes(empresaId: string): Promise<StatsMes> {
   const agora = new Date();
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString();
 
   const { data } = await supabase
     .from("importacoes")
     .select("status, valor_total_importado, linhas_importadas, linhas_duplicadas, tempo_processamento_ms")
+    .eq("empresa_id", empresaId)
     .gte("created_at", inicioMes);
 
   const lista = data || [];
@@ -1500,10 +1501,11 @@ export async function carregarStatsMes(userId: string): Promise<StatsMes> {
 // TEMPLATES
 // ============================================================================
 
-export async function carregarTemplates(userId: string): Promise<any[]> {
+export async function carregarTemplates(empresaId: string): Promise<any[]> {
   const { data } = await supabase
     .from("importacao_templates")
     .select("*")
+    .eq("empresa_id", empresaId)
     .eq("ativo", true)
     .order("ultimo_uso", { ascending: false, nullsFirst: false });
   return data || [];
