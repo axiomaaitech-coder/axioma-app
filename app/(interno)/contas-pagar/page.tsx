@@ -587,7 +587,10 @@ export default function ContasPagarPage() {
   const podeConfigurarAp = papel === "dono";
   const [equipe, setEquipe] = useState<MembroEquipe[]>([]);
   const [modalConfigAp, setModalConfigAp] = useState(false);
-  const [configForm, setConfigForm] = useState({ limite: "500", aprovadores: [] as string[], bloquearDuplicata: true, diasJanela: "30" });
+  const [configForm, setConfigForm] = useState({
+    limite: "500", aprovadores: [] as string[], bloquearDuplicata: true, diasJanela: "30",
+    toleranciaValor: "2", toleranciaQuantidade: "0",
+  });
   const [salvandoConfig, setSalvandoConfig] = useState(false);
 
   async function abrirConfigAp() {
@@ -597,6 +600,10 @@ export default function ContasPagarPage() {
       aprovadores: configAp?.aprovadores || [],
       bloquearDuplicata: configAp?.bloquear_duplicata ?? true,
       diasJanela: String(configAp?.dias_janela_duplicata ?? 30),
+      // != null (via ??), nunca || — 0% é uma tolerância válida (bater exato),
+      // não "ausência de valor" (bug que já corrigimos no Commit 2).
+      toleranciaValor: String(configAp?.match_tolerancia_valor_pct ?? 2),
+      toleranciaQuantidade: String(configAp?.match_tolerancia_quantidade_pct ?? 0),
     });
     setModalConfigAp(true);
   }
@@ -610,16 +617,28 @@ export default function ContasPagarPage() {
 
   async function salvarConfiguracaoAp() {
     if (!empresaId) return;
+    const toleranciaValor = parseFloat(configForm.toleranciaValor);
+    const toleranciaQuantidade = parseFloat(configForm.toleranciaQuantidade);
+    if (isNaN(toleranciaValor) || isNaN(toleranciaQuantidade)) {
+      showToast(L("Informe um número válido nas tolerâncias.", "Enter a valid number for the tolerances.", "Ingrese un número válido en las tolerancias."), "erro");
+      return;
+    }
+    if (toleranciaValor < 0 || toleranciaQuantidade < 0) {
+      showToast(L("A tolerância não pode ser negativa.", "Tolerance can't be negative.", "La tolerancia no puede ser negativa."), "erro");
+      return;
+    }
+    if (toleranciaValor > 100 || toleranciaQuantidade > 100) {
+      showToast(L("Tolerância acima de 100% não faz sentido — revise o número.", "Tolerance above 100% doesn't make sense — check the number.", "Tolerancia superior al 100% no tiene sentido — revise el número."), "erro");
+      return;
+    }
     setSalvandoConfig(true);
     const { erro } = await salvarConfigAp(empresaId, {
       limite_aprovacao_automatica: parseFloat(configForm.limite || "500"),
       aprovadores: configForm.aprovadores,
       bloquear_duplicata: configForm.bloquearDuplicata,
       dias_janela_duplicata: parseInt(configForm.diasJanela || "30"),
-      // Tolerância do motor de match não tem campo nesta tela ainda (vem numa
-      // próxima entrega) — preserva o valor já configurado (ou o padrão).
-      match_tolerancia_valor_pct: configAp?.match_tolerancia_valor_pct ?? 2,
-      match_tolerancia_quantidade_pct: configAp?.match_tolerancia_quantidade_pct ?? 0,
+      match_tolerancia_valor_pct: toleranciaValor,
+      match_tolerancia_quantidade_pct: toleranciaQuantidade,
     });
     if (erro) {
       showToast(L("Não foi possível salvar a configuração. Tente novamente.", "Could not save the configuration. Try again.", "No se pudo guardar la configuración. Intente de nuevo."), "erro");
@@ -3202,6 +3221,22 @@ export default function ContasPagarPage() {
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Janela de Busca de Duplicata (dias)", "Duplicate Search Window (days)", "Ventana de Búsqueda de Duplicado (días)")}</label>
                       <input type="number" value={configForm.diasJanela} onChange={(e) => setConfigForm({ ...configForm, diasJanela: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                    </div>
+                    <div className="pt-1" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                      <p className="text-xs font-bold mt-2 mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}><ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Tolerância de valor (%)", "Amount tolerance (%)", "Tolerancia de valor (%)")}</label>
+                          <input type="number" min="0" value={configForm.toleranciaValor} onChange={(e) => setConfigForm({ ...configForm, toleranciaValor: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Tolerância de quantidade (%)", "Quantity tolerance (%)", "Tolerancia de cantidad (%)")}</label>
+                          <input type="number" min="0" value={configForm.toleranciaQuantidade} onChange={(e) => setConfigForm({ ...configForm, toleranciaQuantidade: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        </div>
+                      </div>
+                      <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Variação até esse percentual não vira exceção — ex: 2% cobre diferença de frete ou arredondamento entre a nota, o recebimento e a conta a pagar.", "A variance up to this percentage doesn't become an exception — e.g. 2% covers freight or rounding differences between the invoice, receiving and the bill.", "Una variación hasta ese porcentaje no se convierte en excepción — ej: 2% cubre diferencia de flete o redondeo entre la factura, la recepción y la cuenta a pagar.")}</p>
                     </div>
                     <div className="flex gap-3 pt-2">
                       <button onClick={() => setModalConfigAp(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
