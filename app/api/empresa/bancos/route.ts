@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 
 // 🦅 AXIOMA AI.TECH - Lista de bancos brasileiros (BrasilAPI), server-side.
 // Alimenta o seletor com busca do campo Banco em /empresa. Lista muda raramente
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
       ms: Date.now() - inicio, timeout: timeoutEstourou,
       erroNome: err?.name, erroMsg: err?.message, erroCausa: err?.cause?.message || err?.cause,
     });
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "empresa/bancos", etapa: "fetch", timeout: timeoutEstourou } });
     return NextResponse.json({
       status: "indisponivel", bancos: [],
       detalhe: { httpStatus: null, motivo: timeoutEstourou ? "timeout_8s" : `fetch_excecao: ${err?.message || err?.name || "desconhecido"}` },
@@ -49,6 +51,7 @@ export async function GET(req: NextRequest) {
     console.error("[bancos] BrasilAPI respondeu status != 2xx", {
       httpStatus: resp.status, ms: Date.now() - inicio, corpoInicio: corpo.slice(0, 300),
     });
+    Sentry.captureException(new Error(`[bancos] BrasilAPI respondeu ${resp.status}`), { extra: { rota: "empresa/bancos", etapa: "resposta_nao_ok", httpStatus: resp.status } });
     return NextResponse.json({ status: "indisponivel", bancos: [], detalhe: { httpStatus: resp.status, motivo: "http_nao_ok" } });
   }
 
@@ -57,6 +60,7 @@ export async function GET(req: NextRequest) {
     data = await resp.json();
   } catch (err: any) {
     console.error("[bancos] JSON inválido na resposta 2xx da BrasilAPI", { erroMsg: err?.message });
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "empresa/bancos", etapa: "json_invalido", httpStatus: resp.status } });
     return NextResponse.json({ status: "indisponivel", bancos: [], detalhe: { httpStatus: resp.status, motivo: "json_invalido" } });
   }
 

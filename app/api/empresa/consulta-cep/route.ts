@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 
 // 🦅 AXIOMA AI.TECH - Consulta de CEP no ViaCEP, server-side.
 // O CSP hoje já libera viacep.com.br (não estava bloqueada), mas
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
       cep, ms: Date.now() - inicio, timeout: timeoutEstourou,
       erroNome: err?.name, erroMsg: err?.message, erroCausa: err?.cause?.message || err?.cause,
     });
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "empresa/consulta-cep", etapa: "fetch", timeout: timeoutEstourou } });
     return NextResponse.json({
       status: "indisponivel",
       detalhe: { httpStatus: null, motivo: timeoutEstourou ? "timeout_6s" : `fetch_excecao: ${err?.message || err?.name || "desconhecido"}` },
@@ -51,6 +53,7 @@ export async function GET(req: NextRequest) {
     console.error("[consulta-cep] ViaCEP respondeu status != 2xx", {
       cep, httpStatus: resp.status, ms: Date.now() - inicio, corpoInicio: corpo.slice(0, 300),
     });
+    Sentry.captureException(new Error(`[consulta-cep] ViaCEP respondeu ${resp.status}`), { extra: { rota: "empresa/consulta-cep", etapa: "resposta_nao_ok", httpStatus: resp.status } });
     return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "http_nao_ok" } });
   }
 
@@ -59,6 +62,7 @@ export async function GET(req: NextRequest) {
     data = await resp.json();
   } catch (err: any) {
     console.error("[consulta-cep] JSON inválido na resposta 2xx do ViaCEP", { cep, erroMsg: err?.message });
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "empresa/consulta-cep", etapa: "json_invalido", httpStatus: resp.status } });
     return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "json_invalido" } });
   }
   if (data.erro) return NextResponse.json({ status: "nao_encontrado" });

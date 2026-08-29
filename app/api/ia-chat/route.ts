@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import * as Sentry from '@sentry/nextjs'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     if (!resposta) {
       console.error('[ia-chat] Resposta sem bloco de texto:', { modelo: modeloUsado, stopReason: response.stop_reason, tipos: response.content.map((b) => b.type) })
+      Sentry.captureException(new Error('[ia-chat] Resposta sem bloco de texto'), { extra: { rota: 'ia-chat', modelo: modeloUsado, stopReason: response.stop_reason } })
     }
 
     return NextResponse.json({ resposta })
@@ -50,6 +52,7 @@ export async function POST(request: NextRequest) {
       mensagem: err?.error?.error?.message || err?.message,
       tipo: err?.error?.error?.type,
     })
+    Sentry.captureException(error instanceof Error ? error : new Error(String(err?.message || error)), { extra: { rota: 'ia-chat', status: err?.status, tipo: err?.error?.error?.type } })
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })
   }
 }

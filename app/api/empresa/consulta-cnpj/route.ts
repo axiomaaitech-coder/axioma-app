@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 
 // 🦅 AXIOMA AI.TECH - Consulta de CNPJ na BrasilAPI, server-side.
 // Movida do navegador pro servidor: a CSP bloqueia fetch direto a
@@ -73,6 +74,7 @@ export async function GET(req: NextRequest) {
       cnpj, ms: Date.now() - inicio, timeout: timeoutEstourou,
       erroNome: err?.name, erroMsg: err?.message, erroCausa: err?.cause?.message || err?.cause,
     });
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "empresa/consulta-cnpj", etapa: "fetch", timeout: timeoutEstourou } });
     return NextResponse.json({
       status: "indisponivel",
       detalhe: { httpStatus: null, motivo: timeoutEstourou ? "timeout_8s" : `fetch_excecao: ${err?.message || err?.name || "desconhecido"}` },
@@ -87,6 +89,7 @@ export async function GET(req: NextRequest) {
     console.error("[consulta-cnpj] BrasilAPI respondeu status != 2xx", {
       cnpj, httpStatus: resp.status, ms: Date.now() - inicio, corpoInicio: corpo.slice(0, 300),
     });
+    Sentry.captureException(new Error(`[consulta-cnpj] BrasilAPI respondeu ${resp.status}`), { extra: { rota: "empresa/consulta-cnpj", etapa: "resposta_nao_ok", httpStatus: resp.status } });
     return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "http_nao_ok" } });
   }
 
@@ -97,6 +100,7 @@ export async function GET(req: NextRequest) {
     console.error("[consulta-cnpj] JSON inválido na resposta 2xx da BrasilAPI", {
       cnpj, httpStatus: resp.status, erroMsg: err?.message,
     });
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: "empresa/consulta-cnpj", etapa: "json_invalido", httpStatus: resp.status } });
     return NextResponse.json({ status: "indisponivel", detalhe: { httpStatus: resp.status, motivo: "json_invalido" } });
   }
 
