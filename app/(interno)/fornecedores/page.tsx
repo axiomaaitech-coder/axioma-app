@@ -2694,7 +2694,7 @@ export default function Fornecedores() {
                               )}
                               <div className="grid grid-cols-2 gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)" }}>
                                 <Campo label={tt.lblDataInteracao} value={novaInteracao.data} onChange={(v) => setNovaInteracao({ ...novaInteracao, data: v })} tipo="date" />
-                                <Campo label={tt.lblTipoInteracao} value={novaInteracao.tipo} onChange={(v) => setNovaInteracao({ ...novaInteracao, tipo: v })} placeholder="Reunião, e-mail..." />
+                                <Campo label={tt.lblTipoInteracao} value={novaInteracao.tipo} onChange={(v) => setNovaInteracao({ ...novaInteracao, tipo: v })} placeholder={lang === "en" ? "Meeting, email..." : lang === "es" ? "Reunión, correo..." : "Reunião, e-mail..."} />
                                 <div className="col-span-2"><Campo label={tt.lblDescricaoInteracao} value={novaInteracao.descricao} onChange={(v) => setNovaInteracao({ ...novaInteracao, descricao: v })} /></div>
                                 <div className="col-span-2 flex gap-2">
                                   <button onClick={adicionarInteracao} className="flex-1 py-2 rounded-lg text-xs font-bold" style={{ background: `linear-gradient(135deg, ${BRONZE}, ${AMBAR})`, color: "#fff" }}>{editandoInteracaoId ? tt.salvarAlteracoes : `+ ${tt.adicionarInteracao}`}</button>
