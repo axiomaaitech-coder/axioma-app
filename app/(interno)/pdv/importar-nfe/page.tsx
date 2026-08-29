@@ -14,6 +14,7 @@ import {
   nfeJaImportada, registrarNfeComItens, buscarFornecedorPorCnpj, criarFornecedorDaNfe,
   buscarVinculoFornecedor, salvarVinculoFornecedor, converterFardoParaUnidade, precoComMargem, type FornecedorMinimo,
 } from "../../../../lib/pdvNfeHelpers";
+import { conferirNfe } from "../../../../lib/matchEngineHelpers";
 
 // Botões de ação usam tokens.acaoBg/acaoTexto (verde só sobrevive no tema
 // escuro, ver components/PdvLayout.tsx). Âmbar segue fixo: é cor de status.
@@ -37,6 +38,8 @@ const txt = {
   processando: { pt: "Lendo o XML…", en: "Reading the XML…", es: "Leyendo el XML…" },
   erroXmlInvalido: { pt: "Arquivo não reconhecido como NF-e válida.", en: "File not recognized as a valid NF-e.", es: "Archivo no reconocido como NF-e válida." },
   erroGravarNota: { pt: "Não foi possível gravar a nota para conferência. Tente novamente.", en: "Could not save the invoice for reconciliation. Try again.", es: "No se pudo guardar la factura para conciliación. Intente de nuevo." },
+  conferenciaOk: { pt: "{n} item(ns) gravado(s). Conferência: tudo bate com o recebimento.", en: "{n} item(s) saved. Match check: everything matches receiving.", es: "{n} ítem(s) guardado(s). Conciliación: todo coincide con la recepción." },
+  conferenciaExcecao: { pt: "{n} item(ns) gravado(s). Conferência encontrou {d} divergência(s) — revise antes de aprovar o pagamento.", en: "{n} item(s) saved. Match check found {d} discrepancy(ies) — review before approving payment.", es: "{n} ítem(s) guardado(s). La conciliación encontró {d} discrepancia(s) — revise antes de aprobar el pago." },
   notaJaImportada: { pt: "Esta nota já foi importada antes (mesma chave de acesso) — não é possível importar duas vezes.", en: "This invoice was already imported before (same access key) — cannot import twice.", es: "Esta factura ya fue importada antes (misma clave de acceso) — no se puede importar dos veces." },
   fornecedorTitulo: { pt: "Fornecedor", en: "Supplier", es: "Proveedor" },
   fornecedorNovo: { pt: "Novo — será cadastrado automaticamente ao confirmar", en: "New — will be registered automatically on confirm", es: "Nuevo — se registrará automáticamente al confirmar" },
@@ -325,7 +328,15 @@ export default function PDVImportarNFe() {
       }
 
       setResumo({ sucesso, falhas });
-      if (falhas.length === 0) mostrarToast(t("resumoSucesso", lang, { n: sucesso }));
+      // Conferência roda sob demanda, junto do próprio salvar — Commit 3 traz
+      // a tela de revisão detalhada; por ora só o resultado geral (ok/exceção).
+      const conferencia = await conferirNfe(empresaId, nfeImportadaId);
+      if (falhas.length === 0 && !conferencia.erro) {
+        if (conferencia.status === "ok") mostrarToast(t("conferenciaOk", lang, { n: sucesso }));
+        else mostrarToast(t("conferenciaExcecao", lang, { n: sucesso, d: conferencia.divergencias.length }), "info");
+      } else if (falhas.length === 0) {
+        mostrarToast(t("resumoSucesso", lang, { n: sucesso }));
+      }
     } finally {
       setSalvando(false);
     }

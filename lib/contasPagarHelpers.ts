@@ -286,15 +286,18 @@ export type ConfigAp = {
   aprovadores: string[];
   bloquear_duplicata: boolean;
   dias_janela_duplicata: number;
+  match_tolerancia_valor_pct: number;
+  match_tolerancia_quantidade_pct: number;
 };
 
 const CONFIG_AP_PADRAO: ConfigAp = {
   limite_aprovacao_automatica: 500, aprovadores: [], bloquear_duplicata: true, dias_janela_duplicata: 30,
+  match_tolerancia_valor_pct: 2, match_tolerancia_quantidade_pct: 0,
 };
 
 export async function obterConfigAp(empresaId: string): Promise<ConfigAp> {
   const { data } = await supabase.from("empresa_config_ap")
-    .select("limite_aprovacao_automatica, aprovadores, bloquear_duplicata, dias_janela_duplicata")
+    .select("limite_aprovacao_automatica, aprovadores, bloquear_duplicata, dias_janela_duplicata, match_tolerancia_valor_pct, match_tolerancia_quantidade_pct")
     .eq("empresa_id", empresaId).maybeSingle();
   if (!data) return { ...CONFIG_AP_PADRAO };
   return {
@@ -302,6 +305,10 @@ export async function obterConfigAp(empresaId: string): Promise<ConfigAp> {
     aprovadores: data.aprovadores || [],
     bloquear_duplicata: data.bloquear_duplicata ?? CONFIG_AP_PADRAO.bloquear_duplicata,
     dias_janela_duplicata: Number(data.dias_janela_duplicata) || CONFIG_AP_PADRAO.dias_janela_duplicata,
+    // 0 é um valor válido de propósito (empresa exigindo bater exato) — não
+    // pode cair no fallback "||" que trataria 0 como ausente.
+    match_tolerancia_valor_pct: data.match_tolerancia_valor_pct != null ? Number(data.match_tolerancia_valor_pct) : CONFIG_AP_PADRAO.match_tolerancia_valor_pct,
+    match_tolerancia_quantidade_pct: data.match_tolerancia_quantidade_pct != null ? Number(data.match_tolerancia_quantidade_pct) : CONFIG_AP_PADRAO.match_tolerancia_quantidade_pct,
   };
 }
 

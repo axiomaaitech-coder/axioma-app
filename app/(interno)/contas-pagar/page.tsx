@@ -17,6 +17,7 @@ import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } fro
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe, type ItemNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj, registrarNfeComItens } from "../../../lib/pdvNfeHelpers";
+import { conferirNfe } from "../../../lib/matchEngineHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
 import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
@@ -608,6 +609,10 @@ export default function ContasPagarPage() {
       aprovadores: configForm.aprovadores,
       bloquear_duplicata: configForm.bloquearDuplicata,
       dias_janela_duplicata: parseInt(configForm.diasJanela || "30"),
+      // Tolerância do motor de match não tem campo nesta tela ainda (vem numa
+      // próxima entrega) — preserva o valor já configurado (ou o padrão).
+      match_tolerancia_valor_pct: configAp?.match_tolerancia_valor_pct ?? 2,
+      match_tolerancia_quantidade_pct: configAp?.match_tolerancia_quantidade_pct ?? 0,
     });
     if (erro) {
       showToast(L("Não foi possível salvar a configuração. Tente novamente.", "Could not save the configuration. Try again.", "No se pudo guardar la configuración. Intente de nuevo."), "erro");
@@ -910,14 +915,27 @@ export default function ContasPagarPage() {
     // mesmo caminho único que o PDV usa. Se a nota já foi importada pelo PDV
     // (nfeImportadaId preenchido), não regrava — só o vínculo por
     // chave_acesso na conta (acima) já é suficiente.
+    let nfeImportadaIdParaConferir = nfeParaGravar?.nfeImportadaId || null;
     if (empresaId && nfeParaGravar && !nfeParaGravar.nfeImportadaId) {
-      const { erro: erroNfe } = await registrarNfeComItens(empresaId, userId, {
+      const { id: nfeIdGravado, erro: erroNfe } = await registrarNfeComItens(empresaId, userId, {
         chaveAcesso: nfeParaGravar.chaveAcesso, numeroNf: dados.numero_nota || undefined,
         fornecedorId: dados.fornecedor_id || null, valorTotal: dados.valor_total,
         itens: nfeParaGravar.itens,
       });
       if (erroNfe) {
         showToast(L("Conta salva, mas o detalhe da NF-e não pôde ser gravado para o motor de conferência. Tente reimportar o XML depois.", "Bill saved, but the NF-e detail could not be saved for the matching engine. Try re-importing the XML later.", "Cuenta guardada, pero el detalle de la NF-e no se pudo guardar para el motor de conciliación. Intente reimportar el XML después."), "erro");
+      } else {
+        nfeImportadaIdParaConferir = nfeIdGravado || null;
+      }
+    }
+    // Conferência roda sob demanda, junto do próprio salvar — vale tanto pra
+    // nota nova quanto pra vínculo com nota já importada pelo PDV (agora ela
+    // ganha a conta que faltava). Commit 3 traz a tela de revisão detalhada.
+    if (empresaId && nfeImportadaIdParaConferir) {
+      const conferencia = await conferirNfe(empresaId, nfeImportadaIdParaConferir);
+      if (!conferencia.erro) {
+        if (conferencia.status === "ok") showToast(L("Conta salva e conferida: tudo bate com o recebimento.", "Bill saved and matched: everything checks out against receiving.", "Cuenta guardada y conciliada: todo coincide con la recepción."), "ok");
+        else showToast(L(`Conta salva. Conferência encontrou ${conferencia.divergencias.length} divergência(s) nesta nota — a tela de revisão detalhada vem no próximo commit.`, `Bill saved. Match check found ${conferencia.divergencias.length} discrepancy(ies) on this invoice — the detailed review screen is coming in the next commit.`, `Cuenta guardada. La conciliación encontró ${conferencia.divergencias.length} discrepancia(s) en esta factura — la pantalla de revisión detallada llega en el próximo commit.`), "erro");
       }
     }
     fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
