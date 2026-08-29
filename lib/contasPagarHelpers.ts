@@ -405,7 +405,9 @@ const AMOSTRA_MINIMA_ATRASO = 3;
 // E com multa combinada (taxa_multa_mensal preenchida). Ignora contas sem
 // esses dois dados — "sem dado não penaliza", mesmo princípio do Score
 // Axioma de Fornecedores e da Entrega 2.
-function calcularFatorAtrasoHistorico(contasPagas: { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null }[]): { fator: number; amostra: number } {
+type ContaPagaParaFatorAtraso = { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null };
+
+function calcularFatorAtrasoHistorico(contasPagas: ContaPagaParaFatorAtraso[]): { fator: number; amostra: number } {
   const atrasadasComMulta = contasPagas.filter((c) =>
     c.data_pagamento && c.data_vencimento && c.data_pagamento > c.data_vencimento &&
     Number(c.taxa_multa_mensal) > 0 && Number(c.valor_total) > 0
@@ -504,7 +506,7 @@ export async function calcularForecastAp(empresaId: string): Promise<ForecastAp>
       .filter((ev) => !mesesJaGerados.has(`${c.id}|${ev.data.slice(0, 7)}`));
   });
 
-  const { fator: fatorAtraso, amostra: amostraAtraso } = calcularFatorAtrasoHistorico((cpPagas as any[]) || []);
+  const { fator: fatorAtraso, amostra: amostraAtraso } = calcularFatorAtrasoHistorico((cpPagas as ContaPagaParaFatorAtraso[]) || []);
 
   const { pontos } = computarPontosForecast(saldoAtual, entradas, saidasContasPagar, saidasCustosFixos, fatorAtraso, hoje);
 
@@ -1285,7 +1287,7 @@ export async function avaliarAntecipacaoConjunta(empresaId: string, contaIds: st
       .filter((ev) => !mesesJaGerados.has(`${c.id}|${ev.data.slice(0, 7)}`));
   });
 
-  const { fator: fatorAtraso } = calcularFatorAtrasoHistorico((cpPagas as { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null }[]) || []);
+  const { fator: fatorAtraso } = calcularFatorAtrasoHistorico((cpPagas as ContaPagaParaFatorAtraso[]) || []);
 
   const { pontos, rupturaNoMax } = computarPontosForecast(saldoAtual, entradas, saidasContasPagar, saidasCustosFixos, fatorAtraso, hoje);
 

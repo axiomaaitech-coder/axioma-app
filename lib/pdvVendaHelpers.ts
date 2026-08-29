@@ -112,7 +112,7 @@ export async function finalizarVenda(
   });
 
   if (error) {
-    const codigo = (error as any).code;
+    const codigo = error.code;
     Sentry.captureException(new Error(`Falha ao finalizar venda: ${error.message}`), { extra: { operacao: "rpc:finalizar_venda", turnoCaixaId, motivo: error.message, codigo } });
     return { erro: error.message, codigo };
   }
