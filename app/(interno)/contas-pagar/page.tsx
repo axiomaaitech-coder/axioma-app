@@ -5,7 +5,7 @@ import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
   TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight, Link2,
-  Send, MessageCircleQuestion,
+  Send, MessageCircleQuestion, ListChecks,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -17,7 +17,10 @@ import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } fro
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe, type ItemNFe } from "../../../lib/importarParsers";
 import { buscarFornecedorPorCnpj, registrarNfeComItens } from "../../../lib/pdvNfeHelpers";
-import { conferirNfe } from "../../../lib/matchEngineHelpers";
+import {
+  conferirNfe, diferencaPct, listarMatchResultados, listarDivergencias, decidirMatchResultado,
+  type MatchResultadoListado, type DivergenciaListada, type TipoDivergencia,
+} from "../../../lib/matchEngineHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
 import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
@@ -206,7 +209,7 @@ export default function ContasPagarPage() {
 
   // ========== COMMIT 3 (Entrega 2) — ABA INTELIGÊNCIA (prioridade) ==========
   // ========== ENTREGA 3, COMMIT 1 — FORECAST MULTI-HORIZONTE ==========
-  const [aba, setAba] = useState<"central" | "inteligencia" | "aprovacoes" | "historico">("central");
+  const [aba, setAba] = useState<"central" | "inteligencia" | "aprovacoes" | "conferencia" | "historico">("central");
   const [forecastAp, setForecastAp] = useState<ForecastAp | null>(null);
   const [carregandoForecast, setCarregandoForecast] = useState(false);
   const [horizonteSelecionado, setHorizonteSelecionado] = useState<HorizonteForecastDias>(30);
@@ -726,6 +729,159 @@ export default function ContasPagarPage() {
     setDecidindoId(null);
   }
 
+  // ========== COMMIT 3 — FILA DE EXCEÇÃO (MOTOR DE MATCH) ==========
+  const [filtroConferencia, setFiltroConferencia] = useState<"excecao" | "ok" | "todas">("excecao");
+  const [matchResultados, setMatchResultados] = useState<MatchResultadoListado[]>([]);
+  const [carregandoConferencia, setCarregandoConferencia] = useState(false);
+  const [divergenciasPorMatch, setDivergenciasPorMatch] = useState<Record<string, DivergenciaListada[]>>({});
+  const [decidindoMatchId, setDecidindoMatchId] = useState<string | null>(null);
+  const [reconferindoId, setReconferindoId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (aba !== "conferencia" || !empresaId) return;
+    const empId = empresaId;
+    const filtro = filtroConferencia === "todas" ? undefined : filtroConferencia;
+    (async () => {
+      setCarregandoConferencia(true);
+      setMatchResultados(await listarMatchResultados(empId, filtro));
+      setCarregandoConferencia(false);
+    })();
+  }, [aba, empresaId, filtroConferencia]);
+
+  async function recarregarConferencia() {
+    if (!empresaId) return;
+    setMatchResultados(await listarMatchResultados(empresaId, filtroConferencia === "todas" ? undefined : filtroConferencia));
+  }
+
+  async function alternarConferenciaExpandida(matchId: string) {
+    const estavaExpandido = expandido.has(matchId);
+    alternarExpandido(matchId);
+    if (!estavaExpandido && !divergenciasPorMatch[matchId] && empresaId) {
+      const divs = await listarDivergencias(empresaId, matchId);
+      setDivergenciasPorMatch((prev) => ({ ...prev, [matchId]: divs }));
+    }
+  }
+
+  async function decidirMatch(m: MatchResultadoListado, decisao: "aprovado" | "rejeitado") {
+    if (!empresaId || !userId) return;
+    setDecidindoMatchId(m.id);
+    const { erro } = await decidirMatchResultado(empresaId, m.id, decisao, userId);
+    if (erro) {
+      showToast(L("Não foi possível registrar a decisão. Tente novamente.", "Could not register the decision. Try again.", "No se pudo registrar la decisión. Intente de nuevo."), "erro");
+      setDecidindoMatchId(null);
+      return;
+    }
+    if (m.contasPagarId) {
+      await registrarAuditoriaAp(m.contasPagarId, decisao === "aprovado" ? "match_aprovado" : "match_rejeitado", null, { match_resultado_id: m.id, chave_acesso: m.chaveAcesso, numero_nf: m.numeroNf });
+    }
+    await recarregarConferencia();
+    setDecidindoMatchId(null);
+  }
+
+  async function reconferirNota(m: MatchResultadoListado) {
+    if (!empresaId) return;
+    setReconferindoId(m.id);
+    const resultado = await conferirNfe(empresaId, m.nfeImportadaId);
+    if (resultado.erro) {
+      showToast(L("Não foi possível reconferir esta nota. Tente novamente.", "Could not re-check this invoice. Try again.", "No se pudo reconciliar esta factura. Intente de nuevo."), "erro");
+    } else {
+      showToast(
+        resultado.status === "ok"
+          ? L("Reconferido: tudo bate agora.", "Re-checked: everything matches now.", "Reconciliado: todo coincide ahora.")
+          : L(`Reconferido: ${resultado.divergencias.length} divergência(s) ainda encontrada(s).`, `Re-checked: ${resultado.divergencias.length} discrepancy(ies) still found.`, `Reconciliado: ${resultado.divergencias.length} discrepancia(s) todavía encontradas.`),
+        resultado.status === "ok" ? "ok" : "erro"
+      );
+      setDivergenciasPorMatch((prev) => { const copia = { ...prev }; delete copia[m.id]; return copia; });
+      await recarregarConferencia();
+    }
+    setReconferindoId(null);
+  }
+
+  function corStatusMatch(status: string): string {
+    if (status === "ok") return VERDE;
+    if (status === "excecao") return VERMELHO;
+    if (status === "aprovado") return VERDE;
+    if (status === "rejeitado") return CINZA;
+    return CINZA;
+  }
+
+  function labelStatusMatch(status: string): string {
+    const mapa: Record<string, [string, string, string]> = {
+      ok: ["Conferida", "Matched", "Conciliada"],
+      excecao: ["Divergência", "Discrepancy", "Discrepancia"],
+      aprovado: ["Aprovada mesmo assim", "Approved anyway", "Aprobada de todos modos"],
+      rejeitado: ["Rejeitada", "Rejected", "Rechazada"],
+      pendente: ["Ainda não conferida", "Not checked yet", "Todavía no conciliada"],
+    };
+    const t = mapa[status] || [status, status, status];
+    return L(t[0], t[1], t[2]);
+  }
+
+  function labelTipoDivergencia(tipo: TipoDivergencia): string {
+    const mapa: Record<TipoDivergencia, [string, string, string]> = {
+      valor: ["Valor", "Amount", "Valor"],
+      quantidade: ["Quantidade", "Quantity", "Cantidad"],
+      nao_recebido: ["Não recebido", "Not received", "No recibido"],
+      recebido_sem_nota: ["Recebido sem nota", "Received, no line", "Recibido sin línea"],
+      sem_conta: ["Sem conta a pagar", "No bill yet", "Sin cuenta a pagar"],
+    };
+    const t = mapa[tipo];
+    return L(t[0], t[1], t[2]);
+  }
+
+  // Frase humana por divergência — nada de nome de tabela/coluna, só o que
+  // mudou. nfeItemId nulo em tipo 'valor' é o caso especial "nota x conta a
+  // pagar" (não é um item específico).
+  function explicarDivergencia(d: DivergenciaListada): string {
+    const pct = (esp: number, enc: number) => Math.round(diferencaPct(esp, enc));
+    switch (d.tipo) {
+      case "valor": {
+        const esp = d.esperado ?? 0, enc = d.encontrado ?? 0;
+        if (d.nfeItemId === null) {
+          return L(
+            `${d.descricaoItem}: a nota totaliza ${fmt(esp)}, a conta a pagar está em ${fmt(enc)} — ${pct(esp, enc)}% de diferença.`,
+            `${d.descricaoItem}: the invoice totals ${fmt(esp)}, the bill is at ${fmt(enc)} — ${pct(esp, enc)}% difference.`,
+            `${d.descricaoItem}: la factura totaliza ${fmt(esp)}, la cuenta está en ${fmt(enc)} — ${pct(esp, enc)}% de diferencia.`
+          );
+        }
+        const acima = enc > esp;
+        return L(
+          `${d.descricaoItem}: a nota cobra ${fmt(esp)}, recebido a ${fmt(enc)} — ${pct(esp, enc)}% ${acima ? "acima" : "abaixo"}.`,
+          `${d.descricaoItem}: the invoice charges ${fmt(esp)}, received at ${fmt(enc)} — ${pct(esp, enc)}% ${acima ? "above" : "below"}.`,
+          `${d.descricaoItem}: la factura cobra ${fmt(esp)}, recibido a ${fmt(enc)} — ${pct(esp, enc)}% ${acima ? "por encima" : "por debajo"}.`
+        );
+      }
+      case "quantidade": {
+        const esp = d.esperado ?? 0, enc = d.encontrado ?? 0;
+        return L(
+          `${d.descricaoItem}: a nota tem ${esp} un., recebido ${enc} un. — ${pct(esp, enc)}% de diferença.`,
+          `${d.descricaoItem}: the invoice has ${esp} un., received ${enc} un. — ${pct(esp, enc)}% difference.`,
+          `${d.descricaoItem}: la factura tiene ${esp} un., recibido ${enc} un. — ${pct(esp, enc)}% de diferencia.`
+        );
+      }
+      case "nao_recebido":
+        return L(
+          `${d.descricaoItem}: consta na nota (${d.esperado ?? 0} un.) mas não há recebimento de estoque vinculado.`,
+          `${d.descricaoItem}: on the invoice (${d.esperado ?? 0} un.) but no linked stock receipt.`,
+          `${d.descricaoItem}: consta en la factura (${d.esperado ?? 0} un.) pero no hay recepción de stock vinculada.`
+        );
+      case "recebido_sem_nota":
+        return L(
+          `${d.descricaoItem}: há recebimento de estoque vinculado a esta nota sem item correspondente nela.`,
+          `${d.descricaoItem}: there's a stock receipt linked to this invoice with no matching line on it.`,
+          `${d.descricaoItem}: hay una recepción de stock vinculada a esta factura sin ítem correspondiente en ella.`
+        );
+      case "sem_conta":
+        return L(
+          `${d.descricaoItem} (${fmt(d.esperado ?? 0)}) ainda não virou conta a pagar.`,
+          `${d.descricaoItem} (${fmt(d.esperado ?? 0)}) hasn't become a bill yet.`,
+          `${d.descricaoItem} (${fmt(d.esperado ?? 0)}) todavía no se convirtió en cuenta a pagar.`
+        );
+      default:
+        return d.descricaoItem;
+    }
+  }
+
   // ========== COMMIT 4 — HISTÓRICO (AUDITORIA) ==========
   const [contaHistoricoId, setContaHistoricoId] = useState("");
   const [auditoria, setAuditoria] = useState<AuditoriaAp[]>([]);
@@ -766,6 +922,8 @@ export default function ContasPagarPage() {
       rejeitou: ["Rejeitou", "Rejected", "Rechazó"],
       duplicata_detectada: ["Duplicata detectada", "Duplicate detected", "Duplicado detectado"],
       duplicata_ignorada: ["Duplicata ignorada", "Duplicate ignored", "Duplicado ignorado"],
+      match_aprovado: ["Divergência de conferência aprovada", "Match discrepancy approved", "Discrepancia de conciliación aprobada"],
+      match_rejeitado: ["Divergência de conferência rejeitada", "Match discrepancy rejected", "Discrepancia de conciliación rechazada"],
     };
     const t = mapa[acao] || [acao, acao, acao];
     return L(t[0], t[1], t[2]);
@@ -1238,6 +1396,10 @@ export default function ContasPagarPage() {
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
           style={aba === "aprovacoes" ? { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
+        </button>
+        <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
+          style={aba === "conferencia" ? { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
           style={aba === "historico" ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -2045,6 +2207,111 @@ export default function ContasPagarPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CanvasBox>
+      )}
+
+      {aba === "conferencia" && (
+        <CanvasBox cor={VERMELHO}>
+          <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
+          <h3 className="text-base font-bold mb-1" style={{ color: "#c8d8f0" }}>{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</h3>
+          <p className="text-xs mb-3" style={{ color: CINZA }}>
+            {L("Conferência inteligente do Axioma: casa cada nota importada com o que foi recebido no estoque e com a conta a pagar — sem pedido de compra, automático.", "Axioma's smart matching: checks every imported invoice against what was received into stock and against the bill — no purchase order needed, automatic.", "Conciliación inteligente de Axioma: coteja cada factura importada con lo recibido en stock y con la cuenta a pagar — sin orden de compra, automático.")}
+          </p>
+
+          <div className="flex gap-2 mb-4">
+            {(["excecao", "ok", "todas"] as const).map((f) => (
+              <button key={f} onClick={() => setFiltroConferencia(f)} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={filtroConferencia === f
+                  ? { background: "rgba(248,113,113,0.15)", color: VERMELHO, border: `1px solid ${VERMELHO}40` }
+                  : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+                {f === "excecao" ? L("Divergências", "Discrepancies", "Discrepancias") : f === "ok" ? L("Conferidas", "Matched", "Conciliadas") : L("Todas", "All", "Todas")}
+              </button>
+            ))}
+          </div>
+
+          {!podeEditar && (
+            <p className="text-xs mb-3" style={{ color: CINZA }}>{L("Você pode ver a fila e os detalhes, mas só dono, admin ou financeiro decidem uma divergência.", "You can see the queue and details, but only owner, admin or finance can decide on a discrepancy.", "Puede ver la cola y los detalles, pero solo dueño, admin o financiero deciden una discrepancia.")}</p>
+          )}
+
+          {carregandoConferencia ? (
+            <p className="text-sm mt-3" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
+          ) : matchResultados.length === 0 ? (
+            <p className="text-sm mt-3" style={{ color: CINZA }}>
+              {filtroConferencia === "excecao"
+                ? L("Nenhuma nota com divergência agora — tudo que foi conferido bateu.", "No invoice with discrepancies right now — everything checked out.", "Ninguna factura con discrepancias ahora — todo lo conciliado coincidió.")
+                : filtroConferencia === "ok"
+                ? L("Nenhuma nota conferida sem divergência ainda.", "No invoice matched cleanly yet.", "Ninguna factura conciliada sin discrepancias todavía.")
+                : L("Nenhuma nota conferida ainda — importe uma NF-e pelo PDV ou por aqui pra começar.", "No invoice checked yet — import an NF-e from the POS or here to get started.", "Ninguna factura conciliada todavía — importe una NF-e desde el PDV o aquí para empezar.")}
+            </p>
+          ) : (
+            <div className="space-y-2 mt-1">
+              {matchResultados.map((m) => (
+                <div key={m.id} className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corStatusMatch(m.status)}30` }}>
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>
+                          {m.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusMatch(m.status)}20`, color: corStatusMatch(m.status) }}>
+                          {labelStatusMatch(m.status)}
+                        </span>
+                      </div>
+                      <p className="text-xs" style={{ color: CINZA }}>
+                        {L("NF-e", "Invoice", "NF-e")} {m.numeroNf || "—"} · {fmt(m.valorNota || 0)} · {L("score", "score", "puntaje")} {m.score ?? "—"}
+                        {m.divergenciasCount > 0 && ` · ${m.divergenciasCount} ${L("divergência(s)", "discrepancy(ies)", "discrepancia(s)")}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                      {podeEditar && (
+                        <button onClick={() => reconferirNota(m)} disabled={reconferindoId === m.id}
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+                          <RotateCcw size={13} />{reconferindoId === m.id ? L("Conferindo…", "Checking…", "Conciliando…") : L("Reconferir", "Re-check", "Reconciliar")}
+                        </button>
+                      )}
+                      {podeEditar && m.status === "excecao" && (
+                        <>
+                          <button onClick={() => decidirMatch(m, "aprovado")} disabled={decidindoMatchId === m.id}
+                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                            <CheckCircle2 size={13} />{L("Aprovar mesmo assim", "Approve anyway", "Aprobar de todos modos")}
+                          </button>
+                          <button onClick={() => decidirMatch(m, "rejeitado")} disabled={decidindoMatchId === m.id}
+                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO, border: "1px solid rgba(248,113,113,0.3)" }}>
+                            <XCircle size={13} />{L("Rejeitar", "Reject", "Rechazar")}
+                          </button>
+                        </>
+                      )}
+                      <button onClick={() => alternarConferenciaExpandida(m.id)} className="flex items-center gap-1 text-xs font-semibold flex-shrink-0" style={{ color: AZUL }}>
+                        {expandido.has(m.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                        {L("Detalhes", "Details", "Detalles")}
+                      </button>
+                    </div>
+                  </div>
+
+                  {expandido.has(m.id) && (
+                    <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                      <p className="text-[10px] uppercase font-bold mb-2" style={{ color: CINZA }}>
+                        {L("Chave de acesso", "Access key", "Clave de acceso")}: {m.chaveAcesso || "—"} · {L("Conta", "Bill", "Cuenta")}: {m.contaDescricao || L("ainda não existe", "doesn't exist yet", "todavía no existe")}
+                      </p>
+                      {!divergenciasPorMatch[m.id] ? (
+                        <p className="text-xs" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
+                      ) : divergenciasPorMatch[m.id].length === 0 ? (
+                        <p className="text-xs" style={{ color: VERDE }}>{L("Nenhuma divergência — nota, recebimento e conta batem.", "No discrepancy — invoice, receiving and bill all match.", "Ninguna discrepancia — factura, recepción y cuenta coinciden.")}</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {divergenciasPorMatch[m.id].map((d) => (
+                            <div key={d.id} className="p-2 rounded-lg text-xs" style={{ background: "rgba(0,0,0,0.2)", color: "#c8d8f0" }}>
+                              <span className="font-bold" style={{ color: VERMELHO }}>{labelTipoDivergencia(d.tipo)}</span> — {explicarDivergencia(d)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

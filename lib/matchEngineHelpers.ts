@@ -180,3 +180,94 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
 
   return { matchResultadoId, status, score, divergencias };
 }
+
+// ============================================================================
+// FILA DE EXCEÇÃO — leitura pra tela + decisão humana (aprovar/rejeitar).
+// O motor (conferirNfe acima) só sugere; quem decide é sempre uma pessoa.
+// ============================================================================
+
+export type MatchResultadoListado = {
+  id: string;
+  nfeImportadaId: string;
+  contasPagarId: string | null;
+  status: string;
+  score: number | null;
+  nivel: string;
+  criadoEm: string;
+  chaveAcesso: string | null;
+  numeroNf: string | null;
+  valorNota: number | null;
+  fornecedorNome: string | null;
+  contaDescricao: string | null;
+  contaValor: number | null;
+  divergenciasCount: number;
+};
+
+// 3 queries no total, não importa quantas notas existam (nenhuma por linha):
+// resultados, fornecedores distintos (por id) e contagem de divergências.
+export async function listarMatchResultados(empresaId: string, filtroStatus?: string): Promise<MatchResultadoListado[]> {
+  let q = supabase.from("match_resultado")
+    .select("id, status, score, nivel, contas_pagar_id, nfe_importada_id, criado_em, nfe:estoque_nfe_importadas(chave_acesso, numero_nf, valor_total, fornecedor_id), conta:contas_pagar(descricao, valor_total)")
+    .eq("empresa_id", empresaId)
+    .order("criado_em", { ascending: false });
+  if (filtroStatus) q = q.eq("status", filtroStatus);
+  const { data, error } = await q;
+  if (error || !data) return [];
+
+  const fornecedorIds = Array.from(new Set(data.map((r: any) => r.nfe?.fornecedor_id).filter(Boolean)));
+  const nomesPorFornecedor = new Map<string, string>();
+  if (fornecedorIds.length > 0) {
+    const { data: forns } = await supabase.from("fornecedores").select("id, nome").eq("empresa_id", empresaId).in("id", fornecedorIds);
+    for (const f of forns || []) nomesPorFornecedor.set(f.id, f.nome);
+  }
+
+  const matchIds = data.map((r: any) => r.id);
+  const contagemPorMatch = new Map<string, number>();
+  if (matchIds.length > 0) {
+    const { data: divs } = await supabase.from("match_divergencias").select("match_resultado_id").eq("empresa_id", empresaId).in("match_resultado_id", matchIds);
+    for (const d of divs || []) contagemPorMatch.set(d.match_resultado_id, (contagemPorMatch.get(d.match_resultado_id) || 0) + 1);
+  }
+
+  return data.map((r: any) => ({
+    id: r.id, nfeImportadaId: r.nfe_importada_id, contasPagarId: r.contas_pagar_id,
+    status: r.status, score: r.score, nivel: r.nivel, criadoEm: r.criado_em,
+    chaveAcesso: r.nfe?.chave_acesso || null, numeroNf: r.nfe?.numero_nf || null, valorNota: r.nfe?.valor_total ?? null,
+    fornecedorNome: r.nfe?.fornecedor_id ? (nomesPorFornecedor.get(r.nfe.fornecedor_id) || null) : null,
+    contaDescricao: r.conta?.descricao || null, contaValor: r.conta?.valor_total ?? null,
+    divergenciasCount: contagemPorMatch.get(r.id) || 0,
+  }));
+}
+
+export type DivergenciaListada = {
+  id: string;
+  nfeItemId: string | null;
+  tipo: TipoDivergencia;
+  esperado: number | null;
+  encontrado: number | null;
+  descricaoItem: string;
+};
+
+export async function listarDivergencias(empresaId: string, matchResultadoId: string): Promise<DivergenciaListada[]> {
+  const { data, error } = await supabase.from("match_divergencias")
+    .select("id, tipo, esperado, encontrado, descricao_item, nfe_item_id")
+    .eq("empresa_id", empresaId).eq("match_resultado_id", matchResultadoId)
+    .order("criado_em", { ascending: true });
+  if (error || !data) return [];
+  return data.map((d: any) => ({ id: d.id, tipo: d.tipo, esperado: d.esperado, encontrado: d.encontrado, descricaoItem: d.descricao_item, nfeItemId: d.nfe_item_id }));
+}
+
+// Decisão é sempre humana — o motor nunca aprova/rejeita sozinho. Registra
+// quem e quando; a auditoria em contas_pagar_auditoria (quando a nota tem
+// conta) fica por conta de quem chama isso (a tela já tem registrarAuditoriaAp).
+export async function decidirMatchResultado(empresaId: string, matchResultadoId: string, decisao: "aprovado" | "rejeitado", userId: string): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("match_resultado")
+    .update({ status: decisao, decidido_por: userId, decidido_em: new Date().toISOString() })
+    .eq("empresa_id", empresaId).eq("id", matchResultadoId)
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("match_resultado", `update (${decisao})`, motivo);
+    return { erro: motivo };
+  }
+  return {};
+}
