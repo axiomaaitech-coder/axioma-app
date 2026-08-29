@@ -16,7 +16,13 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
   Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
 }
 
-export type TipoDivergencia = "valor" | "quantidade" | "nao_recebido" | "recebido_sem_nota" | "sem_conta";
+export type TipoDivergencia =
+  // nível base (2-way)
+  | "valor" | "quantidade" | "nao_recebido" | "recebido_sem_nota" | "sem_conta"
+  // nível 3-way (Pedido de Compra)
+  | "sem_pedido" | "pedido_nao_faturado" | "divergencia_pedido"
+  // nível 4-way (inspeção de qualidade) — schema preparado, sem lógica ativa ainda
+  | "reprovado_inspecao";
 
 export type DivergenciaEncontrada = {
   nfeItemId: string | null;
@@ -48,16 +54,35 @@ export function diferencaPct(esperado: number, encontrado: number): number {
 // novo na mesma nota não duplica nada (índice único empresa_id+nfe_importada_id).
 export async function conferirNfe(empresaId: string, nfeImportadaId: string): Promise<ResultadoConferencia> {
   const { data: nfe, error: erroNfe } = await supabase.from("estoque_nfe_importadas")
-    .select("id, chave_acesso, valor_total, numero_nf")
+    .select("id, chave_acesso, valor_total, numero_nf, fornecedor_id")
     .eq("empresa_id", empresaId).eq("id", nfeImportadaId).maybeSingle();
   if (erroNfe || !nfe) return { status: "excecao", score: 0, divergencias: [], erro: erroNfe?.message || "NF-e não encontrada" };
 
   const { data: itensNota, error: erroItens } = await supabase.from("nfe_itens")
-    .select("id, descricao, quantidade, valor_total")
+    .select("id, descricao, quantidade, valor_total, pedido_compra_item_id")
     .eq("empresa_id", empresaId).eq("nfe_importada_id", nfeImportadaId)
     .order("numero_linha", { ascending: true });
   if (erroItens) return { status: "excecao", score: 0, divergencias: [], erro: erroItens.message };
   const itens = itensNota || [];
+
+  // Nível 3-way (Pedido de Compra) — só entra em jogo se o fornecedor desta
+  // nota estiver marcado nivel_match='3way'. Fornecedor '2way' (ou nota sem
+  // fornecedor resolvido) pula tudo isto: nível base roda idêntico a antes.
+  let nivel: "2way" | "3way" = "2way";
+  const pedidoItensPorId = new Map<string, { id: string; pedido_compra_id: string; descricao: string; quantidade: number; valor_total: number }>();
+  if (nfe.fornecedor_id) {
+    const { data: fornecedor } = await supabase.from("fornecedores").select("nivel_match").eq("empresa_id", empresaId).eq("id", nfe.fornecedor_id).maybeSingle();
+    if (fornecedor?.nivel_match === "3way") {
+      nivel = "3way";
+      const idsPedidoItem = itens.map((i: any) => i.pedido_compra_item_id).filter(Boolean);
+      if (idsPedidoItem.length > 0) {
+        const { data: pedidoItens } = await supabase.from("pedido_compra_itens")
+          .select("id, pedido_compra_id, descricao, quantidade, valor_total")
+          .eq("empresa_id", empresaId).in("id", idsPedidoItem);
+        for (const pi of pedidoItens || []) pedidoItensPorId.set(pi.id, pi as any);
+      }
+    }
+  }
 
   // Recebimento por item — soma em memória (uma nota real não tem volume que
   // justifique agregação no banco aqui; a query em si já é 1 única por nota,
@@ -118,6 +143,26 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
       itemDivergiu = true;
     }
     if (itemDivergiu) falhas++;
+
+    // Pedido × Recebimento × Fatura (3-way) — pula inteiro pra fornecedor 2way.
+    if (nivel === "3way") {
+      checks++;
+      const pedidoItemId = (item as any).pedido_compra_item_id as string | null;
+      if (!pedidoItemId) {
+        divergencias.push({ nfeItemId: item.id, tipo: "sem_pedido", esperado: null, encontrado: null, descricaoItem: item.descricao });
+        falhas++;
+      } else {
+        const pedidoItem = pedidoItensPorId.get(pedidoItemId);
+        if (pedidoItem) {
+          const divergiuQtd = diferencaPct(pedidoItem.quantidade, item.quantidade) > config.match_tolerancia_quantidade_pct;
+          const divergiuValor = diferencaPct(pedidoItem.valor_total, item.valor_total) > config.match_tolerancia_valor_pct;
+          if (divergiuQtd || divergiuValor) {
+            divergencias.push({ nfeItemId: item.id, tipo: "divergencia_pedido", esperado: pedidoItem.valor_total, encontrado: item.valor_total, descricaoItem: item.descricao });
+            falhas++;
+          }
+        }
+      }
+    }
   }
 
   for (const orfao of orfaos || []) {
@@ -135,12 +180,52 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
     falhas++;
   }
 
+  // Pedido(s) tocados por esta nota — linhas do pedido que NUNCA foram
+  // faturadas por nenhuma nota (não só esta) viram 'pedido_nao_faturado', e
+  // o status do pedido é recalculado pra refletir o que já foi de fato
+  // faturado até agora (aberto/parcial/faturado — nunca reativa um cancelado).
+  const pedidosAfetados = Array.from(new Set(Array.from(pedidoItensPorId.values()).map((pi) => pi.pedido_compra_id)));
+  let pedidoCompraIdParaResultado: string | null = pedidosAfetados[0] || null;
+  if (nivel === "3way" && pedidosAfetados.length > 0) {
+    const { data: itensDosPedidos } = await supabase.from("pedido_compra_itens")
+      .select("id, descricao, quantidade, valor_total, pedido_compra_id")
+      .eq("empresa_id", empresaId).in("pedido_compra_id", pedidosAfetados);
+    const idsItensPedido = (itensDosPedidos || []).map((p: any) => p.id);
+    const faturadosSet = new Set<string>();
+    if (idsItensPedido.length > 0) {
+      const { data: vinculados } = await supabase.from("nfe_itens")
+        .select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", idsItensPedido);
+      for (const v of vinculados || []) if (v.pedido_compra_item_id) faturadosSet.add(v.pedido_compra_item_id);
+    }
+    for (const pi of itensDosPedidos || []) {
+      checks++;
+      if (!faturadosSet.has(pi.id)) {
+        divergencias.push({ nfeItemId: null, tipo: "pedido_nao_faturado", esperado: pi.quantidade, encontrado: 0, descricaoItem: pi.descricao });
+        falhas++;
+      }
+    }
+
+    for (const pedidoId of pedidosAfetados) {
+      const itensDoPedido = (itensDosPedidos || []).filter((p: any) => p.pedido_compra_id === pedidoId);
+      const totalItens = itensDoPedido.length;
+      const faturados = itensDoPedido.filter((p: any) => faturadosSet.has(p.id)).length;
+      const { data: pedidoAtual } = await supabase.from("pedido_compra").select("status").eq("empresa_id", empresaId).eq("id", pedidoId).maybeSingle();
+      if (!pedidoAtual || pedidoAtual.status === "cancelado") continue;
+      const novoStatus = totalItens > 0 && faturados === totalItens ? "faturado" : faturados > 0 ? "parcial" : "aberto";
+      if (pedidoAtual.status !== novoStatus) {
+        const { error: erroStatusPedido } = await supabase.from("pedido_compra").update({ status: novoStatus }).eq("empresa_id", empresaId).eq("id", pedidoId);
+        if (erroStatusPedido) reportarFalhaEscrita("pedido_compra", "update status", erroStatusPedido.message);
+      }
+    }
+  }
+
   const score = checks === 0 ? 100 : Math.max(0, Math.min(100, Math.round((100 * (checks - falhas)) / checks)));
   const status: "ok" | "excecao" = divergencias.length === 0 ? "ok" : "excecao";
 
   const payloadResultado = {
     empresa_id: empresaId, nfe_importada_id: nfeImportadaId, contas_pagar_id: conta?.id || null,
-    nivel: "2way", status, score,
+    pedido_compra_id: pedidoCompraIdParaResultado,
+    nivel, status, score,
     resumo: {
       itens_total: itens.length, itens_com_divergencia: new Set(divergencias.filter((d) => d.nfeItemId).map((d) => d.nfeItemId)).size,
       tem_conta: !!conta, tolerancia_valor_pct: config.match_tolerancia_valor_pct, tolerancia_quantidade_pct: config.match_tolerancia_quantidade_pct,

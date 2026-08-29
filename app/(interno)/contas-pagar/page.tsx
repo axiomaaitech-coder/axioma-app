@@ -5,7 +5,7 @@ import {
   Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
   TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight, Link2,
-  Send, MessageCircleQuestion, ListChecks,
+  Send, MessageCircleQuestion, ListChecks, ClipboardList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
@@ -21,6 +21,10 @@ import {
   conferirNfe, diferencaPct, listarMatchResultados, listarDivergencias, decidirMatchResultado,
   type MatchResultadoListado, type DivergenciaListada, type TipoDivergencia,
 } from "../../../lib/matchEngineHelpers";
+import {
+  listarPedidosCompra, listarItensPedido, criarPedidoCompra, editarPedidoCompra, excluirPedidoCompra,
+  type PedidoCompraListado, type PedidoCompraItemInput,
+} from "../../../lib/pedidoCompraHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
 import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
@@ -209,7 +213,7 @@ export default function ContasPagarPage() {
 
   // ========== COMMIT 3 (Entrega 2) — ABA INTELIGÊNCIA (prioridade) ==========
   // ========== ENTREGA 3, COMMIT 1 — FORECAST MULTI-HORIZONTE ==========
-  const [aba, setAba] = useState<"central" | "inteligencia" | "aprovacoes" | "conferencia" | "historico">("central");
+  const [aba, setAba] = useState<"central" | "inteligencia" | "aprovacoes" | "pedidos" | "conferencia" | "historico">("central");
   const [forecastAp, setForecastAp] = useState<ForecastAp | null>(null);
   const [carregandoForecast, setCarregandoForecast] = useState(false);
   const [horizonteSelecionado, setHorizonteSelecionado] = useState<HorizonteForecastDias>(30);
@@ -729,6 +733,128 @@ export default function ContasPagarPage() {
     setDecidindoId(null);
   }
 
+  // ========== COMMIT 4 — PEDIDO DE COMPRA (MATCH ENGINE 3-WAY) ==========
+  // Tela mínima: criar um pedido pra um fornecedor é o gesto que liga o
+  // nível 3-way pra ele (ver criarPedidoCompra) — não existe toggle separado
+  // em Fornecedores. Fornecedor sem nenhum pedido continua 100% nível base.
+  type PedidoItemForm = { descricao: string; codigo_fornecedor: string; ean: string; quantidade: string; valor_unitario: string };
+  const itemPedidoVazio: PedidoItemForm = { descricao: "", codigo_fornecedor: "", ean: "", quantidade: "", valor_unitario: "" };
+
+  const [pedidosCompra, setPedidosCompra] = useState<PedidoCompraListado[]>([]);
+  const [carregandoPedidos, setCarregandoPedidos] = useState(false);
+  const [modalPedido, setModalPedido] = useState(false);
+  const [editandoPedido, setEditandoPedido] = useState<PedidoCompraListado | null>(null);
+  const [formPedido, setFormPedido] = useState({ fornecedor_id: "", numero: "", data_emissao: hoje, observacao: "" });
+  const [itensPedidoForm, setItensPedidoForm] = useState<PedidoItemForm[]>([{ ...itemPedidoVazio }]);
+  const [salvandoPedido, setSalvandoPedido] = useState(false);
+
+  useEffect(() => {
+    if (aba !== "pedidos" || !empresaId) return;
+    const empId = empresaId;
+    (async () => { setCarregandoPedidos(true); setPedidosCompra(await listarPedidosCompra(empId)); setCarregandoPedidos(false); })();
+  }, [aba, empresaId]);
+
+  function abrirNovoPedido() {
+    setEditandoPedido(null);
+    setFormPedido({ fornecedor_id: "", numero: "", data_emissao: hoje, observacao: "" });
+    setItensPedidoForm([{ ...itemPedidoVazio }]);
+    setModalPedido(true);
+  }
+
+  async function abrirEdicaoPedido(p: PedidoCompraListado) {
+    if (!empresaId) return;
+    setEditandoPedido(p);
+    setFormPedido({ fornecedor_id: p.fornecedor_id || "", numero: p.numero, data_emissao: p.data_emissao || hoje, observacao: p.observacao || "" });
+    const itens = await listarItensPedido(empresaId, p.id);
+    setItensPedidoForm(itens.length > 0 ? itens.map((it) => ({
+      descricao: it.descricao, codigo_fornecedor: it.codigo_fornecedor || "", ean: it.ean || "",
+      quantidade: String(it.quantidade), valor_unitario: String(it.valor_unitario),
+    })) : [{ ...itemPedidoVazio }]);
+    setModalPedido(true);
+  }
+
+  function fecharModalPedido() { setModalPedido(false); setEditandoPedido(null); }
+
+  function atualizarItemPedido(idx: number, campo: keyof PedidoItemForm, valor: string) {
+    setItensPedidoForm((atual) => { const copia = [...atual]; copia[idx] = { ...copia[idx], [campo]: valor }; return copia; });
+  }
+  function adicionarItemPedido() { setItensPedidoForm((atual) => [...atual, { ...itemPedidoVazio }]); }
+  function removerItemPedido(idx: number) { setItensPedidoForm((atual) => (atual.length <= 1 ? atual : atual.filter((_, i) => i !== idx))); }
+
+  const totalFormPedido = itensPedidoForm.reduce((s, it) => s + (parseFloat(it.quantidade || "0") * parseFloat(it.valor_unitario || "0") || 0), 0);
+
+  async function salvarPedido() {
+    if (!empresaId || !userId) return;
+    if (!formPedido.fornecedor_id || !formPedido.numero.trim()) {
+      showToast(L("Selecione o fornecedor e informe o número do pedido.", "Select the supplier and enter the order number.", "Seleccione el proveedor e ingrese el número de la orden."), "erro");
+      return;
+    }
+    const itensValidos: PedidoCompraItemInput[] = itensPedidoForm
+      .filter((it) => it.descricao.trim() && parseFloat(it.quantidade || "0") > 0)
+      .map((it) => ({
+        descricao: it.descricao.trim(), codigo_fornecedor: it.codigo_fornecedor.trim() || null, ean: it.ean.trim() || null,
+        quantidade: parseFloat(it.quantidade), valor_unitario: parseFloat(it.valor_unitario || "0"),
+      }));
+    if (itensValidos.length === 0) {
+      showToast(L("Inclua ao menos um item com descrição e quantidade.", "Include at least one item with a description and quantity.", "Incluya al menos un ítem con descripción y cantidad."), "erro");
+      return;
+    }
+    setSalvandoPedido(true);
+    if (editandoPedido) {
+      const { erro } = await editarPedidoCompra(empresaId, editandoPedido.id, {
+        numero: formPedido.numero.trim(), dataEmissao: formPedido.data_emissao || null, observacao: formPedido.observacao || null, itens: itensValidos,
+      });
+      if (erro) {
+        showToast(L("Não foi possível salvar o pedido. Tente novamente.", "Could not save the order. Try again.", "No se pudo guardar la orden. Intente de nuevo."), "erro");
+        setSalvandoPedido(false);
+        return;
+      }
+    } else {
+      const { erro } = await criarPedidoCompra(userId, empresaId, {
+        fornecedorId: formPedido.fornecedor_id, numero: formPedido.numero.trim(), dataEmissao: formPedido.data_emissao || null, observacao: formPedido.observacao || null, itens: itensValidos,
+      });
+      if (erro) {
+        showToast(L("Não foi possível criar o pedido. Tente novamente.", "Could not create the order. Try again.", "No se pudo crear la orden. Intente de nuevo."), "erro");
+        setSalvandoPedido(false);
+        return;
+      }
+    }
+    fecharModalPedido();
+    setPedidosCompra(await listarPedidosCompra(empresaId));
+    setSalvandoPedido(false);
+  }
+
+  async function excluirPedido(p: PedidoCompraListado) {
+    if (!empresaId) return;
+    const { erro } = await excluirPedidoCompra(empresaId, p.id, p.status);
+    if (erro === "tem_nota_vinculada") {
+      showToast(L("Este pedido já tem nota vinculada — não é possível excluir. Cancele o pedido em vez de excluir.", "This order already has a linked invoice — it can't be deleted. Cancel it instead of deleting.", "Esta orden ya tiene factura vinculada — no se puede eliminar. Cancele la orden en lugar de eliminarla."), "erro");
+      return;
+    }
+    if (erro) {
+      showToast(L("Não foi possível excluir o pedido. Tente novamente.", "Could not delete the order. Try again.", "No se pudo eliminar la orden. Intente de nuevo."), "erro");
+      return;
+    }
+    setPedidosCompra(await listarPedidosCompra(empresaId));
+  }
+
+  function labelStatusPedido(status: string): string {
+    const mapa: Record<string, [string, string, string]> = {
+      aberto: ["Aberto", "Open", "Abierta"], parcial: ["Parcial", "Partial", "Parcial"],
+      recebido: ["Recebido", "Received", "Recibida"], faturado: ["Faturado", "Invoiced", "Facturada"],
+      cancelado: ["Cancelado", "Cancelled", "Cancelada"],
+    };
+    const t = mapa[status] || [status, status, status];
+    return L(t[0], t[1], t[2]);
+  }
+
+  function corStatusPedido(status: string): string {
+    if (status === "faturado") return VERDE;
+    if (status === "cancelado") return CINZA;
+    if (status === "parcial") return AMBAR;
+    return AZUL; // aberto/recebido
+  }
+
   // ========== COMMIT 3 — FILA DE EXCEÇÃO (MOTOR DE MATCH) ==========
   const [filtroConferencia, setFiltroConferencia] = useState<"excecao" | "ok" | "todas">("excecao");
   const [matchResultados, setMatchResultados] = useState<MatchResultadoListado[]>([]);
@@ -824,6 +950,10 @@ export default function ContasPagarPage() {
       nao_recebido: ["Não recebido", "Not received", "No recibido"],
       recebido_sem_nota: ["Recebido sem nota", "Received, no line", "Recibido sin línea"],
       sem_conta: ["Sem conta a pagar", "No bill yet", "Sin cuenta a pagar"],
+      sem_pedido: ["Sem pedido de compra", "No purchase order", "Sin orden de compra"],
+      pedido_nao_faturado: ["Pedido não faturado", "Order not invoiced", "Pedido no facturado"],
+      divergencia_pedido: ["Diferente do pedido", "Differs from order", "Diferente de la orden"],
+      reprovado_inspecao: ["Reprovado na inspeção", "Failed inspection", "Rechazado en inspección"],
     };
     const t = mapa[tipo];
     return L(t[0], t[1], t[2]);
@@ -877,6 +1007,26 @@ export default function ContasPagarPage() {
           `${d.descricaoItem} (${fmt(d.esperado ?? 0)}) hasn't become a bill yet.`,
           `${d.descricaoItem} (${fmt(d.esperado ?? 0)}) todavía no se convirtió en cuenta a pagar.`
         );
+      case "sem_pedido":
+        return L(
+          `${d.descricaoItem}: veio nesta nota mas não bate com nenhum item de pedido de compra em aberto deste fornecedor.`,
+          `${d.descricaoItem}: on this invoice but doesn't match any open purchase order line for this supplier.`,
+          `${d.descricaoItem}: vino en esta factura pero no coincide con ningún ítem de orden de compra abierta de este proveedor.`
+        );
+      case "pedido_nao_faturado":
+        return L(
+          `${d.descricaoItem}: consta no pedido de compra (${d.esperado ?? 0} un.) mas ainda não veio em nenhuma nota deste fornecedor.`,
+          `${d.descricaoItem}: on the purchase order (${d.esperado ?? 0} un.) but hasn't arrived on any invoice from this supplier yet.`,
+          `${d.descricaoItem}: consta en la orden de compra (${d.esperado ?? 0} un.) pero todavía no llegó en ninguna factura de este proveedor.`
+        );
+      case "divergencia_pedido": {
+        const esp = d.esperado ?? 0, enc = d.encontrado ?? 0;
+        return L(
+          `${d.descricaoItem}: o pedido de compra previa ${fmt(esp)}, a nota traz ${fmt(enc)} — ${pct(esp, enc)}% de diferença.`,
+          `${d.descricaoItem}: the purchase order expected ${fmt(esp)}, the invoice brings ${fmt(enc)} — ${pct(esp, enc)}% difference.`,
+          `${d.descricaoItem}: la orden de compra preveía ${fmt(esp)}, la factura trae ${fmt(enc)} — ${pct(esp, enc)}% de diferencia.`
+        );
+      }
       default:
         return d.descricaoItem;
     }
@@ -1396,6 +1546,10 @@ export default function ContasPagarPage() {
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
           style={aba === "aprovacoes" ? { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
+        </button>
+        <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
+          style={aba === "pedidos" ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
           style={aba === "conferencia" ? { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
@@ -2214,6 +2368,56 @@ export default function ContasPagarPage() {
         </CanvasBox>
       )}
 
+      {aba === "pedidos" && (
+        <CanvasBox cor={AZUL}>
+          <div className="flex justify-between items-start mb-1 gap-3 flex-wrap">
+            <div>
+              <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
+              <h3 className="text-base font-bold" style={{ color: "#c8d8f0" }}>{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}</h3>
+            </div>
+            {podeEditar && (
+              <button onClick={abrirNovoPedido} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 flex-shrink-0"
+                style={{ background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+                <Plus size={15} />{L("Novo Pedido", "New Order", "Nueva Orden")}
+              </button>
+            )}
+          </div>
+          <p className="text-xs mb-4" style={{ color: CINZA }}>
+            {L("Criar um pedido pra um fornecedor liga a Conferência de Notas no nível completo (Pedido × Recebimento × Fatura) pra ele — sem isso, todo fornecedor fica só no nível base.", "Creating an order for a supplier switches Invoice Matching to the full level (Order × Receiving × Invoice) for them — without it, every supplier stays on the base level.", "Crear una orden para un proveedor activa la Conciliación de Facturas en el nivel completo (Orden × Recepción × Factura) para él — sin eso, todo proveedor queda en el nivel base.")}
+          </p>
+
+          {carregandoPedidos ? (
+            <p className="text-sm mt-3" style={{ color: CINZA }}>{L("Carregando...", "Loading...", "Cargando...")}</p>
+          ) : pedidosCompra.length === 0 ? (
+            <p className="text-sm mt-3" style={{ color: CINZA }}>{L("Nenhum pedido de compra criado ainda.", "No purchase orders created yet.", "Ninguna orden de compra creada todavía.")}</p>
+          ) : (
+            <div className="space-y-2 mt-1">
+              {pedidosCompra.map((p) => (
+                <div key={p.id} className="p-3 rounded-xl flex items-center justify-between gap-3 flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corStatusPedido(p.status)}30` }}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{p.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusPedido(p.status)}20`, color: corStatusPedido(p.status) }}>
+                        {labelStatusPedido(p.status)}
+                      </span>
+                    </div>
+                    <p className="text-xs" style={{ color: CINZA }}>
+                      {L("Pedido", "Order", "Orden")} {p.numero} · {fmt(p.valor_total || 0)}{p.data_emissao ? ` · ${new Date(p.data_emissao + "T00:00:00").toLocaleDateString("pt-BR")}` : ""}
+                    </p>
+                  </div>
+                  {podeEditar && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={() => abrirEdicaoPedido(p)} className="p-2 rounded-lg" style={{ color: AZUL }} title={L("Editar", "Edit", "Editar")}><Pencil size={15} /></button>
+                      <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir", "Delete", "Eliminar")}><Trash2 size={15} /></button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CanvasBox>
+      )}
+
       {aba === "conferencia" && (
         <CanvasBox cor={VERMELHO}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
@@ -2260,6 +2464,9 @@ export default function ContasPagarPage() {
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusMatch(m.status)}20`, color: corStatusMatch(m.status) }}>
                           {labelStatusMatch(m.status)}
                         </span>
+                        {m.nivel === "3way" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(167,139,250,0.15)", color: ROXO }}>3-way</span>
+                        )}
                       </div>
                       <p className="text-xs" style={{ color: CINZA }}>
                         {L("NF-e", "Invoice", "NF-e")} {m.numeroNf || "—"} · {fmt(m.valorNota || 0)} · {L("score", "score", "puntaje")} {m.score ?? "—"}
@@ -2494,6 +2701,92 @@ export default function ContasPagarPage() {
                       <button onClick={salvarConta} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                         style={{ background: "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
                         {salvando ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Conta", "Save Bill", "Guardar Cuenta")}
+                      </button>
+                    </div>
+                  </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL PEDIDO DE COMPRA (Match Engine — Commit 4) ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalPedido && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-2xl">
+                <CanvasBox cor={AZUL}>
+                  <div className="flex justify-between items-center mb-5">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoPedido ? L("Editar Pedido de Compra", "Edit Purchase Order", "Editar Orden de Compra") : L("Novo Pedido de Compra", "New Purchase Order", "Nueva Orden de Compra")}</h3>
+                    </div>
+                    <button onClick={fecharModalPedido} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Fornecedor", "Supplier", "Proveedor")} *</label>
+                        <select value={formPedido.fornecedor_id} disabled={!!editandoPedido} onChange={(e) => setFormPedido({ ...formPedido, fornecedor_id: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
+                          {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Número do Pedido", "Order Number", "Número de la Orden")} *</label>
+                        <input value={formPedido.numero} onChange={(e) => setFormPedido({ ...formPedido, numero: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Data de Emissão", "Issue Date", "Fecha de Emisión")}</label>
+                        <input type="date" value={formPedido.data_emissao} onChange={(e) => setFormPedido({ ...formPedido, data_emissao: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observação", "Note", "Observación")}</label>
+                      <input value={formPedido.observacao} onChange={(e) => setFormPedido({ ...formPedido, observacao: e.target.value })}
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs font-semibold" style={{ color: AZUL }}>{L("Itens do Pedido", "Order Items", "Ítems de la Orden")}</label>
+                        <button onClick={adicionarItemPedido} className="text-xs font-semibold flex items-center gap-1" style={{ color: VERDE }}><Plus size={13} />{L("Item", "Item", "Ítem")}</button>
+                      </div>
+                      <div className="space-y-2">
+                        {itensPedidoForm.map((it, idx) => (
+                          <div key={idx} className="p-2 rounded-lg" style={{ background: "rgba(0,0,0,0.2)" }}>
+                            <div className="grid grid-cols-12 gap-2 items-center">
+                              <input value={it.descricao} onChange={(e) => atualizarItemPedido(idx, "descricao", e.target.value)} placeholder={L("Descrição", "Description", "Descripción")}
+                                className="col-span-4 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                              <input value={it.codigo_fornecedor} onChange={(e) => atualizarItemPedido(idx, "codigo_fornecedor", e.target.value)} placeholder={L("Cód. fornecedor", "Supplier code", "Cód. proveedor")}
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                              <input value={it.ean} onChange={(e) => atualizarItemPedido(idx, "ean", e.target.value)} placeholder="EAN"
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                              <input type="number" value={it.quantidade} onChange={(e) => atualizarItemPedido(idx, "quantidade", e.target.value)} placeholder={L("Qtd.", "Qty.", "Cant.")}
+                                className="col-span-1 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                              <input type="number" step="0.01" value={it.valor_unitario} onChange={(e) => atualizarItemPedido(idx, "valor_unitario", e.target.value)} placeholder={L("Vlr. unit.", "Unit price", "Precio unit.")}
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                              <button onClick={() => removerItemPedido(idx)} className="col-span-1 flex justify-center" style={{ color: VERMELHO }}><Trash2 size={14} /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs font-bold mt-2 text-right" style={{ color: "#c8d8f0" }}>{L("Total", "Total", "Total")}: {fmt(totalFormPedido)}</p>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={fecharModalPedido} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
+                      <button onClick={salvarPedido} disabled={salvandoPedido} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                        style={{ background: "linear-gradient(135deg, #1e40af, #6ab0ff)", color: "#fff" }}>
+                        {salvandoPedido ? L("Salvando...", "Saving...", "Guardando...") : L("Salvar Pedido", "Save Order", "Guardar Orden")}
                       </button>
                     </div>
                   </div>

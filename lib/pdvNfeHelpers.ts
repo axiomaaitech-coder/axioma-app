@@ -7,6 +7,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import type { ItemNFe } from "./importarParsers";
+import { vincularItensAoPedidoAberto } from "./pedidoCompraHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -68,6 +69,20 @@ export async function registrarNfeComItens(empresaId: string, userId: string, da
   // o Postgres não garante ordem de linhas pra um INSERT multi-valores.
   const porLinha = new Map(itensGravados.map((r: any) => [r.numero_linha, r.id as string]));
   const itensIds = dados.itens.map((_, i) => porLinha.get(i + 1) ?? null);
+
+  // Nível 3-way (Match Engine Commit 4) — tenta casar cada item recém-gravado
+  // com um item de pedido de compra em aberto deste fornecedor. Fornecedor
+  // '2way' (a maioria) sai logo na primeira linha da função abaixo, sem
+  // nenhuma query a mais: nível base roda idêntico ao de hoje.
+  if (dados.fornecedorId) {
+    const itensParaVincular: { id: string; codigoFornecedor?: string; ean?: string; descricao: string }[] = [];
+    dados.itens.forEach((item, i) => {
+      const id = itensIds[i];
+      if (id) itensParaVincular.push({ id, codigoFornecedor: item.codigoFornecedor, ean: item.ean, descricao: item.descricao });
+    });
+    await vincularItensAoPedidoAberto(empresaId, dados.fornecedorId, itensParaVincular);
+  }
+
   return { id: nfe.id, itensIds };
 }
 

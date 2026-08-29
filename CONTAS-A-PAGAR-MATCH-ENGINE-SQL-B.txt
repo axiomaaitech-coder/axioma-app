@@ -1,0 +1,272 @@
+-- ============================================================================
+-- AXIOMA — Contas a Pagar: Match Engine, NÍVEL 3-WAY (Pedido de Compra) +
+-- preparação de schema pro NÍVEL 4-WAY (inspeção de qualidade). SQL NÃO
+-- APLICADO — só pra revisão do Elias.
+--
+-- SCHEMA VERIFICADO AO VIVO antes de escrever este arquivo (Supabase, via
+-- PostgREST/schema cache, só leitura de nomes — nenhum dado de tenant lido).
+-- Achados:
+--   - fornecedores.nivel_match, nfe_itens, match_resultado, match_divergencias
+--     — todas existem, com exatamente as colunas-base usadas abaixo (Arquivo A
+--     já aplicado e confirmado pelo Elias).
+--   - nfe_itens.pedido_compra_item_id, match_resultado.pedido_compra_id,
+--     match_resultado.inspecao_status/inspecao_por/inspecao_em — NENHUMA
+--     dessas colunas existe ainda (confirmado: erro 42703 ao consultar).
+--   - pedido_compra, pedido_compra_itens — NENHUMA das duas tabelas existe
+--     ainda (confirmado: PGRST205 "could not find the table").
+--
+-- DECISÕES DE DIAGNÓSTICO:
+--   - pedido_compra_itens.quantidade/valor_unitario/valor_total NOT NULL —
+--     não pedido explicitamente, mas espelha nfe_itens (mesmas 3 colunas,
+--     já NOT NULL lá) pra manter as duas tabelas de "linha" consistentes.
+--   - NÃO adicionei UNIQUE(empresa_id, numero) em pedido_compra — não foi
+--     pedido, e é uma decisão de negócio (algumas operações reemitem o
+--     mesmo número de pedido em situações diferentes) que fica pro Elias
+--     decidir depois, não pra mim inventar agora.
+--   - inspeção de qualidade (4-way): só as 3 colunas em match_resultado,
+--     nenhuma tabela nova, nenhuma lógica. DEFAULT 'nao_aplicavel' cobre
+--     2-way/3way sem exigir que nada mais seja escrito — dado consistente
+--     desde o primeiro dia, mesmo sem nenhuma tela de inspeção existir.
+--   - CHECK de match_divergencias.tipo é DROP + ADD (não é possível some
+--     ALTER CONSTRAINT em CHECK) — os 5 tipos antigos continuam na lista,
+--     só ganha os novos.
+--
+-- ORDEM DE EXECUÇÃO (transação única):
+--   PASSO 0  — leitura: confirma as peças-base
+--   PARTE 1  — pedido_compra
+--   PARTE 2  — pedido_compra_itens
+--   PARTE 3  — elos (nfe_itens.pedido_compra_item_id, match_resultado.pedido_compra_id)
+--   PARTE 4  — preparação 4-way (schema, sem lógica) em match_resultado
+--   PARTE 5  — recria o CHECK de match_divergencias.tipo com os tipos novos
+--   PARTE 6  — índices
+--   PARTE 7  — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DROP ... IF EXISTS antes de recriar) — pode
+-- rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'fornecedores';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'nfe_itens';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'match_resultado';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'match_divergencias';
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'fornecedores' AND column_name = 'nivel_match';
+SELECT conname FROM pg_constraint WHERE conname = 'match_divergencias_tipo_check';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+
+-- ============================================================================
+-- PARTE 1 — PEDIDO_COMPRA (cabeçalho). Só passa a existir de verdade pra
+-- fornecedores marcados nivel_match='3way' — pro resto continua vazia.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.pedido_compra (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  fornecedor_id uuid REFERENCES public.fornecedores(id) ON DELETE SET NULL,
+  numero text NOT NULL,
+  status text NOT NULL DEFAULT 'aberto',
+  valor_total numeric,
+  data_emissao date,
+  observacao text,
+  criado_por uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'pedido_compra_status_check'
+  ) THEN
+    ALTER TABLE public.pedido_compra
+      ADD CONSTRAINT pedido_compra_status_check CHECK (status IN ('aberto', 'parcial', 'recebido', 'faturado', 'cancelado'));
+  END IF;
+END $$;
+
+ALTER TABLE public.pedido_compra ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS pedido_compra_select ON public.pedido_compra;
+DROP POLICY IF EXISTS pedido_compra_insert ON public.pedido_compra;
+DROP POLICY IF EXISTS pedido_compra_update ON public.pedido_compra;
+DROP POLICY IF EXISTS pedido_compra_delete ON public.pedido_compra;
+
+CREATE POLICY pedido_compra_select ON public.pedido_compra
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY pedido_compra_insert ON public.pedido_compra
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY pedido_compra_update ON public.pedido_compra
+  FOR UPDATE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY pedido_compra_delete ON public.pedido_compra
+  FOR DELETE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 2 — PEDIDO_COMPRA_ITENS (linhas do pedido). Mesmo padrão de
+-- nfe_itens — quantidade/valor_unitario/valor_total NOT NULL, o resto
+-- opcional (nem todo pedido chega com EAN/NCM, por exemplo).
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.pedido_compra_itens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  pedido_compra_id uuid NOT NULL REFERENCES public.pedido_compra(id) ON DELETE CASCADE,
+  descricao text NOT NULL,
+  codigo_fornecedor text,
+  ean text,
+  ncm text,
+  unidade text,
+  quantidade numeric NOT NULL,
+  valor_unitario numeric NOT NULL,
+  valor_total numeric NOT NULL,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.pedido_compra_itens ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS pedido_compra_itens_select ON public.pedido_compra_itens;
+DROP POLICY IF EXISTS pedido_compra_itens_insert ON public.pedido_compra_itens;
+DROP POLICY IF EXISTS pedido_compra_itens_update ON public.pedido_compra_itens;
+DROP POLICY IF EXISTS pedido_compra_itens_delete ON public.pedido_compra_itens;
+
+CREATE POLICY pedido_compra_itens_select ON public.pedido_compra_itens
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY pedido_compra_itens_insert ON public.pedido_compra_itens
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY pedido_compra_itens_update ON public.pedido_compra_itens
+  FOR UPDATE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY pedido_compra_itens_delete ON public.pedido_compra_itens
+  FOR DELETE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 3 — ELOS: liga o item da NF-e ao item do pedido, e o resultado do
+-- match ao pedido (quando o nível 3-way estiver ativo pra este fornecedor).
+-- Ambos nullable — nível base (2-way) nunca preenche nenhum dos dois.
+-- ============================================================================
+
+ALTER TABLE public.nfe_itens
+  ADD COLUMN IF NOT EXISTS pedido_compra_item_id uuid REFERENCES public.pedido_compra_itens(id) ON DELETE SET NULL;
+
+ALTER TABLE public.match_resultado
+  ADD COLUMN IF NOT EXISTS pedido_compra_id uuid REFERENCES public.pedido_compra(id) ON DELETE SET NULL;
+
+
+-- ============================================================================
+-- PARTE 4 — PREPARAÇÃO 4-WAY (schema só — sem lógica ativa, sem tabela de
+-- inspeção, sem tela). Fica pronto pro dia em que existir um cliente com
+-- fluxo de inspeção de qualidade no recebimento. Até lá, DEFAULT
+-- 'nao_aplicavel' garante que nível 2-way/3-way nunca precisam saber que
+-- esta coluna existe.
+-- ============================================================================
+
+ALTER TABLE public.match_resultado
+  ADD COLUMN IF NOT EXISTS inspecao_status text DEFAULT 'nao_aplicavel';
+
+ALTER TABLE public.match_resultado
+  ADD COLUMN IF NOT EXISTS inspecao_por uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.match_resultado
+  ADD COLUMN IF NOT EXISTS inspecao_em timestamptz;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'match_resultado_inspecao_status_check'
+  ) THEN
+    ALTER TABLE public.match_resultado
+      ADD CONSTRAINT match_resultado_inspecao_status_check
+      CHECK (inspecao_status IN ('nao_aplicavel', 'pendente', 'aprovada', 'reprovada'));
+  END IF;
+END $$;
+
+
+-- ============================================================================
+-- PARTE 5 — MATCH_DIVERGENCIAS.TIPO: recria o CHECK incluindo os 5 tipos
+-- antigos (nenhum é removido) + 3 novos de 3-way + 1 futuro de 4-way.
+-- ============================================================================
+
+ALTER TABLE public.match_divergencias DROP CONSTRAINT IF EXISTS match_divergencias_tipo_check;
+
+ALTER TABLE public.match_divergencias
+  ADD CONSTRAINT match_divergencias_tipo_check
+  CHECK (tipo IN (
+    -- nível base (2-way) — já em uso desde o Arquivo A
+    'valor', 'quantidade', 'nao_recebido', 'recebido_sem_nota', 'sem_conta',
+    -- nível 3-way (Pedido de Compra) — este arquivo
+    'sem_pedido', 'pedido_nao_faturado', 'divergencia_pedido',
+    -- nível 4-way (inspeção de qualidade) — FUTURO, sem lógica ainda
+    'reprovado_inspecao'
+  ));
+
+
+-- ============================================================================
+-- PARTE 6 — ÍNDICES (compostos por empresa_id — regra fixa do projeto)
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_pedido_compra_empresa_fornecedor ON public.pedido_compra (empresa_id, fornecedor_id);
+CREATE INDEX IF NOT EXISTS idx_pedido_compra_empresa_status ON public.pedido_compra (empresa_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_pedido_compra_itens_empresa_pedido ON public.pedido_compra_itens (empresa_id, pedido_compra_id);
+
+CREATE INDEX IF NOT EXISTS idx_nfe_itens_empresa_pedido_item ON public.nfe_itens (empresa_id, pedido_compra_item_id) WHERE pedido_compra_item_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_match_resultado_empresa_pedido ON public.match_resultado (empresa_id, pedido_compra_id) WHERE pedido_compra_id IS NOT NULL;
+
+
+-- ============================================================================
+-- PARTE 7 — VERIFICAÇÃO (só leitura — rodar depois das partes 1-6)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'
+  AND table_name IN ('pedido_compra', 'pedido_compra_itens');
+
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'nfe_itens' AND column_name = 'pedido_compra_item_id';
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'match_resultado' AND column_name IN ('pedido_compra_id', 'inspecao_status', 'inspecao_por', 'inspecao_em');
+
+SELECT tablename, policyname FROM pg_policies WHERE tablename IN ('pedido_compra', 'pedido_compra_itens');
+
+SELECT conname FROM pg_constraint WHERE conname IN (
+  'pedido_compra_status_check', 'match_resultado_inspecao_status_check', 'match_divergencias_tipo_check'
+);
+
+-- Confirma que o CHECK recriado aceita os tipos antigos E os novos (lista
+-- completa deve vir na cláusula do constraint acima).
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'match_divergencias_tipo_check';
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- -- Volta o CHECK de match_divergencias.tipo pro estado do Arquivo A (só
+-- -- os 5 tipos de nível base):
+-- ALTER TABLE public.match_divergencias DROP CONSTRAINT IF EXISTS match_divergencias_tipo_check;
+-- ALTER TABLE public.match_divergencias
+--   ADD CONSTRAINT match_divergencias_tipo_check
+--   CHECK (tipo IN ('valor', 'quantidade', 'nao_recebido', 'recebido_sem_nota', 'sem_conta'));
+--
+-- ALTER TABLE public.match_resultado DROP CONSTRAINT IF EXISTS match_resultado_inspecao_status_check;
+-- ALTER TABLE public.match_resultado DROP COLUMN IF EXISTS inspecao_em;
+-- ALTER TABLE public.match_resultado DROP COLUMN IF EXISTS inspecao_por;
+-- ALTER TABLE public.match_resultado DROP COLUMN IF EXISTS inspecao_status;
+--
+-- ALTER TABLE public.match_resultado DROP COLUMN IF EXISTS pedido_compra_id;
+-- ALTER TABLE public.nfe_itens DROP COLUMN IF EXISTS pedido_compra_item_id;
+--
+-- DROP TABLE IF EXISTS public.pedido_compra_itens;
+-- DROP TABLE IF EXISTS public.pedido_compra;
