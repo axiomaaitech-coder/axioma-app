@@ -135,6 +135,11 @@ const T = {
     desfazendo: "Desfazendo...",
     desfeito: "Importação desfeita",
     desfeitoComFalhas: "Desfeito, mas alguns registros de controle da reversão falharam.",
+    templateSalvo: "Template salvo!",
+    linhaRemovida: "Linha removida",
+    confirmaRemoverLinha: "Tem certeza? Esta linha será removida do destino.",
+    confirmaExcluirRegistroTitulo: 'Tem certeza que deseja excluir o registro de "{arquivo}"?',
+    confirmaExcluirRegistroDetalhe: "Isso remove APENAS o histórico desta importação (status: {status}). Nenhum lançamento será afetado.",
     editadoComAvisoTrilha: "Linha atualizada, mas o registro de auditoria/totais falhou.",
     compartilharTitulo: "Resumo da importação",
     arquivoCopiado: "Resumo copiado para área de transferência",
@@ -254,6 +259,11 @@ const T = {
     desfazendo: "Undoing...",
     desfeito: "Import undone",
     desfeitoComFalhas: "Undone, but some rollback control records failed.",
+    templateSalvo: "Template saved!",
+    linhaRemovida: "Row removed",
+    confirmaRemoverLinha: "Are you sure? This row will be removed from the destination.",
+    confirmaExcluirRegistroTitulo: 'Are you sure you want to delete the record for "{arquivo}"?',
+    confirmaExcluirRegistroDetalhe: "This removes ONLY the history of this import (status: {status}). No entries will be affected.",
     editadoComAvisoTrilha: "Entry updated, but the audit/totals record failed.",
     compartilharTitulo: "Import summary",
     arquivoCopiado: "Summary copied to clipboard",
@@ -373,6 +383,11 @@ const T = {
     desfazendo: "Deshaciendo...",
     desfeito: "Importación deshecha",
     desfeitoComFalhas: "Deshecho, pero algunos registros de control de la reversión fallaron.",
+    templateSalvo: "¡Plantilla guardada!",
+    linhaRemovida: "Línea eliminada",
+    confirmaRemoverLinha: "¿Está seguro? Esta línea será eliminada del destino.",
+    confirmaExcluirRegistroTitulo: '¿Está seguro de que desea eliminar el registro de "{arquivo}"?',
+    confirmaExcluirRegistroDetalhe: "Esto elimina SOLO el historial de esta importación (status: {status}). Ningún lanzamiento será afectado.",
     editadoComAvisoTrilha: "Línea actualizada, pero el registro de auditoría/totales falló.",
     compartilharTitulo: "Resumen de importación",
     arquivoCopiado: "Resumen copiado al portapapeles",
@@ -840,7 +855,7 @@ export default function ImportarDocumentosPage() {
       setMostrarSalvarTemplate(false);
       const novos = await carregarTemplates(empresaId);
       setTemplates(novos);
-      showToast("Template salvo!", "ok");
+      showToast(tt.templateSalvo, "ok");
     } catch (err: any) {
       showToast(err.message || "Erro ao salvar template", "erro");
     }
@@ -1072,14 +1087,14 @@ export default function ImportarDocumentosPage() {
 
   async function deletarLinha(linha: any) {
     if (!userId || !empresaId) return;
-    if (!window.confirm("Tem certeza? Esta linha será removida do destino.")) return;
+    if (!window.confirm(tt.confirmaRemoverLinha)) return;
     setDeletandoLinha(linha.id);
     try {
       const r = await deletarLinhaImportada(linha.id, userId, empresaId);
       if (r.erro) {
         showToast(r.erro, "erro");
       } else {
-        showToast(r.avisoTrilha ? tt.editadoComAvisoTrilha : "Linha removida", r.avisoTrilha ? "erro" : "ok");
+        showToast(r.avisoTrilha ? tt.editadoComAvisoTrilha : tt.linhaRemovida, r.avisoTrilha ? "erro" : "ok");
         const impId = linha.importacao_id;
         const lns = await listarLinhasImportacao(impId, empresaId);
         setLinhasPorImportacao((prev) => ({ ...prev, [impId]: lns }));
@@ -1282,7 +1297,8 @@ export default function ImportarDocumentosPage() {
 
   async function excluirRegistro(item: any) {
     if (!userId || !empresaId) return;
-    if (!window.confirm(`Tem certeza que deseja excluir o registro de "${item.nome_arquivo}"?\n\nIsso remove APENAS o histórico desta importação (status: ${item.status}). Nenhum lançamento será afetado.`)) {
+    const msgConfirma = `${tt.confirmaExcluirRegistroTitulo.replace("{arquivo}", item.nome_arquivo)}\n\n${tt.confirmaExcluirRegistroDetalhe.replace("{status}", item.status)}`;
+    if (!window.confirm(msgConfirma)) {
       return;
     }
     setExcluindoRegistro(item.id);
@@ -1354,7 +1370,7 @@ export default function ImportarDocumentosPage() {
       ];
 
       await gerarPdfTabela({
-        titulo: `Importações - ${tt.dashboard}`,
+        titulo: tt.dashboard,
         subtitulo: new Date().toLocaleDateString("pt-BR"),
         colunas,
         linhas: linhasPdf,
