@@ -142,16 +142,22 @@ export function custosPorCentroReal(origens: LancamentoOrigem[], rateios: Rateio
   return totais;
 }
 
+type CentroParaSugestao = { id: string; headcount?: number | null; area_m2?: number | null };
+
+function valorBaseSugestao(c: CentroParaSugestao, campo: "headcount" | "area_m2"): number {
+  return Number((campo === "headcount" ? c.headcount : c.area_m2) || 0);
+}
+
 export function sugerirPercentuaisPorBase(
-  centros: { id: string; headcount?: number | null; area_m2?: number | null }[],
+  centros: CentroParaSugestao[],
   base: "headcount" | "area",
 ): Record<string, string> {
   const campo = base === "headcount" ? "headcount" : "area_m2";
-  const total = centros.reduce((s, c) => s + Number((c as any)[campo] || 0), 0);
+  const total = centros.reduce((s, c) => s + valorBaseSugestao(c, campo), 0);
   const out: Record<string, string> = {};
   if (total <= 0) return out;
   centros.forEach(c => {
-    const v = Number((c as any)[campo] || 0);
+    const v = valorBaseSugestao(c, campo);
     out[c.id] = v > 0 ? String(Number(((v / total) * 100).toFixed(2))) : "0";
   });
   return out;
