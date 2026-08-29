@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
 import {
   carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias,
@@ -337,8 +338,8 @@ export default function IAFinanceiraPage() {
           : `Olá! Sou seu CFO Digital. Seu Score Empresarial é ${score.total}/100. Pergunte o que quiser sobre suas finanças.`;
         setMensagens([{ role: "assistant", texto: msgInicial }]);
       }
-    } catch (err: any) {
-      showToast(err.message || "Erro", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("ia-financeira.carregar", err, lang), "erro");
     }
     setCarregando(false);
   }
@@ -458,8 +459,8 @@ export default function IAFinanceiraPage() {
           { label: lang === "en" ? "Period" : "Período", valor: snap.periodo },
         ],
         nomeArquivo: `axioma-ia-financeira-${snap.periodo.replace("/", "-")}.pdf`,
-      });
-    } catch (err: any) { showToast(err.message, "erro"); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("ia-financeira.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   }
 

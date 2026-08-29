@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   consultarCNPJ, consultarCEP, validarCNPJ, limparCNPJ, formatarCNPJ, formatarCEP, formatarTelefone,
   atualizarEmpresa,
@@ -773,8 +774,8 @@ export default function EmpresaPage() {
         setHealthScore(calcularHealthScore(emp, s, d));
         setComplianceScore(calcularComplianceScore(emp, o, d));
       }
-    } catch (err: any) {
-      showToast(err.message || tt.toastErroCarregar, "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("empresa.carregar", err, lang), "erro");
     } finally {
       setCarregando(false);
     }
@@ -1190,8 +1191,8 @@ export default function EmpresaPage() {
         ],
         nomeArquivo: `axioma-empresa-${(empresa.nome_fantasia || empresa.razao_social || "empresa").replace(/\W/g, "_").toLowerCase()}.pdf`,
       });
-    } catch (err: any) {
-      showToast(err.message || tt.toastErroPdf, "erro");
+    } catch (err) {
+      showToast(tratarFalhaExportacao("empresa.exportarPDF", err, lang), "erro");
     }
     setExportando(false);
   }

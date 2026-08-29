@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 import {
   carregarDadosFiscais, simularRegimes, calcularCargaTributaria, calcularScoreFiscal,
@@ -239,7 +240,7 @@ export default function IATributariaPage() {
           : `Olá! Sou seu Consultor Fiscal Digital. Seu Score Fiscal é ${sf.score}/100. Pergunte o que quiser.`;
         setMensagens([{ role: "assistant", texto: msg }]);
       }
-    } catch (err: any) { showToast(err.message || "Erro", "erro"); }
+    } catch (err) { showToast(tratarFalhaCarregamento("ia-tributaria.carregarTudo", err, lang), "erro"); }
     setCarregando(false);
   }
 
@@ -306,8 +307,8 @@ export default function IATributariaPage() {
           { label: lang === "en" ? "Tax Burden" : "Carga Tributária", valor: `${carga?.carga_pct.toFixed(1)}%` },
         ],
         nomeArquivo: `axioma-ia-tributaria.pdf`,
-      });
-    } catch (err: any) { showToast(err.message, "erro"); }
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) { showToast(tratarFalhaExportacao("ia-tributaria.exportarPDF", err, lang), "erro"); }
     setExportando(false);
   }
 

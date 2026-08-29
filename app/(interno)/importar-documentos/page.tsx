@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
   autodetectarMapeamento,
@@ -659,8 +660,8 @@ export default function ImportarDocumentosPage() {
 
       // 2) Parse
       await processarParse(file);
-    } catch (err: any) {
-      showToast(err.message || "Erro ao processar", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.processarArquivo", err, langAtual), "erro");
       setEtapa("");
     }
   }
@@ -819,8 +820,8 @@ export default function ImportarDocumentosPage() {
           setVerificandoDuplicatas(false);
         });
       }
-    } catch (err: any) {
-      showToast(err.message || "Erro ao remapear", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.remapear", err, langAtual), "erro");
     }
     setEtapa("");
   }
@@ -856,8 +857,8 @@ export default function ImportarDocumentosPage() {
       const novos = await carregarTemplates(empresaId);
       setTemplates(novos);
       showToast(tt.templateSalvo, "ok");
-    } catch (err: any) {
-      showToast(err.message || "Erro ao salvar template", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.salvarTemplate", err, langAtual), "erro");
     }
   }
 
@@ -902,8 +903,8 @@ export default function ImportarDocumentosPage() {
         somarAlvo: montarSomarAlvo(),
       });
       setSimulacao(result);
-    } catch (err: any) {
-      showToast(err.message || "Erro ao simular", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.simular", err, langAtual), "erro");
     }
     setSimulando(false);
   }
@@ -981,8 +982,8 @@ export default function ImportarDocumentosPage() {
         (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
         (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
       ]);
-    } catch (err: any) {
-      showToast(err.message || "Erro ao confirmar", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.confirmarImportacao", err, langAtual), "erro");
       setEtapa("");
     }
     setConfirmando(false);
@@ -1009,8 +1010,8 @@ export default function ImportarDocumentosPage() {
         setLinhasPorImportacao((prev) => ({ ...prev, [id]: lns }));
         setExcecoesPorImportacao((prev) => ({ ...prev, [id]: excs }));
         setTimelinePorImportacao((prev) => ({ ...prev, [id]: tml }));
-      } catch (err: any) {
-        showToast(err.message || "Erro ao carregar linhas", "erro");
+      } catch (err) {
+        showToast(tratarFalhaCarregamento("importar-documentos.expandirImportacao", err, langAtual), "erro");
       }
       setCarregandoLinhas(null);
     }
@@ -1028,8 +1029,8 @@ export default function ImportarDocumentosPage() {
         setExcecoesPorImportacao((prev) => ({ ...prev, [importacaoId]: excs }));
         showToast(tt.excecaoResolvida, "ok");
       }
-    } catch (err: any) {
-      showToast(err.message || "Erro ao resolver", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.resolverExcecao", err, langAtual), "erro");
     }
     setResolvendoExcecao(null);
   }
@@ -1079,8 +1080,8 @@ export default function ImportarDocumentosPage() {
         ]);
         fecharEdicao();
       }
-    } catch (err: any) {
-      showToast(err.message || "Erro ao salvar", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.salvarEdicao", err, langAtual), "erro");
     }
     setSalvandoEdicao(false);
   }
@@ -1103,8 +1104,8 @@ export default function ImportarDocumentosPage() {
           (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
         ]);
       }
-    } catch (err: any) {
-      showToast(err.message || "Erro ao deletar", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.deletarLinha", err, langAtual), "erro");
     }
     setDeletandoLinha(null);
   }
@@ -1124,8 +1125,8 @@ export default function ImportarDocumentosPage() {
         (empresaId ? carregarStatsMes(empresaId).then(setStats) : Promise.resolve()),
         (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
       ]);
-    } catch (err: any) {
-      showToast(err.message || "Erro ao desfazer", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.desfazerImportacao", err, langAtual), "erro");
     }
     setRevertendo(null);
   }
@@ -1285,10 +1286,10 @@ export default function ImportarDocumentosPage() {
         linhas: linhasPdf,
         resumo,
         nomeArquivo: `axioma-importacao-${shareModal.nome_arquivo.replace(/\.[^.]+$/, "")}-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
+      }, (msg) => showToast(msg, "erro"), langAtual);
       showToast("PDF gerado", "ok");
-    } catch (err: any) {
-      showToast(err.message || "Erro ao gerar PDF", "erro");
+    } catch (err) {
+      showToast(tratarFalhaExportacao("importar-documentos.gerarPdfIndividual", err, langAtual), "erro");
     }
     setGerandoPdfIndividual(false);
   }
@@ -1313,8 +1314,8 @@ export default function ImportarDocumentosPage() {
           (empresaId ? carregarHistoricoLista(empresaId) : Promise.resolve()),
         ]);
       }
-    } catch (err: any) {
-      showToast(err.message || "Erro ao excluir", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("importar-documentos.excluirRegistro", err, langAtual), "erro");
     }
     setExcluindoRegistro(null);
   }
@@ -1376,9 +1377,9 @@ export default function ImportarDocumentosPage() {
         linhas: linhasPdf,
         resumo,
         nomeArquivo: `axioma-importacoes-${new Date().toISOString().slice(0, 10)}.pdf`,
-      });
-    } catch (err: any) {
-      showToast(err.message || "Erro ao gerar PDF", "erro");
+      }, (msg) => showToast(msg, "erro"), langAtual);
+    } catch (err) {
+      showToast(tratarFalhaExportacao("importar-documentos.exportarPDF", err, langAtual), "erro");
     }
     setExportando(false);
   }

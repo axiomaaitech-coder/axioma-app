@@ -20,7 +20,7 @@ import {
 } from '../../../lib/cfoCore'
 import { cfoT } from '../../../lib/cfoTextos'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
-import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
+import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import {
   classificarTransacoes, calcularSaldoSistema, calcularKPIsOpenFinance,
   type TransacaoOF, type LancamentoConciliavel, type TransacaoClassificada,
@@ -312,8 +312,8 @@ export default function OpenFinancePage() {
       } else {
         avisar('sucesso', `${dados.total ?? 0} ${t.importadas}`)
       }
-    } catch (err: any) {
-      avisar('erro', err.message || t.erro)
+    } catch (err) {
+      avisar('erro', tratarFalhaCarregamento('open-finance.sincronizar', err, lang))
     } finally {
       setSincronizando(false)
     }
@@ -367,8 +367,8 @@ export default function OpenFinancePage() {
 
       const pluggyConnect = new PluggyConnect(config)
       pluggyConnect.init()
-    } catch (err: any) {
-      avisar('erro', err.message || t.erro)
+    } catch (err) {
+      avisar('erro', tratarFalhaCarregamento('open-finance.conectar', err, lang))
       setConectando(false)
       setConectandoId(null)
     }

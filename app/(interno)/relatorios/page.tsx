@@ -6,6 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import {
   montarPeriodo,
@@ -193,7 +194,8 @@ function formatBRL2(n: number): string {
 
 export default function Relatorios() {
   const { t, idioma } = useLanguage();
-  const tt = T[(idioma as "pt" | "en" | "es") || "pt"];
+  const lang = (idioma as "pt" | "en" | "es") || "pt";
+  const tt = T[lang];
 
   const hoje = new Date();
   const [ano, setAno] = useState<number>(hoje.getFullYear());
@@ -255,8 +257,8 @@ export default function Relatorios() {
       setKpis(kpisNovos);
       setScoreCFO(score);
       setInsights(insightsNovos);
-    } catch (err: any) {
-      showToast(err.message || "Erro ao carregar relatórios", "erro");
+    } catch (err) {
+      showToast(tratarFalhaCarregamento("relatorios.carregar", err, lang), "erro");
     }
     setCarregando(false);
   }
@@ -348,9 +350,9 @@ export default function Relatorios() {
         linhas,
         resumo,
         nomeArquivo: `axioma-relatorio-${aba}-${ano}-${String(mes).padStart(2, "0")}.pdf`,
-      });
-    } catch (err: any) {
-      showToast(err.message || "Erro ao gerar PDF", "erro");
+      }, (msg) => showToast(msg, "erro"), lang);
+    } catch (err) {
+      showToast(tratarFalhaExportacao("relatorios.exportarPDF", err, lang), "erro");
     }
     setExportando(false);
   }
