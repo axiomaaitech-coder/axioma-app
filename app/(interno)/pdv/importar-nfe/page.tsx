@@ -11,7 +11,7 @@ import { type Produto, criarProduto, atualizarProduto, criarMovimentacao, buscar
 import { precoBlur } from "../../../../lib/cfoCore";
 import { NICHOS_PDV, type NichoPdvDef, buscarCategoria, subNichoEhServico } from "../../../../lib/pdvCatalogoTaxonomia";
 import {
-  nfeJaImportada, registrarNfeImportada, buscarFornecedorPorCnpj, criarFornecedorDaNfe,
+  nfeJaImportada, registrarNfeComItens, buscarFornecedorPorCnpj, criarFornecedorDaNfe,
   buscarVinculoFornecedor, salvarVinculoFornecedor, converterFardoParaUnidade, precoComMargem, type FornecedorMinimo,
 } from "../../../../lib/pdvNfeHelpers";
 
@@ -36,6 +36,7 @@ const txt = {
   arrastarSolte: { pt: "Clique ou arraste o arquivo .xml aqui", en: "Click or drag the .xml file here", es: "Haga clic o arrastre el archivo .xml aquí" },
   processando: { pt: "Lendo o XML…", en: "Reading the XML…", es: "Leyendo el XML…" },
   erroXmlInvalido: { pt: "Arquivo não reconhecido como NF-e válida.", en: "File not recognized as a valid NF-e.", es: "Archivo no reconocido como NF-e válida." },
+  erroGravarNota: { pt: "Não foi possível gravar a nota para conferência. Tente novamente.", en: "Could not save the invoice for reconciliation. Try again.", es: "No se pudo guardar la factura para conciliación. Intente de nuevo." },
   notaJaImportada: { pt: "Esta nota já foi importada antes (mesma chave de acesso) — não é possível importar duas vezes.", en: "This invoice was already imported before (same access key) — cannot import twice.", es: "Esta factura ya fue importada antes (misma clave de acceso) — no se puede importar dos veces." },
   fornecedorTitulo: { pt: "Fornecedor", en: "Supplier", es: "Proveedor" },
   fornecedorNovo: { pt: "Novo — será cadastrado automaticamente ao confirmar", en: "New — will be registered automatically on confirm", es: "Nuevo — se registrará automáticamente al confirmar" },
@@ -122,6 +123,7 @@ export default function PDVImportarNFe() {
   const [erroArquivo, setErroArquivo] = useState<string | null>(null);
   const [chaveAcesso, setChaveAcesso] = useState<string | null>(null);
   const [numeroNf, setNumeroNf] = useState<string | undefined>(undefined);
+  const [valorTotalNota, setValorTotalNota] = useState<number | undefined>(undefined);
   const [fornecedorInfo, setFornecedorInfo] = useState<{ existente: FornecedorMinimo | null; cnpj: string; razaoSocial?: string; fantasia?: string } | null>(null);
   const [itens, setItens] = useState<ItemConferencia[] | null>(null);
   const [margemPct, setMargemPct] = useState("");
@@ -145,6 +147,7 @@ export default function PDVImportarNFe() {
       }
       setChaveAcesso(chave);
       setNumeroNf(resultado.metadados.numero_nf ? String(resultado.metadados.numero_nf) : undefined);
+      setValorTotalNota(resultado.metadados.valor_total);
 
       const cnpjEmit = String(resultado.metadados.cnpj_emitente || "").replace(/\D/g, "");
       const existente = cnpjEmit ? await buscarFornecedorPorCnpj(empresaId, cnpjEmit) : null;
@@ -250,9 +253,8 @@ export default function PDVImportarNFe() {
   }
 
   async function confirmarImportacao() {
-    if (!itens || !empresaId || !userId || !nichoSel || !fornecedorInfo) return;
-    const incluidos = itens.filter((it) => it.incluir);
-    const semDadosMinimos = incluidos.some((it) => it.status === "novo" && (!it.categoria || !it.subNicho || !it.precoVenda));
+    if (!itens || !empresaId || !userId || !nichoSel || !fornecedorInfo || !chaveAcesso) return;
+    const semDadosMinimos = itens.some((it) => it.incluir && it.status === "novo" && (!it.categoria || !it.subNicho || !it.precoVenda));
     if (semDadosMinimos) { mostrarToast(t("faltaCategoriaSubnicho", lang), "erro"); return; }
 
     setSalvando(true);
@@ -266,7 +268,22 @@ export default function PDVImportarNFe() {
         fornecedorId = id;
       }
 
-      for (const it of incluidos) {
+      // Grava o cabeçalho (estoque_nfe_importadas) + o detalhe linha-a-linha
+      // (nfe_itens) ANTES de mexer em estoque — é o que dá ao motor de match
+      // o item da nota pra ligar em cada movimentação abaixo, e reflete a
+      // nota como ela é (todos os itens, não só os marcados "Incluir").
+      const { id: nfeImportadaId, itensIds, erro: erroNfe } = await registrarNfeComItens(empresaId, userId, {
+        chaveAcesso, numeroNf, fornecedorId, valorTotal: valorTotalNota, itens: itens.map((it) => it.original),
+      });
+      if (erroNfe || !nfeImportadaId) {
+        mostrarToast(t("erroGravarNota", lang), "erro");
+        setSalvando(false);
+        return;
+      }
+
+      for (let idx = 0; idx < itens.length; idx++) {
+        const it = itens[idx];
+        if (!it.incluir) continue;
         const conversao = it.usaFardo && Number(it.unidadesPorFardo) > 0
           ? converterFardoParaUnidade(it.original.quantidade, Number(it.unidadesPorFardo), it.original.valorUnitario)
           : { quantidadeUnidades: it.original.quantidade, custoUnitario: it.original.valorUnitario };
@@ -296,7 +313,7 @@ export default function PDVImportarNFe() {
 
         const { erro: erroMov } = await criarMovimentacao(empresaId, userId, {
           produto_id: produtoId, tipo: "entrada", quantidade: conversao.quantidadeUnidades, custo_unitario: conversao.custoUnitario,
-          status_recebimento: "confirmada",
+          status_recebimento: "confirmada", origem: "nfe", documento_ref: chaveAcesso, nfe_item_id: itensIds?.[idx] ?? null,
           lote: it.original.numeroLote ? { numero_lote: it.original.numeroLote, data_fabricacao: it.original.dataFabricacao, data_validade: it.original.dataValidade } : undefined,
         });
         if (erroMov) { falhas.push(`${it.nome}: ${erroMov}`); continue; }
@@ -307,11 +324,6 @@ export default function PDVImportarNFe() {
         sucesso++;
       }
 
-      if (chaveAcesso) {
-        await registrarNfeImportada(empresaId, userId, {
-          chaveAcesso, numeroNf, fornecedorId, valorTotal: incluidos.reduce((s, it) => s + it.original.valorTotal, 0), qtdItens: sucesso,
-        });
-      }
       setResumo({ sucesso, falhas });
       if (falhas.length === 0) mostrarToast(t("resumoSucesso", lang, { n: sucesso }));
     } finally {
@@ -320,7 +332,7 @@ export default function PDVImportarNFe() {
   }
 
   function reiniciar() {
-    setItens(null); setChaveAcesso(null); setNumeroNf(undefined); setFornecedorInfo(null);
+    setItens(null); setChaveAcesso(null); setNumeroNf(undefined); setValorTotalNota(undefined); setFornecedorInfo(null);
     setErroArquivo(null); setResumo(null); setMargemPct("");
     if (inputArquivoRef.current) inputArquivoRef.current.value = "";
   }

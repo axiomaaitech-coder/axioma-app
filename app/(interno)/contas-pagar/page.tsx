@@ -15,8 +15,8 @@ import { CanvasBox } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } from "../../../lib/empresaHelpers";
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
-import { parseXMLNFe } from "../../../lib/importarParsers";
-import { buscarFornecedorPorCnpj } from "../../../lib/pdvNfeHelpers";
+import { parseXMLNFe, type ItemNFe } from "../../../lib/importarParsers";
+import { buscarFornecedorPorCnpj, registrarNfeComItens } from "../../../lib/pdvNfeHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
 import { carregarLancamentosOrigem, carregarRateios, custosPorCentroReal, type LancamentoOrigem, type RateioRow } from "../../../lib/centroCustoHelpers";
 import { resolverPeriodo, periodoAnterior, serieRolling, mesesPorLang, detectarAnomaliasHistoricas, normalizarTexto, type Lancamento, type AnomaliaHistorica } from "../../../lib/cfoCore";
@@ -69,7 +69,7 @@ type CentroCusto = { id: string; nome: string };
 type CustoFixo = { id: string; descricao: string; valor_mensal: number; dia_vencimento: number; categoria?: string | null; centro_custo_id?: string | null };
 
 const contaVazia = {
-  fornecedor_id: "", descricao: "", numero_nota: "", categoria: "" as string,
+  fornecedor_id: "", descricao: "", numero_nota: "", chave_acesso: "", categoria: "" as string,
   valor_total: "", data_emissao: "", data_vencimento: "", forma_pagamento: FORMAS_PAGAMENTO[0],
   parcelas: "1", centro_custo_id: "", observacoes: "", taxa_multa_mensal: "",
   desconto_disponivel_pct: "", desconto_data_limite: "",
@@ -776,12 +776,18 @@ export default function ContasPagarPage() {
   const [nc, setNc] = useState({ ...contaVazia });
   const [salvando, setSalvando] = useState(false);
   const [sugestaoCategoria, setSugestaoCategoria] = useState<string | null>(null);
+  // Detalhe da NF-e (se a conta atual do modal veio de um XML importado) —
+  // nfeImportadaId nulo = ainda não existe estoque_nfe_importadas pra essa
+  // chave, então precisa gravar cabeçalho+itens ao salvar; preenchido = a
+  // nota já foi registrada por outra tela (PDV), só vincula, nunca duplica.
+  const [nfeParaGravar, setNfeParaGravar] = useState<{ chaveAcesso: string; itens: ItemNFe[]; nfeImportadaId: string | null } | null>(null);
 
-  function abrirNovaConta() { setEditando(null); setNc({ ...contaVazia }); setSugestaoCategoria(null); setModalConta(true); }
+  function abrirNovaConta() { setEditando(null); setNc({ ...contaVazia }); setSugestaoCategoria(null); setNfeParaGravar(null); setModalConta(true); }
   function abrirEdicaoConta(c: ContaPagar) {
     setEditando(c);
     setNc({
       fornecedor_id: c.fornecedor_id || "", descricao: c.descricao || "", numero_nota: c.numero_nota || "",
+      chave_acesso: c.chave_acesso || "",
       categoria: c.categoria || "", valor_total: String(c.valor_total || ""),
       data_emissao: c.data_emissao || "", data_vencimento: c.data_vencimento || "",
       forma_pagamento: c.forma_pagamento || FORMAS_PAGAMENTO[0], parcelas: String(c.parcelas || "1"),
@@ -791,9 +797,10 @@ export default function ContasPagarPage() {
       desconto_data_limite: c.desconto_data_limite || "",
     });
     setSugestaoCategoria(null);
+    setNfeParaGravar(null);
     setModalConta(true);
   }
-  function fecharModalConta() { setModalConta(false); setEditando(null); setNc({ ...contaVazia }); setSugestaoCategoria(null); }
+  function fecharModalConta() { setModalConta(false); setEditando(null); setNc({ ...contaVazia }); setSugestaoCategoria(null); setNfeParaGravar(null); }
 
   async function sugerirCategoriaPorDescricao() {
     if (nc.categoria || !nc.descricao.trim()) return;
@@ -831,6 +838,7 @@ export default function ContasPagarPage() {
 
     const dados = {
       fornecedor_id: nc.fornecedor_id || null, descricao: nc.descricao, numero_nota: nc.numero_nota || null,
+      chave_acesso: nc.chave_acesso || null,
       categoria: nc.categoria || "Outros", valor_total: parseFloat(nc.valor_total || "0"),
       valor_pago: editando?.valor_pago || 0, data_emissao: nc.data_emissao || null, data_vencimento: nc.data_vencimento,
       forma_pagamento: nc.forma_pagamento, parcelas: parseInt(nc.parcelas || "1"),
@@ -896,6 +904,21 @@ export default function ContasPagarPage() {
     const { erro: erroAprovacao } = await solicitarAprovacao(resultado.id);
     if (erroAprovacao) {
       showToast(L("Conta salva, mas não foi possível definir o status de aprovação. Verifique na aba Aprovações Pendentes.", "Bill saved, but could not set the approval status. Check the Pending Approvals tab.", "Cuenta guardada, pero no se pudo definir el estado de aprobación. Revise en la pestaña Aprobaciones Pendientes."), "erro");
+    }
+    // Conta veio de um XML e essa NF-e ainda não tem estoque_nfe_importadas
+    // (nenhuma tela gravou antes) — grava cabeçalho + nfe_itens agora, pelo
+    // mesmo caminho único que o PDV usa. Se a nota já foi importada pelo PDV
+    // (nfeImportadaId preenchido), não regrava — só o vínculo por
+    // chave_acesso na conta (acima) já é suficiente.
+    if (empresaId && nfeParaGravar && !nfeParaGravar.nfeImportadaId) {
+      const { erro: erroNfe } = await registrarNfeComItens(empresaId, userId, {
+        chaveAcesso: nfeParaGravar.chaveAcesso, numeroNf: dados.numero_nota || undefined,
+        fornecedorId: dados.fornecedor_id || null, valorTotal: dados.valor_total,
+        itens: nfeParaGravar.itens,
+      });
+      if (erroNfe) {
+        showToast(L("Conta salva, mas o detalhe da NF-e não pôde ser gravado para o motor de conferência. Tente reimportar o XML depois.", "Bill saved, but the NF-e detail could not be saved for the matching engine. Try re-importing the XML later.", "Cuenta guardada, pero el detalle de la NF-e no se pudo guardar para el motor de conciliación. Intente reimportar el XML después."), "erro");
+      }
     }
     fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
   }
@@ -1086,14 +1109,14 @@ export default function ContasPagarPage() {
         setProcessandoNfe(false);
         return;
       }
-      await abrirModalComDadosNfe(md, null);
+      await abrirModalComDadosNfe(md, null, resultado.itensNFe || []);
     } catch {
       showToast(L("Não foi possível ler o arquivo XML.", "Could not read the XML file.", "No se pudo leer el archivo XML."), "erro");
     }
     setProcessandoNfe(false);
   }
 
-  async function abrirModalComDadosNfe(md: any, vincularNfeId: string | null) {
+  async function abrirModalComDadosNfe(md: any, vincularNfeId: string | null, itensNfe: ItemNFe[] = []) {
     let fornecedorId = "";
     if (md.cnpj_emitente && empresaId) {
       const forn = await buscarFornecedorPorCnpj(empresaId, md.cnpj_emitente);
@@ -1105,6 +1128,7 @@ export default function ContasPagarPage() {
       fornecedor_id: fornecedorId,
       descricao: md.fantasia || md.razao_social || "",
       numero_nota: md.numero_nf || "",
+      chave_acesso: md.chave_acesso || "",
       valor_total: md.valor_total ? String(md.valor_total) : "",
       data_emissao: md.data_emissao || "",
       observacoes: vincularNfeId ? L(
@@ -1113,6 +1137,7 @@ export default function ContasPagarPage() {
         `Vinculada a la compra ya importada por el PDV (NF-e ${md.numero_nf || ""}).`,
       ) : "",
     });
+    setNfeParaGravar(md.chave_acesso ? { chaveAcesso: md.chave_acesso, itens: itensNfe, nfeImportadaId: vincularNfeId } : null);
     setSugestaoCategoria(null);
     setModalConta(true);
     setAvisoNfeDuplicada(null);

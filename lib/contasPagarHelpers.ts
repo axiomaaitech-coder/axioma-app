@@ -26,6 +26,7 @@ export type ContaPagar = {
   fornecedor_id: string | null;
   descricao: string;
   numero_nota?: string | null;
+  chave_acesso?: string | null;
   categoria?: string | null;
   valor_total: number;
   valor_pago: number;

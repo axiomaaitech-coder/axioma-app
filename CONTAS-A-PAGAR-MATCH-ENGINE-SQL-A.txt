@@ -1,0 +1,337 @@
+-- ============================================================================
+-- AXIOMA — Contas a Pagar: Match Engine, NÍVEL BASE (2-way, sem PO). SQL
+-- NÃO APLICADO — só pra revisão do Elias. Pedido de Compra / 3-way fica pro
+-- arquivo B, depois deste ser aprovado e rodado.
+--
+-- SCHEMA VERIFICADO AO VIVO antes de escrever este arquivo — cada tabela e
+-- coluna abaixo foi confirmada contra o banco real (Supabase, via
+-- PostgREST/schema cache, só leitura de nomes — nenhum dado de tenant foi
+-- lido). Achados:
+--   - estoque_nfe_importadas, contas_pagar, estoque_movimentacoes,
+--     fornecedores, empresa_config_ap, produtos, empresas, fornecedor_produtos,
+--     estoque_lotes, contas_pagar_aprovacao — todas existem, com exatamente
+--     as colunas-base usadas abaixo.
+--   - public.empresas_do_usuario() existe (RPC).
+--   - contas_pagar.chave_acesso, estoque_movimentacoes.nfe_item_id,
+--     fornecedores.nivel_match, empresa_config_ap.match_tolerancia_* — NENHUMA
+--     dessas colunas existe ainda (confirmado: erro 42703 ao consultar).
+--   - nfe_itens, match_resultado, match_divergencias — NENHUMA tabela existe
+--     ainda (confirmado: PGRST205 "could not find the table").
+-- Ou seja: nada do CONTAS-A-PAGAR-MATCH-ENGINE-SQL.txt anterior foi aplicado
+-- — este arquivo A substitui a parte "Nível Base" daquele rascunho.
+--
+-- 3 AJUSTES DE NOME PEDIDOS NO ESCOPO, feitos pra bater com convenção JÁ EM
+-- USO no banco (ver resumo completo no final da resposta, fora deste arquivo):
+--   1. "codigo_fornec" → codigo_fornecedor (fornecedor_produtos.codigo_fornecedor
+--      já existe com esse nome — mantém consistência).
+--   2. "lote" / "validade" → numero_lote / data_validade (estoque_lotes já usa
+--      esses dois nomes exatos).
+--   3. FK "nfe_id" (em match_resultado) → nfe_importada_id, e "match_id" (em
+--      match_divergencias) → match_resultado_id — segue a convenção do banco
+--      de nomear FK como {tabela_referenciada}_id (ex: contas_pagar_id em
+--      contas_pagar_aprovacao).
+--
+-- DECISÕES DE DIAGNÓSTICO (resumo — detalhe completo na resposta anterior):
+--   - NÃO cria tabela de "recebimento" nova — estoque_movimentacoes já é o
+--     evento de recebimento; só ganha o elo nfe_item_id.
+--   - NÃO duplica lote em nfe_itens além do necessário — numero_lote e
+--     data_validade aqui são o que veio NA NOTA (podem divergir do lote que
+--     o recebimento de fato criou em estoque_lotes; é ISSO que o motor
+--     compara). Não referencia estoque_lotes por FK — são conceitos
+--     relacionados mas distintos (nota vs. o que entrou de fato).
+--   - contas_pagar_id em match_resultado é NULLABLE de propósito: cobre o
+--     caso "recebido_sem_nota"/nota sem conta a pagar ainda — o resultado
+--     existe a partir da NF-e, a conta é opcional até existir.
+--
+-- ORDEM DE EXECUÇÃO (transação única):
+--   PASSO 0  — leitura: confirma as peças-base (mesmas já verificadas acima)
+--   PARTE 1  — nfe_itens
+--   PARTE 2  — estoque_movimentacoes.nfe_item_id
+--   PARTE 3  — contas_pagar.chave_acesso
+--   PARTE 4  — fornecedores.nivel_match
+--   PARTE 5  — empresa_config_ap: tolerância do match
+--   PARTE 6  — match_resultado
+--   PARTE 7  — match_divergencias
+--   PARTE 8  — índices
+--   PARTE 9  — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DO $$ ... EXISTS antes de recriar) — pode
+-- rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'estoque_nfe_importadas';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_pagar';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'estoque_movimentacoes';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'fornecedores';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresa_config_ap';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+
+-- ============================================================================
+-- PARTE 1 — NFE_ITENS: detalhe linha-a-linha da NF-e que o parseXMLNFe já
+-- extrai (ItemNFe) e hoje é descartado. Filha de estoque_nfe_importadas.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nfe_itens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  nfe_importada_id uuid NOT NULL REFERENCES public.estoque_nfe_importadas(id) ON DELETE CASCADE,
+  numero_linha integer NOT NULL,
+  codigo_fornecedor text,
+  ean text,
+  descricao text NOT NULL,
+  ncm text,
+  cfop text,
+  unidade text,
+  quantidade numeric NOT NULL,
+  valor_unitario numeric NOT NULL,
+  valor_total numeric NOT NULL,
+  numero_lote text,
+  data_validade date,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nfe_itens ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nfe_itens_select ON public.nfe_itens;
+DROP POLICY IF EXISTS nfe_itens_insert ON public.nfe_itens;
+DROP POLICY IF EXISTS nfe_itens_update ON public.nfe_itens;
+DROP POLICY IF EXISTS nfe_itens_delete ON public.nfe_itens;
+
+CREATE POLICY nfe_itens_select ON public.nfe_itens
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY nfe_itens_insert ON public.nfe_itens
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY nfe_itens_update ON public.nfe_itens
+  FOR UPDATE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY nfe_itens_delete ON public.nfe_itens
+  FOR DELETE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 2 — ESTOQUE_MOVIMENTACOES: elo pro Recebimento (nullable — só
+-- movimentações criadas a partir de NF-e ganham esse elo; manual continua
+-- sem, como sempre foi).
+-- ============================================================================
+
+ALTER TABLE public.estoque_movimentacoes
+  ADD COLUMN IF NOT EXISTS nfe_item_id uuid REFERENCES public.nfe_itens(id) ON DELETE SET NULL;
+
+-- Nota pro código (fora deste SQL, Commit 1): a tela de importar-nfe (PDV)
+-- já chama criarMovimentacao com a coluna origem existente (aceita 'nfe')
+-- e documento_ref existente, mas hoje não preenche nenhum dos dois nem este
+-- nfe_item_id novo — ponta solta a corrigir junto do Commit 1.
+
+
+-- ============================================================================
+-- PARTE 3 — CONTAS_PAGAR: elo pra Fatura.
+-- ============================================================================
+
+ALTER TABLE public.contas_pagar
+  ADD COLUMN IF NOT EXISTS chave_acesso text;
+
+
+-- ============================================================================
+-- PARTE 4 — FORNECEDORES: nível de match. Default '2way' — todo fornecedor
+-- começa no nível base, sem exigir PO.
+-- ============================================================================
+
+ALTER TABLE public.fornecedores
+  ADD COLUMN IF NOT EXISTS nivel_match text NOT NULL DEFAULT '2way';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'fornecedores_nivel_match_check'
+  ) THEN
+    ALTER TABLE public.fornecedores
+      ADD CONSTRAINT fornecedores_nivel_match_check CHECK (nivel_match IN ('2way', '3way'));
+  END IF;
+END $$;
+
+
+-- ============================================================================
+-- PARTE 5 — EMPRESA_CONFIG_AP: tolerância do match (reaproveita a config que
+-- já existe pro módulo — sem tabela nova). Default 2% de valor, 0% de
+-- quantidade (recebido tem que bater exato, a não ser que a empresa relaxe).
+-- ============================================================================
+
+ALTER TABLE public.empresa_config_ap
+  ADD COLUMN IF NOT EXISTS match_tolerancia_valor_pct numeric NOT NULL DEFAULT 2;
+
+ALTER TABLE public.empresa_config_ap
+  ADD COLUMN IF NOT EXISTS match_tolerancia_quantidade_pct numeric NOT NULL DEFAULT 0;
+
+
+-- ============================================================================
+-- PARTE 6 — MATCH_RESULTADO: 1 linha por NF-e conferida — a granularidade
+-- da Fila de Exceção (um humano revisa UMA nota).
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.match_resultado (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  nfe_importada_id uuid NOT NULL REFERENCES public.estoque_nfe_importadas(id) ON DELETE CASCADE,
+  contas_pagar_id uuid REFERENCES public.contas_pagar(id) ON DELETE SET NULL,
+  nivel text NOT NULL DEFAULT '2way',
+  status text NOT NULL DEFAULT 'pendente',
+  score integer,
+  resumo jsonb,
+  decidido_por uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  decidido_em timestamptz,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'match_resultado_nivel_check'
+  ) THEN
+    ALTER TABLE public.match_resultado
+      ADD CONSTRAINT match_resultado_nivel_check CHECK (nivel IN ('2way', '3way'));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'match_resultado_status_check'
+  ) THEN
+    ALTER TABLE public.match_resultado
+      ADD CONSTRAINT match_resultado_status_check CHECK (status IN ('pendente', 'ok', 'excecao', 'aprovado', 'rejeitado'));
+  END IF;
+END $$;
+
+ALTER TABLE public.match_resultado ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS match_resultado_select ON public.match_resultado;
+DROP POLICY IF EXISTS match_resultado_insert ON public.match_resultado;
+DROP POLICY IF EXISTS match_resultado_update ON public.match_resultado;
+DROP POLICY IF EXISTS match_resultado_delete ON public.match_resultado;
+
+CREATE POLICY match_resultado_select ON public.match_resultado
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY match_resultado_insert ON public.match_resultado
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY match_resultado_update ON public.match_resultado
+  FOR UPDATE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY match_resultado_delete ON public.match_resultado
+  FOR DELETE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_match_resultado_empresa_nfe ON public.match_resultado(empresa_id, nfe_importada_id);
+
+
+-- ============================================================================
+-- PARTE 7 — MATCH_DIVERGENCIAS: 1 linha por divergência de item dentro de
+-- um resultado.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.match_divergencias (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  match_resultado_id uuid NOT NULL REFERENCES public.match_resultado(id) ON DELETE CASCADE,
+  nfe_item_id uuid REFERENCES public.nfe_itens(id) ON DELETE SET NULL,
+  tipo text NOT NULL,
+  esperado numeric,
+  encontrado numeric,
+  descricao_item text,
+  criado_em timestamptz NOT NULL DEFAULT now()
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'match_divergencias_tipo_check'
+  ) THEN
+    ALTER TABLE public.match_divergencias
+      ADD CONSTRAINT match_divergencias_tipo_check
+      CHECK (tipo IN ('valor', 'quantidade', 'nao_recebido', 'recebido_sem_nota', 'sem_conta'));
+  END IF;
+END $$;
+
+ALTER TABLE public.match_divergencias ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS match_divergencias_select ON public.match_divergencias;
+DROP POLICY IF EXISTS match_divergencias_insert ON public.match_divergencias;
+DROP POLICY IF EXISTS match_divergencias_update ON public.match_divergencias;
+DROP POLICY IF EXISTS match_divergencias_delete ON public.match_divergencias;
+
+CREATE POLICY match_divergencias_select ON public.match_divergencias
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY match_divergencias_insert ON public.match_divergencias
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY match_divergencias_update ON public.match_divergencias
+  FOR UPDATE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+CREATE POLICY match_divergencias_delete ON public.match_divergencias
+  FOR DELETE TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 8 — ÍNDICES (compostos por empresa_id — regra fixa do projeto)
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_nfe_itens_empresa_nfe ON public.nfe_itens (empresa_id, nfe_importada_id);
+
+CREATE INDEX IF NOT EXISTS idx_estoque_movimentacoes_empresa_nfe_item ON public.estoque_movimentacoes (empresa_id, nfe_item_id) WHERE nfe_item_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_contas_pagar_empresa_chave ON public.contas_pagar (empresa_id, chave_acesso) WHERE chave_acesso IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_match_resultado_empresa_status ON public.match_resultado (empresa_id, status);
+CREATE INDEX IF NOT EXISTS idx_match_divergencias_empresa_resultado ON public.match_divergencias (empresa_id, match_resultado_id);
+
+
+-- ============================================================================
+-- PARTE 9 — VERIFICAÇÃO (só leitura — rodar depois das partes 1-8)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'
+  AND table_name IN ('nfe_itens', 'match_resultado', 'match_divergencias');
+
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'estoque_movimentacoes' AND column_name = 'nfe_item_id';
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'contas_pagar' AND column_name = 'chave_acesso';
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'fornecedores' AND column_name = 'nivel_match';
+SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'empresa_config_ap' AND column_name IN ('match_tolerancia_valor_pct', 'match_tolerancia_quantidade_pct');
+
+SELECT tablename, policyname FROM pg_policies WHERE tablename IN ('nfe_itens', 'match_resultado', 'match_divergencias');
+
+SELECT conname FROM pg_constraint WHERE conname IN (
+  'fornecedores_nivel_match_check', 'match_resultado_nivel_check', 'match_resultado_status_check', 'match_divergencias_tipo_check'
+);
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP TABLE IF EXISTS public.match_divergencias;
+-- DROP TABLE IF EXISTS public.match_resultado;
+--
+-- ALTER TABLE public.empresa_config_ap DROP COLUMN IF EXISTS match_tolerancia_quantidade_pct;
+-- ALTER TABLE public.empresa_config_ap DROP COLUMN IF EXISTS match_tolerancia_valor_pct;
+--
+-- ALTER TABLE public.fornecedores DROP CONSTRAINT IF EXISTS fornecedores_nivel_match_check;
+-- ALTER TABLE public.fornecedores DROP COLUMN IF EXISTS nivel_match;
+--
+-- ALTER TABLE public.contas_pagar DROP COLUMN IF EXISTS chave_acesso;
+--
+-- ALTER TABLE public.estoque_movimentacoes DROP COLUMN IF EXISTS nfe_item_id;
+--
+-- DROP TABLE IF EXISTS public.nfe_itens;

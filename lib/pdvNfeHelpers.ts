@@ -6,6 +6,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
+import type { ItemNFe } from "./importarParsers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,15 +30,45 @@ export async function nfeJaImportada(empresaId: string, chaveAcesso: string): Pr
   return !!data;
 }
 
-export async function registrarNfeImportada(empresaId: string, userId: string, dados: {
-  chaveAcesso: string; numeroNf?: string; fornecedorId?: string | null; valorTotal?: number; qtdItens: number;
-}): Promise<{ erro?: string }> {
-  const { error } = await supabase.from("estoque_nfe_importadas").insert({
+// Caminho ÚNICO de gravação de NF-e — PDV (importar-nfe) e Contas a Pagar
+// chamam esta mesma função, nunca gravam estoque_nfe_importadas/nfe_itens
+// por conta própria. Cabeçalho + linha-a-linha (nfe_itens) na mesma chamada,
+// pra o motor de match sempre ter o detalhe da nota disponível, não importa
+// por qual tela ela entrou.
+export async function registrarNfeComItens(empresaId: string, userId: string, dados: {
+  chaveAcesso: string; numeroNf?: string; fornecedorId?: string | null; valorTotal?: number; itens: ItemNFe[];
+}): Promise<{ id?: string; itensIds?: (string | null)[]; erro?: string }> {
+  const { data: nfe, error: erroNfe } = await supabase.from("estoque_nfe_importadas").insert({
     empresa_id: empresaId, user_id: userId, chave_acesso: dados.chaveAcesso,
     numero_nf: dados.numeroNf || null, fornecedor_id: dados.fornecedorId || null,
-    valor_total: dados.valorTotal ?? null, qtd_itens: dados.qtdItens,
-  });
-  return error ? { erro: error.message } : {};
+    valor_total: dados.valorTotal ?? null, qtd_itens: dados.itens.length,
+  }).select("id").single();
+  if (erroNfe || !nfe) {
+    const motivo = erroNfe?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("estoque_nfe_importadas", "insert", motivo);
+    return { erro: motivo };
+  }
+
+  if (dados.itens.length === 0) return { id: nfe.id, itensIds: [] };
+
+  const linhas = dados.itens.map((item, i) => ({
+    empresa_id: empresaId, nfe_importada_id: nfe.id, numero_linha: i + 1,
+    codigo_fornecedor: item.codigoFornecedor || null, ean: item.ean || null, descricao: item.descricao,
+    ncm: item.ncm || null, cfop: item.cfop || null, unidade: item.unidade || null,
+    quantidade: item.quantidade, valor_unitario: item.valorUnitario, valor_total: item.valorTotal,
+    numero_lote: item.numeroLote || null, data_validade: item.dataValidade || null,
+  }));
+  const { data: itensGravados, error: erroItens } = await supabase.from("nfe_itens").insert(linhas).select("id, numero_linha");
+  if (erroItens || !itensGravados || itensGravados.length !== linhas.length) {
+    const motivo = erroItens?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("nfe_itens", "insert", motivo);
+    return { id: nfe.id, erro: motivo };
+  }
+  // Mapeia por numero_linha em vez de confiar na ordem de retorno do insert —
+  // o Postgres não garante ordem de linhas pra um INSERT multi-valores.
+  const porLinha = new Map(itensGravados.map((r: any) => [r.numero_linha, r.id as string]));
+  const itensIds = dados.itens.map((_, i) => porLinha.get(i + 1) ?? null);
+  return { id: nfe.id, itensIds };
 }
 
 // ============================================================================

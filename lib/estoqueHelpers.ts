@@ -323,6 +323,9 @@ export type NovaMovimentacao = {
   motivo?: string;
   origem?: OrigemMovimentacao;
   documento_ref?: string;
+  // linha da NF-e que gerou esta movimentação (motor de match Contas a Pagar) —
+  // null quando a movimentação não veio de importação de nota.
+  nfe_item_id?: string | null;
   data_hora?: string;
   // dados de lote (opcional) — se informado, cria/atualiza o lote e vincula à movimentação
   // (uso típico: entrada com validade nova)
@@ -352,6 +355,7 @@ export async function criarMovimentacao(empresaId: string, userId: string, mov: 
     motivo: mov.motivo || null,
     origem: mov.origem ?? "manual",
     documento_ref: mov.documento_ref || null,
+    nfe_item_id: mov.nfe_item_id ?? null,
     data_hora: mov.data_hora || new Date().toISOString(),
   }).select("id").single();
   if (error || !data) {
