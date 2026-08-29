@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (error: any) {
     console.error('Pluggy Webhook error:', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/webhook' } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

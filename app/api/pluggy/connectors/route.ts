@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import * as Sentry from '@sentry/nextjs'
 
 // Retorna a lista de bancos (conectores) do Pluggy COM logo oficial e cor da marca.
 // Usado para montar os cartões clicáveis na tela de Open Finance.
@@ -38,6 +39,7 @@ export async function GET() {
     return NextResponse.json({ connectors })
   } catch (error: any) {
     console.error('Pluggy connectors error:', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/connectors' } })
     return NextResponse.json({ error: error.message, connectors: [] }, { status: 500 })
   }
 }

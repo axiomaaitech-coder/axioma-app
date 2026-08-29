@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import * as Sentry from '@sentry/nextjs'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-05-27.dahlia',
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url })
   } catch (error) {
     console.error('Erro no checkout Stripe:', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'stripe/create-checkout' } })
     return NextResponse.json({ error: 'Erro ao criar sessão de pagamento' }, { status: 500 })
   }
 }

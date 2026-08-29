@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import * as Sentry from '@sentry/nextjs'
 
 export async function POST() {
   try {
@@ -60,6 +61,7 @@ export async function POST() {
     return NextResponse.json({ accessToken })
   } catch (error: any) {
     console.error('Pluggy connect token error:', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/connect-token' } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

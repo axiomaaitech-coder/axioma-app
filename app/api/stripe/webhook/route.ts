@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     )
   } catch (err) {
     console.error('Webhook signature verification failed:', err)
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { rota: 'stripe/webhook', etapa: 'verificacao_assinatura' } })
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true })
   } catch (error) {
     console.error('Erro no webhook:', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'stripe/webhook' } })
     return NextResponse.json({ error: 'Webhook error' }, { status: 500 })
   }
 }

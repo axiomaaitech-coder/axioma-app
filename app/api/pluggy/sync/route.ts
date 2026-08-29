@@ -144,6 +144,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ total: totalSalvas, erros: erros.length > 0 ? erros : undefined })
   } catch (error: any) {
     console.error('Pluggy sync error:', error)
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), { extra: { rota: 'pluggy/sync' } })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
