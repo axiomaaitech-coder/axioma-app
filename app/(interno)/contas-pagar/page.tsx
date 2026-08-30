@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
-  Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Paperclip,
+  Search, Pencil, Trash2, X, Plus, CheckCircle2, RotateCcw, Undo2, Paperclip,
   Upload, FileText, AlertTriangle, Sparkles, Landmark, Share2,
   TrendingUp, TrendingDown, Pin, Gauge, Settings, XCircle, History, ChevronDown, ChevronRight, Link2,
   Send, MessageCircleQuestion, ListChecks, ClipboardList,
@@ -1815,18 +1815,18 @@ export default function ContasPagarPage() {
                     <p className="text-sm font-bold w-28 text-right" style={{ color: "#c8d8f0" }}>{fmt(c.valor_total)}</p>
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span>
                     <div className="flex items-center gap-2 flex-shrink-0 justify-end">
-                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexos", "Attachments", "Adjuntos")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexar boleto/nota", "Attach invoice/receipt", "Adjuntar boleta/factura")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirRastreabilidade(c)} title={L("Ver rastreabilidade", "View traceability", "Ver trazabilidad")} style={{ color: ROXO }}><Link2 size={15} /></motion.button>
                       {podeEditar && (
                         <>
                           {c.status !== "pago" && c.status !== "aguardando_aprovacao" && (
-                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa", "Register payment", "Registrar pago")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa (marcar como pago)", "Register payment (mark as paid)", "Registrar pago (marcar como pagado)")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
                           )}
                           {(c.status === "pago" || c.status === "parcial") && (
-                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => estornar(c)} title={L("Estornar baixa", "Reverse payment", "Reversar pago")} style={{ color: AMBAR }}><RotateCcw size={15} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => estornar(c)} title={L("Estornar pagamento (desfazer baixa)", "Reverse payment (undo payment)", "Revertir pago (deshacer pago)")} style={{ color: CINZA }}><Undo2 size={15} /></motion.button>
                           )}
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar", "Edit", "Editar")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c)} title={L("Excluir", "Delete", "Eliminar")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar conta", "Edit bill", "Editar cuenta")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c)} title={L("Excluir conta", "Delete bill", "Eliminar cuenta")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
                         </>
                       )}
                     </div>
@@ -2792,7 +2792,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? L("Editar Conta a Pagar", "Edit Bill", "Editar Cuenta a Pagar") : L("Nova Conta a Pagar", "New Bill", "Nueva Cuenta a Pagar")}</h3>
                     </div>
-                    <button onClick={fecharModalConta} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={fecharModalConta} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <div className="space-y-3">
                     <div>
@@ -2914,7 +2914,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoPedido ? L("Editar Pedido de Compra", "Edit Purchase Order", "Editar Orden de Compra") : L("Novo Pedido de Compra", "New Purchase Order", "Nueva Orden de Compra")}</h3>
                     </div>
-                    <button onClick={fecharModalPedido} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={fecharModalPedido} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
@@ -2962,7 +2962,7 @@ export default function ContasPagarPage() {
                                 className="col-span-1 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
                               <input type="number" step="0.01" value={it.valor_unitario} onChange={(e) => atualizarItemPedido(idx, "valor_unitario", e.target.value)} placeholder={L("Vlr. unit.", "Unit price", "Precio unit.")}
                                 className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
-                              <button onClick={() => removerItemPedido(idx)} className="col-span-1 flex justify-center" style={{ color: VERMELHO }}><Trash2 size={14} /></button>
+                              <button onClick={() => removerItemPedido(idx)} className="col-span-1 flex justify-center" title={L("Remover item", "Remove item", "Quitar ítem")} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
                             </div>
                           </div>
                         ))}
@@ -3002,7 +3002,7 @@ export default function ContasPagarPage() {
                         ⚠️ {L("Possível conta duplicada", "Possible duplicate bill", "Posible cuenta duplicada")}
                       </h3>
                     </div>
-                    <button onClick={fecharModalDuplicata} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={fecharModalDuplicata} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
 
                   <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
@@ -3090,7 +3090,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Dar Baixa", "Register Payment", "Registrar Pago")}</h3>
                     </div>
-                    <button onClick={fecharBaixa} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={fecharBaixa} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{contaBaixa.descricao}</p>
                   <div className="space-y-3">
@@ -3138,7 +3138,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}</h3>
                     </div>
-                    <button onClick={() => setModalCustoFixo(false)} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={() => setModalCustoFixo(false)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{L(`Custos fixos do mês ${mesAtual} — clique em Gerar para criar a conta a pagar correspondente.`, `Fixed costs for ${mesAtual} — click Generate to create the matching bill.`, `Costos fijos de ${mesAtual} — haga clic en Generar para crear la cuenta correspondiente.`)}</p>
                   {custosFixos.length === 0 ? (
@@ -3182,7 +3182,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Anexos", "Attachments", "Adjuntos")}</h3>
                     </div>
-                    <button onClick={fecharAnexo} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={fecharAnexo} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>{contaAnexo.descricao}</p>
 
@@ -3212,7 +3212,7 @@ export default function ContasPagarPage() {
                             <span className="text-sm truncate" style={{ color: "#c8d8f0" }}>{doc.nome}</span>
                           </button>
                           {podeEditar && (
-                            <button onClick={() => removerDocumento(doc)} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
+                            <button onClick={() => removerDocumento(doc)} title={L("Remover documento", "Remove document", "Quitar documento")} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
                           )}
                         </div>
                       ))}
@@ -3240,7 +3240,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><Link2 size={18} />{L("Rastreabilidade", "Traceability", "Trazabilidad")}</h3>
                     </div>
-                    <button onClick={fecharRastreabilidade} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={fecharRastreabilidade} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>{contaRastreabilidade.descricao} · {fmt(contaRastreabilidade.valor_total)}</p>
 
@@ -3359,7 +3359,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><Settings size={18} />{L("Configuração AP", "AP Configuration", "Configuración AP")}</h3>
                     </div>
-                    <button onClick={() => setModalConfigAp(false)} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={() => setModalConfigAp(false)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <div className="space-y-3">
                     <div>
@@ -3436,7 +3436,7 @@ export default function ContasPagarPage() {
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><RotateCcw size={18} />{L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}</h3>
                     </div>
-                    <button onClick={() => setPadraoParaTransformar(null)} style={{ color: CINZA }}><X size={20} /></button>
+                    <button onClick={() => setPadraoParaTransformar(null)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
                   <p className="text-xs mb-3" style={{ color: CINZA }}>
                     {L(`Detectado com ${padraoParaTransformar.ocorrencias} lançamentos de ${nomeFornecedor(padraoParaTransformar.fornecedorId)}. Confira os dados antes de confirmar — nada é criado sem sua aprovação.`,
