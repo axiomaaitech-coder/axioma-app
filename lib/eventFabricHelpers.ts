@@ -28,7 +28,9 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 // que ainda não está nesta lista.
 export type TipoEventoConhecido =
   | "SALE_CREATED"
+  | "AP_CREATED"
   | "AP_PAID"
+  | "AP_PAYMENT_REVERSED"
   | "AR_OVERDUE"
   | "INVOICE_APPROVED"
   | "BANK_RECONCILED"

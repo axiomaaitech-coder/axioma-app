@@ -9,6 +9,7 @@ import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
+import { publicarEvento, type TipoEvento, type OrigemEvento } from "./eventFabricHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,6 +73,24 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
   Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
 }
 
+// COMMIT 2 — ponte pro Event Fabric. Registro paralelo: se publicarEvento
+// falhar (ou lançar, o que ele hoje não faz, mas não confiamos nisso), a
+// operação principal (que já terminou com sucesso quando isto é chamado)
+// nunca é desfeita — só o erro do evento vai pro Sentry.
+async function publicarEventoNaoBloqueante(
+  empresaId: string | null | undefined,
+  tipo: TipoEvento,
+  payload: Record<string, unknown>,
+  origem: OrigemEvento,
+): Promise<void> {
+  if (!empresaId) return;
+  try {
+    await publicarEvento(empresaId, tipo, payload, origem);
+  } catch (e) {
+    reportarFalhaEscrita("eventos_negocio", "publicarEvento", e instanceof Error ? e.message : String(e));
+  }
+}
+
 // ============================================================================
 // CRUD — CONTAS A PAGAR
 // ============================================================================
@@ -102,6 +121,9 @@ export async function criarContaPagar(userId: string, empresaId: string | null, 
     reportarFalhaEscrita("contas_pagar", "insert", motivo);
     return { erro: motivo };
   }
+  publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
+    { conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null },
+    { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
   return { id: data.id };
 }
 
@@ -133,6 +155,9 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
     reportarFalhaEscrita("contas_pagar", "update baixa", motivo);
     return { erro: motivo };
   }
+  publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAID",
+    { conta_id: conta.id, valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento },
+    { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
   return {};
 }
 
@@ -146,6 +171,9 @@ export async function estornarBaixaContaPagar(conta: ContaPagar): Promise<{ erro
     reportarFalhaEscrita("contas_pagar", "update estorno", motivo);
     return { erro: motivo };
   }
+  publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAYMENT_REVERSED",
+    { conta_id: conta.id, valor: conta.valor_pago },
+    { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
   return {};
 }
 
@@ -193,6 +221,9 @@ export async function gerarContaDeCustoFixo(
     reportarFalhaEscrita("contas_pagar", "insert (gerar de custo fixo)", motivo);
     return { erro: motivo };
   }
+  publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
+    { conta_id: data.id, fornecedor_id: null, valor: custoFixo.valor_mensal, vencimento: dataVencimento },
+    { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
   return { id: data.id };
 }
 
