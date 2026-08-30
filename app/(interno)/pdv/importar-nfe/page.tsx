@@ -328,8 +328,9 @@ export default function PDVImportarNFe() {
       }
 
       setResumo({ sucesso, falhas });
-      // Conferência roda sob demanda, junto do próprio salvar — Commit 3 traz
-      // a tela de revisão detalhada; por ora só o resultado geral (ok/exceção).
+      // Conferência roda sob demanda, junto do próprio salvar — o resultado
+      // geral (ok/exceção) sai no toast; o detalhe fica na aba Conferência de
+      // Notas, em Contas a Pagar.
       const conferencia = await conferirNfe(empresaId, nfeImportadaId);
       if (falhas.length === 0 && !conferencia.erro) {
         if (conferencia.status === "ok") mostrarToast(t("conferenciaOk", lang, { n: sucesso }));

@@ -22,7 +22,7 @@ import {
   type MatchResultadoListado, type DivergenciaListada, type TipoDivergencia,
 } from "../../../lib/matchEngineHelpers";
 import {
-  listarPedidosCompra, listarItensPedido, criarPedidoCompra, editarPedidoCompra, excluirPedidoCompra,
+  listarPedidosCompra, listarItensPedido, criarPedidoCompra, editarPedidoCompra, excluirPedidoCompra, cancelarPedidoCompra,
   type PedidoCompraListado, type PedidoCompraItemInput,
 } from "../../../lib/pedidoCompraHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
@@ -823,6 +823,11 @@ export default function ContasPagarPage() {
       const { erro } = await editarPedidoCompra(empresaId, editandoPedido.id, {
         numero: formPedido.numero.trim(), dataEmissao: formPedido.data_emissao || null, observacao: formPedido.observacao || null, itens: itensValidos,
       });
+      if (erro === "tem_nota_vinculada") {
+        showToast(L("Este pedido já tem nota vinculada — não dá pra trocar os itens. Crie um novo pedido para itens adicionais.", "This order already has a linked invoice — its items can't be replaced. Create a new order for additional items.", "Esta orden ya tiene factura vinculada — no se pueden reemplazar los ítems. Cree una nueva orden para ítems adicionales."), "erro");
+        setSalvandoPedido(false);
+        return;
+      }
       if (erro) {
         showToast(L("Não foi possível salvar o pedido. Tente novamente.", "Could not save the order. Try again.", "No se pudo guardar la orden. Intente de nuevo."), "erro");
         setSalvandoPedido(false);
@@ -845,13 +850,27 @@ export default function ContasPagarPage() {
 
   async function excluirPedido(p: PedidoCompraListado) {
     if (!empresaId) return;
-    const { erro } = await excluirPedidoCompra(empresaId, p.id, p.status);
+    const { erro } = await excluirPedidoCompra(empresaId, p.id);
     if (erro === "tem_nota_vinculada") {
       showToast(L("Este pedido já tem nota vinculada — não é possível excluir. Cancele o pedido em vez de excluir.", "This order already has a linked invoice — it can't be deleted. Cancel it instead of deleting.", "Esta orden ya tiene factura vinculada — no se puede eliminar. Cancele la orden en lugar de eliminarla."), "erro");
       return;
     }
     if (erro) {
       showToast(L("Não foi possível excluir o pedido. Tente novamente.", "Could not delete the order. Try again.", "No se pudo eliminar la orden. Intente de nuevo."), "erro");
+      return;
+    }
+    setPedidosCompra(await listarPedidosCompra(empresaId));
+  }
+
+  async function cancelarPedido(p: PedidoCompraListado) {
+    if (!empresaId) return;
+    const { erro } = await cancelarPedidoCompra(empresaId, p.id, p.status);
+    if (erro === "ja_faturado") {
+      showToast(L("Este pedido já foi totalmente faturado — não faz sentido cancelar.", "This order was already fully invoiced — cancelling doesn't apply.", "Esta orden ya fue totalmente facturada — no tiene sentido cancelarla."), "erro");
+      return;
+    }
+    if (erro) {
+      showToast(L("Não foi possível cancelar o pedido. Tente novamente.", "Could not cancel the order. Try again.", "No se pudo cancelar la orden. Intente de nuevo."), "erro");
       return;
     }
     setPedidosCompra(await listarPedidosCompra(empresaId));
@@ -1257,12 +1276,12 @@ export default function ContasPagarPage() {
     }
     // Conferência roda sob demanda, junto do próprio salvar — vale tanto pra
     // nota nova quanto pra vínculo com nota já importada pelo PDV (agora ela
-    // ganha a conta que faltava). Commit 3 traz a tela de revisão detalhada.
+    // ganha a conta que faltava). Detalhe das divergências: aba Conferência de Notas.
     if (empresaId && nfeImportadaIdParaConferir) {
       const conferencia = await conferirNfe(empresaId, nfeImportadaIdParaConferir);
       if (!conferencia.erro) {
         if (conferencia.status === "ok") showToast(L("Conta salva e conferida: tudo bate com o recebimento.", "Bill saved and matched: everything checks out against receiving.", "Cuenta guardada y conciliada: todo coincide con la recepción."), "ok");
-        else showToast(L(`Conta salva. Conferência encontrou ${conferencia.divergencias.length} divergência(s) nesta nota — a tela de revisão detalhada vem no próximo commit.`, `Bill saved. Match check found ${conferencia.divergencias.length} discrepancy(ies) on this invoice — the detailed review screen is coming in the next commit.`, `Cuenta guardada. La conciliación encontró ${conferencia.divergencias.length} discrepancia(s) en esta factura — la pantalla de revisión detallada llega en el próximo commit.`), "erro");
+        else showToast(L(`Conta salva. Conferência encontrou ${conferencia.divergencias.length} divergência(s) nesta nota — veja o detalhe na aba Conferência de Notas.`, `Bill saved. Match check found ${conferencia.divergencias.length} discrepancy(ies) on this invoice — see the details in the Invoice Matching tab.`, `Cuenta guardada. La conciliación encontró ${conferencia.divergencias.length} discrepancia(s) en esta factura — vea el detalle en la pestaña Conciliación de Facturas.`), "erro");
       }
     }
     fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
@@ -2427,6 +2446,9 @@ export default function ContasPagarPage() {
                   {podeEditar && (
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => abrirEdicaoPedido(p)} className="p-2 rounded-lg" style={{ color: AZUL }} title={L("Editar", "Edit", "Editar")}><Pencil size={15} /></button>
+                      {(p.status === "aberto" || p.status === "parcial") && (
+                        <button onClick={() => cancelarPedido(p)} className="p-2 rounded-lg" style={{ color: AMBAR }} title={L("Cancelar pedido", "Cancel order", "Cancelar orden")}><XCircle size={15} /></button>
+                      )}
                       <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir", "Delete", "Eliminar")}><Trash2 size={15} /></button>
                     </div>
                   )}
