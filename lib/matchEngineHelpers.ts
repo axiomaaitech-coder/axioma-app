@@ -245,7 +245,7 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
 
   // Regravação idempotente: some com as divergências da rodada anterior
   // antes de gravar as atuais — nunca acumula histórico duplicado.
-  const { error: erroLimpeza } = await supabase.from("match_divergencias").delete().eq("match_resultado_id", matchResultadoId);
+  const { error: erroLimpeza } = await supabase.from("match_divergencias").delete().eq("empresa_id", empresaId).eq("match_resultado_id", matchResultadoId);
   if (erroLimpeza) {
     reportarFalhaEscrita("match_divergencias", "delete (regravação)", erroLimpeza.message);
     return { matchResultadoId, status, score, divergencias, erro: erroLimpeza.message };
