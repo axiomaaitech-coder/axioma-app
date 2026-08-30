@@ -1,0 +1,125 @@
+-- ============================================================================
+-- AXIOMA — CFO CORE, FASE 1, COMMIT 1: EVENT FABRIC ISOLADO
+-- Desenho aprovado com Elias em 2026-08-30. Rodar UMA VEZ no SQL Editor do
+-- Supabase, DEPOIS de revisão — este arquivo não é aplicado automaticamente.
+--
+-- ESCOPO DESTE COMMIT: só a tabela eventos_negocio + RLS + índices. Nenhum
+-- publisher é ligado ainda (nenhum módulo publica evento nesta etapa) — isso
+-- é o Commit 2, depois que este SQL rodar e lib/eventFabricHelpers.ts for
+-- escrito e revisado à parte. Zero mudança em tabela existente.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0  — leitura: confirma empresas, empresas_do_usuario() existem
+--   PARTE 1  — tabela eventos_negocio
+--   PARTE 2  — RLS (1 policy SELECT + 1 policy INSERT — sem UPDATE/DELETE,
+--              evento é fato imutável, mesmo princípio de contas_pagar_auditoria)
+--   PARTE 3  — índices
+--   PARTE 4  — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DROP POLICY IF EXISTS antes de recriar) — pode
+-- rodar mais de uma vez com segurança.
+--
+-- DECISÃO DE DESENHO — "tipo" é text livre, sem CHECK constraint e sem enum.
+-- Mesmo padrão já usado em contas_pagar.status (texto livre, sem CHECK) —
+-- todo tipo de evento novo (SALE_CREATED, AP_PAID, AR_OVERDUE...) é decisão
+-- de código (TS), nunca de schema. Módulo novo publica tipo novo sem migração.
+--
+-- DECISÃO DE DESENHO — origem_tabela/origem_id NÃO tem FK. É referência
+-- polimórfica de propósito (aponta pra contas_pagar, vendas, contas_receber,
+-- etc. — tabela variável por origem_modulo). Banco não consegue impor FK
+-- pra "tabela variável"; a garantia de consistência fica no código que
+-- publica o evento (mesma responsabilidade que hoje já existe nos helpers).
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+
+-- ============================================================================
+-- PARTE 1 — TABELA EVENTOS_NEGOCIO
+-- ============================================================================
+-- O "sistema nervoso" do CFO Core: todo módulo que muda estado relevante
+-- publica um evento aqui (chamada explícita do helper, nunca trigger de
+-- negócio — ver decisão registrada no desenho da Fase 1). Fato consumado,
+-- nunca editado depois de gravado.
+
+CREATE TABLE IF NOT EXISTS public.eventos_negocio (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id     uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo           text NOT NULL, -- 'SALE_CREATED' | 'AP_PAID' | 'AR_OVERDUE' | 'INVOICE_APPROVED' | 'BANK_RECONCILED' | 'ACCOUNTING_ENTRY_CREATED' | ... (texto livre, sem CHECK — ver nota de desenho no cabeçalho)
+  origem_modulo  text,          -- 'pdv' | 'contas_pagar' | 'contas_receber' | 'open_finance' | ... (qual módulo publicou)
+  origem_tabela  text,          -- tabela de origem do evento (ex: 'contas_pagar') — sem FK, ver nota de desenho
+  origem_id      uuid,          -- id da linha de origem nessa tabela — sem FK, ver nota de desenho
+  payload        jsonb,         -- corpo do evento, formato livre por tipo
+  usuario_id     uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  versao         int NOT NULL DEFAULT 1, -- versão do formato do payload — permite payload evoluir sem quebrar consumidor antigo
+  criado_em      timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 2 — RLS
+-- ============================================================================
+-- Mesmo padrão de subselect otimizado de toda tabela multi-tenant do projeto
+-- (MIGRACAO-MULTITENANT.sql, contas_pagar_auditoria). Só SELECT + INSERT —
+-- sem UPDATE/DELETE: evento de negócio é fato consumado, nunca reescrito.
+-- Correção de um evento publicado errado é um evento novo (mesmo princípio
+-- de estorno do Accounting Core), nunca UPDATE na linha antiga.
+
+ALTER TABLE public.eventos_negocio ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS eventos_negocio_select ON public.eventos_negocio;
+CREATE POLICY eventos_negocio_select ON public.eventos_negocio
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+DROP POLICY IF EXISTS eventos_negocio_insert ON public.eventos_negocio;
+CREATE POLICY eventos_negocio_insert ON public.eventos_negocio
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 3 — ÍNDICES
+-- ============================================================================
+-- (empresa_id, tipo, criado_em) — consulta "todo evento desse tipo, nesse
+-- período" (ex: todo AP_PAID do mês, pro Accounting Core consumir).
+-- (empresa_id, origem_tabela, origem_id) — consulta "todo evento dessa linha
+-- de origem" (ex: rastreabilidade — todo evento gerado por essa conta a
+-- pagar específica).
+
+CREATE INDEX IF NOT EXISTS idx_eventos_negocio_empresa_tipo_criado ON public.eventos_negocio (empresa_id, tipo, criado_em);
+CREATE INDEX IF NOT EXISTS idx_eventos_negocio_empresa_origem ON public.eventos_negocio (empresa_id, origem_tabela, origem_id);
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 4 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'eventos_negocio';
+
+SELECT column_name, data_type, is_nullable FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'eventos_negocio' ORDER BY ordinal_position;
+
+SELECT tablename, policyname, cmd FROM pg_policies WHERE tablename = 'eventos_negocio';
+
+SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = 'eventos_negocio';
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP TABLE IF EXISTS public.eventos_negocio;
+-- (DROP TABLE já remove policies e índices da própria tabela junto — não
+-- precisa DROP POLICY/DROP INDEX separado no rollback)
