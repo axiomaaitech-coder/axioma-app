@@ -3,6 +3,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from "@sentry/nextjs";
+import { scrubEventoSentry } from "./lib/sentryScrub";
 
 Sentry.init({
   dsn: "https://b7f638e37fa0bf89c943b8cbefe83513@o4511068799696896.ingest.us.sentry.io/4511068809265152",
@@ -26,6 +27,11 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+
+  // Defesa em profundidade (auditoria de segredos): redige Authorization/
+  // X-API-KEY/Cookie e qualquer campo com nome de credencial antes de sair
+  // — independente do que sendDefaultPii/tracing decidirem capturar.
+  beforeSend: scrubEventoSentry,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
