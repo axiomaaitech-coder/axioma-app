@@ -22,7 +22,7 @@ import {
   type MatchResultadoListado, type DivergenciaListada, type TipoDivergencia,
 } from "../../../lib/matchEngineHelpers";
 import {
-  listarPedidosCompra, listarItensPedido, criarPedidoCompra, editarPedidoCompra, excluirPedidoCompra, cancelarPedidoCompra,
+  listarPedidosCompra, listarItensPedido, criarPedidoCompra, editarPedidoCompra, excluirPedidoCompra, cancelarPedidoCompra, reativarPedidoCompra,
   type PedidoCompraListado, type PedidoCompraItemInput,
 } from "../../../lib/pedidoCompraHelpers";
 import { rankingScoreAxioma, inflacaoFornecedor, statusEfetivo, type FornecedorRow, type ScoreAxiomaFornecedor } from "../../../lib/fornecedorHelpers";
@@ -871,6 +871,16 @@ export default function ContasPagarPage() {
     }
     if (erro) {
       showToast(L("Não foi possível cancelar o pedido. Tente novamente.", "Could not cancel the order. Try again.", "No se pudo cancelar la orden. Intente de nuevo."), "erro");
+      return;
+    }
+    setPedidosCompra(await listarPedidosCompra(empresaId));
+  }
+
+  async function reativarPedido(p: PedidoCompraListado) {
+    if (!empresaId) return;
+    const { erro } = await reativarPedidoCompra(empresaId, p.id);
+    if (erro) {
+      showToast(L("Não foi possível reativar o pedido. Tente novamente.", "Could not reactivate the order. Try again.", "No se pudo reactivar la orden. Intente de nuevo."), "erro");
       return;
     }
     setPedidosCompra(await listarPedidosCompra(empresaId));
@@ -2445,11 +2455,20 @@ export default function ContasPagarPage() {
                   </div>
                   {podeEditar && (
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => abrirEdicaoPedido(p)} className="p-2 rounded-lg" style={{ color: AZUL }} title={L("Editar", "Edit", "Editar")}><Pencil size={15} /></button>
-                      {(p.status === "aberto" || p.status === "parcial") && (
-                        <button onClick={() => cancelarPedido(p)} className="p-2 rounded-lg" style={{ color: AMBAR }} title={L("Cancelar pedido", "Cancel order", "Cancelar orden")}><XCircle size={15} /></button>
+                      {p.status === "cancelado" ? (
+                        <>
+                          <button onClick={() => reativarPedido(p)} className="p-2 rounded-lg" style={{ color: VERDE }} title={L("Reativar pedido", "Reactivate order", "Reactivar orden")}><RotateCcw size={15} /></button>
+                          <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir permanentemente", "Delete permanently", "Eliminar permanentemente")}><Trash2 size={15} /></button>
+                        </>
+                      ) : (
+                        <>
+                          <button onClick={() => abrirEdicaoPedido(p)} className="p-2 rounded-lg" style={{ color: AZUL }} title={L("Editar", "Edit", "Editar")}><Pencil size={15} /></button>
+                          {(p.status === "aberto" || p.status === "parcial") && (
+                            <button onClick={() => cancelarPedido(p)} className="p-2 rounded-lg" style={{ color: AMBAR }} title={L("Cancelar pedido", "Cancel order", "Cancelar orden")}><XCircle size={15} /></button>
+                          )}
+                          <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir", "Delete", "Eliminar")}><Trash2 size={15} /></button>
+                        </>
                       )}
-                      <button onClick={() => excluirPedido(p)} className="p-2 rounded-lg" style={{ color: VERMELHO }} title={L("Excluir", "Delete", "Eliminar")}><Trash2 size={15} /></button>
                     </div>
                   )}
                 </div>

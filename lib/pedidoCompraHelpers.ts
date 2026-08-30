@@ -197,7 +197,8 @@ export async function excluirPedidoCompra(empresaId: string, pedidoCompraId: str
 // Cancela sem apagar nada — status vira 'cancelado', itens e vínculos
 // existentes ficam intactos (é a alternativa segura a excluir quando já tem
 // nota vinculada). Não cancela um pedido já 'faturado' (não faz sentido
-// desfazer algo já 100% concluído) nem duplica o cancelamento.
+// desfazer algo já 100% concluído) nem duplica o cancelamento. Reversível —
+// ver reativarPedidoCompra.
 export async function cancelarPedidoCompra(empresaId: string, pedidoCompraId: string, statusAtual: string): Promise<{ erro?: string }> {
   if (statusAtual === "faturado") return { erro: "ja_faturado" };
   if (statusAtual === "cancelado") return {};
@@ -206,6 +207,45 @@ export async function cancelarPedidoCompra(empresaId: string, pedidoCompraId: st
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("pedido_compra", "update status (cancelar)", motivo);
+    return { erro: motivo };
+  }
+  return {};
+}
+
+// Regra única de status por fulfillment — usada tanto aqui (reativar) quanto
+// em conferirNfe (matchEngineHelpers.ts), que já tem os itens em memória e
+// só aplica os números aqui dentro, sem buscar de novo.
+export function calcularStatusPedido(totalItens: number, itensFaturados: number): "aberto" | "parcial" | "faturado" {
+  if (totalItens === 0 || itensFaturados === 0) return "aberto";
+  if (itensFaturados >= totalItens) return "faturado";
+  return "parcial";
+}
+
+// Não guarda "status anterior" nenhum — recalcula do zero a partir do que
+// realmente está faturado agora (mesma pergunta que conferirNfe já faz).
+// Mais confiável que restaurar um valor congelado: se algo mudou enquanto
+// o pedido estava cancelado (outra nota, uma edição), o número reflete a
+// realidade atual, não uma foto velha.
+async function recalcularStatusPedido(empresaId: string, pedidoCompraId: string): Promise<"aberto" | "parcial" | "faturado"> {
+  const { data: itensDoPedido } = await supabase.from("pedido_compra_itens").select("id").eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId);
+  const ids = (itensDoPedido || []).map((i: any) => i.id);
+  if (ids.length === 0) return "aberto";
+  const { data: vinculados } = await supabase.from("nfe_itens").select("pedido_compra_item_id").eq("empresa_id", empresaId).in("pedido_compra_item_id", ids);
+  const faturadosSet = new Set<string>();
+  for (const v of vinculados || []) if (v.pedido_compra_item_id) faturadosSet.add(v.pedido_compra_item_id);
+  return calcularStatusPedido(ids.length, faturadosSet.size);
+}
+
+// Reativa um pedido cancelado — status volta pra onde já estava de fato
+// (aberto/parcial/faturado, recalculado). Só age em cima de um pedido que
+// está mesmo 'cancelado' (o filtro no update evita reativar 2x em paralelo).
+export async function reativarPedidoCompra(empresaId: string, pedidoCompraId: string): Promise<{ erro?: string }> {
+  const statusRecalculado = await recalcularStatusPedido(empresaId, pedidoCompraId);
+  const { data, error } = await supabase.from("pedido_compra")
+    .update({ status: statusRecalculado }).eq("empresa_id", empresaId).eq("id", pedidoCompraId).eq("status", "cancelado").select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS ou o pedido já não estava cancelado?)";
+    reportarFalhaEscrita("pedido_compra", "update status (reativar)", motivo);
     return { erro: motivo };
   }
   return {};

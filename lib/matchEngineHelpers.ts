@@ -6,6 +6,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { obterConfigAp } from "./contasPagarHelpers";
+import { calcularStatusPedido } from "./pedidoCompraHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,7 +80,19 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
         const { data: pedidoItens } = await supabase.from("pedido_compra_itens")
           .select("id, pedido_compra_id, descricao, quantidade, valor_total")
           .eq("empresa_id", empresaId).in("id", idsPedidoItem);
-        for (const pi of pedidoItens || []) pedidoItensPorId.set(pi.id, pi as any);
+        // Pedido cancelado é ignorado pelo match — o item continua linkado no
+        // banco (não desfaz o vínculo), mas não entra no mapa, então cai no
+        // mesmo caminho de "sem_pedido" mais abaixo, como se o link não
+        // existisse. Nunca cobra divergência contra um pedido que foi cancelado.
+        const pedidoIdsCandidatos = Array.from(new Set((pedidoItens || []).map((pi: any) => pi.pedido_compra_id)));
+        const canceladosSet = new Set<string>();
+        if (pedidoIdsCandidatos.length > 0) {
+          const { data: statusPedidos } = await supabase.from("pedido_compra").select("id, status").eq("empresa_id", empresaId).in("id", pedidoIdsCandidatos);
+          for (const p of statusPedidos || []) if (p.status === "cancelado") canceladosSet.add(p.id);
+        }
+        for (const pi of pedidoItens || []) {
+          if (!canceladosSet.has(pi.pedido_compra_id)) pedidoItensPorId.set(pi.id, pi as any);
+        }
       }
     }
   }
@@ -148,18 +161,19 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
     if (nivel === "3way") {
       checks++;
       const pedidoItemId = (item as any).pedido_compra_item_id as string | null;
-      if (!pedidoItemId) {
+      // undefined tanto quando não tem pedido_compra_item_id quanto quando tem
+      // mas o pedido dele foi excluído do mapa por estar cancelado — os dois
+      // casos recebem o mesmo tratamento (sem_pedido), de propósito.
+      const pedidoItem = pedidoItemId ? pedidoItensPorId.get(pedidoItemId) : undefined;
+      if (!pedidoItem) {
         divergencias.push({ nfeItemId: item.id, tipo: "sem_pedido", esperado: null, encontrado: null, descricaoItem: item.descricao });
         falhas++;
       } else {
-        const pedidoItem = pedidoItensPorId.get(pedidoItemId);
-        if (pedidoItem) {
-          const divergiuQtd = diferencaPct(pedidoItem.quantidade, item.quantidade) > config.match_tolerancia_quantidade_pct;
-          const divergiuValor = diferencaPct(pedidoItem.valor_total, item.valor_total) > config.match_tolerancia_valor_pct;
-          if (divergiuQtd || divergiuValor) {
-            divergencias.push({ nfeItemId: item.id, tipo: "divergencia_pedido", esperado: pedidoItem.valor_total, encontrado: item.valor_total, descricaoItem: item.descricao });
-            falhas++;
-          }
+        const divergiuQtd = diferencaPct(pedidoItem.quantidade, item.quantidade) > config.match_tolerancia_quantidade_pct;
+        const divergiuValor = diferencaPct(pedidoItem.valor_total, item.valor_total) > config.match_tolerancia_valor_pct;
+        if (divergiuQtd || divergiuValor) {
+          divergencias.push({ nfeItemId: item.id, tipo: "divergencia_pedido", esperado: pedidoItem.valor_total, encontrado: item.valor_total, descricaoItem: item.descricao });
+          falhas++;
         }
       }
     }
@@ -211,7 +225,7 @@ export async function conferirNfe(empresaId: string, nfeImportadaId: string): Pr
       const faturados = itensDoPedido.filter((p: any) => faturadosSet.has(p.id)).length;
       const { data: pedidoAtual } = await supabase.from("pedido_compra").select("status").eq("empresa_id", empresaId).eq("id", pedidoId).maybeSingle();
       if (!pedidoAtual || pedidoAtual.status === "cancelado") continue;
-      const novoStatus = totalItens > 0 && faturados === totalItens ? "faturado" : faturados > 0 ? "parcial" : "aberto";
+      const novoStatus = calcularStatusPedido(totalItens, faturados);
       if (pedidoAtual.status !== novoStatus) {
         const { error: erroStatusPedido } = await supabase.from("pedido_compra").update({ status: novoStatus }).eq("empresa_id", empresaId).eq("id", pedidoId);
         if (erroStatusPedido) reportarFalhaEscrita("pedido_compra", "update status", erroStatusPedido.message);
