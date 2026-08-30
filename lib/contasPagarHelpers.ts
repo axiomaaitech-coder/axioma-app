@@ -152,11 +152,19 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
   const status = calcStatus(conta.valor_total, valorPago, conta.data_vencimento);
   const { data, error } = await supabase.from("contas_pagar")
     .update({ valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento, status })
-    .eq("id", conta.id).select("id");
+    .eq("id", conta.id).select("id, valor_pago, status");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("contas_pagar", "update baixa", motivo);
     return { erro: motivo };
+  }
+  // BUG CRÍTICO 2026-08-30 — dar baixa não persistia (revertia pra vencida no
+  // F5). Confere o que o próprio UPDATE...RETURNING devolveu contra o que
+  // mandamos, sem round-trip extra: é dinheiro real, nunca reporta sucesso
+  // sem provar que o banco gravou o valor certo.
+  if (Number(data[0].valor_pago) !== valorPago || data[0].status !== status) {
+    reportarFalhaEscrita("contas_pagar", "update baixa - retorno não confere", `esperado valor_pago=${valorPago} status=${status}, banco devolveu valor_pago=${data[0].valor_pago} status=${data[0].status}`);
+    return { erro: "verificacao_pos_escrita_falhou" };
   }
   publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAID",
     { conta_id: conta.id, valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento },
@@ -168,11 +176,15 @@ export async function estornarBaixaContaPagar(conta: ContaPagar): Promise<{ erro
   const status = calcStatus(conta.valor_total, 0, conta.data_vencimento);
   const { data, error } = await supabase.from("contas_pagar")
     .update({ valor_pago: 0, data_pagamento: null, status })
-    .eq("id", conta.id).select("id");
+    .eq("id", conta.id).select("id, valor_pago, status");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("contas_pagar", "update estorno", motivo);
     return { erro: motivo };
+  }
+  if (Number(data[0].valor_pago) !== 0 || data[0].status !== status) {
+    reportarFalhaEscrita("contas_pagar", "update estorno - retorno não confere", `esperado valor_pago=0 status=${status}, banco devolveu valor_pago=${data[0].valor_pago} status=${data[0].status}`);
+    return { erro: "verificacao_pos_escrita_falhou" };
   }
   publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAYMENT_REVERSED",
     { conta_id: conta.id, valor: conta.valor_pago },
