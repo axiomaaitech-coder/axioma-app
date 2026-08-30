@@ -120,9 +120,17 @@ export async function criarPedidoCompra(userId: string, empresaId: string, dados
   return { id: pedido.id };
 }
 
+// Só deixa substituir os itens de um pedido que ainda não tem nenhuma nota
+// vinculada — como a edição troca a lista inteira (tela mínima, sem diff),
+// editar um pedido 'parcial'/'faturado' apagaria vínculos reais em silêncio
+// (mesma trava de excluirPedidoCompra, verificada ao vivo, não só pelo
+// status que a tela mandou — ver comentário lá embaixo).
 export async function editarPedidoCompra(empresaId: string, pedidoCompraId: string, dados: {
   numero: string; dataEmissao?: string | null; observacao?: string | null; itens: PedidoCompraItemInput[];
 }): Promise<{ erro?: string }> {
+  const temNotaVinculada = await pedidoTemNotaVinculada(empresaId, pedidoCompraId);
+  if (temNotaVinculada) return { erro: "tem_nota_vinculada" };
+
   const valorTotal = dados.itens.reduce((s, it) => s + it.quantidade * it.valor_unitario, 0);
   const { data, error } = await supabase.from("pedido_compra")
     .update({ numero: dados.numero, data_emissao: dados.dataEmissao || null, observacao: dados.observacao || null, valor_total: valorTotal })
@@ -159,15 +167,45 @@ export async function editarPedidoCompra(empresaId: string, pedidoCompraId: stri
   return {};
 }
 
+// Checa ao vivo se ALGUM item deste pedido já foi ligado por uma nota
+// (nfe_itens.pedido_compra_item_id) — não confia só no status da tela, que
+// pode estar desatualizado (o status só é recalculado quando conferirNfe
+// roda; entre o vínculo do import e essa recontagem, o pedido pode ainda
+// aparecer 'aberto' com item já ligado).
+async function pedidoTemNotaVinculada(empresaId: string, pedidoCompraId: string): Promise<boolean> {
+  const { data: itensDoPedido } = await supabase.from("pedido_compra_itens").select("id").eq("empresa_id", empresaId).eq("pedido_compra_id", pedidoCompraId);
+  const ids = (itensDoPedido || []).map((i: any) => i.id);
+  if (ids.length === 0) return false;
+  const { data: vinculos } = await supabase.from("nfe_itens").select("id").eq("empresa_id", empresaId).in("pedido_compra_item_id", ids).limit(1);
+  return !!(vinculos && vinculos.length > 0);
+}
+
 // Só deixa excluir um pedido que ainda não recebeu nenhuma nota — apagar um
-// pedido 'parcial'/'faturado' desligaria vínculos reais em silêncio.
-export async function excluirPedidoCompra(empresaId: string, pedidoCompraId: string, statusAtual: string): Promise<{ erro?: string }> {
-  if (statusAtual === "parcial" || statusAtual === "faturado") return { erro: "tem_nota_vinculada" };
+// pedido com nota vinculada desligaria vínculos reais em silêncio.
+export async function excluirPedidoCompra(empresaId: string, pedidoCompraId: string): Promise<{ erro?: string }> {
+  if (await pedidoTemNotaVinculada(empresaId, pedidoCompraId)) return { erro: "tem_nota_vinculada" };
   const { data, error } = await supabase.from("pedido_compra")
     .delete().eq("empresa_id", empresaId).eq("id", pedidoCompraId).select("id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("pedido_compra", "delete", motivo);
+    return { erro: motivo };
+  }
+  return {};
+}
+
+// Cancela sem apagar nada — status vira 'cancelado', itens e vínculos
+// existentes ficam intactos (é a alternativa segura a excluir quando já tem
+// nota vinculada). Não cancela um pedido já 'faturado' (não faz sentido
+// desfazer algo já 100% concluído) nem duplica o cancelamento.
+export async function cancelarPedidoCompra(empresaId: string, pedidoCompraId: string, statusAtual: string): Promise<{ erro?: string }> {
+  if (statusAtual === "faturado") return { erro: "ja_faturado" };
+  if (statusAtual === "cancelado") return {};
+  const { data, error } = await supabase.from("pedido_compra")
+    .update({ status: "cancelado" }).eq("empresa_id", empresaId).eq("id", pedidoCompraId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("pedido_compra", "update status (cancelar)", motivo);
     return { erro: motivo };
   }
   return {};
