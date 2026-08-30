@@ -271,6 +271,18 @@ export default function ContasPagarPage() {
     [contas, fornecedores, idioma]
   );
 
+  // Fixado sobe pro topo, sem embaralhar o resto — sort é estável (garantido
+  // desde ES2019), então dentro de cada grupo (fixado / não fixado) a ordem
+  // de prioridade que priorizarPagamentos já calculou é preservada.
+  const prioridadesOrdenadas: ItemPrioridadePagamento[] = useMemo(
+    () => [...prioridades].sort((a, b) => {
+      const aFixado = proximasAPagar.has(a.conta.id);
+      const bFixado = proximasAPagar.has(b.conta.id);
+      return aFixado === bFixado ? 0 : aFixado ? -1 : 1;
+    }),
+    [prioridades, proximasAPagar]
+  );
+
   // ========== ENTREGA 3, COMMIT 3 — RECURRING EXPENSE INTELLIGENCE ==========
   const padroesRecorrentes: PadraoRecorrenteDetectado[] = useMemo(
     () => detectarDespesasRecorrentes(contas),
@@ -570,10 +582,28 @@ export default function ContasPagarPage() {
     setBusca(descricao);
   }
 
+  // Persistido em localStorage (por empresa) — decisão de "onde guarda": não
+  // é dado de negócio real (não afeta cálculo nenhum, é só um lembrete visual
+  // pessoal de "olho nessa conta"), e criar coluna/tabela nova em Contas a
+  // Pagar só pra isso seria SQL novo pra algo que o navegador já resolve.
+  // Some se o dono limpar os dados do site — aceitável pra esse tipo de marca.
+  function chavePinos(empId: string) { return `axioma:ap:proximasAPagar:${empId}`; }
+
+  useEffect(() => {
+    if (!empresaId) return;
+    try {
+      const salvo = localStorage.getItem(chavePinos(empresaId));
+      if (salvo) setProximasAPagar(new Set(JSON.parse(salvo)));
+    } catch {}
+  }, [empresaId]);
+
   function alternarProximaAPagar(id: string) {
     setProximasAPagar((prev) => {
       const novo = new Set(prev);
       if (novo.has(id)) novo.delete(id); else novo.add(id);
+      if (empresaId) {
+        try { localStorage.setItem(chavePinos(empresaId), JSON.stringify(Array.from(novo))); } catch {}
+      }
       return novo;
     });
   }
@@ -1675,7 +1705,11 @@ export default function ContasPagarPage() {
                     style={{ background: proximasAPagar.has(c.id) ? "rgba(167,139,250,0.08)" : "rgba(10,20,36,0.6)", border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: "#c8d8f0" }}>
-                        {proximasAPagar.has(c.id) && <Pin size={12} style={{ color: ROXO }} />}
+                        {proximasAPagar.has(c.id) && (
+                          <span title={L("Fixada em Prioridade de Pagamento", "Pinned in Payment Priority", "Fijada en Prioridad de Pago")}>
+                            <Pin size={12} fill={ROXO} style={{ color: ROXO }} />
+                          </span>
+                        )}
                         {c.descricao}
                       </p>
                       <p className="text-xs flex items-center gap-1.5" style={{ color: CINZA }}>
@@ -1856,12 +1890,15 @@ export default function ContasPagarPage() {
           <CanvasBox cor={ROXO}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-3" style={{ color: "#c8d8f0" }}>{L("Prioridade de Pagamento", "Payment Priority", "Prioridad de Pago")}</h3>
-            {prioridades.length === 0 ? (
+            {prioridadesOrdenadas.length === 0 ? (
               <p className="text-sm" style={{ color: CINZA }}>{L("Nenhuma conta pendente para priorizar.", "No pending bills to prioritize.", "Ninguna cuenta pendiente para priorizar.")}</p>
             ) : (
               <div className="space-y-2">
-                {prioridades.map((item, i) => (
-                  <div key={item.conta.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(167,139,250,0.15)" }}>
+                {prioridadesOrdenadas.map((item, i) => (
+                  <div key={item.conta.id} className="flex items-center gap-3 p-3 rounded-xl"
+                    style={proximasAPagar.has(item.conta.id)
+                      ? { background: "rgba(167,139,250,0.1)", border: `1px solid ${ROXO}50` }
+                      : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(167,139,250,0.15)" }}>
                     <span className="text-xs font-black w-6 text-center flex-shrink-0" style={{ color: CINZA }}>#{i + 1}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{item.conta.descricao} · {nomeFornecedor(item.conta.fornecedor_id)}</p>
@@ -1884,9 +1921,13 @@ export default function ContasPagarPage() {
                         </span>
                       );
                     })()}
-                    <button onClick={() => alternarProximaAPagar(item.conta.id)} title={L("Marcar como próxima a pagar", "Mark as next to pay", "Marcar como próxima a pagar")}
-                      className="flex-shrink-0" style={{ color: proximasAPagar.has(item.conta.id) ? ROXO : CINZA }}>
-                      <Pin size={16} />
+                    <button onClick={() => alternarProximaAPagar(item.conta.id)}
+                      title={proximasAPagar.has(item.conta.id) ? L("Fixado no topo — clique pra desafixar", "Pinned to top — click to unpin", "Fijado arriba — clic para desfijar") : L("Fixar no topo", "Pin to top", "Fijar arriba")}
+                      className="flex-shrink-0 p-1.5 rounded-lg"
+                      style={proximasAPagar.has(item.conta.id)
+                        ? { color: ROXO, background: "rgba(167,139,250,0.2)", border: `1px solid ${ROXO}` }
+                        : { color: CINZA, background: "transparent", border: "1px solid rgba(255,255,255,0.1)" }}>
+                      <Pin size={16} fill={proximasAPagar.has(item.conta.id) ? ROXO : "none"} />
                     </button>
                   </div>
                 ))}
