@@ -14,9 +14,12 @@ Sentry.init({
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
-  // Enable sending user PII (Personally Identifiable Information)
+  // Desligado de propósito: app financeiro — não manda IP/PII automática do
+  // usuário pro Sentry pelo ganho de debug. Credencial já era coberta pelo
+  // scrub abaixo independente disso; isto fecha a PII que o scrub não pega
+  // (não é nome de campo sensível, é o dado em si — IP, corpo, cookie).
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
-  sendDefaultPii: true,
+  sendDefaultPii: false,
 
   // Defesa em profundidade (auditoria de segredos): redige Authorization/
   // X-API-KEY/Cookie e qualquer campo com nome de credencial antes de sair
