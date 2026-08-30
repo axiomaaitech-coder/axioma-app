@@ -337,8 +337,15 @@ export type ContaPagarRow = {
 // centralizada aqui pra qualquer tela que precise recalcular o status ao editar valor/pagamento
 // (ex: a Planilha do Centro de Custos) usar exatamente a mesma lógica, nunca duplicada.
 export function calcStatus(total: number, pago: number, venc?: string | null): string {
-  if (pago >= total && total > 0) return "pago";
-  if (pago > 0 && pago < total) return "parcial";
+  // Coerção defensiva: valor_total/valor_pago sempre chegam como number vindo
+  // do Postgres, mas nada garante isso em tempo de execução (TS não valida
+  // runtime) — Number(null)=0, Number(undefined)=NaN. Sem isso, um total/pago
+  // fora do formato esperado quebra silenciosamente a comparação e cai direto
+  // pro ramo vencido/pendente, mesmo com a conta paga de verdade.
+  const t = Number(total) || 0;
+  const p = Number(pago) || 0;
+  if (p >= t && t > 0) return "pago";
+  if (p > 0 && p < t) return "parcial";
   const hj = new Date().toISOString().split("T")[0];
   if (venc && venc < hj) return "vencido";
   return "pendente";
@@ -364,6 +371,13 @@ export function statusEfetivo(
   rotuloQuitado: string = "pago",
 ): string {
   if (status && STATUS_WORKFLOW_PASSTHROUGH.has(status)) return status;
+  // BUG CRÍTICO 2026-08-30 — pago/parcial gravados no banco tem prioridade
+  // ABSOLUTA sobre qualquer recálculo por data: confia direto no status já
+  // persistido antes de tocar em calcStatus, pra uma conta paga NUNCA
+  // reaparecer como vencida na recarga, seja qual for o motivo (formato de
+  // total/pago, timing, o que for) que pudesse fazer o recálculo divergir.
+  if (status === "pago") return rotuloQuitado;
+  if (status === "parcial") return "parcial";
   const derivado = calcStatus(total, pago, venc);
   return derivado === "pago" ? rotuloQuitado : derivado;
 }

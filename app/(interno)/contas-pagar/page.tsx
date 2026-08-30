@@ -157,10 +157,14 @@ export default function ContasPagarPage() {
   const resta = (c: ContaPagar) => Math.max(0, (c.valor_total || 0) - (c.valor_pago || 0));
 
   const kpis = useMemo(() => {
-    const abertas = contas.filter((c) => c.status !== "pago");
+    // BUG CRÍTICO 2026-08-30 — usar o statusEfetivo (mesma função da linha e
+    // do filtro) em vez do c.status cru: garante que uma conta paga nunca
+    // conte como "em aberto"/"vencida" nem suma de "pagas no mês" por causa
+    // de qualquer divergência entre o texto gravado e o valor_pago real.
+    const abertas = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) !== "pago");
     const vencendo7 = abertas.filter((c) => c.data_vencimento && c.data_vencimento >= hoje && c.data_vencimento <= em7ISO);
     const vencidas = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) === "vencido");
-    const pagasNoMes = contas.filter((c) => c.status === "pago" && (c.data_pagamento || "").slice(0, 7) === mesAtual);
+    const pagasNoMes = contas.filter((c) => statusEfetivo(c.status, c.valor_total, c.valor_pago, c.data_vencimento) === "pago" && (c.data_pagamento || "").slice(0, 7) === mesAtual);
     return {
       totalEmAberto: abertas.reduce((s, c) => s + resta(c), 0),
       vencendoEm7: vencendo7.reduce((s, c) => s + resta(c), 0),
