@@ -135,12 +135,15 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
     ...dados, valor_total: total, valor_pago: pago, status,
     data_pagamento: status === "pago" ? (dados.data_pagamento || new Date().toISOString().split("T")[0]) : null,
   };
-  const { data, error } = await supabase.from("contas_pagar").update(payload).eq("id", id).select("id");
+  const { data, error } = await supabase.from("contas_pagar").update(payload).eq("id", id).select("id, empresa_id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("contas_pagar", "update", motivo);
     return { erro: motivo };
   }
+  publicarEventoNaoBloqueante(data[0].empresa_id, "AP_UPDATED",
+    { conta_id: id, campos: Object.keys(dados) },
+    { modulo: "contas_pagar", tabela: "contas_pagar", id });
   return {};
 }
 
@@ -179,12 +182,15 @@ export async function estornarBaixaContaPagar(conta: ContaPagar): Promise<{ erro
 
 export async function excluirContaPagar(id: string, statusAtual?: string | null): Promise<{ erro?: string }> {
   if (statusAtual === "pago") return { erro: "conta_paga" };
-  const { data, error } = await supabase.from("contas_pagar").delete().eq("id", id).select("id");
+  const { data, error } = await supabase.from("contas_pagar").delete().eq("id", id).select("id, empresa_id");
   if (error || !data || data.length === 0) {
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("contas_pagar", "delete", motivo);
     return { erro: motivo };
   }
+  publicarEventoNaoBloqueante(data[0].empresa_id, "AP_DELETED",
+    { conta_id: id },
+    { modulo: "contas_pagar", tabela: "contas_pagar", id });
   return {};
 }
 
@@ -392,6 +398,16 @@ export async function registrarAuditoriaAp(contasPagarId: string, acao: string, 
   if (error) {
     reportarFalhaEscrita("ap_registrar_auditoria", "rpc", error.message);
     return { erro: error.message };
+  }
+  // Só as 2 ações de duplicata viram evento nesta entrega — match_aprovado/
+  // match_rejeitado (Match Engine, outro domínio) ficam de fora de propósito.
+  const tipoEvento = acao === "duplicata_detectada" ? "AP_DUPLICATE_DETECTED" : acao === "duplicata_ignorada" ? "AP_DUPLICATE_IGNORED" : null;
+  if (tipoEvento) {
+    const { data: conta } = await supabase.from("contas_pagar").select("empresa_id").eq("id", contasPagarId).maybeSingle();
+    if (conta?.empresa_id) {
+      publicarEventoNaoBloqueante(conta.empresa_id, tipoEvento, { conta_id: contasPagarId, depois: depois ?? null },
+        { modulo: "contas_pagar", tabela: "contas_pagar", id: contasPagarId });
+    }
   }
   return {};
 }
@@ -643,6 +659,14 @@ export async function decidirAprovacao(aprovacaoId: string, decisao: "aprovada" 
   if (error) {
     reportarFalhaEscrita("ap_decidir_aprovacao", "rpc", error.message);
     return { erro: error.message };
+  }
+  // RPC não devolve empresa_id (só contas_pagar_id/status) — busca na própria
+  // linha de aprovação, que a RPC já atualizou acima, pra publicar o evento.
+  const { data: aprovacao } = await supabase.from("contas_pagar_aprovacao").select("contas_pagar_id, empresa_id").eq("id", aprovacaoId).maybeSingle();
+  if (aprovacao) {
+    publicarEventoNaoBloqueante(aprovacao.empresa_id, decisao === "aprovada" ? "AP_APPROVED" : "AP_REJECTED",
+      { conta_id: aprovacao.contas_pagar_id, aprovacao_id: aprovacaoId, motivo: motivo ?? null },
+      { modulo: "contas_pagar", tabela: "contas_pagar", id: aprovacao.contas_pagar_id });
   }
   return {};
 }
