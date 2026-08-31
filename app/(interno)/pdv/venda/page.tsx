@@ -565,7 +565,7 @@ export default function PdvVendaPage() {
 
     setFinalizandoVenda(true);
     const itensRpc = carrinho.map((i) => ({ produto_id: i.produto.id, quantidade: i.quantidade }));
-    const resultado = await finalizarVenda(turno.id, itensRpc, {
+    const resultado = await finalizarVenda(empresaId, turno.id, itensRpc, {
       formaPagamento, cpfNota: cpfLimpo || undefined,
     });
     setFinalizandoVenda(false);

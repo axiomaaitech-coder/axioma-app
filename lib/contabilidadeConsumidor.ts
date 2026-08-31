@@ -27,7 +27,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { registrarLancamentoContabil, type PartidaContabilInput } from "./contabilidadeHelpers";
 import { type CategoriaDespesa } from "./categoriasDespesa";
-import type { OrigemEvento } from "./eventFabricHelpers";
+import { publicarEvento, type OrigemEvento, type TipoEvento } from "./eventFabricHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +36,38 @@ const supabase = createBrowserClient(
 
 function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
   Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } });
+}
+
+// ============================================================================
+// PUBLICAR + DISPARAR CONTABILIDADE (compartilhado) — publica o evento em
+// eventos_negocio e, se der certo, aciona processarEventoContabil sem
+// bloquear quem chamou. Morava só em contasPagarHelpers.ts (Commit 2) até o
+// PDV (Commit 6) também precisar do mesmo encadeamento — movido pra cá, o
+// módulo que já sabe de contabilidade, em vez de duplicar em cada helper de
+// módulo que publica evento. Falha de evento OU do consumidor contábil nunca
+// desfaz a operação principal, que já aconteceu de verdade antes desta
+// função ser chamada.
+// ============================================================================
+export async function publicarEventoNaoBloqueante(
+  empresaId: string | null | undefined,
+  tipo: TipoEvento,
+  payload: Record<string, unknown>,
+  origem: OrigemEvento,
+): Promise<void> {
+  if (!empresaId) return;
+  try {
+    const { id: eventoId, erro } = await publicarEvento(empresaId, tipo, payload, origem);
+    if (erro) {
+      reportarFalhaEscrita("eventos_negocio", "publicarEvento", erro);
+      return;
+    }
+    if (eventoId) {
+      processarEventoContabil(tipo, empresaId, origem, payload).catch((e) =>
+        reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, e instanceof Error ? e.message : String(e)));
+    }
+  } catch (e) {
+    reportarFalhaEscrita("eventos_negocio", "publicarEvento", e instanceof Error ? e.message : String(e));
+  }
 }
 
 // ============================================================================

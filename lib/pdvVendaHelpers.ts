@@ -7,6 +7,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { criarMovimentacao } from "./estoqueHelpers";
+import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -88,6 +89,15 @@ export async function abrirTurno(
 // texto em português, pra tela poder traduzir sem depender do texto que o
 // Postgres devolve — mesmo padrão já usado em aceitarConvite()/
 // listarEquipe() (lib/empresaHelpers.ts).
+//
+// COMMIT 6 (CFO Core, Fase 1) — depois de gravar com sucesso, publica
+// SALE_CREATED (não-bloqueante: venda é dinheiro real, erro no ledger nunca
+// pode voltar a afetar a venda que já aconteceu). Mesmo padrão de
+// publicarEventoNaoBloqueante já usado em Contas a Pagar. NÃO manda custo/
+// margem no payload — quem soma o CMV é a RPC contábil, dentro do Postgres
+// (ver contabilidadeConsumidor.ts: gerarLancamentoVenda), pelo mesmo motivo
+// de segurança de finalizar_venda nunca devolver custo ao client: o papel
+// operador não pode ver custo/margem em lugar nenhum do PDV.
 // ============================================================================
 
 export type ItemVendaInput = { produto_id: string; quantidade: number };
@@ -100,7 +110,7 @@ export type FinalizarVendaOpcoes = {
 };
 
 export async function finalizarVenda(
-  turnoCaixaId: string, itens: ItemVendaInput[], opcoes: FinalizarVendaOpcoes = {}
+  empresaId: string, turnoCaixaId: string, itens: ItemVendaInput[], opcoes: FinalizarVendaOpcoes = {}
 ): Promise<{ vendaId?: string; valorTotal?: number; erro?: string; codigo?: string }> {
   const { data, error } = await supabase.rpc("finalizar_venda", {
     p_turno_caixa_id: turnoCaixaId,
@@ -123,7 +133,12 @@ export async function finalizarVenda(
     Sentry.captureException(new Error(motivo), { extra: { operacao: "rpc:finalizar_venda", turnoCaixaId } });
     return { erro: motivo };
   }
-  return { vendaId: linha.venda_id, valorTotal: Number(linha.valor_total) };
+  const vendaId = linha.venda_id as string;
+  const valorTotal = Number(linha.valor_total);
+  publicarEventoNaoBloqueante(empresaId, "SALE_CREATED",
+    { venda_id: vendaId, valor_total: valorTotal, forma_pagamento: opcoes.formaPagamento ?? null, cliente_id: opcoes.clienteId ?? null },
+    { modulo: "pdv", tabela: "venda", id: vendaId });
+  return { vendaId, valorTotal };
 }
 
 // ============================================================================

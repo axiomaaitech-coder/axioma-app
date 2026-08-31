@@ -9,8 +9,8 @@ import { calcStatus, precoAcimaMediaInterna, listarContratos, type FornecedorRow
 import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers";
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
-import { publicarEvento, type TipoEvento, type OrigemEvento } from "./eventFabricHelpers";
-import { processarEventoContabil } from "./contabilidadeConsumidor";
+import { type TipoEvento, type OrigemEvento } from "./eventFabricHelpers";
+import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,36 +77,11 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 // COMMIT 2 — ponte pro Event Fabric. Registro paralelo: se publicarEvento
 // falhar (ou lançar, o que ele hoje não faz, mas não confiamos nisso), a
 // operação principal (que já terminou com sucesso quando isto é chamado)
-// nunca é desfeita — só o erro do evento vai pro Sentry.
-//
-// COMMIT 5 — depois que o evento é publicado com sucesso, aciona o
-// Accounting Core (processarEventoContabil) com o de-para aprovado. Fica
-// aqui (não em eventFabricHelpers.ts) de propósito: o Event Fabric continua
-// genérico, sem saber nada de contabilidade — só Contas a Pagar hoje publica
-// eventos AP_*, então só aqui faz sentido acoplar os dois. Falha do
-// consumidor contábil também nunca desfaz a operação principal nem o
-// próprio evento, que já foram gravados de verdade.
-async function publicarEventoNaoBloqueante(
-  empresaId: string | null | undefined,
-  tipo: TipoEvento,
-  payload: Record<string, unknown>,
-  origem: OrigemEvento,
-): Promise<void> {
-  if (!empresaId) return;
-  try {
-    const { id: eventoId, erro } = await publicarEvento(empresaId, tipo, payload, origem);
-    if (erro) {
-      reportarFalhaEscrita("eventos_negocio", "publicarEvento", erro);
-      return;
-    }
-    if (eventoId) {
-      processarEventoContabil(tipo, empresaId, origem, payload).catch((e) =>
-        reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, e instanceof Error ? e.message : String(e)));
-    }
-  } catch (e) {
-    reportarFalhaEscrita("eventos_negocio", "publicarEvento", e instanceof Error ? e.message : String(e));
-  }
-}
+// nunca é desfeita — só o erro do evento vai pro Sentry. COMMIT 5 — depois
+// que o evento é publicado com sucesso, aciona o Accounting Core com o
+// de-para aprovado (publicarEventoNaoBloqueante, importado de
+// contabilidadeConsumidor.ts — Commit 6 moveu pra lá pro PDV reaproveitar o
+// mesmo encadeamento sem duplicar).
 
 // ============================================================================
 // CRUD — CONTAS A PAGAR
