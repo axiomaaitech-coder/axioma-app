@@ -1,0 +1,76 @@
+-- ============================================================================
+-- AXIOMA — Contas a Pagar, Commit 3 (Estorno com Auditoria): coluna do
+-- GANCHO TESOURARIA. NÃO APLICADO — só pra revisão. Roda sobre a Entrega 1/2
+-- já em produção (contas_pagar_auditoria) — nada disso é recriado ou
+-- alterado além da coluna nova abaixo.
+--
+-- DECISÕES DE DIAGNÓSTICO:
+--   - 1 coluna nova em contas_pagar_auditoria (não em contas_pagar): o status
+--     bancário pertence ao REGISTRO DO ESTORNO (uma auditoria pontual — "esta
+--     devolução específica já foi tratada pela tesouraria?"), não à conta em
+--     si, que pode ser estornada mais de uma vez ao longo do tempo (baixa de
+--     novo, estorna de novo). Guardar na conta misturaria o status de
+--     devoluções diferentes na mesma coluna.
+--   - default 'nao_aplicavel': cobre TODO histórico de auditoria já existente
+--     (criou/editou/baixou/excluiu/etc. — só "estorno_motivo" usa isto de
+--     fato) sem reescrever linha nenhuma, e cobre também toda empresa sem
+--     Open Finance conectado, que é 100% dos casos hoje.
+--   - Nullable seria outra opção, mas um default textual explícito
+--     ('nao_aplicavel') deixa claro na consulta que aquele registro nunca
+--     teve gancho bancário — mesmo princípio "sem dado não inventa, mas
+--     também não fica ambíguo" já usado nas outras colunas novas do módulo.
+--   - Sem CHECK constraint de enum no banco (mesmo padrão de status em
+--     contas_pagar e acao em contas_pagar_auditoria: texto livre, validado
+--     em TypeScript) — os 2 valores usados por código hoje são
+--     'nao_aplicavel' (default) e 'aguardando_tesouraria' (setado por
+--     reverterNoBanco() em lib/contasPagarHelpers.ts); 'devolvido' e
+--     'falhou' ficam reservados pro dia em que o gancho realmente disparar.
+--   - Nenhuma RLS nova necessária: é coluna na MESMA tabela
+--     contas_pagar_auditoria, a policy existente (contas_pagar_auditoria_empresa,
+--     escopada por empresa_id) já cobre qualquer coluna da linha.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0  — leitura: confirma contas_pagar_auditoria existe
+--   PARTE 1  — coluna nova em contas_pagar_auditoria
+--   PARTE 2  — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS) — pode rodar mais de uma vez com segurança.
+-- ============================================================================
+
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma a peça-base antes de mexer em qualquer coisa.
+-- Se vier vazio, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_pagar_auditoria';
+
+
+-- ============================================================================
+-- PARTE 1 — CONTAS_PAGAR_AUDITORIA: coluna do gancho tesouraria
+-- ============================================================================
+-- estorno_bancario_status: hoje só 'nao_aplicavel' (default, todo o
+-- histórico e toda empresa sem Open Finance) ou 'aguardando_tesouraria'
+-- (setado por reverterNoBanco() assim que um estorno com motivo acontece).
+-- Sem chamada bancária real ainda — GANCHO TESOURARIA: quando Open Finance
+-- existir, dispara a devolução bancária real e passa a usar 'devolvido' /
+-- 'falhou' também. Inerte hoje.
+
+ALTER TABLE public.contas_pagar_auditoria
+  ADD COLUMN IF NOT EXISTS estorno_bancario_status text NOT NULL DEFAULT 'nao_aplicavel';
+
+
+-- ============================================================================
+-- PARTE 2 — VERIFICAÇÃO (só leitura — rodar depois da Parte 1)
+-- ============================================================================
+
+SELECT column_name, column_default, is_nullable FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'contas_pagar_auditoria' AND column_name = 'estorno_bancario_status';
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- ALTER TABLE public.contas_pagar_auditoria DROP COLUMN IF EXISTS estorno_bancario_status;

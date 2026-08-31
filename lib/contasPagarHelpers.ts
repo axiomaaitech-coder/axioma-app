@@ -172,23 +172,70 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
   return {};
 }
 
-export async function estornarBaixaContaPagar(conta: ContaPagar): Promise<{ erro?: string }> {
+// COMMIT 3 — motivo é obrigatório (a tela não deixa confirmar sem preencher);
+// observação é livre. Os dois só existem no texto da auditoria — não são
+// coluna de contas_pagar, então vão em "depois" do registro de auditoria, não
+// no UPDATE da conta em si.
+export async function estornarBaixaContaPagar(conta: ContaPagar, motivo: string, observacao?: string): Promise<{ erro?: string; avisoAuditoria?: string }> {
+  const valorEstornado = conta.valor_pago;
   const status = calcStatus(conta.valor_total, 0, conta.data_vencimento);
   const { data, error } = await supabase.from("contas_pagar")
     .update({ valor_pago: 0, data_pagamento: null, status })
     .eq("id", conta.id).select("id, valor_pago, status");
   if (error || !data || data.length === 0) {
-    const motivo = error?.message || "0 linhas afetadas (RLS?)";
-    reportarFalhaEscrita("contas_pagar", "update estorno", motivo);
-    return { erro: motivo };
+    const motivoErro = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("contas_pagar", "update estorno", motivoErro);
+    return { erro: motivoErro };
   }
   if (Number(data[0].valor_pago) !== 0 || data[0].status !== status) {
     reportarFalhaEscrita("contas_pagar", "update estorno - retorno não confere", `esperado valor_pago=0 status=${status}, banco devolveu valor_pago=${data[0].valor_pago} status=${data[0].status}`);
     return { erro: "verificacao_pos_escrita_falhou" };
   }
   publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAYMENT_REVERSED",
-    { conta_id: conta.id, valor: conta.valor_pago },
+    { conta_id: conta.id, valor: valorEstornado, motivo },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
+  // O trigger fn_contas_pagar_auditoria_trigger já registra "estornou" com o
+  // before/after da linha (quem/quando isso veio de graça); este registro
+  // extra é só pra guardar o motivo/observação/valor, que não são coluna de
+  // contas_pagar e por isso não aparecem no to_jsonb(NEW) do trigger. Falha
+  // de auditoria aqui NUNCA desfaz o estorno, que já aconteceu de verdade —
+  // mesma regra das outras chamadas de auditoria no projeto — só avisa.
+  const auditoria = await registrarAuditoriaAp(conta.id, "estorno_motivo",
+    { valor_pago: valorEstornado }, { motivo, observacao: observacao ?? null, valor_estornado: valorEstornado });
+  if (auditoria.id) {
+    // GANCHO TESOURARIA: quando Open Finance existir, dispara a devolução
+    // bancária real aqui. Inerte hoje — não há tesouraria/Open Finance
+    // conectada, só marca "aguardando_tesouraria" pra já deixar o dado
+    // rastreado desde agora. Não-bloqueante: sem a coluna estorno_bancario_status
+    // aplicada (SQL em CONTAS-A-PAGAR-ESTORNO-BANCARIO-SQL.txt, pendente de
+    // revisão), isso reporta falha esperada no Sentry até o Elias aplicar.
+    reverterNoBanco(auditoria.id).catch(() => {}); // fire-and-forget — a própria função já reporta falha ao Sentry
+  }
+  return auditoria.erro ? { avisoAuditoria: auditoria.erro } : {};
+}
+
+// ----------------------------------------------------------------------------
+// GANCHO TESOURARIA — preparado, inerte (padrão do 4-way: ver
+// lib/estoqueDeviceAdapter.ts e lib/documentoStorageAdapter.ts pro mesmo
+// desenho em outros módulos). Hoje não existe tesouraria/Open Finance
+// conectada pra devolver o dinheiro de fato — esta função só marca o
+// registro de auditoria do estorno como "aguardando_tesouraria" pra já
+// deixar rastreado desde agora. GANCHO TESOURARIA: quando Open Finance
+// existir, dispara a devolução bancária real aqui. Inerte hoje.
+// Depende da coluna contas_pagar_auditoria.estorno_bancario_status, que NÃO
+// foi aplicada — SQL em CONTAS-A-PAGAR-ESTORNO-BANCARIO-SQL.txt, pendente de
+// revisão do Elias. Até lá, chamar isto reporta uma falha esperada no
+// Sentry (coluna não existe) sem afetar o estorno em si, que já terminou.
+// ----------------------------------------------------------------------------
+export async function reverterNoBanco(estornoId: string): Promise<{ erro?: string }> {
+  const { data, error } = await supabase.from("contas_pagar_auditoria")
+    .update({ estorno_bancario_status: "aguardando_tesouraria" })
+    .eq("id", estornoId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("contas_pagar_auditoria", "update estorno_bancario_status", motivo);
+    return { erro: motivo };
+  }
   return {};
 }
 
@@ -403,8 +450,8 @@ export async function detectarDuplicata(params: {
 // (o trigger já cobre criou/editou/baixou/estornou/excluiu sozinho).
 // ----------------------------------------------------------------------------
 
-export async function registrarAuditoriaAp(contasPagarId: string, acao: string, antes?: any, depois?: any): Promise<{ erro?: string }> {
-  const { error } = await supabase.rpc("ap_registrar_auditoria", {
+export async function registrarAuditoriaAp(contasPagarId: string, acao: string, antes?: any, depois?: any): Promise<{ id?: string; erro?: string }> {
+  const { data, error } = await supabase.rpc("ap_registrar_auditoria", {
     p_contas_pagar_id: contasPagarId, p_acao: acao, p_antes: antes ?? null, p_depois: depois ?? null,
   });
   if (error) {
@@ -421,7 +468,7 @@ export async function registrarAuditoriaAp(contasPagarId: string, acao: string, 
         { modulo: "contas_pagar", tabela: "contas_pagar", id: contasPagarId });
     }
   }
-  return {};
+  return { id: (data as string) ?? undefined };
 }
 
 // ----------------------------------------------------------------------------

@@ -1517,18 +1517,24 @@ export default function ContasPagarPage() {
   const [modalConfirmarEstorno, setModalConfirmarEstorno] = useState(false);
   const [contaEstornar, setContaEstornar] = useState<ContaPagar | null>(null);
   const [processandoEstorno, setProcessandoEstorno] = useState(false);
+  // COMMIT 3 — motivo obrigatório, observação opcional; vão pra auditoria do estorno.
+  const [motivoEstorno, setMotivoEstorno] = useState("");
+  const [observacaoEstorno, setObservacaoEstorno] = useState("");
 
-  function abrirConfirmarEstorno(c: ContaPagar) { setContaEstornar(c); setModalConfirmarEstorno(true); }
+  function abrirConfirmarEstorno(c: ContaPagar) { setContaEstornar(c); setMotivoEstorno(""); setObservacaoEstorno(""); setModalConfirmarEstorno(true); }
   function fecharConfirmarEstorno() { if (processandoEstorno) return; setModalConfirmarEstorno(false); setContaEstornar(null); }
 
   async function confirmarEstorno() {
-    if (!contaEstornar) return;
+    if (!contaEstornar || !motivoEstorno.trim()) return;
     setProcessandoEstorno(true);
-    const { erro } = await estornarBaixaContaPagar(contaEstornar);
+    const { erro, avisoAuditoria } = await estornarBaixaContaPagar(contaEstornar, motivoEstorno.trim(), observacaoEstorno.trim() || undefined);
     if (erro) {
       showToast(L("Não foi possível estornar a baixa. Tente novamente.", "Could not reverse the payment. Try again.", "No se pudo reversar el pago. Intente de nuevo."), "erro");
       setProcessandoEstorno(false);
       return;
+    }
+    if (avisoAuditoria) {
+      showToast(L("Pagamento estornado, mas o registro de auditoria falhou.", "Payment reversed, but the audit record failed.", "Pago reversado, pero el registro de auditoría falló."), "erro");
     }
     fecharConfirmarEstorno();
     await carregar();
@@ -3175,13 +3181,26 @@ export default function ContasPagarPage() {
                     {L("Tem certeza que deseja desfazer o pagamento desta conta? A conta voltará a ficar em aberto.", "Are you sure you want to undo the payment for this bill? The bill will go back to open.", "¿Seguro que desea deshacer el pago de esta cuenta? La cuenta volverá a quedar abierta.")}
                   </p>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>{contaEstornar.descricao}</p>
+                  <div className="space-y-3 mb-4">
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Motivo do estorno *", "Reversal reason *", "Motivo del reverso *")}</label>
+                      <input type="text" value={motivoEstorno} onChange={(e) => setMotivoEstorno(e.target.value)} disabled={processandoEstorno}
+                        placeholder={L("Ex.: pagamento em duplicidade", "E.g.: duplicate payment", "Ej.: pago duplicado")}
+                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observação (opcional)", "Note (optional)", "Observación (opcional)")}</label>
+                      <textarea value={observacaoEstorno} onChange={(e) => setObservacaoEstorno(e.target.value)} disabled={processandoEstorno} rows={2}
+                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button onClick={fecharConfirmarEstorno} disabled={processandoEstorno}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
                       style={{ background: "rgba(255,255,255,0.05)", color: CINZA }}>
                       {L("Cancelar", "Cancel", "Cancelar")}
                     </button>
-                    <button onClick={confirmarEstorno} disabled={processandoEstorno}
+                    <button onClick={confirmarEstorno} disabled={processandoEstorno || !motivoEstorno.trim()}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: CINZA, color: "#fff" }}>
                       {processandoEstorno ? L("Estornando...", "Reversing...", "Reversando...") : L("Confirmar Estorno", "Confirm Reversal", "Confirmar Reversión")}
