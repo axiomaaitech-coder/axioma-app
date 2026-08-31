@@ -22,6 +22,15 @@
 // Isso é o que faz um relançamento originado por AP_UPDATED (evento
 // diferente de AP_CREATED) ainda ser encontrado certo se a conta for paga
 // ou excluída depois — rastrear por "quem criou" quebraria nesse caso.
+//
+// COMMIT 6/7 — PDV: SALE_CREATED → débito conta de ativo pela forma de
+// pagamento / crédito 6.01 Receita de Vendas + débito 7.01 CMV / crédito
+// 1.05 Estoques, pelo custo real dos itens vendidos (item_venda.
+// custo_unitario_na_venda, já congelado por finalizar_venda). As 4 partidas
+// são montadas dentro da RPC contabil_registrar_lancamento_venda, nunca em
+// TypeScript — custo/margem não pode passar pelo navegador do operador (ver
+// gerarLancamentoVenda). Fora do escopo: cancelamento/estorno de venda,
+// múltiplas formas de pagamento, venda a prazo — nenhum existe no PDV hoje.
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -220,6 +229,40 @@ async function gerarQuitacao(
 }
 
 // ============================================================================
+// GERAR RECEITA + CMV DA VENDA (PDV, Commit 7) — DIFERENTE dos geradores
+// acima: não monta partidas em TypeScript. Chama a RPC
+// contabil_registrar_lancamento_venda (PDV-FASE3-SALE-CONTABIL-RPC-SQL.txt),
+// que soma o custo de item_venda e monta as 4 partidas (débito ativo/crédito
+// 6.01 Receita; débito 7.01 CMV/crédito 1.05 Estoques) INTEIRAMENTE dentro
+// do Postgres. Por quê: custo/margem é dado que o papel operador nunca pode
+// ver em lugar nenhum do PDV (mesma regra de vw_produtos_seguro) — se a soma
+// fosse feita aqui, em TS, o valor do CMV apareceria na aba Network do
+// navegador de quem fechou a venda. Só o id da conta de ativo (pela forma de
+// pagamento, mesmo mapa de gerarQuitacao) sai do client — isso não é
+// sensível, é só o id de uma linha do plano de contas.
+// ============================================================================
+
+async function gerarLancamentoVenda(
+  empresaId: string,
+  vendaId: string,
+  formaPagamento: string | null | undefined,
+  valorTotal: number,
+): Promise<void> {
+  if (!(valorTotal > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const codigoAtivo = FORMA_PAGAMENTO_PARA_CODIGO[formaPagamento ?? ""] ?? CODIGO_ATIVO_PADRAO;
+  const contaAtivoId = contas[codigoAtivo];
+  if (!contaAtivoId) {
+    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (SALE_CREATED)", `código ${codigoAtivo} não encontrado na empresa ${empresaId}`);
+    return;
+  }
+  const { error } = await supabase.rpc("contabil_registrar_lancamento_venda", {
+    p_venda_id: vendaId, p_data: hojeISO(), p_descricao: "Venda PDV", p_conta_ativo_id: contaAtivoId,
+  });
+  if (error) reportarFalhaEscrita("lancamento_contabil", "rpc contabil_registrar_lancamento_venda (SALE_CREATED)", error.message);
+}
+
+// ============================================================================
 // CONSUMIDOR — chamado por contasPagarHelpers.ts logo depois que o evento é
 // publicado com sucesso em eventos_negocio. Só trata origem "contas_pagar";
 // outros módulos que um dia publicarem eventos ficam de fora até terem seu
@@ -232,11 +275,21 @@ export async function processarEventoContabil(
   origem: OrigemEvento,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  if (origem.tabela !== "contas_pagar" || !origem.id) return;
+  if (!origem.id || (origem.tabela !== "contas_pagar" && origem.tabela !== "venda")) return;
   const origemId = origem.id;
 
   try {
     switch (tipo) {
+      case "SALE_CREATED": {
+        // PDV, Commit 6/7 — receita + CMV. O payload nunca tem custo/margem
+        // (ver pdvVendaHelpers.ts); quem soma o CMV é a RPC contábil, direto
+        // no Postgres, e monta as 4 partidas sem devolver o valor pro
+        // navegador do operador.
+        await gerarLancamentoVenda(
+          empresaId, origemId, payload.forma_pagamento as string | null, Number(payload.valor_total) || 0,
+        );
+        break;
+      }
       case "AP_CREATED": {
         const dataCompetencia = (payload.data_emissao as string) || hojeISO();
         await gerarReconhecimentoDespesa(

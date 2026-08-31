@@ -1,0 +1,187 @@
+-- ============================================================================
+-- AXIOMA — CFO CORE, FASE 1, COMMIT 7: RPC de lançamento contábil da venda do
+-- PDV (receita + CMV). NÃO APLICADO — só pra revisão. Roda sobre venda /
+-- item_venda / plano_de_contas / lancamento_contabil (já aplicadas e em
+-- produção) — nenhuma tabela é alterada, só 1 função nova, que chama a
+-- contabil_registrar_lancamento já existente (Commit 4).
+--
+-- POR QUE ISTO É UMA RPC NOVA, E NÃO SÓ REUSO DIRETO DE
+-- contabil_registrar_lancamento A PARTIR DO CLIENT (como o consumidor de
+-- Contas a Pagar faz): o CMV precisa do CUSTO de cada item vendido
+-- (item_venda.custo_unitario_na_venda), e custo/margem é dado que o papel
+-- operador (frente de caixa) NUNCA pode ver em lugar nenhum do PDV — ver
+-- PDV-FASE3-ETAPA0-OPERADOR-PRODUTOS-SQL.sql (vw_produtos_seguro: "nunca
+-- preco_custo/preco_medio/margem/markup") e o próprio finalizar_venda()
+-- (PDV-FASE3-ETAPA2), que lê preço E custo dentro da função e nunca devolve
+-- nenhum dos dois pro client. Se o total do CMV fosse somado em TypeScript,
+-- no navegador do operador que fechou a venda, pra depois mandar pro
+-- contabil_registrar_lancamento já existente, o valor do custo — e portanto
+-- a margem exata da venda — apareceria na aba Network do navegador do caixa.
+-- Esta função soma o custo e monta as 4 partidas INTEIRAMENTE dentro do
+-- Postgres; o navegador nunca recebe o valor do CMV de volta, só o id do
+-- lançamento criado. Mesmo princípio de segurança que já protege preço/custo
+-- em toda a Fase 3 do PDV, agora estendido pro Accounting Core.
+--
+-- ORDEM DE EXECUÇÃO (transação única):
+--   PASSO 0 — leitura: confirma venda/item_venda/plano_de_contas/
+--             lancamento_contabil existem
+--   PARTE 1 — RPC contabil_registrar_lancamento_venda
+--   PARTE 2 — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (CREATE OR REPLACE) — pode rodar mais de uma vez com segurança.
+--
+-- DE-PARA (aprovado, mesmo desenho do Contas a Pagar) — DOIS pares de
+-- partidas, um lançamento só:
+--   RECEITA — débito na conta de ativo pela forma de pagamento (mesmo mapa
+--   já usado em AP_PAID — Dinheiro=Caixa, PIX/Boleto/Transferência/Cartão
+--   Débito=Bancos, Cartão de Crédito=Cartão de Crédito a Pagar — resolvido
+--   em TypeScript, lib/contabilidadeConsumidor.ts, e passado como
+--   p_conta_ativo_id: não é dado sensível, é só o id de uma conta do plano)
+--   / crédito 6.01 Receita de Vendas de Produtos, pelo valor_total da venda.
+--   CMV — débito 7.01 CMV / crédito 1.05 Estoques, pela soma de
+--   quantidade × custo_unitario_na_venda de todos os itens da venda. Só
+--   entra no lançamento se a soma for > 0 (nunca lança par de CMV zerado à
+--   toa).
+--   Lei 12.741 (tributo aproximado, exibido no cupom em
+--   app/(interno)/pdv/venda/page.tsx) é só informativo — nunca gravado em
+--   coluna nem em payload de evento — não entra neste lançamento.
+--
+-- FORA DO ESCOPO (não existe no PDV hoje, não inventado aqui): cancelamento/
+-- estorno de venda, múltiplas formas de pagamento na mesma venda, venda a
+-- prazo (o PDV não tem opção "Fiado"/"A Prazo" — toda venda quita na hora,
+-- então o débito é sempre em ativo, nunca em Clientes a Receber).
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN ('venda','item_venda','plano_de_contas','lancamento_contabil');
+
+
+-- ============================================================================
+-- PARTE 1 — RPC CONTABIL_REGISTRAR_LANCAMENTO_VENDA
+-- ============================================================================
+-- Lê a venda (empresa + valor_total), soma o custo real dos itens vendidos,
+-- resolve as contas fixas do de-para (6.01/7.01/1.05) e chama
+-- contabil_registrar_lancamento — mesma RPC atômica já em produção, mesma
+-- checagem de posse (empresas_do_usuario()) e de partida fechada.
+
+CREATE OR REPLACE FUNCTION public.contabil_registrar_lancamento_venda(
+  p_venda_id       uuid,
+  p_data           date,
+  p_descricao      text,
+  p_conta_ativo_id uuid
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id       uuid;
+  v_valor_total      numeric;
+  v_custo_total       numeric;
+  v_conta_receita_id  uuid;
+  v_conta_cmv_id      uuid;
+  v_conta_estoque_id  uuid;
+  v_partidas          jsonb;
+  v_lancamento_id     uuid;
+BEGIN
+  SELECT empresa_id, valor_total INTO v_empresa_id, v_valor_total
+  FROM public.venda
+  WHERE id = p_venda_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Venda % não encontrada', p_venda_id;
+  END IF;
+
+  IF v_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta venda';
+  END IF;
+
+  IF NOT (v_valor_total > 0) THEN
+    RAISE EXCEPTION 'Venda % sem valor', p_venda_id;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.plano_de_contas WHERE id = p_conta_ativo_id AND empresa_id = v_empresa_id
+  ) THEN
+    RAISE EXCEPTION 'Conta de ativo informada não pertence a esta empresa';
+  END IF;
+
+  -- CUSTO — nunca sai do banco. Soma direto de item_venda, que já tem o
+  -- custo CONGELADO no momento da venda (finalizar_venda, PDV-FASE3-ETAPA2 —
+  -- lido de produtos.preco_custo DENTRO daquela função, nunca do client).
+  SELECT COALESCE(SUM(quantidade * custo_unitario_na_venda), 0) INTO v_custo_total
+  FROM public.item_venda
+  WHERE venda_id = p_venda_id;
+
+  SELECT id INTO v_conta_receita_id FROM public.plano_de_contas WHERE empresa_id = v_empresa_id AND codigo = '6.01';
+  SELECT id INTO v_conta_cmv_id     FROM public.plano_de_contas WHERE empresa_id = v_empresa_id AND codigo = '7.01';
+  SELECT id INTO v_conta_estoque_id FROM public.plano_de_contas WHERE empresa_id = v_empresa_id AND codigo = '1.05';
+
+  IF v_conta_receita_id IS NULL OR v_conta_cmv_id IS NULL OR v_conta_estoque_id IS NULL THEN
+    RAISE EXCEPTION 'Plano de contas desta empresa não tem 6.01/7.01/1.05 — rode o seed do plano de contas';
+  END IF;
+
+  v_partidas := jsonb_build_array(
+    jsonb_build_object('conta_id', p_conta_ativo_id,   'tipo', 'debito',  'valor', v_valor_total),
+    jsonb_build_object('conta_id', v_conta_receita_id,  'tipo', 'credito', 'valor', v_valor_total)
+  );
+
+  IF v_custo_total > 0 THEN
+    v_partidas := v_partidas || jsonb_build_array(
+      jsonb_build_object('conta_id', v_conta_cmv_id,     'tipo', 'debito',  'valor', v_custo_total),
+      jsonb_build_object('conta_id', v_conta_estoque_id, 'tipo', 'credito', 'valor', v_custo_total)
+    );
+  END IF;
+
+  v_lancamento_id := public.contabil_registrar_lancamento(
+    v_empresa_id, p_data, p_descricao, v_partidas, NULL, 'venda', p_venda_id
+  );
+
+  RETURN v_lancamento_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.contabil_registrar_lancamento_venda(uuid, date, text, uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.contabil_registrar_lancamento_venda(uuid, date, text, uuid) TO authenticated;
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 2 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT routine_name FROM information_schema.routines
+  WHERE routine_schema = 'public' AND routine_name = 'contabil_registrar_lancamento_venda';
+
+-- Teste funcional opcional (roda e reverte sozinho — não deixa lixo). Ajuste
+-- os uuids antes de rodar, ou pule este bloco.
+-- BEGIN;
+--   SAVEPOINT teste_venda_contabil;
+--   SELECT contabil_registrar_lancamento_venda(
+--     '<venda_id_de_teste>'::uuid, current_date, 'TESTE — venda',
+--     '<conta_id_caixa_ou_banco_de_teste>'::uuid
+--   ) AS lancamento_teste_id \gset
+--   SELECT lc.id, pc.codigo, lcp.tipo, lcp.valor
+--   FROM lancamento_contabil lc
+--   JOIN lancamento_contabil_partida lcp ON lcp.lancamento_id = lc.id
+--   JOIN plano_de_contas pc ON pc.id = lcp.conta_id
+--   WHERE lc.id = :'lancamento_teste_id'::uuid;
+--   ROLLBACK TO SAVEPOINT teste_venda_contabil;
+-- ROLLBACK;
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.contabil_registrar_lancamento_venda(uuid, date, text, uuid);
+-- (Não desfaz nenhum lançamento já gravado por esta função enquanto ela
+-- existiu — isso é dado real, ledger imutável.)
