@@ -1,0 +1,378 @@
+-- ============================================================================
+-- AXIOMA — CFO CORE, FASE 1: ACCOUNTING CORE (ledger de partida dobrada em
+-- tempo real). NÃO APLICADO — só pra revisão. Roda sobre eventos_negocio,
+-- empresas, centros_custo, empresas_do_usuario() já em produção (Commit 1 do
+-- CFO Core). Nenhuma tabela existente é alterada — só 3 tabelas novas.
+--
+-- ESCOPO DESTE COMMIT: só o MODELO DE DADOS (2 tabelas + plano de contas +
+-- trigger de integridade). Nenhum lançamento é gerado ainda — a lógica que
+-- decide QUAL conta debitar/creditar pra cada tipo de evento
+-- (AP_CREATED/AP_PAID/SALE_CREATED/...) é o próximo commit, depois que este
+-- SQL rodar e o modelo for aprovado. Zero mudança em tabela existente.
+--
+-- DIAGNÓSTICO — nomes reais confirmados contra o schema antes de escrever
+-- este arquivo (nada aqui foi inventado):
+--   - empresas(id uuid PK, user_id)                         — MIGRACAO-MULTITENANT.sql
+--   - empresas_do_usuario() returns setof uuid               — MIGRACAO-MULTITENANT.sql
+--   - centros_custo(id uuid PK, ...)                         — CENTRO-CUSTO-FASE1-SQL.sql
+--   - eventos_negocio(id, empresa_id, tipo, origem_modulo,
+--     origem_tabela, origem_id, payload, usuario_id, versao,
+--     criado_em)                                             — CFO-CORE-FASE1-EVENTOS-SQL.txt
+-- Nota à parte: já existe uma tabela "lancamentos_centro" (planilha manual
+-- de Centro de Custos, com update/delete livre — orçamento gerencial, não
+-- contabilidade). O Accounting Core é outra coisa: ledger contábil imutável,
+-- não substitui nem lê aquela tabela.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0  — leitura: confirma as 4 peças-base acima existem
+--   PARTE 1  — tabela plano_de_contas (gerencial, com de-para SPED)
+--   PARTE 2  — RLS de plano_de_contas (1 policy FOR ALL — o dono edita)
+--   PARTE 3  — índices de plano_de_contas
+--   PARTE 4  — tabela lancamento_contabil (cabeçalho, imutável)
+--   PARTE 5  — RLS de lancamento_contabil (SELECT+INSERT — igual eventos_negocio)
+--   PARTE 6  — índices de lancamento_contabil
+--   PARTE 7  — tabela lancamento_contabil_partida (linhas, imutável)
+--   PARTE 8  — RLS de lancamento_contabil_partida (SELECT+INSERT)
+--   PARTE 9  — índices de lancamento_contabil_partida
+--   PARTE 10 — TRIGGER DE PARTIDA DOBRADA (última linha de defesa — ver nota)
+--   PARTE 11 — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DROP POLICY|TRIGGER IF EXISTS antes de
+-- recriar) — pode rodar mais de uma vez com segurança.
+--
+-- DECISÃO DE DESENHO — PARTIDA DOBRADA EM CAMADAS (nunca uma defesa única):
+--   Camada 1 (principal): função pura TypeScript que soma débito/crédito de
+--   um array de partidas ANTES de qualquer insert — testável isoladamente,
+--   sem banco, e é o que dá o feedback rápido no formulário.
+--   Camada 2 (última linha, nunca a única): CONSTRAINT TRIGGER no Postgres
+--   (Parte 10) — DEFERRABLE INITIALLY DEFERRED, dispara por linha inserida
+--   mas só EXECUTA de fato no COMMIT da transação, depois que todas as
+--   linhas daquele lançamento já foram inseridas. Nesse momento soma
+--   SUM(valor) WHERE tipo='debito' e SUM(valor) WHERE tipo='credito' pro
+--   mesmo lancamento_id; se não baterem, RAISE EXCEPTION aborta a transação
+--   inteira (nenhuma linha fica gravada pela metade). Não dá pra fazer isso
+--   com CHECK constraint comum porque CHECK só enxerga a própria linha, não
+--   soma entre linhas — por isso precisa ser trigger. A regra de negócio
+--   "isto é uma venda, debita Caixa credita Receita" nunca mora aqui — o
+--   trigger só verifica que a MATEMÁTICA fecha, é cego ao significado.
+--
+-- DECISÃO DE DESENHO — NATUREZA é campo independente de TIPO (não derivado).
+--   Na maioria dos casos tipo determina a natureza (ativo/despesa=devedora,
+--   passivo/patrimonio/receita=credora), mas CONTAS REDUTORAS invertem isso
+--   por desenho contábil (ex: "Depreciação Acumulada" é tipo=ativo mas
+--   natureza=credora; "Devoluções de Vendas" é tipo=receita mas
+--   natureza=devedora). Se natureza fosse derivada de tipo, não teria como
+--   representar essas contas — por isso fica explícita, cadastrada por
+--   quem monta o plano.
+--
+-- DECISÃO DE DESENHO — imposto (IBS/CBS/ICMS/PIS/COFINS): nenhum enum ou
+--   CHECK list de nomes de conta existe neste schema — codigo/nome são texto
+--   livre. Isso já garante que o plano comporte tanto contas de imposto
+--   legadas (ICMS/PIS/COFINS) quanto as da Reforma Tributária (IBS/CBS) sem
+--   nenhuma migração futura — a estrutura não trava em nenhum dos dois
+--   regimes. Nenhuma conta de imposto é criada neste commit (ver Diagnóstico
+--   3 na resposta, sobre o seed).
+--
+-- DECISÃO DE DESENHO — estornado_por_id é o ÚNICO ponteiro de reversão
+--   (auto-FK, no lançamento ORIGINAL, apontando pro lançamento NOVO que o
+--   reverteu). "O que esse lançamento reverteu" é a pergunta inversa (WHERE
+--   estornado_por_id = :id), coberta por índice — não precisa de 2ª coluna.
+--   Como lancamento_contabil só tem RLS de SELECT+INSERT (nunca UPDATE), a
+--   escrita de estornado_por_id no original PRECISA vir de uma função
+--   SECURITY DEFINER dedicada — isso é lógica de estorno, fica pro próximo
+--   commit (não faz parte deste SQL, só a coluna já nasce pronta pra isso).
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'centros_custo';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'eventos_negocio';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+
+-- ============================================================================
+-- PARTE 1 — TABELA PLANO_DE_CONTAS
+-- ============================================================================
+-- Plano GERENCIAL (o dono usa — livre, enxuto). codigo_referencial_rfb é o
+-- de-para pro Plano Referencial da Receita/SPED, preenchido quando o
+-- contador do cliente mapear cada conta — nullable porque no dia 1 (Simples
+-- Nacional, sem SPED ECD/ECF obrigatório) isso simplesmente não existe.
+-- conta_pai_id monta a hierarquia (ex: "1.1.01 Caixa" filha de "1.1 Ativo
+-- Circulante"); ON DELETE SET NULL — apagar uma conta-pai não pode arrastar
+-- as filhas, elas só sobem um nível na árvore.
+
+CREATE TABLE IF NOT EXISTS public.plano_de_contas (
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id             uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  codigo                 text NOT NULL,
+  nome                   text NOT NULL,
+  tipo                   text NOT NULL CHECK (tipo IN ('ativo','passivo','patrimonio','receita','despesa')),
+  natureza               text NOT NULL CHECK (natureza IN ('devedora','credora')),
+  conta_pai_id           uuid REFERENCES public.plano_de_contas(id) ON DELETE SET NULL,
+  codigo_referencial_rfb text,
+  ativo                  boolean NOT NULL DEFAULT true,
+  criado_em              timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_plano_de_contas_empresa_codigo UNIQUE (empresa_id, codigo)
+);
+
+
+-- ============================================================================
+-- PARTE 2 — RLS DE PLANO_DE_CONTAS
+-- ============================================================================
+-- FOR ALL — diferente das 2 tabelas seguintes: o plano de contas é cadastro
+-- editável pelo dono (cria conta nova, renomeia, desativa), não um fato
+-- consumado. Mesmo padrão de subselect otimizado já usado no projeto.
+
+ALTER TABLE public.plano_de_contas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS plano_de_contas_empresa ON public.plano_de_contas;
+CREATE POLICY plano_de_contas_empresa ON public.plano_de_contas
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 3 — ÍNDICES DE PLANO_DE_CONTAS
+-- ============================================================================
+-- (empresa_id, codigo) já tem índice único (Parte 1, serve de busca por
+-- código também). conta_pai_id separado pra montar a árvore sem full scan.
+
+CREATE INDEX IF NOT EXISTS idx_plano_de_contas_empresa ON public.plano_de_contas (empresa_id);
+CREATE INDEX IF NOT EXISTS idx_plano_de_contas_pai ON public.plano_de_contas (conta_pai_id);
+
+
+-- ============================================================================
+-- PARTE 4 — TABELA LANCAMENTO_CONTABIL (cabeçalho)
+-- ============================================================================
+-- Fato consumado, nunca editado (mesmo princípio de eventos_negocio e
+-- contas_pagar_auditoria) — corrigir um lançamento errado é ESTORNAR
+-- (lançamento novo que reverte) e lançar de novo certo, nunca UPDATE/DELETE
+-- do original. evento_id nullable: lançamento manual (ex: ajuste do
+-- contador) não nasce de um evento do Event Fabric. origem_tabela/origem_id
+-- são referência polimórfica sem FK, mesmo padrão de eventos_negocio (a
+-- garantia de consistência fica no código que grava, não no schema).
+
+CREATE TABLE IF NOT EXISTS public.lancamento_contabil (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id         uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  data               date NOT NULL,
+  descricao          text NOT NULL,
+  evento_id          uuid REFERENCES public.eventos_negocio(id) ON DELETE SET NULL,
+  origem_tabela      text,
+  origem_id          uuid,
+  usuario_id         uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  estornado_por_id   uuid REFERENCES public.lancamento_contabil(id) ON DELETE SET NULL,
+  criado_em          timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 5 — RLS DE LANCAMENTO_CONTABIL
+-- ============================================================================
+-- SELECT + INSERT apenas — sem UPDATE/DELETE. Ver nota de desenho no
+-- cabeçalho sobre como estornado_por_id é escrito (função SECURITY DEFINER
+-- do próximo commit, não UPDATE direto do client).
+
+ALTER TABLE public.lancamento_contabil ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS lancamento_contabil_select ON public.lancamento_contabil;
+CREATE POLICY lancamento_contabil_select ON public.lancamento_contabil
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+DROP POLICY IF EXISTS lancamento_contabil_insert ON public.lancamento_contabil;
+CREATE POLICY lancamento_contabil_insert ON public.lancamento_contabil
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 6 — ÍNDICES DE LANCAMENTO_CONTABIL
+-- ============================================================================
+-- (empresa_id, data) — relatórios por período (razão, balancete).
+-- (empresa_id, evento_id) — rastreabilidade evento → lançamento.
+-- (empresa_id, origem_tabela, origem_id) — mesmo padrão de eventos_negocio,
+-- rastreabilidade "todo lançamento gerado por esta conta a pagar específica".
+-- estornado_por_id — busca reversa "o que esse lançamento reverteu".
+
+CREATE INDEX IF NOT EXISTS idx_lancamento_contabil_empresa_data ON public.lancamento_contabil (empresa_id, data);
+CREATE INDEX IF NOT EXISTS idx_lancamento_contabil_empresa_evento ON public.lancamento_contabil (empresa_id, evento_id);
+CREATE INDEX IF NOT EXISTS idx_lancamento_contabil_empresa_origem ON public.lancamento_contabil (empresa_id, origem_tabela, origem_id);
+CREATE INDEX IF NOT EXISTS idx_lancamento_contabil_estornado_por ON public.lancamento_contabil (estornado_por_id);
+
+
+-- ============================================================================
+-- PARTE 7 — TABELA LANCAMENTO_CONTABIL_PARTIDA (linhas)
+-- ============================================================================
+-- conta_id SEM ON DELETE CASCADE/SET NULL de propósito (fica NO ACTION, o
+-- default do Postgres): uma conta do plano que já tem partida lançada não
+-- pode ser apagada — só desativada (plano_de_contas.ativo = false). Isso
+-- protege o ledger de perder a referência de uma linha real já gravada.
+-- valor é sempre positivo — o sinal (debita ou credita) vem inteiramente de
+-- "tipo", nunca de valor negativo (mesmo raciocínio de nunca guardar estado
+-- duplicado/ambíguo já usado no resto do schema).
+
+CREATE TABLE IF NOT EXISTS public.lancamento_contabil_partida (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id      uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  lancamento_id   uuid NOT NULL REFERENCES public.lancamento_contabil(id) ON DELETE CASCADE,
+  conta_id        uuid NOT NULL REFERENCES public.plano_de_contas(id),
+  tipo            text NOT NULL CHECK (tipo IN ('debito','credito')),
+  valor           numeric(14,2) NOT NULL CHECK (valor > 0),
+  centro_custo_id uuid REFERENCES public.centros_custo(id) ON DELETE SET NULL,
+  criado_em       timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 8 — RLS DE LANCAMENTO_CONTABIL_PARTIDA
+-- ============================================================================
+-- Mesma regra do cabeçalho: SELECT + INSERT apenas, imutável.
+
+ALTER TABLE public.lancamento_contabil_partida ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS lancamento_contabil_partida_select ON public.lancamento_contabil_partida;
+CREATE POLICY lancamento_contabil_partida_select ON public.lancamento_contabil_partida
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+DROP POLICY IF EXISTS lancamento_contabil_partida_insert ON public.lancamento_contabil_partida;
+CREATE POLICY lancamento_contabil_partida_insert ON public.lancamento_contabil_partida
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 9 — ÍNDICES DE LANCAMENTO_CONTABIL_PARTIDA
+-- ============================================================================
+-- (empresa_id, lancamento_id) — buscar as linhas de um lançamento.
+-- (empresa_id, conta_id) — CRÍTICO pro Razão (extrato por conta): é a
+-- consulta que soma débito/crédito de UMA conta ao longo do tempo.
+-- centro_custo_id — rateio/rollup por centro de custo.
+
+CREATE INDEX IF NOT EXISTS idx_lancamento_partida_empresa_lancamento ON public.lancamento_contabil_partida (empresa_id, lancamento_id);
+CREATE INDEX IF NOT EXISTS idx_lancamento_partida_empresa_conta ON public.lancamento_contabil_partida (empresa_id, conta_id);
+CREATE INDEX IF NOT EXISTS idx_lancamento_partida_centro ON public.lancamento_contabil_partida (centro_custo_id);
+
+
+-- ============================================================================
+-- PARTE 10 — TRIGGER DE PARTIDA DOBRADA (última linha de defesa)
+-- ============================================================================
+-- CONSTRAINT TRIGGER, não trigger comum: DEFERRABLE INITIALLY DEFERRED faz
+-- o Postgres só EXECUTAR isto no COMMIT da transação, não a cada linha
+-- inserida — essencial, porque um lançamento com 2+ linhas não fecha até a
+-- ÚLTIMA ser inserida (checar linha por linha rejeitaria a 1ª inserção
+-- sempre, já que sozinha ela nunca bate débito=crédito). Isso exige que o
+-- código que grava um lançamento insira TODAS as suas linhas na MESMA
+-- transação (uma chamada de RPC, não múltiplos requests soltos) — é a
+-- responsabilidade que o próximo commit (a função de gravar lançamento)
+-- precisa cumprir pra este trigger fazer sentido.
+--
+-- SECURITY DEFINER + search_path fixo: mesmo padrão de
+-- fn_contas_pagar_auditoria_trigger, evita qualquer surpresa de RLS na
+-- consulta interna de soma (a policy de SELECT já libera isto de qualquer
+-- forma, já que é a própria empresa lendo sua própria linha — SECURITY
+-- DEFINER aqui é consistência de padrão, não uma necessidade estrita).
+
+CREATE OR REPLACE FUNCTION public.fn_checar_partida_dobrada()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_debito   numeric;
+  v_credito  numeric;
+BEGIN
+  SELECT
+    COALESCE(SUM(valor) FILTER (WHERE tipo = 'debito'), 0),
+    COALESCE(SUM(valor) FILTER (WHERE tipo = 'credito'), 0)
+  INTO v_debito, v_credito
+  FROM public.lancamento_contabil_partida
+  WHERE lancamento_id = NEW.lancamento_id;
+
+  IF v_debito <> v_credito THEN
+    RAISE EXCEPTION 'Partida não fechada no lançamento %: débito=% crédito=%', NEW.lancamento_id, v_debito, v_credito;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_partida_dobrada ON public.lancamento_contabil_partida;
+CREATE CONSTRAINT TRIGGER trg_partida_dobrada
+AFTER INSERT ON public.lancamento_contabil_partida
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION public.fn_checar_partida_dobrada();
+
+REVOKE ALL ON FUNCTION public.fn_checar_partida_dobrada() FROM public;
+
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 11 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN ('plano_de_contas','lancamento_contabil','lancamento_contabil_partida');
+
+SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'plano_de_contas' ORDER BY ordinal_position;
+
+SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'lancamento_contabil' ORDER BY ordinal_position;
+
+SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'lancamento_contabil_partida' ORDER BY ordinal_position;
+
+SELECT tablename, policyname, cmd FROM pg_policies
+  WHERE tablename IN ('plano_de_contas','lancamento_contabil','lancamento_contabil_partida');
+
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND tablename IN ('plano_de_contas','lancamento_contabil','lancamento_contabil_partida');
+
+SELECT trigger_name, action_timing, event_manipulation FROM information_schema.triggers
+  WHERE event_object_table = 'lancamento_contabil_partida' AND trigger_name = 'trg_partida_dobrada';
+
+-- Teste funcional opcional (roda e reverte sozinho — não deixa lixo): tenta
+-- gravar um lançamento desbalanceado de propósito, dentro de uma savepoint,
+-- e confirma que o trigger rejeita. Precisa de 1 empresa e 2 contas de teste
+-- já existentes — ajuste os 3 uuids antes de rodar, ou pule este bloco.
+-- BEGIN;
+--   SAVEPOINT teste_partida;
+--   WITH cab AS (
+--     INSERT INTO lancamento_contabil (empresa_id, data, descricao)
+--     VALUES ('<empresa_id_de_teste>', current_date, 'TESTE — deve falhar')
+--     RETURNING id
+--   )
+--   INSERT INTO lancamento_contabil_partida (empresa_id, lancamento_id, conta_id, tipo, valor)
+--   SELECT '<empresa_id_de_teste>', cab.id, '<conta_id_de_teste>', 'debito', 100.00 FROM cab
+--   UNION ALL
+--   SELECT '<empresa_id_de_teste>', cab.id, '<outra_conta_id_de_teste>', 'credito', 50.00 FROM cab;
+--   -- Deve dar erro "Partida não fechada" quando a transação tentar COMMIT.
+--   ROLLBACK TO SAVEPOINT teste_partida;
+-- ROLLBACK;
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP TABLE IF EXISTS public.lancamento_contabil_partida;
+-- DROP TABLE IF EXISTS public.lancamento_contabil;
+-- DROP TABLE IF EXISTS public.plano_de_contas;
+-- DROP FUNCTION IF EXISTS public.fn_checar_partida_dobrada();
+-- (DROP TABLE já remove policies, índices e o trigger da própria tabela
+-- junto — não precisa DROP POLICY/DROP INDEX/DROP TRIGGER separado.
+-- Ordem importa: partida antes de contabil antes de plano_de_contas, por
+-- causa das FKs.)
