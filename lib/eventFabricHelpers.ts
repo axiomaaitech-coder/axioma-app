@@ -72,7 +72,7 @@ export async function publicarEvento(
   tipo: TipoEvento,
   payload: Record<string, unknown>,
   origem: OrigemEvento,
-): Promise<{ erro?: string }> {
+): Promise<{ id?: string; erro?: string }> {
   const { data: authData } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("eventos_negocio").insert({
     empresa_id: empresaId,
@@ -89,7 +89,7 @@ export async function publicarEvento(
     reportarFalhaEscrita("eventos_negocio", "insert", motivo);
     return { erro: motivo };
   }
-  return {};
+  return { id: data[0].id };
 }
 
 // ============================================================================

@@ -1,0 +1,151 @@
+-- ============================================================================
+-- AXIOMA — CFO CORE, FASE 1, COMMIT 5: RPC de estorno de lançamento. NÃO
+-- APLICADO — só pra revisão. Roda sobre lancamento_contabil /
+-- lancamento_contabil_partida (já aplicadas e em produção) — nenhuma tabela
+-- é alterada, só 1 função nova.
+--
+-- POR QUE ISTO FICOU DE FORA DO SQL ANTERIOR (CFO-CORE-FASE1-ACCOUNTING-RPC-
+-- SEED-SQL.txt, já aplicado): aquele SQL era só a infraestrutura de GRAVAR;
+-- esta função é a peça de ESTORNAR, que só fazia sentido escrever depois do
+-- de-para (Commit 5) estar aprovado — é ela que o consumidor automático
+-- (lib/contabilidadeConsumidor.ts) chama pra desfazer um lançamento quando
+-- AP_PAYMENT_REVERSED, AP_DELETED ou AP_UPDATED (com valor/categoria
+-- mudando) acontecem.
+--
+-- ORDEM DE EXECUÇÃO (transação única):
+--   PASSO 0 — leitura: confirma lancamento_contabil/lancamento_contabil_partida existem
+--   PARTE 1 — RPC contabil_estornar_lancamento
+--   PARTE 2 — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (CREATE OR REPLACE) — pode rodar mais de uma vez com segurança
+-- (a função em si não muda dado, só é redefinida).
+--
+-- DECISÃO DE DESENHO — por que isto é 1 função atômica (lê o original, grava
+-- o espelho, marca o original) em vez de 3 chamadas separadas do client:
+-- entre 2 chamadas separadas sempre existe uma janela onde o espelho existe
+-- mas o original ainda não está marcado como estornado (ou vice-versa) — se
+-- a conexão cair nesse meio, o ledger fica inconsistente (um lançamento
+-- reaparece como "não estornado" quando já tem espelho, e um retry geraria
+-- um SEGUNDO espelho). Uma função só = uma transação só = ou tudo acontece
+-- ou nada acontece.
+--
+-- DECISÃO DE DESENHO — a checagem "já foi estornado" (estornado_por_id IS
+-- NOT NULL) bloqueia estornar o MESMO lançamento duas vezes, mas não
+-- impede um lançamento de ser estornado por engano em vez de outro — quem
+-- decide QUAL lançamento estornar é o chamador (lib/contabilidadeConsumidor.ts,
+-- que localiza por "papel" — crédito ou débito em Fornecedores — não por
+-- tipo de evento, pra sobreviver a relançamentos vindos de AP_UPDATED).
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN ('lancamento_contabil','lancamento_contabil_partida');
+
+
+-- ============================================================================
+-- PARTE 1 — RPC CONTABIL_ESTORNAR_LANCAMENTO
+-- ============================================================================
+-- Lê o lançamento original, valida posse e que ainda não foi estornado,
+-- grava um lançamento NOVO com as mesmas partidas e tipo invertido (débito
+-- vira crédito e vice-versa — mesmas contas, mesmos valores, mesmos centros
+-- de custo), e marca estornado_por_id no original. origem_tabela/origem_id
+-- do espelho são os MESMOS do original (mesmo fato de negócio, é a mesma
+-- conta a pagar) — estornado_por_id já resolve "o que reverteu o quê".
+
+CREATE OR REPLACE FUNCTION public.contabil_estornar_lancamento(
+  p_lancamento_id uuid,
+  p_data          date,
+  p_descricao     text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_empresa_id     uuid;
+  v_origem_tabela  text;
+  v_origem_id      uuid;
+  v_ja_estornado   uuid;
+  v_novo_id        uuid;
+BEGIN
+  SELECT empresa_id, origem_tabela, origem_id, estornado_por_id
+    INTO v_empresa_id, v_origem_tabela, v_origem_id, v_ja_estornado
+  FROM public.lancamento_contabil
+  WHERE id = p_lancamento_id;
+
+  IF v_empresa_id IS NULL THEN
+    RAISE EXCEPTION 'Lançamento % não encontrado', p_lancamento_id;
+  END IF;
+
+  IF v_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a este lançamento';
+  END IF;
+
+  IF v_ja_estornado IS NOT NULL THEN
+    RAISE EXCEPTION 'Lançamento % já foi estornado (por %)', p_lancamento_id, v_ja_estornado;
+  END IF;
+
+  INSERT INTO public.lancamento_contabil (empresa_id, data, descricao, origem_tabela, origem_id, usuario_id)
+  VALUES (v_empresa_id, p_data, p_descricao, v_origem_tabela, v_origem_id, auth.uid())
+  RETURNING id INTO v_novo_id;
+
+  INSERT INTO public.lancamento_contabil_partida (empresa_id, lancamento_id, conta_id, tipo, valor, centro_custo_id)
+  SELECT
+    v_empresa_id,
+    v_novo_id,
+    conta_id,
+    CASE WHEN tipo = 'debito' THEN 'credito' ELSE 'debito' END,
+    valor,
+    centro_custo_id
+  FROM public.lancamento_contabil_partida
+  WHERE lancamento_id = p_lancamento_id;
+
+  UPDATE public.lancamento_contabil SET estornado_por_id = v_novo_id WHERE id = p_lancamento_id;
+
+  RETURN v_novo_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.contabil_estornar_lancamento(uuid, date, text) FROM public;
+GRANT EXECUTE ON FUNCTION public.contabil_estornar_lancamento(uuid, date, text) TO authenticated;
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 2 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT routine_name FROM information_schema.routines
+  WHERE routine_schema = 'public' AND routine_name = 'contabil_estornar_lancamento';
+
+-- Teste funcional opcional (roda e reverte sozinho — não deixa lixo). Cria
+-- um lançamento de teste, estorna, confirma que o original ficou marcado e
+-- que o espelho tem os tipos invertidos. Ajuste os 3 uuids antes de rodar,
+-- ou pule este bloco.
+-- BEGIN;
+--   SAVEPOINT teste_estorno;
+--   SELECT contabil_registrar_lancamento(
+--     '<empresa_id_de_teste>'::uuid, current_date, 'TESTE — será estornado',
+--     '[{"conta_id":"<conta_id_debito_teste>","tipo":"debito","valor":10},
+--       {"conta_id":"<conta_id_credito_teste>","tipo":"credito","valor":10}]'::jsonb
+--   ) AS lancamento_teste_id \gset
+--   SELECT contabil_estornar_lancamento(:'lancamento_teste_id'::uuid, current_date, 'Estorno do teste');
+--   SELECT id, estornado_por_id FROM lancamento_contabil WHERE id = :'lancamento_teste_id'::uuid;
+--   ROLLBACK TO SAVEPOINT teste_estorno;
+-- ROLLBACK;
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.contabil_estornar_lancamento(uuid, date, text);
+-- (Não desfaz nenhum lançamento já estornado por esta função enquanto ela
+-- existiu — isso é dado real, ledger imutável.)

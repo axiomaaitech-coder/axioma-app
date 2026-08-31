@@ -10,6 +10,7 @@ import { sugerirClassificacoes, normalizarPadraoChave } from "./importarHelpers"
 import { detectarRupturaCaixa, proximaOcorrenciaDoDia, projetarRecorrenciaMensal, normalizarTexto, fBRL, type EventoCaixa, type RupturaCaixa, type AnomaliaHistorica } from "./cfoCore";
 import { registrarAuditoriaCentro } from "./centroCustoHelpers";
 import { publicarEvento, type TipoEvento, type OrigemEvento } from "./eventFabricHelpers";
+import { processarEventoContabil } from "./contabilidadeConsumidor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,6 +78,14 @@ function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) 
 // falhar (ou lançar, o que ele hoje não faz, mas não confiamos nisso), a
 // operação principal (que já terminou com sucesso quando isto é chamado)
 // nunca é desfeita — só o erro do evento vai pro Sentry.
+//
+// COMMIT 5 — depois que o evento é publicado com sucesso, aciona o
+// Accounting Core (processarEventoContabil) com o de-para aprovado. Fica
+// aqui (não em eventFabricHelpers.ts) de propósito: o Event Fabric continua
+// genérico, sem saber nada de contabilidade — só Contas a Pagar hoje publica
+// eventos AP_*, então só aqui faz sentido acoplar os dois. Falha do
+// consumidor contábil também nunca desfaz a operação principal nem o
+// próprio evento, que já foram gravados de verdade.
 async function publicarEventoNaoBloqueante(
   empresaId: string | null | undefined,
   tipo: TipoEvento,
@@ -85,7 +94,15 @@ async function publicarEventoNaoBloqueante(
 ): Promise<void> {
   if (!empresaId) return;
   try {
-    await publicarEvento(empresaId, tipo, payload, origem);
+    const { id: eventoId, erro } = await publicarEvento(empresaId, tipo, payload, origem);
+    if (erro) {
+      reportarFalhaEscrita("eventos_negocio", "publicarEvento", erro);
+      return;
+    }
+    if (eventoId) {
+      processarEventoContabil(tipo, empresaId, origem, payload).catch((e) =>
+        reportarFalhaEscrita("lancamento_contabil", `consumidor ${tipo}`, e instanceof Error ? e.message : String(e)));
+    }
   } catch (e) {
     reportarFalhaEscrita("eventos_negocio", "publicarEvento", e instanceof Error ? e.message : String(e));
   }
@@ -122,12 +139,24 @@ export async function criarContaPagar(userId: string, empresaId: string | null, 
     return { erro: motivo };
   }
   publicarEventoNaoBloqueante(empresaId, "AP_CREATED",
-    { conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null },
+    {
+      conta_id: data.id, fornecedor_id: dados.fornecedor_id ?? null, valor: total, vencimento: dados.data_vencimento ?? null,
+      // categoria/descricao/data_emissao: usados pelo Accounting Core (Commit
+      // 5) pra reconhecer a despesa na conta certa, na data certa.
+      categoria: dados.categoria ?? null, descricao: dados.descricao ?? null, data_emissao: dados.data_emissao ?? null,
+      centro_custo_id: dados.centro_custo_id ?? null,
+    },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: data.id });
   return { id: data.id };
 }
 
 export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): Promise<{ erro?: string }> {
+  // COMMIT 5 — precisa do estado ANTES do update pra saber se valor/categoria
+  // mudaram (o Accounting Core só estorna+relança quando um dos dois muda;
+  // editar outro campo, ex: observações, não mexe no lançamento já feito).
+  const { data: antes } = await supabase.from("contas_pagar")
+    .select("valor_total, categoria, descricao, data_emissao, centro_custo_id").eq("id", id).maybeSingle();
+
   const total = Number(dados.valor_total) || 0;
   const pago = Number(dados.valor_pago) || 0;
   const status = calcStatus(total, pago, dados.data_vencimento);
@@ -142,7 +171,14 @@ export async function editarContaPagar(id: string, dados: Partial<ContaPagar>): 
     return { erro: motivo };
   }
   publicarEventoNaoBloqueante(data[0].empresa_id, "AP_UPDATED",
-    { conta_id: id, campos: Object.keys(dados) },
+    {
+      conta_id: id, campos: Object.keys(dados),
+      valor_antes: antes?.valor_total ?? null, valor_depois: total,
+      categoria_antes: antes?.categoria ?? null, categoria_depois: dados.categoria ?? antes?.categoria ?? null,
+      descricao_depois: dados.descricao ?? antes?.descricao ?? null,
+      data_emissao_depois: dados.data_emissao ?? antes?.data_emissao ?? null,
+      centro_custo_id_depois: dados.centro_custo_id ?? antes?.centro_custo_id ?? null,
+    },
     { modulo: "contas_pagar", tabela: "contas_pagar", id });
   return {};
 }
@@ -167,7 +203,13 @@ export async function darBaixaContaPagar(conta: ContaPagar, valorPago: number, d
     return { erro: "verificacao_pos_escrita_falhou" };
   }
   publicarEventoNaoBloqueante(conta.empresa_id, "AP_PAID",
-    { conta_id: conta.id, valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento },
+    {
+      conta_id: conta.id, valor_pago: valorPago, data_pagamento: dataPagamento, forma_pagamento: formaPagamento,
+      // valor_incremento: o Accounting Core (Commit 5) lança só o que saiu
+      // NESTA baixa, não o acumulado — senão uma 2ª baixa parcial dobraria
+      // o valor já reconhecido na 1ª.
+      valor_incremento: valorPago - (conta.valor_pago || 0),
+    },
     { modulo: "contas_pagar", tabela: "contas_pagar", id: conta.id });
   return {};
 }
