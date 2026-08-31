@@ -1452,17 +1452,33 @@ export default function ContasPagarPage() {
     await inserirContaDeFato(dadosPendentes, true);
   }
 
-  async function excluir(c: ContaPagar) {
-    const { erro } = await excluirContaPagar(c.id, c.status);
+  // ========== MODAL CONFIRMAR EXCLUSÃO ==========
+  // COMMIT 2 — excluir() rodava direto ao clicar, sem perguntar nada. Agora só
+  // abre o modal; a exclusão de fato só acontece em confirmarExclusao().
+  const [modalConfirmarExclusao, setModalConfirmarExclusao] = useState(false);
+  const [contaExcluir, setContaExcluir] = useState<ContaPagar | null>(null);
+  const [processandoExclusao, setProcessandoExclusao] = useState(false);
+
+  function abrirConfirmarExclusao(c: ContaPagar) { setContaExcluir(c); setModalConfirmarExclusao(true); }
+  function fecharConfirmarExclusao() { if (processandoExclusao) return; setModalConfirmarExclusao(false); setContaExcluir(null); }
+
+  async function confirmarExclusao() {
+    if (!contaExcluir) return;
+    setProcessandoExclusao(true);
+    const { erro } = await excluirContaPagar(contaExcluir.id, contaExcluir.status);
     if (erro === "conta_paga") {
       showToast(L("Não é possível excluir uma conta já paga. Estorne a baixa primeiro.", "You can't delete a bill that's already paid. Reverse the payment first.", "No se puede eliminar una cuenta ya pagada. Primero reversa el pago."), "erro");
+      setProcessandoExclusao(false);
       return;
     }
     if (erro) {
       showToast(L("Não foi possível excluir a conta. Tente novamente.", "Could not delete the bill. Try again.", "No se pudo eliminar la cuenta. Intente de nuevo."), "erro");
+      setProcessandoExclusao(false);
       return;
     }
+    fecharConfirmarExclusao();
     await carregar();
+    setProcessandoExclusao(false);
   }
 
   // ========== MODAL BAIXA / ESTORNO ==========
@@ -1495,13 +1511,28 @@ export default function ContasPagarPage() {
     fecharBaixa(); await carregar(); setProcessandoBaixa(false);
   }
 
-  async function estornar(c: ContaPagar) {
-    const { erro } = await estornarBaixaContaPagar(c);
+  // ========== MODAL CONFIRMAR ESTORNO ==========
+  // COMMIT 2 — estornar() rodava direto ao clicar, sem perguntar nada. Agora só
+  // abre o modal; o estorno de fato só acontece em confirmarEstorno().
+  const [modalConfirmarEstorno, setModalConfirmarEstorno] = useState(false);
+  const [contaEstornar, setContaEstornar] = useState<ContaPagar | null>(null);
+  const [processandoEstorno, setProcessandoEstorno] = useState(false);
+
+  function abrirConfirmarEstorno(c: ContaPagar) { setContaEstornar(c); setModalConfirmarEstorno(true); }
+  function fecharConfirmarEstorno() { if (processandoEstorno) return; setModalConfirmarEstorno(false); setContaEstornar(null); }
+
+  async function confirmarEstorno() {
+    if (!contaEstornar) return;
+    setProcessandoEstorno(true);
+    const { erro } = await estornarBaixaContaPagar(contaEstornar);
     if (erro) {
       showToast(L("Não foi possível estornar a baixa. Tente novamente.", "Could not reverse the payment. Try again.", "No se pudo reversar el pago. Intente de nuevo."), "erro");
+      setProcessandoEstorno(false);
       return;
     }
+    fecharConfirmarEstorno();
     await carregar();
+    setProcessandoEstorno(false);
   }
 
   // ========== MODAL GERAR DE CUSTO FIXO ==========
@@ -1823,10 +1854,10 @@ export default function ContasPagarPage() {
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirBaixa(c)} title={L("Dar baixa (marcar como pago)", "Register payment (mark as paid)", "Registrar pago (marcar como pagado)")} style={{ color: VERDE }}><CheckCircle2 size={15} /></motion.button>
                           )}
                           {(c.status === "pago" || c.status === "parcial") && (
-                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => estornar(c)} title={L("Estornar pagamento (desfazer baixa)", "Reverse payment (undo payment)", "Revertir pago (deshacer pago)")} style={{ color: CINZA }}><Undo2 size={15} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarEstorno(c)} title={L("Estornar pagamento (desfazer baixa)", "Reverse payment (undo payment)", "Revertir pago (deshacer pago)")} style={{ color: CINZA }}><Undo2 size={15} /></motion.button>
                           )}
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar conta", "Edit bill", "Editar cuenta")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c)} title={L("Excluir conta", "Delete bill", "Eliminar cuenta")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L("Excluir conta", "Delete bill", "Eliminar cuenta")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
                         </>
                       )}
                     </div>
@@ -3114,6 +3145,86 @@ export default function ContasPagarPage() {
                     <button onClick={confirmarBaixa} disabled={processandoBaixa} className="w-full py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: "linear-gradient(135deg, #059669, #34d399)", color: "#fff" }}>
                       {processandoBaixa ? L("Confirmando...", "Confirming...", "Confirmando...") : L("Confirmar Baixa", "Confirm Payment", "Confirmar Pago")}
+                    </button>
+                  </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL CONFIRMAR ESTORNO ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalConfirmarEstorno && contaEstornar && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
+                <CanvasBox cor={CINZA}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Desfazer pagamento?", "Undo payment?", "¿Deshacer el pago?")}</h3>
+                    </div>
+                    <button onClick={fecharConfirmarEstorno} disabled={processandoEstorno} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <p className="text-sm mb-4" style={{ color: "#c8d8f0" }}>
+                    {L("Tem certeza que deseja desfazer o pagamento desta conta? A conta voltará a ficar em aberto.", "Are you sure you want to undo the payment for this bill? The bill will go back to open.", "¿Seguro que desea deshacer el pago de esta cuenta? La cuenta volverá a quedar abierta.")}
+                  </p>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>{contaEstornar.descricao}</p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={fecharConfirmarEstorno} disabled={processandoEstorno}
+                      className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                      style={{ background: "rgba(255,255,255,0.05)", color: CINZA }}>
+                      {L("Cancelar", "Cancel", "Cancelar")}
+                    </button>
+                    <button onClick={confirmarEstorno} disabled={processandoEstorno}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                      style={{ background: CINZA, color: "#fff" }}>
+                      {processandoEstorno ? L("Estornando...", "Reversing...", "Reversando...") : L("Confirmar Estorno", "Confirm Reversal", "Confirmar Reversión")}
+                    </button>
+                  </div>
+                </CanvasBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body
+      )}
+
+      {/* ====== MODAL CONFIRMAR EXCLUSÃO ====== */}
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {modalConfirmarExclusao && contaExcluir && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-start justify-center z-[100] px-4 pt-24 pb-8 overflow-y-auto"
+              style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
+                <CanvasBox cor={VERMELHO}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
+                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Excluir conta?", "Delete bill?", "¿Eliminar cuenta?")}</h3>
+                    </div>
+                    <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
+                  </div>
+                  <p className="text-sm mb-4" style={{ color: "#c8d8f0" }}>
+                    {L("Excluir esta conta permanentemente? Esta ação não pode ser desfeita.", "Delete this bill permanently? This action cannot be undone.", "¿Eliminar esta cuenta de forma permanente? Esta acción no se puede deshacer.")}
+                  </p>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>{contaExcluir.descricao}</p>
+                  <div className="flex items-center gap-2">
+                    <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao}
+                      className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
+                      style={{ background: "rgba(255,255,255,0.05)", color: CINZA }}>
+                      {L("Cancelar", "Cancel", "Cancelar")}
+                    </button>
+                    <button onClick={confirmarExclusao} disabled={processandoExclusao}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                      style={{ background: VERMELHO, color: "#fff" }}>
+                      {processandoExclusao ? L("Excluindo...", "Deleting...", "Eliminando...") : L("Excluir", "Delete", "Eliminar")}
                     </button>
                   </div>
                 </CanvasBox>

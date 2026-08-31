@@ -370,14 +370,30 @@ export default function ContasReceber() {
     fecharModal(); setSalvando(false); carregar()
   }
 
-  async function excluir(id: string) {
-    const { data, error } = await supabase.from('contas_receber').delete().eq('id', id).select('id')
+  // ========== MODAL CONFIRMAR EXCLUSÃO ==========
+  // VARREDURA (mesma trava do Commit 2 de Contas a Pagar) — excluir() rodava
+  // direto ao clicar, sem perguntar nada. Agora só abre o modal; a exclusão
+  // de fato só acontece em confirmarExclusao().
+  const [modalConfirmarExclusao, setModalConfirmarExclusao] = useState(false)
+  const [contaExcluir, setContaExcluir] = useState<Conta | null>(null)
+  const [processandoExclusao, setProcessandoExclusao] = useState(false)
+
+  function abrirConfirmarExclusao(c: Conta) { setContaExcluir(c); setModalConfirmarExclusao(true) }
+  function fecharConfirmarExclusao() { if (processandoExclusao) return; setModalConfirmarExclusao(false); setContaExcluir(null) }
+
+  async function confirmarExclusao() {
+    if (!contaExcluir) return
+    setProcessandoExclusao(true)
+    const { data, error } = await supabase.from('contas_receber').delete().eq('id', contaExcluir.id).select('id')
     if (error || !data || data.length === 0) {
       showToast(L('Não foi possível excluir a conta. Tente novamente.', 'Could not delete the bill. Try again.', 'No se pudo eliminar la cuenta. Intente de nuevo.'), 'erro')
       reportarFalhaEscrita('contas_receber', 'delete', error?.message || '0 linhas afetadas (RLS?)')
+      setProcessandoExclusao(false)
       return
     }
+    fecharConfirmarExclusao()
     carregar()
+    setProcessandoExclusao(false)
   }
 
   function abrirReceber(c: Conta) {
@@ -1257,7 +1273,7 @@ export default function ContasReceber() {
                             )}
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirCobranca(c)} title={L('Cobrança', 'Collection', 'Cobranza')}><HandCoins size={14} style={{ color: OURO }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)}><Pencil size={14} style={{ color: AZUL }} /></motion.button>
-                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)}><Trash2 size={14} style={{ color: VERMELHO }} /></motion.button>
+                            <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L('Excluir conta', 'Delete bill', 'Eliminar cuenta')}><Trash2 size={14} style={{ color: VERMELHO }} /></motion.button>
                           </div>
                         </td>
                       </motion.tr>
@@ -1441,6 +1457,40 @@ export default function ContasReceber() {
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: `linear-gradient(135deg, ${VERDE}, #059669)`, color: '#fff' }}>
                       {recebendo ? '...' : L('Confirmar', 'Confirm', 'Confirmar')}
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: CONFIRMAR EXCLUSÃO ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {modalConfirmarExclusao && contaExcluir && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-sm">
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERMELHO}35` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Excluir conta?', 'Delete bill?', '¿Eliminar cuenta?')}</h3>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharConfirmarExclusao} disabled={processandoExclusao} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>
+                    {L('Excluir esta conta permanentemente? Esta ação não pode ser desfeita.', 'Delete this bill permanently? This action cannot be undone.', '¿Eliminar esta cuenta de forma permanente? Esta acción no se puede deshacer.')}
+                  </p>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>{contaExcluir.descricao}</p>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao} className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarExclusao} disabled={processandoExclusao}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                      style={{ background: VERMELHO, color: '#fff' }}>
+                      {processandoExclusao ? L('Excluindo...', 'Deleting...', 'Eliminando...') : L('Excluir', 'Delete', 'Eliminar')}
                     </motion.button>
                   </div>
                 </div>
