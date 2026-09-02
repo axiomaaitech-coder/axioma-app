@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, Pencil, Trash2, CheckCircle2, X, Inbox, AlertTriangle, Share2, Crown,
   Copy, Users, Filter, ChevronRight, Bell, MessageSquare, HandCoins, ListChecks,
-  Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon,
+  Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon, Undo2,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
@@ -40,6 +40,7 @@ import {
   heatmapInadimplencia, curvaABCClientes, evolucaoCarteira,
   agruparCarteiraPorCampo, concentracaoTopClientes,
 } from '../../../lib/previsaoRecebimentoHelpers'
+import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -155,6 +156,11 @@ export default function ContasReceber() {
   const [contaReceber, setContaReceber] = useState<Conta | null>(null)
   const [valorReceber, setValorReceber] = useState('')
   const [recebendo, setRecebendo] = useState(false)
+
+  const [modalEstornar, setModalEstornar] = useState(false)
+  const [contaEstornar, setContaEstornar] = useState<Conta | null>(null)
+  const [motivoEstorno, setMotivoEstorno] = useState('')
+  const [estornando, setEstornando] = useState(false)
 
   const [shareAberto, setShareAberto] = useState(false)
   const [drillKpi, setDrillKpi] = useState<string | null>(null)
@@ -367,6 +373,31 @@ export default function ContasReceber() {
       setSalvando(false)
       return
     }
+    // COMMIT 9 — liga ao ledger contábil (mesmo encadeamento do Contas a
+    // Pagar): AR_CREATED reconhece a receita na hora que a conta nasce
+    // (regime de competência); AR_UPDATED só reage no ledger se valor ou
+    // categoria mudaram (o consumidor decide isso, aqui só informamos antes/
+    // depois — mesmo padrão de editarContaPagar).
+    if (editando) {
+      publicarEventoNaoBloqueante(empresaId, 'AR_UPDATED',
+        {
+          conta_id: editando.id, campos: Object.keys(payloadCompleto),
+          valor_antes: editando.valor ?? null, valor_depois: total,
+          categoria_antes: editando.categoria ?? null, categoria_depois: nc.categoria,
+          descricao_depois: nc.descricao, data_emissao_depois: nc.data_emissao || null,
+          centro_custo_id_depois: nc.centro_custo_id || null,
+        },
+        { modulo: 'contas_receber', tabela: 'contas_receber', id: editando.id })
+    } else {
+      publicarEventoNaoBloqueante(empresaId, 'AR_CREATED',
+        {
+          conta_id: data[0].id, cliente_id: nc.cliente_id || null, valor: total,
+          descricao: nc.descricao, categoria: nc.categoria,
+          data_emissao: nc.data_emissao || null, competencia: nc.competencia || null,
+          centro_custo_id: nc.centro_custo_id || null,
+        },
+        { modulo: 'contas_receber', tabela: 'contas_receber', id: data[0].id })
+    }
     fecharModal(); setSalvando(false); carregar()
   }
 
@@ -383,6 +414,13 @@ export default function ContasReceber() {
 
   async function confirmarExclusao() {
     if (!contaExcluir) return
+    // COMMIT 9 — mesma trava do Contas a Pagar: não deixa excluir uma conta
+    // já recebida (precisa estornar o recebimento primeiro), pra nunca
+    // deixar receita fantasma no Razão sem alguém decidir isso de propósito.
+    if (contaExcluir.status === 'recebido') {
+      showToast(L('Não é possível excluir uma conta já recebida. Estorne o recebimento primeiro.', "You can't delete a bill that's already received. Reverse the payment first.", 'No se puede eliminar una cuenta ya cobrada. Primero reversa el cobro.'), 'erro')
+      return
+    }
     setProcessandoExclusao(true)
     const { data, error } = await supabase.from('contas_receber').delete().eq('id', contaExcluir.id).select('id')
     if (error || !data || data.length === 0) {
@@ -391,6 +429,9 @@ export default function ContasReceber() {
       setProcessandoExclusao(false)
       return
     }
+    publicarEventoNaoBloqueante(empresaId, 'AR_DELETED',
+      { conta_id: contaExcluir.id },
+      { modulo: 'contas_receber', tabela: 'contas_receber', id: contaExcluir.id })
     fecharConfirmarExclusao()
     carregar()
     setProcessandoExclusao(false)
@@ -405,11 +446,13 @@ export default function ContasReceber() {
   async function confirmarRecebimento() {
     if (!contaReceber) return
     setRecebendo(true)
-    const novoRecebido = (contaReceber.valor_recebido || 0) + parseFloat(valorReceber || '0')
+    const valorIncremento = parseFloat(valorReceber || '0')
+    const novoRecebido = (contaReceber.valor_recebido || 0) + valorIncremento
+    const hojeStr = new Date().toISOString().split('T')[0]
     const status = statusEfetivo(null, contaReceber.valor, novoRecebido, contaReceber.data_vencimento, 'recebido')
     const { data, error } = await supabase.from('contas_receber').update({
       valor_recebido: novoRecebido, status,
-      data_recebimento: status === 'recebido' ? new Date().toISOString().split('T')[0] : contaReceber.data_recebimento || null,
+      data_recebimento: status === 'recebido' ? hojeStr : contaReceber.data_recebimento || null,
     }).eq('id', contaReceber.id).select('id')
     if (error || !data || data.length === 0) {
       showToast(L('Não foi possível confirmar o recebimento. Tente novamente.', 'Could not confirm the payment. Try again.', 'No se pudo confirmar el cobro. Intente de nuevo.'), 'erro')
@@ -417,7 +460,51 @@ export default function ContasReceber() {
       setRecebendo(false)
       return
     }
+    // COMMIT 9 — valor_incremento é só o que entrou NESTA baixa, não o
+    // acumulado (mesmo cuidado do AP_PAID): uma 2ª baixa parcial não pode
+    // duplicar o que já foi lançado na 1ª.
+    publicarEventoNaoBloqueante(contaReceber.empresa_id ?? empresaId, 'AR_RECEIVED',
+      { conta_id: contaReceber.id, valor_recebido: novoRecebido, valor_incremento: valorIncremento, data_recebimento: hojeStr, forma_recebimento: contaReceber.forma_recebimento },
+      { modulo: 'contas_receber', tabela: 'contas_receber', id: contaReceber.id })
     setModalReceber(false); setContaReceber(null); setValorReceber(''); setRecebendo(false); carregar()
+  }
+
+  // COMMIT 9 — estorno de recebimento (não existia até aqui, nem função nem
+  // tela). Mesma lógica do estorno do AP: reverte pro estado "nada recebido"
+  // e o consumidor estorna o lançamento de baixa pelo PAPEL (crédito em
+  // Clientes), não por "quem publicou" — cobre também recebimento parcial.
+  function abrirEstornar(c: Conta) { setContaEstornar(c); setMotivoEstorno(''); setModalEstornar(true) }
+  function fecharEstornar() { if (estornando) return; setModalEstornar(false); setContaEstornar(null); setMotivoEstorno('') }
+
+  async function confirmarEstorno() {
+    if (!contaEstornar || !motivoEstorno.trim()) return
+    setEstornando(true)
+    const valorEstornado = contaEstornar.valor_recebido || 0
+    const status = statusEfetivo(null, contaEstornar.valor, 0, contaEstornar.data_vencimento, 'recebido')
+    const { data, error } = await supabase.from('contas_receber')
+      .update({ valor_recebido: 0, data_recebimento: null, status })
+      .eq('id', contaEstornar.id).select('id, valor_recebido, status')
+    if (error || !data || data.length === 0) {
+      showToast(L('Não foi possível estornar o recebimento. Tente novamente.', 'Could not reverse the payment. Try again.', 'No se pudo reversar el cobro. Intente de nuevo.'), 'erro')
+      reportarFalhaEscrita('contas_receber', 'update estorno', error?.message || '0 linhas afetadas (RLS?)')
+      setEstornando(false)
+      return
+    }
+    if (Number(data[0].valor_recebido) !== 0 || data[0].status !== status) {
+      showToast(L('Não foi possível confirmar o estorno. Tente novamente.', 'Could not confirm the reversal. Try again.', 'No se pudo confirmar la reversión. Intente de nuevo.'), 'erro')
+      reportarFalhaEscrita('contas_receber', 'update estorno - retorno não confere', `esperado valor_recebido=0 status=${status}, banco devolveu valor_recebido=${data[0].valor_recebido} status=${data[0].status}`)
+      setEstornando(false)
+      return
+    }
+    // Sem tabela de auditoria própria de Contas a Receber (diferente do AP) —
+    // o motivo vai direto no payload do evento; eventos_negocio já é o
+    // registro permanente disso, não precisa duplicar em tabela nova.
+    publicarEventoNaoBloqueante(contaEstornar.empresa_id ?? empresaId, 'AR_PAYMENT_REVERSED',
+      { conta_id: contaEstornar.id, valor: valorEstornado, motivo: motivoEstorno.trim() },
+      { modulo: 'contas_receber', tabela: 'contas_receber', id: contaEstornar.id })
+    fecharEstornar()
+    carregar()
+    setEstornando(false)
   }
 
   // ========== FILTROS DA GRADE (busca + status + período por vencimento) ==========
@@ -1271,6 +1358,11 @@ export default function ContasReceber() {
                                 <CheckCircle2 size={14} style={{ color: VERDE }} />
                               </motion.button>
                             )}
+                            {(c.status === 'recebido' || c.status === 'parcial') && (
+                              <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEstornar(c)} title={L('Estornar recebimento (desfazer baixa)', 'Reverse payment (undo receipt)', 'Revertir cobro (deshacer cobro)')}>
+                                <Undo2 size={14} style={{ color: CINZA }} />
+                              </motion.button>
+                            )}
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirCobranca(c)} title={L('Cobrança', 'Collection', 'Cobranza')}><HandCoins size={14} style={{ color: OURO }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)}><Pencil size={14} style={{ color: AZUL }} /></motion.button>
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L('Excluir conta', 'Delete bill', 'Eliminar cuenta')}><Trash2 size={14} style={{ color: VERMELHO }} /></motion.button>
@@ -1457,6 +1549,46 @@ export default function ContasReceber() {
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: `linear-gradient(135deg, ${VERDE}, #059669)`, color: '#fff' }}>
                       {recebendo ? '...' : L('Confirmar', 'Confirm', 'Confirmar')}
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body,
+      )}
+
+      {/* ================= MODAL: ESTORNAR RECEBIMENTO ================= */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {modalEstornar && contaEstornar && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }} onClick={fecharEstornar}>
+              <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
+                className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERMELHO}35` }}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Estornar recebimento?', 'Reverse payment?', '¿Revertir cobro?')}</h3>
+                    <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharEstornar} disabled={estornando} style={{ color: CINZA }}><X size={20} /></motion.button>
+                  </div>
+                  <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>
+                    {L('Desfaz o recebimento registrado e volta a conta pra "a receber". Esta ação não pode ser desfeita.', 'Undoes the registered payment and moves the bill back to "pending". This action cannot be undone.', 'Deshace el cobro registrado y devuelve la cuenta a "por cobrar". Esta acción no se puede deshacer.')}
+                  </p>
+                  <p className="text-xs mb-4" style={{ color: CINZA }}>{contaEstornar.descricao} — {fBRL(contaEstornar.valor_recebido || 0)}</p>
+                  <div className="mb-4">
+                    <label className={labelInput} style={{ color: TEAL }}>{L('Motivo do estorno', 'Reversal reason', 'Motivo del reverso')} *</label>
+                    <input type="text" value={motivoEstorno} onChange={(e) => setMotivoEstorno(e.target.value)} disabled={estornando}
+                      placeholder={L('Ex.: recebimento em duplicidade', 'E.g.: duplicate payment', 'Ej.: cobro duplicado')}
+                      className={inputCls} style={inputStyle} />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={fecharEstornar} disabled={estornando} className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarEstorno} disabled={estornando || !motivoEstorno.trim()}
+                      className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
+                      style={{ background: VERMELHO, color: '#fff' }}>
+                      {estornando ? L('Estornando...', 'Reversing...', 'Reversando...') : L('Estornar', 'Reverse', 'Revertir')}
                     </motion.button>
                   </div>
                 </div>
