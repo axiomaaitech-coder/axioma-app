@@ -52,8 +52,19 @@
 // é o cliente pagando a empresa — dinheiro entrando, ativo — por isso tem
 // mapa PRÓPRIO (FORMA_RECEBIMENTO_PARA_CODIGO), separado do mapa de
 // PAGAMENTO (FORMA_PAGAMENTO_PARA_CODIGO, onde "Cartão de Crédito" é a
-// empresa pagando NO PRÓPRIO cartão — aí sim passivo, 3.06). Ver nota do
-// Commit 10 sobre o bug que isso corrige no PDV.
+// empresa pagando NO PRÓPRIO cartão — aí sim passivo, 3.06).
+//
+// COMMIT 10 — corrige um bug latente que já estava em produção desde o
+// Commit 6/7: gerarLancamentoVenda (SALE_CREATED, PDV) reusava o mapa de
+// PAGAMENTO pro débito da venda, debitando 3.06 "Cartão de Crédito a
+// Pagar" (passivo) numa venda paga no cartão de crédito do CLIENTE — sem
+// sentido, não existe dívida da empresa nesse caso, é dinheiro entrando.
+// Passa a usar FORMA_RECEBIMENTO_PARA_CODIGO (decisão do Elias em
+// 2026-09-02: sem conta "Cartão de Crédito a Receber" nova no plano,
+// simplifica caindo em 1.02 Bancos — mesma simplificação que o app já faz,
+// sem rastreio de prazo de liquidação de adquirente em lugar nenhum hoje).
+// Só vale pra lançamentos NOVOS — não desfaz nem corrige nenhum lançamento
+// já gravado (ledger imutável por desenho).
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -306,7 +317,7 @@ async function gerarLancamentoVenda(
 ): Promise<void> {
   if (!(valorTotal > 0)) return;
   const contas = await mapaContasPorCodigo(empresaId);
-  const codigoAtivo = FORMA_PAGAMENTO_PARA_CODIGO[formaPagamento ?? ""] ?? CODIGO_ATIVO_PADRAO;
+  const codigoAtivo = FORMA_RECEBIMENTO_PARA_CODIGO[formaPagamento ?? ""] ?? CODIGO_ATIVO_PADRAO;
   const contaAtivoId = contas[codigoAtivo];
   if (!contaAtivoId) {
     reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (SALE_CREATED)", `código ${codigoAtivo} não encontrado na empresa ${empresaId}`);
