@@ -31,6 +31,29 @@
 // TypeScript — custo/margem não pode passar pelo navegador do operador (ver
 // gerarLancamentoVenda). Fora do escopo: cancelamento/estorno de venda,
 // múltiplas formas de pagamento, venda a prazo — nenhum existe no PDV hoje.
+//
+// COMMIT 8/9 — CONTAS A RECEBER: de-para aprovado com o Elias em 2026-09-02:
+//   AR_CREATED  → débito 1.04 Clientes / crédito conta de receita pela
+//                 categoria (6.01 Vendas, 6.02 Serviços/Mensalidade/
+//                 Consultoria) — regime de competência, mesma lógica do
+//                 AP_CREATED espelhada pro lado do recebimento. Confirmado
+//                 que contas_receber não tem nenhum vínculo (FK/trigger) com
+//                 a venda do PDV — nasce sempre de lançamento manual do
+//                 módulo, então nunca duplica a receita já reconhecida em
+//                 SALE_CREATED.
+//   AR_RECEIVED → débito conta de ativo pela forma de recebimento / crédito
+//                 1.04 Clientes (baixa o que o cliente devia) — nunca toca
+//                 receita de novo, ela já foi reconhecida no AR_CREATED.
+//   AR_PAYMENT_REVERSED / AR_DELETED / AR_UPDATED → mesmo desenho do espelho
+//                 AP: nunca edita lançamento existente, sempre estorna
+//                 (lançamento espelho) e, se for edição, lança de novo.
+//
+// "Cartão de Crédito" no de-para de RECEBIMENTO (SALE_CREATED, AR_RECEIVED)
+// é o cliente pagando a empresa — dinheiro entrando, ativo — por isso tem
+// mapa PRÓPRIO (FORMA_RECEBIMENTO_PARA_CODIGO), separado do mapa de
+// PAGAMENTO (FORMA_PAGAMENTO_PARA_CODIGO, onde "Cartão de Crédito" é a
+// empresa pagando NO PRÓPRIO cartão — aí sim passivo, 3.06). Ver nota do
+// Commit 10 sobre o bug que isso corrige no PDV.
 
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
@@ -86,6 +109,7 @@ export async function publicarEventoNaoBloqueante(
 // ============================================================================
 
 const CODIGO_FORNECEDORES = "3.01";
+const CODIGO_CLIENTES = "1.04";
 
 const CATEGORIA_PARA_CODIGO: Record<CategoriaDespesa, string> = {
   "Produtos": "7.01",
@@ -97,6 +121,22 @@ const CATEGORIA_PARA_CODIGO: Record<CategoriaDespesa, string> = {
 };
 const CODIGO_DESPESA_PADRAO = "8.02"; // categoria fora do enum conhecido — não deveria acontecer, enum é fechado
 
+// CATEGORIAS do módulo Contas a Receber (contas-receber/page.tsx: CATEGORIAS)
+// — "Vendas" cai em Produtos (6.01) por simetria com o PDV; os demais em
+// Serviços (6.02). "Outros" cai no padrão de produtos por não ter conta
+// dedicada — mesmo raciocínio do CODIGO_DESPESA_PADRAO do lado do AP.
+const CATEGORIA_RECEITA_PARA_CODIGO: Record<string, string> = {
+  "Vendas": "6.01",
+  "Serviços": "6.02",
+  "Mensalidade": "6.02",
+  "Consultoria": "6.02",
+  "Outros": "6.01",
+};
+const CODIGO_RECEITA_PADRAO = "6.01";
+
+// Mapa de PAGAMENTO — a empresa gastando (AP_PAID). "Cartão de Crédito" cai
+// em passivo (3.06): pagar no próprio cartão troca uma dívida por outra,
+// nunca é saída de caixa.
 const FORMA_PAGAMENTO_PARA_CODIGO: Record<string, string> = {
   "Dinheiro": "1.01",
   "PIX": "1.02",
@@ -106,6 +146,21 @@ const FORMA_PAGAMENTO_PARA_CODIGO: Record<string, string> = {
   "Cartão de Crédito": "3.06",
 };
 const CODIGO_ATIVO_PADRAO = "1.02"; // forma de pagamento fora do enum conhecido
+
+// Mapa de RECEBIMENTO — a empresa recebendo (SALE_CREATED, AR_RECEIVED).
+// Único ponto de diferença do mapa de pagamento: "Cartão de Crédito" aqui é
+// o cliente pagando a empresa, dinheiro entrando — tem que ser ativo, nunca
+// a conta de passivo do cartão da própria empresa (ver nota no topo do
+// arquivo). Sem conta dedicada de "Cartão de Crédito a Receber" no plano —
+// simplifica em Bancos, mesma aproximação usada em todo o resto do app.
+const FORMA_RECEBIMENTO_PARA_CODIGO: Record<string, string> = {
+  "Dinheiro": "1.01",
+  "PIX": "1.02",
+  "Boleto": "1.02",
+  "Transferência": "1.02",
+  "Cartão de Débito": "1.02",
+  "Cartão de Crédito": "1.02",
+};
 
 // ============================================================================
 // MAPA DO PLANO DE CONTAS — resolve código → id. Busca tudo de uma vez (o
@@ -129,15 +184,16 @@ function hojeISO(): string {
 
 async function estornarLancamentosPorPapel(
   empresaId: string,
+  origemTabela: "contas_pagar" | "contas_receber",
   origemId: string,
-  contaFornecedoresId: string,
-  ladoNaFornecedores: "debito" | "credito",
+  contaPapelId: string,
+  ladoNaConta: "debito" | "credito",
   descricao: string,
 ): Promise<void> {
   const { data: cabecalhos, error: erroCabecalhos } = await supabase
     .from("lancamento_contabil")
     .select("id")
-    .eq("empresa_id", empresaId).eq("origem_tabela", "contas_pagar").eq("origem_id", origemId)
+    .eq("empresa_id", empresaId).eq("origem_tabela", origemTabela).eq("origem_id", origemId)
     .is("estornado_por_id", null);
   if (erroCabecalhos) {
     reportarFalhaEscrita("lancamento_contabil", "buscar lançamentos p/ estorno automático", erroCabecalhos.message);
@@ -150,7 +206,7 @@ async function estornarLancamentosPorPapel(
     .from("lancamento_contabil_partida")
     .select("lancamento_id")
     .in("lancamento_id", idsCandidatos)
-    .eq("conta_id", contaFornecedoresId).eq("tipo", ladoNaFornecedores);
+    .eq("conta_id", contaPapelId).eq("tipo", ladoNaConta);
   if (erroPartidas) {
     reportarFalhaEscrita("lancamento_contabil_partida", "buscar partidas p/ estorno automático", erroPartidas.message);
     return;
@@ -263,10 +319,74 @@ async function gerarLancamentoVenda(
 }
 
 // ============================================================================
-// CONSUMIDOR — chamado por contasPagarHelpers.ts logo depois que o evento é
-// publicado com sucesso em eventos_negocio. Só trata origem "contas_pagar";
-// outros módulos que um dia publicarem eventos ficam de fora até terem seu
-// próprio de-para revisado (nunca improvisado aqui).
+// GERAR RECEITA + BAIXA DA CONTA A RECEBER (Commit 8/9) — espelho de
+// gerarReconhecimentoDespesa/gerarQuitacao pro lado do recebimento. Não
+// precisa de RPC própria (diferente do PDV): Contas a Receber não tem papel
+// operador escondendo custo/margem, é módulo do próprio CFO/dono — as
+// partidas podem ser montadas aqui, igual ao AP.
+// ============================================================================
+
+async function gerarReconhecimentoReceita(
+  empresaId: string,
+  origemId: string,
+  categoria: string | null | undefined,
+  valor: number,
+  descricaoConta: string | null | undefined,
+  dataCompetencia: string,
+  centroCustoId?: string | null,
+): Promise<void> {
+  if (!(valor > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const codigoReceita = CATEGORIA_RECEITA_PARA_CODIGO[categoria ?? ""] ?? CODIGO_RECEITA_PADRAO;
+  const contaReceitaId = contas[codigoReceita];
+  const contaClientesId = contas[CODIGO_CLIENTES];
+  if (!contaReceitaId || !contaClientesId) {
+    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AR_CREATED)", `código ${codigoReceita} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
+    return;
+  }
+  const partidas: PartidaContabilInput[] = [
+    { contaId: contaClientesId, tipo: "debito", valor },
+    { contaId: contaReceitaId, tipo: "credito", valor, centroCustoId: centroCustoId ?? null },
+  ];
+  const descricao = descricaoConta ? `Conta a receber: ${descricaoConta}` : "Conta a receber";
+  const { erro } = await registrarLancamentoContabil(empresaId, dataCompetencia, descricao, partidas, {
+    origemTabela: "contas_receber", origemId,
+  });
+  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar reconhecimento de receita (AR_CREATED)", erro);
+}
+
+async function gerarBaixaRecebimento(
+  empresaId: string,
+  origemId: string,
+  formaRecebimento: string | null | undefined,
+  valor: number,
+  dataRecebimento: string,
+): Promise<void> {
+  if (!(valor > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const codigoAtivo = FORMA_RECEBIMENTO_PARA_CODIGO[formaRecebimento ?? ""] ?? CODIGO_ATIVO_PADRAO;
+  const contaAtivoId = contas[codigoAtivo];
+  const contaClientesId = contas[CODIGO_CLIENTES];
+  if (!contaAtivoId || !contaClientesId) {
+    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (AR_RECEIVED)", `código ${codigoAtivo} ou ${CODIGO_CLIENTES} não encontrado na empresa ${empresaId}`);
+    return;
+  }
+  const partidas: PartidaContabilInput[] = [
+    { contaId: contaAtivoId, tipo: "debito", valor },
+    { contaId: contaClientesId, tipo: "credito", valor },
+  ];
+  const { erro } = await registrarLancamentoContabil(empresaId, dataRecebimento, "Recebimento de conta a receber", partidas, {
+    origemTabela: "contas_receber", origemId,
+  });
+  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar baixa de recebimento (AR_RECEIVED)", erro);
+}
+
+// ============================================================================
+// CONSUMIDOR — chamado por publicarEventoNaoBloqueante logo depois que o
+// evento é publicado com sucesso em eventos_negocio. Só trata origem
+// "contas_pagar", "venda" e "contas_receber"; outros módulos que um dia
+// publicarem eventos ficam de fora até terem seu próprio de-para revisado
+// (nunca improvisado aqui).
 // ============================================================================
 
 export async function processarEventoContabil(
@@ -275,7 +395,7 @@ export async function processarEventoContabil(
   origem: OrigemEvento,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  if (!origem.id || (origem.tabela !== "contas_pagar" && origem.tabela !== "venda")) return;
+  if (!origem.id || (origem.tabela !== "contas_pagar" && origem.tabela !== "venda" && origem.tabela !== "contas_receber")) return;
   const origemId = origem.id;
 
   try {
@@ -313,7 +433,7 @@ export async function processarEventoContabil(
         if (!contaFornecedoresId) break;
         // Papel do AP_PAID = débito em Fornecedores (quitação) — reverte todo
         // pagamento ainda não estornado, cobre também baixas parciais.
-        await estornarLancamentosPorPapel(empresaId, origemId, contaFornecedoresId, "debito", "Estorno de pagamento");
+        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "debito", "Estorno de pagamento");
         break;
       }
       case "AP_DELETED": {
@@ -322,7 +442,7 @@ export async function processarEventoContabil(
         if (!contaFornecedoresId) break;
         // Papel do AP_CREATED = crédito em Fornecedores (reconhecimento) —
         // sem isto, excluir uma conta em aberto deixava despesa fantasma no Razão.
-        await estornarLancamentosPorPapel(empresaId, origemId, contaFornecedoresId, "credito", "Estorno por exclusão da conta");
+        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por exclusão da conta");
         break;
       }
       case "AP_UPDATED": {
@@ -334,9 +454,62 @@ export async function processarEventoContabil(
         const contas = await mapaContasPorCodigo(empresaId);
         const contaFornecedoresId = contas[CODIGO_FORNECEDORES];
         if (!contaFornecedoresId) break;
-        await estornarLancamentosPorPapel(empresaId, origemId, contaFornecedoresId, "credito", "Estorno por edição (valor/categoria alterados)");
+        await estornarLancamentosPorPapel(empresaId, "contas_pagar", origemId, contaFornecedoresId, "credito", "Estorno por edição (valor/categoria alterados)");
         const dataCompetencia = (payload.data_emissao_depois as string) || hojeISO();
         await gerarReconhecimentoDespesa(
+          empresaId, origemId, payload.categoria_depois as string | null,
+          Number(payload.valor_depois) || 0, payload.descricao_depois as string | null, dataCompetencia,
+          payload.centro_custo_id_depois as string | null,
+        );
+        break;
+      }
+      case "AR_CREATED": {
+        const dataCompetencia = (payload.data_emissao as string) || (payload.competencia as string) || hojeISO();
+        await gerarReconhecimentoReceita(
+          empresaId, origemId, payload.categoria as string | null,
+          Number(payload.valor) || 0, payload.descricao as string | null, dataCompetencia,
+          payload.centro_custo_id as string | null,
+        );
+        break;
+      }
+      case "AR_RECEIVED": {
+        const incremento = Number(payload.valor_incremento) || 0;
+        await gerarBaixaRecebimento(
+          empresaId, origemId, payload.forma_recebimento as string | null,
+          incremento, (payload.data_recebimento as string) || hojeISO(),
+        );
+        break;
+      }
+      case "AR_PAYMENT_REVERSED": {
+        const contas = await mapaContasPorCodigo(empresaId);
+        const contaClientesId = contas[CODIGO_CLIENTES];
+        if (!contaClientesId) break;
+        // Papel do AR_RECEIVED = crédito em Clientes (baixa) — reverte todo
+        // recebimento ainda não estornado, cobre também baixas parciais.
+        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "credito", "Estorno de recebimento");
+        break;
+      }
+      case "AR_DELETED": {
+        const contas = await mapaContasPorCodigo(empresaId);
+        const contaClientesId = contas[CODIGO_CLIENTES];
+        if (!contaClientesId) break;
+        // Papel do AR_CREATED = débito em Clientes (reconhecimento) — sem
+        // isto, excluir uma conta em aberto deixava receita fantasma no Razão.
+        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "debito", "Estorno por exclusão da conta");
+        break;
+      }
+      case "AR_UPDATED": {
+        const valorMudou = payload.valor_antes != null && payload.valor_depois != null
+          && Number(payload.valor_antes) !== Number(payload.valor_depois);
+        const categoriaMudou = payload.categoria_antes !== undefined && payload.categoria_depois !== undefined
+          && payload.categoria_antes !== payload.categoria_depois;
+        if (!valorMudou && !categoriaMudou) break;
+        const contas = await mapaContasPorCodigo(empresaId);
+        const contaClientesId = contas[CODIGO_CLIENTES];
+        if (!contaClientesId) break;
+        await estornarLancamentosPorPapel(empresaId, "contas_receber", origemId, contaClientesId, "debito", "Estorno por edição (valor/categoria alterados)");
+        const dataCompetencia = (payload.data_emissao_depois as string) || hojeISO();
+        await gerarReconhecimentoReceita(
           empresaId, origemId, payload.categoria_depois as string | null,
           Number(payload.valor_depois) || 0, payload.descricao_depois as string | null, dataCompetencia,
           payload.centro_custo_id_depois as string | null,
