@@ -40,7 +40,10 @@ export type TipoEventoConhecido =
   | "AR_OVERDUE"
   | "INVOICE_APPROVED"
   | "BANK_RECONCILED"
-  | "ACCOUNTING_ENTRY_CREATED";
+  | "ACCOUNTING_ENTRY_CREATED"
+  | "STOCK_ENTRY_MANUAL"
+  | "STOCK_ADJUSTMENT"
+  | "STOCK_LOSS";
 
 export type TipoEvento = TipoEventoConhecido | (string & {});
 

@@ -6,6 +6,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as XLSX from "xlsx";
 import * as Sentry from "@sentry/nextjs";
+import { publicarEventoNaoBloqueante } from "./contabilidadeConsumidor";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -362,6 +363,24 @@ export async function criarMovimentacao(empresaId: string, userId: string, mov: 
     const motivo = error?.message || "0 linhas afetadas (RLS?)";
     reportarFalhaEscrita("estoque_movimentacoes", "insert", motivo);
     return { erro: motivo };
+  }
+  // COMMIT 11 — liga ao ledger contábil, só nos 3 casos que não duplicam
+  // outro lançamento já existente: entrada manual (sem NF-e), ajuste e
+  // perda/quebra. NF-e (origem "nfe") já é reconhecida pelo contas_pagar da
+  // nota (AP_CREATED); saída de venda (origem "pdv") já sai pelo CMV da
+  // própria venda (SALE_CREATED) — nenhum dos dois pode lançar de novo aqui,
+  // senão conta a mesma coisa 2x. Ver nota completa em contabilidadeConsumidor.ts.
+  const origemMov = mov.origem ?? "manual";
+  const statusRecebimento = mov.status_recebimento ?? "confirmada";
+  const destinoSaldo = mov.destino_saldo ?? "disponivel";
+  let tipoEventoEstoque: "STOCK_ENTRY_MANUAL" | "STOCK_ADJUSTMENT" | "STOCK_LOSS" | null = null;
+  if (mov.tipo === "entrada" && origemMov === "manual" && statusRecebimento === "confirmada") tipoEventoEstoque = "STOCK_ENTRY_MANUAL";
+  else if ((mov.tipo === "ajuste" || mov.tipo === "inventario") && destinoSaldo === "disponivel") tipoEventoEstoque = "STOCK_ADJUSTMENT";
+  else if (mov.tipo === "perda") tipoEventoEstoque = "STOCK_LOSS";
+  if (tipoEventoEstoque) {
+    publicarEventoNaoBloqueante(empresaId, tipoEventoEstoque,
+      { produto_id: mov.produto_id, quantidade: mov.quantidade, custo_unitario: mov.custo_unitario ?? null, data_hora: mov.data_hora || new Date().toISOString(), motivo: mov.motivo ?? null },
+      { modulo: "estoque", tabela: "estoque_movimentacoes", id: data.id });
   }
   return { id: data.id };
 }

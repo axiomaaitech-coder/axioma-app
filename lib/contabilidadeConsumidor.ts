@@ -121,6 +121,13 @@ export async function publicarEventoNaoBloqueante(
 
 const CODIGO_FORNECEDORES = "3.01";
 const CODIGO_CLIENTES = "1.04";
+const CODIGO_ESTOQUES = "1.05";
+// Contas NOVAS, ainda não existem no plano padrão (SQL em arquivo separado,
+// não aplicado) — até o Elias rodar aquele SQL, um ajuste/perda de estoque
+// não encontra a conta e só reporta no Sentry (mesmo padrão de "conta não
+// encontrada" já usado em todo o resto deste arquivo), sem lançar errado.
+const CODIGO_GANHO_AJUSTE_ESTOQUE = "6.05";
+const CODIGO_PERDA_ESTOQUE = "8.09";
 
 const CATEGORIA_PARA_CODIGO: Record<CategoriaDespesa, string> = {
   "Produtos": "7.01",
@@ -227,6 +234,38 @@ async function estornarLancamentosPorPapel(
   for (const lancamentoId of idsAlvo) {
     const { error: erroRpc } = await supabase.rpc("contabil_estornar_lancamento", {
       p_lancamento_id: lancamentoId, p_data: hojeISO(), p_descricao: descricao,
+    });
+    if (erroRpc) reportarFalhaEscrita("lancamento_contabil", "rpc contabil_estornar_lancamento", erroRpc.message);
+  }
+}
+
+// ============================================================================
+// ESTORNO POR ORIGEM (Estoque, Caixa) — mais simples que o estorno por papel
+// acima: estoque_movimentacoes e caixa_movimentacao nunca têm dois eventos
+// diferentes (tipo AP_CREATED + AP_PAID) apontando pro MESMO origem_id, cada
+// linha gera no máximo 1 lançamento — então basta achar todo lançamento não
+// estornado com esse (origem_tabela, origem_id) e reverter, sem precisar
+// saber qual conta/lado ele mexeu.
+// ============================================================================
+
+async function estornarLancamentosPorOrigem(
+  empresaId: string,
+  origemTabela: "estoque_movimentacoes" | "caixa_movimentacao",
+  origemId: string,
+  descricao: string,
+): Promise<void> {
+  const { data: cabecalhos, error: erroCabecalhos } = await supabase
+    .from("lancamento_contabil")
+    .select("id")
+    .eq("empresa_id", empresaId).eq("origem_tabela", origemTabela).eq("origem_id", origemId)
+    .is("estornado_por_id", null);
+  if (erroCabecalhos) {
+    reportarFalhaEscrita("lancamento_contabil", "buscar lançamentos p/ estorno automático", erroCabecalhos.message);
+    return;
+  }
+  for (const c of cabecalhos || []) {
+    const { error: erroRpc } = await supabase.rpc("contabil_estornar_lancamento", {
+      p_lancamento_id: c.id, p_data: hojeISO(), p_descricao: descricao,
     });
     if (erroRpc) reportarFalhaEscrita("lancamento_contabil", "rpc contabil_estornar_lancamento", erroRpc.message);
   }
@@ -393,11 +432,126 @@ async function gerarBaixaRecebimento(
 }
 
 // ============================================================================
+// ESTOQUE (Commit 11) — DE-PARA aprovado com o Elias em 2026-09-02.
+//
+// DUPLA CONTAGEM — o ponto crítico: nem toda entrada em estoque_movimentacoes
+// vira lançamento. Só `origem: "manual"` (compra sem NF-e, ou primeira carga
+// de lote de um produto novo — ver PdvCadastroProduto.tsx/estoque/page.tsx)
+// gera reconhecimento de estoque aqui. Mercadoria que entra por NF-e
+// (`origem: "nfe"`, pdv/importar-nfe/page.tsx) NÃO lança de novo — o
+// contas_pagar nascido daquela mesma nota já reconhece o valor via
+// AP_CREATED (débito despesa/categoria, crédito Fornecedores); lançar de
+// novo aqui contaria a mesma compra 2x. Saída de estoque por venda
+// (`origem: "pdv"`, baixarEstoqueVenda) também NÃO lança de novo — o CMV já
+// sai pela RPC contabil_registrar_lancamento_venda (SALE_CREATED). `origem:
+// "importacao"` (bulk/migração) fica de fora por ora: nenhum call site do
+// código usa esse valor hoje, e dado histórico de migração não é fato
+// financeiro do dia a dia — mais seguro não adivinhar do que lançar errado.
+//
+// VALOR — quando a linha não tem custo_unitario (comum em ajuste/perda
+// lançados na tela rápida de "Nova Movimentação", campo opcional), busca o
+// preco_medio ATUAL do produto: a trigger fn_estoque_recalcular_produto (já
+// em produção) usa exatamente esse valor pra compor o saldo de um ajuste, e
+// pra 'perda' já today faz o mesmo backfill em NEW.custo_unitario antes de
+// gravar — ler de volta depois do insert dá o número certo nos dois casos.
+// ============================================================================
+
+async function custoUnitarioEfetivo(produtoId: string, custoDaLinha: number | null | undefined): Promise<number> {
+  if (custoDaLinha != null && custoDaLinha > 0) return custoDaLinha;
+  const { data } = await supabase.from("produtos").select("preco_medio").eq("id", produtoId).maybeSingle();
+  return Number((data as { preco_medio: number } | null)?.preco_medio) || 0;
+}
+
+async function gerarEntradaEstoqueManual(
+  empresaId: string,
+  origemId: string,
+  produtoId: string,
+  quantidade: number,
+  custoUnitario: number | null | undefined,
+  dataMovimento: string,
+): Promise<void> {
+  const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
+  const valor = quantidade * custo;
+  if (!(valor > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const contaEstoquesId = contas[CODIGO_ESTOQUES];
+  const contaAtivoId = contas[CODIGO_ATIVO_PADRAO];
+  if (!contaEstoquesId || !contaAtivoId) {
+    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (STOCK_ENTRY_MANUAL)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_ATIVO_PADRAO} não encontrado na empresa ${empresaId}`);
+    return;
+  }
+  const partidas: PartidaContabilInput[] = [
+    { contaId: contaEstoquesId, tipo: "debito", valor },
+    { contaId: contaAtivoId, tipo: "credito", valor },
+  ];
+  const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, "Entrada de estoque (compra manual)", partidas, {
+    origemTabela: "estoque_movimentacoes", origemId,
+  });
+  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar entrada de estoque (STOCK_ENTRY_MANUAL)", erro);
+}
+
+async function gerarAjusteEstoque(
+  empresaId: string,
+  origemId: string,
+  produtoId: string,
+  quantidade: number,
+  custoUnitario: number | null | undefined,
+  dataMovimento: string,
+): Promise<void> {
+  const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
+  const valor = quantidade * custo;
+  if (!(valor > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const contaEstoquesId = contas[CODIGO_ESTOQUES];
+  const contaGanhoId = contas[CODIGO_GANHO_AJUSTE_ESTOQUE];
+  if (!contaEstoquesId || !contaGanhoId) {
+    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (STOCK_ADJUSTMENT)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_GANHO_AJUSTE_ESTOQUE} não encontrado na empresa ${empresaId} — rode o SQL novo de contas`);
+    return;
+  }
+  const partidas: PartidaContabilInput[] = [
+    { contaId: contaEstoquesId, tipo: "debito", valor },
+    { contaId: contaGanhoId, tipo: "credito", valor },
+  ];
+  const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, "Ajuste de estoque (contagem)", partidas, {
+    origemTabela: "estoque_movimentacoes", origemId,
+  });
+  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar ajuste de estoque (STOCK_ADJUSTMENT)", erro);
+}
+
+async function gerarPerdaEstoque(
+  empresaId: string,
+  origemId: string,
+  produtoId: string,
+  quantidade: number,
+  custoUnitario: number | null | undefined,
+  dataMovimento: string,
+): Promise<void> {
+  const custo = await custoUnitarioEfetivo(produtoId, custoUnitario);
+  const valor = quantidade * custo;
+  if (!(valor > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const contaEstoquesId = contas[CODIGO_ESTOQUES];
+  const contaPerdaId = contas[CODIGO_PERDA_ESTOQUE];
+  if (!contaEstoquesId || !contaPerdaId) {
+    reportarFalhaEscrita("plano_de_contas", "resolver conta do de-para (STOCK_LOSS)", `código ${CODIGO_ESTOQUES} ou ${CODIGO_PERDA_ESTOQUE} não encontrado na empresa ${empresaId} — rode o SQL novo de contas`);
+    return;
+  }
+  const partidas: PartidaContabilInput[] = [
+    { contaId: contaPerdaId, tipo: "debito", valor },
+    { contaId: contaEstoquesId, tipo: "credito", valor },
+  ];
+  const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, "Perda/quebra de estoque", partidas, {
+    origemTabela: "estoque_movimentacoes", origemId,
+  });
+  if (erro) reportarFalhaEscrita("lancamento_contabil", "gerar perda de estoque (STOCK_LOSS)", erro);
+}
+
+// ============================================================================
 // CONSUMIDOR — chamado por publicarEventoNaoBloqueante logo depois que o
 // evento é publicado com sucesso em eventos_negocio. Só trata origem
-// "contas_pagar", "venda" e "contas_receber"; outros módulos que um dia
-// publicarem eventos ficam de fora até terem seu próprio de-para revisado
-// (nunca improvisado aqui).
+// "contas_pagar", "venda", "contas_receber" e "estoque_movimentacoes"; outros
+// módulos que um dia publicarem eventos ficam de fora até terem seu próprio
+// de-para revisado (nunca improvisado aqui).
 // ============================================================================
 
 export async function processarEventoContabil(
@@ -406,7 +560,8 @@ export async function processarEventoContabil(
   origem: OrigemEvento,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  if (!origem.id || (origem.tabela !== "contas_pagar" && origem.tabela !== "venda" && origem.tabela !== "contas_receber")) return;
+  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes"];
+  if (!origem.id || !origem.tabela || !origensConhecidas.includes(origem.tabela)) return;
   const origemId = origem.id;
 
   try {
@@ -524,6 +679,27 @@ export async function processarEventoContabil(
           empresaId, origemId, payload.categoria_depois as string | null,
           Number(payload.valor_depois) || 0, payload.descricao_depois as string | null, dataCompetencia,
           payload.centro_custo_id_depois as string | null,
+        );
+        break;
+      }
+      case "STOCK_ENTRY_MANUAL": {
+        await gerarEntradaEstoqueManual(
+          empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
+          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
+        );
+        break;
+      }
+      case "STOCK_ADJUSTMENT": {
+        await gerarAjusteEstoque(
+          empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
+          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
+        );
+        break;
+      }
+      case "STOCK_LOSS": {
+        await gerarPerdaEstoque(
+          empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
+          payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
         );
         break;
       }
