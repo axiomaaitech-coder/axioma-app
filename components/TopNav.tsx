@@ -45,6 +45,16 @@ const grupos = [
     ]
   },
   {
+    label: { pt: "📒 Contabilidade", en: "📒 Accounting", es: "📒 Contabilidad" },
+    cor: "#14b8a6",
+    corBg: "rgba(20,184,166,0.12)",
+    itens: [
+      { label: { pt: "Livro Razão", en: "General Ledger", es: "Libro Mayor" }, path: "/contabilidade/razao", emoji: "📖" },
+      { label: { pt: "Balancete", en: "Trial Balance", es: "Balance de Comprobación" }, path: "/contabilidade/balancete", emoji: "⚖️" },
+      { label: { pt: "DRE Contábil", en: "Income Statement", es: "Estado de Resultados" }, path: "/contabilidade/dre", emoji: "📑" },
+    ]
+  },
+  {
     label: { pt: "📈 Crescimento", en: "📈 Growth", es: "📈 Crecimiento" },
     cor: "#34d399",
     corBg: "rgba(52,211,153,0.12)",
