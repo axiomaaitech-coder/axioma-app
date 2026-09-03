@@ -43,7 +43,11 @@ export type TipoEventoConhecido =
   | "ACCOUNTING_ENTRY_CREATED"
   | "STOCK_ENTRY_MANUAL"
   | "STOCK_ADJUSTMENT"
-  | "STOCK_LOSS";
+  | "STOCK_LOSS"
+  | "CASH_WITHDRAWAL"
+  | "CASH_DEPOSIT"
+  | "CASH_MOVEMENT_UPDATED"
+  | "CASH_MOVEMENT_DELETED";
 
 export type TipoEvento = TipoEventoConhecido | (string & {});
 

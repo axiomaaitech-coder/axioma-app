@@ -128,6 +128,8 @@ const CODIGO_ESTOQUES = "1.05";
 // encontrada" já usado em todo o resto deste arquivo), sem lançar errado.
 const CODIGO_GANHO_AJUSTE_ESTOQUE = "6.05";
 const CODIGO_PERDA_ESTOQUE = "8.09";
+const CODIGO_CAIXA = "1.01";
+const CODIGO_BANCOS = "1.02";
 
 const CATEGORIA_PARA_CODIGO: Record<CategoriaDespesa, string> = {
   "Produtos": "7.01",
@@ -547,11 +549,55 @@ async function gerarPerdaEstoque(
 }
 
 // ============================================================================
+// CAIXA (Commit — sangria/suprimento do turno de PDV, lib/retaguardaHelpers.ts)
+// DE-PARA aprovado com o Elias em 2026-09-02 (Opção A, simplificada): sangria
+// e suprimento só movimentam ativo↔ativo (Caixa 1.01 ↔ Bancos 1.02), nunca
+// tocam receita/despesa — dinheiro trocando de lugar, não é ganho nem perda.
+// Não existe campo de "destino" estruturado em caixa_movimentacao (só um
+// `motivo` texto livre) — dá pra saber QUE saiu do caixa, não PRA ONDE.
+// Chutar a conta por texto livre violaria "deterministic-first"; a opção
+// aprovada assume o caso mais comum (sangria vai pro banco, suprimento vem
+// do banco) em vez de inventar um campo de destino novo ou uma conta
+// "transitória" que ninguém pediu.
+//   Sangria    → débito 1.02 Bancos / crédito 1.01 Caixa.
+//   Suprimento → débito 1.01 Caixa / crédito 1.02 Bancos.
+// Editar/excluir uma movimentação (retaguarda_editar_movimentacao /
+// retaguarda_excluir_movimentacao) nunca faz UPDATE/DELETE no lançamento já
+// gravado (ledger imutável) — sempre estorna (estornarLancamentosPorOrigem)
+// e, se for edição, lança de novo com o valor certo.
+// ============================================================================
+
+async function gerarLancamentoCaixa(
+  empresaId: string,
+  origemId: string,
+  tipoMovimento: "sangria" | "suprimento",
+  valor: number,
+  dataMovimento: string,
+): Promise<void> {
+  if (!(valor > 0)) return;
+  const contas = await mapaContasPorCodigo(empresaId);
+  const contaCaixaId = contas[CODIGO_CAIXA];
+  const contaBancosId = contas[CODIGO_BANCOS];
+  if (!contaCaixaId || !contaBancosId) {
+    reportarFalhaEscrita("plano_de_contas", `resolver conta do de-para (${tipoMovimento})`, `código ${CODIGO_CAIXA} ou ${CODIGO_BANCOS} não encontrado na empresa ${empresaId}`);
+    return;
+  }
+  const partidas: PartidaContabilInput[] = tipoMovimento === "sangria"
+    ? [{ contaId: contaBancosId, tipo: "debito", valor }, { contaId: contaCaixaId, tipo: "credito", valor }]
+    : [{ contaId: contaCaixaId, tipo: "debito", valor }, { contaId: contaBancosId, tipo: "credito", valor }];
+  const descricao = tipoMovimento === "sangria" ? "Sangria de caixa" : "Suprimento de caixa";
+  const { erro } = await registrarLancamentoContabil(empresaId, dataMovimento, descricao, partidas, {
+    origemTabela: "caixa_movimentacao", origemId,
+  });
+  if (erro) reportarFalhaEscrita("lancamento_contabil", `gerar lançamento de caixa (${tipoMovimento})`, erro);
+}
+
+// ============================================================================
 // CONSUMIDOR — chamado por publicarEventoNaoBloqueante logo depois que o
 // evento é publicado com sucesso em eventos_negocio. Só trata origem
-// "contas_pagar", "venda", "contas_receber" e "estoque_movimentacoes"; outros
-// módulos que um dia publicarem eventos ficam de fora até terem seu próprio
-// de-para revisado (nunca improvisado aqui).
+// "contas_pagar", "venda", "contas_receber", "estoque_movimentacoes" e
+// "caixa_movimentacao"; outros módulos que um dia publicarem eventos ficam
+// de fora até terem seu próprio de-para revisado (nunca improvisado aqui).
 // ============================================================================
 
 export async function processarEventoContabil(
@@ -560,7 +606,7 @@ export async function processarEventoContabil(
   origem: OrigemEvento,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes"];
+  const origensConhecidas = ["contas_pagar", "venda", "contas_receber", "estoque_movimentacoes", "caixa_movimentacao"];
   if (!origem.id || !origem.tabela || !origensConhecidas.includes(origem.tabela)) return;
   const origemId = origem.id;
 
@@ -701,6 +747,26 @@ export async function processarEventoContabil(
           empresaId, origemId, payload.produto_id as string, Number(payload.quantidade) || 0,
           payload.custo_unitario as number | null, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
         );
+        break;
+      }
+      case "CASH_WITHDRAWAL": {
+        await gerarLancamentoCaixa(empresaId, origemId, "sangria", Number(payload.valor) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO());
+        break;
+      }
+      case "CASH_DEPOSIT": {
+        await gerarLancamentoCaixa(empresaId, origemId, "suprimento", Number(payload.valor) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO());
+        break;
+      }
+      case "CASH_MOVEMENT_UPDATED": {
+        await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por edição de movimentação de caixa");
+        await gerarLancamentoCaixa(
+          empresaId, origemId, payload.tipo as "sangria" | "suprimento",
+          Number(payload.valor_depois) || 0, (payload.data_hora as string)?.slice(0, 10) || hojeISO(),
+        );
+        break;
+      }
+      case "CASH_MOVEMENT_DELETED": {
+        await estornarLancamentosPorOrigem(empresaId, "caixa_movimentacao", origemId, "Estorno por exclusão de movimentação de caixa");
         break;
       }
       default:
