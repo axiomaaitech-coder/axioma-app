@@ -1,0 +1,203 @@
+-- ============================================================================
+-- AXIOMA — CFO CORE, FASE 1: 2 contas novas no plano padrão, pra fechar o
+-- de-para de Estoque (Peça 1 da rodada "espinha dorsal"). NÃO APLICADO — só
+-- pra revisão. Idempotente (CREATE OR REPLACE + ON CONFLICT DO NOTHING) —
+-- pode rodar mais de uma vez com segurança. Nenhuma tabela nova, nenhuma
+-- coluna nova — só 2 linhas a mais no plano de contas (~45 → 47).
+--
+-- POR QUE ESSAS 2 CONTAS SÃO NECESSÁRIAS: o plano de contas atual (CFO-CORE-
+-- FASE1-ACCOUNTING-RPC-SEED-SQL.txt) não tem nenhuma conta pra "ganho de
+-- estoque" (entrada manual sem nota/conta a pagar, ajuste positivo de
+-- inventário) nem pra "perda de estoque" (quebra, vencimento, furto,
+-- ajuste negativo). Sem elas, o consumidor (commit separado, TypeScript)
+-- não tem onde lançar essas movimentações — e reportaria falha (Sentry) em
+-- toda entrada manual/ajuste/perda até este SQL ser aplicado.
+--
+--   6.05 'Ganhos com Ajuste de Estoque'   (receita, credora, filha de 6)
+--   8.09 'Perdas e Quebras de Estoque'    (despesa, devedora, filha de 8)
+--
+-- Atualiza as DUAS funções que já criam o plano padrão (mesma duplicação
+-- consciente que já existe entre elas, ver comentário original em
+-- fn_empresa_criar_plano_de_contas_padrao) + roda o backfill nas empresas
+-- já existentes.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PARTE 1 — seed_plano_de_contas_padrao (chamada manual, por empresa)
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.seed_plano_de_contas_padrao(p_empresa_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  INSERT INTO public.plano_de_contas (empresa_id, codigo, nome, tipo, natureza) VALUES
+    (p_empresa_id, '1',  'Ativo Circulante',       'ativo',      'devedora'),
+    (p_empresa_id, '2',  'Ativo Não Circulante',   'ativo',      'devedora'),
+    (p_empresa_id, '3',  'Passivo Circulante',     'passivo',    'credora'),
+    (p_empresa_id, '4',  'Passivo Não Circulante', 'passivo',    'credora'),
+    (p_empresa_id, '5',  'Patrimônio Líquido',     'patrimonio', 'credora'),
+    (p_empresa_id, '6',  'Receitas',               'receita',    'credora'),
+    (p_empresa_id, '7',  'Custos',                 'despesa',    'devedora'),
+    (p_empresa_id, '8',  'Despesas Operacionais',  'despesa',    'devedora'),
+    (p_empresa_id, '9',  'Despesas Financeiras',   'despesa',    'devedora'),
+    (p_empresa_id, '10', 'Impostos',               'despesa',    'devedora')
+  ON CONFLICT (empresa_id, codigo) DO NOTHING;
+
+  INSERT INTO public.plano_de_contas (empresa_id, codigo, nome, tipo, natureza, conta_pai_id)
+  SELECT p_empresa_id, v.codigo, v.nome, v.tipo::text, v.natureza::text,
+    (SELECT id FROM public.plano_de_contas WHERE empresa_id = p_empresa_id AND codigo = v.codigo_pai)
+  FROM (VALUES
+    ('1.01', 'Caixa',                                          'ativo',      'devedora', '1'),
+    ('1.02', 'Bancos Conta Movimento',                         'ativo',      'devedora', '1'),
+    ('1.03', 'Aplicações Financeiras',                         'ativo',      'devedora', '1'),
+    ('1.04', 'Clientes',                                       'ativo',      'devedora', '1'),
+    ('1.05', 'Estoques',                                       'ativo',      'devedora', '1'),
+    ('1.06', 'Adiantamentos a Fornecedores',                   'ativo',      'devedora', '1'),
+    ('1.07', 'Impostos a Recuperar',                           'ativo',      'devedora', '1'),
+    ('2.01', 'Imobilizado',                                    'ativo',      'devedora', '2'),
+    ('2.02', 'Depreciação Acumulada',                          'ativo',      'credora',  '2'),
+    ('2.03', 'Intangível',                                     'ativo',      'devedora', '2'),
+    ('3.01', 'Fornecedores',                                   'passivo',    'credora',  '3'),
+    ('3.02', 'Salários e Encargos a Pagar',                    'passivo',    'credora',  '3'),
+    ('3.03', 'Impostos a Recolher',                            'passivo',    'credora',  '3'),
+    ('3.04', 'Adiantamentos de Clientes',                      'passivo',    'credora',  '3'),
+    ('3.05', 'Empréstimos e Financiamentos (Curto Prazo)',     'passivo',    'credora',  '3'),
+    ('3.06', 'Cartão de Crédito a Pagar',                      'passivo',    'credora',  '3'),
+    ('4.01', 'Empréstimos e Financiamentos (Longo Prazo)',     'passivo',    'credora',  '4'),
+    ('5.01', 'Capital Social',                                 'patrimonio', 'credora',  '5'),
+    ('5.02', 'Lucros ou Prejuízos Acumulados',                 'patrimonio', 'credora',  '5'),
+    ('6.01', 'Receita de Vendas de Produtos',                  'receita',    'credora',  '6'),
+    ('6.02', 'Receita de Prestação de Serviços',                'receita',    'credora',  '6'),
+    ('6.03', 'Devoluções e Abatimentos',                        'receita',    'devedora', '6'),
+    ('6.04', 'Receitas Financeiras',                            'receita',    'credora',  '6'),
+    ('6.05', 'Ganhos com Ajuste de Estoque',                    'receita',    'credora',  '6'),
+    ('7.01', 'CMV / Custo dos Serviços Prestados',              'despesa',    'devedora', '7'),
+    ('8.01', 'Despesas com Pessoal',                            'despesa',    'devedora', '8'),
+    ('8.02', 'Despesas Administrativas',                        'despesa',    'devedora', '8'),
+    ('8.03', 'Despesas Comerciais e Marketing',                 'despesa',    'devedora', '8'),
+    ('8.04', 'Aluguel',                                         'despesa',    'devedora', '8'),
+    ('8.05', 'Depreciação e Amortização',                       'despesa',    'devedora', '8'),
+    ('8.06', 'Despesas com Tecnologia',                         'despesa',    'devedora', '8'),
+    ('8.07', 'Despesas com Logística e Fretes',                 'despesa',    'devedora', '8'),
+    ('8.08', 'Serviços de Terceiros',                           'despesa',    'devedora', '8'),
+    ('8.09', 'Perdas e Quebras de Estoque',                     'despesa',    'devedora', '8'),
+    ('9.01', 'Juros e Multas Pagos',                            'despesa',    'devedora', '9'),
+    ('9.02', 'Tarifas Bancárias',                               'despesa',    'devedora', '9'),
+    ('10.01','Impostos sobre o Faturamento (Simples Nacional)', 'despesa',    'devedora', '10')
+  ) AS v(codigo, nome, tipo, natureza, codigo_pai)
+  ON CONFLICT (empresa_id, codigo) DO NOTHING;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.seed_plano_de_contas_padrao(uuid) FROM public;
+GRANT EXECUTE ON FUNCTION public.seed_plano_de_contas_padrao(uuid) TO authenticated;
+
+-- ============================================================================
+-- PARTE 2 — fn_empresa_criar_plano_de_contas_padrao (trigger em toda empresa nova)
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.fn_empresa_criar_plano_de_contas_padrao()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.plano_de_contas (empresa_id, codigo, nome, tipo, natureza) VALUES
+    (NEW.id, '1',  'Ativo Circulante',       'ativo',      'devedora'),
+    (NEW.id, '2',  'Ativo Não Circulante',   'ativo',      'devedora'),
+    (NEW.id, '3',  'Passivo Circulante',     'passivo',    'credora'),
+    (NEW.id, '4',  'Passivo Não Circulante', 'passivo',    'credora'),
+    (NEW.id, '5',  'Patrimônio Líquido',     'patrimonio', 'credora'),
+    (NEW.id, '6',  'Receitas',               'receita',    'credora'),
+    (NEW.id, '7',  'Custos',                 'despesa',    'devedora'),
+    (NEW.id, '8',  'Despesas Operacionais',  'despesa',    'devedora'),
+    (NEW.id, '9',  'Despesas Financeiras',   'despesa',    'devedora'),
+    (NEW.id, '10', 'Impostos',               'despesa',    'devedora')
+  ON CONFLICT (empresa_id, codigo) DO NOTHING;
+
+  INSERT INTO public.plano_de_contas (empresa_id, codigo, nome, tipo, natureza, conta_pai_id)
+  SELECT NEW.id, v.codigo, v.nome, v.tipo::text, v.natureza::text,
+    (SELECT id FROM public.plano_de_contas WHERE empresa_id = NEW.id AND codigo = v.codigo_pai)
+  FROM (VALUES
+    ('1.01', 'Caixa',                                          'ativo',      'devedora', '1'),
+    ('1.02', 'Bancos Conta Movimento',                         'ativo',      'devedora', '1'),
+    ('1.03', 'Aplicações Financeiras',                         'ativo',      'devedora', '1'),
+    ('1.04', 'Clientes',                                       'ativo',      'devedora', '1'),
+    ('1.05', 'Estoques',                                       'ativo',      'devedora', '1'),
+    ('1.06', 'Adiantamentos a Fornecedores',                   'ativo',      'devedora', '1'),
+    ('1.07', 'Impostos a Recuperar',                           'ativo',      'devedora', '1'),
+    ('2.01', 'Imobilizado',                                    'ativo',      'devedora', '2'),
+    ('2.02', 'Depreciação Acumulada',                          'ativo',      'credora',  '2'),
+    ('2.03', 'Intangível',                                     'ativo',      'devedora', '2'),
+    ('3.01', 'Fornecedores',                                   'passivo',    'credora',  '3'),
+    ('3.02', 'Salários e Encargos a Pagar',                    'passivo',    'credora',  '3'),
+    ('3.03', 'Impostos a Recolher',                            'passivo',    'credora',  '3'),
+    ('3.04', 'Adiantamentos de Clientes',                      'passivo',    'credora',  '3'),
+    ('3.05', 'Empréstimos e Financiamentos (Curto Prazo)',     'passivo',    'credora',  '3'),
+    ('3.06', 'Cartão de Crédito a Pagar',                      'passivo',    'credora',  '3'),
+    ('4.01', 'Empréstimos e Financiamentos (Longo Prazo)',     'passivo',    'credora',  '4'),
+    ('5.01', 'Capital Social',                                 'patrimonio', 'credora',  '5'),
+    ('5.02', 'Lucros ou Prejuízos Acumulados',                 'patrimonio', 'credora',  '5'),
+    ('6.01', 'Receita de Vendas de Produtos',                  'receita',    'credora',  '6'),
+    ('6.02', 'Receita de Prestação de Serviços',                'receita',    'credora',  '6'),
+    ('6.03', 'Devoluções e Abatimentos',                        'receita',    'devedora', '6'),
+    ('6.04', 'Receitas Financeiras',                            'receita',    'credora',  '6'),
+    ('6.05', 'Ganhos com Ajuste de Estoque',                    'receita',    'credora',  '6'),
+    ('7.01', 'CMV / Custo dos Serviços Prestados',              'despesa',    'devedora', '7'),
+    ('8.01', 'Despesas com Pessoal',                            'despesa',    'devedora', '8'),
+    ('8.02', 'Despesas Administrativas',                        'despesa',    'devedora', '8'),
+    ('8.03', 'Despesas Comerciais e Marketing',                 'despesa',    'devedora', '8'),
+    ('8.04', 'Aluguel',                                         'despesa',    'devedora', '8'),
+    ('8.05', 'Depreciação e Amortização',                       'despesa',    'devedora', '8'),
+    ('8.06', 'Despesas com Tecnologia',                         'despesa',    'devedora', '8'),
+    ('8.07', 'Despesas com Logística e Fretes',                 'despesa',    'devedora', '8'),
+    ('8.08', 'Serviços de Terceiros',                           'despesa',    'devedora', '8'),
+    ('8.09', 'Perdas e Quebras de Estoque',                     'despesa',    'devedora', '8'),
+    ('9.01', 'Juros e Multas Pagos',                            'despesa',    'devedora', '9'),
+    ('9.02', 'Tarifas Bancárias',                               'despesa',    'devedora', '9'),
+    ('10.01','Impostos sobre o Faturamento (Simples Nacional)', 'despesa',    'devedora', '10')
+  ) AS v(codigo, nome, tipo, natureza, codigo_pai)
+  ON CONFLICT (empresa_id, codigo) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Trigger já existe (criado no SQL original) — CREATE OR REPLACE da função
+-- acima já é suficiente, não precisa recriar o trigger em si.
+
+COMMIT;
+
+-- ============================================================================
+-- PARTE 3 — BACKFILL (rodar depois do COMMIT acima) — aplica as 2 contas
+-- novas em toda empresa que já existia antes deste SQL. Idempotente
+-- (ON CONFLICT DO NOTHING dentro da função) — só insere o que falta.
+-- ============================================================================
+
+SELECT public.seed_plano_de_contas_padrao(id) FROM public.empresas;
+
+-- ============================================================================
+-- VERIFICAÇÃO (só leitura)
+-- ============================================================================
+
+SELECT empresa_id, codigo, nome FROM public.plano_de_contas
+WHERE codigo IN ('6.05', '8.09') ORDER BY empresa_id, codigo;
+-- Espera 2 linhas por empresa.
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência)
+-- ============================================================================
+-- DELETE FROM public.plano_de_contas WHERE codigo IN ('6.05', '8.09');
+-- (Só seguro se nenhum lançamento contábil ainda usou essas contas — senão
+-- a FK de lancamento_contabil_partida.conta_id bloqueia o DELETE, o que é o
+-- comportamento certo: nunca apagar conta com lançamento real atrelado.)
