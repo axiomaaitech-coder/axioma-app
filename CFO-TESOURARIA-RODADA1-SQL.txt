@@ -1,0 +1,518 @@
+-- ============================================================================
+-- AXIOMA TREASURY INTELLIGENCE — RODADA 1 de 3: DATA CORE (fundação SQL).
+-- NÃO APLICADO — só pra revisão. Não constrói tela nesta rodada.
+--
+-- DIAGNÓSTICO — nomes reais confirmados contra o código antes de escrever
+-- este arquivo (nada aqui foi inventado):
+--   - empresas(id uuid PK, user_id)                          — MIGRACAO-MULTITENANT.sql
+--   - empresas_do_usuario() returns setof uuid                — MIGRACAO-MULTITENANT.sql
+--   - plano_de_contas(id, empresa_id, codigo, nome, tipo,
+--     natureza, ...) — 1.01 Caixa / 1.02 Bancos Conta Movimento
+--     / 1.03 Aplicações Financeiras já existem no seed padrão   — CFO-CORE-FASE1-ACCOUNTING-RPC-SEED-SQL.txt
+--   - lancamento_contabil / lancamento_contabil_partida (ledger
+--     de partida dobrada, já em produção)                      — CFO-CORE-FASE1-ACCOUNTING-SQL.txt
+--   - Saldo de conta = exatamente a regra de saldoNatural() em
+--     lib/contabilidadeRelatoriosHelpers.ts (devedora: débito−
+--     crédito; credora: crédito−débito) — as RPCs abaixo
+--     REAPROVEITAM essa regra em SQL, não reinventam outra.
+--   - contas_pagar(empresa_id, valor_total, valor_pago, status,
+--     data_vencimento) — status 'pago' = quitado.
+--   - contas_receber(empresa_id, valor, valor_recebido, status,
+--     data_vencimento) — status 'recebido' = quitado.
+--   - Tabela real de dívida é "dividas" (empresa_id+user_id já
+--     existe) — "endividamento" é órfã, não usada nesta rodada
+--     (armadilha já documentada em STATUS-AXIOMA.md seção 8).
+--   - Padrão de RLS ATUAL do projeto (multi-tenant, pós-migração):
+--     empresa_id IN (SELECT public.empresas_do_usuario()) — o
+--     mesmo subselect usado em plano_de_contas/lancamento_contabil.
+--   - Nenhuma tabela/RPC de tesouraria existe hoje — só comentários
+--     "GANCHO TESOURARIA" em lib/contasPagarHelpers.ts, inertes.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0  — leitura: confirma as peças-base existem
+--   PARTE 1  — tesouraria_config      (ATIVO — reserva mínima, alerta)
+--   PARTE 2  — tesouraria_conta       (ATIVO — marca contas do plano)
+--   PARTE 3  — tesouraria_politica    (ATIVO — Policy Engine, seção 28)
+--   PARTE 4  — tesouraria_cenario     (ATIVO — Stress Simulator, seções 20-21)
+--   PARTE 5  — tesouraria_alerta      (ATIVO — Treasury Radar, seção 19)
+--   PARTE 6  — tesouraria_banco_metrica     (INERTE — Bank Score, seção 25)
+--   PARTE 7  — tesouraria_forecast_precisao (INERTE — Forecast Learning, seção 17)
+--   PARTE 8  — RPC tesouraria_posicao (Posição de Caixa)
+--   PARTE 9  — RPC tesouraria_fluxo_projetado (Forecast)
+--   PARTE 10 — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (CREATE TABLE IF NOT EXISTS / DROP POLICY|TRIGGER IF EXISTS
+-- antes de recriar / ON CONFLICT DO NOTHING) — pode rodar mais de uma vez
+-- com segurança.
+--
+-- DECISÃO DE DESENHO — RLS FOR ALL nas 7 tabelas novas, sempre. As tabelas
+-- do ledger contábil (lancamento_contabil/partida) são SELECT+INSERT porque
+-- são fato contábil imutável — corrigir é estornar, nunca UPDATE. Nenhuma
+-- das 7 tabelas daqui é isso: config, política, cenário e alerta são dado
+-- do dono da empresa (edita/resolve/apaga como qualquer cadastro), e as 2
+-- inertes ainda não têm nenhum escritor — não há razão pra restringir hoje
+-- uma escrita que ninguém faz ainda. Mesmo subselect otimizado do resto do
+-- projeto: empresa_id IN (SELECT public.empresas_do_usuario()).
+--
+-- DECISÃO DE DESENHO — tesouraria_conta é semeada por TRIGGER EM
+-- plano_de_contas (AFTER INSERT, quando codigo IN ('1.01','1.02','1.03')),
+-- não por trigger em empresas. Os dois triggers de AFTER INSERT ON empresas
+-- (este arquivo semeia tesouraria_config; CFO-CORE-FASE1-ACCOUNTING-RPC-
+-- SEED-SQL.txt semeia plano_de_contas) disparam na mesma transação, e a
+-- ORDEM entre triggers do mesmo evento não é garantia que quero depender —
+-- prender a semente de tesouraria_conta na CRIAÇÃO da própria conta 1.01/
+-- 1.02/1.03 (em vez de na criação da empresa) elimina esse acoplamento
+-- frágil por completo, e continua correto mesmo se o plano de contas for
+-- semeado em outro momento no futuro.
+--
+-- DECISÃO DE DESENHO — RPCs reaproveitam, não recalculam: tesouraria_
+-- fluxo_projetado chama tesouraria_posicao internamente pro saldo atual
+-- (soma o retorno dela) em vez de duplicar a lógica de saldo natural uma
+-- segunda vez dentro de si mesma.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'plano_de_contas';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'lancamento_contabil';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'lancamento_contabil_partida';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_pagar';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_receber';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+
+-- ============================================================================
+-- PARTE 1 — TESOURARIA_CONFIG (ATIVO)
+-- ============================================================================
+-- 1 linha por empresa (UNIQUE empresa_id). reserva_minima começa em 0 —
+-- o dono ajusta depois; dias_alerta_ruptura em 30 é o horizonte padrão do
+-- Radar (mesma janela do Fluxo de Caixa de 13 semanas ~90 dias, mas o
+-- ALERTA de ruptura precoce é mais curto que a visão inteira).
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_config (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id         uuid NOT NULL UNIQUE REFERENCES public.empresas(id) ON DELETE CASCADE,
+  reserva_minima     numeric(14,2) NOT NULL DEFAULT 0,
+  dias_alerta_ruptura int NOT NULL DEFAULT 30,
+  criado_em          timestamptz NOT NULL DEFAULT now(),
+  atualizado_em      timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.tesouraria_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_config_empresa ON public.tesouraria_config;
+CREATE POLICY tesouraria_config_empresa ON public.tesouraria_config
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+-- empresa_id já é UNIQUE (índice implícito) — nenhum índice extra necessário.
+
+-- Trigger: toda empresa nova já nasce com a config padrão — mesmo padrão de
+-- fn_empresa_criar_plano_de_contas_padrao (insere direto, sem checar posse:
+-- NEW.id é a própria empresa que este INSERT acabou de criar).
+CREATE OR REPLACE FUNCTION public.fn_empresa_criar_tesouraria_config_padrao()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.tesouraria_config (empresa_id) VALUES (NEW.id)
+  ON CONFLICT (empresa_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_empresa_criar_tesouraria_config_padrao ON public.empresas;
+CREATE TRIGGER trg_empresa_criar_tesouraria_config_padrao
+AFTER INSERT ON public.empresas
+FOR EACH ROW EXECUTE FUNCTION public.fn_empresa_criar_tesouraria_config_padrao();
+
+-- Backfill — cobre toda empresa que já existia antes deste trigger.
+INSERT INTO public.tesouraria_config (empresa_id)
+SELECT id FROM public.empresas
+ON CONFLICT (empresa_id) DO NOTHING;
+
+
+-- ============================================================================
+-- PARTE 2 — TESOURARIA_CONTA (ATIVO)
+-- ============================================================================
+-- Marca quais contas do plano são "de tesouraria" (entram na Posição de
+-- Caixa). conta_id sem ON DELETE CASCADE/SET NULL não é necessário aqui
+-- porque QUEM é dono da linha é esta tabela — CASCADE em conta_id é seguro
+-- (se a conta do plano some, a marcação de tesouraria dela não faz sentido
+-- sozinha).
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_conta (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id     uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  conta_id       uuid NOT NULL REFERENCES public.plano_de_contas(id) ON DELETE CASCADE,
+  tipo_liquidez  text NOT NULL CHECK (tipo_liquidez IN ('disponivel','aplicado','restrito')),
+  banco_nome     text,
+  ativo          boolean NOT NULL DEFAULT true,
+  criado_em      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_tesouraria_conta UNIQUE (empresa_id, conta_id)
+);
+
+ALTER TABLE public.tesouraria_conta ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_conta_empresa ON public.tesouraria_conta;
+CREATE POLICY tesouraria_conta_empresa ON public.tesouraria_conta
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_tesouraria_conta_empresa ON public.tesouraria_conta (empresa_id);
+
+-- Trigger: toda conta 1.01/1.02/1.03 nova (de QUALQUER empresa, em QUALQUER
+-- momento — seed inicial, backfill futuro, ou plano recriado manualmente)
+-- já nasce marcada como conta de tesouraria. Ver decisão de desenho no
+-- cabeçalho sobre por que isto está em plano_de_contas e não em empresas.
+CREATE OR REPLACE FUNCTION public.fn_plano_de_contas_marcar_tesouraria()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.codigo IN ('1.01', '1.02', '1.03') THEN
+    INSERT INTO public.tesouraria_conta (empresa_id, conta_id, tipo_liquidez)
+    VALUES (NEW.empresa_id, NEW.id, CASE WHEN NEW.codigo = '1.03' THEN 'aplicado' ELSE 'disponivel' END)
+    ON CONFLICT (empresa_id, conta_id) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_plano_de_contas_marcar_tesouraria ON public.plano_de_contas;
+CREATE TRIGGER trg_plano_de_contas_marcar_tesouraria
+AFTER INSERT ON public.plano_de_contas
+FOR EACH ROW EXECUTE FUNCTION public.fn_plano_de_contas_marcar_tesouraria();
+
+-- Backfill — cobre toda empresa que já tinha 1.01/1.02/1.03 antes deste
+-- trigger existir.
+INSERT INTO public.tesouraria_conta (empresa_id, conta_id, tipo_liquidez)
+SELECT empresa_id, id, CASE WHEN codigo = '1.03' THEN 'aplicado' ELSE 'disponivel' END
+FROM public.plano_de_contas
+WHERE codigo IN ('1.01', '1.02', '1.03')
+ON CONFLICT (empresa_id, conta_id) DO NOTHING;
+
+
+-- ============================================================================
+-- PARTE 3 — TESOURARIA_POLITICA (ATIVO)
+-- ============================================================================
+-- Regras configuráveis do Policy Engine (doc seção 28). Começa vazia por
+-- empresa — é o dono quem cria a política, não tem um "padrão" universal
+-- que faça sentido semear (reserva_minima já tem seu próprio lugar em
+-- tesouraria_config; esta tabela é pra regras adicionais, opcionais).
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_politica (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id  uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo        text NOT NULL CHECK (tipo IN ('reserva_minima','saldo_minimo_banco','limite_pagamento','concentracao_maxima','dupla_aprovacao')),
+  valor       numeric(14,2),
+  ativo       boolean NOT NULL DEFAULT true,
+  criado_em   timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.tesouraria_politica ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_politica_empresa ON public.tesouraria_politica;
+CREATE POLICY tesouraria_politica_empresa ON public.tesouraria_politica
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_tesouraria_politica_empresa ON public.tesouraria_politica (empresa_id);
+
+
+-- ============================================================================
+-- PARTE 4 — TESOURARIA_CENARIO (ATIVO)
+-- ============================================================================
+-- Cenários de stress salvos (Stress Simulator / Digital Twin, seções 20-21).
+-- variaveis é jsonb livre (ex: {"receita_pct":-20,"atraso_dias":15,
+-- "despesa_pct":10}) — mesmo espírito de eventos_negocio.payload, a forma
+-- exata do stress varia por tipo de cenário e não vale travar em colunas.
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_cenario (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id  uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  nome        text NOT NULL,
+  tipo        text NOT NULL CHECK (tipo IN ('base','otimista','estressado','custom')),
+  variaveis   jsonb NOT NULL DEFAULT '{}'::jsonb,
+  criado_por  uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  criado_em   timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.tesouraria_cenario ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_cenario_empresa ON public.tesouraria_cenario;
+CREATE POLICY tesouraria_cenario_empresa ON public.tesouraria_cenario
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_tesouraria_cenario_empresa ON public.tesouraria_cenario (empresa_id);
+
+
+-- ============================================================================
+-- PARTE 5 — TESOURARIA_ALERTA (ATIVO)
+-- ============================================================================
+-- Radar de risco (Treasury Radar, seção 19). resolvido_em NULL = alerta
+-- ativo; preenchido = resolvido. dado_origem guarda o snapshot jsonb que
+-- gerou o alerta (rastreabilidade — "por que este alerta disparou").
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_alerta (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id   uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo         text NOT NULL CHECK (tipo IN ('ruptura_caixa','concentracao_banco','concentracao_cliente','divida_alta','caixa_ocioso','anomalia')),
+  severidade   text NOT NULL CHECK (severidade IN ('normal','atencao','risco','critico')),
+  titulo       text NOT NULL,
+  descricao    text,
+  dado_origem  jsonb,
+  criado_em    timestamptz NOT NULL DEFAULT now(),
+  resolvido_em timestamptz
+);
+
+ALTER TABLE public.tesouraria_alerta ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_alerta_empresa ON public.tesouraria_alerta;
+CREATE POLICY tesouraria_alerta_empresa ON public.tesouraria_alerta
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+-- (empresa_id, criado_em) cobre a listagem do Radar ordenada por mais
+-- recente; leftmost empresa_id também serve pro filtro simples por empresa.
+CREATE INDEX IF NOT EXISTS idx_tesouraria_alerta_empresa_criado ON public.tesouraria_alerta (empresa_id, criado_em);
+
+
+-- ============================================================================
+-- PARTE 6 — TESOURARIA_BANCO_METRICA (INERTE)
+-- ============================================================================
+-- GANCHO: pro Bank Score (seção 25). Preenchida quando Open Finance ligar
+-- (hoje desligado por decisão do Elias) — sem Open Finance não existe
+-- tarifa/rendimento/saldo médio por banco pra calcular. Tabela nasce agora,
+-- vazia, pra não precisar de migração o dia que o dado chegar.
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_banco_metrica (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id    uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  banco_nome    text NOT NULL,
+  tarifas       numeric(14,2),
+  rendimento    numeric(14,4),
+  saldo_medio   numeric(14,2),
+  score         int,
+  calculado_em  timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.tesouraria_banco_metrica ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_banco_metrica_empresa ON public.tesouraria_banco_metrica;
+CREATE POLICY tesouraria_banco_metrica_empresa ON public.tesouraria_banco_metrica
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_tesouraria_banco_metrica_empresa ON public.tesouraria_banco_metrica (empresa_id);
+
+
+-- ============================================================================
+-- PARTE 7 — TESOURARIA_FORECAST_PRECISAO (INERTE)
+-- ============================================================================
+-- GANCHO: pro Forecast Learning (seção 17). Preenchida quando houver
+-- histórico suficiente de previsão vs realizado — hoje tesouraria_
+-- fluxo_projetado (Parte 9) nem existia até este commit, então não há
+-- "previsão passada" nenhuma pra comparar ainda.
+
+CREATE TABLE IF NOT EXISTS public.tesouraria_forecast_precisao (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id       uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  data_previsao    date NOT NULL,
+  valor_previsto   numeric(14,2) NOT NULL,
+  valor_realizado  numeric(14,2),
+  erro             numeric(14,2),
+  calculado_em     timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.tesouraria_forecast_precisao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tesouraria_forecast_precisao_empresa ON public.tesouraria_forecast_precisao;
+CREATE POLICY tesouraria_forecast_precisao_empresa ON public.tesouraria_forecast_precisao
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_tesouraria_forecast_precisao_empresa_data ON public.tesouraria_forecast_precisao (empresa_id, data_previsao);
+
+
+-- ============================================================================
+-- PARTE 8 — RPC TESOURARIA_POSICAO (Posição de Caixa)
+-- ============================================================================
+-- Por conta de tesouraria ativa, saldo até p_data. A soma reaproveita a
+-- MESMA regra de saldoNatural() (lib/contabilidadeRelatoriosHelpers.ts):
+-- devedora = débito−crédito, credora = crédito−débito. CTE "saldos" agrega
+-- as partidas primeiro (uma linha por conta) pra não arrastar o filtro de
+-- data pro LEFT JOIN externo por engano — isso é o que garante que uma
+-- conta sem nenhum lançamento até p_data ainda aparece com saldo 0, não
+-- some da lista.
+
+CREATE OR REPLACE FUNCTION public.tesouraria_posicao(p_empresa_id uuid, p_data date)
+RETURNS TABLE (
+  conta_id      uuid,
+  conta_codigo  text,
+  conta_nome    text,
+  tipo_liquidez text,
+  banco_nome    text,
+  saldo         numeric
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  RETURN QUERY
+  WITH saldos AS (
+    SELECT lcp.conta_id,
+      SUM(CASE WHEN lcp.tipo = 'debito'  THEN lcp.valor ELSE 0 END) AS total_debito,
+      SUM(CASE WHEN lcp.tipo = 'credito' THEN lcp.valor ELSE 0 END) AS total_credito
+    FROM public.lancamento_contabil_partida lcp
+    JOIN public.lancamento_contabil lc ON lc.id = lcp.lancamento_id
+    WHERE lcp.empresa_id = p_empresa_id AND lc.data <= p_data
+    GROUP BY lcp.conta_id
+  )
+  SELECT
+    tc.conta_id,
+    pc.codigo,
+    pc.nome,
+    tc.tipo_liquidez,
+    tc.banco_nome,
+    CASE WHEN pc.natureza = 'devedora'
+      THEN COALESCE(s.total_debito, 0) - COALESCE(s.total_credito, 0)
+      ELSE COALESCE(s.total_credito, 0) - COALESCE(s.total_debito, 0)
+    END AS saldo
+  FROM public.tesouraria_conta tc
+  JOIN public.plano_de_contas pc ON pc.id = tc.conta_id
+  LEFT JOIN saldos s ON s.conta_id = tc.conta_id
+  WHERE tc.empresa_id = p_empresa_id AND tc.ativo;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.tesouraria_posicao(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.tesouraria_posicao(uuid, date) TO authenticated;
+
+
+-- ============================================================================
+-- PARTE 9 — RPC TESOURARIA_FLUXO_PROJETADO (Forecast)
+-- ============================================================================
+-- Saldo atual (soma de tesouraria_posicao até hoje) + contas_receber em
+-- aberto com vencimento até p_dias − contas_pagar em aberto com vencimento
+-- até p_dias. "Em aberto" usa a mesma convenção do resto do projeto
+-- (status <> 'pago'/'recebido' — ver lib/relatoriosHelpers.ts,
+-- lib/contasPagarHelpers.ts).
+
+CREATE OR REPLACE FUNCTION public.tesouraria_fluxo_projetado(p_empresa_id uuid, p_dias int)
+RETURNS TABLE (
+  saldo_atual         numeric,
+  entradas_previstas  numeric,
+  saidas_previstas    numeric,
+  saldo_projetado     numeric,
+  data_limite         date
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_saldo_atual  numeric;
+  v_entradas     numeric;
+  v_saidas       numeric;
+  v_data_limite  date;
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  v_data_limite := current_date + p_dias;
+
+  SELECT COALESCE(SUM(t.saldo), 0) INTO v_saldo_atual
+  FROM public.tesouraria_posicao(p_empresa_id, current_date) t;
+
+  SELECT COALESCE(SUM(valor - COALESCE(valor_recebido, 0)), 0) INTO v_entradas
+  FROM public.contas_receber
+  WHERE empresa_id = p_empresa_id AND status <> 'recebido' AND data_vencimento <= v_data_limite;
+
+  SELECT COALESCE(SUM(valor_total - COALESCE(valor_pago, 0)), 0) INTO v_saidas
+  FROM public.contas_pagar
+  WHERE empresa_id = p_empresa_id AND status <> 'pago' AND data_vencimento <= v_data_limite;
+
+  RETURN QUERY SELECT v_saldo_atual, v_entradas, v_saidas, v_saldo_atual + v_entradas - v_saidas, v_data_limite;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.tesouraria_fluxo_projetado(uuid, int) FROM public;
+GRANT EXECUTE ON FUNCTION public.tesouraria_fluxo_projetado(uuid, int) TO authenticated;
+
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 10 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN (
+    'tesouraria_config','tesouraria_conta','tesouraria_politica','tesouraria_cenario',
+    'tesouraria_alerta','tesouraria_banco_metrica','tesouraria_forecast_precisao'
+  );
+
+SELECT tablename, policyname, cmd FROM pg_policies WHERE tablename LIKE 'tesouraria_%';
+
+SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename LIKE 'tesouraria_%';
+
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public'
+  AND routine_name IN ('tesouraria_posicao','tesouraria_fluxo_projetado',
+    'fn_empresa_criar_tesouraria_config_padrao','fn_plano_de_contas_marcar_tesouraria');
+
+-- Toda empresa deveria ter 1 linha de config e 3 contas de tesouraria (1.01/1.02/1.03).
+SELECT e.id, e.nome,
+  (SELECT count(*) FROM public.tesouraria_config c WHERE c.empresa_id = e.id) AS tem_config,
+  (SELECT count(*) FROM public.tesouraria_conta tc WHERE tc.empresa_id = e.id) AS contas_tesouraria
+FROM public.empresas e
+ORDER BY contas_tesouraria;
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.tesouraria_fluxo_projetado(uuid, int);
+-- DROP FUNCTION IF EXISTS public.tesouraria_posicao(uuid, date);
+-- DROP TABLE IF EXISTS public.tesouraria_forecast_precisao;
+-- DROP TABLE IF EXISTS public.tesouraria_banco_metrica;
+-- DROP TABLE IF EXISTS public.tesouraria_alerta;
+-- DROP TABLE IF EXISTS public.tesouraria_cenario;
+-- DROP TABLE IF EXISTS public.tesouraria_politica;
+-- DROP TRIGGER IF EXISTS trg_plano_de_contas_marcar_tesouraria ON public.plano_de_contas;
+-- DROP FUNCTION IF EXISTS public.fn_plano_de_contas_marcar_tesouraria();
+-- DROP TABLE IF EXISTS public.tesouraria_conta;
+-- DROP TRIGGER IF EXISTS trg_empresa_criar_tesouraria_config_padrao ON public.empresas;
+-- DROP FUNCTION IF EXISTS public.fn_empresa_criar_tesouraria_config_padrao();
+-- DROP TABLE IF EXISTS public.tesouraria_config;
+-- (DROP TABLE já remove policies e índices da própria tabela junto — não
+-- precisa DROP POLICY/DROP INDEX separado. Ordem importa: conta antes de
+-- config por causa da ordem de criação dos triggers relacionados, embora
+-- não haja FK entre elas.)
