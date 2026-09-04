@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
-import { CheckCircle2, Settings, ChevronRight } from 'lucide-react'
+import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../lib/empresaHelpers'
@@ -116,13 +116,22 @@ export default function TesourariaPage() {
     <ModuloLayout
       titulo={L('Tesouraria', 'Treasury', 'Tesorería')}
       subtitulo={L('Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só', 'Where cash stands, what happens next, and the risk — one view', 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una vista')}
-      botaoExtra={podeConfigurar ? (
-        <button onClick={() => router.push('/tesouraria/config')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          <Settings size={16} />{L('Configurar', 'Settings', 'Configurar')}
-        </button>
-      ) : undefined}
+      botaoExtra={
+        <>
+          <button onClick={() => router.push('/tesouraria/simulador')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: 'rgba(167,139,250,0.14)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }}>
+            <SlidersHorizontal size={16} />{L('Simulador de Estresse', 'Stress Simulator', 'Simulador de Estrés')}
+          </button>
+          {podeConfigurar && (
+            <button onClick={() => router.push('/tesouraria/config')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+              style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+              <Settings size={16} />{L('Configurar', 'Settings', 'Configurar')}
+            </button>
+          )}
+        </>
+      }
     >
       {loading ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Carregando...', 'Loading...', 'Cargando...')}</p>

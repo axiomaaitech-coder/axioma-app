@@ -7,6 +7,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
+import { normalizarTexto } from "./cfoCore";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -512,4 +513,149 @@ export async function resolverAlerta(id: string, empresaId: string): Promise<{ o
 export async function obterDividaPendente(empresaId: string): Promise<number> {
   const { data } = await supabase.from("dividas").select("valor_total, valor_pago").eq("empresa_id", empresaId);
   return ((data as { valor_total: number; valor_pago: number }[]) || []).reduce((s, d) => s + Math.max(0, Number(d.valor_total || 0) - Number(d.valor_pago || 0)), 0);
+}
+
+// ============================================================================
+// STRESS SIMULATOR (Rodada 3) — recálculo determinístico sobre o Fluxo
+// Projetado (obterFluxoProjetado) já carregado: aplica a variação sobre o
+// cenário BASE real (que já embute o desvio histórico da própria empresa),
+// nunca inventa um número novo. Função pura/síncrona — recalcula a cada
+// mudança de slider, sem round-trip ao banco. Reaproveitada também pelo
+// Digital Twin ("aplicar 1 mudança grande" é o mesmo motor).
+//   - receitaPct / despesasPct: multiplicador sobre entradas/saídas BASE.
+//   - atrasoDiasRecebimento: fração de entradas empurrada pra fora da janela
+//     do horizonte — min(1, atrasoDias / horizonteDias); o mesmo atraso pesa
+//     mais em horizontes curtos (efeito real de fluxo de caixa).
+//   - novaDividaValor: entra no caixa no dia 0 (empréstimo tomado agora).
+//   - novaDividaParcelaMensal / novaContratacaoCustoMensal: saída recorrente,
+//     escalada por horizonteDias/30 (meses cobertos pela janela).
+//   - investimentoInicial: sai do caixa no dia 0 (capex — ex.: nova filial).
+// ============================================================================
+
+export type StressVariaveis = {
+  receitaPct: number;
+  atrasoDiasRecebimento: number;
+  despesasPct: number;
+  novaDividaValor: number;
+  novaDividaParcelaMensal: number;
+  novaContratacaoCustoMensal: number;
+  investimentoInicial: number;
+};
+
+export const STRESS_VARIAVEIS_NEUTRAS: StressVariaveis = {
+  receitaPct: 0, atrasoDiasRecebimento: 0, despesasPct: 0,
+  novaDividaValor: 0, novaDividaParcelaMensal: 0, novaContratacaoCustoMensal: 0, investimentoInicial: 0,
+};
+
+export type PontoSimulado = {
+  horizonteDias: HorizonteTesouraria;
+  saldoProjetadoBase: number;
+  saldoProjetadoSimulado: number;
+  delta: number;
+  abaixoDaReserva: boolean;
+};
+
+export type SimulacaoEstresseResultado = {
+  pontos: PontoSimulado[];
+  caixaDisponivelSimulado: number;
+  liquidityScoreSimulado: LiquidityScoreResultado;
+  rupturaHorizonte: HorizonteTesouraria | null;
+};
+
+export function calcularSimulacaoEstresse(
+  fluxo: FluxoProjetadoResultado,
+  posicao: PosicaoCaixa,
+  reservaMinima: number,
+  v: StressVariaveis
+): SimulacaoEstresseResultado {
+  const injecaoCaixa = (v.novaDividaValor || 0) - (v.investimentoInicial || 0);
+  const saidasExtrasMensais = (v.novaDividaParcelaMensal || 0) + (v.novaContratacaoCustoMensal || 0);
+
+  const pontos: PontoSimulado[] = fluxo.pontos.map((p) => {
+    const saldoAtualSimulado = p.saldoAtual + injecaoCaixa;
+    const fracaoAtraso = p.horizonteDias > 0 ? Math.min(1, Math.max(0, v.atrasoDiasRecebimento || 0) / p.horizonteDias) : 0;
+    const entradasSimuladas = p.entradasPrevistas.base * (1 + (v.receitaPct || 0) / 100) * (1 - fracaoAtraso);
+    const meses = p.horizonteDias / 30;
+    const saidasSimuladas = p.saidasPrevistas.base * (1 + (v.despesasPct || 0) / 100) + saidasExtrasMensais * meses;
+    const saldoProjetadoSimulado = saldoAtualSimulado + entradasSimuladas - saidasSimuladas;
+    return {
+      horizonteDias: p.horizonteDias,
+      saldoProjetadoBase: p.saldoProjetado.base,
+      saldoProjetadoSimulado,
+      delta: saldoProjetadoSimulado - p.saldoProjetado.base,
+      abaixoDaReserva: saldoProjetadoSimulado < reservaMinima,
+    };
+  });
+
+  const caixaDisponivelSimulado = Math.max(0, posicao.totalDisponivel + injecaoCaixa);
+  const ponto30Base = fluxo.pontos.find((p) => p.horizonteDias === 30);
+  const ponto90Simulado = pontos.find((p) => p.horizonteDias === 90);
+  const saidas30Simuladas = ponto30Base
+    ? ponto30Base.saidasPrevistas.base * (1 + (v.despesasPct || 0) / 100) + saidasExtrasMensais
+    : 0;
+
+  const liquidityScoreSimulado = calcularLiquidityScore({
+    caixaDisponivel: caixaDisponivelSimulado,
+    saidasProximos30Dias: saidas30Simuladas,
+    reservaMinima,
+    saldoProjetadoBase90: ponto90Simulado?.saldoProjetadoSimulado ?? 0,
+  });
+
+  const rupturaHorizonte = pontos.find((p) => p.abaixoDaReserva)?.horizonteDias ?? null;
+
+  return { pontos, caixaDisponivelSimulado, liquidityScoreSimulado, rupturaHorizonte };
+}
+
+// ============================================================================
+// CENÁRIOS SALVOS (tesouraria_cenario) — o dono grava as variáveis do
+// simulador pra reabrir depois. Tabela e RLS FOR ALL já existem da Rodada 1
+// (ver CFO-TESOURARIA-RODADA1-SQL.txt, Parte 4) — nenhuma coluna nova aqui.
+// ============================================================================
+
+export type CenarioTesouraria = {
+  id: string;
+  nome: string;
+  tipo: "base" | "otimista" | "estressado" | "custom";
+  variaveis: StressVariaveis;
+  criado_em: string;
+};
+
+export async function listarCenarios(empresaId: string): Promise<CenarioTesouraria[]> {
+  const { data } = await supabase.from("tesouraria_cenario")
+    .select("id, nome, tipo, variaveis, criado_em").eq("empresa_id", empresaId).order("criado_em", { ascending: false });
+  return (data as CenarioTesouraria[]) || [];
+}
+
+export async function salvarCenario(empresaId: string, nome: string, variaveis: StressVariaveis): Promise<{ ok: boolean; erro?: string }> {
+  const { data: authData } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from("tesouraria_cenario")
+    .insert({ empresa_id: empresaId, nome, tipo: "custom", variaveis, criado_por: authData?.user?.id || null })
+    .select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("tesouraria_cenario", "insert", motivo);
+    return { ok: false, erro: motivo };
+  }
+  return { ok: true };
+}
+
+export async function atualizarCenario(id: string, empresaId: string, nome: string, variaveis: StressVariaveis): Promise<{ ok: boolean; erro?: string }> {
+  const { data, error } = await supabase.from("tesouraria_cenario")
+    .update({ nome, variaveis }).eq("id", id).eq("empresa_id", empresaId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("tesouraria_cenario", "update", motivo);
+    return { ok: false, erro: motivo };
+  }
+  return { ok: true };
+}
+
+export async function excluirCenario(id: string, empresaId: string): Promise<{ ok: boolean; erro?: string }> {
+  const { data, error } = await supabase.from("tesouraria_cenario").delete().eq("id", id).eq("empresa_id", empresaId).select("id");
+  if (error || !data || data.length === 0) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("tesouraria_cenario", "delete", motivo);
+    return { ok: false, erro: motivo };
+  }
+  return { ok: true };
 }
