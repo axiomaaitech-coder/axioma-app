@@ -113,7 +113,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/inadimplencia') ||
     pathname.startsWith('/mei') ||
     pathname.startsWith('/open-finance') ||
-    pathname.startsWith('/contabilidade')
+    pathname.startsWith('/contabilidade') ||
+    pathname.startsWith('/tesouraria')
 
   if (isCallback) {
     return addSecurityHeaders(supabaseResponse)

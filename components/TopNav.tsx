@@ -42,6 +42,7 @@ const grupos = [
       { label: { pt: "Fluxo de Caixa", en: "Cash Flow", es: "Flujo de Caja" }, path: "/fluxo-caixa", emoji: "💧" },
       { label: { pt: "DRE", en: "Income Statement", es: "Estado de Resultados" }, path: "/dre", emoji: "📈" },
       { label: { pt: "Endividamento", en: "Debt", es: "Endeudamiento" }, path: "/endividamento", emoji: "⚖️" },
+      { label: { pt: "Tesouraria", en: "Treasury", es: "Tesorería" }, path: "/tesouraria", emoji: "🛡️" },
     ]
   },
   {
