@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
-import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal, Building2 } from 'lucide-react'
+import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal, Building2, MessageCircleQuestion, Send } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../lib/empresaHelpers'
@@ -11,7 +11,7 @@ import {
   obterConfigTesouraria, obterPosicaoCaixa, obterFluxoProjetado, obterDividaPendente,
   calcularLiquidityScore, explicarLiquidityScore, calcularIdleCash,
   gerarAlertasCandidatos, gravarNovosAlertas, listarAlertasAtivos, resolverAlerta,
-  descreverAlerta, tituloAlertaLocalizado,
+  descreverAlerta, tituloAlertaLocalizado, responderZiaTesourariaPorRegra,
   type PosicaoCaixa, type FluxoProjetadoResultado, type AlertaTesouraria,
 } from '../../../lib/tesourariaHelpers'
 
@@ -101,6 +101,74 @@ export default function TesourariaPage() {
   }) : null
 
   const idle = posicao && fluxo30 ? calcularIdleCash(posicao.totalDisponivel, reservaMinima, fluxo30.saidasPrevistas.base) : null
+
+  // ========== ZIA COPILOT DE TESOURARIA (Rodada 3) ==========
+  // Zero fetch novo, zero motor novo — só texto derivado do que a tela já
+  // carregou. IA real (OpenAI, via /api/ia-chat) primeiro; se falhar ou
+  // estiver fora, cai no V1 por regra que já existia — mesmo padrão do chat
+  // de Contas a Pagar. Na UI: "inteligência do Axioma", nunca cita IA/OpenAI.
+  const [perguntaZia, setPerguntaZia] = useState('')
+  const [respostaZia, setRespostaZia] = useState<string | null>(null)
+  const [carregandoRespostaZia, setCarregandoRespostaZia] = useState(false)
+
+  function montarContextoZiaIa(): string {
+    const linhas: string[] = []
+    linhas.push(L(
+      'Você é a inteligência financeira do Axioma, especializada em Tesouraria de PMEs brasileiras. Responda de forma direta e prática, como um CFO experiente conversando com o dono do negócio. Use SOMENTE os números abaixo — nunca invente ou estime um valor que não esteja aqui; se a pergunta pedir algo que não está nos dados, diga claramente que ainda não tem essa informação.',
+      "You are Axioma's financial intelligence, specialized in Treasury for Brazilian SMBs. Respond directly and practically, like an experienced CFO talking to the business owner. Use ONLY the numbers below — never invent or estimate a value that isn't here; if the question asks for something not in the data, clearly say you don't have that information yet.",
+      'Usted es la inteligencia financiera de Axioma, especializada en Tesorería de PYMEs brasileñas. Responda de forma directa y práctica, como un CFO experimentado hablando con el dueño del negocio. Use SOLO los números abajo — nunca invente o estime un valor que no esté aquí; si la pregunta pide algo que no está en los datos, diga claramente que todavía no tiene esa información.'
+    ))
+    linhas.push('')
+    linhas.push(L('DADOS REAIS DESTA EMPRESA:', 'REAL DATA FOR THIS COMPANY:', 'DATOS REALES DE ESTA EMPRESA:'))
+    if (posicao) {
+      linhas.push(`- ${L('Caixa total', 'Total cash', 'Caja total')}: R$ ${fBRL2(posicao.totalGeral)}`)
+      linhas.push(`- ${L('Disponível', 'Available', 'Disponible')}: R$ ${fBRL2(posicao.totalDisponivel)}`)
+      linhas.push(`- ${L('Reserva mínima', 'Minimum reserve', 'Reserva mínima')}: R$ ${fBRL2(reservaMinima)}`)
+    }
+    if (score) linhas.push(`- ${L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}: ${score.total} (${score.nivel})`)
+    if (idle) linhas.push(`- ${L('Caixa potencialmente ocioso', 'Potentially idle cash', 'Caja potencialmente ociosa')}: R$ ${fBRL2(idle.valor)}`)
+    if (fluxo) {
+      fluxo.pontos.forEach((p) => {
+        linhas.push(`- ${L('Saldo projetado em', 'Projected balance in', 'Saldo proyectado en')} ${p.horizonteDias} ${L('dias (base)', 'days (base)', 'días (base)')}: R$ ${fBRL2(p.saldoProjetado.base)}${p.abaixoDaReserva.base ? ` (${L('abaixo da reserva', 'below reserve', 'debajo de la reserva')})` : ''}`)
+      })
+    }
+    if (alertas.length > 0) {
+      linhas.push(`- ${L('Riscos ativos', 'Active risks', 'Riesgos activos')}: ${alertas.map((a) => tituloAlertaLocalizado(a.tipo, lang)).join(', ')}`)
+    }
+    return linhas.join('\n')
+  }
+
+  async function perguntarZia(perguntaDireta?: string) {
+    const pergunta = (perguntaDireta ?? perguntaZia).trim()
+    if (!pergunta) return
+    if (perguntaDireta) setPerguntaZia(perguntaDireta)
+
+    setCarregandoRespostaZia(true)
+    let resposta = ''
+    try {
+      const res = await fetch('/api/ia-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mensagem: pergunta, historico: [], contexto: montarContextoZiaIa(), provedor: 'openai' }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.resposta) resposta = data.resposta
+      }
+    } catch {}
+
+    if (!resposta) {
+      resposta = responderZiaTesourariaPorRegra(pergunta, { lang, posicao, fluxo, score, idle, alertas, reservaMinima })
+    }
+    setRespostaZia(resposta)
+    setCarregandoRespostaZia(false)
+  }
+
+  const PERGUNTAS_SUGERIDAS_ZIA: Record<Idioma3, string[]> = {
+    pt: ['Como está meu caixa?', 'Tenho dinheiro ocioso?', 'Qual meu maior risco?', 'Meu caixa aguenta 30 dias?', 'Posso contratar alguém?'],
+    en: ['How is my cash?', 'Do I have idle cash?', "What's my biggest risk?", 'Can my cash handle 30 days?', 'Can I afford a new hire?'],
+    es: ['¿Cómo está mi caja?', '¿Tengo dinero ocioso?', '¿Cuál es mi mayor riesgo?', '¿Mi caja aguanta 30 días?', '¿Puedo contratar a alguien?'],
+  }
 
   const chartOption = fluxo ? optLinhaMulti(
     [
@@ -302,6 +370,40 @@ export default function TesourariaPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* PERGUNTE À TESOURARIA (ZIA Copilot) */}
+          <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(167,139,250,0.2)' }}>
+            <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
+              <MessageCircleQuestion size={14} />
+              {L('Pergunte à Tesouraria', 'Ask Treasury', 'Pregunte a la Tesorería')}
+            </p>
+            <div className="flex gap-2 mb-2">
+              <input value={perguntaZia} onChange={(e) => setPerguntaZia(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') perguntarZia() }}
+                disabled={carregandoRespostaZia}
+                placeholder={L('Ex.: como está meu caixa?', 'E.g.: how is my cash?', 'Ej.: ¿cómo está mi caja?')}
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(167,139,250,0.2)', color: '#c8d8f0' }} />
+              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: 'rgba(167,139,250,0.2)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.5)' }}>
+                <Send size={16} />
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {PERGUNTAS_SUGERIDAS_ZIA[lang].map((sug) => (
+                <button key={sug} onClick={() => perguntarZia(sug)} disabled={carregandoRespostaZia} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: 'rgba(255,255,255,0.04)', color: CINZA, border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {sug}
+                </button>
+              ))}
+            </div>
+            {carregandoRespostaZia ? (
+              <div className="rounded-xl p-3" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)' }}>
+                <p className="text-sm" style={{ color: CINZA }}>{L('Pensando...', 'Thinking...', 'Pensando...')}</p>
+              </div>
+            ) : respostaZia && (
+              <div className="rounded-xl p-3" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)' }}>
+                <p className="text-sm" style={{ color: '#c8d8f0' }}>{respostaZia}</p>
               </div>
             )}
           </div>

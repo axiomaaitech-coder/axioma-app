@@ -688,3 +688,87 @@ export async function obterCapitalDeGiro(empresaId: string): Promise<CapitalDeGi
   const valorEstoque = Number(kpisEstoque.valor_total_estoque || 0);
   return { contasAReceberAberto, valorEstoque, contasAPagarAberto, capitalDeGiro: contasAReceberAberto + valorEstoque - contasAPagarAberto };
 }
+
+// ============================================================================
+// ZIA COPILOT DE TESOURARIA (Rodada 3) — V1 por regra, mesmo molde de
+// responderPerguntaApPorRegra (contasPagarHelpers.ts): função pura sobre dado
+// já carregado pela tela do Command Center — zero fetch, zero motor novo.
+// Ponto único de geração de texto, pronto pra virar IA real (troca só o
+// corpo por /api/ia-chat, mesmo padrão do chat de AP) sem mexer na tela.
+// Pergunta fora do roteiro: admite honestamente que não sabe, nunca inventa.
+// ============================================================================
+
+export type ContextoZiaTesouraria = {
+  lang: Idioma3;
+  posicao: PosicaoCaixa | null;
+  fluxo: FluxoProjetadoResultado | null;
+  score: LiquidityScoreResultado | null;
+  idle: IdleCashResultado | null;
+  alertas: AlertaTesouraria[];
+  reservaMinima: number;
+};
+
+const TOPICOS_ZIA_PT = "como está seu caixa, se tem dinheiro ocioso, qual seu maior risco, se seu caixa aguenta 30 dias, e se você pode contratar alguém";
+const TOPICOS_ZIA_EN = "how your cash looks, whether you have idle cash, your biggest risk, whether your cash can handle 30 days, and whether you can afford a new hire";
+const TOPICOS_ZIA_ES = "cómo está su caja, si tiene dinero ocioso, cuál es su mayor riesgo, si su caja aguanta 30 días, y si puede contratar a alguien";
+
+export function responderZiaTesourariaPorRegra(pergunta: string, ctx: ContextoZiaTesouraria): string {
+  const lang = ctx.lang;
+  const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
+  const brl = (n: number) => `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const q = normalizarTexto(pergunta);
+  const semDado = () => L("Ainda não tenho esse dado calculado — abra a tela de Tesouraria primeiro.", "I don't have that data calculated yet — open the Treasury screen first.", "Todavía no tengo ese dato calculado — abra la pantalla de Tesorería primero.");
+
+  // 1) Como está meu caixa
+  if (q.includes("caixa") && (q.includes("como esta") || q.includes("situacao") || q.includes("status"))) {
+    if (!ctx.posicao || !ctx.score) return semDado();
+    return L(`Seu caixa total é ${brl(ctx.posicao.totalGeral)}, sendo ${brl(ctx.posicao.totalDisponivel)} disponível. Liquidity Score: ${ctx.score.total} (${ctx.score.nivel}).`,
+      `Your total cash is ${brl(ctx.posicao.totalGeral)}, with ${brl(ctx.posicao.totalDisponivel)} available. Liquidity Score: ${ctx.score.total} (${ctx.score.nivel}).`,
+      `Su caja total es ${brl(ctx.posicao.totalGeral)}, con ${brl(ctx.posicao.totalDisponivel)} disponible. Liquidity Score: ${ctx.score.total} (${ctx.score.nivel}).`);
+  }
+
+  // 2) Dinheiro ocioso
+  if (q.includes("ocios") || q.includes("idle")) {
+    if (!ctx.idle) return semDado();
+    if (ctx.idle.valor <= 0) return L("Não — todo o caixa disponível já está comprometido com a reserva mínima e as saídas dos próximos 30 dias.", "No — all available cash is already committed to the minimum reserve and the next 30 days of payments.", "No — toda la caja disponible ya está comprometida con la reserva mínima y los pagos de los próximos 30 días.");
+    return L(`Sim — ${brl(ctx.idle.valor)} potencialmente ocioso (disponível menos reserva mínima menos saídas dos próximos 30 dias).`,
+      `Yes — ${brl(ctx.idle.valor)} potentially idle (available minus minimum reserve minus the next 30 days of payments).`,
+      `Sí — ${brl(ctx.idle.valor)} potencialmente ocioso (disponible menos reserva mínima menos pagos de los próximos 30 días).`);
+  }
+
+  // 3) Maior risco
+  if (q.includes("risco") || q.includes("risk")) {
+    if (ctx.alertas.length === 0) return L("Nenhum risco detectado no momento.", "No risk detected right now.", "Ningún riesgo detectado por ahora.");
+    const ordem: Record<string, number> = { critico: 4, risco: 3, atencao: 2, normal: 1 };
+    const top = [...ctx.alertas].sort((a, b) => (ordem[b.severidade] || 0) - (ordem[a.severidade] || 0))[0];
+    return `${tituloAlertaLocalizado(top.tipo, lang)}: ${descreverAlerta(top, lang)}`;
+  }
+
+  // 4) Caixa aguenta 30 dias
+  if ((q.includes("aguenta") || q.includes("aguent") || q.includes("handle")) && q.includes("30")) {
+    if (!ctx.fluxo) return semDado();
+    const p30 = ctx.fluxo.pontos.find((p) => p.horizonteDias === 30);
+    if (!p30) return semDado();
+    if (!p30.abaixoDaReserva.base) return L("Sim — o saldo projetado em 30 dias fica acima da reserva mínima, no cenário base.", "Yes — the projected 30-day balance stays above the minimum reserve, in the base scenario.", "Sí — el saldo proyectado a 30 días queda por encima de la reserva mínima, en el escenario base.");
+    return L(`Atenção: no cenário base, o saldo projetado em 30 dias (${brl(p30.saldoProjetado.base)}) fica abaixo da reserva mínima (${brl(ctx.reservaMinima)}).`,
+      `Careful: in the base scenario, the projected 30-day balance (${brl(p30.saldoProjetado.base)}) falls below the minimum reserve (${brl(ctx.reservaMinima)}).`,
+      `Atención: en el escenario base, el saldo proyectado a 30 días (${brl(p30.saldoProjetado.base)}) queda por debajo de la reserva mínima (${brl(ctx.reservaMinima)}).`);
+  }
+
+  // 5) Posso contratar alguém
+  if (q.includes("contrat") || q.includes("hire")) {
+    if (!ctx.idle || !ctx.score) return semDado();
+    if (ctx.idle.valor > 0 && ctx.score.nivel !== "critico") {
+      return L(`Com cautela — você tem ${brl(ctx.idle.valor)} de caixa ocioso e Liquidity Score ${ctx.score.total} (${ctx.score.nivel}). Use o Simulador de Estresse pra testar o custo mensal exato antes de decidir.`,
+        `With caution — you have ${brl(ctx.idle.valor)} of idle cash and a Liquidity Score of ${ctx.score.total} (${ctx.score.nivel}). Use the Stress Simulator to test the exact monthly cost before deciding.`,
+        `Con cautela — tiene ${brl(ctx.idle.valor)} de caja ociosa y Liquidity Score ${ctx.score.total} (${ctx.score.nivel}). Use el Simulador de Estrés para probar el costo mensual exacto antes de decidir.`);
+    }
+    return L(`Não é o melhor momento — Liquidity Score ${ctx.score.total} (${ctx.score.nivel}) e sem caixa ocioso confirmado. Teste o cenário no Simulador de Estresse antes de decidir.`,
+      `Not the best time — Liquidity Score ${ctx.score.total} (${ctx.score.nivel}) with no confirmed idle cash. Test the scenario in the Stress Simulator before deciding.`,
+      `No es el mejor momento — Liquidity Score ${ctx.score.total} (${ctx.score.nivel}) y sin caja ociosa confirmada. Pruebe el escenario en el Simulador de Estrés antes de decidir.`);
+  }
+
+  return L(`Ainda não sei responder isso — essa é a V1 por regra, a inteligência completa chega depois. Posso ajudar com: ${TOPICOS_ZIA_PT}.`,
+    `I can't answer that yet — this is the rule-based V1, full intelligence comes later. I can help with: ${TOPICOS_ZIA_EN}.`,
+    `Todavía no sé responder eso — esta es la V1 por regla, la inteligencia completa llega después. Puedo ayudar con: ${TOPICOS_ZIA_ES}.`);
+}
