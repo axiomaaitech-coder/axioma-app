@@ -536,9 +536,11 @@ const AMOSTRA_MINIMA_ATRASO = 3;
 // E com multa combinada (taxa_multa_mensal preenchida). Ignora contas sem
 // esses dois dados — "sem dado não penaliza", mesmo princípio do Score
 // Axioma de Fornecedores e da Entrega 2.
-type ContaPagaParaFatorAtraso = { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null };
+export type ContaPagaParaFatorAtraso = { valor_total: number; valor_pago: number; data_pagamento: string | null; data_vencimento: string | null; taxa_multa_mensal: number | null };
 
-function calcularFatorAtrasoHistorico(contasPagas: ContaPagaParaFatorAtraso[]): { fator: number; amostra: number } {
+// Exportada pra ser reaproveitada por lib/tesourariaHelpers.ts (cenário
+// ESTRESSADO do Fluxo Projetado) — mesmo cálculo, uma só implementação.
+export function calcularFatorAtrasoHistorico(contasPagas: ContaPagaParaFatorAtraso[]): { fator: number; amostra: number } {
   const atrasadasComMulta = contasPagas.filter((c) =>
     c.data_pagamento && c.data_vencimento && c.data_pagamento > c.data_vencimento &&
     Number(c.taxa_multa_mensal) > 0 && Number(c.valor_total) > 0
