@@ -423,11 +423,19 @@ export async function listarAlertasAtivos(empresaId: string): Promise<AlertaTeso
   return (data as AlertaTesouraria[]) || [];
 }
 
-// Grava só os tipos ainda sem alerta ativo (dedup) — titulo/descricao ficam
-// em PT como registro de auditoria; a tela SEMPRE renderiza o texto
-// localizado a partir de tipo+dado_origem via descreverAlerta(), nunca lê
-// titulo/descricao pra exibir (evita travar o alerta num idioma só).
-export async function gravarNovosAlertas(empresaId: string, candidatos: AlertaCandidato[], tituloPt: Record<TipoAlertaTesouraria, string>): Promise<void> {
+const TITULO_ALERTA_PT: Record<TipoAlertaTesouraria, string> = {
+  ruptura_caixa: "Risco de ruptura de caixa",
+  concentracao_banco: "Concentração bancária alta",
+  concentracao_cliente: "Concentração de cliente alta",
+  divida_alta: "Dívida alta frente ao caixa",
+  caixa_ocioso: "Caixa potencialmente ocioso",
+};
+
+// Grava só os tipos ainda sem alerta ativo (dedup) — titulo fica em PT como
+// registro de auditoria (rastreável no banco); a tela SEMPRE renderiza o
+// texto localizado a partir de tipo+dado_origem via descreverAlerta(),
+// nunca lê titulo/descricao pra exibir (evita travar o alerta num idioma só).
+export async function gravarNovosAlertas(empresaId: string, candidatos: AlertaCandidato[]): Promise<void> {
   if (candidatos.length === 0) return;
   const ativos = await listarAlertasAtivos(empresaId);
   const tiposAtivos = new Set(ativos.map((a) => a.tipo));
@@ -436,10 +444,54 @@ export async function gravarNovosAlertas(empresaId: string, candidatos: AlertaCa
 
   const linhas = novos.map((c) => ({
     empresa_id: empresaId, tipo: c.tipo, severidade: c.severidade,
-    titulo: tituloPt[c.tipo], descricao: null, dado_origem: c.dado_origem,
+    titulo: TITULO_ALERTA_PT[c.tipo], descricao: null, dado_origem: c.dado_origem,
   }));
   const { error } = await supabase.from("tesouraria_alerta").insert(linhas);
   if (error) reportarFalhaEscrita("tesouraria_alerta", "insert", error.message);
+}
+
+// Texto 100% localizado pra exibição — reconstrói a frase a partir de
+// tipo+dado_origem (nunca do titulo/descricao gravados, que ficam só em PT).
+export function descreverAlerta(a: Pick<AlertaTesouraria, "tipo" | "dado_origem">, lang: Idioma3): string {
+  const d = (a.dado_origem || {}) as Record<string, number | string>;
+  const brl = (n: number) => `R$ ${Number(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  switch (a.tipo) {
+    case "ruptura_caixa":
+      if (lang === "en") return `Projected balance goes below the minimum reserve within ${d.horizonteDias} days (projected: ${brl(Number(d.saldoProjetadoBase))}, reserve: ${brl(Number(d.reservaMinima))}).`;
+      if (lang === "es") return `El saldo proyectado queda por debajo de la reserva mínima en ${d.horizonteDias} días (proyectado: ${brl(Number(d.saldoProjetadoBase))}, reserva: ${brl(Number(d.reservaMinima))}).`;
+      return `Saldo projetado fica abaixo da reserva mínima em ${d.horizonteDias} dias (projetado: ${brl(Number(d.saldoProjetadoBase))}, reserva: ${brl(Number(d.reservaMinima))}).`;
+    case "caixa_ocioso":
+      if (lang === "en") return `${brl(Number(d.valorOcioso))} potentially idle — available (${brl(Number(d.caixaDisponivel))}) minus reserve (${brl(Number(d.reservaMinima))}) minus next-30-day payments (${brl(Number(d.saidas30Dias))}).`;
+      if (lang === "es") return `${brl(Number(d.valorOcioso))} potencialmente ocioso — disponible (${brl(Number(d.caixaDisponivel))}) menos reserva (${brl(Number(d.reservaMinima))}) menos pagos de 30 días (${brl(Number(d.saidas30Dias))}).`;
+      return `${brl(Number(d.valorOcioso))} potencialmente ocioso — disponível (${brl(Number(d.caixaDisponivel))}) menos reserva (${brl(Number(d.reservaMinima))}) menos saídas dos próximos 30 dias (${brl(Number(d.saidas30Dias))}).`;
+    case "concentracao_banco":
+      if (lang === "en") return `${d.banco} holds ${d.percentual}% of total cash (limit: ${d.limite}%).`;
+      if (lang === "es") return `${d.banco} concentra ${d.percentual}% del caja total (límite: ${d.limite}%).`;
+      return `${d.banco} concentra ${d.percentual}% do caixa total (limite: ${d.limite}%).`;
+    case "concentracao_cliente":
+      if (lang === "en") return `One client accounts for ${d.percentual}% of open receivables (limit: ${d.limite}%).`;
+      if (lang === "es") return `Un cliente concentra ${d.percentual}% de las cuentas por cobrar abiertas (límite: ${d.limite}%).`;
+      return `Um cliente concentra ${d.percentual}% das contas a receber em aberto (limite: ${d.limite}%).`;
+    case "divida_alta":
+      if (lang === "en") return `Outstanding debt (${brl(Number(d.dividaPendente))}) is ${d.razao}x the treasury cash (${brl(Number(d.caixaTotal))}).`;
+      if (lang === "es") return `La deuda pendiente (${brl(Number(d.dividaPendente))}) es ${d.razao}x el caja de tesorería (${brl(Number(d.caixaTotal))}).`;
+      return `Dívida pendente (${brl(Number(d.dividaPendente))}) é ${d.razao}x o caixa de tesouraria (${brl(Number(d.caixaTotal))}).`;
+  }
+}
+
+export function tituloAlertaLocalizado(tipo: TipoAlertaTesouraria, lang: Idioma3): string {
+  const label: Record<Idioma3, Record<TipoAlertaTesouraria, string>> = {
+    pt: TITULO_ALERTA_PT,
+    en: {
+      ruptura_caixa: "Cash rupture risk", concentracao_banco: "High bank concentration",
+      concentracao_cliente: "High client concentration", divida_alta: "Debt high vs. cash", caixa_ocioso: "Potentially idle cash",
+    },
+    es: {
+      ruptura_caixa: "Riesgo de ruptura de caja", concentracao_banco: "Concentración bancaria alta",
+      concentracao_cliente: "Concentración de cliente alta", divida_alta: "Deuda alta frente al caja", caixa_ocioso: "Caja potencialmente ociosa",
+    },
+  };
+  return label[lang][tipo];
 }
 
 export async function resolverAlerta(id: string, empresaId: string): Promise<{ ok: boolean; erro?: string }> {
