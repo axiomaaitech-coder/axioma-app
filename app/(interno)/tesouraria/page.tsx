@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
-import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal, Building2 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../lib/empresaHelpers'
@@ -122,6 +122,11 @@ export default function TesourariaPage() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: 'rgba(167,139,250,0.14)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }}>
             <SlidersHorizontal size={16} />{L('Simulador de Estresse', 'Stress Simulator', 'Simulador de Estrés')}
+          </button>
+          <button onClick={() => router.push('/tesouraria/gemeo')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: 'rgba(52,211,153,0.14)', color: VERDE, border: `1px solid ${VERDE}40` }}>
+            <Building2 size={16} />{L('Gêmeo Financeiro', 'Digital Twin', 'Gemelo Financiero')}
           </button>
           {podeConfigurar && (
             <button onClick={() => router.push('/tesouraria/config')}

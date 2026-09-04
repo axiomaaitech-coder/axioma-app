@@ -8,6 +8,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import { calcularFatorAtrasoHistorico, type ContaPagaParaFatorAtraso } from "./contasPagarHelpers";
 import { normalizarTexto } from "./cfoCore";
+import { carregarKpisEstoque } from "./estoqueHelpers";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -658,4 +659,32 @@ export async function excluirCenario(id: string, empresaId: string): Promise<{ o
     return { ok: false, erro: motivo };
   }
   return { ok: true };
+}
+
+// ============================================================================
+// CAPITAL DE GIRO (Digital Twin) — AR em aberto + valor de estoque
+// (reaproveita carregarKpisEstoque de estoqueHelpers.ts, não recalcula) − AP
+// em aberto. Mesmo espírito da consulta de concentração de cliente já usada
+// no Treasury Radar (gerarAlertasCandidatos), lado do capital de giro.
+// ============================================================================
+
+export type CapitalDeGiro = {
+  contasAReceberAberto: number;
+  valorEstoque: number;
+  contasAPagarAberto: number;
+  capitalDeGiro: number;
+};
+
+export async function obterCapitalDeGiro(empresaId: string): Promise<CapitalDeGiro> {
+  const [{ data: crAbertas }, { data: cpAbertas }, kpisEstoque] = await Promise.all([
+    supabase.from("contas_receber").select("valor, valor_recebido").eq("empresa_id", empresaId).neq("status", "recebido"),
+    supabase.from("contas_pagar").select("valor_total, valor_pago").eq("empresa_id", empresaId).neq("status", "pago"),
+    carregarKpisEstoque(empresaId),
+  ]);
+  const contasAReceberAberto = ((crAbertas as { valor: number; valor_recebido: number | null }[]) || [])
+    .reduce((s, c) => s + Math.max(0, Number(c.valor) - Number(c.valor_recebido || 0)), 0);
+  const contasAPagarAberto = ((cpAbertas as { valor_total: number; valor_pago: number | null }[]) || [])
+    .reduce((s, c) => s + Math.max(0, Number(c.valor_total) - Number(c.valor_pago || 0)), 0);
+  const valorEstoque = Number(kpisEstoque.valor_total_estoque || 0);
+  return { contasAReceberAberto, valorEstoque, contasAPagarAberto, capitalDeGiro: contasAReceberAberto + valorEstoque - contasAPagarAberto };
 }
