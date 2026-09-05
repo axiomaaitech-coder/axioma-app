@@ -175,6 +175,44 @@ export type FluxoProjetadoResultado = {
   amostraAtrasoAR: number;
 };
 
+// Blend otimista/base/estressado isolado do horizonte em si — extraído pra
+// ser reaproveitado por qualquer horizonte fora dos 4 padrão (ex: projeção
+// de 180 dias do "Se eu fizer nada" do Contador), sem duplicar a fórmula.
+export function montarBlendFluxoProjetado(
+  saldoAtual: number, entradasOtimista: number, saidasOtimista: number,
+  fatorAtrasoAP: number, fracaoAtrasoAR: number, reservaMinima: number
+): {
+  saldoAtual: number;
+  entradasPrevistas: { otimista: number; base: number; estressado: number };
+  saidasPrevistas: { otimista: number; base: number; estressado: number };
+  saldoProjetado: { otimista: number; base: number; estressado: number };
+  abaixoDaReserva: { otimista: boolean; base: boolean; estressado: boolean };
+} {
+  const entradas = {
+    otimista: entradasOtimista,
+    base: entradasOtimista * (1 - fracaoAtrasoAR / 2),
+    estressado: entradasOtimista * (1 - fracaoAtrasoAR),
+  };
+  const saidas = {
+    otimista: saidasOtimista,
+    base: saidasOtimista * (1 + fatorAtrasoAP / 2),
+    estressado: saidasOtimista * (1 + fatorAtrasoAP),
+  };
+  const saldoProjetado = {
+    otimista: saldoAtual + entradas.otimista - saidas.otimista,
+    base: saldoAtual + entradas.base - saidas.base,
+    estressado: saldoAtual + entradas.estressado - saidas.estressado,
+  };
+  return {
+    saldoAtual, entradasPrevistas: entradas, saidasPrevistas: saidas, saldoProjetado,
+    abaixoDaReserva: {
+      otimista: saldoProjetado.otimista < reservaMinima,
+      base: saldoProjetado.base < reservaMinima,
+      estressado: saldoProjetado.estressado < reservaMinima,
+    },
+  };
+}
+
 export async function obterFluxoProjetado(empresaId: string, reservaMinima: number): Promise<FluxoProjetadoResultado> {
   const [rpcResultados, { data: cpPagas }, { data: crRecebidas }] = await Promise.all([
     Promise.all(HORIZONTES_TESOURARIA.map((dias) => supabase.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias }))),
@@ -191,36 +229,29 @@ export async function obterFluxoProjetado(empresaId: string, reservaMinima: numb
 
   const pontos: PontoFluxoProjetado[] = HORIZONTES_TESOURARIA.map((horizonteDias, i) => {
     const linha = rpcResultados[i].data?.[0] as { saldo_atual: number; entradas_previstas: number; saidas_previstas: number } | undefined;
-    const saldoAtual = Number(linha?.saldo_atual || 0);
-    const entradasOtimista = Number(linha?.entradas_previstas || 0);
-    const saidasOtimista = Number(linha?.saidas_previstas || 0);
-
-    const entradas = {
-      otimista: entradasOtimista,
-      base: entradasOtimista * (1 - fracaoAtrasoAR / 2),
-      estressado: entradasOtimista * (1 - fracaoAtrasoAR),
-    };
-    const saidas = {
-      otimista: saidasOtimista,
-      base: saidasOtimista * (1 + fatorAtrasoAP / 2),
-      estressado: saidasOtimista * (1 + fatorAtrasoAP),
-    };
-    const saldoProjetado = {
-      otimista: saldoAtual + entradas.otimista - saidas.otimista,
-      base: saldoAtual + entradas.base - saidas.base,
-      estressado: saldoAtual + entradas.estressado - saidas.estressado,
-    };
     return {
-      horizonteDias, saldoAtual, entradasPrevistas: entradas, saidasPrevistas: saidas, saldoProjetado,
-      abaixoDaReserva: {
-        otimista: saldoProjetado.otimista < reservaMinima,
-        base: saldoProjetado.base < reservaMinima,
-        estressado: saldoProjetado.estressado < reservaMinima,
-      },
+      horizonteDias,
+      ...montarBlendFluxoProjetado(Number(linha?.saldo_atual || 0), Number(linha?.entradas_previstas || 0), Number(linha?.saidas_previstas || 0), fatorAtrasoAP, fracaoAtrasoAR, reservaMinima),
     };
   });
 
   return { pontos, fatorAtrasoAP, fracaoAtrasoAR, amostraAtrasoAP, amostraAtrasoAR };
+}
+
+// Um horizonte avulso fora dos 4 padrão (HORIZONTES_TESOURARIA) — mesma RPC
+// tesouraria_fluxo_projetado, mesmo blend — usado pelo "Se eu fizer nada" do
+// Contador (30/60/90/180d) sem alterar a lista de horizontes do Command
+// Center/Gêmeo Financeiro (blast radius zero nas telas existentes).
+export async function obterPontoFluxoProjetadoAvulso(
+  empresaId: string, dias: number, reservaMinima: number, fatorAtrasoAP: number, fracaoAtrasoAR: number
+): Promise<{ horizonteDias: number } & ReturnType<typeof montarBlendFluxoProjetado>> {
+  const { data, error } = await supabase.rpc("tesouraria_fluxo_projetado", { p_empresa_id: empresaId, p_dias: dias });
+  if (error) reportarFalhaEscrita("tesouraria_fluxo_projetado", `rpc select (${dias}d avulso)`, error.message);
+  const linha = (data as { saldo_atual: number; entradas_previstas: number; saidas_previstas: number }[] | null)?.[0];
+  return {
+    horizonteDias: dias,
+    ...montarBlendFluxoProjetado(Number(linha?.saldo_atual || 0), Number(linha?.entradas_previstas || 0), Number(linha?.saidas_previstas || 0), fatorAtrasoAP, fracaoAtrasoAR, reservaMinima),
+  };
 }
 
 // ============================================================================
