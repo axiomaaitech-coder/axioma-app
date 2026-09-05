@@ -18,10 +18,10 @@ import { resolverPeriodo, periodoAnterior, topConcentracao, type Periodo } from 
 import {
   obterConfigTesouraria, obterPosicaoCaixa, obterFluxoProjetado, obterDividaPendente, obterCapitalDeGiro,
   gerarAlertasCandidatos, calcularLiquidityScore, obterPontoFluxoProjetadoAvulso,
-  type PosicaoCaixa, type FluxoProjetadoResultado, type CapitalDeGiro, type AlertaCandidato, type LiquidityScoreResultado,
+  type CapitalDeGiro, type AlertaCandidato, type LiquidityScoreResultado,
 } from "./tesourariaHelpers";
-import { detectarDescontosPerdidos, type ContaPagar, type DescontoPerdido } from "./contasPagarHelpers";
-import { carregarAvisosEstoque, type AvisoEstoque } from "./estoqueHelpers";
+import { detectarDescontosPerdidos, type ContaPagar } from "./contasPagarHelpers";
+import { carregarAvisosEstoque } from "./estoqueHelpers";
 import { listarLancamentos, listarPartidas, type LancamentoContabilRow, type PartidaRow, saldoNatural } from "./contabilidadeRelatoriosHelpers";
 import { listarPlanoDeContas, type ContaContabil } from "./contabilidadeHelpers";
 
