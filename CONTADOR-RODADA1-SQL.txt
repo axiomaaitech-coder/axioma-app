@@ -1,0 +1,733 @@
+-- ============================================================================
+-- AXIOMA — MÓDULO CONTADOR (CFO Intelligence), RODADA 1: DATA CORE (fundação
+-- SQL). NÃO APLICADO — só pra revisão. Nenhuma tela nesta rodada.
+--
+-- O QUE ISTO NÃO É: não é um contador automatizado nem um 2º ledger. É a
+-- camada de INTELIGÊNCIA que roda EM CIMA do ledger de partida dobrada que já
+-- existe (lancamento_contabil / lancamento_contabil_partida / plano_de_contas,
+-- entregues no Accounting Core) e do Event Fabric (eventos_negocio). Read-only
+-- sobre o ledger — nenhuma tabela existente é alterada, nenhum lançamento
+-- contábil é gerado por este SQL.
+--
+-- ============================================================================
+-- DIAGNÓSTICO — nomes reais confirmados contra o código antes de escrever
+-- este arquivo (nada aqui foi inventado):
+-- ============================================================================
+--   - empresas(id uuid PK, user_id)                    — MIGRACAO-MULTITENANT.sql
+--   - empresas_do_usuario() returns setof uuid          — MIGRACAO-MULTITENANT.sql
+--   - eventos_negocio(id, empresa_id, tipo, origem_modulo, origem_tabela,
+--     origem_id, payload, usuario_id, versao, criado_em)
+--                                                        — CFO-CORE-FASE1-EVENTOS-SQL.txt
+--   - plano_de_contas(id, empresa_id, codigo, nome,
+--     tipo CHECK IN ('ativo','passivo','patrimonio','receita','despesa'),
+--     natureza CHECK IN ('devedora','credora'), conta_pai_id,
+--     codigo_referencial_rfb, ativo, criado_em)
+--                                                        — CFO-CORE-FASE1-ACCOUNTING-SQL.txt
+--   - lancamento_contabil(id, empresa_id, data, descricao, evento_id,
+--     origem_tabela, origem_id, usuario_id, estornado_por_id, criado_em)
+--     — SELECT+INSERT apenas, nunca UPDATE/DELETE direto do client
+--                                                        — CFO-CORE-FASE1-ACCOUNTING-SQL.txt
+--   - lancamento_contabil_partida(id, empresa_id, lancamento_id, conta_id,
+--     tipo CHECK IN ('debito','credito'), valor numeric>0, centro_custo_id,
+--     criado_em)                                        — CFO-CORE-FASE1-ACCOUNTING-SQL.txt
+--   - contas_pagar(empresa_id, valor_total, valor_pago, status text livre —
+--     'pendente' | 'pago' | 'aguardando_aprovacao' | ... sem CHECK,
+--     data_vencimento, data_pagamento, fornecedor_id, custo_fixo_id)
+--                                                        — lib/contasPagarHelpers.ts, CONTAS-A-PAGAR-ENTREGA1-SQL.txt
+--   - contas_receber(empresa_id, valor, valor_recebido, status text livre —
+--     'pendente' | 'recebido' | ... sem CHECK, data_vencimento,
+--     data_recebimento)                                 — app/(interno)/contas-receber/page.tsx
+--   - fornecedores(empresa_id, nome, ...)                — app/(interno)/fornecedores/page.tsx
+--   - dividas: ESTA é a tabela real usada por Endividamento/DRE/Fluxo de
+--     Caixa/Relatórios. "endividamento" é tabela ÓRFÃ (schema diferente,
+--     nunca alimentada pela UI, bug já corrigido no commit f421c93) — ver
+--     STATUS-AXIOMA.md §8. Fora do escopo desta rodada: nenhuma das 2 RPCs
+--     abaixo toca `dividas`; fica confirmado aqui só pra próxima rodada não
+--     repetir o engano.
+--
+-- Como já se detecta anomalia hoje: detectarAnomaliasHistoricas() em
+-- lib/cfoCore.ts:808 já existe e roda no CLIENTE, sobre lançamentos que a
+-- tela já carregou — agrupa por descrição normalizada, compara o último
+-- valor contra a média histórica do grupo, marca "acima_media" quando
+-- ultimo > media * 1.4 (40%), e "aumento_recorrente" quando sobem 3 meses
+-- seguidos. A RPC contador_detectar_variacao_despesa (Parte 19) estende essa
+-- MESMA filosofia (último vs. média histórica) pro nível de CONTA CONTÁBIL,
+-- rodando no banco sobre o ledger inteiro (não só o que a tela carregou) —
+-- não reescreve a lógica do zero, generaliza o padrão que já existe.
+--
+-- ============================================================================
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0   — leitura: confirma as peças-base existem
+--   PARTE 1-3  — contador_descoberta (tabela, RLS, índices)      [ATIVO]
+--   PARTE 4-6  — contador_close (tabela, RLS, índice)            [ATIVO]
+--   PARTE 7-9  — contador_data_trust (tabela, RLS, índice)       [ATIVO — schema pronto, RPC de cálculo fica pra próximo commit, mesmo padrão do Accounting Core]
+--   PARTE 10-12 — contador_memoria (tabela, RLS, índice)         [ATIVO]
+--   PARTE 13-15 — contador_decisao_journal (tabela, RLS, índice) [ATIVO]
+--   PARTE 16-18 — contador_agente_execucao (tabela, RLS, índice) [INERTE — gancho pra ZIA/orquestração, ninguém grava ainda]
+--   PARTE 19    — RPC contador_detectar_variacao_despesa
+--   PARTE 20    — RPC contador_close_readiness
+--   PARTE 21    — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DROP POLICY|FUNCTION IF EXISTS antes de
+-- recriar, ON CONFLICT DO NOTHING/UPDATE nas RPCs) — pode rodar mais de uma
+-- vez com segurança.
+--
+-- ============================================================================
+-- DECISÕES DE DESENHO
+-- ============================================================================
+--
+-- RLS — 3 padrões diferentes nas 6 tabelas, cada um por um motivo:
+--   1) contador_descoberta, contador_memoria, contador_decisao_journal:
+--      FOR ALL. São tabelas "vivas" — o dono lê e também AGE sobre elas
+--      (marcar descoberta como resolvida, corrigir uma memória aprendida,
+--      registrar a decisão que tomou sobre uma recomendação). Mesmo
+--      raciocínio de plano_de_contas (cadastro editável) e contas_pagar
+--      (sistema sugere, dono decide) — nunca o raciocínio de eventos_negocio
+--      (fato imutável).
+--   2) contador_close, contador_data_trust: SELECT apenas pro client. São
+--      100% calculadas — ninguém edita "quão pronto está o fechamento" à
+--      mão. Só a função SECURITY DEFINER escreve, e ela ESCREVE MESMO SEM
+--      policy de INSERT/UPDATE porque roda como dono da tabela (mesmo
+--      comportamento já usado em fn_checar_partida_dobrada e
+--      seed_plano_de_contas_padrao — RLS não barra SECURITY DEFINER, a
+--      checagem de posse fica explícita no corpo da função).
+--   3) contador_agente_execucao: SELECT+INSERT, sem UPDATE — é um log de
+--      execução, mesmo princípio de eventos_negocio/lancamento_contabil
+--      (fato consumado). Uma aprovação posterior (aprovado_por) não é
+--      UPDATE direto — vira SECURITY DEFINER dedicada quando o gancho for
+--      ativado, mesmo padrão do estornado_por_id do Accounting Core.
+--
+-- contador_memoria — UNIQUE em vez do índice simples pedido: (empresa_id,
+--   tipo, chave) é estruturalmente uma chave-valor (mesmo molde de
+--   mei_obrigacoes, que já usa UNIQUE(empresa_id, tipo, competencia) +
+--   upsert). Duas linhas com a mesma chave pra mesma empresa não faz sentido
+--   — a memória vira ambígua. Fortalecido de índice pra UNIQUE, documentado
+--   aqui pra não ser lido como divergência não avisada.
+--
+-- competencia como DATE (não text 'YYYY-MM' como em mei_obrigacoes) — escolha
+--   deliberada: as 2 RPCs desta rodada fazem aritmética de data sobre
+--   competência (BETWEEN, date_trunc, subtrair meses pra achar a janela de
+--   histórico) — texto exigiria parse toda hora. Trade-off registrado, não
+--   escondido: mei_obrigacoes usa text porque só faz igualdade/agrupamento,
+--   nunca range. Convenção adotada aqui: competencia SEMPRE o dia 1 do mês
+--   (date_trunc('month', ...)) — as RPCs já normalizam antes de gravar.
+--
+-- Idempotência das descobertas (Parte 19) — contador_descoberta não tem
+--   UNIQUE natural (evidência é jsonb, variável por tipo de descoberta).
+--   Em vez de inventar uma chave sintética que não serve pra outros tipos de
+--   descoberta futuros, a RPC verifica por CONTAINMENT jsonb
+--   (evidencia @> {conta_id, competencia}) se já existe uma descoberta
+--   'aberto' pra essa conta+competência antes de inserir — por isso o índice
+--   GIN em evidencia (Parte 3): sem ele essa checagem faria seq scan a cada
+--   chamada da RPC (violaria a regra de nunca escanear tabela inteira).
+--
+-- previsao_prazo (contador_close) fica NULL nesta rodada — prever quantos
+--   dias faltam pro fechamento exige histórico de fechamentos anteriores
+--   (regressão simples sobre closes passados), e na Rodada 1 pode não haver
+--   nenhum ainda. Não inventamos número sem base (evidence-first) — populamos
+--   isso a partir da 2ª ou 3ª competência com dado real, próximo commit.
+--
+-- P0-P3 em contador_descoberta.prioridade — a RPC desta rodada só usa P1/P2
+--   (corte simples por valor absoluto de impacto, comentado no corpo da
+--   função). P0 (crítico) e P3 (informativo) ficam reservados pro conjunto
+--   maior de regras do Discovery Engine (rodadas futuras) — o CHECK já
+--   aceita as 4 pra não exigir migração de schema quando essas regras
+--   chegarem.
+--
+-- Nenhum enum/CHECK de nome de conta ou imposto (mesmo motivo já registrado
+--   no Accounting Core): a Reforma Tributária (IBS/CBS) não quebra nada
+--   aqui porque este SQL não referencia nome de conta de imposto nenhum.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'eventos_negocio';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'plano_de_contas';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'lancamento_contabil';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'lancamento_contabil_partida';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_pagar';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'contas_receber';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'fornecedores';
+
+
+-- ============================================================================
+-- PARTE 1 — TABELA CONTADOR_DESCOBERTA                                [ATIVO]
+-- ============================================================================
+-- O Discovery Engine grava aqui o que achou sem ninguém perguntar. causa é
+-- texto livre (causa→efeito quando detectável pela regra determinística,
+-- NULL quando não dá pra apontar uma causa só com o dado disponível — nunca
+-- inventar causa por inventar). evidencia jsonb é o dado/período/conta/
+-- cálculo que sustenta a descoberta — evidence-first, toda linha tem que
+-- apontar pra algo verificável, nunca uma afirmação solta.
+
+CREATE TABLE IF NOT EXISTS public.contador_descoberta (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id        uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo              text NOT NULL CHECK (tipo IN ('inconsistencia','anomalia','oportunidade','risco','divergencia','concentracao','classificacao_suspeita','tendencia')),
+  prioridade        text NOT NULL CHECK (prioridade IN ('P0','P1','P2','P3')),
+  titulo            text NOT NULL,
+  descricao         text,
+  causa             text,
+  impacto_estimado  numeric,
+  evidencia         jsonb,
+  confianca         text NOT NULL CHECK (confianca IN ('fato','calculo','inferencia','previsao','cenario')),
+  status            text NOT NULL DEFAULT 'aberto' CHECK (status IN ('aberto','revisado','resolvido','ignorado')),
+  criado_em         timestamptz NOT NULL DEFAULT now(),
+  resolvido_em      timestamptz,
+  resolvido_por     uuid REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+
+-- ============================================================================
+-- PARTE 2 — RLS DE CONTADOR_DESCOBERTA
+-- ============================================================================
+-- FOR ALL — ver "DECISÕES DE DESENHO" no cabeçalho (item 1).
+
+ALTER TABLE public.contador_descoberta ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contador_descoberta_empresa ON public.contador_descoberta;
+CREATE POLICY contador_descoberta_empresa ON public.contador_descoberta
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 3 — ÍNDICES DE CONTADOR_DESCOBERTA
+-- ============================================================================
+-- (empresa_id, prioridade, status) — pedido explícito: é a consulta da
+-- futura tela ("mostra os P0/P1 ainda abertos desta empresa").
+-- GIN em evidencia — necessário pra checagem de idempotência da RPC (Parte
+-- 19) não fazer seq scan a cada chamada (ver "DECISÕES DE DESENHO").
+
+CREATE INDEX IF NOT EXISTS idx_contador_descoberta_empresa_prioridade_status ON public.contador_descoberta (empresa_id, prioridade, status);
+CREATE INDEX IF NOT EXISTS idx_contador_descoberta_evidencia_gin ON public.contador_descoberta USING gin (evidencia);
+
+
+-- ============================================================================
+-- PARTE 4 — TABELA CONTADOR_CLOSE (Continuous Close)                  [ATIVO]
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.contador_close (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id        uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  competencia       date NOT NULL,
+  readiness_pct     numeric NOT NULL CHECK (readiness_pct >= 0 AND readiness_pct <= 100),
+  pendencias        jsonb,
+  previsao_prazo    numeric,
+  calculado_em      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_contador_close_empresa_competencia UNIQUE (empresa_id, competencia),
+  CONSTRAINT ck_contador_close_competencia_dia1 CHECK (competencia = date_trunc('month', competencia)::date)
+);
+
+
+-- ============================================================================
+-- PARTE 5 — RLS DE CONTADOR_CLOSE
+-- ============================================================================
+-- SELECT apenas — ver "DECISÕES DE DESENHO" (item 2). Quem escreve é a RPC
+-- contador_close_readiness (Parte 20), como dono da tabela.
+
+ALTER TABLE public.contador_close ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contador_close_select ON public.contador_close;
+CREATE POLICY contador_close_select ON public.contador_close
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 6 — ÍNDICES DE CONTADOR_CLOSE
+-- ============================================================================
+-- UNIQUE(empresa_id, competencia) da Parte 4 já serve de índice de busca —
+-- nenhum índice adicional necessário pro volume desta tabela (1 linha por
+-- empresa por mês).
+
+
+-- ============================================================================
+-- PARTE 7 — TABELA CONTADOR_DATA_TRUST (Data Trust Score)              [ATIVO]
+-- ============================================================================
+-- Schema pronto nesta rodada, cálculo (RPC) fica pro próximo commit — mesmo
+-- padrão já usado no Accounting Core (tabela antes, lógica depois, cada
+-- coisa revisada separada). score 0-1000 pra ter granularidade maior que
+-- 0-100 sem virar decimal.
+
+CREATE TABLE IF NOT EXISTS public.contador_data_trust (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id    uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  competencia   date NOT NULL,
+  score         int NOT NULL CHECK (score >= 0 AND score <= 1000),
+  completude    numeric,
+  consistencia  numeric,
+  atualidade    numeric,
+  conciliacao   numeric,
+  detalhe       jsonb,
+  calculado_em  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_contador_data_trust_empresa_competencia UNIQUE (empresa_id, competencia),
+  CONSTRAINT ck_contador_data_trust_competencia_dia1 CHECK (competencia = date_trunc('month', competencia)::date)
+);
+
+
+-- ============================================================================
+-- PARTE 8 — RLS DE CONTADOR_DATA_TRUST
+-- ============================================================================
+-- SELECT apenas — mesmo motivo de contador_close (item 2 do cabeçalho).
+
+ALTER TABLE public.contador_data_trust ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contador_data_trust_select ON public.contador_data_trust;
+CREATE POLICY contador_data_trust_select ON public.contador_data_trust
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 9 — ÍNDICES DE CONTADOR_DATA_TRUST
+-- ============================================================================
+-- UNIQUE(empresa_id, competencia) da Parte 7 já serve de índice de busca.
+
+
+-- ============================================================================
+-- PARTE 10 — TABELA CONTADOR_MEMORIA                                   [ATIVO]
+-- ============================================================================
+-- Memória contábil isolada por empresa — nunca compartilhada entre tenants
+-- (nem pra empresas do mesmo dono). valor é jsonb pra caber os 7 tipos sem
+-- 7 esquemas de coluna diferentes.
+
+CREATE TABLE IF NOT EXISTS public.contador_memoria (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id    uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo          text NOT NULL CHECK (tipo IN ('classificacao','fornecedor','conta','excecao','preferencia','decisao','correcao')),
+  chave         text NOT NULL,
+  valor         jsonb NOT NULL,
+  criado_em     timestamptz NOT NULL DEFAULT now(),
+  atualizado_em timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 11 — RLS DE CONTADOR_MEMORIA
+-- ============================================================================
+-- FOR ALL — ver "DECISÕES DE DESENHO" (item 1).
+
+ALTER TABLE public.contador_memoria ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contador_memoria_empresa ON public.contador_memoria;
+CREATE POLICY contador_memoria_empresa ON public.contador_memoria
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 12 — ÍNDICE (UNIQUE) DE CONTADOR_MEMORIA
+-- ============================================================================
+-- UNIQUE em vez do índice simples pedido — ver "DECISÕES DE DESENHO" sobre
+-- por que isso é uma chave-valor de verdade, não um log.
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_contador_memoria_empresa_tipo_chave ON public.contador_memoria (empresa_id, tipo, chave);
+
+
+-- ============================================================================
+-- PARTE 13 — TABELA CONTADOR_DECISAO_JOURNAL (Decision Journal)        [ATIVO]
+-- ============================================================================
+-- Aprende quais recomendações funcionam: liga uma descoberta (opcional — nem
+-- toda decisão nasce de uma descoberta automática) à recomendação dada, à
+-- decisão tomada pelo dono, à ação de fato executada e ao resultado observado
+-- depois. decidido_em fica separado de criado_em porque a recomendação pode
+-- ficar em aberto um tempo antes do dono decidir.
+
+CREATE TABLE IF NOT EXISTS public.contador_decisao_journal (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id      uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  descoberta_id   uuid REFERENCES public.contador_descoberta(id) ON DELETE SET NULL,
+  recomendacao    text,
+  decisao         text,
+  acao            text,
+  resultado       text,
+  criado_por      uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  criado_em       timestamptz NOT NULL DEFAULT now(),
+  decidido_em     timestamptz
+);
+
+
+-- ============================================================================
+-- PARTE 14 — RLS DE CONTADOR_DECISAO_JOURNAL
+-- ============================================================================
+-- FOR ALL — ver "DECISÕES DE DESENHO" (item 1).
+
+ALTER TABLE public.contador_decisao_journal ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contador_decisao_journal_empresa ON public.contador_decisao_journal;
+CREATE POLICY contador_decisao_journal_empresa ON public.contador_decisao_journal
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 15 — ÍNDICES DE CONTADOR_DECISAO_JOURNAL
+-- ============================================================================
+-- (empresa_id, criado_em) — toda tabela multi-tenant precisa de pelo menos 1
+-- índice composto com empresa_id na frente (Regra 2 das 9 regras de escala).
+-- (empresa_id, descoberta_id) — rastreabilidade "todas as decisões tomadas
+-- sobre esta descoberta".
+
+CREATE INDEX IF NOT EXISTS idx_contador_decisao_journal_empresa_criado ON public.contador_decisao_journal (empresa_id, criado_em);
+CREATE INDEX IF NOT EXISTS idx_contador_decisao_journal_empresa_descoberta ON public.contador_decisao_journal (empresa_id, descoberta_id);
+
+
+-- ============================================================================
+-- PARTE 16 — TABELA CONTADOR_AGENTE_EXECUCAO                        [INERTE]
+-- ============================================================================
+-- GANCHO pro Accounting Autopilot / orquestração ZIA. Inerte hoje: nenhum
+-- código publica nem lê esta tabela ainda — só existe pra não exigir
+-- migração de schema quando a orquestração for ligada. nivel_autonomia é a
+-- escada observe→execute (cada agente só sobe de nível quando aprovado).
+
+CREATE TABLE IF NOT EXISTS public.contador_agente_execucao (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id       uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  agente           text NOT NULL,
+  nivel_autonomia  text NOT NULL CHECK (nivel_autonomia IN ('observe','detect','analyze','recommend','prepare','execute','verify')),
+  evento_origem    jsonb,
+  resultado        jsonb,
+  aprovado_por     uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  criado_em        timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 17 — RLS DE CONTADOR_AGENTE_EXECUCAO                        [INERTE]
+-- ============================================================================
+-- SELECT+INSERT, sem UPDATE — ver "DECISÕES DE DESENHO" (item 3).
+
+ALTER TABLE public.contador_agente_execucao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS contador_agente_execucao_select ON public.contador_agente_execucao;
+CREATE POLICY contador_agente_execucao_select ON public.contador_agente_execucao
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+DROP POLICY IF EXISTS contador_agente_execucao_insert ON public.contador_agente_execucao;
+CREATE POLICY contador_agente_execucao_insert ON public.contador_agente_execucao
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 18 — ÍNDICE DE CONTADOR_AGENTE_EXECUCAO                     [INERTE]
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_contador_agente_execucao_empresa_agente_criado ON public.contador_agente_execucao (empresa_id, agente, criado_em);
+
+
+-- ============================================================================
+-- PARTE 19 — RPC CONTADOR_DETECTAR_VARIACAO_DESPESA                    [ATIVO]
+-- ============================================================================
+-- Compara, por conta de despesa, o total lançado na competência contra a
+-- média dos meses anteriores (p_meses_historico, default 6) e devolve as
+-- contas que variaram além de p_limiar_pct (default 20%) — mesma filosofia
+-- de detectarAnomaliasHistoricas() em lib/cfoCore.ts (último vs. média),
+-- estendida pro nível de conta contábil e rodando sobre o ledger inteiro no
+-- banco, não sobre o que a tela carregou.
+--
+-- Exige >= 2 meses de histórico pra "média" fazer sentido (mesma guarda que
+-- o cfoCore.ts já usa: 1 mês de histórico não é média, é só outro ponto).
+--
+-- Causa provável: dentro da conta que variou, o MAIOR lançamento individual
+-- da competência — se ele veio de contas_pagar com fornecedor cadastrado,
+-- usa o nome do fornecedor; senão usa a descrição do próprio lançamento.
+-- É uma primeira aproximação determinística (não é o Causal Engine completo
+-- — esse é análise multi-fator, fica pra rodada futura), mas já é uma pista
+-- concreta e verificável (evidence-first), não um chute.
+--
+-- Grava em contador_descoberta (idempotente — ver "DECISÕES DE DESENHO") e
+-- também devolve o resultado na mesma chamada, pra quem consumir a RPC não
+-- precisar de uma 2ª leitura.
+
+CREATE OR REPLACE FUNCTION public.contador_detectar_variacao_despesa(
+  p_empresa_id      uuid,
+  p_competencia     date,
+  p_meses_historico int DEFAULT 6,
+  p_limiar_pct      numeric DEFAULT 20
+)
+RETURNS TABLE (
+  conta_id          uuid,
+  conta_codigo      text,
+  conta_nome        text,
+  valor_competencia numeric,
+  media_historica   numeric,
+  variacao_pct      numeric,
+  causa_provavel    text,
+  descoberta_id     uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_competencia_inicio date := date_trunc('month', p_competencia)::date;
+  v_competencia_fim    date := (date_trunc('month', p_competencia) + interval '1 month' - interval '1 day')::date;
+  v_historico_inicio   date := (date_trunc('month', p_competencia) - make_interval(months => p_meses_historico))::date;
+  rec                  record;
+  v_causa              text;
+  v_descoberta_id      uuid;
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  FOR rec IN
+    WITH mes_atual AS (
+      SELECT pc.id AS conta_id, pc.codigo, pc.nome,
+        COALESCE(SUM(lcp.valor) FILTER (WHERE lcp.tipo = 'debito'), 0)
+          - COALESCE(SUM(lcp.valor) FILTER (WHERE lcp.tipo = 'credito'), 0) AS valor_mes
+      FROM public.plano_de_contas pc
+      JOIN public.lancamento_contabil_partida lcp ON lcp.conta_id = pc.id AND lcp.empresa_id = pc.empresa_id
+      JOIN public.lancamento_contabil lc ON lc.id = lcp.lancamento_id
+      WHERE pc.empresa_id = p_empresa_id
+        AND pc.tipo = 'despesa'
+        AND lc.data BETWEEN v_competencia_inicio AND v_competencia_fim
+      GROUP BY pc.id, pc.codigo, pc.nome
+    ),
+    historico_mensal AS (
+      SELECT lcp.conta_id, date_trunc('month', lc.data)::date AS mes,
+        COALESCE(SUM(lcp.valor) FILTER (WHERE lcp.tipo = 'debito'), 0)
+          - COALESCE(SUM(lcp.valor) FILTER (WHERE lcp.tipo = 'credito'), 0) AS valor_mes
+      FROM public.lancamento_contabil_partida lcp
+      JOIN public.lancamento_contabil lc ON lc.id = lcp.lancamento_id
+      JOIN public.plano_de_contas pc ON pc.id = lcp.conta_id
+      WHERE lcp.empresa_id = p_empresa_id
+        AND pc.tipo = 'despesa'
+        AND lc.data >= v_historico_inicio
+        AND lc.data < v_competencia_inicio
+      GROUP BY lcp.conta_id, date_trunc('month', lc.data)
+    ),
+    media_historica_cte AS (
+      SELECT conta_id, AVG(valor_mes) AS media, COUNT(*) AS qtd_meses
+      FROM historico_mensal
+      GROUP BY conta_id
+    )
+    SELECT ma.conta_id, ma.codigo, ma.nome, ma.valor_mes, mh.media, mh.qtd_meses,
+      ROUND(((ma.valor_mes - mh.media) / mh.media) * 100, 1) AS variacao_pct
+    FROM mes_atual ma
+    JOIN media_historica_cte mh ON mh.conta_id = ma.conta_id
+    WHERE mh.qtd_meses >= 2
+      AND mh.media <> 0
+      AND ABS((ma.valor_mes - mh.media) / mh.media) * 100 >= p_limiar_pct
+    ORDER BY ABS(ma.valor_mes - mh.media) DESC
+  LOOP
+    -- causa provável: maior lançamento individual dessa conta na competência
+    SELECT COALESCE(f.nome, lc2.descricao) INTO v_causa
+    FROM public.lancamento_contabil_partida lcp2
+    JOIN public.lancamento_contabil lc2 ON lc2.id = lcp2.lancamento_id
+    LEFT JOIN public.contas_pagar cp2 ON lc2.origem_tabela = 'contas_pagar' AND lc2.origem_id = cp2.id
+    LEFT JOIN public.fornecedores f ON f.id = cp2.fornecedor_id
+    WHERE lcp2.conta_id = rec.conta_id
+      AND lcp2.empresa_id = p_empresa_id
+      AND lcp2.tipo = 'debito'
+      AND lc2.data BETWEEN v_competencia_inicio AND v_competencia_fim
+    ORDER BY lcp2.valor DESC
+    LIMIT 1;
+
+    -- idempotente: reaproveita descoberta já aberta pra essa conta+competência
+    SELECT id INTO v_descoberta_id
+    FROM public.contador_descoberta
+    WHERE empresa_id = p_empresa_id
+      AND tipo = 'anomalia'
+      AND status = 'aberto'
+      AND evidencia @> jsonb_build_object('conta_id', rec.conta_id, 'competencia', to_char(v_competencia_inicio, 'YYYY-MM'))
+    LIMIT 1;
+
+    IF v_descoberta_id IS NULL THEN
+      INSERT INTO public.contador_descoberta (
+        empresa_id, tipo, prioridade, titulo, descricao, causa, impacto_estimado, evidencia, confianca
+      ) VALUES (
+        p_empresa_id,
+        'anomalia',
+        CASE WHEN ABS(rec.valor_mes - rec.media) >= 10000 THEN 'P1' ELSE 'P2' END, -- corte simples por valor absoluto; refinar por % da receita fica pra quando o DRE consolidado (Data Trust) estiver ligado
+        rec.nome || ' variou ' || rec.variacao_pct || '% no mês',
+        'Despesa em "' || rec.nome || '" foi de ' || rec.media || ' (média de ' || rec.qtd_meses || ' meses) para ' || rec.valor_mes || ' na competência ' || to_char(v_competencia_inicio, 'YYYY-MM') || '.',
+        v_causa,
+        ABS(rec.valor_mes - rec.media),
+        jsonb_build_object(
+          'conta_id', rec.conta_id, 'conta_codigo', rec.codigo, 'competencia', to_char(v_competencia_inicio, 'YYYY-MM'),
+          'valor_competencia', rec.valor_mes, 'media_historica', rec.media, 'meses_historico', rec.qtd_meses,
+          'variacao_pct', rec.variacao_pct, 'limiar_pct', p_limiar_pct
+        ),
+        'calculo'
+      ) RETURNING id INTO v_descoberta_id;
+    END IF;
+
+    conta_id := rec.conta_id;
+    conta_codigo := rec.codigo;
+    conta_nome := rec.nome;
+    valor_competencia := rec.valor_mes;
+    media_historica := rec.media;
+    variacao_pct := rec.variacao_pct;
+    causa_provavel := v_causa;
+    descoberta_id := v_descoberta_id;
+    RETURN NEXT;
+  END LOOP;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.contador_detectar_variacao_despesa(uuid, date, int, numeric) FROM public;
+GRANT EXECUTE ON FUNCTION public.contador_detectar_variacao_despesa(uuid, date, int, numeric) TO authenticated;
+
+
+-- ============================================================================
+-- PARTE 20 — RPC CONTADOR_CLOSE_READINESS                              [ATIVO]
+-- ============================================================================
+-- Calcula % de fechamento da competência como média de 3 sinais:
+--   1) eventos_negocio do mês que já viraram lançamento contábil (lag do
+--      Event Fabric → ledger — pega qualquer evento sem lancamento_contabil
+--      apontando pra ele via evento_id, sem depender de lista fixa de tipo,
+--      já que "tipo" é texto livre por desenho — ver Accounting/Event Fabric)
+--   2) contas a pagar vencidas na competência já baixadas (status='pago')
+--   3) contas a receber vencidas na competência já baixadas (status='recebido')
+-- pendencias jsonb guarda CONTAGEM e VALOR agregado (nunca a lista de linhas
+-- inteira — agregação no banco, nunca N+1, Regra 4 das 9 regras de escala).
+-- previsao_prazo fica NULL nesta rodada (ver "DECISÕES DE DESENHO").
+-- Upsert em contador_close por (empresa_id, competencia).
+
+CREATE OR REPLACE FUNCTION public.contador_close_readiness(
+  p_empresa_id  uuid,
+  p_competencia date
+)
+RETURNS SETOF public.contador_close
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_competencia_inicio date := date_trunc('month', p_competencia)::date;
+  v_competencia_fim    date := (date_trunc('month', p_competencia) + interval '1 month' - interval '1 day')::date;
+  v_eventos_total       int;
+  v_eventos_sem_lanc    int;
+  v_pct_eventos         numeric;
+  v_ap_total            int;
+  v_ap_pendentes        int;
+  v_ap_pendente_valor   numeric;
+  v_pct_ap              numeric;
+  v_ar_total            int;
+  v_ar_pendentes        int;
+  v_ar_pendente_valor   numeric;
+  v_pct_ar              numeric;
+  v_readiness           numeric;
+  v_pendencias          jsonb;
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  SELECT COUNT(*) INTO v_eventos_total
+  FROM public.eventos_negocio e
+  WHERE e.empresa_id = p_empresa_id
+    AND e.criado_em >= v_competencia_inicio
+    AND e.criado_em < v_competencia_fim + 1;
+
+  SELECT COUNT(*) INTO v_eventos_sem_lanc
+  FROM public.eventos_negocio e
+  WHERE e.empresa_id = p_empresa_id
+    AND e.criado_em >= v_competencia_inicio
+    AND e.criado_em < v_competencia_fim + 1
+    AND NOT EXISTS (SELECT 1 FROM public.lancamento_contabil lc WHERE lc.evento_id = e.id);
+
+  v_pct_eventos := CASE WHEN v_eventos_total = 0 THEN 100
+    ELSE ROUND((v_eventos_total - v_eventos_sem_lanc)::numeric / v_eventos_total * 100, 1) END;
+
+  SELECT COUNT(*), COUNT(*) FILTER (WHERE status <> 'pago'), COALESCE(SUM(valor_total - valor_pago) FILTER (WHERE status <> 'pago'), 0)
+    INTO v_ap_total, v_ap_pendentes, v_ap_pendente_valor
+  FROM public.contas_pagar
+  WHERE empresa_id = p_empresa_id
+    AND data_vencimento BETWEEN v_competencia_inicio AND v_competencia_fim;
+
+  v_pct_ap := CASE WHEN v_ap_total = 0 THEN 100
+    ELSE ROUND((v_ap_total - v_ap_pendentes)::numeric / v_ap_total * 100, 1) END;
+
+  SELECT COUNT(*), COUNT(*) FILTER (WHERE status <> 'recebido'), COALESCE(SUM(valor - valor_recebido) FILTER (WHERE status <> 'recebido'), 0)
+    INTO v_ar_total, v_ar_pendentes, v_ar_pendente_valor
+  FROM public.contas_receber
+  WHERE empresa_id = p_empresa_id
+    AND data_vencimento BETWEEN v_competencia_inicio AND v_competencia_fim;
+
+  v_pct_ar := CASE WHEN v_ar_total = 0 THEN 100
+    ELSE ROUND((v_ar_total - v_ar_pendentes)::numeric / v_ar_total * 100, 1) END;
+
+  v_readiness := ROUND((v_pct_eventos + v_pct_ap + v_pct_ar) / 3, 1);
+
+  v_pendencias := jsonb_build_object(
+    'eventos_nao_contabilizados', v_eventos_sem_lanc,
+    'eventos_total_periodo', v_eventos_total,
+    'contas_pagar_pendentes', jsonb_build_object('qtd', v_ap_pendentes, 'valor_total', v_ap_pendente_valor),
+    'contas_receber_pendentes', jsonb_build_object('qtd', v_ar_pendentes, 'valor_total', v_ar_pendente_valor)
+  );
+
+  RETURN QUERY
+  INSERT INTO public.contador_close (empresa_id, competencia, readiness_pct, pendencias, previsao_prazo, calculado_em)
+  VALUES (p_empresa_id, v_competencia_inicio, v_readiness, v_pendencias, NULL, now())
+  ON CONFLICT (empresa_id, competencia) DO UPDATE SET
+    readiness_pct = EXCLUDED.readiness_pct,
+    pendencias    = EXCLUDED.pendencias,
+    previsao_prazo = EXCLUDED.previsao_prazo,
+    calculado_em  = now()
+  RETURNING *;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.contador_close_readiness(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.contador_close_readiness(uuid, date) TO authenticated;
+
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 21 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN
+  ('contador_descoberta','contador_close','contador_data_trust','contador_memoria','contador_decisao_journal','contador_agente_execucao');
+
+SELECT tablename, policyname, cmd FROM pg_policies
+  WHERE tablename IN ('contador_descoberta','contador_close','contador_data_trust','contador_memoria','contador_decisao_journal','contador_agente_execucao');
+
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND tablename IN
+  ('contador_descoberta','contador_close','contador_data_trust','contador_memoria','contador_decisao_journal','contador_agente_execucao');
+
+SELECT routine_name FROM information_schema.routines
+  WHERE routine_schema = 'public' AND routine_name IN ('contador_detectar_variacao_despesa','contador_close_readiness');
+
+-- Teste funcional opcional (rode com uma empresa e competência reais, dados
+-- só de leitura — não precisa reverter nada, as RPCs são idempotentes):
+-- SELECT * FROM public.contador_detectar_variacao_despesa('<empresa_id>', '2026-08-01');
+-- SELECT * FROM public.contador_close_readiness('<empresa_id>', '2026-08-01');
+-- Rodar a 2ª vez cada uma deve devolver o MESMO descoberta_id / a mesma
+-- linha de contador_close atualizada — não duplicar.
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.contador_close_readiness(uuid, date);
+-- DROP FUNCTION IF EXISTS public.contador_detectar_variacao_despesa(uuid, date, int, numeric);
+-- DROP TABLE IF EXISTS public.contador_agente_execucao;
+-- DROP TABLE IF EXISTS public.contador_decisao_journal;
+-- DROP TABLE IF EXISTS public.contador_memoria;
+-- DROP TABLE IF EXISTS public.contador_data_trust;
+-- DROP TABLE IF EXISTS public.contador_close;
+-- DROP TABLE IF EXISTS public.contador_descoberta;
+-- (DROP TABLE já remove policies e índices da própria tabela junto. Ordem
+-- importa: decisao_journal antes de descoberta, por causa da FK.)

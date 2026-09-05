@@ -50,6 +50,7 @@ const grupos = [
     cor: "#14b8a6",
     corBg: "rgba(20,184,166,0.12)",
     itens: [
+      { label: { pt: "Contador", en: "Accountant", es: "Contador" }, path: "/contador", emoji: "🧠" },
       { label: { pt: "Livro Razão", en: "General Ledger", es: "Libro Mayor" }, path: "/contabilidade/razao", emoji: "📖" },
       { label: { pt: "Balancete", en: "Trial Balance", es: "Balance de Comprobación" }, path: "/contabilidade/balancete", emoji: "⚖️" },
       { label: { pt: "DRE Contábil", en: "Income Statement", es: "Estado de Resultados" }, path: "/contabilidade/dre", emoji: "📑" },
