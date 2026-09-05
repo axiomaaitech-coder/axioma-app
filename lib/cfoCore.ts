@@ -253,6 +253,19 @@ export function concentracao(itens: Lancamento[], topPct = 0.2): number {
   return (soma / total) * 100;
 }
 
+// ---------- CONCENTRAÇÃO POR CONTRAPARTE (a MAIOR chave vs o total do grupo) ----------
+// Diferente de concentracao() acima (top X% das LINHAS individuais): aqui
+// agrupa por contraparte (fornecedor/cliente/banco/etc — a chave do Map já
+// vem agrupada por quem chama) e devolve só a maior fatia. Usado onde a
+// pergunta é "uma contraparte específica pesa demais sobre o total?".
+export function topConcentracao(valoresPorChave: Map<string, number>): { chave: string; valor: number; total: number; percentual: number } | null {
+  const total = [...valoresPorChave.values()].reduce((a, b) => a + b, 0);
+  if (total <= 0) return null;
+  const maior = [...valoresPorChave.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (!maior) return null;
+  return { chave: maior[0], valor: maior[1], total, percentual: (maior[1] / total) * 100 };
+}
+
 // ---------- RECORRÊNCIA (% do total que vem de categoria(s) recorrente(s)) ----------
 export function percentualRecorrente(itens: Lancamento[], categoriasRecorrentes: string[]): number {
   const total = itens.reduce((a, r) => a + (Number(r.valor) || 0), 0);
