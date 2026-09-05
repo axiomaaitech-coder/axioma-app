@@ -1153,6 +1153,24 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 
 **Caminho no app:** menu superior → **Financeiro** → **Tesouraria** (ou **Configurar**, dentro da própria tela, pra reserva mínima/nome dos bancos — só dono/admin edita).
 
+## 3-AZ. Contador (CFO Intelligence) — Rodadas 1 e 2 entregues (2026-09-04/05)
+
+**O que é:** não é um contador automatizado nem um 2º ledger — é a camada de INTELIGÊNCIA que roda EM CIMA do ledger de partida dobrada (Accounting Core), do Event Fabric e dos engines que já existem (Tesouraria, Contas a Pagar, Estoque). ZIA/IA fica fora desta entrega — deterministic-first absoluto, nenhum cálculo por IA em nenhuma linha.
+
+**Rodada 1 (Data Core, SQL aplicado pelo Elias):** `CONTADOR-RODADA1-SQL.txt` — 5 tabelas ativas (`contador_descoberta`, `contador_close`, `contador_data_trust` — schema pronto, RPC de cálculo é commit futuro —, `contador_memoria`, `contador_decisao_journal`) + 1 inerte (`contador_agente_execucao`, gancho pro Accounting Autopilot/ZIA, ninguém grava ainda) + 2 RPCs SECURITY DEFINER (`contador_detectar_variacao_despesa`, `contador_close_readiness`). RLS `empresa_id IN (SELECT empresas_do_usuario())` em tudo.
+
+**Rodada 2 (Discovery Engine + telas), commits `36ffb15`→`8a7d331` (mais o refactor prévio `fe735e7` em `tesourariaHelpers.ts`):**
+- `lib/contadorHelpers.ts` — Discovery Engine determinístico: variação de despesa (RPC da Rodada 1), concentração de fornecedor/banco/cliente (ponte com `gerarAlertasCandidatos` da Tesouraria — não recalcula), oportunidades (`detectarDescontosPerdidos` do Contas a Pagar + capital parado do Estoque), duplicidades e classificação suspeita (regras novas), 1 anomalia correlacionada (mesmo fornecedor com 2+ sinais ruins, marcada `inferencia`). Priority Engine (impacto×probabilidade×materialidade, piso de pontuação — não grava alerta abaixo dele). Gravação idempotente por chave na evidência. Sem SQL novo — todo INSERT usa a RLS `FOR ALL` já criada na Rodada 1.
+- `/contador` (Control Room) — status de inteligência (P0/P1/P2/Normal/Oportunidades/Previsões/total), lista densa de descobertas, Explain This Decision (evidência completa em modal), ações que só mudam status (revisar/resolver/ignorar, sem lápis/lixeira) + Decision Journal.
+- `/contador/explicar` ("Explique Minha Empresa") — narrativa 100% determinística do ledger: como ganha, onde perde, tendência mês a mês, concentração, caixa, riscos/oportunidades.
+- `/contador/projecao` ("Se Eu Fizer Nada") — reaproveita o Gêmeo Financeiro da Tesouraria (30/60/90d) + 1 ponto de 180d via `obterPontoFluxoProjetadoAvulso` (novo, extraído de `montarBlendFluxoProjetado` em `tesourariaHelpers.ts` — refactor puro, sem mudar `HORIZONTES_TESOURARIA` nem as telas existentes).
+- `/contador/fechamento` (Continuous Close) — chama `contador_close_readiness`, mostra Data Trust ao lado ("ainda não calculado" quando não há linha, nunca inventa score).
+- Menu "Contador" no grupo Contabilidade do `TopNav.tsx`.
+
+**Verificação feita:** `tsc --noEmit` limpo a cada commit (5 commits desta entrega, todos verificados antes de commitar) e `next build` — `✓ Compiled successfully` (5min); o build só falhou depois disso, no mesmo ponto pré-existente e sem relação de sempre (`/api/pluggy/webhook`, falta chave local, Pluggy em modo teste). Conferido também que cada commit só importa função já exportada por um commit anterior (sem dependência futura). Testado no navegador SEM login real (mesma prática já registrada — seção 3-A): as 4 telas carregam sem crash e sem erro de console no estado "nenhuma empresa ativa"; teste de ponta a ponta com dado real fica pro Elias.
+
+**Como testar:** menu superior → **Contabilidade** → **Contador**. Clicar em "Rodar descoberta" pra a Axioma vasculhar os dados e ver as descobertas aparecerem na lista (clique em qualquer uma pra ver a evidência completa). Os botões no topo levam pra "Explique minha empresa", "Se eu fizer nada" e "Fechamento".
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
