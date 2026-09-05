@@ -1,0 +1,597 @@
+-- ============================================================================
+-- AXIOMA — AXIOMA FISCAL INTELLIGENCE (Atividade Fiscal), RODADA 1 DE 2:
+-- DATA CORE. NÃO APLICADO — só pra revisão. Nenhuma tela nesta rodada.
+--
+-- O QUE ISTO NÃO É: não é o documento inteiro de 62 seções. É o núcleo que dá
+-- pra fazer com o dado atual — obrigações, descobertas, health score,
+-- atividade fiscal da empresa. O resto (Copilot IA, Digital Twin fiscal,
+-- Regulatory monitoring, ZIA) fica preparado/inerte (ver PARTE 9-12).
+--
+-- ============================================================================
+-- DIAGNÓSTICO — nomes reais confirmados contra o código antes de escrever
+-- este arquivo (nada aqui foi inventado):
+-- ============================================================================
+--   - empresas(id uuid PK, user_id, regime_tributario text livre — valores
+--     reais: 'mei'|'simples'|'presumido'|'real'|'arbitrado'|'imune', minúsculo
+--     — REGIMES_TRIBUTARIOS em lib/empresaHelpers.ts:1106 — cnae_principal,
+--     cnae_descricao, setor [ATENÇÃO: setor é usado só pro benchmark do
+--     Dashboard, NÃO é atividade fiscal — confirmado em
+--     lib/iaTributariaHelpers.ts:140-141], cidade, uf, ...). RLS: empresas_own
+--     (user_id = auth.uid()), não passa por empresas_do_usuario().
+--                                                        — MIGRACAO-MULTITENANT.sql
+--   - empresas_do_usuario() returns setof uuid          — MIGRACAO-MULTITENANT.sql
+--   - empresa_obrigacoes(id, empresa_id, user_id, tipo text livre — valores
+--     reais gerados hoje: 'DAS-MEI','DASN-SIMEI','DAS','DEFIS','DCTF',
+--     'EFD-Contribuicoes','ECF','ECD' —, nome, descricao, data_vencimento,
+--     valor_estimado, status text livre SEM CHECK — valores reais:
+--     'pendente'|'paga'|'atrasada'|'dispensada' —, recorrencia
+--     ('mensal'|'trimestral'|'anual'|'unica'), notificar_dias_antes,
+--     created_at, updated_at). JÁ é o rastreador de obrigações fiscais —
+--     alimentado manualmente na aba Obrigações de app/(interno)/empresa/page.tsx
+--     (criarObrigacao/atualizarObrigacao/excluirObrigacao em
+--     lib/empresaHelpers.ts:709-774, com auditoria + reportarFalhaEscrita já
+--     no padrão) E por gerarObrigacoesPadrao() (lib/empresaHelpers.ts:779),
+--     que já gera o calendário DAS/DASN/DEFIS/DCTF/EFD-Contribuições/ECF/ECD
+--     por regime. empresa_id NOT NULL + RLS FOR ALL
+--     (empresa_obrigacoes_multi_tenant) + índice (empresa_id, data_vencimento)
+--     JÁ EXISTEM (MIGRACAO-MULTITENANT.sql).
+--   - mei_obrigacoes(empresa_id, tipo, competencia text 'YYYY-MM', status,
+--     data_vencimento, data_entrega) — tabela PRÓPRIA do módulo MEI (tela
+--     mei/das), schema e fluxo diferentes de empresa_obrigacoes (usa upsert
+--     por competência-texto). NÃO mexida aqui.        — MEI-OBRIGACOES-SQL.sql
+--   - plano_de_contas(id, empresa_id, codigo, nome, tipo, natureza,
+--     conta_pai_id, codigo_referencial_rfb, ativo, criado_em) — confirmado
+--     existente, de-para SPED pronto.       — CFO-CORE-FASE1-ACCOUNTING-SQL.txt
+--   - contador_descoberta / contador_close / contador_data_trust /
+--     contador_agente_execucao — Rodada 1 do Contador CONFIRMADA aplicada
+--     (lidas de verdade em lib/contadorHelpers.ts). Fiscal usa o MESMO
+--     desenho, tabela própria (ver "por que não reaproveitar direto" abaixo).
+--
+-- ============================================================================
+-- 2 DESVIOS DELIBERADOS DO PEDIDO ORIGINAL — pra não duplicar (memória do
+-- projeto: reuso genérico em vez de duplicar). Nenhum dos dois é "IA em vez
+-- de regra" nem corta funcionalidade — só move onde o dado mora.
+-- ============================================================================
+--
+-- 1) fiscal_obrigacao NÃO vira tabela nova.
+--    ~90% do que foi pedido já existe em empresa_obrigacoes: mesmos campos
+--    (tipo, nome, descricao, data_vencimento, valor_estimado, status,
+--    recorrencia), MESMA lista de tipos (DAS/DASN/DCTF/EFD/ECF/ECD já são os
+--    tipos reais gerados por gerarObrigacoesPadrao), e a geração automática
+--    por regime já está pronta. Criar fiscal_obrigacao do zero duplicaria a
+--    tabela, a RLS, o índice E obrigaria 2 telas de obrigações fiscais lado a
+--    lado (confuso pro Elias: qual "obrigação" é a de verdade?).
+--    Em vez disso, PARTE 3 faz ALTER TABLE empresa_obrigacoes adicionando só
+--    o que genuinamente falta: competencia (date — pras RPCs desta rodada
+--    fazerem aritmética de período; convenção "sempre dia 1 do mês", mesma
+--    do Contador), risco, evidencia (jsonb), responsavel, origem (distingue
+--    'manual' de linha gerada pelo motor Fiscal). status CONTINUA texto
+--    livre sem CHECK — não quebra os 4 valores já usados na tela
+--    (pendente/paga/atrasada/dispensada); o motor Fiscal pode gravar valores
+--    adicionais (em_preparacao/revisao/pronta/enviada/confirmada) sem
+--    migração nenhuma, e a tela antiga continua funcionando sem tocar.
+--
+-- 2) fiscal_config NÃO vira tabela nova.
+--    regime (empresas.regime_tributario), cnae (empresas.cnae_principal),
+--    uf/município (empresas.uf/empresas.cidade) JÁ EXISTEM em empresas. Só
+--    faltam 2 campos — confirmados como inexistentes pelo PRÓPRIO código
+--    (comentário em lib/iaTributariaHelpers.ts:138-144: "não existe campo de
+--    atividade nem de alíquota de ISS no cadastro da empresa hoje"):
+--    atividade_fiscal e aliquota_iss_pct. PARTE 1 faz ALTER TABLE empresas
+--    adicionando só essas 2 colunas — mesmo padrão já usado pra outros campos
+--    de config direto em empresas (retaguarda_modo, segmento_padrao, etc.),
+--    sem FK/JOIN/RLS nova. ISSO fecha o gap que o próprio iaTributariaHelpers.ts
+--    já sinalizava como pendente pro cálculo de Lucro Presumido/ISS ficar
+--    100% correto (hoje atividade e alíquota de ISS são sempre parâmetro
+--    manual, nunca lidos do banco).
+--    Nenhum CHECK novo em regime_tributario: os valores reais incluem
+--    'arbitrado' e 'imune', que não estavam no pedido original — um CHECK
+--    restritivo quebraria empresas com esses regimes. Fica como está (texto
+--    livre, já testado em produção).
+--    Sem seed/backfill de atividade_fiscal por adivinhação (evidence-first) —
+--    não dá pra inferir comércio/indústria/serviço de dado nenhum hoje
+--    disponível sem chutar. Fica NULL até o dono preencher (Rodada 2/tela).
+--
+-- fiscal_descoberta, fiscal_health, fiscal_regra_versao,
+-- fiscal_agente_execucao: NENHUMA tabela equivalente encontrada — construídas
+-- como pedido, espelhando o desenho já validado do Contador (mesmos 3
+-- padrões de RLS, mesma filosofia evidence-first).
+--
+-- ============================================================================
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0   — leitura: confirma as peças-base existem
+--   PARTE 1    — ALTER empresas (atividade_fiscal, aliquota_iss_pct) [ATIVO]
+--   PARTE 2    — ALTER empresa_obrigacoes (competencia, risco, evidencia,
+--                responsavel, origem) + índices                     [ATIVO]
+--   PARTE 3-5  — fiscal_descoberta (tabela, RLS, índices)            [ATIVO]
+--   PARTE 6-7  — fiscal_health (tabela, RLS, índice)                 [ATIVO]
+--   PARTE 8-9  — fiscal_regra_versao (tabela, RLS)                   [INERTE — gancho pra Regulatory Intelligence, ninguém grava/lê ainda]
+--   PARTE 10-11 — fiscal_agente_execucao (tabela, RLS)                [INERTE — gancho pra ZIA/Copilot fiscal, ninguém grava ainda]
+--   PARTE 12   — RPC fiscal_health_calcular
+--   PARTE 13   — RPC fiscal_obrigacoes_proximas
+--   PARTE 14   — verificação (só leitura)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (ADD COLUMN/CREATE ... IF NOT EXISTS, DROP POLICY|FUNCTION IF
+-- EXISTS antes de recriar) — pode rodar mais de uma vez com segurança.
+--
+-- ============================================================================
+-- DECISÕES DE DESENHO
+-- ============================================================================
+--
+-- RLS — mesmos 3 padrões do Contador, mesmo motivo:
+--   1) fiscal_descoberta: FOR ALL. Tabela "viva" — o dono lê e age (marcar
+--      como resolvida). Mesmo raciocínio de contador_descoberta.
+--   2) fiscal_health: SELECT apenas. 100% calculada — só a RPC
+--      fiscal_health_calcular escreve, como dono da tabela (SECURITY
+--      DEFINER, RLS não barra, checagem de posse explícita no corpo).
+--   3) fiscal_agente_execucao: SELECT+INSERT, sem UPDATE — log de execução,
+--      fato consumado, mesmo princípio de contador_agente_execucao.
+--   fiscal_regra_versao: SELECT apenas pra authenticated (regra pode ser
+--      global — empresa_id NULL — ou por empresa). Nenhuma policy de
+--      INSERT/UPDATE/DELETE nesta rodada: é gancho inerte, ninguém escreve
+--      ainda; quando a Regulatory Intelligence for ligada, escreve via
+--      SECURITY DEFINER dedicada (nunca client direto, pra preservar
+--      versionamento — regra nunca é sobrescrita, sempre nova linha).
+--
+-- Por que fiscal_descoberta é tabela PRÓPRIA e não contador_descoberta
+--   reaproveitada: mesmo schema, mas dono conceitual diferente (módulo
+--   Fiscal x módulo Contador). Cada um com seu feed evita 1 tabela virar
+--   gargalo de 2 motores de regras crescendo em paralelo, e mantém a fronteira
+--   de módulo clara (mesma razão de mei_obrigacoes ≠ empresa_obrigacoes).
+--   Custo aceito: 2 tabelas quase-idênticas. Trade-off registrado, não
+--   escondido.
+--
+-- competencia (empresa_obrigacoes, fiscal_health) como DATE, convenção
+--   SEMPRE dia 1 do mês — mesma escolha e mesmo motivo já documentado no
+--   Contador (RPCs fazem aritmética de data). mei_obrigacoes continua com
+--   competencia TEXT porque só faz igualdade/agrupamento, nunca range —
+--   divergência conhecida, não é bug.
+--
+-- Índice parcial em vez de UNIQUE direto em empresa_obrigacoes(empresa_id,
+--   tipo, competencia): dados manuais já existentes (anos de uso da aba
+--   Obrigações) podem ter duplicidade de tipo+competência sem problema
+--   nenhum pro usuário (ex.: 2 lançamentos "ICMS" no mesmo mês). Forçar
+--   UNIQUE em cima disso quebraria a migração se existir 1 linha assim. A
+--   uniqueness só precisa valer pro upsert idempotente do MOTOR Fiscal
+--   (linhas com origem <> 'manual') — por isso o índice é parcial
+--   (WHERE origem <> 'manual'), nunca toca dado manual existente.
+--
+-- exposicao (fiscal_health) = soma de valor_estimado das obrigações
+--   pendentes/atrasadas da competência — é o número que já existe em
+--   empresa_obrigacoes.valor_estimado, sem inventar cálculo novo.
+--
+-- documentos_pendentes (fiscal_health) fica 0 nesta rodada — a fonte real
+--   (NF-e/Open Finance) é integração futura, ainda não wired pro Fiscal.
+--   Não inventamos contagem sem fonte (evidence-first). Campo já existe no
+--   schema pra não exigir migração quando a integração ligar.
+--
+-- qualidade_dados (fiscal_health) = % de campos-chave preenchidos em
+--   empresas (regime_tributario, cnae_principal, atividade_fiscal, e
+--   aliquota_iss_pct SE atividade_fiscal indicar serviço/misto) — mede
+--   literalmente "dá pra calcular imposto certo com o que está cadastrado
+--   hoje", sem inventar heurística nova.
+--
+-- score (fiscal_health) 0-1000 = média ponderada (50% em-dia, 30% qualidade
+--   de dados, 20% ausência de divergências abertas, cap em 10 divergências
+--   pra não deixar o score ir a zero por 1 descoberta ruidosa) — determinístico,
+--   fórmula e pesos gravados em detalhe jsonb (o "por quê" do score).
+--
+-- Nenhum enum/CHECK de nome de imposto ou obrigação: mesmo motivo já
+--   registrado no Contador — a Reforma Tributária (IBS/CBS) não quebra nada
+--   aqui.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se qualquer uma dessas vier vazia, PARE — avise o Elias.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresas';
+SELECT routine_name FROM information_schema.routines WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'empresa_obrigacoes';
+SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'plano_de_contas';
+
+
+-- ============================================================================
+-- PARTE 1 — ALTER EMPRESAS: ATIVIDADE FISCAL                          [ATIVO]
+-- ============================================================================
+-- Fecha o gap documentado em lib/iaTributariaHelpers.ts:138-144. Sem CHECK em
+-- cima de regime_tributario/cnae_principal/uf/cidade — já existem, já testados.
+
+ALTER TABLE public.empresas
+  ADD COLUMN IF NOT EXISTS atividade_fiscal text CHECK (atividade_fiscal IS NULL OR atividade_fiscal IN ('comercio','industria','servico','misto')),
+  ADD COLUMN IF NOT EXISTS aliquota_iss_pct numeric CHECK (aliquota_iss_pct IS NULL OR (aliquota_iss_pct >= 0 AND aliquota_iss_pct <= 100));
+
+-- Sem seed/backfill — ver "DECISÕES DE DESENHO" (evidence-first, não chuta
+-- atividade de empresa nenhuma).
+
+
+-- ============================================================================
+-- PARTE 2 — ALTER EMPRESA_OBRIGACOES: CAMPOS DO MOTOR FISCAL          [ATIVO]
+-- ============================================================================
+
+ALTER TABLE public.empresa_obrigacoes
+  ADD COLUMN IF NOT EXISTS competencia date,
+  ADD COLUMN IF NOT EXISTS risco text CHECK (risco IS NULL OR risco IN ('normal','atencao','risco','critico')),
+  ADD COLUMN IF NOT EXISTS evidencia jsonb,
+  ADD COLUMN IF NOT EXISTS responsavel text,
+  ADD COLUMN IF NOT EXISTS origem text NOT NULL DEFAULT 'manual';
+
+-- Índice parcial (idempotência do motor Fiscal) — ver "DECISÕES DE DESENHO"
+-- sobre por que não é UNIQUE direto.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_empresa_obrigacoes_motor_fiscal
+  ON public.empresa_obrigacoes (empresa_id, tipo, competencia)
+  WHERE origem <> 'manual';
+
+-- Índice composto pra consulta do "o que vence quando, e em que status"
+-- (fiscal_obrigacoes_proximas, Parte 13). (empresa_id, data_vencimento) já
+-- existe (MIGRACAO-MULTITENANT.sql) — este soma status pra evitar filtro
+-- extra na RPC.
+CREATE INDEX IF NOT EXISTS idx_empresa_obrigacoes_empresa_vencimento_status
+  ON public.empresa_obrigacoes (empresa_id, data_vencimento, status);
+
+
+-- ============================================================================
+-- PARTE 3 — TABELA FISCAL_DESCOBERTA                                  [ATIVO]
+-- ============================================================================
+-- Fiscal Radar/Anomaly grava aqui. Mesma estrutura de contador_descoberta —
+-- ver "DECISÕES DE DESENHO" sobre por que é tabela própria.
+
+CREATE TABLE IF NOT EXISTS public.fiscal_descoberta (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id        uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo              text NOT NULL CHECK (tipo IN ('inconsistencia','anomalia','oportunidade','risco','divergencia','concentracao','classificacao_suspeita','tendencia')),
+  prioridade        text NOT NULL CHECK (prioridade IN ('P0','P1','P2','P3')),
+  titulo            text NOT NULL,
+  descricao         text,
+  causa             text,
+  impacto_estimado  numeric,
+  evidencia         jsonb,
+  confianca         text NOT NULL CHECK (confianca IN ('fato','calculo','inferencia','previsao','cenario')),
+  status            text NOT NULL DEFAULT 'aberto' CHECK (status IN ('aberto','revisado','resolvido','ignorado')),
+  criado_em         timestamptz NOT NULL DEFAULT now(),
+  resolvido_em      timestamptz,
+  resolvido_por     uuid REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+
+-- ============================================================================
+-- PARTE 4 — RLS DE FISCAL_DESCOBERTA
+-- ============================================================================
+
+ALTER TABLE public.fiscal_descoberta ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS fiscal_descoberta_empresa ON public.fiscal_descoberta;
+CREATE POLICY fiscal_descoberta_empresa ON public.fiscal_descoberta
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 5 — ÍNDICES DE FISCAL_DESCOBERTA
+-- ============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_fiscal_descoberta_empresa_prioridade_status ON public.fiscal_descoberta (empresa_id, prioridade, status);
+CREATE INDEX IF NOT EXISTS idx_fiscal_descoberta_evidencia_gin ON public.fiscal_descoberta USING gin (evidencia);
+
+
+-- ============================================================================
+-- PARTE 6 — TABELA FISCAL_HEALTH (Fiscal Health Score)                [ATIVO]
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.fiscal_health (
+  id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id                uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  competencia               date NOT NULL,
+  score                     int NOT NULL CHECK (score >= 0 AND score <= 1000),
+  obrigacoes_em_dia_pct     numeric,
+  divergencias              int,
+  documentos_pendentes      int,
+  exposicao                 numeric,
+  qualidade_dados           numeric,
+  detalhe                   jsonb,
+  calculado_em              timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT uq_fiscal_health_empresa_competencia UNIQUE (empresa_id, competencia),
+  CONSTRAINT ck_fiscal_health_competencia_dia1 CHECK (competencia = date_trunc('month', competencia)::date)
+);
+
+
+-- ============================================================================
+-- PARTE 7 — RLS + ÍNDICE DE FISCAL_HEALTH
+-- ============================================================================
+-- SELECT apenas — só a RPC fiscal_health_calcular escreve. UNIQUE da Parte 6
+-- já serve de índice de busca.
+
+ALTER TABLE public.fiscal_health ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS fiscal_health_select ON public.fiscal_health;
+CREATE POLICY fiscal_health_select ON public.fiscal_health
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+
+-- ============================================================================
+-- PARTE 8 — TABELA FISCAL_REGRA_VERSAO                              [INERTE]
+-- ============================================================================
+-- GANCHO pra Regulatory Intelligence (versionamento de regra fiscal).
+-- empresa_id nullable: regra pode ser global (ex.: alíquota federal) ou
+-- específica (ex.: alíquota de ISS de 1 município). Nunca sobrescreve —
+-- vigencia_fim fecha uma versão, uma nova linha abre a próxima.
+
+CREATE TABLE IF NOT EXISTS public.fiscal_regra_versao (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id        uuid REFERENCES public.empresas(id) ON DELETE CASCADE,
+  regra             text NOT NULL,
+  versao            text NOT NULL,
+  vigencia_inicio   date NOT NULL,
+  vigencia_fim      date,
+  fonte             text,
+  jurisdicao        text,
+  conteudo          jsonb,
+  criado_em         timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 9 — RLS + ÍNDICES DE FISCAL_REGRA_VERSAO                    [INERTE]
+-- ============================================================================
+-- SELECT apenas — ver "DECISÕES DE DESENHO". Regra global (empresa_id NULL)
+-- visível pra todo authenticated; regra por empresa só pro dono dela.
+
+ALTER TABLE public.fiscal_regra_versao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS fiscal_regra_versao_select ON public.fiscal_regra_versao;
+CREATE POLICY fiscal_regra_versao_select ON public.fiscal_regra_versao
+  FOR SELECT TO authenticated
+  USING (empresa_id IS NULL OR empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_fiscal_regra_versao_regra_vigencia ON public.fiscal_regra_versao (regra, vigencia_inicio, vigencia_fim);
+CREATE INDEX IF NOT EXISTS idx_fiscal_regra_versao_empresa ON public.fiscal_regra_versao (empresa_id) WHERE empresa_id IS NOT NULL;
+
+
+-- ============================================================================
+-- PARTE 10 — TABELA FISCAL_AGENTE_EXECUCAO                          [INERTE]
+-- ============================================================================
+-- GANCHO pro ZIA/Copilot fiscal futuro. Mesma estrutura de
+-- contador_agente_execucao. Inerte hoje: nenhum código publica nem lê ainda.
+
+CREATE TABLE IF NOT EXISTS public.fiscal_agente_execucao (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id       uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  agente           text NOT NULL,
+  nivel_autonomia  text NOT NULL CHECK (nivel_autonomia IN ('observe','detect','analyze','recommend','prepare','execute','verify')),
+  evento_origem    jsonb,
+  resultado        jsonb,
+  aprovado_por     uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  criado_em        timestamptz NOT NULL DEFAULT now()
+);
+
+
+-- ============================================================================
+-- PARTE 11 — RLS + ÍNDICE DE FISCAL_AGENTE_EXECUCAO                 [INERTE]
+-- ============================================================================
+
+ALTER TABLE public.fiscal_agente_execucao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS fiscal_agente_execucao_select ON public.fiscal_agente_execucao;
+CREATE POLICY fiscal_agente_execucao_select ON public.fiscal_agente_execucao
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+DROP POLICY IF EXISTS fiscal_agente_execucao_insert ON public.fiscal_agente_execucao;
+CREATE POLICY fiscal_agente_execucao_insert ON public.fiscal_agente_execucao
+  FOR INSERT TO authenticated
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_fiscal_agente_execucao_empresa_agente_criado ON public.fiscal_agente_execucao (empresa_id, agente, criado_em);
+
+
+-- ============================================================================
+-- PARTE 12 — RPC FISCAL_HEALTH_CALCULAR                                [ATIVO]
+-- ============================================================================
+-- Score 0-1000 = 50% em-dia + 30% qualidade de dados + 20% ausência de
+-- divergências abertas (cap 10) — ver "DECISÕES DE DESENHO". Determinístico,
+-- upsert em fiscal_health por (empresa_id, competencia).
+
+CREATE OR REPLACE FUNCTION public.fiscal_health_calcular(
+  p_empresa_id  uuid,
+  p_competencia date
+)
+RETURNS SETOF public.fiscal_health
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_competencia_inicio date := date_trunc('month', p_competencia)::date;
+  v_competencia_fim    date := (date_trunc('month', p_competencia) + interval '1 month' - interval '1 day')::date;
+  v_obrig_total        int;
+  v_obrig_em_dia       int;
+  v_pct_em_dia         numeric;
+  v_exposicao          numeric;
+  v_divergencias       int;
+  v_campos_ok          numeric;
+  v_campos_esperados   numeric;
+  v_qualidade          numeric;
+  v_score              numeric;
+  v_detalhe            jsonb;
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  -- 1) Obrigações em dia na competência (data_vencimento no mês, ou
+  -- competencia == mês pra linhas já geradas pelo motor).
+  SELECT COUNT(*),
+    COUNT(*) FILTER (WHERE status IN ('paga','dispensada','confirmada','enviada') OR (status = 'pendente' AND data_vencimento >= CURRENT_DATE)),
+    COALESCE(SUM(valor_estimado) FILTER (WHERE status IN ('pendente','atrasada')), 0)
+  INTO v_obrig_total, v_obrig_em_dia, v_exposicao
+  FROM public.empresa_obrigacoes
+  WHERE empresa_id = p_empresa_id
+    AND (
+      (competencia IS NOT NULL AND competencia = v_competencia_inicio)
+      OR (competencia IS NULL AND data_vencimento BETWEEN v_competencia_inicio AND v_competencia_fim)
+    );
+
+  v_pct_em_dia := CASE WHEN v_obrig_total = 0 THEN 100 ELSE ROUND(v_obrig_em_dia::numeric / v_obrig_total * 100, 1) END;
+
+  -- 2) Divergências abertas (fiscal_descoberta), sem filtro de período —
+  -- ver "DECISÕES DE DESENHO".
+  SELECT COUNT(*) INTO v_divergencias
+  FROM public.fiscal_descoberta
+  WHERE empresa_id = p_empresa_id AND status = 'aberto';
+
+  -- 3) Qualidade de dados: % de campos-chave preenchidos pra calcular
+  -- imposto certo.
+  SELECT
+    (CASE WHEN regime_tributario IS NOT NULL AND regime_tributario <> '' THEN 1 ELSE 0 END) +
+    (CASE WHEN cnae_principal IS NOT NULL AND cnae_principal <> '' THEN 1 ELSE 0 END) +
+    (CASE WHEN atividade_fiscal IS NOT NULL THEN 1 ELSE 0 END) +
+    (CASE WHEN atividade_fiscal NOT IN ('servico','misto') THEN 1 ELSE (CASE WHEN aliquota_iss_pct IS NOT NULL THEN 1 ELSE 0 END) END)
+  INTO v_campos_ok
+  FROM public.empresas WHERE id = p_empresa_id;
+
+  v_campos_esperados := 4;
+  v_qualidade := ROUND(COALESCE(v_campos_ok, 0) / v_campos_esperados * 100, 1);
+
+  v_score := ROUND(
+    (v_pct_em_dia * 0.5) +
+    (v_qualidade * 0.3) +
+    (GREATEST(0, 100 - LEAST(v_divergencias, 10) * 10) * 0.2)
+  * 10);
+
+  v_detalhe := jsonb_build_object(
+    'formula', '50% em_dia + 30% qualidade_dados + 20% (100 - min(divergencias,10)*10), escala x10 -> 0-1000',
+    'obrigacoes_em_dia_pct', v_pct_em_dia, 'obrigacoes_total', v_obrig_total, 'obrigacoes_em_dia', v_obrig_em_dia,
+    'qualidade_dados_pct', v_qualidade, 'campos_ok', v_campos_ok, 'campos_esperados', v_campos_esperados,
+    'divergencias_abertas', v_divergencias
+  );
+
+  RETURN QUERY
+  INSERT INTO public.fiscal_health (empresa_id, competencia, score, obrigacoes_em_dia_pct, divergencias, documentos_pendentes, exposicao, qualidade_dados, detalhe, calculado_em)
+  VALUES (p_empresa_id, v_competencia_inicio, v_score, v_pct_em_dia, v_divergencias, 0, v_exposicao, v_qualidade, v_detalhe, now())
+  ON CONFLICT (empresa_id, competencia) DO UPDATE SET
+    score                 = EXCLUDED.score,
+    obrigacoes_em_dia_pct = EXCLUDED.obrigacoes_em_dia_pct,
+    divergencias          = EXCLUDED.divergencias,
+    documentos_pendentes  = EXCLUDED.documentos_pendentes,
+    exposicao             = EXCLUDED.exposicao,
+    qualidade_dados       = EXCLUDED.qualidade_dados,
+    detalhe               = EXCLUDED.detalhe,
+    calculado_em          = now()
+  RETURNING *;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.fiscal_health_calcular(uuid, date) FROM public;
+GRANT EXECUTE ON FUNCTION public.fiscal_health_calcular(uuid, date) TO authenticated;
+
+
+-- ============================================================================
+-- PARTE 13 — RPC FISCAL_OBRIGACOES_PROXIMAS                            [ATIVO]
+-- ============================================================================
+-- Lista obrigações vencendo nos próximos p_dias, com status e o que falta.
+-- Nunca devolve linha já 'paga'/'dispensada'.
+
+CREATE OR REPLACE FUNCTION public.fiscal_obrigacoes_proximas(
+  p_empresa_id uuid,
+  p_dias       int DEFAULT 30
+)
+RETURNS TABLE (
+  id              uuid,
+  tipo            text,
+  nome            text,
+  data_vencimento date,
+  status          text,
+  risco           text,
+  valor_estimado  numeric,
+  dias_restantes  int
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF p_empresa_id NOT IN (SELECT public.empresas_do_usuario()) THEN
+    RAISE EXCEPTION 'Sem acesso a esta empresa';
+  END IF;
+
+  RETURN QUERY
+  SELECT eo.id, eo.tipo, eo.nome, eo.data_vencimento, eo.status, eo.risco, eo.valor_estimado,
+    (eo.data_vencimento - CURRENT_DATE)::int AS dias_restantes
+  FROM public.empresa_obrigacoes eo
+  WHERE eo.empresa_id = p_empresa_id
+    AND eo.status NOT IN ('paga', 'dispensada')
+    AND eo.data_vencimento BETWEEN CURRENT_DATE AND (CURRENT_DATE + make_interval(days => p_dias))
+  ORDER BY eo.data_vencimento ASC;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.fiscal_obrigacoes_proximas(uuid, int) FROM public;
+GRANT EXECUTE ON FUNCTION public.fiscal_obrigacoes_proximas(uuid, int) TO authenticated;
+
+
+COMMIT;
+
+
+-- ============================================================================
+-- PARTE 14 — VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT column_name FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'empresas' AND column_name IN ('atividade_fiscal','aliquota_iss_pct');
+
+SELECT column_name FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'empresa_obrigacoes'
+  AND column_name IN ('competencia','risco','evidencia','responsavel','origem');
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN
+  ('fiscal_descoberta','fiscal_health','fiscal_regra_versao','fiscal_agente_execucao');
+
+SELECT tablename, policyname, cmd FROM pg_policies
+  WHERE tablename IN ('fiscal_descoberta','fiscal_health','fiscal_regra_versao','fiscal_agente_execucao');
+
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND (
+    tablename IN ('fiscal_descoberta','fiscal_health','fiscal_regra_versao','fiscal_agente_execucao')
+    OR indexname IN ('uq_empresa_obrigacoes_motor_fiscal','idx_empresa_obrigacoes_empresa_vencimento_status')
+  );
+
+SELECT routine_name FROM information_schema.routines
+  WHERE routine_schema = 'public' AND routine_name IN ('fiscal_health_calcular','fiscal_obrigacoes_proximas');
+
+-- Teste funcional opcional (rode com uma empresa real, dados só de leitura —
+-- não precisa reverter nada, as RPCs são idempotentes):
+-- SELECT * FROM public.fiscal_health_calcular('<empresa_id>', '2026-09-01');
+-- SELECT * FROM public.fiscal_obrigacoes_proximas('<empresa_id>', 30);
+-- Rodar fiscal_health_calcular a 2ª vez deve devolver a MESMA linha
+-- atualizada (mesmo id) — não duplicar.
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- DROP FUNCTION IF EXISTS public.fiscal_obrigacoes_proximas(uuid, int);
+-- DROP FUNCTION IF EXISTS public.fiscal_health_calcular(uuid, date);
+-- DROP TABLE IF EXISTS public.fiscal_agente_execucao;
+-- DROP TABLE IF EXISTS public.fiscal_regra_versao;
+-- DROP TABLE IF EXISTS public.fiscal_health;
+-- DROP TABLE IF EXISTS public.fiscal_descoberta;
+-- DROP INDEX IF EXISTS public.idx_empresa_obrigacoes_empresa_vencimento_status;
+-- DROP INDEX IF EXISTS public.uq_empresa_obrigacoes_motor_fiscal;
+-- ALTER TABLE public.empresa_obrigacoes
+--   DROP COLUMN IF EXISTS origem,
+--   DROP COLUMN IF EXISTS responsavel,
+--   DROP COLUMN IF EXISTS evidencia,
+--   DROP COLUMN IF EXISTS risco,
+--   DROP COLUMN IF EXISTS competencia;
+-- ALTER TABLE public.empresas
+--   DROP COLUMN IF EXISTS aliquota_iss_pct,
+--   DROP COLUMN IF EXISTS atividade_fiscal;
+-- (DROP TABLE já remove policies e índices da própria tabela junto.)
