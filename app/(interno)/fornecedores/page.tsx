@@ -712,12 +712,16 @@ export default function Fornecedores() {
   const txt = {
     erroSalvarFornecedor: idioma === "pt" ? "Não foi possível salvar o fornecedor. Tente novamente." : idioma === "en" ? "Could not save the supplier. Try again." : "No se pudo guardar el proveedor. Intente de nuevo.",
     erroExcluirFornecedor: idioma === "pt" ? "Não foi possível excluir o fornecedor. Tente novamente." : idioma === "en" ? "Could not delete the supplier. Try again." : "No se pudo eliminar el proveedor. Intente de nuevo.",
+    sucessoSalvarFornecedor: idioma === "pt" ? "Fornecedor salvo." : idioma === "en" ? "Supplier saved." : "Proveedor guardado.",
+    sucessoExcluirFornecedor: idioma === "pt" ? "Fornecedor excluído." : idioma === "en" ? "Supplier deleted." : "Proveedor eliminado.",
+    erroCamposContato: idioma === "pt" ? "Preencha o nome do contato antes de salvar." : idioma === "en" ? "Fill in the contact's name before saving." : "Complete el nombre del contacto antes de guardar.",
     erroSalvarConta: idioma === "pt" ? "Não foi possível salvar a conta a pagar. Tente novamente." : idioma === "en" ? "Could not save the bill. Try again." : "No se pudo guardar la cuenta por pagar. Intente de nuevo.",
     erroExcluirConta: idioma === "pt" ? "Não foi possível excluir a conta a pagar. Tente novamente." : idioma === "en" ? "Could not delete the bill. Try again." : "No se pudo eliminar la cuenta por pagar. Intente de nuevo.",
     erroQuitarConta: idioma === "pt" ? "Não foi possível quitar a conta. Tente novamente." : idioma === "en" ? "Could not settle the bill. Try again." : "No se pudo saldar la cuenta. Intente de nuevo.",
     erroSalvarProduto: idioma === "pt" ? "Não foi possível salvar o produto/serviço. Tente novamente." : idioma === "en" ? "Could not save the product/service. Try again." : "No se pudo guardar el producto/servicio. Intente de nuevo.",
     erroExcluirProduto: idioma === "pt" ? "Não foi possível excluir o produto/serviço. Tente novamente." : idioma === "en" ? "Could not delete the product/service. Try again." : "No se pudo eliminar el producto/servicio. Intente de nuevo.",
     erroSalvarContato: idioma === "pt" ? "Não foi possível salvar o contato. Tente novamente." : idioma === "en" ? "Could not save the contact. Try again." : "No se pudo guardar el contacto. Intente de nuevo.",
+    sucessoSalvarContato: idioma === "pt" ? "Contato salvo." : idioma === "en" ? "Contact saved." : "Contacto guardado.",
     erroExcluirContato: idioma === "pt" ? "Não foi possível excluir o contato. Tente novamente." : idioma === "en" ? "Could not delete the contact. Try again." : "No se pudo eliminar el contacto. Intente de nuevo.",
     erroSalvarDocumento: idioma === "pt" ? "Não foi possível salvar o documento. Tente novamente." : idioma === "en" ? "Could not save the document. Try again." : "No se pudo guardar el documento. Intente de nuevo.",
     erroExcluirDocumento: idioma === "pt" ? "Não foi possível excluir o documento. Tente novamente." : idioma === "en" ? "Could not delete the document. Try again." : "No se pudo eliminar el documento. Intente de nuevo.",
@@ -958,7 +962,7 @@ export default function Fornecedores() {
     if (!nf.nome.trim()) return null;
     setSalvandoForn(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvandoForn(false); return null; }
+    if (!user) { setSalvandoForn(false); showToast(txt.erroSalvarFornecedor, "erro"); return null; }
     const payload: any = {
       nome: nf.nome, categoria: nf.categoria, produto_servico: nf.produto_servico, contato: nf.contato,
       valor_mensal: parseFloat(nf.valor_mensal || "0"),
@@ -1026,6 +1030,7 @@ export default function Fornecedores() {
     const id = await persistirBase();
     if (!id) return;
     fecharModalForn();
+    showToast(txt.sucessoSalvarFornecedor, "ok");
     await carregarDados();
   };
 
@@ -1038,14 +1043,18 @@ export default function Fornecedores() {
       reportarFalhaEscrita("fornecedores", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
+    showToast(txt.sucessoExcluirFornecedor, "ok");
     await carregarDados();
   };
 
   // ---------- CONTATOS ----------
   const adicionarContato = async () => {
-    if (!fornecedorAtualId || !novoContato.nome.trim()) return;
+    if (!fornecedorAtualId || !novoContato.nome.trim()) {
+      showToast(txt.erroCamposContato, "erro");
+      return;
+    }
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { showToast(txt.erroSalvarFornecedor, "erro"); return; }
     const { erro } = editandoContatoId
       ? await atualizarContato(editandoContatoId, novoContato)
       : await criarContato(fornecedorAtualId, user.id, empresaId, novoContato);
@@ -1053,6 +1062,7 @@ export default function Fornecedores() {
     setNovoContato({ nome: "", cargo: "", email: "", telefone: "", whatsapp: "", principal: false });
     setEditandoContatoId(null);
     setContatosForn(await listarContatos(fornecedorAtualId));
+    showToast(txt.sucessoSalvarContato, "ok");
   };
   const editarContato = (c: FornecedorContato) => {
     setNovoContato({ nome: c.nome || "", cargo: c.cargo || "", email: c.email || "", telefone: c.telefone || "", whatsapp: c.whatsapp || "", principal: !!c.principal });
