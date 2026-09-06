@@ -393,7 +393,7 @@ export default function OpenFinancePage() {
     setCriandoId(tx.id)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) { avisar('erro', t.erroCriarLancamento); return }
       const { data: atual } = await supabase.from('of_transacoes').select('lancamento_id').eq('id', tx.id).maybeSingle()
       if (atual?.lancamento_id) { await carregarTudo(); return }
 
