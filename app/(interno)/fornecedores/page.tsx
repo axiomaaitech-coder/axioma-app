@@ -25,6 +25,7 @@ import {
 } from "../../../lib/cfoCore";
 import { cfoT } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
+import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import {
   TIPOS_DOCUMENTO_FORNECEDOR,
@@ -764,6 +765,7 @@ export default function Fornecedores() {
   const [busca, setBusca] = useState("");
   const [buscaContas, setBuscaContas] = useState("");
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [exportando, setExportando] = useState(false);
 
   const [estados, setEstados] = useState<EstadoIBGE[]>([]);
@@ -835,6 +837,7 @@ export default function Fornecedores() {
     setCarregando(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCarregando(false); return; }
+    setUserId(user.id);
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     const { data: forn } = empId ? await supabase.from("fornecedores").select("*").eq("empresa_id", empId).order("nome", { ascending: true }) : { data: [] };
@@ -2551,7 +2554,15 @@ export default function Fornecedores() {
                         <Campo label={tt.lblPrazoMedio} value={nf.prazo_medio_dias} onChange={(v) => setNf({ ...nf, prazo_medio_dias: v })} tipo="number" />
                         <CampoSelect label={tt.lblMoeda} value={nf.moeda} onChange={(v) => setNf({ ...nf, moeda: v })} opcoes={moedas.map(m => ({ value: m, label: m }))} />
                         <CampoSelect label={tt.lblFormaPagamentoPreferencial} value={nf.forma_pagamento_preferencial} onChange={(v) => setNf({ ...nf, forma_pagamento_preferencial: v })} opcoes={formasPagamento.map(f => ({ value: f, label: f }))} />
-                        <CampoSelect label={tt.lblCentroCusto} value={nf.centro_custo_id} onChange={(v) => setNf({ ...nf, centro_custo_id: v })} opcoes={centrosCusto.map(c => ({ value: c.id, label: c.nome }))} placeholder={tt.selecioneCentroCusto} />
+                        <div>
+                          <label className={labelCls} style={labelStyle}>{tt.lblCentroCusto}</label>
+                          <SeletorCentroCusto
+                            value={nf.centro_custo_id} onChange={(id) => setNf({ ...nf, centro_custo_id: id })}
+                            centros={centrosCusto} empresaId={empresaId} userId={userId} lang={lang}
+                            onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
+                            className={inputCls} style={selectStyle}
+                          />
+                        </div>
                       </div>
                     )}
 
@@ -2813,10 +2824,12 @@ export default function Fornecedores() {
                       </div>
                       <div>
                         <label className={labelCls} style={{ color: "#5a8fd4" }}>{tt.lblCentroCusto}</label>
-                        <select value={nc.centro_custo_id} onChange={(e) => setNc({ ...nc, centro_custo_id: e.target.value })} className={inputCls} style={selectStyle}>
-                          <option value="">-- {tt.selecioneCentroCusto} --</option>
-                          {centrosCusto.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
+                        <SeletorCentroCusto
+                          value={nc.centro_custo_id} onChange={(id) => setNc({ ...nc, centro_custo_id: id })}
+                          centros={centrosCusto} empresaId={empresaId} userId={userId} lang={lang}
+                          onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
+                          className={inputCls} style={selectStyle}
+                        />
                       </div>
                     </div>
                     <div>

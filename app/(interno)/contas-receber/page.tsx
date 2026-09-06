@@ -19,6 +19,7 @@ import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { statusEfetivo } from '../../../lib/fornecedorHelpers'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
+import { SeletorCentroCusto } from '../../../components/SeletorCentroCusto'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import {
   type ClienteRow, type ContaRow, montarSnapshotsCarteira, type SnapshotCarteira,
@@ -1495,10 +1496,12 @@ export default function ContasReceber() {
                       </div>
                       <div>
                         <label className={labelInput} style={{ color: TEAL }}>{L('Centro de Custo', 'Cost Center', 'Centro de Costo')}</label>
-                        <select value={nc.centro_custo_id} onChange={(e) => setNc({ ...nc, centro_custo_id: e.target.value })} className={inputCls} style={selectStyle}>
-                          <option value="">-- {L('Nenhum', 'None', 'Ninguno')} --</option>
-                          {centrosCusto.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
+                        <SeletorCentroCusto
+                          value={nc.centro_custo_id} onChange={(id) => setNc({ ...nc, centro_custo_id: id })}
+                          centros={centrosCusto} empresaId={empresaId} userId={userId} lang={lang}
+                          onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
+                          className={inputCls} style={selectStyle}
+                        />
                       </div>
                       <div>
                         <label className={labelInput} style={{ color: TEAL }}>{L('Prioridade', 'Priority', 'Prioridad')}</label>

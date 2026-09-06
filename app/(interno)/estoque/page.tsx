@@ -11,6 +11,7 @@ import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
+import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { fBRL, fBRL2, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
@@ -912,7 +913,6 @@ export default function EstoquePage() {
   }
 
   const opcoesFornecedor = fornecedoresDrop.map((f) => ({ value: f.id, label: f.nome }));
-  const opcoesCentroCusto = centrosCustoDrop.map((c) => ({ value: c.id, label: c.nome }));
   const argsShare = montarArgsPdfAtual();
 
   return (
@@ -1592,7 +1592,15 @@ export default function EstoquePage() {
               onFocus={() => garantirSugestaoColuna("posicao")} lista={sugestoes["col:posicao"]} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <CampoSelect label={et.campoCentroCusto} value={formProduto.centro_custo_id || ""} onChange={(v) => setFormProduto((f) => ({ ...f, centro_custo_id: v || null }))} opcoes={opcoesCentroCusto} />
+            <div>
+              <label className={labelCls} style={labelStyle}>{et.campoCentroCusto}</label>
+              <SeletorCentroCusto
+                value={formProduto.centro_custo_id || ""} onChange={(id) => setFormProduto((f) => ({ ...f, centro_custo_id: id || null }))}
+                centros={centrosCustoDrop} empresaId={empresaId} userId={userId} lang={lang}
+                onCriado={(c) => setCentrosCustoDrop((prev) => [...prev, c])}
+                className={inputCls} style={selectStyle}
+              />
+            </div>
             <Campo label={et.campoContaContabil} value={formProduto.conta_contabil || ""} onChange={(v) => setFormProduto((f) => ({ ...f, conta_contabil: v }))}
               onFocus={() => garantirSugestaoColuna("conta_contabil")} lista={sugestoes["col:conta_contabil"]} />
           </div>
@@ -1802,7 +1810,15 @@ export default function EstoquePage() {
             <Campo label={et.campoCategoria} value={formLote.categoria || ""} onChange={(v) => setFormLote((f) => ({ ...f, categoria: v }))} />
             <Campo label={et.campoMarca} value={formLote.marca || ""} onChange={(v) => setFormLote((f) => ({ ...f, marca: v }))} />
             <CampoSelect label={et.campoFornecedor} value={formLote.fornecedor_id || ""} onChange={(v) => setFormLote((f) => ({ ...f, fornecedor_id: v || undefined }))} opcoes={opcoesFornecedor} />
-            <CampoSelect label={et.campoCentroCusto} value={formLote.centro_custo_id || ""} onChange={(v) => setFormLote((f) => ({ ...f, centro_custo_id: v || undefined }))} opcoes={opcoesCentroCusto} />
+            <div>
+              <label className={labelCls} style={labelStyle}>{et.campoCentroCusto}</label>
+              <SeletorCentroCusto
+                value={formLote.centro_custo_id || ""} onChange={(id) => setFormLote((f) => ({ ...f, centro_custo_id: id || undefined }))}
+                centros={centrosCustoDrop} empresaId={empresaId} userId={userId} lang={lang}
+                onCriado={(c) => setCentrosCustoDrop((prev) => [...prev, c])}
+                className={inputCls} style={selectStyle}
+              />
+            </div>
             <Campo label={et.campoEstoqueMinimo} tipo="number" value={String(formLote.estoque_minimo ?? "")} onChange={(v) => setFormLote((f) => ({ ...f, estoque_minimo: v ? Number(v) : undefined }))} />
             <CampoSelect label={et.colStatus} value={formLote.status || ""} onChange={(v) => setFormLote((f) => ({ ...f, status: (v || undefined) as any }))} opcoes={[{ value: "ativo", label: et.statusAtivo }, { value: "inativo", label: et.statusInativo }]} />
           </div>

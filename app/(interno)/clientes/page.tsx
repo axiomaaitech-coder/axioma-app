@@ -20,6 +20,7 @@ import { CORES, FONTE_EXEC, optDispersao, optBarrasV } from "../../../lib/cfoCor
 import { cfoT } from "../../../lib/cfoTextos";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
+import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { buscarEstados, buscarMunicipios, type EstadoIBGE, type MunicipioIBGE } from "../../../lib/ibgeApi";
 import {
   montarSnapshotsCarteira, calcularIVCA, calcularSaudeCliente, detectarSinaisCliente,
@@ -374,6 +375,7 @@ export default function ClientesPage() {
   const [inadimplencias, setInadimplencias] = useState<InadimplenciaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [buscaCarteira, setBuscaCarteira] = useState("");
   const [buscaContas, setBuscaContas] = useState("");
   const [clienteSelecionadoId, setClienteSelecionadoId] = useState<string | null>(null);
@@ -435,6 +437,7 @@ export default function ClientesPage() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+    setUserId(user.id);
     const empId = await obterEmpresaAtiva();
     setEmpresaId(empId);
     if (!empId) { setLoading(false); return; }
@@ -1717,8 +1720,15 @@ export default function ClientesPage() {
                         <Campo label={tt.lblNumeroCobranca} value={formConta.numeroDocumento} onChange={(v) => setFormConta({ ...formConta, numeroDocumento: v })} />
                         <Campo label={tt.lblCategoria} value={formConta.categoria} onChange={(v) => setFormConta({ ...formConta, categoria: v })} />
                         <Campo label={tt.lblContrato} value={formConta.contratoRef} onChange={(v) => setFormConta({ ...formConta, contratoRef: v })} />
-                        <CampoSelect label={tt.lblCentroReceita} value={formConta.centroCustoId} onChange={(v) => setFormConta({ ...formConta, centroCustoId: v })}
-                          opcoes={centrosCusto.map((c) => ({ value: c.id, label: c.nome }))} />
+                        <div>
+                          <label className={labelCls} style={labelStyle}>{tt.lblCentroReceita}</label>
+                          <SeletorCentroCusto
+                            value={formConta.centroCustoId} onChange={(id) => setFormConta({ ...formConta, centroCustoId: id })}
+                            centros={centrosCusto} empresaId={empresaId} userId={userId} lang={lang}
+                            onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
+                            className={inputCls} style={selectStyle}
+                          />
+                        </div>
                         <Campo label={tt.lblContaContabil} value={formConta.contaContabil} onChange={(v) => setFormConta({ ...formConta, contaContabil: v })} />
                         <Campo label={tt.lblBancoRecebedor} value={formConta.bancoRecebedor} onChange={(v) => setFormConta({ ...formConta, bancoRecebedor: v })} />
                       </div>

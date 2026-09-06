@@ -13,6 +13,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
+import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } from "../../../lib/empresaHelpers";
 import { CATEGORIAS_DESPESA, labelCategoriaDespesa } from "../../../lib/categoriasDespesa";
 import { parseXMLNFe, type ItemNFe } from "../../../lib/importarParsers";
@@ -2903,11 +2904,12 @@ export default function ContasPagarPage() {
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Centro de Custo", "Cost Center", "Centro de Costo")}</label>
-                        <select value={nc.centro_custo_id} onChange={(e) => setNc({ ...nc, centro_custo_id: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
-                          <option value="">-- {L("Sem centro de custo", "No cost center", "Sin centro de costo")} --</option>
-                          {centrosCusto.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
+                        <SeletorCentroCusto
+                          value={nc.centro_custo_id} onChange={(id) => setNc({ ...nc, centro_custo_id: id })}
+                          centros={centrosCusto} empresaId={empresaId} userId={userId} lang={idioma as "pt" | "en" | "es"}
+                          onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}
+                        />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Multa/Juros por Atraso (%/mês)", "Late Penalty/Interest (%/mo.)", "Multa/Interés por Atraso (%/mes)")}</label>
@@ -3614,11 +3616,12 @@ export default function ContasPagarPage() {
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Centro de Custo", "Cost Center", "Centro de Costo")}</label>
-                        <select value={formCustoFixo.centroCustoId} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, centroCustoId: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
-                          <option value="">-- {L("Sem centro de custo", "No cost center", "Sin centro de costo")} --</option>
-                          {centrosCusto.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                        </select>
+                        <SeletorCentroCusto
+                          value={formCustoFixo.centroCustoId} onChange={(id) => setFormCustoFixo({ ...formCustoFixo, centroCustoId: id })}
+                          centros={centrosCusto} empresaId={empresaId} userId={userId} lang={idioma as "pt" | "en" | "es"}
+                          onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}
+                        />
                       </div>
                     </div>
                     <p className="text-[10px]" style={{ color: CINZA }}>
