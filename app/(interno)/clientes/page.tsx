@@ -450,10 +450,14 @@ export default function ClientesPage() {
   }
 
   async function salvarCliente() {
-    if (!form.nome.trim()) return;
+    // Mesmo bug silencioso da varredura: guard voltava em `return` mudo.
+    if (!form.nome.trim()) {
+      showToast(lang === "en" ? "Enter the client's name before saving." : lang === "es" ? "Ingrese el nombre del cliente antes de guardar." : "Preencha o nome do cliente antes de salvar.", "erro");
+      return;
+    }
     setSalvandoCliente(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvandoCliente(false); return; }
+    if (!user) { setSalvandoCliente(false); showToast(tt.erroSalvarCliente, "erro"); return; }
     const payload = {
       nome: form.nome, email: form.email, telefone: form.telefone, documento: form.documento,
       cidade: form.cidade, status: form.status,
@@ -488,7 +492,9 @@ export default function ClientesPage() {
         return;
       }
     }
-    fecharModalCliente(); setSalvandoCliente(false); carregarDados();
+    fecharModalCliente(); setSalvandoCliente(false);
+    showToast(lang === "en" ? "Client saved." : lang === "es" ? "Cliente guardado." : "Cliente salvo.", "ok");
+    carregarDados();
   }
 
   async function excluirCliente(id: string) {
@@ -499,14 +505,18 @@ export default function ClientesPage() {
       return;
     }
     if (clienteSelecionadoId === id) { setClienteSelecionadoId(null); setAba("carteira"); }
+    showToast(lang === "en" ? "Client deleted." : lang === "es" ? "Cliente eliminado." : "Cliente excluído.", "ok");
     carregarDados();
   }
 
   async function salvarConta() {
-    if (!formConta.descricao.trim() || !formConta.valor || !formConta.vencimento) return;
+    if (!formConta.descricao.trim() || !formConta.valor || !formConta.vencimento) {
+      showToast(lang === "en" ? "Fill in description, amount and due date before saving." : lang === "es" ? "Complete descripción, valor y vencimiento antes de guardar." : "Preencha descrição, valor e vencimento antes de salvar.", "erro");
+      return;
+    }
     setSalvandoConta(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvandoConta(false); return; }
+    if (!user) { setSalvandoConta(false); showToast(tt.erroSalvarConta, "erro"); return; }
     const { data, error } = await supabase.from("contas_receber").insert({
       descricao: formConta.descricao, valor: parseFloat(formConta.valor), data_vencimento: formConta.vencimento,
       data_emissao: formConta.emissao || null, status: "pendente", cliente_id: formConta.clienteId || null,
@@ -531,7 +541,9 @@ export default function ClientesPage() {
       return;
     }
     setModalConta(false); setFormConta(FORM_CONTA_VAZIO);
-    setSalvandoConta(false); carregarDados();
+    setSalvandoConta(false);
+    showToast(lang === "en" ? "Receivable saved." : lang === "es" ? "Cobro guardado." : "Cobrança salva.", "ok");
+    carregarDados();
   }
 
   async function marcarRecebido(id: string) {
@@ -541,6 +553,7 @@ export default function ClientesPage() {
       reportarFalhaEscrita("contas_receber", "update status recebido", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
+    showToast(lang === "en" ? "Marked as received." : lang === "es" ? "Marcado como recibido." : "Marcado como recebido.", "ok");
     carregarDados();
   }
 
