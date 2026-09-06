@@ -261,3 +261,32 @@ export async function atualizarCampoOrigem(
   });
   return auditoria.erro ? { avisoAuditoria: auditoria.erro } : {};
 }
+
+// ============================================================================
+// CRIAÇÃO RÁPIDA — regra da plataforma: todo campo importante (aqui, centro
+// de custo) tem que dar pra preencher na mão, mesmo sem passar pela tela
+// cheia de Centro de Custos. Cria só com nome + tipo padrão "operacional" —
+// o dono completa o resto (orçamento, responsável etc.) depois em
+// /centros-custo se quiser. Reaproveitada pelo componente SeletorCentroCusto,
+// nunca duplicada em cada módulo que precisa disso.
+// ============================================================================
+
+export async function criarCentroCustoRapido(
+  userId: string, empresaId: string, nome: string
+): Promise<{ id?: string; erro?: string }> {
+  const { data, error } = await supabase.from("centros_custo")
+    .insert({ nome, tipo: "operacional", user_id: userId, empresa_id: empresaId, ativo: true })
+    .select("id").single();
+  if (error || !data) {
+    const motivo = error?.message || "0 linhas afetadas (RLS?)";
+    reportarFalhaEscrita("centros_custo", "insert (criação rápida)", motivo);
+    return { erro: motivo };
+  }
+  // Falha de auditoria não reverte nem bloqueia a criação, que já aconteceu —
+  // mesma regra usada nas outras chamadas de registrarAuditoriaCentro aqui.
+  await registrarAuditoriaCentro({
+    userId, empresaId, centroId: data.id, tabela: "centros_custo", registroId: data.id, acao: "criar",
+    descricao: `Centro criado (rápido): ${nome}`, valorDepois: { nome, tipo: "operacional" },
+  });
+  return { id: data.id };
+}

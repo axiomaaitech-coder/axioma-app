@@ -20,6 +20,7 @@ import {
 } from "../../../lib/cfoCore";
 import { cfoT, montarNarrativaVariacao, montarNarrativaMargem, montarSugestao } from "../../../lib/cfoTextos";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
+import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 
@@ -64,6 +65,8 @@ export default function CustosVariaveis() {
   const [exportando, setExportando] = useState(false);
   const [shareAberto, setShareAberto] = useState(false);
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; nome: string }[]>([]);
+  const [empresaIdAtivo, setEmpresaIdAtivo] = useState<string | null>(null);
+  const [userIdAtivo, setUserIdAtivo] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   const L = (pt: string, en: string, es: string) => (lang === "en" ? en : lang === "es" ? es : pt);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -89,6 +92,8 @@ export default function CustosVariaveis() {
     if (!user) { setCarregando(false); return; }
     const empresaId = await obterEmpresaAtiva();
     if (!empresaId) { setCarregando(false); return; }
+    setEmpresaIdAtivo(empresaId);
+    setUserIdAtivo(user.id);
 
     const inicioHistorico = inicioJanelaHistorica(periodo.fim);
 
@@ -598,12 +603,13 @@ export default function CustosVariaveis() {
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
                       {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "#5a7a9a", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
                     </label>
-                    <select value={novo.centro_custo_id} onChange={(e) => setNovo({ ...novo, centro_custo_id: e.target.value })}
+                    <SeletorCentroCusto
+                      value={novo.centro_custo_id} onChange={(id) => setNovo({ ...novo, centro_custo_id: id })}
+                      centros={centrosCusto} empresaId={empresaIdAtivo} userId={userIdAtivo} lang={lang}
+                      onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
-                      <option value="">-- {lang === "en" ? "No cost center" : lang === "es" ? "Sin centro de costo" : "Sem centro de custo"} --</option>
-                      {centrosCusto.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                    </select>
+                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
+                    />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={salvar} disabled={salvando}
