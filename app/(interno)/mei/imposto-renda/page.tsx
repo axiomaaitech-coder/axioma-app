@@ -173,7 +173,7 @@ export default function ImpostoRendaMEI() {
   async function handleEnviarDocumento() {
     if (!arquivoDoc) return
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { mostrarToastDoc(t('toastSemEmpresa'), 'erro'); return }
     const empresaId = await obterEmpresaAtiva()
     if (!empresaId) { mostrarToastDoc(t('toastSemEmpresa'), 'erro'); return }
 
