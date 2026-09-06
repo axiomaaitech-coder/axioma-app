@@ -104,6 +104,9 @@ export default function DASObrigacoes() {
     historicoVazio: { pt: 'Ainda não há competência de DAS vencida este ano.', en: 'No DAS competence has come due this year yet.', es: 'Aún no hay ninguna competencia de DAS vencida este año.' },
     erroSalvarDas: { pt: 'Não foi possível salvar o valor do DAS. Tente novamente.', en: 'Could not save the DAS value. Try again.', es: 'No se pudo guardar el valor del DAS. Intente de nuevo.' },
     erroSalvarObrigacao: { pt: 'Não foi possível salvar a obrigação. Tente novamente.', en: 'Could not save the obligation. Try again.', es: 'No se pudo guardar la obligación. Intente de nuevo.' },
+    erroValorDasInvalido: { pt: 'Informe um valor numérico válido pro DAS.', en: 'Enter a valid numeric DAS value.', es: 'Informe un valor numérico válido para el DAS.' },
+    sucessoSalvarDas: { pt: 'Valor do DAS salvo.', en: 'DAS value saved.', es: 'Valor del DAS guardado.' },
+    sucessoSalvarObrigacao: { pt: 'Obrigação atualizada.', en: 'Obligation updated.', es: 'Obligación actualizada.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -132,9 +135,9 @@ export default function DASObrigacoes() {
 
   async function salvarDasInline() {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { showToast(t('erroSalvarDas'), 'erro'); return }
     const novoValor = parseFloat(dasValorTemp)
-    if (isNaN(novoValor)) return
+    if (isNaN(novoValor)) { showToast(t('erroValorDasInvalido'), 'erro'); return }
     const empresaId = await obterEmpresaAtiva()
     const { data, error } = await supabase.from('mei_dados').upsert({
       user_id: user.id, empresa_id: empresaId, das_valor: novoValor,
@@ -150,6 +153,7 @@ export default function DASObrigacoes() {
     }
     setDasValor(String(novoValor))
     setEditandoDas(false)
+    showToast(t('sucessoSalvarDas'), 'ok')
     carregar()
   }
 
@@ -198,7 +202,7 @@ export default function DASObrigacoes() {
 
   async function marcarStatus(tipo: 'DAS' | 'DASN' | 'IRPF', status: StatusObrigacao) {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setSalvandoStatus(true)
     const empresaId = await obterEmpresaAtiva()
     const competencia = tipo === 'DAS' ? competenciaDas : competenciaAnual
@@ -211,6 +215,7 @@ export default function DASObrigacoes() {
     setSalvandoStatus(false)
     if (erro) { showToast(t('erroSalvarObrigacao'), 'erro'); return }
     setEditandoTipo(null)
+    showToast(t('sucessoSalvarObrigacao'), 'ok')
     carregar()
   }
 
