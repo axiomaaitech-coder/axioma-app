@@ -6,6 +6,8 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, X, CheckCircle2, XCircle, Eye, BookOpenText, TrendingDown, ClipboardCheck, BookText } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
@@ -91,6 +93,7 @@ export default function ContadorPage() {
   const [selecionada, setSelecionada] = useState<Descoberta | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [mensagem, setMensagem] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
 
   const carregar = useCallback(async (empId: string) => {
     setDescobertas(await listarDescobertas(empId))
@@ -154,6 +157,7 @@ export default function ContadorPage() {
       subtitulo={L('O que a Axioma descobriu sozinha nos seus números — não é balanço, é status de inteligência.', "What Axioma found on its own in your numbers — not a balance sheet, an intelligence status.", 'Lo que Axioma descubrió sola en sus números — no es un balance, es un estado de inteligencia.')}
       botaoExtra={
         <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
           <button onClick={() => router.push('/contador/explicar')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: 'rgba(52,211,153,0.14)', color: VERDE, border: `1px solid ${VERDE}40` }}>
             <BookOpenText size={15} />{L('Explique minha empresa', 'Explain my company', 'Explique mi empresa')}
@@ -185,6 +189,12 @@ export default function ContadorPage() {
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma empresa ativa.', 'No active company.', 'Ninguna empresa activa.')}</p>
       ) : (
         <div className="space-y-6">
+
+          <LetreiroAxioma id="contador" cor={AZULC} itens={[
+            `${L('Descobertas abertas', 'Open findings', 'Hallazgos abiertos')} ${contagem.totalAbertas}`,
+            normal ? `${L('Sem riscos críticos', 'No critical risks', 'Sin riesgos críticos')} ✅` : `${L('Riscos críticos', 'Critical risks', 'Riesgos críticos')}: ${contagem.P0 + contagem.P1}`,
+            oportunidades > 0 ? `${L('Oportunidades', 'Opportunities', 'Oportunidades')} ${oportunidades}` : '',
+          ].filter(Boolean)} />
 
           {mensagem && (
             <div className="rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: `${AZULC}15`, border: `1px solid ${AZULC}35`, color: AZULC }}>
@@ -363,6 +373,20 @@ export default function ContadorPage() {
         </AnimatePresence>,
         document.body
       )}
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={[
+          `🚀 AXIOMA AI.TECH — ${L('Contador', 'Accountant', 'Contador')}`,
+          `🧠 ${L('Descobertas abertas', 'Open findings', 'Hallazgos abiertos')}: ${contagem.totalAbertas}`,
+          normal ? `✅ ${L('Sem riscos críticos', 'No critical risks', 'Sin riesgos críticos')}` : `🔴 ${L('Riscos críticos', 'Critical risks', 'Riesgos críticos')}: ${contagem.P0 + contagem.P1}`,
+          oportunidades > 0 ? `📈 ${L('Oportunidades', 'Opportunities', 'Oportunidades')}: ${oportunidades}` : '',
+        ].filter(Boolean).join('\n')}
+        assunto={`${L('Contador', 'Accountant', 'Contador')} — Axioma`}
+        cor={AZULC}
+      />
     </ModuloLayout>
   )
 }

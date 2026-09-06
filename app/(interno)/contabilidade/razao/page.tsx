@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
+import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { listarPlanoDeContas, type ContaContabil } from '../../../../lib/contabilidadeHelpers'
@@ -55,6 +57,7 @@ function RazaoInner() {
 
   const [modalLancamento, setModalLancamento] = useState<LancamentoContabilRow | null>(null)
   const [partidasModal, setPartidasModal] = useState<PartidaRow[]>([])
+  const [shareAberto, setShareAberto] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -120,7 +123,17 @@ function RazaoInner() {
     <ModuloLayout
       titulo={L('Livro Razão', 'General Ledger', 'Libro Mayor')}
       subtitulo={L('Extrato por conta contábil, com saldo acumulado — direto do ledger', 'Account statement with running balance — straight from the ledger', 'Extracto por cuenta contable con saldo acumulado — directo del libro mayor')}
+      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />}
     >
+      {contaSelecionada && (
+        <div className="mb-5">
+          <LetreiroAxioma id="razao" cor={TEAL} itens={[
+            `${contaSelecionada.codigo} — ${contaSelecionada.nome}`,
+            `${L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')} R$ ${fBRL2(saldoAnterior)}`,
+            `${L('Saldo Atual', 'Current Balance', 'Saldo Actual')} R$ ${fBRL2(linhas.length > 0 ? linhas[linhas.length - 1].saldo : saldoAnterior)}`,
+          ]} />
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <select
           value={contaId}
@@ -229,6 +242,20 @@ function RazaoInner() {
         </AnimatePresence>,
         document.body
       )}
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={[
+          `🚀 AXIOMA AI.TECH — ${L('Livro Razão', 'General Ledger', 'Libro Mayor')}`,
+          contaSelecionada ? `📖 ${contaSelecionada.codigo} — ${contaSelecionada.nome}` : '',
+          `💰 ${L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')}: R$ ${fBRL2(saldoAnterior)}`,
+          `💰 ${L('Saldo Atual', 'Current Balance', 'Saldo Actual')}: R$ ${fBRL2(linhas.length > 0 ? linhas[linhas.length - 1].saldo : saldoAnterior)}`,
+        ].filter(Boolean).join('\n')}
+        assunto={`${L('Livro Razão', 'General Ledger', 'Libro Mayor')} — Axioma`}
+        cor={TEAL}
+      />
     </ModuloLayout>
   )
 }
