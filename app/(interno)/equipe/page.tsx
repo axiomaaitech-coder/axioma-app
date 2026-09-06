@@ -173,7 +173,7 @@ export default function EquipePage() {
   }
 
   async function enviarConvite() {
-    if (!empresaId || !userId || !form.email_convidado.trim()) return
+    if (!empresaId || !userId || !form.email_convidado.trim()) { avisar('erro', t.erroGenerico); return }
     setEnviando(true)
     try {
       const r = await convidarMembro(empresaId, userId, form)
@@ -196,7 +196,7 @@ export default function EquipePage() {
   }
 
   async function trocarPapel(membro: MembroEquipe, novoPapel: string) {
-    if (!empresaId || !userId) return
+    if (!empresaId || !userId) { avisar('erro', t.erroGenerico); return }
     const r = await alterarPapelMembro(membro, empresaId, userId, novoPapel)
     if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
     setEditandoId(null)
@@ -206,7 +206,7 @@ export default function EquipePage() {
   }
 
   async function removerAcesso(membro: MembroEquipe) {
-    if (!empresaId || !userId) return
+    if (!empresaId || !userId) { avisar('erro', t.erroGenerico); return }
     const r = await removerAcessoMembro(membro, empresaId, userId)
     if (r.erro) { avisar('erro', mensagemErro(r.codigo)); return }
     setConfirmandoId(null)
