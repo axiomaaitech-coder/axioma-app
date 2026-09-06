@@ -5,6 +5,8 @@ import { ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
+import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { listarPlanoDeContas, type ContaContabil } from '../../../../lib/contabilidadeHelpers'
@@ -37,6 +39,7 @@ export default function DrePage() {
 
   const [totaisPorConta, setTotaisPorConta] = useState<Record<string, { debito: number; credito: number }>>({})
   const [grupoAberto, setGrupoAberto] = useState<Grupo | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -107,6 +110,7 @@ export default function DrePage() {
     <ModuloLayout
       titulo={L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados')}
       subtitulo={L('Calculado direto do Livro Razão contábil — receita, custo e despesa vêm do ledger, não de planilha solta', 'Calculated straight from the accounting ledger — revenue, cost and expense come from the ledger, not a loose spreadsheet', 'Calculado directo del libro mayor contable — ingreso, costo y gasto vienen del libro mayor, no de una planilla suelta')}
+      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />}
     >
       <div className="mb-5">
         <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
@@ -117,6 +121,14 @@ export default function DrePage() {
       ) : semDados ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum lançamento no período selecionado.', 'No entries in the selected period.', 'Ningún asiento en el período seleccionado.')}</p>
       ) : (
+        <>
+          <div className="mb-5">
+            <LetreiroAxioma id="dre-contabil" cor={TEAL} itens={[
+              `${L('Receita Bruta', 'Gross Revenue', 'Ingreso Bruto')} R$ ${fBRL2(receitaBruta)}`,
+              `${L('Lucro Bruto', 'Gross Profit', 'Utilidad Bruta')} R$ ${fBRL2(lucroBruto)}`,
+              `${L('Resultado Líquido', 'Net Result', 'Resultado Neto')} R$ ${fBRL2(resultadoLiquido)}`,
+            ]} />
+          </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm" style={{ minWidth: 420 }}>
             <tbody>
@@ -171,7 +183,22 @@ export default function DrePage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={[
+          `🚀 AXIOMA AI.TECH — ${L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados')}`,
+          `💰 ${L('Receita Bruta', 'Gross Revenue', 'Ingreso Bruto')}: R$ ${fBRL2(receitaBruta)}`,
+          `📊 ${L('Lucro Bruto', 'Gross Profit', 'Utilidad Bruta')}: R$ ${fBRL2(lucroBruto)}`,
+          `${resultadoLiquido >= 0 ? '✅' : '⚠️'} ${L('Resultado Líquido', 'Net Result', 'Resultado Neto')}: R$ ${fBRL2(resultadoLiquido)}`,
+        ].join('\n')}
+        assunto={`${L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados')} — Axioma`}
+        cor={TEAL}
+      />
     </ModuloLayout>
   )
 }

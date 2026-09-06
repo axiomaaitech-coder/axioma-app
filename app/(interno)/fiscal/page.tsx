@@ -6,6 +6,8 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, X, CheckCircle2, XCircle, Eye, CalendarClock, Settings, ScrollText, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import {
@@ -104,6 +106,7 @@ export default function FiscalPage() {
   const [selecionada, setSelecionada] = useState<DescobertaFiscal | null>(null)
   const [processandoAcao, setProcessandoAcao] = useState(false)
   const [mensagem, setMensagem] = useState<string | null>(null)
+  const [shareAberto, setShareAberto] = useState(false)
 
   const carregar = useCallback(async (empId: string) => {
     const [desc, h, obrig, cfg] = await Promise.all([
@@ -177,6 +180,7 @@ export default function FiscalPage() {
       subtitulo={L('Status fiscal da sua empresa — obrigações, descobertas e o Health Score explicado, não um formulário.', "Your company's tax status — obligations, findings, and the Health Score explained, not a form.", 'Estado fiscal de su empresa — obligaciones, hallazgos y el Health Score explicado, no un formulario.')}
       botaoExtra={
         <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
           <button onClick={() => router.push('/fiscal/obrigacoes')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: `${AZULC}18`, color: AZULC, border: `1px solid ${AZULC}40` }}>
             <CalendarClock size={15} />{L('Calendário', 'Calendar', 'Calendario')}
@@ -200,6 +204,12 @@ export default function FiscalPage() {
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma empresa ativa.', 'No active company.', 'Ninguna empresa activa.')}</p>
       ) : (
         <div className="space-y-6">
+
+          <LetreiroAxioma id="fiscal" cor={AZULC} itens={[
+            health ? `Fiscal Health Score ${health.score}` : '',
+            `${L('Descobertas abertas', 'Open findings', 'Hallazgos abiertos')} ${contagem.totalAbertas}`,
+            proximosSete > 0 ? `${L('Obrigações nos próx. 7 dias', 'Obligations in the next 7 days', 'Obligaciones en los próx. 7 días')}: ${proximosSete}` : L('Nenhuma obrigação vencendo em 7 dias', 'No obligation due in 7 days', 'Ninguna obligación vence en 7 días'),
+          ].filter(Boolean)} />
 
           {mensagem && (
             <div className="rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: `${AZULC}15`, border: `1px solid ${AZULC}35`, color: AZULC }}>
@@ -451,6 +461,20 @@ export default function FiscalPage() {
         </AnimatePresence>,
         document.body
       )}
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={[
+          `🚀 AXIOMA AI.TECH — ${L('Fiscal', 'Tax', 'Fiscal')}`,
+          health ? `📊 Fiscal Health Score: ${health.score}` : '',
+          `🧠 ${L('Descobertas abertas', 'Open findings', 'Hallazgos abiertos')}: ${contagem.totalAbertas}`,
+          proximosSete > 0 ? `📅 ${L('Obrigações vencendo em 7 dias', 'Obligations due in 7 days', 'Obligaciones que vencen en 7 días')}: ${proximosSete}` : `✅ ${L('Nenhuma obrigação vencendo em 7 dias', 'No obligation due in 7 days', 'Ninguna obligación vence en 7 días')}`,
+        ].filter(Boolean).join('\n')}
+        assunto={`${L('Fiscal', 'Tax', 'Fiscal')} — Axioma`}
+        cor={AZULC}
+      />
     </ModuloLayout>
   )
 }

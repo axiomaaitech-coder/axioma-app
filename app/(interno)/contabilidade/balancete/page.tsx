@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
+import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { listarPlanoDeContas, type ContaContabil, type TipoContaContabil } from '../../../../lib/contabilidadeHelpers'
@@ -44,6 +46,7 @@ export default function BalancetePage() {
   const periodo = resolverPeriodo(preset, personalizado)
 
   const [totaisPorConta, setTotaisPorConta] = useState<Record<string, { debito: number; credito: number }>>({})
+  const [shareAberto, setShareAberto] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -91,6 +94,7 @@ export default function BalancetePage() {
     <ModuloLayout
       titulo={L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación')}
       subtitulo={L('Saldo de todas as contas no período, agrupado por tipo — direto do ledger', 'Balance of every account in the period, grouped by type — straight from the ledger', 'Saldo de todas las cuentas en el período, agrupado por tipo — directo del libro mayor')}
+      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />}
     >
       <div className="mb-5">
         <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
@@ -102,6 +106,13 @@ export default function BalancetePage() {
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum lançamento no período selecionado.', 'No entries in the selected period.', 'Ningún asiento en el período seleccionado.')}</p>
       ) : (
         <>
+          <div className="mb-5">
+            <LetreiroAxioma id="balancete" cor={TEAL} itens={[
+              `${L('Débito', 'Debit', 'Débito')} R$ ${fBRL2(totalDebitoGeral)}`,
+              `${L('Crédito', 'Credit', 'Crédito')} R$ ${fBRL2(totalCreditoGeral)}`,
+              fecha ? `${L('Balancete fechado', 'Trial balance closed', 'Balance cerrado')} ✓` : `${L('Não fecha', "Doesn't close", 'No cierra')} ⚠️`,
+            ]} />
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs" style={{ minWidth: 560 }}>
               <thead>
@@ -155,6 +166,20 @@ export default function BalancetePage() {
           </div>
         </>
       )}
+
+      <CentroCompartilhamento
+        aberto={shareAberto}
+        onFechar={() => setShareAberto(false)}
+        lang={lang}
+        textoResumo={[
+          `🚀 AXIOMA AI.TECH — ${L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación')}`,
+          `💰 ${L('Débito', 'Debit', 'Débito')}: R$ ${fBRL2(totalDebitoGeral)}`,
+          `💰 ${L('Crédito', 'Credit', 'Crédito')}: R$ ${fBRL2(totalCreditoGeral)}`,
+          fecha ? `✅ ${L('Balancete fechado', 'Trial balance closed', 'Balance cerrado')}` : `⚠️ ${L('Não fecha', "Doesn't close", 'No cierra')}`,
+        ].join('\n')}
+        assunto={`${L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación')} — Axioma`}
+        cor={TEAL}
+      />
     </ModuloLayout>
   )
 }
