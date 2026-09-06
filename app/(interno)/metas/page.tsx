@@ -390,7 +390,13 @@ export default function Metas() {
     : false;
 
   const salvar = async () => {
-    if (!titulo || !valorMeta || !prazo || !valorInicialInput) return;
+    // Mesmo bug já corrigido em Precificação: este guard voltava em silêncio
+    // (sem erro, sem fechar o modal, sem indicar o que faltou) — anti-falha-
+    // silenciosa exige sempre uma resposta visível.
+    if (!titulo || !valorMeta || !prazo || !valorInicialInput) {
+      setErroModal(L("Preencha título, valor da meta, prazo e valor inicial antes de salvar.", "Fill in title, target value, deadline and starting value before saving.", "Complete título, valor de la meta, plazo y valor inicial antes de guardar."));
+      return;
+    }
     setSalvando(true);
     setErroModal(null);
     const { data: { user } } = await supabase.auth.getUser();
@@ -880,7 +886,7 @@ export default function Metas() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.nomeMeta}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.nomeMeta} <span style={{ color: CORES.vermelho }}>*</span></label>
                     <input value={titulo} onChange={e => setTitulo(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
@@ -897,13 +903,13 @@ export default function Metas() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{cx.metaValorInicialLabel}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{cx.metaValorInicialLabel} <span style={{ color: CORES.vermelho }}>*</span></label>
                       <input type="number" value={valorInicialInput} onChange={e => setValorInicialInput(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                         style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.valorAlvoLabel}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.valorAlvoLabel} <span style={{ color: CORES.vermelho }}>*</span></label>
                       <input type="number" value={valorMeta} onChange={e => setValorMeta(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                         style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
@@ -924,7 +930,7 @@ export default function Metas() {
                     {direcaoInconsistente && <p className="text-[11px] mt-1.5" style={{ color: CORES.amarelo }}>{cx.metaDirecaoInconsistente}</p>}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.prazoLabel}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.prazoLabel} <span style={{ color: CORES.vermelho }}>*</span></label>
                     <input type="date" value={prazo} onChange={e => setPrazo(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
