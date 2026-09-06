@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
 import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal, Building2, MessageCircleQuestion, Send } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
+import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../lib/empresaHelpers'
 import { optLinhaMulti, fBRL2 } from '../../../lib/cfoCore'
@@ -53,6 +55,7 @@ export default function TesourariaPage() {
   const [posicao, setPosicao] = useState<PosicaoCaixa | null>(null)
   const [fluxo, setFluxo] = useState<FluxoProjetadoResultado | null>(null)
   const [alertas, setAlertas] = useState<AlertaTesouraria[]>([])
+  const [shareAberto, setShareAberto] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -180,12 +183,21 @@ export default function TesourariaPage() {
     AZULC
   ) : null
 
+  const textoShareResumo = posicao ? [
+    `🚀 AXIOMA AI.TECH — ${L('Tesouraria', 'Treasury', 'Tesorería')}`,
+    `💰 ${L('Disponível', 'Available', 'Disponible')}: R$ ${fBRL2(posicao.totalDisponivel)}`,
+    score ? `📊 Liquidity Score: ${score.total} (${score.nivel})` : '',
+    alertas.length > 0 ? `⚠️ ${L('Riscos ativos', 'Active risks', 'Riesgos activos')}: ${alertas.map((a) => tituloAlertaLocalizado(a.tipo, lang)).join(', ')}` : `✅ ${L('Sem riscos ativos', 'No active risks', 'Sin riesgos activos')}`,
+  ].filter(Boolean).join('\n') : ''
+
   return (
+    <>
     <ModuloLayout
       titulo={L('Tesouraria', 'Treasury', 'Tesorería')}
       subtitulo={L('Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só', 'Where cash stands, what happens next, and the risk — one view', 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una vista')}
       botaoExtra={
         <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
           <button onClick={() => router.push('/tesouraria/simulador')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: 'rgba(167,139,250,0.14)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }}>
@@ -212,6 +224,12 @@ export default function TesourariaPage() {
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma empresa ativa.', 'No active company.', 'Ninguna empresa activa.')}</p>
       ) : (
         <div className="space-y-6">
+
+          <LetreiroAxioma id="tesouraria" cor={AZULC} itens={[
+            `${L('Disponível', 'Available', 'Disponible')} R$ ${fBRL2(posicao.totalDisponivel)}`,
+            score ? `${L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')} ${score.total}` : '',
+            alertas.length > 0 ? `${L('Riscos ativos', 'Active risks', 'Riesgos activos')}: ${alertas.length}` : L('Sem riscos ativos', 'No active risks', 'Sin riesgos activos'),
+          ].filter(Boolean)} />
 
           {/* LIQUIDITY SCORE */}
           {score && (
@@ -411,5 +429,14 @@ export default function TesourariaPage() {
         </div>
       )}
     </ModuloLayout>
+    <CentroCompartilhamento
+      aberto={shareAberto}
+      onFechar={() => setShareAberto(false)}
+      lang={lang}
+      textoResumo={textoShareResumo}
+      assunto={`${L('Tesouraria', 'Treasury', 'Tesorería')} — Axioma`}
+      cor={AZULC}
+    />
+    </>
   )
 }
