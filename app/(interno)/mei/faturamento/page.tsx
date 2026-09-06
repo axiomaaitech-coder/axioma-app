@@ -49,7 +49,7 @@ export default function FaturamentoMEI() {
   const [excluindo, setExcluindo] = useState<Receita | null>(null)
   const [form, setForm] = useState({ descricao: '', valor: '', data: '', categoria: CATEGORIAS[0], status: 'recebido' })
   const [salvando, setSalvando] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
   const [analiseIA, setAnaliseIA] = useState<string | null>(null)
   const [analisandoIA, setAnalisandoIA] = useState(false)
   const conteudoRef = useRef<HTMLDivElement>(null)
@@ -101,6 +101,9 @@ export default function FaturamentoMEI() {
     serieMedia: { pt: 'Sua média', en: 'Your average', es: 'Su promedio' },
     erroSalvarLancamento: { pt: 'Não foi possível salvar o lançamento. Tente novamente.', en: 'Could not save the entry. Try again.', es: 'No se pudo guardar el movimiento. Intente de nuevo.' },
     erroExcluirLancamento: { pt: 'Não foi possível excluir o lançamento. Tente novamente.', en: 'Could not delete the entry. Try again.', es: 'No se pudo eliminar el movimiento. Intente de nuevo.' },
+    erroCamposLancamento: { pt: 'Preencha descrição e valor antes de salvar.', en: 'Fill in description and amount before saving.', es: 'Complete descripción y valor antes de guardar.' },
+    sucessoSalvarLancamento: { pt: 'Lançamento salvo.', en: 'Entry saved.', es: 'Movimiento guardado.' },
+    sucessoExcluirLancamento: { pt: 'Lançamento excluído.', en: 'Entry deleted.', es: 'Movimiento eliminado.' },
   }
 
   const t = (key: keyof typeof txt) => txt[key][idioma as 'pt' | 'en' | 'es'] ?? txt[key].pt
@@ -123,7 +126,7 @@ export default function FaturamentoMEI() {
     setLoading(false)
   }
 
-  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(null), 2500) }
+  function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') { setToast({ msg, tipo }); setTimeout(() => setToast(null), 2500) }
   function reportarFalhaEscrita(tabela: string, operacao: string, motivo: string) {
     Sentry.captureException(new Error(`Falha ao ${operacao} em ${tabela}: ${motivo}`), { extra: { tabela, operacao, motivo } })
   }
@@ -145,7 +148,9 @@ export default function FaturamentoMEI() {
   }
 
   async function salvarEdicao() {
-    if (!editando || !form.descricao || !form.valor) return
+    // Mesmo bug silencioso já corrigido em Precificação/Metas/Contas a
+    // Receber/Inadimplência: este guard voltava em `return` mudo.
+    if (!editando || !form.descricao || !form.valor) { showToast(t('erroCamposLancamento')); return }
     setSalvando(true)
     const { data, error } = await supabase.from('receitas').update({
       descricao: form.descricao, valor: parseFloat(form.valor), data: form.data, categoria: form.categoria, status: form.status,
@@ -157,6 +162,7 @@ export default function FaturamentoMEI() {
       return
     }
     setEditando(null)
+    showToast(t('sucessoSalvarLancamento'), 'ok')
     carregar()
   }
 
@@ -169,6 +175,7 @@ export default function FaturamentoMEI() {
       showToast(t('erroExcluirLancamento'))
       return
     }
+    showToast(t('sucessoExcluirLancamento'), 'ok')
     carregar()
   }
 
@@ -371,8 +378,8 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
         {toast && (
           <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(248,113,113,0.95)', color: '#020810', fontWeight: 600 }}>
-            {toast}
+            style={{ background: toast.tipo === 'ok' ? 'rgba(52,211,153,0.95)' : 'rgba(248,113,113,0.95)', color: '#020810', fontWeight: 600 }}>
+            {toast.msg}
           </div>
         )}
 
