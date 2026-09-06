@@ -247,12 +247,16 @@ export default function Inadimplencia() {
   const rankingRecuperacao = useMemo(() => rankingMaiorRecuperacao(carteira), [carteira])
 
   async function salvarProvisaoDRE() {
-    if (!userId || !empresaId || !dreHistoricoAtual || kpis.perdaProvavel == null) return
+    if (!userId || !empresaId || !dreHistoricoAtual || kpis.perdaProvavel == null) {
+      showToast(L('Ainda não há um fechamento de DRE do período pra gravar a provisão.', "There's no closed DRE for the period yet to save the provision.", 'Todavía no hay un cierre de DRE del período para grabar la provisión.'), 'erro')
+      return
+    }
     setSalvandoProvisao(true)
     const r = await atualizarProvisaoNaDRE(userId, empresaId, dreHistoricoAtual.periodo_inicio, dreHistoricoAtual.periodo_fim, kpis.perdaProvavel)
     setSalvandoProvisao(false)
     setProvisaoSalva(r.atualizado)
     if (r.erro) showToast(L('Não foi possível salvar a provisão na DRE. Tente novamente.', 'Could not save the provision to the DRE. Try again.', 'No se pudo guardar la provisión en el DRE. Intente de nuevo.'), 'erro')
+    else showToast(L('Provisão salva na DRE.', 'Provision saved to the DRE.', 'Provisión guardada en el DRE.'), 'ok')
   }
 
   const hoje = new Date().toISOString().slice(0, 10)
@@ -311,7 +315,10 @@ export default function Inadimplencia() {
   function fecharNegociacao() { setClienteAbertoId(null) }
 
   async function salvarCompromisso() {
-    if (!linhaAberta || !userId || !novoCompromisso.conta_id || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
+    if (!linhaAberta || !userId || !novoCompromisso.conta_id || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) {
+      showToast(L('Selecione a conta e informe valor e data do compromisso antes de salvar.', 'Select the bill and enter the commitment amount and date before saving.', 'Seleccione la cuenta e informe valor y fecha del compromiso antes de guardar.'), 'erro')
+      return
+    }
     setSalvandoCompromisso(true)
     const contaSel = linhaAberta.s.contas.find((c) => c.id === novoCompromisso.conta_id)
     const payload = {
@@ -337,6 +344,7 @@ export default function Inadimplencia() {
     setNovoCompromisso({ ...compromissoVazio })
     setEditandoCompromissoId(null)
     setSalvandoCompromisso(false)
+    showToast(L('Compromisso salvo.', 'Commitment saved.', 'Compromiso guardado.'), 'ok')
   }
 
   function editarCompromisso(c: CobrancaCompromisso) {
@@ -380,16 +388,21 @@ export default function Inadimplencia() {
     setEditandoEtapa({ dias_relativos: 1, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasEscalonamento.length, estagio: estagio || 'amigavel' })
   }
   async function salvarEtapa() {
-    if (!editandoEtapa || !userId || !empresaId || !editandoEtapa.mensagem_modelo?.trim()) return
+    if (!editandoEtapa || !userId || !empresaId || !editandoEtapa.mensagem_modelo?.trim()) {
+      showToast(L('Escreva a mensagem-modelo antes de salvar.', 'Write the template message before saving.', 'Escriba el mensaje modelo antes de guardar.'), 'erro')
+      return
+    }
     const { erro } = await salvarEtapaRegua(userId, empresaId, editandoEtapa)
     if (erro) { showToast(L('Não foi possível salvar a etapa. Tente novamente.', 'Could not save the step. Try again.', 'No se pudo guardar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(await listarEtapasRegua(empresaId))
     setEditandoEtapa(null)
+    showToast(L('Etapa salva.', 'Step saved.', 'Etapa guardada.'), 'ok')
   }
   async function excluirEtapa(id: string) {
     const { erro } = await excluirEtapaRegua(id)
     if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(etapasRegua.filter((e) => e.id !== id))
+    showToast(L('Etapa excluída.', 'Step deleted.', 'Etapa eliminada.'), 'ok')
   }
   async function usarEscalonamentoPadrao() {
     if (!userId || !empresaId) return
@@ -418,7 +431,12 @@ export default function Inadimplencia() {
   function fecharModalCaso() { setModalCaso(false); setEditandoCaso(null) }
 
   async function salvarCaso() {
-    if (!userId || !nc.cliente_id || !nc.descricao.trim() || !nc.valor || !nc.data_vencimento) return
+    // Mesmo bug silencioso já corrigido em Precificação/Metas/Contas a
+    // Receber: este guard voltava em `return` mudo, sem indicar o que faltou.
+    if (!userId || !nc.cliente_id || !nc.descricao.trim() || !nc.valor || !nc.data_vencimento) {
+      showToast(L('Selecione o cliente e preencha descrição, valor e vencimento antes de salvar.', 'Select the client and fill in description, amount and due date before saving.', 'Seleccione el cliente y complete descripción, valor y vencimiento antes de guardar.'), 'erro')
+      return
+    }
     setSalvandoCaso(true)
     const payload: any = {
       cliente_id: nc.cliente_id, descricao: nc.descricao, valor: parseFloat(nc.valor),
@@ -443,10 +461,13 @@ export default function Inadimplencia() {
         return
       }
     }
-    const { data: ct } = await supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: true })
+    // empresa_id restaurado aqui — faltava neste refresh específico (o
+    // carregamento inicial da tela já filtrava certo, este ponto não).
+    const { data: ct } = await supabase.from('contas_receber').select('*').eq('empresa_id', empresaId).order('data_vencimento', { ascending: true })
     setContas((ct as ContaRow[]) || [])
     fecharModalCaso()
     setSalvandoCaso(false)
+    showToast(L('Caso salvo.', 'Case saved.', 'Caso guardado.'), 'ok')
   }
 
   async function excluirCaso(id: string) {
@@ -457,6 +478,7 @@ export default function Inadimplencia() {
       return
     }
     setContas(contas.filter((c) => c.id !== id))
+    showToast(L('Caso excluído.', 'Case deleted.', 'Caso eliminado.'), 'ok')
   }
 
   // ========== KPIs (15, drill honesto — sem dado vira "sem dados suficientes") ==========
