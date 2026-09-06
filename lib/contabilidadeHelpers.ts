@@ -113,3 +113,29 @@ export async function listarPlanoDeContas(empresaId: string): Promise<ContaConta
   const { data } = await supabase.from("plano_de_contas").select("*").eq("empresa_id", empresaId).order("codigo");
   return (data as ContaContabil[]) || [];
 }
+
+// ============================================================================
+// ESTORNO — único jeito de "corrigir" um lançamento (ledger imutável por
+// desenho: nunca UPDATE/DELETE). O contador escolhe o lançamento errado, a
+// RPC contabil_estornar_lancamento (já usada pelo estorno automático de
+// AP/AR/Estoque/Caixa em lib/contabilidadeConsumidor.ts) gera o espelho —
+// débito/crédito invertidos — e marca o original via estornado_por_id.
+// Faltava só um wrapper PÚBLICO pra uso manual/humano; a RPC em si já existe
+// e já está em produção.
+// ============================================================================
+
+export async function estornarLancamentoContabil(
+  lancamentoId: string,
+  descricao: string,
+): Promise<{ id?: string; erro?: string }> {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { data: novoId, error } = await supabase.rpc("contabil_estornar_lancamento", {
+    p_lancamento_id: lancamentoId, p_data: hoje, p_descricao: descricao,
+  });
+  if (error || !novoId) {
+    const motivo = error?.message || "RPC não devolveu id do estorno";
+    reportarFalhaEscrita("lancamento_contabil", "rpc contabil_estornar_lancamento (manual)", motivo);
+    return { erro: motivo };
+  }
+  return { id: novoId as string };
+}

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
-import { RefreshCw, X, CheckCircle2, XCircle, Eye, BookOpenText, TrendingDown, ClipboardCheck } from 'lucide-react'
+import { RefreshCw, X, CheckCircle2, XCircle, Eye, BookOpenText, TrendingDown, ClipboardCheck, BookText } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
@@ -166,6 +166,10 @@ export default function ContadorPage() {
             style={{ background: `${AZULC}18`, color: AZULC, border: `1px solid ${AZULC}40` }}>
             <ClipboardCheck size={15} />{L('Fechamento', 'Close', 'Cierre')}
           </button>
+          <button onClick={() => router.push('/contador/lancamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: 'rgba(251,191,36,0.14)', color: AMARELO, border: `1px solid ${AMARELO}40` }}>
+            <BookText size={15} />{L('Lançamento Manual', 'Manual Entry', 'Asiento Manual')}
+          </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
@@ -318,7 +322,16 @@ export default function ContadorPage() {
                     </div>
                   )}
 
-                  {/* Ações — só muda STATUS. Sem lápis/lixeira: descoberta é leitura calculada. */}
+                  {/* Ações — só muda STATUS. Sem lápis/lixeira: descoberta é leitura calculada.
+                      Corrigir de verdade (reclassificar, ajustar) é lançamento contábil — nunca
+                      editando a descoberta, sempre no Lançamento Manual (estorna + relança). */}
+                  {(selecionada.tipo === 'classificacao_suspeita' || selecionada.tipo === 'divergencia' || selecionada.tipo === 'inconsistencia') && (
+                    <button onClick={() => router.push('/contador/lancamento')}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold mb-2"
+                      style={{ background: `${AMARELO}20`, color: AMARELO, border: `1px solid ${AMARELO}40` }}>
+                      <BookText size={14} />{L('Corrigir no Lançamento Manual', 'Fix in Manual Entry', 'Corregir en Asiento Manual')}
+                    </button>
+                  )}
                   {selecionada.status === 'aberto' ? (
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => aplicarAcao('resolvido')} disabled={processandoAcao}
