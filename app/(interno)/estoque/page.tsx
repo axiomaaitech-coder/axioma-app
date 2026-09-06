@@ -597,7 +597,7 @@ export default function EstoquePage() {
   }
 
   async function salvarProduto() {
-    if (!empresaId || !userId) return;
+    if (!empresaId || !userId) { mostrarToast(lang === "en" ? "No active company — reload the page and try again." : lang === "es" ? "Ninguna empresa activa — recargue la página e intente de nuevo." : "Nenhuma empresa ativa — recarregue a página e tente de novo.", "erro"); return; }
     if (!formProduto.nome?.trim()) { mostrarToast(et.toastNomeObrigatorio, "erro"); return; }
     setSalvandoProduto(true);
     try {
@@ -726,7 +726,11 @@ export default function EstoquePage() {
       const v = formLote[k];
       if (v !== undefined && v !== "") setCampoProduto(payload, k, v);
     });
-    if (Object.keys(payload).length === 0) { setModalLoteAberto(false); return; }
+    if (Object.keys(payload).length === 0) {
+      mostrarToast(lang === "en" ? "No field was changed." : lang === "es" ? "Ningún campo fue cambiado." : "Nenhum campo foi alterado.", "info");
+      setModalLoteAberto(false);
+      return;
+    }
     setSalvandoLote(true);
     try {
       const { erro } = await atualizarProdutosEmLote(Array.from(produtosSelecionados), payload);
@@ -782,7 +786,7 @@ export default function EstoquePage() {
   });
 
   async function salvarMovimentacao() {
-    if (!empresaId || !userId) return;
+    if (!empresaId || !userId) { mostrarToast(lang === "en" ? "No active company — reload the page and try again." : lang === "es" ? "Ninguna empresa activa — recargue la página e intente de nuevo." : "Nenhuma empresa ativa — recarregue a página e tente de novo.", "erro"); return; }
     if (!formMov.produto_id) { mostrarToast(et.toastSelecioneProduto, "erro"); return; }
     if (!formMov.quantidade || Number(formMov.quantidade) <= 0) { mostrarToast(et.toastQuantidadeInvalida, "erro"); return; }
     setSalvandoMov(true);
