@@ -333,10 +333,15 @@ export default function ContasReceber() {
   function fecharModal() { setModalAberto(false); setEditando(null); setNc({ ...contaVazia }); setErroSalvar('') }
 
   async function salvar() {
-    if (!nc.descricao || !nc.valor || !nc.data_vencimento) return
+    // Mesmo bug silencioso já corrigido em Precificação/Metas: este guard
+    // voltava em `return` mudo, sem indicar o que faltou preencher.
+    if (!nc.descricao || !nc.valor || !nc.data_vencimento) {
+      setErroSalvar(L('Preencha descrição, valor e data de vencimento antes de salvar.', 'Fill in description, amount and due date before saving.', 'Complete descripción, valor y fecha de vencimiento antes de guardar.'))
+      return
+    }
     setSalvando(true); setErroSalvar('')
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setSalvando(false); return }
+    if (!user) { setSalvando(false); setErroSalvar(L('Sessão expirada — faça login de novo.', 'Session expired — log in again.', 'Sesión expirada — inicie sesión de nuevo.')); return }
     const userId = user.id
     const total = parseFloat(nc.valor || '0')
     const recebido = parseFloat(nc.valor_recebido || '0')
@@ -398,7 +403,9 @@ export default function ContasReceber() {
         },
         { modulo: 'contas_receber', tabela: 'contas_receber', id: data[0].id })
     }
-    fecharModal(); setSalvando(false); carregar()
+    fecharModal(); setSalvando(false)
+    showToast(L('Conta salva.', 'Bill saved.', 'Cuenta guardada.'), 'ok')
+    carregar()
   }
 
   // ========== MODAL CONFIRMAR EXCLUSÃO ==========
@@ -435,6 +442,7 @@ export default function ContasReceber() {
     fecharConfirmarExclusao()
     carregar()
     setProcessandoExclusao(false)
+    showToast(L('Conta excluída.', 'Bill deleted.', 'Cuenta eliminada.'), 'ok')
   }
 
   function abrirReceber(c: Conta) {
@@ -467,6 +475,7 @@ export default function ContasReceber() {
       { conta_id: contaReceber.id, valor_recebido: novoRecebido, valor_incremento: valorIncremento, data_recebimento: hojeStr, forma_recebimento: contaReceber.forma_recebimento },
       { modulo: 'contas_receber', tabela: 'contas_receber', id: contaReceber.id })
     setModalReceber(false); setContaReceber(null); setValorReceber(''); setRecebendo(false); carregar()
+    showToast(L('Recebimento confirmado.', 'Payment confirmed.', 'Cobro confirmado.'), 'ok')
   }
 
   // COMMIT 9 — estorno de recebimento (não existia até aqui, nem função nem
@@ -477,7 +486,10 @@ export default function ContasReceber() {
   function fecharEstornar() { if (estornando) return; setModalEstornar(false); setContaEstornar(null); setMotivoEstorno('') }
 
   async function confirmarEstorno() {
-    if (!contaEstornar || !motivoEstorno.trim()) return
+    if (!contaEstornar || !motivoEstorno.trim()) {
+      showToast(L('Informe o motivo do estorno antes de confirmar.', 'Enter the reversal reason before confirming.', 'Informe el motivo de la reversión antes de confirmar.'), 'erro')
+      return
+    }
     setEstornando(true)
     const valorEstornado = contaEstornar.valor_recebido || 0
     const status = statusEfetivo(null, contaEstornar.valor, 0, contaEstornar.data_vencimento, 'recebido')
@@ -505,6 +517,7 @@ export default function ContasReceber() {
     fecharEstornar()
     carregar()
     setEstornando(false)
+    showToast(L('Estorno confirmado.', 'Reversal confirmed.', 'Reversión confirmada.'), 'ok')
   }
 
   // ========== FILTROS DA GRADE (busca + status + período por vencimento) ==========
@@ -655,7 +668,10 @@ export default function ContasReceber() {
   function fecharCobranca() { setContaCobranca(null); setInteracoesConta([]) }
 
   async function salvarContato() {
-    if (!contaCobranca || !userId || !empresaId || !novoContato.descricao.trim()) return
+    if (!contaCobranca || !userId || !empresaId || !novoContato.descricao.trim()) {
+      showToast(L('Descreva o contato antes de salvar.', 'Describe the contact before saving.', 'Describa el contacto antes de guardar.'), 'erro')
+      return
+    }
     setSalvandoCobranca(true)
     const { erro } = await criarInteracao(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
@@ -669,10 +685,14 @@ export default function ContasReceber() {
     setInteracoesConta(await listarInteracoes(empresaId, contaCobranca.id))
     setNovoContato({ tipo: 'contato', canal: 'telefone', descricao: '' })
     setSalvandoCobranca(false)
+    showToast(L('Contato registrado.', 'Contact registered.', 'Contacto registrado.'), 'ok')
   }
 
   async function salvarCompromisso() {
-    if (!contaCobranca || !userId || !empresaId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) return
+    if (!contaCobranca || !userId || !empresaId || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada) {
+      showToast(L('Informe valor e data do compromisso antes de salvar.', 'Enter the commitment amount and date before saving.', 'Informe el valor y la fecha del compromiso antes de guardar.'), 'erro')
+      return
+    }
     setSalvandoCobranca(true)
     const { erro } = await criarCompromisso(userId, empresaId, {
       conta_id: contaCobranca.id, cliente_id: contaCobranca.cliente_id || null,
@@ -688,28 +708,35 @@ export default function ContasReceber() {
     setCompromissos(await listarCompromissos(empresaId))
     setNovoCompromisso({ tipo: 'promessa', valor_compromissado: '', data_compromissada: '', condicoes: '' })
     setSalvandoCobranca(false)
+    showToast(L('Compromisso salvo.', 'Commitment saved.', 'Compromiso guardado.'), 'ok')
   }
 
   async function marcarCompromisso(id: string, status: CobrancaCompromisso['status']) {
     const { erro } = await atualizarStatusCompromisso(id, status)
     if (erro) { showToast(L('Não foi possível atualizar o compromisso. Tente novamente.', 'Could not update the commitment. Try again.', 'No se pudo actualizar el compromiso. Intente de nuevo.'), 'erro'); return }
     if (empresaId) setCompromissos(await listarCompromissos(empresaId))
+    showToast(L('Compromisso atualizado.', 'Commitment updated.', 'Compromiso actualizado.'), 'ok')
   }
 
   function compromissosDaConta(contaId: string) { return compromissos.filter((c) => c.conta_id === contaId) }
 
   function abrirNovaEtapa() { setEditandoEtapa({ dias_relativos: 0, canal: 'email', mensagem_modelo: '', ativo: true, ordem: etapasRegua.length }) }
   async function salvarEtapa() {
-    if (!editandoEtapa || !userId || !empresaId || !editandoEtapa.mensagem_modelo?.trim()) return
+    if (!editandoEtapa || !userId || !empresaId || !editandoEtapa.mensagem_modelo?.trim()) {
+      showToast(L('Escreva a mensagem-modelo antes de salvar.', 'Write the template message before saving.', 'Escriba el mensaje modelo antes de guardar.'), 'erro')
+      return
+    }
     const { erro } = await salvarEtapaRegua(userId, empresaId, editandoEtapa)
     if (erro) { showToast(L('Não foi possível salvar a etapa. Tente novamente.', 'Could not save the step. Try again.', 'No se pudo guardar la etapa. Intente de nuevo.'), 'erro'); return }
     setEtapasRegua(await listarEtapasRegua(empresaId))
     setEditandoEtapa(null)
+    showToast(L('Etapa salva.', 'Step saved.', 'Etapa guardada.'), 'ok')
   }
   async function excluirEtapa(id: string) {
     const { erro } = await excluirEtapaRegua(id)
     if (erro) { showToast(L('Não foi possível excluir a etapa. Tente novamente.', 'Could not delete the step. Try again.', 'No se pudo eliminar la etapa. Intente de nuevo.'), 'erro'); return }
     if (empresaId) setEtapasRegua(await listarEtapasRegua(empresaId))
+    showToast(L('Etapa excluída.', 'Step deleted.', 'Etapa eliminada.'), 'ok')
   }
   async function usarReguaPadrao() {
     if (!userId || !empresaId) return
