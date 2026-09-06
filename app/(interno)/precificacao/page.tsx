@@ -144,6 +144,16 @@ export default function Precificacao() {
     erroAdicionarConcorrente: idioma === "pt" ? "Não foi possível adicionar o concorrente. Tente novamente." : idioma === "en" ? "Could not add the competitor. Try again." : "No se pudo agregar el competidor. Intente de nuevo.",
     erroRemoverConcorrente: idioma === "pt" ? "Não foi possível remover o concorrente. Tente novamente." : idioma === "en" ? "Could not remove the competitor. Try again." : "No se pudo eliminar el competidor. Intente de nuevo.",
     erroAtualizarResultado: idioma === "pt" ? "Não foi possível salvar o resultado. Tente novamente." : idioma === "en" ? "Could not save the result. Try again." : "No se pudo guardar el resultado. Intente de nuevo.",
+    erroCamposObrigatorios: idioma === "pt" ? "Preencha nome, custo total e margem desejada antes de salvar." : idioma === "en" ? "Fill in name, total cost and desired margin before saving." : "Complete nombre, costo total y margen deseado antes de guardar.",
+    erroSemEmpresa: idioma === "pt" ? "Nenhuma empresa ativa — recarregue a página e tente de novo." : idioma === "en" ? "No active company — reload the page and try again." : "Ninguna empresa activa — recargue la página e intente de nuevo.",
+    erroCamposConcorrente: idioma === "pt" ? "Selecione o produto e preencha nome e preço do concorrente." : idioma === "en" ? "Select the product and fill in the competitor's name and price." : "Seleccione el producto y complete nombre y precio del competidor.",
+    erroCamposPreco: idioma === "pt" ? "Selecione um produto e informe o novo preço." : idioma === "en" ? "Select a product and enter the new price." : "Seleccione un producto e informe el nuevo precio.",
+    sucessoSalvarProduto: idioma === "pt" ? "Produto salvo." : idioma === "en" ? "Product saved." : "Producto guardado.",
+    sucessoExcluirProduto: idioma === "pt" ? "Produto excluído." : idioma === "en" ? "Product deleted." : "Producto eliminado.",
+    sucessoAplicarPreco: idioma === "pt" ? "Novo preço aplicado." : idioma === "en" ? "New price applied." : "Nuevo precio aplicado.",
+    sucessoAdicionarConcorrente: idioma === "pt" ? "Concorrente adicionado." : idioma === "en" ? "Competitor added." : "Competidor agregado.",
+    sucessoRemoverConcorrente: idioma === "pt" ? "Concorrente removido." : idioma === "en" ? "Competitor removed." : "Competidor eliminado.",
+    sucessoAtualizarResultado: idioma === "pt" ? "Resultado salvo." : idioma === "en" ? "Result saved." : "Resultado guardado.",
     statusAtivo: idioma === "pt" ? "Ativo" : idioma === "en" ? "Active" : "Activo",
     statusDescontinuado: idioma === "pt" ? "Descontinuado" : idioma === "en" ? "Discontinued" : "Descontinuado",
     selecioneProduto: idioma === "pt" ? "Selecione um produto" : idioma === "en" ? "Select a product" : "Seleccione un producto",
@@ -201,10 +211,15 @@ export default function Precificacao() {
   function fecharModal() { setModalAberto(false); setEditando(null); }
 
   async function salvarProduto() {
-    if (!produtoServico || !custoTotal || !margemDesejada) return;
+    // BUG CRÍTICO corrigido: este guard voltava (`return`) em silêncio — sem
+    // toast, sem log, sem `salvando` nunca ligar. Pra quem deixasse a margem
+    // em branco (nenhum "*" indicava que era obrigatória), clicar em Salvar
+    // literalmente não fazia nada visível. Causa raiz era esta linha, não
+    // RLS nem await faltando — a escrita em si já tinha toast de erro.
+    if (!produtoServico || !custoTotal || !margemDesejada) { showToast(txt.erroCamposObrigatorios, "erro"); return; }
     setSalvando(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSalvando(false); return; }
+    if (!user) { setSalvando(false); showToast(txt.erroSalvarProduto, "erro"); return; }
     const payload = {
       produto_servico: produtoServico, custo_total: parseFloat(custoTotal), margem_desejada: parseFloat(margemDesejada),
       preco_sugerido: editando ? editando.preco_sugerido : calcularPreco(custoTotal, margemDesejada, impostos, despesas),
@@ -220,7 +235,7 @@ export default function Precificacao() {
       }
     } else {
       const empresaId = await obterEmpresaAtiva();
-      if (!empresaId) { setSalvando(false); return; }
+      if (!empresaId) { setSalvando(false); showToast(txt.erroSemEmpresa, "erro"); return; }
       const { data, error } = await supabase.from("precificacao").insert({ ...payload, user_id: user.id, empresa_id: empresaId }).select("id");
       if (error || !data || data.length === 0) {
         showToast(txt.erroSalvarProduto, "erro");
@@ -229,7 +244,7 @@ export default function Precificacao() {
         return;
       }
     }
-    fecharModal(); setSalvando(false); await carregarTudo();
+    fecharModal(); setSalvando(false); showToast(txt.sucessoSalvarProduto, "ok"); await carregarTudo();
   }
   async function excluirProduto(id: string) {
     const { data, error } = await supabase.from("precificacao").delete().eq("id", id).select("id");
@@ -238,6 +253,7 @@ export default function Precificacao() {
       reportarFalhaEscrita("precificacao", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
+    showToast(txt.sucessoExcluirProduto, "ok");
     await carregarTudo();
   }
 
@@ -310,9 +326,9 @@ export default function Precificacao() {
     : null;
 
   async function aplicarPreco() {
-    if (!produtoSelecionado || !precoCandidato) return;
+    if (!produtoSelecionado || !precoCandidato) { showToast(txt.erroCamposPreco, "erro"); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { showToast(txt.erroAplicarPreco, "erro"); return; }
     const empresaId = await obterEmpresaAtiva();
     const precoNovo = parseFloat(precoCandidato);
     const upd = await supabase.from("precificacao").update({ preco_sugerido: precoNovo }).eq("id", produtoSelecionado.id).select("id");
@@ -334,7 +350,7 @@ export default function Precificacao() {
       await carregarTudo();
       return;
     }
-    setPrecoCandidato(""); await carregarTudo();
+    setPrecoCandidato(""); showToast(txt.sucessoAplicarPreco, "ok"); await carregarTudo();
   }
 
   const impactoDesconto = derivadoSelecionado && produtoSelecionado
@@ -354,9 +370,9 @@ export default function Precificacao() {
 
   // ═══════════════════════ CONCORRENTES ═══════════════════════
   async function adicionarConcorrente() {
-    if (!produtoSelecionadoId || !novoConcorrenteNome || !novoConcorrentePreco) return;
+    if (!produtoSelecionadoId || !novoConcorrenteNome || !novoConcorrentePreco) { showToast(txt.erroCamposConcorrente, "erro"); return; }
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) { showToast(txt.erroAdicionarConcorrente, "erro"); return; }
     const empresaId = await obterEmpresaAtiva();
     const { data, error } = await supabase.from("concorrentes").insert({
       user_id: user.id, empresa_id: empresaId, produto_id: produtoSelecionadoId, nome_concorrente: novoConcorrenteNome,
@@ -368,6 +384,7 @@ export default function Precificacao() {
       return;
     }
     setNovoConcorrenteNome(""); setNovoConcorrentePreco(""); setNovoConcorrentePosicionamento("");
+    showToast(txt.sucessoAdicionarConcorrente, "ok");
     await carregarTudo();
   }
   async function removerConcorrente(id: string) {
@@ -377,6 +394,7 @@ export default function Precificacao() {
       reportarFalhaEscrita("concorrentes", "delete", error?.message || "0 linhas afetadas (RLS?)");
       return;
     }
+    showToast(txt.sucessoRemoverConcorrente, "ok");
     await carregarTudo();
   }
 
@@ -401,7 +419,9 @@ export default function Precificacao() {
     if (error || !data || data.length === 0) {
       showToast(txt.erroAtualizarResultado, "erro");
       reportarFalhaEscrita("decisoes_precificacao", "update resultado_real", error?.message || "0 linhas afetadas (RLS?)");
+      return;
     }
+    showToast(txt.sucessoAtualizarResultado, "ok");
   }
 
   // ═══════════════════════ PAINEL DE ESPECIALISTAS + RECOMENDAÇÃO CONSOLIDADA ═══════════════════════
