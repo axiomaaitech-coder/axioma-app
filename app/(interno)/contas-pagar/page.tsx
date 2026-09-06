@@ -915,7 +915,7 @@ export default function ContasPagarPage() {
   const totalFormPedido = itensPedidoForm.reduce((s, it) => s + (parseFloat(it.quantidade || "0") * parseFloat(it.valor_unitario || "0") || 0), 0);
 
   async function salvarPedido() {
-    if (!empresaId || !userId) return;
+    if (!empresaId || !userId) { showToast(L("Nenhuma empresa ativa — recarregue a página e tente de novo.", "No active company — reload the page and try again.", "Ninguna empresa activa — recargue la página e intente de nuevo."), "erro"); return; }
     if (!formPedido.fornecedor_id || !formPedido.numero.trim()) {
       showToast(L("Selecione o fornecedor e informe o número do pedido.", "Select the supplier and enter the order number.", "Seleccione el proveedor e ingrese el número de la orden."), "erro");
       return;
@@ -958,10 +958,11 @@ export default function ContasPagarPage() {
     fecharModalPedido();
     setPedidosCompra(await listarPedidosCompra(empresaId));
     setSalvandoPedido(false);
+    showToast(L("Pedido salvo.", "Order saved.", "Orden guardada."), "ok");
   }
 
   async function excluirPedido(p: PedidoCompraListado) {
-    if (!empresaId) return;
+    if (!empresaId) { showToast(L("Nenhuma empresa ativa — recarregue a página e tente de novo.", "No active company — reload the page and try again.", "Ninguna empresa activa — recargue la página e intente de nuevo."), "erro"); return; }
     const { erro } = await excluirPedidoCompra(empresaId, p.id);
     if (erro === "tem_nota_vinculada") {
       showToast(L("Este pedido já tem nota vinculada — não é possível excluir. Cancele o pedido em vez de excluir.", "This order already has a linked invoice — it can't be deleted. Cancel it instead of deleting.", "Esta orden ya tiene factura vinculada — no se puede eliminar. Cancele la orden en lugar de eliminarla."), "erro");
@@ -972,6 +973,7 @@ export default function ContasPagarPage() {
       return;
     }
     setPedidosCompra(await listarPedidosCompra(empresaId));
+    showToast(L("Pedido excluído.", "Order deleted.", "Orden eliminada."), "ok");
   }
 
   async function cancelarPedido(p: PedidoCompraListado) {
@@ -1282,7 +1284,12 @@ export default function ContasPagarPage() {
   }
 
   async function salvarConta() {
-    if (!nc.descricao || !nc.valor_total || !nc.data_vencimento || !userId) return;
+    // Mesmo bug silencioso da varredura (Precificação/Metas/Contas a Receber/
+    // Inadimplência/MEI Faturamento): este guard voltava em `return` mudo.
+    if (!nc.descricao || !nc.valor_total || !nc.data_vencimento || !userId) {
+      showToast(L("Preencha descrição, valor total e data de vencimento antes de salvar.", "Fill in description, total amount and due date before saving.", "Complete descripción, valor total y fecha de vencimiento antes de guardar."), "erro");
+      return;
+    }
 
     // Desconto por pagamento antecipado — os dois campos são opcionais, mas
     // se preenchidos precisam fazer sentido: 0% não é desconto (é ausência
@@ -1331,13 +1338,14 @@ export default function ContasPagarPage() {
         return;
       }
       fecharModalConta(); await carregar(); setSalvando(false);
+      showToast(L("Conta salva.", "Bill saved.", "Cuenta guardada."), "ok");
       return;
     }
 
     // Nova conta: checa duplicidade ANTES de inserir (mesmo caminho serve
     // pro formulário manual e pra Importar XML NF-e, que também termina
     // caindo neste modal antes de salvar).
-    if (!empresaId) return;
+    if (!empresaId) { showToast(L("Nenhuma empresa ativa — recarregue a página e tente de novo.", "No active company — reload the page and try again.", "Ninguna empresa activa — recargue la página e intente de nuevo."), "erro"); return; }
     setSalvando(true);
     const { duplicatas } = await detectarDuplicata({
       empresaId, fornecedorId: nc.fornecedor_id || null, valorTotal: dados.valor_total,
@@ -1399,13 +1407,19 @@ export default function ContasPagarPage() {
     // Conferência roda sob demanda, junto do próprio salvar — vale tanto pra
     // nota nova quanto pra vínculo com nota já importada pelo PDV (agora ela
     // ganha a conta que faltava). Detalhe das divergências: aba Conferência de Notas.
+    let jaAvisou = false;
     if (empresaId && nfeImportadaIdParaConferir) {
       const conferencia = await conferirNfe(empresaId, nfeImportadaIdParaConferir);
       if (!conferencia.erro) {
+        jaAvisou = true;
         if (conferencia.status === "ok") showToast(L("Conta salva e conferida: tudo bate com o recebimento.", "Bill saved and matched: everything checks out against receiving.", "Cuenta guardada y conciliada: todo coincide con la recepción."), "ok");
         else showToast(L(`Conta salva. Conferência encontrou ${conferencia.divergencias.length} divergência(s) nesta nota — veja o detalhe na aba Conferência de Notas.`, `Bill saved. Match check found ${conferencia.divergencias.length} discrepancy(ies) on this invoice — see the details in the Invoice Matching tab.`, `Cuenta guardada. La conciliación encontró ${conferencia.divergencias.length} discrepancia(s) en esta factura — vea el detalle en la pestaña Conciliación de Facturas.`), "erro");
       }
     }
+    // Caminho comum (sem NF-e/conferência) não tinha NENHUM feedback de
+    // sucesso — o modal só fechava em silêncio. Mesma varredura anti-falha-
+    // silenciosa dos outros módulos.
+    if (!jaAvisou) showToast(L("Conta salva.", "Bill saved.", "Cuenta guardada."), "ok");
     fecharModalConta(); fecharModalDuplicata(); await carregar(); setSalvando(false);
   }
 
