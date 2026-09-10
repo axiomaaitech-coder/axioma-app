@@ -137,9 +137,10 @@ export default function NexusPage() {
           setNoticiasIsDemo(false)
           setPrecisaAvisoDemo(false)
         } else {
+          if (json?.motivo) console.warn(`[nexus] notícia real indisponível pro canal ${canalAtivo}: ${json.motivo}`)
           setNoticiasCanal(demoDoCanal())
           setNoticiasIsDemo(true)
-          setPrecisaAvisoDemo(!!json?.aviso)
+          setPrecisaAvisoDemo(!!json?.motivo)
         }
       } catch {
         if (cancelado) return
