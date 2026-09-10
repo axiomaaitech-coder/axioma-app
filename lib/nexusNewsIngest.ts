@@ -8,8 +8,18 @@ import { XMLParser } from 'fast-xml-parser'
 //   - app/api/nexus/ingest/bcb/route.ts → cron diário (força refresh dos 4
 //     canais 1x/dia, reaproveitando o único cron do plano Hobby)
 // Fonte principal: Agência Brasil (EBC, CC-BY, https://rss.ebc.com.br/).
-// Complementares: InfoMoney e Money Times (mercado/moedas). DW Brasil foi
-// avaliado e descartado — nenhuma URL de feed respondeu.
+// Complementares: InfoMoney e Money Times (mercado/moedas), Agência Senado
+// (reforma tributária — conteúdo público oficial do Senado Federal, sem
+// login). DW Brasil e Câmara dos Deputados foram avaliados e descartados —
+// DW nunca respondeu; a RSS legada da Câmara (www2.camara.leg.br/
+// camaranoticias/dinamico/agenciaCamaraRSS/*) devolve 503 (sistema fora do
+// ar) e o portal novo (www.camara.leg.br/noticias) não expõe RSS.
+//
+// CORREÇÃO 2026-09-10: o botão "Ver mais / Reforma Tributária" linkava pro
+// gov.br/fazenda, que exige login ("Conteúdo Restrito") — trocado por lista
+// ampliada dentro do próprio Axioma (ver nexus/page.tsx), com cada notícia
+// linkando pra matéria original aberta (Agência Senado/Brasil), nunca uma
+// página que peça login.
 //
 // Cada FEED tem try/catch isolado (buscarEGravarFeeds) — um feed fora do ar
 // nunca derruba o canal inteiro. Se TODOS os feeds do canal falharem, quem
@@ -40,15 +50,19 @@ export class FeedError extends Error {
   }
 }
 
-type FeedKey = 'ebcEconomia' | 'ebcInternacional' | 'ebcPolitica' | 'infoMoney' | 'moneyTimes'
+type FeedKey = 'ebcEconomia' | 'ebcInternacional' | 'ebcPolitica' | 'infoMoney' | 'moneyTimes' | 'senadoNoticias'
 
-// Feeds abertos confirmados (respondem XML válido, sem chave, sem paywall).
+// Feeds abertos confirmados (respondem XML válido, sem chave, sem paywall,
+// sem login). senadoNoticias é feed geral do Senado (sem editoria dedicada
+// de tributação) — filtrado pelas mesmas palavras-chave do canal
+// reforma-tributaria, igual já acontece com o feed geral de política da EBC.
 const FEEDS: Record<FeedKey, { url: string; fonte: string }> = {
   ebcEconomia: { url: 'https://agenciabrasil.ebc.com.br/rss/economia/feed.xml', fonte: 'Agência Brasil' },
   ebcInternacional: { url: 'https://agenciabrasil.ebc.com.br/rss/internacional/feed.xml', fonte: 'Agência Brasil' },
   ebcPolitica: { url: 'https://agenciabrasil.ebc.com.br/rss/politica/feed.xml', fonte: 'Agência Brasil' },
   infoMoney: { url: 'https://www.infomoney.com.br/feed/', fonte: 'InfoMoney' },
   moneyTimes: { url: 'https://www.moneytimes.com.br/feed/', fonte: 'Money Times' },
+  senadoNoticias: { url: 'https://www12.senado.leg.br/noticias/rss.xml', fonte: 'Agência Senado' },
 }
 
 // Nomes reais das fontes RSS que este código sabe produzir — usado pela
@@ -64,6 +78,7 @@ const LICENCA_FONTE: Record<string, { endpoint: string; license: string }> = {
   'Agência Brasil': { endpoint: 'https://rss.ebc.com.br/', license: 'Creative Commons CC-BY (Agência Brasil/EBC) — uso comercial permitido com crédito' },
   'InfoMoney': { endpoint: 'https://www.infomoney.com.br/feed/', license: 'RSS público — uso editorial de manchete/resumo, com crédito e link pra fonte' },
   'Money Times': { endpoint: 'https://www.moneytimes.com.br/feed/', license: 'RSS público — uso editorial de manchete/resumo, com crédito e link pra fonte' },
+  'Agência Senado': { endpoint: 'https://www12.senado.leg.br/noticias/rss.xml', license: 'Conteúdo público oficial do Senado Federal — uso editorial de manchete/resumo, com crédito e link pra fonte, sem login' },
 }
 
 // Palavras-chave dos canais que filtram por assunto (moedas/reforma tributária
@@ -71,14 +86,21 @@ const LICENCA_FONTE: Record<string, { endpoint: string; license: string }> = {
 // existe especificamente pra tirar esporte/entretenimento que o feed de
 // política às vezes mistura (bug relatado: jogo de futebol aparecendo lá).
 const PALAVRAS_MOEDAS = /d[oó]lar|c[aâ]mbio|\breal\b|\beuro\b|moeda|bolsa|ibovespa|commodit|petr[oó]leo/i
-const PALAVRAS_REFORMA_INCLUIR = /reforma tribut[aá]ria|tribut[aá]ri|\bibs\b|\bcbs\b|\biva\b|imposto|al[ií]quota|split payment|comit[eê] gestor|regulamenta[çc][aã]o/i
+const PALAVRAS_REFORMA_INCLUIR = /reforma tribut[aá]ria|tribut[aá]ri|\bibs\b|\bcbs\b|\biva\b|imposto|al[ií]quota|split payment|comit[eê] gestor|regulamenta[çc][aã]o|plp\s*108/i
 const PALAVRAS_REFORMA_EXCLUIR = /futebol|\bjogo\b|\bgol\b|jogador|campeonato|libertadores|sele[çc][aã]o|s[ée]rie a|s[ée]rie b|f[óo]rmula 1|olimp[íi]ada|\bbbb\b|novela|\bcopa\b/i
 
-export const CANAIS_FONTES: Record<string, { feeds: FeedKey[]; incluir?: RegExp; excluir?: RegExp }> = {
+export const CANAIS_FONTES: Record<string, { feeds: FeedKey[]; incluir?: RegExp; excluir?: RegExp; limite?: number }> = {
   'economia-br': { feeds: ['ebcEconomia', 'infoMoney'] },
   'moedas': { feeds: ['infoMoney', 'moneyTimes', 'ebcEconomia'], incluir: PALAVRAS_MOEDAS },
   'mundo': { feeds: ['ebcInternacional'] },
-  'reforma-tributaria': { feeds: ['ebcEconomia', 'ebcPolitica'], incluir: PALAVRAS_REFORMA_INCLUIR, excluir: PALAVRAS_REFORMA_EXCLUIR },
+  // limite maior que os demais canais — alimenta a lista ampliada do botão
+  // "Ver mais / Reforma Tributária" na tela (nexus/page.tsx) com conteúdo
+  // de verdade, não só repetir os mesmos itens já visíveis na TV.
+  'reforma-tributaria': { feeds: ['ebcEconomia', 'ebcPolitica', 'senadoNoticias'], incluir: PALAVRAS_REFORMA_INCLUIR, excluir: PALAVRAS_REFORMA_EXCLUIR, limite: 20 },
+}
+
+export function limiteDoCanal(canal: string): number {
+  return CANAIS_FONTES[canal]?.limite ?? LIMITE_POR_CANAL
 }
 
 type ItemFeed = {
@@ -117,8 +139,15 @@ async function buscarFeedRSS(url: string): Promise<ItemFeed[]> {
   const brutos = doc?.rss?.channel?.item
   const lista = Array.isArray(brutos) ? brutos : brutos ? [brutos] : []
 
+  // Nem todo feed tem <link> por item (a Agência Senado só traz <guid>, que
+  // no feed dela já é a URL pública da matéria) — cai pro guid quando faltar.
+  const urlDoItem = (it: any): string => {
+    if (typeof it.link === 'string' && it.link.trim() !== '') return it.link.trim()
+    if (typeof it.guid === 'string' && it.guid.trim() !== '') return it.guid.trim()
+    return ''
+  }
+
   return lista
-    .filter((it: any) => typeof it.link === 'string' && it.link.trim() !== '')
     .map((it: any) => {
       const descricao = typeof it.description === 'string' ? it.description : ''
       const imagemDestaque = typeof it['imagem-destaque'] === 'string' ? it['imagem-destaque'] : null
@@ -126,11 +155,11 @@ async function buscarFeedRSS(url: string): Promise<ItemFeed[]> {
         titulo: typeof it.title === 'string' ? it.title.trim() : '',
         resumoHtml: descricao,
         imagem_url: imagemDestaque || extrairImagem(descricao),
-        url_original: it.link.trim(),
+        url_original: urlDoItem(it),
         data: it.pubDate ? new Date(it.pubDate).toISOString() : new Date().toISOString(),
       }
     })
-    .filter((it: ItemFeed) => it.titulo !== '')
+    .filter((it: ItemFeed) => it.titulo !== '' && it.url_original !== '')
 }
 
 // UPSERT idempotente da fonte em nexus_source — sem isso a Agência
@@ -203,7 +232,7 @@ export async function buscarEGravarFeeds(supabase: SupabaseClient, canal: string
   for (const it of filtrados) {
     if (!vistos.has(it.url_original)) vistos.set(it.url_original, it)
   }
-  const linhasBrutas = Array.from(vistos.values()).slice(0, LIMITE_POR_CANAL)
+  const linhasBrutas = Array.from(vistos.values()).slice(0, limiteDoCanal(canal))
 
   if (linhasBrutas.length === 0) throw new FeedError('sem_resultado')
 

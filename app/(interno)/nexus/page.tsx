@@ -84,7 +84,40 @@ function sparklineOption(historico: PontoSerie[], cor: string) {
   }
 }
 
+// Card compacto reaproveitado nos dois lugares que listam "mais notícias"
+// (grade abaixo da TV e o modal da lista ampliada de Reforma Tributária) —
+// mesmo visual, sem duplicar JSX.
+function CardMiniNoticia({ noticia, lang, localeData, onClick }: { noticia: NoticiaExibicao; lang: Idioma3; localeData: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex gap-3 rounded-xl p-3 text-left transition-all hover:scale-[1.01] w-full"
+      style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}20` }}
+    >
+      <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 84, height: 60, background: 'rgba(255,255,255,0.05)' }}>
+        {noticia.imagem_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={noticia.imagem_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Newspaper size={18} style={{ color: ROXOTV }} />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <h4 className="text-xs font-bold leading-snug line-clamp-2 mb-1" style={{ color: TITULO }}>{noticia.titulo}</h4>
+        <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: CINZA }}>
+          <span className="truncate">{noticia.fonte}</span>
+          <span>•</span>
+          <span className="shrink-0">{formatarDataNoticia(noticia.data, lang, localeData)}</span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 const INTERVALO_TROCA_MS = 6000
+const MAX_CARDS_REFORMA_INLINE = 5
 
 export default function NexusPage() {
   const { idioma } = useLanguage()
@@ -99,6 +132,7 @@ export default function NexusPage() {
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
   const [noticiaAberta, setNoticiaAberta] = useState<NoticiaExibicao | null>(null)
+  const [listaAmpliadaAberta, setListaAmpliadaAberta] = useState(false)
 
   const [noticiasCanal, setNoticiasCanal] = useState<NoticiaExibicao[]>([])
   const [noticiasIsDemo, setNoticiasIsDemo] = useState(true)
@@ -114,6 +148,14 @@ export default function NexusPage() {
       setIndicadores(dados)
       if (erro) setAvisoCarregamento(tratarFalhaCarregamento('nexus.carregarIndicadores', new Error('falha ao ler nexus_economic_series'), lang))
       setLoading(false)
+      // GANCHO FUTURO (JOSEPH) — quando a camada interpretadora existir, é
+      // aqui que ela entraria: leria nexus_global_event/nexus_causal_relation
+      // pra gerar uma leitura textual cruzando os indicadores acima (ex:
+      // "Selic subindo + dólar em alta reforça pressão de custo"). Não
+      // implementado agora — só nexus_economic_series (indicador bruto) e
+      // nexus_news (manchete RSS) alimentam esta tela; nexus_global_event/
+      // nexus_entity/nexus_causal_relation/nexus_simulation seguem inertes.
+      // const leituraJoseph = await obterLeituraJoseph(dados)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -384,53 +426,42 @@ export default function NexusPage() {
 
           {/* CARDS ABAIXO DA TV — demais manchetes do canal ativo (além da que
               está no player), pro módulo não ficar vazio embaixo. Mesmo modal
-              da TV ao clicar; mesmo padrão visual (cartão escuro/ciano). */}
-          {!carregandoNoticias && noticiasCanal.length > 1 && (
-            <div className="max-w-3xl mx-auto space-y-3">
-              <p className="text-xs font-bold uppercase tracking-wide px-1" style={{ color: CINZA }}>
-                {L('Mais notícias deste canal', 'More headlines in this channel', 'Más noticias de este canal')}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {noticiasCanal.filter((_, i) => i !== indiceAtivo).map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() => setNoticiaAberta(n)}
-                    className="flex gap-3 rounded-xl p-3 text-left transition-all hover:scale-[1.01]"
-                    style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}20` }}
-                  >
-                    <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 84, height: 60, background: 'rgba(255,255,255,0.05)' }}>
-                      {n.imagem_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={n.imagem_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Newspaper size={18} style={{ color: ROXOTV }} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-xs font-bold leading-snug line-clamp-2 mb-1" style={{ color: TITULO }}>{n.titulo}</h4>
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: CINZA }}>
-                        <span className="truncate">{n.fonte}</span>
-                        <span>•</span>
-                        <span className="shrink-0">{formatarDataNoticia(n.data, lang, localeData)}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+              da TV ao clicar; mesmo padrão visual (cartão escuro/ciano). No
+              canal reforma-tributaria a lista inline fica curta de propósito
+              (MAX_CARDS_REFORMA_INLINE) — o resto mora no botão "Ver mais"
+              abaixo, que abre a lista ampliada dentro do próprio Axioma. */}
+          {!carregandoNoticias && noticiasCanal.length > 1 && (() => {
+            const outras = noticiasCanal.filter((_, i) => i !== indiceAtivo)
+            const cardsInline = canalAtivo === 'reforma-tributaria' ? outras.slice(0, MAX_CARDS_REFORMA_INLINE) : outras
+            return (
+              <div className="max-w-3xl mx-auto space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wide px-1" style={{ color: CINZA }}>
+                  {L('Mais notícias deste canal', 'More headlines in this channel', 'Más noticias de este canal')}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {cardsInline.map((n) => (
+                    <CardMiniNoticia key={n.id} noticia={n} lang={lang} localeData={localeData} onClick={() => setNoticiaAberta(n)} />
+                  ))}
+                </div>
               </div>
-              {canalAtivo === 'reforma-tributaria' && (
-                <a
-                  href="https://www.gov.br/fazenda/pt-br/acesso-a-informacao/acoes-e-programas/reforma-tributaria"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
-                  style={{ background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}
-                >
-                  <ExternalLink size={13} />
-                  {L('Ver mais sobre Reforma Tributária', 'See more on Tax Reform', 'Ver más sobre Reforma Tributaria')}
-                </a>
-              )}
+            )
+          })()}
+
+          {/* BOTÃO "VER MAIS / REFORMA TRIBUTÁRIA" — abre lista ampliada
+              DENTRO do Axioma (nunca linka direto pra página que exige
+              login, ex: gov.br/fazenda). Independente do gate acima: precisa
+              aparecer mesmo com 0/1 notícia, pra sempre existir um jeito de
+              tentar de novo e ver o estado vazio traduzido. */}
+          {!carregandoNoticias && canalAtivo === 'reforma-tributaria' && (
+            <div className="max-w-3xl mx-auto">
+              <button
+                onClick={() => setListaAmpliadaAberta(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
+                style={{ background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}
+              >
+                <Newspaper size={13} />
+                {L('Ver mais / Reforma Tributária', 'See more / Tax Reform', 'Ver más / Reforma Tributaria')}
+              </button>
             </div>
           )}
 
@@ -490,6 +521,71 @@ export default function NexusPage() {
                 >
                   <ExternalLink size={15} />
                   {L('Ler matéria completa', 'Read full article', 'Leer la noticia completa')}
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* LISTA AMPLIADA — Reforma Tributária. Sempre dentro do Axioma: cada
+          card abre o mesmo modal de notícia acima, cujo "Ler matéria
+          completa" aponta pra fonte aberta (Agência Senado/Brasil), nunca
+          uma página que exija login. Link de "fonte oficial" no rodapé usa
+          a página pública de destaques do Senado — não o gov.br/fazenda,
+          que pede login. */}
+      <AnimatePresence>
+        {listaAmpliadaAberta && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setListaAmpliadaAberta(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-lg rounded-2xl overflow-hidden max-h-[85vh] flex flex-col"
+              style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)', border: `1px solid ${CIANO}40` }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-start gap-3 p-5 pb-3 shrink-0">
+                <h3 className="text-base font-bold leading-snug" style={{ color: TITULO }}>
+                  {L('Reforma Tributária — todas as notícias', 'Tax Reform — all headlines', 'Reforma Tributaria — todas las noticias')}
+                </h3>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setListaAmpliadaAberta(false)} style={{ color: CINZA }} className="shrink-0">
+                  <X size={20} />
+                </motion.button>
+              </div>
+
+              <div className="px-5 pb-5 overflow-y-auto">
+                {noticiasCanal.length === 0 ? (
+                  <p className="text-sm text-center py-10" style={{ color: CINZA }}>
+                    {L('Sem novas notícias de Reforma Tributária agora — volte em breve.', 'No new Tax Reform headlines right now — check back soon.', 'Sin noticias nuevas de Reforma Tributaria por ahora — vuelva pronto.')}
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {noticiasCanal.map((n) => (
+                      <CardMiniNoticia
+                        key={n.id}
+                        noticia={n}
+                        lang={lang}
+                        localeData={localeData}
+                        onClick={() => { setListaAmpliadaAberta(false); setNoticiaAberta(n) }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <a
+                  href="https://www12.senado.leg.br/noticias/destaques/reforma-tributaria"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
+                  style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}
+                >
+                  <ExternalLink size={13} />
+                  {L('Página oficial do Senado sobre a Reforma Tributária', "Senate's official Tax Reform page", 'Página oficial del Senado sobre la Reforma Tributaria')}
                 </a>
               </div>
             </motion.div>

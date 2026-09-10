@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { buscarEGravarFeeds, FeedError, CANAIS_FONTES, FONTES_RSS_ATIVAS, LIMITE_POR_CANAL, type MotivoDemo } from '@/lib/nexusNewsIngest'
+import { buscarEGravarFeeds, FeedError, CANAIS_FONTES, FONTES_RSS_ATIVAS, limiteDoCanal, type MotivoDemo } from '@/lib/nexusNewsIngest'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 03, Parte 4 (correção definitiva): a fonte de RSS
@@ -116,7 +116,7 @@ async function lerDoBanco(supabase: SupabaseClient, canal: string, motivoBusca?:
     .eq('canal', canal)
     .in('source_id', idsAtivos)
     .order('publication_date', { ascending: false })
-    .limit(LIMITE_POR_CANAL)
+    .limit(limiteDoCanal(canal))
 
   if (error) {
     console.error(`[nexus/news] Falha lendo nexus_news pro canal ${canal}:`, error.message)
