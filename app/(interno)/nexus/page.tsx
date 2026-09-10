@@ -24,8 +24,8 @@ const TEXTO = '#c8d8f0'
 const TITULO = '#e2ecf7'
 
 // Formato único de exibição — pra tela não precisar saber se a notícia veio
-// da Currents (real, já em string plana no idioma buscado) ou do demo
-// (Texto3 pt/en/es) — ambos viram isso antes de chegar no player/modal.
+// do RSS real (já em português, string plana) ou do demo (Texto3 pt/en/es)
+// — ambos viram isso antes de chegar no player/modal.
 type NoticiaExibicao = {
   id: string
   titulo: string

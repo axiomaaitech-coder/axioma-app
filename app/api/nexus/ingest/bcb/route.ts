@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import * as Sentry from '@sentry/nextjs'
 import crypto from 'crypto'
+import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIngest'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -20,10 +21,16 @@ import crypto from 'crypto'
 // o endpoint puro. Cada série usa janela móvel (hoje − janela_dias) com um
 // piso mínimo por cadência (ver janelaEfetivaDias) pra séries mensais não
 // perderem o dado mais recente por causa do atraso normal de publicação.
+//
+// Também dispara aqui (mesmo cron, não um novo — plano Hobby só permite 1/
+// dia) o refresh forçado dos 4 canais de notícia RSS, ignorando o cache de
+// 4h — assim a TV sempre tem manchete atualizada pelo menos 1x/dia mesmo
+// que ninguém abra a tela nesse meio tempo. Cada canal é isolado (um falhar
+// não afeta o resumo do BCB nem os outros canais) — ver ingestaoNoticias().
 // ═══════════════════════════════════════════════════════════════
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30 // catálogo de hoje (4 séries) roda em segundos; se crescer muito, vira lote — ver nota no fim
+export const maxDuration = 60 // catálogo BCB (4 séries) + refresh dos 4 canais de notícia
 
 type BcbPonto = { data: string; valor: string }
 
@@ -298,7 +305,29 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sucesso, falha, detalhes })
+  const noticias = await ingestaoNoticias(supabase)
+
+  return NextResponse.json({ sucesso, falha, detalhes, noticias })
+}
+
+// Força o refresh dos 4 canais de notícia (ignora cache) — melhor-esforço,
+// canal por canal: um canal sem nenhum feed no ar não derruba os outros nem
+// o resumo do BCB acima. FeedError('sem_resultado') é esperado sempre que o
+// filtro de palavra-chave (moedas/reforma-tributária) não achar nada nessa
+// rodada — não é uma falha de verdade, só não tinha manchete nova agora.
+async function ingestaoNoticias(supabase: SupabaseClient): Promise<Record<string, string>> {
+  const resultado: Record<string, string> = {}
+  for (const canal of Object.keys(CANAIS_FONTES)) {
+    try {
+      await buscarEGravarFeeds(supabase, canal)
+      resultado[canal] = 'sucesso'
+    } catch (err) {
+      const motivo = err instanceof FeedError ? err.motivo : err instanceof Error ? err.message : String(err)
+      resultado[canal] = motivo
+      console.error(`[nexus/ingest/bcb] Falha atualizando notícia do canal ${canal}:`, motivo)
+    }
+  }
+  return resultado
 }
 
 // Sem tela nenhuma nesta rota (JSON puro, consumido pelo cron) — regra de
