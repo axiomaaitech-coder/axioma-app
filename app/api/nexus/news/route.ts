@@ -205,7 +205,20 @@ async function buscarEGravarCurrents(supabase: SupabaseClient, canal: string, ap
     .eq('source_name', 'Currents')
     .maybeSingle()
 
-  const linhas = itens
+  // 1) descarta item sem canonical_url utilizável — upsert por canonical_url
+  // não existe sem ela.
+  const comUrl = itens.filter((n: any) => typeof n.url === 'string' && n.url.trim() !== '')
+
+  // 2) dedupe do lote por canonical_url (mantém a 1ª ocorrência) — a Currents
+  // pode repetir a mesma notícia no mesmo lote, e upsert com ON CONFLICT não
+  // pode tocar a mesma linha duas vezes na mesma operação ("cannot affect
+  // row a second time").
+  const vistos = new Map<string, any>()
+  for (const n of comUrl) {
+    if (!vistos.has(n.url)) vistos.set(n.url, n)
+  }
+
+  const linhas = Array.from(vistos.values())
     .slice(0, LIMITE_POR_CANAL)
     .map((n: any) => ({
       source_id: fonte?.source_id ?? null,
@@ -215,13 +228,12 @@ async function buscarEGravarCurrents(supabase: SupabaseClient, canal: string, ap
       translated_summary: typeof n.description === 'string' ? n.description.slice(0, 500) : null,
       author: typeof n.author === 'string' ? n.author : null,
       publication_date: n.published ? new Date(n.published).toISOString() : new Date().toISOString(),
-      canonical_url: typeof n.url === 'string' ? n.url : null,
+      canonical_url: n.url,
       // Currents manda o literal "None" (string) quando não há imagem — nunca
       // gravar isso; fica null e a tela usa o placeholder padrão dela.
       imagem_url: typeof n.image === 'string' && n.image !== 'None' ? n.image : null,
       canal,
     }))
-    .filter((l: { canonical_url: string | null }) => !!l.canonical_url)
 
   if (linhas.length === 0) {
     console.error(`[nexus/news] Currents devolveu itens sem canonical_url utilizável pro canal ${canal}`)
