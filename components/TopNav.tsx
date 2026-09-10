@@ -125,6 +125,16 @@ const pdvModulo = {
   cor: "#00ff88",
 };
 
+// Nexus — inteligência transversal (atravessa a empresa toda), por isso é
+// item próprio e visível, não enterrado dentro de um grupo. Mesmo tratamento
+// de destaque do PDV acima, mas some pro operador igual aos demais módulos
+// financeiros (é CFO/dono, não frente de caixa).
+const nexusModulo = {
+  label: { pt: "🌐 Nexus", en: "🌐 Nexus", es: "🌐 Nexus" },
+  path: "/nexus",
+  cor: "#22d3ee",
+};
+
 export default function TopNav() {
   const router = useRouter();
   const pathname = usePathname();
@@ -236,6 +246,40 @@ export default function TopNav() {
     </motion.button>
   );
 
+  const nexusAtivo = pathname === nexusModulo.path || pathname.startsWith(nexusModulo.path + "/");
+
+  const nexusBotaoDesktop = (
+    <motion.button
+      key="nexus-desktop"
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+      onClick={() => navegar(nexusModulo.path)}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+      style={{
+        background: nexusAtivo ? "rgba(34,211,238,0.28)" : "rgba(34,211,238,0.12)",
+        color: nexusModulo.cor,
+        border: nexusAtivo ? "1px solid rgba(34,211,238,0.85)" : "1px solid rgba(34,211,238,0.45)",
+        boxShadow: "0 0 18px rgba(34,211,238,0.35)",
+        textShadow: "0 0 8px rgba(34,211,238,0.45)",
+      }}
+    >
+      <span className="text-xs">{nexusModulo.label[lang]}</span>
+    </motion.button>
+  );
+
+  const nexusBotaoMobile = (
+    <motion.button key="nexus-mobile" whileHover={{ x: 2 }} whileTap={{ scale: 0.98 }} onClick={() => navegar(nexusModulo.path)}
+      className="w-full flex items-center justify-between px-4 py-3 rounded-xl"
+      style={{
+        background: nexusAtivo ? "rgba(34,211,238,0.26)" : "rgba(34,211,238,0.10)",
+        border: nexusAtivo ? "1px solid rgba(34,211,238,0.8)" : "1px solid rgba(34,211,238,0.4)",
+        color: nexusModulo.cor,
+        boxShadow: "0 0 14px rgba(34,211,238,0.3)",
+      }}>
+      <span className="font-bold text-sm">{nexusModulo.label[lang]}</span>
+    </motion.button>
+  );
+
   return (
     <>
       {/* DESKTOP */}
@@ -289,6 +333,9 @@ export default function TopNav() {
             <span>{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
           </motion.button>
         )}
+
+        {/* Nexus — item próprio, fora de qualquer grupo, fácil de achar */}
+        {!isOperador && nexusBotaoDesktop}
 
         {/* Grupos — nenhum aparece pro operador (nenhum é PDV, todos tocam dado do dono) */}
         {!isOperador && gruposVisiveis.map((grupo) => {
@@ -506,6 +553,8 @@ export default function TopNav() {
                 )}
 
                 {isOperador && pdvBotaoMobile}
+
+                {!isOperador && nexusBotaoMobile}
 
                 {!isOperador && gruposVisiveis.map((grupo) => {
                   const ativo = grupoAtivo(grupo.itens);
