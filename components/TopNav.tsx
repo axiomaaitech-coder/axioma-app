@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useLanguage, SeletorIdioma } from "../lib/LanguageContext";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X, LogOut, ChevronDown, Landmark } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { motion, AnimatePresence } from "framer-motion";
@@ -141,6 +142,7 @@ export default function TopNav() {
   const { idioma } = useLanguage();
   const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
   const [dropdown, setDropdown] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const [menuMobile, setMenuMobile] = useState(false);
   const [grupoMobile, setGrupoMobile] = useState<string | null>(null);
   const [cadastroIncompleto, setCadastroIncompleto] = useState(false);
@@ -148,6 +150,7 @@ export default function TopNav() {
   // rota muda, o que também cobre troca de empresa numa nova sessão/aba).
   const [papel, setPapel] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
+  const dropdownPortalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -164,7 +167,10 @@ export default function TopNav() {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+      const alvo = e.target as Node;
+      const dentroDaNav = navRef.current?.contains(alvo);
+      const dentroDoDropdown = dropdownPortalRef.current?.contains(alvo);
+      if (!dentroDaNav && !dentroDoDropdown) {
         setDropdown(null);
       }
     };
@@ -301,7 +307,7 @@ export default function TopNav() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => navegar(destinoLogo)}
-          className="flex items-center gap-2.5 cursor-pointer mr-3 pr-3"
+          className="flex items-center gap-2.5 cursor-pointer mr-3 pr-3 shrink-0"
           style={{ borderRight: "1px solid rgba(59,111,212,0.2)" }}
         >
           <div style={{ filter: "drop-shadow(0 0 12px rgba(106,176,255,0.7))" }}>
@@ -315,6 +321,11 @@ export default function TopNav() {
             <p className="tracking-[0.3em] font-semibold" style={{ color: "#3a5a8a", fontSize: 8 }}>AI.TECH</p>
           </div>
         </motion.div>
+
+        {/* Módulos — trecho com scroll próprio (nav é fixed: o que passasse da
+            borda direita ficava cortado sem chance de rolar, e sumia visualmente,
+            derrubando o seletor de idioma e o Sair do lado direito) */}
+        <div className="flex items-center gap-1 overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
 
         {/* Dashboard — fora do alcance do operador (é o financeiro do dono) */}
         {!isOperador && (
@@ -347,7 +358,11 @@ export default function TopNav() {
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => setDropdown(aberto ? null : grupo.label.pt)}
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setDropdownPos({ top: r.bottom, left: r.left });
+                  setDropdown(aberto ? null : grupo.label.pt);
+                }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
                 style={{
                   background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "transparent",
@@ -362,23 +377,42 @@ export default function TopNav() {
                   <ChevronDown size={13} />
                 </motion.div>
               </motion.button>
+            </div>
+          );
+          if (!ehMei) return grupoEl;
+          return [grupoEl, pdvBotaoDesktop];
+        })}
 
-              <AnimatePresence>
-                {aberto && (
+        {/* Operador: PDV é a única coisa que sobra no menu (o mapa acima nem roda) */}
+        {isOperador && pdvBotaoDesktop}
+
+        </div>
+
+        {/* Painel do dropdown de grupo — em portal pro body: a linha de módulos
+            acima agora tem scroll próprio (overflow-x-auto), e um painel
+            absolute dentro dela seria cortado verticalmente (overflow-x != visible
+            força overflow-y a virar auto). Fixed + portal escapa desse corte. */}
+        {typeof document !== "undefined" && dropdown && dropdownPos && createPortal(
+          (() => {
+            const grupoAberto = gruposVisiveis.find((g) => g.label.pt === dropdown);
+            if (!grupoAberto) return null;
+            return (
+              <div ref={dropdownPortalRef} style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 60 }}>
+                <AnimatePresence>
                   <motion.div
                     initial={{ opacity: 0, y: 8, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
-                    className="absolute top-full left-0 mt-2 min-w-[220px] rounded-2xl overflow-hidden z-50"
+                    className="mt-2 min-w-[220px] rounded-2xl overflow-hidden"
                     style={{
                       background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
-                      border: `1px solid ${grupo.cor}35`,
-                      boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${grupo.cor}15`,
+                      border: `1px solid ${grupoAberto.cor}35`,
+                      boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${grupoAberto.cor}15`,
                     }}
                   >
                     <div className="p-2 space-y-0.5">
-                      {grupo.itens.map((item, i) => {
+                      {grupoAberto.itens.map((item, i) => {
                         const itemAtivo = pathname === item.path || pathname.startsWith(item.path + "/");
                         return (
                           <motion.button
@@ -391,9 +425,9 @@ export default function TopNav() {
                             onClick={() => navegar(item.path)}
                             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all"
                             style={{
-                              background: itemAtivo ? `linear-gradient(135deg, ${grupo.cor}25, ${grupo.cor}10)` : "transparent",
-                              color: itemAtivo ? grupo.cor : "#7a9aba",
-                              border: itemAtivo ? `1px solid ${grupo.cor}35` : "1px solid transparent",
+                              background: itemAtivo ? `linear-gradient(135deg, ${grupoAberto.cor}25, ${grupoAberto.cor}10)` : "transparent",
+                              color: itemAtivo ? grupoAberto.cor : "#7a9aba",
+                              border: itemAtivo ? `1px solid ${grupoAberto.cor}35` : "1px solid transparent",
                             }}
                           >
                             <span className="text-base">{item.emoji}</span>
@@ -405,26 +439,22 @@ export default function TopNav() {
                               </span>
                             )}
                             {itemAtivo && (
-                              <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: grupo.cor }} />
+                              <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: grupoAberto.cor }} />
                             )}
                           </motion.button>
                         );
                       })}
                     </div>
                   </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-          if (!ehMei) return grupoEl;
-          return [grupoEl, pdvBotaoDesktop];
-        })}
+                </AnimatePresence>
+              </div>
+            );
+          })(),
+          document.body
+        )}
 
-        {/* Operador: PDV é a única coisa que sobra no menu (o mapa acima nem roda) */}
-        {isOperador && pdvBotaoDesktop}
-
-        {/* Lado direito */}
-        <div className="ml-auto flex items-center gap-3">
+        {/* Lado direito — nunca encolhe/some, mesmo com muitos módulos à esquerda */}
+        <div className="ml-auto flex items-center gap-3 shrink-0">
           {/* ✨ BOTÃO CONECTAR BANCO — verde neon, exposto (fora do alcance do operador) */}
           {!isOperador && (
             <motion.button

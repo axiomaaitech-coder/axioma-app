@@ -13,6 +13,8 @@ const supabase = createBrowserClient(
 
 export type FreshnessStatus = "live" | "fresh" | "recent" | "stale" | "expired" | "unknown";
 
+export type PontoSerie = { data: string; valor: number };
+
 export type IndicadorNexus = {
   codigo: string;
   nome: { pt: string; en: string; es: string };
@@ -21,17 +23,23 @@ export type IndicadorNexus = {
   dataReferencia: string | null;
   freshness: FreshnessStatus | null;
   formatoPercentual: boolean;
+  historico: PontoSerie[]; // ascendente por data, pro mini-gráfico
 };
 
 // Catálogo fixo dos 4 códigos já semeados em nexus_series_catalog (Comitê 02) —
 // nome amigável e formato de exibição não vêm do banco (banco guarda o
 // dado bruto), a tela decide como cada um aparece.
-const CATALOGO: Omit<IndicadorNexus, "valor" | "dataReferencia" | "freshness">[] = [
+const CATALOGO: Omit<IndicadorNexus, "valor" | "dataReferencia" | "freshness" | "historico">[] = [
   { codigo: "1", nome: { pt: "Dólar", en: "US Dollar", es: "Dólar" }, emoji: "💵", formatoPercentual: false },
   { codigo: "432", nome: { pt: "Selic", en: "Selic Rate", es: "Tasa Selic" }, emoji: "🏦", formatoPercentual: true },
   { codigo: "433", nome: { pt: "IPCA", en: "IPCA (Inflation)", es: "IPCA (Inflación)" }, emoji: "📈", formatoPercentual: true },
   { codigo: "12", nome: { pt: "CDI", en: "CDI Rate", es: "Tasa CDI" }, emoji: "💰", formatoPercentual: true },
 ];
+
+// 30 pontos bastam pro mini-gráfico e já trazem o valor mais recente (primeira
+// linha, mais nova) — uma query só por indicador, sem N+1 pra buscar o atual
+// e o histórico separadamente.
+const PONTOS_HISTORICO = 30;
 
 export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorNexus[]; erro: boolean }> {
   try {
@@ -42,23 +50,31 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
           .select("valor, data_referencia, freshness_status")
           .eq("serie_codigo", c.codigo)
           .order("data_referencia", { ascending: false })
-          .limit(1)
-          .maybeSingle()
+          .limit(PONTOS_HISTORICO)
       )
     );
 
     const algumErro = resultados.some((r) => r.error);
-    const indicadores: IndicadorNexus[] = CATALOGO.map((c, i) => ({
-      ...c,
-      valor: resultados[i].data?.valor ?? null,
-      dataReferencia: resultados[i].data?.data_referencia ?? null,
-      freshness: (resultados[i].data?.freshness_status as FreshnessStatus) ?? null,
-    }));
+    const indicadores: IndicadorNexus[] = CATALOGO.map((c, i) => {
+      const linhas = resultados[i].data ?? [];
+      const maisRecente = linhas[0];
+      const historico: PontoSerie[] = linhas
+        .filter((l) => l.valor != null)
+        .map((l) => ({ data: l.data_referencia as string, valor: l.valor as number }))
+        .reverse(); // ascendente por data
+      return {
+        ...c,
+        valor: maisRecente?.valor ?? null,
+        dataReferencia: maisRecente?.data_referencia ?? null,
+        freshness: (maisRecente?.freshness_status as FreshnessStatus) ?? null,
+        historico,
+      };
+    });
 
     return { indicadores, erro: algumErro };
   } catch {
     return {
-      indicadores: CATALOGO.map((c) => ({ ...c, valor: null, dataReferencia: null, freshness: null })),
+      indicadores: CATALOGO.map((c) => ({ ...c, valor: null, dataReferencia: null, freshness: null, historico: [] })),
       erro: true,
     };
   }
