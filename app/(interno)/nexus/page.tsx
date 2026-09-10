@@ -382,6 +382,58 @@ export default function NexusPage() {
             </div>
           </div>
 
+          {/* CARDS ABAIXO DA TV — demais manchetes do canal ativo (além da que
+              está no player), pro módulo não ficar vazio embaixo. Mesmo modal
+              da TV ao clicar; mesmo padrão visual (cartão escuro/ciano). */}
+          {!carregandoNoticias && noticiasCanal.length > 1 && (
+            <div className="max-w-3xl mx-auto space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wide px-1" style={{ color: CINZA }}>
+                {L('Mais notícias deste canal', 'More headlines in this channel', 'Más noticias de este canal')}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {noticiasCanal.filter((_, i) => i !== indiceAtivo).map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => setNoticiaAberta(n)}
+                    className="flex gap-3 rounded-xl p-3 text-left transition-all hover:scale-[1.01]"
+                    style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}20` }}
+                  >
+                    <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 84, height: 60, background: 'rgba(255,255,255,0.05)' }}>
+                      {n.imagem_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={n.imagem_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Newspaper size={18} style={{ color: ROXOTV }} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-xs font-bold leading-snug line-clamp-2 mb-1" style={{ color: TITULO }}>{n.titulo}</h4>
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: CINZA }}>
+                        <span className="truncate">{n.fonte}</span>
+                        <span>•</span>
+                        <span className="shrink-0">{formatarDataNoticia(n.data, lang, localeData)}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {canalAtivo === 'reforma-tributaria' && (
+                <a
+                  href="https://www.gov.br/fazenda/pt-br/acesso-a-informacao/acoes-e-programas/reforma-tributaria"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
+                  style={{ background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}
+                >
+                  <ExternalLink size={13} />
+                  {L('Ver mais sobre Reforma Tributária', 'See more on Tax Reform', 'Ver más sobre Reforma Tributaria')}
+                </a>
+              )}
+            </div>
+          )}
+
         </div>
       )}
 
