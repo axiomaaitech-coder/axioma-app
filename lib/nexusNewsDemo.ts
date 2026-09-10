@@ -191,13 +191,3 @@ export const NOTICIAS_NEXUS_DEMO: NoticiaNexus[] = [
 export function obterNoticiasNexusDemo(canalId: string): NoticiaNexus[] {
   return NOTICIAS_NEXUS_DEMO.filter((n) => n.canal === canalId)
 }
-
-// Letreiro exclusivo da TV — mundo/moedas/Reforma Tributária, sem repetir o
-// letreiro padrão do módulo (que já leva os 4 indicadores reais).
-export const MANCHETES_TICKER_NEXUS_DEMO: Texto3[] = [
-  { pt: 'Reforma Tributária: regulamentação do IBS avança com novo cronograma', en: 'Tax Reform: IBS regulation advances with new schedule', es: 'Reforma Tributaria: la reglamentación del IBS avanza con nuevo cronograma' },
-  { pt: 'Bancos centrais globais monitoram cadeias de suprimento de energia', en: 'Global central banks monitor energy supply chains', es: 'Bancos centrales globales monitorean las cadenas de suministro de energía' },
-  { pt: 'Dólar opera de lado à espera de sinalização do Fed', en: 'Dollar trades sideways awaiting Fed signal', es: 'El dólar opera lateral a la espera de señales de la Fed' },
-  { pt: 'Crescimento chinês pressiona preços de commodities agrícolas', en: 'Chinese growth pressures agricultural commodity prices', es: 'El crecimiento chino presiona los precios de las materias primas agrícolas' },
-  { pt: 'Setores de serviços pedem clareza sobre creditamento da CBS', en: 'Service sectors ask for clarity on CBS crediting', es: 'Los sectores de servicios piden claridad sobre el crédito de la CBS' },
-]

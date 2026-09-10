@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Radio, Newspaper, X, ExternalLink } from 'lucide-react'
+import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactECharts from 'echarts-for-react'
 import ModuloLayout from '../../../components/ModuloLayout'
@@ -9,7 +9,7 @@ import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterIndicadoresNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie } from '../../../lib/nexusHelpers'
-import { CANAIS_NEXUS_DEMO, MANCHETES_TICKER_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
+import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import { fBRL2 } from '../../../lib/cfoCore'
@@ -22,6 +22,33 @@ const ROXOTV = '#a78bfa'
 const CINZA = '#5a7a9a'
 const TEXTO = '#c8d8f0'
 const TITULO = '#e2ecf7'
+
+// Formato único de exibição — pra tela não precisar saber se a notícia veio
+// da Currents (real, já em string plana no idioma buscado) ou do demo
+// (Texto3 pt/en/es) — ambos viram isso antes de chegar no player/modal.
+type NoticiaExibicao = {
+  id: string
+  titulo: string
+  resumo: string
+  imagem_url: string | null
+  fonte: string
+  url_original: string
+  data: string
+  isDemo: boolean
+}
+
+function mapDemoParaExibicao(n: NoticiaNexus, lang: Idioma3): NoticiaExibicao {
+  return {
+    id: n.id,
+    titulo: n.titulo[lang],
+    resumo: n.resumo[lang],
+    imagem_url: n.imagem_url,
+    fonte: n.fonte[lang],
+    url_original: n.url_original,
+    data: n.data,
+    isDemo: true,
+  }
+}
 
 function formatarValorIndicador(ind: IndicadorNexus): string {
   if (ind.valor == null) return '—'
@@ -57,6 +84,8 @@ function sparklineOption(historico: PontoSerie[], cor: string) {
   }
 }
 
+const INTERVALO_TROCA_MS = 6000
+
 export default function NexusPage() {
   const { idioma } = useLanguage()
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
@@ -69,7 +98,14 @@ export default function NexusPage() {
   const [canalAtivo, setCanalAtivo] = useState(CANAIS_NEXUS_DEMO[0].id)
   const [exportando, setExportando] = useState(false)
   const [shareAberto, setShareAberto] = useState(false)
-  const [noticiaAberta, setNoticiaAberta] = useState<NoticiaNexus | null>(null)
+  const [noticiaAberta, setNoticiaAberta] = useState<NoticiaExibicao | null>(null)
+
+  const [noticiasCanal, setNoticiasCanal] = useState<NoticiaExibicao[]>([])
+  const [noticiasIsDemo, setNoticiasIsDemo] = useState(true)
+  const [precisaAvisoDemo, setPrecisaAvisoDemo] = useState(false)
+  const [carregandoNoticias, setCarregandoNoticias] = useState(true)
+  const [indiceAtivo, setIndiceAtivo] = useState(0)
+  const [pausado, setPausado] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -82,7 +118,54 @@ export default function NexusPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const noticiasCanal = obterNoticiasNexusDemo(canalAtivo)
+  // Notícia do canal ativo — API própria (cache-aside em nexus_news); cai
+  // pro demo local sozinha se a API/banco não tiverem nada ainda (nunca
+  // fica sem conteúdo, nunca mistura demo com selo de real).
+  useEffect(() => {
+    let cancelado = false
+    setIndiceAtivo(0)
+    setCarregandoNoticias(true)
+    const demoDoCanal = () => obterNoticiasNexusDemo(canalAtivo).map((n) => mapDemoParaExibicao(n, lang))
+
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/nexus/news?canal=${canalAtivo}`)
+        const json = await res.json()
+        if (cancelado) return
+        if (json?.fonte === 'real' && Array.isArray(json.noticias) && json.noticias.length > 0) {
+          setNoticiasCanal(json.noticias.map((n: any) => ({ ...n, isDemo: false })))
+          setNoticiasIsDemo(false)
+          setPrecisaAvisoDemo(false)
+        } else {
+          setNoticiasCanal(demoDoCanal())
+          setNoticiasIsDemo(true)
+          setPrecisaAvisoDemo(!!json?.aviso)
+        }
+      } catch {
+        if (cancelado) return
+        setNoticiasCanal(demoDoCanal())
+        setNoticiasIsDemo(true)
+        setPrecisaAvisoDemo(true)
+      } finally {
+        if (!cancelado) setCarregandoNoticias(false)
+      }
+    })()
+
+    return () => { cancelado = true }
+  }, [canalAtivo, lang])
+
+  // TV rodando manchete sozinha a cada 6s — pausa com o mouse em cima.
+  useEffect(() => {
+    if (pausado || noticiasCanal.length <= 1) return
+    const t = setInterval(() => setIndiceAtivo((i) => (i + 1) % noticiasCanal.length), INTERVALO_TROCA_MS)
+    return () => clearInterval(t)
+  }, [pausado, noticiasCanal.length])
+
+  const irPara = (i: number) => {
+    if (noticiasCanal.length === 0) return
+    setIndiceAtivo(((i % noticiasCanal.length) + noticiasCanal.length) % noticiasCanal.length)
+  }
+  const noticiaAtual = noticiasCanal[indiceAtivo] ?? null
 
   async function exportarPDF() {
     setExportando(true)
@@ -160,19 +243,21 @@ export default function NexusPage() {
             })}
           </div>
 
-          {/* TV — painel central de médio destaque, com canais */}
+          {/* TV — player grande de notícia em destaque, com canais */}
           <div className="max-w-3xl mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(6,15,30,0.85)', border: `1px solid ${CIANO}35`, boxShadow: `0 0 40px ${CIANO}10` }}>
-            <div className="flex items-center justify-between gap-3 px-4 pt-4 flex-wrap">
+            <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Radio size={16} style={{ color: CIANO }} />
                 <p className="text-sm font-black tracking-wide" style={{ color: TITULO }}>{L('Central Nexus', 'Nexus Center', 'Central Nexus')}</p>
               </div>
-              <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
-                {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
-              </span>
+              {noticiasIsDemo && (
+                <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
+                  {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
+                </span>
+              )}
             </div>
 
-            <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto">
+            <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto">
               {CANAIS_NEXUS_DEMO.map((c) => (
                 <button
                   key={c.id}
@@ -189,43 +274,110 @@ export default function NexusPage() {
               ))}
             </div>
 
-            {noticiasCanal.length === 0 ? (
-              <div className="mx-4 mb-4 rounded-xl px-4 py-3 text-xs font-semibold" style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}>
-                {L('Nenhuma notícia neste canal no momento.', 'No news on this channel right now.', 'No hay noticias en este canal por el momento.')}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
-                {noticiasCanal.map((n) => (
-                  <button
-                    key={n.id}
-                    onClick={() => setNoticiaAberta(n)}
-                    className="text-left rounded-xl overflow-hidden transition-transform hover:scale-[1.02]"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
-                  >
-                    {n.imagem_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={n.imagem_url} alt="" className="w-full h-28 object-cover" />
-                    ) : (
-                      <div className="w-full h-28 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${ROXOTV}25, rgba(6,15,30,0.9))` }}>
-                        <Newspaper size={26} style={{ color: ROXOTV }} />
-                      </div>
-                    )}
-                    <div className="p-3">
-                      <p className="text-xs font-bold leading-snug mb-2 line-clamp-2" style={{ color: TITULO }}>{n.titulo[lang]}</p>
-                      <div className="flex items-center justify-between text-[10px]" style={{ color: CINZA }}>
-                        <span className="truncate">{n.fonte[lang]}</span>
-                        <span className="shrink-0 ml-2">{formatarDataNoticia(n.data, lang, localeData)}</span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+            {precisaAvisoDemo && (
+              <div className="mx-4 mb-3 rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}>
+                {L('Notícia em tempo real ainda não disponível — mostrando conteúdo de demonstração.', 'Real-time news not available yet — showing demo content.', 'Noticia en tiempo real aún no disponible — mostrando contenido de demostración.')}
               </div>
             )}
 
-            {/* LETREIRO NOVO — exclusivo da TV, só notícias (demo), cor própria (roxo)
-                separada do letreiro padrão do módulo acima (cor ciano) */}
-            <div className="px-4 pb-4">
-              <LetreiroExecutivo cor={ROXOTV} itens={MANCHETES_TICKER_NEXUS_DEMO.map((m) => m[lang])} />
+            {/* PLAYER — 16:9, uma manchete em destaque por vez */}
+            <div className="px-4">
+              {carregandoNoticias ? (
+                <div className="w-full aspect-video rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />
+              ) : !noticiaAtual ? (
+                <div className="w-full aspect-video rounded-xl flex items-center justify-center text-xs font-semibold" style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}>
+                  {L('Nenhuma notícia neste canal no momento.', 'No news on this channel right now.', 'No hay noticias en este canal por el momento.')}
+                </div>
+              ) : (
+                <div
+                  onMouseEnter={() => setPausado(true)}
+                  onMouseLeave={() => setPausado(false)}
+                  onClick={() => setNoticiaAberta(noticiaAtual)}
+                  role="button"
+                  tabIndex={0}
+                  className="relative w-full aspect-video rounded-xl overflow-hidden cursor-pointer select-none"
+                  style={{ background: '#05070f' }}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={noticiaAtual.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute inset-0"
+                    >
+                      {noticiaAtual.imagem_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={noticiaAtual.imagem_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${ROXOTV}30, rgba(6,15,30,0.95))` }}>
+                          <Newspaper size={48} style={{ color: ROXOTV }} />
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* degradê escuro — "tarja de telejornal" */}
+                  <div className="absolute inset-x-0 bottom-0 h-2/3 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 55%, transparent 100%)' }} />
+
+                  {noticiasIsDemo && (
+                    <span className="absolute top-3 right-3 text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: AZULC, border: `1px solid ${AZULC}55` }}>
+                      {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
+                    </span>
+                  )}
+
+                  {noticiasCanal.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); irPara(indiceAtivo - 1) }}
+                        aria-label={L('Manchete anterior', 'Previous headline', 'Titular anterior')}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all hover:scale-110"
+                        style={{ background: 'rgba(0,0,0,0.5)', color: '#fff' }}
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); irPara(indiceAtivo + 1) }}
+                        aria-label={L('Próxima manchete', 'Next headline', 'Siguiente titular')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all hover:scale-110"
+                        style={{ background: 'rgba(0,0,0,0.5)', color: '#fff' }}
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </>
+                  )}
+
+                  <div className="absolute bottom-0 left-0 right-0 p-3 md:p-5">
+                    {noticiasCanal.length > 1 && (
+                      <div className="flex gap-1.5 mb-2">
+                        {noticiasCanal.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={(e) => { e.stopPropagation(); irPara(i) }}
+                            aria-label={`${i + 1}/${noticiasCanal.length}`}
+                            className="h-1.5 rounded-full transition-all"
+                            style={{ width: i === indiceAtivo ? 20 : 6, background: i === indiceAtivo ? ROXOTV : 'rgba(255,255,255,0.4)' }}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <h3 className="font-black leading-snug mb-1 line-clamp-2 text-sm md:text-lg" style={{ color: '#fff' }}>{noticiaAtual.titulo}</h3>
+                    <div className="flex items-center gap-2 text-[10px] md:text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                      <span className="truncate">{noticiaAtual.fonte}</span>
+                      <span>•</span>
+                      <span className="shrink-0">{formatarDataNoticia(noticiaAtual.data, lang, localeData)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* LETREIRO NOVO — exclusivo da TV, cor própria (roxo) separada do
+                letreiro padrão do módulo acima (ciano); mesmas manchetes do
+                canal ativo, real ou demo (nunca uma fonte diferente do player). */}
+            <div className="px-4 py-4">
+              <LetreiroExecutivo cor={ROXOTV} itens={noticiasCanal.map((n) => n.titulo)} />
             </div>
           </div>
 
@@ -258,20 +410,24 @@ export default function NexusPage() {
               )}
               <div className="p-5">
                 <div className="flex justify-between items-start gap-3 mb-3">
-                  <h3 className="text-base font-bold leading-snug" style={{ color: TITULO }}>{noticiaAberta.titulo[lang]}</h3>
+                  <h3 className="text-base font-bold leading-snug" style={{ color: TITULO }}>{noticiaAberta.titulo}</h3>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setNoticiaAberta(null)} style={{ color: CINZA }} className="shrink-0">
                     <X size={20} />
                   </motion.button>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-semibold mb-3" style={{ color: CINZA }}>
-                  <span>{noticiaAberta.fonte[lang]}</span>
+                  <span>{noticiaAberta.fonte}</span>
                   <span>•</span>
                   <span>{formatarDataNoticia(noticiaAberta.data, lang, localeData)}</span>
-                  <span className="ml-auto text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
-                    {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
-                  </span>
+                  {noticiaAberta.isDemo && (
+                    <span className="ml-auto text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
+                      {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm leading-relaxed mb-5" style={{ color: TEXTO }}>{noticiaAberta.resumo[lang]}</p>
+                {noticiaAberta.resumo && (
+                  <p className="text-sm leading-relaxed mb-5" style={{ color: TEXTO }}>{noticiaAberta.resumo}</p>
+                )}
                 <a
                   href={noticiaAberta.url_original}
                   target="_blank"

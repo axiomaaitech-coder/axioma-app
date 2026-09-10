@@ -116,7 +116,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/contabilidade') ||
     pathname.startsWith('/tesouraria') ||
     pathname.startsWith('/contador') ||
-    pathname.startsWith('/fiscal')
+    pathname.startsWith('/fiscal') ||
+    pathname.startsWith('/nexus')
 
   if (isCallback) {
     return addSecurityHeaders(supabaseResponse)
