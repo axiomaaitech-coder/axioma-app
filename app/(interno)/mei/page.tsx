@@ -50,8 +50,12 @@ const AZUL = '#6ab0ff'
 export default function PainelMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  const OURO = tema === 'xms' ? '#0e9f6e' : '#d4af37'
-  const ROYAL = tema === 'xms' ? '#0b1f3a' : '#2a5fd4'
+  // No tema XMS, OURO é a cor dominante na tela (Cofre, Evolução, Resumo
+  // Anual, Modal) — vira o azul-marinho profundo (cor de base da marca).
+  // ROYAL aparece só em pontos pontuais (CTAs, Acesso Rápido) — vira o
+  // verde vibrante (cor de destaque, não deve tomar conta da tela).
+  const OURO = tema === 'xms' ? '#0b1f3a' : '#d4af37'
+  const ROYAL = tema === 'xms' ? '#0e9f6e' : '#2a5fd4'
   const VERDE = tema === 'xms' ? '#16a34a' : '#34d399'
   const VERMELHO = tema === 'xms' ? '#dc2626' : '#f87171'
   const AMBAR = tema === 'xms' ? '#d97706' : '#f59e0b'
