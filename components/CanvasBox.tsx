@@ -15,6 +15,7 @@ export function CanvasBox({
   cor = "#6ab0ff",
   motionIndex,
   glow = false,
+  destaque = false,
 }: {
   children: ReactNode;
   cor?: string;
@@ -23,7 +24,13 @@ export function CanvasBox({
   corD?: string;
   motionIndex?: number;
   glow?: boolean;
+  /** Card "de destaque" (opt-in) — no tema Esmeralda ganha fundo verde
+   * sólido + texto branco (var(--axi-card-destaque-*)); em "dark"/"xms"
+   * não muda nada (o token cai de volta em --axi-surface normal). */
+  destaque?: boolean;
 }) {
+  const classeDestaque = destaque ? " axi-card-destaque" : "";
+  const fundo = destaque ? "var(--axi-card-destaque-bg)" : "var(--axi-surface)";
   const conteudo = (
     <>
       {/* acento fino no topo (estático) */}
@@ -44,9 +51,9 @@ export function CanvasBox({
   if (motionIndex === undefined && !glow) {
     return (
       <div
-        className="relative rounded-2xl overflow-hidden"
+        className={`relative rounded-2xl overflow-hidden${classeDestaque}`}
         style={{
-          background: "var(--axi-surface)",
+          background: fundo,
           border: `1px solid ${cor}26`,
           boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
         }}
@@ -62,9 +69,9 @@ export function CanvasBox({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: "easeOut", delay: (motionIndex ?? 0) * 0.06 }}
       whileHover={glow ? { y: -3, transition: { duration: 0.2 } } : undefined}
-      className={`relative rounded-2xl overflow-hidden${glow ? " axi-card-hoverglow" : ""}`}
+      className={`relative rounded-2xl overflow-hidden${glow ? " axi-card-hoverglow" : ""}${classeDestaque}`}
       style={{
-        background: "var(--axi-surface)",
+        background: fundo,
         border: `1px solid ${cor}26`,
         boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
       }}

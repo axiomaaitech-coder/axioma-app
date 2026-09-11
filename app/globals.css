@@ -24,6 +24,12 @@
   --axi-warning: #f59e0b;
   --axi-error: #f87171;
   --axi-accent: #6ab0ff;
+  /* Fundo do card "destaque" (CanvasBox destaque) — igual ao --axi-surface
+     normal aqui e no xms (nenhuma mudança visual); só o Esmeralda redefine
+     pra verde de verdade. Ver bloco [data-theme="esmeralda"]. */
+  --axi-card-destaque-bg: var(--axi-surface);
+  --axi-card-destaque-text: var(--axi-text-primary);
+  --axi-card-destaque-text-secondary: var(--axi-text-secondary);
 }
 
 [data-theme="xms"] {
@@ -43,23 +49,41 @@
 }
 
 [data-theme="esmeralda"] {
-  /* Tema "Esmeralda" — mesma identidade XMS (public/referencias/), agora em
-     fundo escuro. Cores extraídas por histograma de pixel real da imagem
-     de referência (não aproximadas): navy #080830 (header/faixa de KPI do
-     modelo), verde #40d088 (ícones/números/CTA do modelo), branco nos
-     textos. Fica lado a lado com "xms" (fundo branco) sem alterá-lo — são
-     duas leituras da mesma identidade, a escura e a clara. */
+  /* Tema "Esmeralda" — hierarquia de 3 camadas pedida pelo Elias (print
+     anotado do MEI Cockpit): 1) fundo geral da PÁGINA continua navy
+     (--axi-bg, igual ao print) — nunca vira branco; 2) o CONTAINER GRANDE
+     (ModuloLayout) é branco, como no print — por isso --axi-surface/
+     --axi-border/--axi-text-* aqui espelham o tema "xms" (mesmo "papel"
+     branco, textos navy); 3) os CARDS DE DESTAQUE (marcados de verde no
+     print — Saudação+Score, cards de veredito) usam --axi-card-destaque-*
+     abaixo, aplicados via CanvasBox destaque={true}. Verde #40d088 e navy
+     #080830 extraídos por histograma de pixel real da imagem de
+     referência (public/referencias/), não aproximados. */
   --axi-bg: #080830;
-  --axi-surface: rgba(255, 255, 255, 0.05);
-  --axi-surface-solid: #10163f;
-  --axi-border: rgba(64, 208, 136, 0.18);
-  --axi-text-heading: #f5fbf8;
-  --axi-text-primary: #dce9e3;
-  --axi-text-secondary: #8a9bb0;
-  --axi-success: #40d088;
-  --axi-warning: #f5a623;
-  --axi-error: #f87171;
+  --axi-surface: #ffffff;
+  --axi-surface-solid: #ffffff;
+  --axi-border: rgba(11, 31, 58, 0.12);
+  --axi-text-heading: #0b1f3a;
+  --axi-text-primary: #17304f;
+  --axi-text-secondary: #55637a;
+  --axi-success: #16a34a;
+  --axi-warning: #d97706;
+  --axi-error: #dc2626;
   --axi-accent: #40d088;
+  --axi-card-destaque-bg: #0a7d54;
+  --axi-card-destaque-text: #ffffff;
+  --axi-card-destaque-text-secondary: rgba(255, 255, 255, 0.72);
+}
+
+/* Texto dentro de um card "destaque" (CanvasBox destaque) — só no tema
+   Esmeralda: os var(--axi-text-*) que o card já usa via CSS passam a
+   resolver pro par branco acima, sem precisar tocar em cada `style` do
+   MEI/Cockpit. Em "dark"/"xms" (sem --axi-card-destaque-bg própria)
+   CanvasBox cai no --axi-surface normal, comportamento inalterado. */
+[data-theme="esmeralda"] .axi-card-destaque {
+  --axi-text-heading: var(--axi-card-destaque-text);
+  --axi-text-primary: var(--axi-card-destaque-text);
+  --axi-text-secondary: var(--axi-card-destaque-text-secondary);
 }
 
 @theme inline {

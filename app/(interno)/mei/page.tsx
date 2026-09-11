@@ -51,18 +51,19 @@ const AZUL = '#6ab0ff'
 export default function PainelMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  // Paleta por tema — "dark" é o padrão de sempre (inalterado), "xms" é o
-  // fundo branco (identidade XMS Contábil), "esmeralda" é a mesma
-  // identidade XMS em fundo escuro — cores extraídas por pixel real da
-  // imagem em public/referencias/ (navy #080830, verde #40d088), não
-  // aproximadas. OURO é o acento "dominante"/estático da tela, ROYAL é o
-  // de destaque (CTAs, Acesso Rápido): em fundo escuro o dominante fica
-  // sóbrio e o destaque vibrante; no XMS (fundo branco) é o oposto, pra
-  // não lavar a tela de verde.
+  // Paleta por tema — "dark" é o padrão de sempre (inalterado). No Esmeralda
+  // o "papel" grande do ModuloLayout é branco (só o fundo da PÁGINA é navy —
+  // ver [data-theme="esmeralda"] em globals.css), o mesmo "papel" do xms —
+  // por isso OURO/CAMPO_BG/CHIP_* espelham o xms aqui; só ROYAL fica mais
+  // vibrante (verde exato extraído da imagem de referência). OURO virou
+  // quase-branco numa rodada anterior achando que o fundo continuava navy
+  // — isso causava o "brilho branco" nas bordas/aurora/glare dos cards
+  // (o próprio OURO usado como base de tudo isso); corrigido de volta pro
+  // navy, igual ao xms.
   const PALETA = {
     dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
     xms: { OURO: '#0b1f3a', ROYAL: '#0e9f6e', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
-    esmeralda: { OURO: '#dce9e3', ROYAL: '#40d088', VERDE: '#40d088', VERMELHO: '#f87171', AMBAR: '#f5a623', CAMPO_BG: 'rgba(255,255,255,0.05)', CHIP_BG: 'rgba(255,255,255,0.05)', CHIP_BORDA: 'rgba(64,208,136,0.18)' },
+    esmeralda: { OURO: '#0b1f3a', ROYAL: '#40d088', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
   } as const
   const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
   const [loading, setLoading] = useState(true)

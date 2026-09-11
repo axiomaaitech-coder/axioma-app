@@ -98,14 +98,32 @@ export default function CockpitMEI() {
   const router = useRouter()
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  // Ver PALETA em app/(interno)/mei/page.tsx pro mesmo raciocínio de
-  // "esmeralda" (identidade XMS de public/referencias/ em fundo escuro).
+  // No Esmeralda o "papel" grande do ModuloLayout é branco (igual ao xms —
+  // ver [data-theme="esmeralda"] em globals.css), só o fundo da PÁGINA é
+  // navy — por isso JADE/BRONZE/VERDE/VERMELHO/AMBAR aqui espelham o xms
+  // (mesmo "papel" branco por baixo), com JADE mais vibrante (cor exata
+  // extraída da imagem de referência) no lugar do verde mais discreto do
+  // xms.
   const PALETA_COCKPIT = {
     dark: { JADE: '#047857', BRONZE: '#065f46', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b' },
     xms: { JADE: '#0e9f6e', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706' },
-    esmeralda: { JADE: '#40d088', BRONZE: '#dce9e3', VERDE: '#40d088', VERMELHO: '#f87171', AMBAR: '#f5a623' },
+    esmeralda: { JADE: '#40d088', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706' },
   } as const
   const { JADE, BRONZE, VERDE, VERMELHO, AMBAR } = PALETA_COCKPIT[tema]
+  // Dentro de um card "destaque" (fundo verde sólido no Esmeralda — ver
+  // CanvasBox destaque), as cores semânticas (positivo/negativo/atenção)
+  // precisam de tons claros pra não sumir no verde — em qualquer outro
+  // tema (o card não tem fundo colorido) passam direto, sem mudança.
+  const corNoDestaque = (corSemantica: string): string => {
+    if (tema !== 'esmeralda') return corSemantica
+    const mapa: Record<string, string> = {
+      [VERDE]: '#ffffff', '#34d399': '#ffffff',
+      [VERMELHO]: '#ffd4d0', '#f87171': '#ffd4d0',
+      [AMBAR]: '#ffe8b8', '#f59e0b': '#ffe8b8', '#fb923c': '#ffe8b8',
+      [AZUL]: '#ffffff',
+    }
+    return mapa[corSemantica] ?? corSemantica
+  }
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
   const [nomeEmpresa, setNomeEmpresa] = useState<string | null>(null)
@@ -358,10 +376,10 @@ export default function CockpitMEI() {
   const saudacao = t('saudacao').replace('{nome}', nomeEmpresa || t('empresaFallback'))
 
   const CardVeredito = ({ cor, titulo, children, href, motionIndex }: { cor: string; titulo: string; children: ReactNode; href: string; motionIndex: number }) => (
-    <CanvasBox cor={cor} motionIndex={motionIndex} glow>
+    <CanvasBox cor={cor} motionIndex={motionIndex} glow destaque>
       <p className="text-sm font-semibold mb-3" style={{ color: 'var(--axi-text-primary)' }}>{titulo}</p>
       <div className="mb-4">{children}</div>
-      <a href={href} className="inline-flex items-center gap-1 text-xs font-semibold py-2 -my-2 px-1 -mx-1" style={{ color: cor, textDecoration: 'none' }}>
+      <a href={href} className="inline-flex items-center gap-1 text-xs font-semibold py-2 -my-2 px-1 -mx-1" style={{ color: corNoDestaque(cor), textDecoration: 'none' }}>
         {t('verDetalhe')} <ArrowRight size={12} />
       </a>
     </CanvasBox>
@@ -409,16 +427,16 @@ export default function CockpitMEI() {
         <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} textoBase={textoLetreiro} />
 
         {/* Saudação + Health Score */}
-        <CanvasBox cor={JADE} motionIndex={0} glow>
+        <CanvasBox cor={JADE} motionIndex={0} glow destaque>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-base md:text-lg font-semibold text-center md:text-left" style={{ color: 'var(--axi-text-primary)' }}>{saudacao}</p>
             <div className="text-center md:text-right flex-shrink-0">
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('scoreLabel')}</p>
               <div className="flex items-baseline gap-2 justify-center md:justify-end">
-                <span className="text-3xl font-black" style={{ color: score.cor }}><CountUp valor={score.score} formatar={(v) => String(Math.round(v))} /></span>
+                <span className="text-3xl font-black" style={{ color: corNoDestaque(score.cor) }}><CountUp valor={score.score} formatar={(v) => String(Math.round(v))} /></span>
                 <span className="text-base" style={{ color: 'var(--axi-text-secondary)' }}>/ 1000</span>
               </div>
-              <p className="text-sm font-bold" style={{ color: score.cor }}>{score.nivel}</p>
+              <p className="text-sm font-bold" style={{ color: corNoDestaque(score.cor) }}>{score.nivel}</p>
             </div>
           </div>
         </CanvasBox>
@@ -427,20 +445,20 @@ export default function CockpitMEI() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <CardVeredito cor={corTeto} titulo={t('card1Titulo')} href="/mei/faturamento" motionIndex={1}>
-            <p className="text-2xl font-black mb-1" style={{ color: corTeto }}><CountUp valor={percentualLimiteAtual} formatar={(v) => `${v.toFixed(1)}%`} /> <span className="text-sm font-semibold" style={{ color: 'var(--axi-text-secondary)' }}>{t('card1DoTeto')}</span></p>
+            <p className="text-2xl font-black mb-1" style={{ color: corNoDestaque(corTeto) }}><CountUp valor={percentualLimiteAtual} formatar={(v) => `${v.toFixed(1)}%`} /> <span className="text-sm font-semibold" style={{ color: 'var(--axi-text-secondary)' }}>{t('card1DoTeto')}</span></p>
             <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('card1Restam')}: <strong>{fmt(restanteLimite)}</strong></p>
             <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>
-              {mesEstouroLabel ? <>{t('card1Estoura')} <strong style={{ color: corTeto }}>{mesEstouroLabel}</strong></> : t('card1SemProjecao')}
+              {mesEstouroLabel ? <>{t('card1Estoura')} <strong style={{ color: corNoDestaque(corTeto) }}>{mesEstouroLabel}</strong></> : t('card1SemProjecao')}
             </p>
           </CardVeredito>
 
           <CardVeredito cor={cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO} titulo={t('card2Titulo')} href="/mei" motionIndex={2}>
-            <p className="text-2xl font-black mb-1" style={{ color: cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO }}><CountUp valor={cofre.proLaboreSeguro} formatar={fmt} /></p>
+            <p className="text-2xl font-black mb-1" style={{ color: corNoDestaque(cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO) }}><CountUp valor={cofre.proLaboreSeguro} formatar={fmt} /></p>
             <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('card2Sub')}</p>
           </CardVeredito>
 
           <CardVeredito cor={corDas} titulo={t('card3Titulo')} href="/mei/das" motionIndex={3}>
-            <p className="text-2xl font-black mb-1" style={{ color: corDas }}>
+            <p className="text-2xl font-black mb-1" style={{ color: corNoDestaque(corDas) }}>
               {faseAtual === 'em_dia' ? t('card3EmDia') : t('card3Atrasado')}
             </p>
             <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>
@@ -448,23 +466,23 @@ export default function CockpitMEI() {
                 ? <>{diasAteVencimentoDas} {t('card3DiasVencer')}</>
                 : <>{divida.piorDiasAtraso} {t('card3DiasAtraso')}</>}
             </p>
-            {faseLabel && <p className="text-xs mt-1 font-semibold" style={{ color: VERMELHO }}>{faseLabel}</p>}
+            {faseLabel && <p className="text-xs mt-1 font-semibold" style={{ color: corNoDestaque(VERMELHO) }}>{faseLabel}</p>}
           </CardVeredito>
 
           <CardVeredito cor={corGraca} titulo={t('card4Titulo')} href="/mei/precificacao" motionIndex={4}>
             {!detectorGraca ? (
               <>
                 <p className="text-xs mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{t('card4Vazio')}</p>
-                <p className="text-xs font-semibold" style={{ color: AZUL }}>{t('card4CtaVazio')}</p>
+                <p className="text-xs font-semibold" style={{ color: corNoDestaque(AZUL) }}>{t('card4CtaVazio')}</p>
               </>
             ) : detectorGraca.situacao === 'prejuizo' ? (
               <>
-                <p className="text-2xl font-black mb-1" style={{ color: VERMELHO }}>{fmt(detectorGraca.prejuizoPorUnidade)}</p>
+                <p className="text-2xl font-black mb-1" style={{ color: corNoDestaque(VERMELHO) }}>{fmt(detectorGraca.prejuizoPorUnidade)}</p>
                 <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('card4Prejuizo')} {fmt(detectorGraca.prejuizoPorUnidade)} {t('card4PorUnidade')}</p>
               </>
             ) : (
               <>
-                <p className="text-2xl font-black mb-1" style={{ color: corGraca }}><CountUp valor={detectorGraca.margemRealPct} formatar={(v) => `${v.toFixed(1)}%`} /></p>
+                <p className="text-2xl font-black mb-1" style={{ color: corNoDestaque(corGraca) }}><CountUp valor={detectorGraca.margemRealPct} formatar={(v) => `${v.toFixed(1)}%`} /></p>
                 <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{detectorGraca.situacao === 'apertada' ? t('card4Apertada') : t('card4Saudavel')}</p>
               </>
             )}
