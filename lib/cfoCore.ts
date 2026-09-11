@@ -355,7 +355,12 @@ const tipBase = {
 
 // Barras verticais com gradiente + valor no topo. coresIndividuais opcional destaca
 // barras específicas (ex: meses de "muro de vencimentos") com uma cor sólida diferente.
-export function optBarrasV(dados: number[], labels: string[], cor: string, corC: string, coresIndividuais?: (string | null)[]) {
+// `temaClaro` é opt-in (undefined = comportamento idêntico ao de sempre,
+// grafismo ajustado pro fundo escuro) — só telas com fundo claro (tema XMS)
+// passam true, pra trocar os cinzas claros/texto branco por tons legíveis
+// em fundo branco. Nenhum dos outros módulos que chamam esta função precisa
+// mudar nada.
+export function optBarrasV(dados: number[], labels: string[], cor: string, corC: string, coresIndividuais?: (string | null)[], temaClaro?: boolean) {
   const gradientePadrao = { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] };
   return {
     backgroundColor: "transparent", animationDuration: 900,
@@ -364,7 +369,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     xAxis: { type: "category", data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -373,7 +378,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
       itemStyle: { borderRadius: [8, 8, 2, 2],
         color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
         shadowColor: cor + "55", shadowBlur: 12 },
-      label: { show: true, position: "top", distance: 6, color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
+      label: { show: true, position: "top", distance: 6, color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
       emphasis: { itemStyle: { shadowBlur: 24 } }, data: dados,
     }],
   };
@@ -433,22 +438,23 @@ export function optBarrasComparativo(
 }
 
 // Rosca com total no centro
-export function optRosca(dados: { name: string; value: number; color: string }[], cor: string, centro: string) {
+// `temaClaro` — mesma lógica opt-in do optBarrasV acima.
+export function optRosca(dados: { name: string; value: number; color: string }[], cor: string, centro: string, temaClaro?: boolean) {
   const total = dados.reduce((a, b) => a + b.value, 0);
   return {
     backgroundColor: "transparent", animationDuration: 1000,
     tooltip: { ...tipBase, trigger: "item", borderColor: cor,
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${cor}">${p.percent}%</span>` },
     legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle",
-      textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 600 },
+      textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 600 },
       formatter: (name: string) => { const d = dados.find((x) => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name.length > 14 ? name.slice(0, 13) + "…" : name}  ${pct}%`; } },
     series: [{ type: "pie", radius: ["54%", "80%"], center: ["32%", "52%"], avoidLabelOverlap: false,
-      itemStyle: { borderColor: "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
+      itemStyle: { borderColor: temaClaro ? "#ffffff" : "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
       label: { show: false }, labelLine: { show: false },
       emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 26 } },
       data: dados.map((d) => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })) }],
     graphic: [
-      { type: "text", left: "32%", top: "45%", style: { text: fK(total), textAlign: "center", fill: "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
+      { type: "text", left: "32%", top: "45%", style: { text: fK(total), textAlign: "center", fill: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
       { type: "text", left: "32%", top: "55%", style: { text: centro, textAlign: "center", fill: "#64748b", fontSize: 9, fontWeight: 700 }, z: 10 },
     ],
   };
@@ -486,20 +492,21 @@ export function optLinhaPrevisao(
 }
 
 // Linha multi-séries (ex: saldo devedor + amortização + juros / metas + realizado + projeção)
+// `temaClaro` — mesma lógica opt-in do optBarrasV acima.
 export function optLinhaMulti(
   series: { nome: string; dados: (number | null)[]; cor: string; tipo?: "solid" | "dashed" | "dotted"; area?: boolean }[],
-  labels: string[], corBorda: string
+  labels: string[], corBorda: string, temaClaro?: boolean
 ) {
   return {
     backgroundColor: "transparent", animationDuration: 1100,
     grid: { left: 58, right: 24, top: 40, bottom: 30, containLabel: false },
     legend: { top: 2, right: 0, itemWidth: 16, itemHeight: 10, itemGap: 18, icon: "roundRect",
-      textStyle: { color: "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: series.map((s) => s.nome) },
+      textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: series.map((s) => s.nome) },
     tooltip: { ...tipBase, trigger: "axis", borderColor: corBorda,
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter((p) => p.value != null).map((p) => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", boundaryGap: false, data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: "#94a3b8", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#55637a" : "#94a3b8", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -507,7 +514,7 @@ export function optLinhaMulti(
       name: s.nome, type: "line", smooth: true,
       symbol: "circle", symbolSize: 7,
       lineStyle: { width: 3.5, color: s.cor, type: s.tipo === "dashed" ? "dashed" : s.tipo === "dotted" ? "dotted" : "solid", shadowColor: s.cor + "80", shadowBlur: 12 },
-      itemStyle: { color: s.cor, borderColor: "#0a0820", borderWidth: 2 },
+      itemStyle: { color: s.cor, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 2 },
       ...(s.area ? { areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: s.cor + "55" }, { offset: 1, color: s.cor + "00" }] } } } : {}),
       data: s.dados,
     })),

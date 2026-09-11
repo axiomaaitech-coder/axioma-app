@@ -441,7 +441,7 @@ export default function PainelMEI() {
                   { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: '#a78bfa' },
                   { name: mx.cofreProLabore, value: Math.max(0, cofre.proLaboreSeguro), color: VERDE },
                 ],
-                OURO, mx.cofreTitulo
+                OURO, mx.cofreTitulo, tema === 'xms'
               )} notMerge />
             </div>
           </div>
@@ -494,7 +494,7 @@ export default function PainelMEI() {
               {semaforo === 'vermelho' ? mx.semaforoVermelho : semaforo === 'amarelo' ? mx.semaforoAmarelo : mx.semaforoVerde}
             </span>
           </div>
-          <div className="w-full h-4 rounded-full mb-2" style={{ background: 'rgba(106,176,255,0.1)' }}>
+          <div className="w-full h-4 rounded-full mb-2" style={{ background: 'var(--axi-border)' }}>
             <div className="h-4 rounded-full transition-all" style={{ width: `${percentualLimiteAtual}%`, background: corSemaforo }} />
           </div>
           <div className="flex justify-between text-xs mb-4" style={{ color: 'var(--axi-text-secondary)' }}>
@@ -536,7 +536,7 @@ export default function PainelMEI() {
                 { nome: t('faturamento'), dados: acumuladoTeto, cor: corSemaforo, area: true },
                 { nome: 'Limite MEI', dados: evolucaoMensal.map(() => teto), cor: VERMELHO, tipo: 'dashed' },
               ],
-              evolucaoMensal.map(p => p.mes), corSemaforo
+              evolucaoMensal.map(p => p.mes), corSemaforo, tema === 'xms'
             )} />
           </CanvasBox>
         ) : (
@@ -558,7 +558,8 @@ export default function PainelMEI() {
               evolucaoMensal.map(p => p.entrou),
               evolucaoMensal.map(p => p.mes),
               OURO, '#f0d878',
-              evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? ROYAL : null))
+              evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? ROYAL : null)),
+              tema === 'xms'
             )} />
           ) : (
             <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{mx.semHistoricoSuficiente}</p>
@@ -569,7 +570,7 @@ export default function PainelMEI() {
               { label: mx.nRecebimentos, valor: String(nRecebimentosMes) },
               { label: mx.maiorReceita, valor: fmt(maiorReceitaMes) },
             ].map((m, i) => (
-              <div key={i} className="rounded-xl p-3 text-center" style={{ background: 'rgba(10,22,40,0.6)', border: '1px solid rgba(106,176,255,0.15)' }}>
+              <div key={i} className="rounded-xl p-3 text-center" style={{ background: 'var(--axi-surface)', border: '1px solid var(--axi-border)' }}>
                 <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{m.label}</p>
                 <p className="text-sm font-bold mt-1" style={{ color: AZUL }}>{m.valor}</p>
               </div>
@@ -607,7 +608,7 @@ export default function PainelMEI() {
                 { nome: mx.saiu, dados: fluxoSerie6m.map(p => p.saiu), cor: VERMELHO },
                 { nome: mx.sobra, dados: fluxoSerie6m.map(p => p.sobra), cor: AZUL },
               ],
-              fluxoSerie6m.map(p => p.mes), AZUL
+              fluxoSerie6m.map(p => p.mes), AZUL, tema === 'xms'
             )} />
           </CanvasBox>
         ) : null}
@@ -630,7 +631,7 @@ export default function PainelMEI() {
                 { label: mx.subTeto, valor: score.subScores.teto, desc: mx.subTetoDesc },
                 { label: mx.subFluxo, valor: score.subScores.fluxo, desc: mx.subFluxoDesc },
               ].map((s, i) => (
-                <div key={i} className="rounded-xl p-3" style={{ background: 'rgba(10,22,40,0.6)', border: '1px solid rgba(106,176,255,0.15)' }}>
+                <div key={i} className="rounded-xl p-3" style={{ background: 'var(--axi-surface)', border: '1px solid var(--axi-border)' }}>
                   <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{s.label}</p>
                   <p className="text-base font-bold" style={{ color: AZUL }}>{s.valor}</p>
                   <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{s.desc}</p>
@@ -676,7 +677,7 @@ export default function PainelMEI() {
                 { label: t('projecaoAnual'), value: fmt(projecaoAnual), destaque: projecaoAnual > teto },
                 { label: t('categoriaMei'), value: meiDados?.categoria_mei || 'Serviços' },
               ].map((item, i) => (
-                <div key={i} className="flex justify-between items-center px-3 py-2.5 rounded-xl" style={{ background: 'rgba(10,22,40,0.5)', border: '1px solid rgba(106,176,255,0.1)' }}>
+                <div key={i} className="flex justify-between items-center px-3 py-2.5 rounded-xl" style={{ background: 'var(--axi-surface)', border: '1px solid var(--axi-border)' }}>
                   <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
                   <span className="text-sm font-bold" style={{ color: item.destaque ? VERMELHO : OURO }}>{item.value}</span>
                 </div>
@@ -701,7 +702,7 @@ export default function PainelMEI() {
             ].map((item, i) => (
               <a key={i} href={item.path}
                 className="flex items-center gap-2 p-3 rounded-xl"
-                style={{ background: 'rgba(42,95,212,0.08)', border: `1px solid ${ROYAL}30`, textDecoration: 'none' }}>
+                style={{ background: `${ROYAL}10`, border: `1px solid ${ROYAL}30`, textDecoration: 'none' }}>
                 <TrendingUp size={14} style={{ color: ROYAL }} />
                 <span className="text-xs font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
               </a>
