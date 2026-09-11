@@ -110,17 +110,19 @@ export default function CockpitMEI() {
     esmeralda: { JADE: '#40d088', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706' },
   } as const
   const { JADE, BRONZE, VERDE, VERMELHO, AMBAR } = PALETA_COCKPIT[tema]
-  // Dentro de um card "destaque" (fundo verde sólido no Esmeralda — ver
-  // CanvasBox destaque), as cores semânticas (positivo/negativo/atenção)
-  // precisam de tons claros pra não sumir no verde — em qualquer outro
-  // tema (o card não tem fundo colorido) passam direto, sem mudança.
+  // Dentro de um card "destaque" (fundo azul-claro sólido no Esmeralda —
+  // ver CanvasBox destaque), as cores semânticas (positivo/negativo/
+  // atenção) precisam de tons que leiam bem nesse azul — versões mais
+  // profundas/saturadas das mesmas cores semânticas, não os tons pensados
+  // pra fundo branco. Em qualquer outro tema (o card não tem fundo
+  // colorido) passam direto, sem mudança.
   const corNoDestaque = (corSemantica: string): string => {
     if (tema !== 'esmeralda') return corSemantica
     const mapa: Record<string, string> = {
-      [VERDE]: '#ffffff', '#34d399': '#ffffff',
-      [VERMELHO]: '#ffd4d0', '#f87171': '#ffd4d0',
-      [AMBAR]: '#ffe8b8', '#f59e0b': '#ffe8b8', '#fb923c': '#ffe8b8',
-      [AZUL]: '#ffffff',
+      [VERDE]: '#0d7a4f', '#34d399': '#0d7a4f',
+      [VERMELHO]: '#b91c1c', '#f87171': '#b91c1c',
+      [AMBAR]: '#b45309', '#f59e0b': '#b45309', '#fb923c': '#b45309',
+      [AZUL]: '#0b1f3a',
     }
     return mapa[corSemantica] ?? corSemantica
   }

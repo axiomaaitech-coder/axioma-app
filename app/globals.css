@@ -30,6 +30,11 @@
   --axi-card-destaque-bg: var(--axi-surface);
   --axi-card-destaque-text: var(--axi-text-primary);
   --axi-card-destaque-text-secondary: var(--axi-text-secondary);
+  /* Sombra do container grande (ModuloLayout) e do card destaque — valores
+     idênticos aos que já estavam hardcoded (nenhuma mudança visual aqui
+     nem no xms); só o Esmeralda redefine pro relevo "3D". */
+  --axi-container-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --axi-card-destaque-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 [data-theme="xms"] {
@@ -49,37 +54,46 @@
 }
 
 [data-theme="esmeralda"] {
-  /* Tema "Esmeralda" — hierarquia de 3 camadas pedida pelo Elias (print
-     anotado do MEI Cockpit): 1) fundo geral da PÁGINA continua navy
-     (--axi-bg, igual ao print) — nunca vira branco; 2) o CONTAINER GRANDE
-     (ModuloLayout) é branco, como no print — por isso --axi-surface/
-     --axi-border/--axi-text-* aqui espelham o tema "xms" (mesmo "papel"
-     branco, textos navy); 3) os CARDS DE DESTAQUE (marcados de verde no
-     print — Saudação+Score, cards de veredito) usam --axi-card-destaque-*
-     abaixo, aplicados via CanvasBox destaque={true}. Verde #40d088 e navy
-     #080830 extraídos por histograma de pixel real da imagem de
-     referência (public/referencias/), não aproximados. */
+  /* Tema "Esmeralda" — 2ª rodada de ajuste (pedido do Elias): 1) fundo
+     geral da PÁGINA continua navy (--axi-bg) — nunca muda; 2) o CONTAINER
+     GRANDE (ModuloLayout) deixou de ser branco e virou um azul mais claro,
+     com relevo "3D" nas bordas (--axi-container-shadow) pra se separar do
+     navy da página só por profundidade, já que a cor é próxima; 3) os
+     CARDS DE DESTAQUE (CanvasBox destaque={true}) usam um azul um degrau
+     mais profundo que o container (mesma família, se separam por
+     elevação/sombra, não por salto de cor) com TEXTO VERDE — antes era
+     fundo verde com texto branco; virou fundo azul com texto verde. Verde
+     #40d088 extraído por pixel da imagem de referência (public/
+     referencias/); o azul é uma escolha nova (não estava em nenhuma
+     referência), pedida explicitamente "mais clara" que o navy da página. */
   --axi-bg: #080830;
-  --axi-surface: #ffffff;
-  --axi-surface-solid: #ffffff;
-  --axi-border: rgba(11, 31, 58, 0.12);
+  --axi-surface: #e4edfb;
+  --axi-surface-solid: #e4edfb;
+  --axi-border: rgba(29, 66, 122, 0.22);
   --axi-text-heading: #0b1f3a;
   --axi-text-primary: #17304f;
-  --axi-text-secondary: #55637a;
+  --axi-text-secondary: #4a5f7d;
   --axi-success: #16a34a;
   --axi-warning: #d97706;
   --axi-error: #dc2626;
   --axi-accent: #40d088;
-  --axi-card-destaque-bg: #0a7d54;
-  --axi-card-destaque-text: #ffffff;
-  --axi-card-destaque-text-secondary: rgba(255, 255, 255, 0.72);
+  --axi-card-destaque-bg: #b9d2f0;
+  --axi-card-destaque-text: #0d7a4f;
+  --axi-card-destaque-text-secondary: rgba(13, 122, 79, 0.75);
+  /* "Estilo 3D" opt-in — sombra externa suave + friso interno claro no
+     topo, dá relevo sem exagero (nada de glow, só profundidade). Container
+     e card usam a mesma técnica, o card com um pouco mais de peso pra ler
+     como "acima" do container. */
+  --axi-container-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 10px 28px rgba(11, 31, 58, 0.22);
+  --axi-card-destaque-shadow: 0 1px 0 rgba(255, 255, 255, 0.35) inset, 0 6px 16px rgba(11, 31, 58, 0.18);
 }
 
 /* Texto dentro de um card "destaque" (CanvasBox destaque) — só no tema
    Esmeralda: os var(--axi-text-*) que o card já usa via CSS passam a
-   resolver pro par branco acima, sem precisar tocar em cada `style` do
-   MEI/Cockpit. Em "dark"/"xms" (sem --axi-card-destaque-bg própria)
-   CanvasBox cai no --axi-surface normal, comportamento inalterado. */
+   resolver pro par acima (verde, sobre o azul do card), sem precisar
+   tocar em cada `style` do MEI/Cockpit. Em "dark"/"xms" (sem
+   --axi-card-destaque-bg própria) CanvasBox cai no --axi-surface normal,
+   comportamento inalterado. */
 [data-theme="esmeralda"] .axi-card-destaque {
   --axi-text-heading: var(--axi-card-destaque-text);
   --axi-text-primary: var(--axi-card-destaque-text);

@@ -66,6 +66,22 @@ export default function PainelMEI() {
     esmeralda: { OURO: '#0b1f3a', ROYAL: '#40d088', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
   } as const
   const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
+  // Gráficos ECharts recebem um booleano "fundo claro" pra trocar a cor do
+  // texto/eixo — Esmeralda usa o mesmo "papel" branco do xms (ver
+  // globals.css), então conta como fundo claro também.
+  const temaClaro = tema === 'xms' || tema === 'esmeralda'
+  // Mesmo raciocínio do Cockpit — dentro de um card "destaque" (fundo
+  // azul-claro sólido, só no Esmeralda) a cor semântica do texto precisa
+  // de um tom que leia bem nesse azul (versão mais profunda da mesma cor
+  // semântica); nos outros temas passa direto.
+  const corNoDestaque = (corSemantica: string): string => {
+    if (tema !== 'esmeralda') return corSemantica
+    const mapa: Record<string, string> = {
+      [VERDE]: '#0d7a4f', [OURO]: '#0b1f3a', [AZUL]: '#0b1f3a',
+      [VERMELHO]: '#b91c1c', [AMBAR]: '#b45309',
+    }
+    return mapa[corSemantica] ?? '#0b1f3a'
+  }
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
   const [meiDados, setMeiDados] = useState<any>(null)
@@ -397,9 +413,9 @@ export default function PainelMEI() {
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {cardsPrincipais.map((card, i) => (
-            <CanvasBox key={i} cor={card.cor} motionIndex={i} glow>
+            <CanvasBox key={i} cor={card.cor} motionIndex={i} glow destaque>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}>
+              <p className="text-xl md:text-2xl font-black" style={{ color: corNoDestaque(card.cor) }}>
                 <CountUp valor={card.value} formatar={fmt} />
               </p>
             </CanvasBox>
@@ -448,7 +464,7 @@ export default function PainelMEI() {
                   { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: '#a78bfa' },
                   { name: mx.cofreProLabore, value: Math.max(0, cofre.proLaboreSeguro), color: VERDE },
                 ],
-                OURO, mx.cofreTitulo, tema === 'xms'
+                OURO, mx.cofreTitulo, temaClaro
               )} notMerge />
             </div>
           </div>
@@ -543,7 +559,7 @@ export default function PainelMEI() {
                 { nome: t('faturamento'), dados: acumuladoTeto, cor: corSemaforo, area: true },
                 { nome: 'Limite MEI', dados: evolucaoMensal.map(() => teto), cor: VERMELHO, tipo: 'dashed' },
               ],
-              evolucaoMensal.map(p => p.mes), corSemaforo, tema === 'xms'
+              evolucaoMensal.map(p => p.mes), corSemaforo, temaClaro
             )} />
           </CanvasBox>
         ) : (
@@ -566,7 +582,7 @@ export default function PainelMEI() {
               evolucaoMensal.map(p => p.mes),
               OURO, '#f0d878',
               evolucaoMensal.map((_, i) => (i === evolucaoMensal.length - 1 ? ROYAL : null)),
-              tema === 'xms'
+              temaClaro
             )} />
           ) : (
             <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{mx.semHistoricoSuficiente}</p>
@@ -615,7 +631,7 @@ export default function PainelMEI() {
                 { nome: mx.saiu, dados: fluxoSerie6m.map(p => p.saiu), cor: VERMELHO },
                 { nome: mx.sobra, dados: fluxoSerie6m.map(p => p.sobra), cor: AZUL },
               ],
-              fluxoSerie6m.map(p => p.mes), AZUL, tema === 'xms'
+              fluxoSerie6m.map(p => p.mes), AZUL, temaClaro
             )} />
           </CanvasBox>
         ) : null}

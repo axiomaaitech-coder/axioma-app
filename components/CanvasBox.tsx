@@ -31,6 +31,7 @@ export function CanvasBox({
 }) {
   const classeDestaque = destaque ? " axi-card-destaque" : "";
   const fundo = destaque ? "var(--axi-card-destaque-bg)" : "var(--axi-surface)";
+  const sombra = destaque ? "var(--axi-card-destaque-shadow)" : "0 1px 2px rgba(0,0,0,0.3)";
   const conteudo = (
     <>
       {/* acento fino no topo (estático) */}
@@ -55,7 +56,7 @@ export function CanvasBox({
         style={{
           background: fundo,
           border: `1px solid ${cor}26`,
-          boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+          boxShadow: sombra,
         }}
       >
         {conteudo}
