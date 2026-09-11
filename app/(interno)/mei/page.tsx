@@ -51,21 +51,20 @@ const AZUL = '#6ab0ff'
 export default function PainelMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  // No tema XMS, OURO é a cor dominante na tela (Cofre, Evolução, Resumo
-  // Anual, Modal) — vira o azul-marinho profundo (cor de base da marca).
-  // ROYAL aparece só em pontos pontuais (CTAs, Acesso Rápido) — vira o
-  // verde vibrante (cor de destaque, não deve tomar conta da tela).
-  const OURO = tema === 'xms' ? '#0b1f3a' : '#d4af37'
-  const ROYAL = tema === 'xms' ? '#0e9f6e' : '#2a5fd4'
-  const VERDE = tema === 'xms' ? '#16a34a' : '#34d399'
-  const VERMELHO = tema === 'xms' ? '#dc2626' : '#f87171'
-  const AMBAR = tema === 'xms' ? '#d97706' : '#f59e0b'
-  // Modal Configurar MEI (inputs/chips) ficou de fora das correções de
-  // contraste anteriores — os valores de dark theme não se adaptavam ao
-  // fundo branco do XMS (ficavam quase invisíveis).
-  const CAMPO_BG = tema === 'xms' ? '#eef2f7' : 'rgba(255,255,255,0.04)'
-  const CHIP_BG = tema === 'xms' ? 'rgba(11,31,58,0.05)' : 'rgba(106,176,255,0.05)'
-  const CHIP_BORDA = tema === 'xms' ? 'rgba(11,31,58,0.12)' : 'rgba(106,176,255,0.1)'
+  // Paleta por tema — "dark" é o padrão de sempre (inalterado), "xms" é o
+  // fundo branco (identidade XMS Contábil), "esmeralda" é a mesma
+  // identidade XMS em fundo escuro — cores extraídas por pixel real da
+  // imagem em public/referencias/ (navy #080830, verde #40d088), não
+  // aproximadas. OURO é o acento "dominante"/estático da tela, ROYAL é o
+  // de destaque (CTAs, Acesso Rápido): em fundo escuro o dominante fica
+  // sóbrio e o destaque vibrante; no XMS (fundo branco) é o oposto, pra
+  // não lavar a tela de verde.
+  const PALETA = {
+    dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
+    xms: { OURO: '#0b1f3a', ROYAL: '#0e9f6e', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
+    esmeralda: { OURO: '#dce9e3', ROYAL: '#40d088', VERDE: '#40d088', VERMELHO: '#f87171', AMBAR: '#f5a623', CAMPO_BG: 'rgba(255,255,255,0.05)', CHIP_BG: 'rgba(255,255,255,0.05)', CHIP_BORDA: 'rgba(64,208,136,0.18)' },
+  } as const
+  const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
   const [meiDados, setMeiDados] = useState<any>(null)
@@ -362,7 +361,7 @@ export default function PainelMEI() {
     }
   }
 
-  const textoLetreiro = tema === 'xms' ? 'var(--axi-text-primary)' : '#e2e8f0'
+  const textoLetreiro = tema === 'dark' ? '#e2e8f0' : 'var(--axi-text-primary)'
   const cardsPrincipais = [
     { label: `${t('faturamento')} ${anoAtual}`, value: faturamentoAnual, cor: OURO },
     { label: t('limiteRestante'), value: restanteLimite, cor: VERDE },

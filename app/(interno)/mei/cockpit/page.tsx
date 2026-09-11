@@ -7,9 +7,10 @@ import { createBrowserClient } from '@supabase/ssr'
 import ModuloLayout from '../../../../components/ModuloLayout'
 import { CanvasBox } from '../../../../components/CanvasBox'
 import { LetreiroExecutivo, type ItemLetreiro } from '../../../../components/LetreiroExecutivo'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Share2 } from 'lucide-react'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { CountUp } from '../../../../components/CountUp'
 import { AuroraBackground } from '../../../../components/AuroraBackground'
 import {
@@ -97,11 +98,14 @@ export default function CockpitMEI() {
   const router = useRouter()
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  const JADE = tema === 'xms' ? '#0e9f6e' : '#047857'
-  const BRONZE = tema === 'xms' ? '#0b1f3a' : '#065f46'
-  const VERDE = tema === 'xms' ? '#16a34a' : '#34d399'
-  const VERMELHO = tema === 'xms' ? '#dc2626' : '#f87171'
-  const AMBAR = tema === 'xms' ? '#d97706' : '#f59e0b'
+  // Ver PALETA em app/(interno)/mei/page.tsx pro mesmo raciocínio de
+  // "esmeralda" (identidade XMS de public/referencias/ em fundo escuro).
+  const PALETA_COCKPIT = {
+    dark: { JADE: '#047857', BRONZE: '#065f46', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b' },
+    xms: { JADE: '#0e9f6e', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706' },
+    esmeralda: { JADE: '#40d088', BRONZE: '#dce9e3', VERDE: '#40d088', VERMELHO: '#f87171', AMBAR: '#f5a623' },
+  } as const
+  const { JADE, BRONZE, VERDE, VERMELHO, AMBAR } = PALETA_COCKPIT[tema]
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
   const [nomeEmpresa, setNomeEmpresa] = useState<string | null>(null)
@@ -112,6 +116,7 @@ export default function CockpitMEI() {
   const [contasPagar, setContasPagar] = useState<ContaPagarMEI[]>([])
   const [obrigacoes, setObrigacoes] = useState<any[]>([])
   const [precoSalvo, setPrecoSalvo] = useState<any>(null)
+  const [shareAberto, setShareAberto] = useState(false)
 
   const txt = {
     titulo: { pt: 'MEI — Cockpit', en: 'MEI — Cockpit', es: 'MEI — Cockpit' },
@@ -120,6 +125,7 @@ export default function CockpitMEI() {
     empresaFallback: { pt: 'Sua empresa', en: 'Your company', es: 'Su empresa' },
     scoreLabel: { pt: 'Score de Saúde do MEI', en: 'MEI Health Score', es: 'Score de Salud del MEI' },
     verDetalhe: { pt: 'Ver detalhe', en: 'See detail', es: 'Ver detalle' },
+    compartilhar: { pt: 'Compartilhar', en: 'Share', es: 'Compartir' },
 
     card1Titulo: { pt: 'Teto do MEI', en: 'MEI Cap', es: 'Techo del MEI' },
     card1DoTeto: { pt: 'do teto', en: 'of the cap', es: 'del techo' },
@@ -373,7 +379,13 @@ export default function CockpitMEI() {
     )
   }
 
-  const textoLetreiro = tema === 'xms' ? 'var(--axi-text-primary)' : '#e2e8f0'
+  const textoLetreiro = tema === 'dark' ? '#e2e8f0' : 'var(--axi-text-primary)'
+
+  const textoResumoCockpit = [
+    `${t('titulo')} — ${nomeEmpresa || t('empresaFallback')}`,
+    `${t('scoreLabel')}: ${score.score}/1000 (${score.nivel})`,
+    ...avisosCockpit.slice(0, 5).map((a) => `• ${textoAviso(a.chaveI18n, a.valores)}`),
+  ].join('\n')
 
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
@@ -381,7 +393,16 @@ export default function CockpitMEI() {
       titulo={t('titulo')}
       subtitulo={t('subtitulo')}
       aurora={<AuroraBackground corA={JADE} corB={BRONZE} />}
-      botaoExtra={<ThemeToggle />}
+      botaoExtra={
+        <>
+          <button onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${JADE}, ${BRONZE})`, color: '#fff' }}>
+            <Share2 size={16} /> {t('compartilhar')}
+          </button>
+          <ThemeToggle />
+        </>
+      }
     >
       <div className="space-y-4">
 
@@ -469,6 +490,15 @@ export default function CockpitMEI() {
 
       </div>
     </ModuloLayout>
+
+    <CentroCompartilhamento
+      aberto={shareAberto}
+      onFechar={() => setShareAberto(false)}
+      lang={lang}
+      textoResumo={textoResumoCockpit}
+      assunto={`${t('titulo')} — Axioma`}
+      cor={JADE}
+    />
     </div>
   )
 }

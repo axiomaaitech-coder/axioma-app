@@ -42,6 +42,26 @@
   --axi-accent: #0e9f6e;
 }
 
+[data-theme="esmeralda"] {
+  /* Tema "Esmeralda" — mesma identidade XMS (public/referencias/), agora em
+     fundo escuro. Cores extraídas por histograma de pixel real da imagem
+     de referência (não aproximadas): navy #080830 (header/faixa de KPI do
+     modelo), verde #40d088 (ícones/números/CTA do modelo), branco nos
+     textos. Fica lado a lado com "xms" (fundo branco) sem alterá-lo — são
+     duas leituras da mesma identidade, a escura e a clara. */
+  --axi-bg: #080830;
+  --axi-surface: rgba(255, 255, 255, 0.05);
+  --axi-surface-solid: #10163f;
+  --axi-border: rgba(64, 208, 136, 0.18);
+  --axi-text-heading: #f5fbf8;
+  --axi-text-primary: #dce9e3;
+  --axi-text-secondary: #8a9bb0;
+  --axi-success: #40d088;
+  --axi-warning: #f5a623;
+  --axi-error: #f87171;
+  --axi-accent: #40d088;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
