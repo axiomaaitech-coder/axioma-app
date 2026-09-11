@@ -12,6 +12,8 @@ interface ModuloLayoutProps {
   onNovo?: () => void;
   children: ReactNode;
   botaoExtra?: ReactNode;
+  /** Opt-in — só quem passa true ganha o fundo "aurora" (nenhum módulo herda por padrão). */
+  aurora?: ReactNode;
 }
 
 // Card interno reutilizável — borda sutil, sem animação piscante.
@@ -42,10 +44,10 @@ export function NeonCard({ children, cor = "#6ab0ff", className = "" }: { childr
 }
 
 export default function ModuloLayout({
-  titulo, subtitulo, onExportarPDF, exportando, labelBotao, onNovo, children, botaoExtra
+  titulo, subtitulo, onExportarPDF, exportando, labelBotao, onNovo, children, botaoExtra, aurora
 }: ModuloLayoutProps) {
   return (
-    <div className="min-h-screen p-4 md:p-8" style={{ background: "#020810" }}>
+    <div className="min-h-screen p-4 md:p-8" style={{ background: "var(--axi-bg)" }}>
 
       {/* Header */}
       <motion.div
@@ -54,8 +56,8 @@ export default function ModuloLayout({
         transition={{ duration: 0.35, ease: "easeOut" }}
         className="mb-6 md:mb-8"
       >
-        <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: "#e2ecf7" }}>{titulo}</h2>
-        <p className="text-sm" style={{ color: "#5a7a9a" }}>{subtitulo}</p>
+        <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: "var(--axi-text-heading)" }}>{titulo}</h2>
+        <p className="text-sm" style={{ color: "var(--axi-text-secondary)" }}>{subtitulo}</p>
         <div className="flex gap-2 mt-4 flex-wrap">
           {onExportarPDF && (
             <motion.button
@@ -93,8 +95,8 @@ export default function ModuloLayout({
         transition={{ duration: 0.4, ease: "easeOut", delay: 0.05 }}
         className="relative rounded-2xl overflow-hidden"
         style={{
-          background: "rgba(6,15,30,0.75)",
-          border: "1px solid rgba(106,176,255,0.14)",
+          background: "var(--axi-surface)",
+          border: "1px solid var(--axi-border)",
           boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
         }}
       >
@@ -111,6 +113,9 @@ export default function ModuloLayout({
             background: "radial-gradient(ellipse at 12% 0%, rgba(106,176,255,0.05) 0%, transparent 45%)",
           }}
         />
+
+        {/* Aurora opcional — opt-in, ver prop `aurora` */}
+        {aurora}
 
         {/* Conteúdo */}
         <div className="relative z-10 p-4 md:p-6">

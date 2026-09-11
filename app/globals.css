@@ -3,6 +3,43 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ─────────────────────────────────────────────────────────────
+     AXIOMA — tokens de design central (fundação, rodada de 2026-09).
+     :root = tema "escuro" (padrão atual, valores idênticos aos hex
+     que já estavam espalhados pelos módulos — trocar pra var() aqui
+     NÃO muda nada visualmente em nenhum módulo existente).
+     [data-theme="xms"] só existe onde um componente/tela decide
+     ativá-lo (atributo local, nunca em <html>/<body>) — módulos que
+     não usam esse atributo continuam 100% no tema escuro, sempre.
+     ───────────────────────────────────────────────────────────── */
+  --axi-bg: #020810;
+  --axi-surface: rgba(10, 20, 36, 0.7);
+  --axi-surface-solid: #0a1628;
+  --axi-border: rgba(106, 176, 255, 0.14);
+  --axi-text-heading: #e2ecf7;
+  --axi-text-primary: #c8d8f0;
+  --axi-text-secondary: #5a7a9a;
+  --axi-success: #34d399;
+  --axi-warning: #f59e0b;
+  --axi-error: #f87171;
+  --axi-accent: #6ab0ff;
+}
+
+[data-theme="xms"] {
+  /* Tema "XMS" — proposto pra aprovação (identidade XMS Contábil):
+     azul-marinho profundo + verde vibrante + branco, elegante/empresarial. */
+  --axi-bg: #f3f6fa;
+  --axi-surface: #ffffff;
+  --axi-surface-solid: #ffffff;
+  --axi-border: #dce3ed;
+  --axi-text-heading: #0b1f3a;
+  --axi-text-primary: #17304f;
+  --axi-text-secondary: #55637a;
+  --axi-success: #16a34a;
+  --axi-warning: #d97706;
+  --axi-error: #dc2626;
+  --axi-accent: #0e9f6e;
 }
 
 @theme inline {
@@ -23,4 +60,33 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Aurora — fundo animado muito lento pra módulos com mais espaço vazio.
+   Só transform (translate), respeita prefers-reduced-motion. Opt-in via
+   classe .axi-aurora, usada só onde a tela decide (nenhum módulo herda
+   isso por padrão). */
+@keyframes axiAurora {
+  0%, 100% { transform: translate(-8%, -6%) scale(1); }
+  50% { transform: translate(6%, 8%) scale(1.15); }
+}
+.axi-aurora-blob {
+  animation: axiAurora 42s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .axi-aurora-blob { animation: none; }
+}
+
+/* Brilho discreto no hover dos cards (estilo Linear/glare) — opt-in via
+   CanvasBox glow={true}. Só opacity + transform, sem custo de reflow. */
+.axi-card-hoverglow .axi-card-glare {
+  transform: translateX(-30%);
+  transition: opacity 0.4s ease, transform 0.6s ease;
+}
+.axi-card-hoverglow:hover .axi-card-glare {
+  opacity: 1;
+  transform: translateX(30%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .axi-card-hoverglow .axi-card-glare { transition: none; opacity: 0 !important; }
 }

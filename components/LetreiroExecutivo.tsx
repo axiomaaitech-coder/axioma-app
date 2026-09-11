@@ -16,9 +16,15 @@ export type ItemLetreiro = { texto: string; destaque?: boolean; cor?: string; on
 export function LetreiroExecutivo({
   itens,
   cor,
+  textoBase = "#e2e8f0",
 }: {
   itens: (string | ItemLetreiro | false | null | undefined)[];
   cor: string;
+  /** Cor do texto não-destacado. Opcional — os módulos que já usavam este
+   * componente não precisam passar nada e continuam iguais. Só existe pra
+   * telas com fundo claro (tema XMS), onde o cinza-claro padrão não teria
+   * contraste suficiente. */
+  textoBase?: string;
 }) {
   const normalizados: ItemLetreiro[] = itens
     .filter((it): it is string | ItemLetreiro => !!it)
@@ -40,12 +46,12 @@ export function LetreiroExecutivo({
                     onClick={it.onClick}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); it.onClick!(); } }}
                     className="cursor-pointer px-1 -mx-1 py-2 -my-2 rounded active:opacity-70"
-                    style={{ color: it.cor || (it.destaque ? cor : "#e2e8f0") }}
+                    style={{ color: it.cor || (it.destaque ? cor : textoBase) }}
                   >
                     {it.texto}
                   </span>
                 ) : (
-                  <span style={{ color: it.cor || (it.destaque ? cor : "#e2e8f0") }}>{it.texto}</span>
+                  <span style={{ color: it.cor || (it.destaque ? cor : textoBase) }}>{it.texto}</span>
                 )}
                 <span style={{ color: cor }}>{"  •  "}</span>
               </span>
