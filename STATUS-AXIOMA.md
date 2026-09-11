@@ -1220,6 +1220,22 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 
 **Como testar:** menu superior → **Contabilidade** → **Fiscal**. Clicar em "Rodar descoberta" pra a Axioma vasculhar obrigações e impostos. Botões no topo levam pro **Calendário** (obrigações por vencimento, ação rápida de status) e **Atividade Fiscal** (define Comércio/Indústria/Serviço/Misto + ISS — recomendado fazer isso primeiro, antes de rodar a descoberta, pra a divergência de imposto já sair com o cálculo certo).
 
+## 3-BB. Enterprise Design System — kickoff, bug real corrigido no MEI, fundação de componentes globais (2026-09-11)
+
+**Contexto:** Elias colocou `public/referencias/` com 3 imagens do site XMS Contábil (a que já embasou o tema `data-theme="xms"` do MEI) e trouxe um briefing de 22 pontos pra padronização visual/UX de toda a plataforma — tokens, componentes globais, motion system, modais/cards/tooltips, loading/upload/download, dashboards, empty states, responsividade, acessibilidade — regra central "sem carnaval": poucos efeitos, muito bem aplicados, sensação Enterprise SaaS/Fintech, nunca "olha quantas animações".
+
+**Bug real encontrado e corrigido antes de qualquer coisa nova:** o modal "Configurar MEI" (categoria, DAS, dados cadastrais, perfil de cliente) ficou de fora das duas correções de contraste anteriores (commits `961abd6`/`4cd3bcb`) — inputs e chips usavam fundos fixos pensados pro tema escuro (`rgba(255,255,255,0.04)`, `rgba(106,176,255,0.05/0.1)`), quase invisíveis no tema XMS (fundo branco). Agora usam `CAMPO_BG`/`CHIP_BG`/`CHIP_BORDA`, theme-aware como o resto do arquivo.
+
+**Causa raiz, não só o sintoma:** esse modal era filho de `ModuloLayout`, cujo container anima com `transform` + `overflow-hidden` — o mesmo bug já documentado na seção 3-I (Clientes): um `position: fixed` dentro de ancestral com `transform` vira relativo a esse ancestral em vez da viewport, e fica cortado/mal posicionado atrás do Header. Em vez de repetir o `createPortal` ad hoc mais uma vez (como foi feito só no Clientes), virou dois componentes globais novos — **`components/Modal.tsx`** e **`components/Toast.tsx`** — e o MEI Painel foi migrado pra usá-los. Todo módulo que usa `ModuloLayout` com modal/toast próprio tem o mesmo risco; a migração é gradual, módulo por módulo, não big-bang.
+
+**Auditoria rápida do que já existe vs. o que falta (ETAPA 1 do briefing):**
+- Já existe e funciona: tokens de cor (`--axi-*` em `app/globals.css`, tema escuro padrão + `xms` opt-in), `CanvasBox`, `ModuloLayout`, `AuroraBackground`, `CountUp`, `LetreiroExecutivo`/`LetreiroAxioma`, `ThemeToggle`, `CentroCompartilhamento`, `SeletorPeriodo`/`SeletorCentroCusto`.
+- Falta centralizar (hoje cada módulo reimplementa inline): Modal ✅ (feito nesta rodada) e Toast ✅ (feito nesta rodada); ainda faltam Button, Input, Select, Badge/Status, EmptyState, Skeleton/LoadingState, Tooltip, Table/Pagination. Grep confirmou **41 arquivos de página** com estado próprio de modal/toast duplicado — a extração vai continuar conforme cada módulo for tocado, não de uma vez (risco de quebrar 20+ telas no mesmo commit).
+
+**Plano de rollout (minha decisão de sequenciamento, sem precisar aprovação prévia — já registrado como padrão em rodadas anteriores):** 1) extrair o próximo componente global (Button ou EmptyState) junto do próximo módulo que for mexido; 2) seguir a ordem do menu (Financeiro → Crescimento → Comercial → MEI → PDV), aplicando tema/tokens/componentes globais e corrigindo qualquer modal preso em `ModuloLayout` que for encontrado pelo caminho; 3) motion system (fade + leve translateY + escala sutil, já é o padrão usado em `Modal`/`ModuloLayout`) generalizado por último, quando os componentes estruturais já estiverem estáveis.
+
+**Verificação feita:** `tsc --noEmit` limpo (antes e depois da extração de `Modal`/`Toast`). Não testado no navegador com login real — mesma prática já registrada (sem credencial em chat).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
