@@ -51,14 +51,14 @@
 [data-theme="esmeralda"] {
   /* Tema "Esmeralda" — 3ª rodada, correção do Elias: nada de cor nova.
      Container/cards voltam a usar o MESMO azul-marinho que já é a
-     identidade do Axioma (idêntico ao tema "escuro" — --axi-surface/
-     --axi-border/--axi-text-*/sombra são cópia exata de :root, mesmo
-     efeito de profundidade que separa card de fundo em todo módulo já
-     existente, "efeito 3D" sem inventar nada). A ÚNICA diferença real do
-     Esmeralda é o acento verde — extraído por pixel da imagem de
-     referência (public/referencias/), não aproximado — e o texto dos
-     cards "destaque" (CanvasBox destaque={true}), que fica verde em vez
-     do azul-claro padrão. */
+     identidade do Axioma (idêntico ao tema "escuro" — surface, borda,
+     textos e sombra são cópia exata de :root, mesmo efeito de
+     profundidade que separa card de fundo em todo módulo já existente,
+     "efeito 3D" sem inventar nada). A ÚNICA diferença real do Esmeralda
+     é o acento verde — extraído por pixel da imagem de referência
+     (public/referencias/), não aproximado — e o texto dos cards
+     "destaque" (CanvasBox destaque true), que fica verde em vez do
+     azul-claro padrão. */
   --axi-bg: #080830;
   --axi-surface: rgba(10, 20, 36, 0.7);
   --axi-surface-solid: #0a1628;
