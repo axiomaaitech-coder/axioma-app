@@ -24,14 +24,13 @@ export function CanvasBox({
   corD?: string;
   motionIndex?: number;
   glow?: boolean;
-  /** Card "de destaque" (opt-in) — no tema Esmeralda ganha fundo verde
-   * sólido + texto branco (var(--axi-card-destaque-*)); em "dark"/"xms"
-   * não muda nada (o token cai de volta em --axi-surface normal). */
+  /** Card "de destaque" (opt-in) — no tema Esmeralda o texto (var(--axi-text-*)
+   * dentro do card) vira verde; o fundo continua o mesmo --axi-surface de
+   * sempre. Em "dark"/"xms" não muda nada. */
   destaque?: boolean;
 }) {
   const classeDestaque = destaque ? " axi-card-destaque" : "";
   const fundo = destaque ? "var(--axi-card-destaque-bg)" : "var(--axi-surface)";
-  const sombra = destaque ? "var(--axi-card-destaque-shadow)" : "0 1px 2px rgba(0,0,0,0.3)";
   const conteudo = (
     <>
       {/* acento fino no topo (estático) */}
@@ -56,7 +55,7 @@ export function CanvasBox({
         style={{
           background: fundo,
           border: `1px solid ${cor}26`,
-          boxShadow: sombra,
+          boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
         }}
       >
         {conteudo}

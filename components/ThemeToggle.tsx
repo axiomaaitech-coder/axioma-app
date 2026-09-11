@@ -11,7 +11,7 @@ export function ThemeToggle() {
 
   const opcoes: { valor: TemaAxioma; label: string; Icone: typeof Moon }[] = [
     { valor: "dark", label: "Escuro", Icone: Moon },
-    { valor: "xms", label: "XMS", Icone: Sparkles },
+    { valor: "xms", label: "Tema Claro", Icone: Sparkles },
     { valor: "esmeralda", label: "Esmeralda", Icone: Gem },
   ];
 

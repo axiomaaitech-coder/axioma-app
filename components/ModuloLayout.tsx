@@ -97,7 +97,7 @@ export default function ModuloLayout({
         style={{
           background: "var(--axi-surface)",
           border: "1px solid var(--axi-border)",
-          boxShadow: "var(--axi-container-shadow)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
         }}
       >
         {/* Acento de canto sutil — só uma linha fina no topo, estática */}

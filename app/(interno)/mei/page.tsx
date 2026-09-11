@@ -51,37 +51,23 @@ const AZUL = '#6ab0ff'
 export default function PainelMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  // Paleta por tema — "dark" é o padrão de sempre (inalterado). No Esmeralda
-  // o "papel" grande do ModuloLayout é branco (só o fundo da PÁGINA é navy —
-  // ver [data-theme="esmeralda"] em globals.css), o mesmo "papel" do xms —
-  // por isso OURO/CAMPO_BG/CHIP_* espelham o xms aqui; só ROYAL fica mais
-  // vibrante (verde exato extraído da imagem de referência). OURO virou
-  // quase-branco numa rodada anterior achando que o fundo continuava navy
-  // — isso causava o "brilho branco" nas bordas/aurora/glare dos cards
-  // (o próprio OURO usado como base de tudo isso); corrigido de volta pro
-  // navy, igual ao xms.
+  // Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" é o
+  // papel branco (identidade XMS Contábil). "esmeralda" usa o MESMO
+  // azul-marinho do tema escuro (o Elias pediu explicitamente pra não
+  // inventar cor nova, reusar "o azul do Axioma") — só ROYAL muda pro
+  // verde exato extraído por pixel da imagem de referência
+  // (public/referencias/), já que é o acento que carrega a identidade
+  // "Esmeralda" (CTAs, Acesso Rápido, texto dos cards destaque).
   const PALETA = {
     dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
     xms: { OURO: '#0b1f3a', ROYAL: '#0e9f6e', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
-    esmeralda: { OURO: '#0b1f3a', ROYAL: '#40d088', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
+    esmeralda: { OURO: '#d4af37', ROYAL: '#40d088', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
   } as const
   const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
   // Gráficos ECharts recebem um booleano "fundo claro" pra trocar a cor do
-  // texto/eixo — Esmeralda usa o mesmo "papel" branco do xms (ver
-  // globals.css), então conta como fundo claro também.
-  const temaClaro = tema === 'xms' || tema === 'esmeralda'
-  // Mesmo raciocínio do Cockpit — dentro de um card "destaque" (fundo
-  // azul-claro sólido, só no Esmeralda) a cor semântica do texto precisa
-  // de um tom que leia bem nesse azul (versão mais profunda da mesma cor
-  // semântica); nos outros temas passa direto.
-  const corNoDestaque = (corSemantica: string): string => {
-    if (tema !== 'esmeralda') return corSemantica
-    const mapa: Record<string, string> = {
-      [VERDE]: '#0d7a4f', [OURO]: '#0b1f3a', [AZUL]: '#0b1f3a',
-      [VERMELHO]: '#b91c1c', [AMBAR]: '#b45309',
-    }
-    return mapa[corSemantica] ?? '#0b1f3a'
-  }
+  // texto/eixo — só o xms tem papel branco; esmeralda usa o mesmo fundo
+  // escuro do tema padrão.
+  const temaClaro = tema === 'xms'
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
   const [meiDados, setMeiDados] = useState<any>(null)
@@ -415,7 +401,7 @@ export default function PainelMEI() {
           {cardsPrincipais.map((card, i) => (
             <CanvasBox key={i} cor={card.cor} motionIndex={i} glow destaque>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-xl md:text-2xl font-black" style={{ color: corNoDestaque(card.cor) }}>
+              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}>
                 <CountUp valor={card.value} formatar={fmt} />
               </p>
             </CanvasBox>
