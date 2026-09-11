@@ -7,10 +7,11 @@ import * as Sentry from '@sentry/nextjs'
 import { AlertTriangle, X, TrendingUp, ShieldAlert, Share2, Clock } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
+import Modal from '../../../components/Modal'
+import Toast from '../../../components/Toast'
 import ReactECharts from 'echarts-for-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
-import { motion, AnimatePresence } from 'motion/react'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
 import { optBarrasV, optRosca, optLinhaMulti } from '../../../lib/cfoCore'
 import { buscarIndicadoresMacro } from '../../../lib/bcbApi'
@@ -59,6 +60,12 @@ export default function PainelMEI() {
   const VERDE = tema === 'xms' ? '#16a34a' : '#34d399'
   const VERMELHO = tema === 'xms' ? '#dc2626' : '#f87171'
   const AMBAR = tema === 'xms' ? '#d97706' : '#f59e0b'
+  // Modal Configurar MEI (inputs/chips) ficou de fora das correções de
+  // contraste anteriores — os valores de dark theme não se adaptavam ao
+  // fundo branco do XMS (ficavam quase invisíveis).
+  const CAMPO_BG = tema === 'xms' ? '#eef2f7' : 'rgba(255,255,255,0.04)'
+  const CHIP_BG = tema === 'xms' ? 'rgba(11,31,58,0.05)' : 'rgba(106,176,255,0.05)'
+  const CHIP_BORDA = tema === 'xms' ? 'rgba(11,31,58,0.12)' : 'rgba(106,176,255,0.1)'
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)
   const [meiDados, setMeiDados] = useState<any>(null)
@@ -713,14 +720,7 @@ export default function PainelMEI() {
       </div>
 
       {/* Modal Configurar MEI */}
-      <AnimatePresence>
-        {modalConfig && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-center pt-20 pb-8 px-4 overflow-y-auto"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }} transition={{ duration: 0.2 }}
-              className="w-full max-w-md">
+      <Modal open={modalConfig} onClose={() => setModalConfig(false)}>
               <CanvasBox cor={OURO}>
                 <div className="flex justify-between items-center mb-5">
                   <h3 className="text-lg font-bold" style={{ color: 'var(--axi-text-primary)' }}>{t('configurar')}</h3>
@@ -744,9 +744,9 @@ export default function PainelMEI() {
                           onClick={() => { setCategoriaMei(cat.pt); setDasValor(String(dasMensalPorCategoria(cat.pt))) }}
                           className="py-2.5 rounded-xl text-xs font-semibold"
                           style={{
-                            background: categoriaMei === cat.pt ? `${OURO}20` : 'rgba(106,176,255,0.05)',
+                            background: categoriaMei === cat.pt ? `${OURO}20` : CHIP_BG,
                             color: categoriaMei === cat.pt ? OURO : 'var(--axi-text-secondary)',
-                            border: `1px solid ${categoriaMei === cat.pt ? OURO + '40' : 'rgba(106,176,255,0.1)'}`,
+                            border: `1px solid ${categoriaMei === cat.pt ? OURO + '40' : CHIP_BORDA}`,
                           }}>
                           {cat[lang]}
                         </button>
@@ -759,7 +759,7 @@ export default function PainelMEI() {
                     </label>
                     <input type="number" value={dasValor} onChange={e => setDasValor(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>
@@ -767,7 +767,7 @@ export default function PainelMEI() {
                     </label>
                     <input type="date" value={dataAbertura} onChange={e => setDataAbertura(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>
@@ -775,7 +775,7 @@ export default function PainelMEI() {
                     </label>
                     <input type="number" value={reservaEmergenciaPctForm} onChange={e => setReservaEmergenciaPctForm(e.target.value)}
                       placeholder="10" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>
@@ -783,7 +783,7 @@ export default function PainelMEI() {
                     </label>
                     <input type="text" value={razaoSocialForm} onChange={e => setRazaoSocialForm(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -792,7 +792,7 @@ export default function PainelMEI() {
                       </label>
                       <input type="text" value={cnpjForm} onChange={e => setCnpjForm(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                        style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>
@@ -800,7 +800,7 @@ export default function PainelMEI() {
                       </label>
                       <input type="text" value={cnaeForm} onChange={e => setCnaeForm(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                        style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -810,7 +810,7 @@ export default function PainelMEI() {
                       </label>
                       <input type="number" value={proLaboreDesejadoForm} onChange={e => setProLaboreDesejadoForm(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                        style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>
@@ -818,7 +818,7 @@ export default function PainelMEI() {
                       </label>
                       <input type="number" min={1} max={31} value={diaVencimentoDasForm} onChange={e => setDiaVencimentoDasForm(e.target.value)}
                         placeholder="20" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
+                        style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>
                   </div>
                   <div>
@@ -834,9 +834,9 @@ export default function PainelMEI() {
                         <button key={op.valor} onClick={() => setPerfilClienteForm(op.valor)}
                           className="py-2.5 rounded-xl text-xs font-semibold"
                           style={{
-                            background: perfilClienteForm === op.valor ? `${OURO}20` : 'rgba(106,176,255,0.05)',
+                            background: perfilClienteForm === op.valor ? `${OURO}20` : CHIP_BG,
                             color: perfilClienteForm === op.valor ? OURO : 'var(--axi-text-secondary)',
-                            border: `1px solid ${perfilClienteForm === op.valor ? OURO + '40' : 'rgba(106,176,255,0.1)'}`,
+                            border: `1px solid ${perfilClienteForm === op.valor ? OURO + '40' : CHIP_BORDA}`,
                           }}>
                           {op.label}
                         </button>
@@ -846,7 +846,7 @@ export default function PainelMEI() {
                   <div className="flex gap-3 pt-2">
                     <button onClick={() => setModalConfig(false)}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold"
-                      style={{ background: 'rgba(106,176,255,0.1)', color: 'var(--axi-text-secondary)' }}>
+                      style={{ background: CHIP_BORDA, color: 'var(--axi-text-secondary)' }}>
                       {t('cancelar')}
                     </button>
                     <button onClick={salvarConfig} disabled={salvando}
@@ -857,10 +857,7 @@ export default function PainelMEI() {
                   </div>
                 </div>
               </CanvasBox>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       <CentroCompartilhamento
         aberto={shareAberto}
@@ -873,12 +870,7 @@ export default function PainelMEI() {
         cor={OURO}
       />
 
-      {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
-          {toast.msg}
-        </div>
-      )}
+      <Toast toast={toast} />
     </ModuloLayout>
     </div>
   )
