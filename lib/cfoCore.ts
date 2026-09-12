@@ -358,6 +358,12 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   [CORES.verde]: "#16a34a", [CORES.vermelho]: "#dc2626", [CORES.laranja]: "#c2410c",
   [CORES.rosa]: "#be185d", [CORES.azul]: "#0043c8", [CORES.indigo]: "#4338ca",
   [CORES.teal]: "#0f766e", [CORES.amarelo]: "#a16207",
+  // Variantes "C" (companheiras claras/pastel de cada CORES.*, usadas como
+  // texto/gradiente sobre fundo escuro) — mesmo destino da cor base, senão
+  // ficam pastel-sobre-claro (ilegível) no tema Claro.
+  [CORES.ouroC]: "#a16207", [CORES.roxoC]: "#7c3aed", [CORES.cyanC]: "#0e7490",
+  [CORES.verdeC]: "#16a34a", [CORES.vermelhoC]: "#dc2626", [CORES.laranjaC]: "#c2410c",
+  [CORES.rosaC]: "#be185d", [CORES.azulC]: "#0043c8", [CORES.amareloC]: "#a16207",
   "#6ab0ff": "#0043c8", "#3b6fd4": "#0043c8", "#2a5fd4": "#0043c8", "#5a8fd4": "#0043c8",
   "#34d399": "#16a34a", "#fbbf24": "#d97706", "#f87171": "#dc2626", "#c4b5fd": "#7c3aed",
   "#5a7a9a": "#55637a", "#c8d8f0": "#17304f", "#f1f5f9": "#17304f", "#e2e8f0": "#17304f",

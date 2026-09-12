@@ -499,7 +499,7 @@ export default function CustosVariaveis() {
                 </div>
                 <div className="space-y-2">
                   {sugestoes.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
                     </div>
