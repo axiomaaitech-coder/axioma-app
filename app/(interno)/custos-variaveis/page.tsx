@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fBRL2, fPct, CORES, porCategoria, optRosca, optBarrasV, optLinhaMulti, optLinhaPrevisao, serieRolling,
+  fBRL, fBRL2, fPct, CORES, corTema, porCategoria, optRosca, optBarrasV, optLinhaMulti, optLinhaPrevisao, serieRolling,
   margemContribuicao, pontoEquilibrio, margemSeguranca, coeficienteVariacao, pesoSobreReceita,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodos, compararPeriodosPorCategoria,
   detectarAnomaliasHistoricas, preverTendencia, FONTE_EXEC,
@@ -23,6 +23,14 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
+const ANOMALIA_PAINEL_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))";
+const ANOMALIA_PAINEL_CLARO = "linear-gradient(160deg, #fdf3ee, #f7f8fc)";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -50,6 +58,14 @@ function inicioJanelaHistorica(fimPeriodo: string): string {
 
 export default function CustosVariaveis() {
   const { t, idioma } = useLanguage();
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
+  const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
+  const anomaliaFundo = temaClaro ? ANOMALIA_PAINEL_CLARO : ANOMALIA_PAINEL_ESCURO;
+  const campoFundo = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const campoFundo3 = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.9)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
 
@@ -278,25 +294,26 @@ export default function CustosVariaveis() {
   ].join("\n");
 
   // ═══════════════════════ GRÁFICOS ═══════════════════════
-  const composicao = porCategoria(custosNoPeriodo, categorias, CAT_COR);
-  const optCat = optRosca(composicao, CORES.laranja, cx.custoVariavelMes.toUpperCase());
+  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, ct(v)]));
+  const composicao = porCategoria(custosNoPeriodo, categorias, catCorAtual);
+  const optCat = optRosca(composicao, ct(CORES.laranja), cx.custoVariavelMes.toUpperCase(), temaClaro);
 
   const topCustos = [...custosNoPeriodo].sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0)).slice(0, 8) as (Lancamento & { descricao: string })[];
   const optTop = optBarrasV(
     topCustos.map(c => Number(c.valor) || 0),
     topCustos.map(c => (c.descricao || "").length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao),
-    CORES.amarelo, CORES.amareloC
+    ct(CORES.amarelo), CORES.amareloC, undefined, temaClaro
   );
 
   const labelsHist = serieCVHist.map(b => b.label);
   const peSerie: number[] = pe !== null ? Array(12).fill(pe) : [];
   const optMargem = optLinhaMulti(
     [
-      { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRolling(receitas, 12, periodo.fim).map(b => b.value), cor: CORES.verde, area: true },
-      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: CORES.laranja },
-      { nome: cx.pontoEquilibrio, dados: peSerie, cor: CORES.rosa, tipo: "dashed" as const },
+      { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRolling(receitas, 12, periodo.fim).map(b => b.value), cor: ct(CORES.verde), area: true },
+      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(CORES.laranja) },
+      { nome: cx.pontoEquilibrio, dados: peSerie, cor: ct(CORES.rosa), tipo: "dashed" as const },
     ],
-    labelsHist, CORES.laranja
+    labelsHist, ct(CORES.laranja), temaClaro
   );
 
   const labelsProj = ["+1", "+2", "+3"];
@@ -304,16 +321,16 @@ export default function CustosVariaveis() {
     [...serieCVHist.slice(-6).map(b => b.value), ...Array(3).fill(null)],
     previsaoCV,
     [...serieCVHist.slice(-6).map(b => b.label), ...labelsProj],
-    cx.realizado, cx.projetado, CORES.laranja, CORES.laranjaC
+    cx.realizado, cx.projetado, ct(CORES.laranja), CORES.laranjaC, temaClaro
   );
 
   const kpisCFO = [
-    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: CORES.laranja, i: "📉", delta: comparativoCV, polaridadeInvertida: true },
-    { l: cx.margemContribuicao, v: fPct(mc.pct), c: CORES.verde, i: "📊", delta: null as ComparativoPeriodo | null, polaridadeInvertida: false },
-    { l: cx.pontoEquilibrio, v: pe !== null ? fBRL(pe) : cx.semBreakeven, c: CORES.cyan, i: "⚖️", delta: null, polaridadeInvertida: false },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? CORES.rosa : ms < 15 ? CORES.vermelho : ms < 30 ? CORES.amarelo : CORES.verde, i: "🛡️", delta: null, polaridadeInvertida: false },
-    { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? CORES.vermelho : volatilidade > 15 ? CORES.amarelo : CORES.verde, i: "🌊", delta: null, polaridadeInvertida: false },
-    { l: cx.pesoReceita, v: fPct(pesoReceita), c: CORES.roxo, i: "⚡", delta: null, polaridadeInvertida: false },
+    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: ct(CORES.laranja), i: "📉", delta: comparativoCV, polaridadeInvertida: true },
+    { l: cx.margemContribuicao, v: fPct(mc.pct), c: ct(CORES.verde), i: "📊", delta: null as ComparativoPeriodo | null, polaridadeInvertida: false },
+    { l: cx.pontoEquilibrio, v: pe !== null ? fBRL(pe) : cx.semBreakeven, c: ct(CORES.cyan), i: "⚖️", delta: null, polaridadeInvertida: false },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️", delta: null, polaridadeInvertida: false },
+    { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? ct(CORES.vermelho) : volatilidade > 15 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🌊", delta: null, polaridadeInvertida: false },
+    { l: cx.pesoReceita, v: fPct(pesoReceita), c: ct(CORES.roxo), i: "⚡", delta: null, polaridadeInvertida: false },
   ];
 
   const marquee = [
@@ -326,43 +343,45 @@ export default function CustosVariaveis() {
 
   const DeltaBadge = ({ comp, invertido }: { comp: ComparativoPeriodo; invertido: boolean }) => {
     if (comp.direcao === "estavel") {
-      return <span className="text-[9px] font-bold" style={{ color: "#64748b" }}>{cx.periodoEstavel}</span>;
+      return <span className="text-xs font-bold" style={{ color: ct("#64748b") }}>{cx.periodoEstavel}</span>;
     }
     const bom = invertido ? comp.direcao === "baixa" : comp.direcao === "alta";
-    const cor = bom ? CORES.verde : CORES.vermelho;
+    const cor = bom ? ct(CORES.verde) : ct(CORES.vermelho);
     const seta = comp.direcao === "alta" ? "▲" : "▼";
     return (
-      <span className="text-[9px] font-bold" style={{ color: cor }}>
+      <span className="text-xs font-bold" style={{ color: cor }}>
         {seta} {fPct(Math.abs(comp.variacaoPct))} {cx.vsPeriodoAnterior}
       </span>
     );
   };
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-        <p className="text-[13px] font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{titulo}</p>
+        <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
       </div>
       <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
     </div>
   );
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.custosVariaveis.titulo} subtitulo={t.custosVariaveis.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.custosVariaveis.novoCusto}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], centro_custo_id: "" }); setModalAberto(true); }}>
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], centro_custo_id: "" }); setModalAberto(true); }}
+      botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <SeletorPeriodo
             preset={presetPeriodo} onChangePreset={setPresetPeriodo}
             personalizado={personalizado} onChangePersonalizado={setPersonalizado}
-            cor={CORES.laranja} lang={lang}
+            cor={ct(CORES.laranja)} lang={lang}
           />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}>
+            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -370,13 +389,13 @@ export default function CustosVariaveis() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: "#f97316" },
-            { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: "#6ab0ff" },
-            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: "#fbbf24" },
+            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct("#f97316") },
+            { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#6ab0ff") },
+            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct("#fbbf24") },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
+              <CanvasBox cor={card.cor} destaque>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
                 <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
@@ -391,10 +410,10 @@ export default function CustosVariaveis() {
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
                   className="rounded-2xl p-3 md:p-4"
-                  style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
+                  style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
-                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                   {k.delta && <div className="mt-1"><DeltaBadge comp={k.delta} invertido={k.polaridadeInvertida} /></div>}
                 </motion.div>
               ))}
@@ -404,8 +423,8 @@ export default function CustosVariaveis() {
             <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(249,115,22,0.14), rgba(251,191,36,0.10))", border: "1px solid rgba(249,115,22,0.24)" }}>
               <div className="marquee-cv py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#fdba74" : "#e2e8f0" }}>{m}<span style={{ color: "#f97316" }}>{"  •  "}</span></span>))}
+                  <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#fdba74") : ct("#e2e8f0") }}>{m}<span style={{ color: ct("#f97316") }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -414,57 +433,57 @@ export default function CustosVariaveis() {
 
             {/* NARRATIVA AUTOMÁTICA — "o que mudou", sempre citando a origem do número */}
             {(narrativaVariacao || narrativaMargem) && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(249,115,22,0.2)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(249,115,22,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <MessageSquareText size={16} style={{ color: CORES.laranja }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
+                  <MessageSquareText size={16} style={{ color: ct(CORES.laranja) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: "#e2e8f0" }}>
+                <p className="text-sm leading-relaxed" style={{ color: ct("#e2e8f0") }}>
                   {narrativaVariacao} {narrativaMargem}
                 </p>
               </div>
             )}
 
             {/* MODAL ÚNICO — Análise de Margem */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#f97316,#fbbf24)", boxShadow: "0 0 12px #f97316" }} />
                   <div>
-                    <p className="text-sm md:text-base font-black" style={{ color: "#f1f5f9", fontFamily: "'Georgia',serif" }}>{cx.analiseMargem}</p>
-                    <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{cx.subAnaliseMargem}</p>
+                    <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.analiseMargem}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.subAnaliseMargem}</p>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <SubChart titulo={cx.analiseMargem} cor={CORES.laranja} option={optMargem} altura={280} />
+                  <SubChart titulo={cx.analiseMargem} cor={ct(CORES.laranja)} option={optMargem} altura={280} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <SubChart titulo={t.geral.categoria} cor={CORES.laranja} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={CORES.amarelo} option={optTop} altura={260} />
-                  <SubChart titulo={cx.previsao} cor={CORES.roxo} option={optProjecao} altura={260} />
+                  <SubChart titulo={t.geral.categoria} cor={ct(CORES.laranja)} option={optCat} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.amarelo)} option={optTop} altura={260} />
+                  <SubChart titulo={cx.previsao} cor={ct(CORES.roxo)} option={optProjecao} altura={260} />
                 </div>
               </div>
             </div>
 
             {/* ANOMALIAS HISTÓRICAS / PRICE CREEP */}
             {anomalias.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))", border: "1px solid rgba(249,115,22,0.25)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: anomaliaFundo, border: "1px solid rgba(249,115,22,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle size={16} style={{ color: CORES.laranja }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.anomaliasTitulo}</p>
+                  <AlertTriangle size={16} style={{ color: ct(CORES.laranja) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.anomaliasTitulo}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {anomalias.map((a, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.25)" }}>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold truncate" style={{ color: "#e2e8f0" }}>{a.descricao}</p>
-                        <p className="text-[10px] font-medium" style={{ color: CORES.laranja }}>
+                        <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
+                        <p className="text-xs font-medium" style={{ color: ct(CORES.laranja) }}>
                           {a.tipo === "aumento_recorrente" ? cx.itemRenegociar : `${fBRL(a.valorAtual)} ${cx.acimaPropriaMedia} (${fBRL(a.valorReferencia)})`}
                         </p>
                       </div>
-                      <p className="text-sm font-black flex-shrink-0 ml-2" style={{ color: CORES.laranja }}>{fBRL(a.impacto)}</p>
+                      <p className="text-sm font-black flex-shrink-0 ml-2" style={{ color: ct(CORES.laranja) }}>{fBRL(a.impacto)}</p>
                     </div>
                   ))}
                 </div>
@@ -473,16 +492,16 @@ export default function CustosVariaveis() {
 
             {/* SUGESTÕES ACIONÁVEIS */}
             {sugestoes.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Zap size={16} style={{ color: CORES.ouro }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.sugestoesTitulo}</p>
+                  <Zap size={16} style={{ color: ct(CORES.ouro) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.sugestoesTitulo}</p>
                 </div>
                 <div className="space-y-2">
                   {sugestoes.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
-                      <Sparkles size={15} style={{ color: CORES.ouro, flexShrink: 0 }} />
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{s}</p>
+                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
+                      <p className="text-xs font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
                 </div>
@@ -491,17 +510,17 @@ export default function CustosVariaveis() {
 
             {/* Insights */}
             {insights.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={16} style={{ color: CORES.ouro }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.insights}</p>
+                  <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
                       style={{ background: ins.tipo === "alerta" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)", border: `1px solid ${ins.tipo === "alerta" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
-                      {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: CORES.vermelho, flexShrink: 0 }} /> : <Zap size={15} style={{ color: CORES.verde, flexShrink: 0 }} />}
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: ins.tipo === "alerta" ? "#fca5a5" : "#6ee7b7" }}>{ins.texto}</p>
+                      {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} /> : <Zap size={15} style={{ color: ct(CORES.verde), flexShrink: 0 }} />}
+                      <p className="text-xs font-medium" style={{ color: ins.tipo === "alerta" ? ct("#fca5a5") : ct("#6ee7b7") }}>{ins.texto}</p>
                     </div>
                   ))}
                 </div>
@@ -511,16 +530,16 @@ export default function CustosVariaveis() {
         )}
 
         {/* Busca */}
-        <CanvasBox cor="#3b6fd4">
+        <CanvasBox cor={ct("#3b6fd4")}>
           <div className="flex items-center gap-2 py-1">
-            <Search size={16} style={{ color: "#5a7a9a" }} />
+            <Search size={16} style={{ color: "var(--axi-text-secondary)" }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.custosVariaveis.buscar}
-              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "#c8d8f0" }} />
+              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "var(--axi-text-primary)" }} />
           </div>
         </CanvasBox>
 
         {/* Tabela */}
-        <CanvasBox cor="#f97316">
+        <CanvasBox cor={ct("#f97316")}>
           <div className="overflow-x-auto">
             {carregando ? (
               <div className="flex items-center justify-center py-16">
@@ -531,25 +550,25 @@ export default function CustosVariaveis() {
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(59,111,212,0.15)" }}>
                     {[t.geral.descricao, t.geral.categoria, t.geral.data, t.geral.valor, t.geral.acoes].map(h => (
-                      <th key={h} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "#5a7a9a" }}>{h}</th>
+                      <th key={h} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {custosFiltrados.length === 0 ? (
-                    <tr><td colSpan={5} className="text-center py-12 text-sm" style={{ color: "#5a7a9a" }}>{t.custosVariaveis.semCustos}</td></tr>
+                    <tr><td colSpan={5} className="text-center py-12 text-sm" style={{ color: "var(--axi-text-secondary)" }}>{t.custosVariaveis.semCustos}</td></tr>
                   ) : custosFiltrados.map((c, i) => (
                     <motion.tr key={c.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       whileHover={{ backgroundColor: "rgba(249,115,22,0.02)" }}
                       style={{ borderBottom: i < custosFiltrados.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
-                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "#c8d8f0" }}>{c.descricao}</td>
-                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${CAT_COR[c.categoria]}18`, color: CAT_COR[c.categoria] || "#6ab0ff" }}>{c.categoria}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "#5a7a9a" }}>{new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: "#f97316" }}>{fBRL(c.valor)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
+                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#6ab0ff")}18`, color: catCorAtual[c.categoria] || ct("#6ab0ff") }}>{c.categoria}</span></td>
+                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "var(--axi-text-secondary)" }}>{new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#f97316") }}>{fBRL(c.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: "#6ab0ff" }}><Pencil size={16} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: "#f97316" }}><Trash2 size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#6ab0ff") }}><Pencil size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct("#f97316") }}><Trash2 size={16} /></motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -570,13 +589,13 @@ export default function CustosVariaveis() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor="#f97316">
+              <CanvasBox cor={ct("#f97316")}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#f97316" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? (lang === "en" ? "Edit Variable Cost" : lang === "es" ? "Editar Costo Variable" : "Editar Custo Variável") : t.custosVariaveis.novoCusto}</h3>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#f97316") }}>AXIOMA AI.TECH</p>
+                    <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Variable Cost" : lang === "es" ? "Editar Costo Variable" : "Editar Custo Variável") : t.custosVariaveis.novoCusto}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-4">
                   {[
@@ -585,30 +604,30 @@ export default function CustosVariaveis() {
                     { label: t.geral.data, key: "data", type: "date" },
                   ].map(({ label, key, type }) => (
                     <div key={key}>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{label}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{label}</label>
                       <input type={type} value={novo[key as keyof typeof novo]} onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
                         className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                        style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
                     </div>
                   ))}
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.categoria}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.categoria}</label>
                     <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
-                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "#5a7a9a", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>
+                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "var(--axi-text-secondary)", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
                     </label>
                     <SeletorCentroCusto
                       value={novo.centro_custo_id} onChange={(id) => setNovo({ ...novo, centro_custo_id: id })}
                       centros={centrosCusto} empresaId={empresaIdAtivo} userId={userIdAtivo} lang={lang}
                       onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
+                      style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}
                     />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -642,5 +661,6 @@ export default function CustosVariaveis() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   );
 }

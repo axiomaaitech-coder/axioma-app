@@ -346,6 +346,27 @@ export const CORES = {
   indigo: "#6366f1", teal: "#14b8a6", amarelo: "#eab308", amareloC: "#fde68a",
 };
 
+// Tradução "tema Claro" de CORES + tons de texto/painel genéricos que se
+// repetem pelos módulos fora do MEI (Financeiro, Comercial, Gestão...) —
+// todos calibrados pro fundo escuro (navy), pastel/claro demais pra ficar
+// legível em fundo branco. `corTema(hex, true)` devolve a versão 600/700
+// equivalente (mesmo padrão já usado no MEI); sem o 2º argumento (ou
+// false), devolve o hex original — nenhuma tela que já chama isso com um
+// hex fora do mapa muda de comportamento.
+const MAPA_CORES_CLARO: Record<string, string> = {
+  [CORES.ouro]: "#a16207", [CORES.roxo]: "#7c3aed", [CORES.cyan]: "#0e7490",
+  [CORES.verde]: "#16a34a", [CORES.vermelho]: "#dc2626", [CORES.laranja]: "#c2410c",
+  [CORES.rosa]: "#be185d", [CORES.azul]: "#0043c8", [CORES.indigo]: "#4338ca",
+  [CORES.teal]: "#0f766e", [CORES.amarelo]: "#a16207",
+  "#6ab0ff": "#0043c8", "#3b6fd4": "#0043c8", "#2a5fd4": "#0043c8", "#5a8fd4": "#0043c8",
+  "#34d399": "#16a34a", "#fbbf24": "#d97706", "#f87171": "#dc2626", "#c4b5fd": "#7c3aed",
+  "#5a7a9a": "#55637a", "#c8d8f0": "#17304f", "#f1f5f9": "#17304f", "#e2e8f0": "#17304f",
+  "#64748b": "#55637a", "#6ee7b7": "#16a34a", "#fca5a5": "#dc2626",
+};
+export function corTema(hex: string, claro?: boolean): string {
+  return claro ? MAPA_CORES_CLARO[hex] ?? hex : hex;
+}
+
 // ---------- OPTIONS ECharts REUTILIZÁVEIS ----------
 const tipBase = {
   backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, padding: [10, 14],
@@ -461,31 +482,32 @@ export function optRosca(dados: { name: string; value: number; color: string }[]
 }
 
 // Linha realizado + previsão
+// `temaClaro` — mesma lógica opt-in do optBarrasV acima.
 export function optLinhaPrevisao(
   historico: (number | null)[], previsao: number[], labels: string[],
-  labelReal: string, labelProj: string, corReal: string, corProj: string
+  labelReal: string, labelProj: string, corReal: string, corProj: string, temaClaro?: boolean
 ) {
   return {
     backgroundColor: "transparent", animationDuration: 1100,
     grid: { left: 52, right: 16, top: 20, bottom: 28, containLabel: false },
     tooltip: { ...tipBase, trigger: "axis", borderColor: corProj,
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter((p) => p.value != null).map((p) => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
-    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [labelReal, labelProj] },
+    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [labelReal, labelProj] },
     xAxis: { type: "category", boundaryGap: false, data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: "#94a3b8", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#55637a" : "#94a3b8", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
     series: [
       { name: labelReal, type: "line", smooth: true, symbol: "circle", symbolSize: 7,
         lineStyle: { width: 4, color: corReal, shadowColor: corReal + "80", shadowBlur: 12 },
-        itemStyle: { color: corReal, borderColor: "#0a0820", borderWidth: 2 },
+        itemStyle: { color: corReal, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 2 },
         areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corReal + "55" }, { offset: 1, color: corReal + "00" }] } },
         data: historico },
       { name: labelProj, type: "line", smooth: true, symbol: "emptyCircle", symbolSize: 7,
         lineStyle: { width: 3, color: corProj, type: "dotted", shadowColor: corProj + "70", shadowBlur: 10 },
-        itemStyle: { color: corProj, borderColor: "#0a0820", borderWidth: 2 },
+        itemStyle: { color: corProj, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 2 },
         data: [...Array(Math.max(0, historico.filter((v) => v != null).length - 1)).fill(null), historico.filter((v) => v != null).slice(-1)[0], ...previsao] },
     ],
   };
@@ -1070,7 +1092,8 @@ export function projetarDRE(p: {
 // ---------- GRÁFICO CASCATA (waterfall) — modal único do DRE ----------
 export type ItemCascata = { label: string; valor: number; tipo: "subtotal" | "variacao" };
 
-export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativo: string, corSubtotal: string) {
+// `temaClaro` — mesma lógica opt-in do optBarrasV acima.
+export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativo: string, corSubtotal: string, temaClaro?: boolean) {
   let acumulado = 0;
   const base: number[] = [];
   const valores: number[] = [];
@@ -1106,7 +1129,7 @@ export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativ
     xAxis: {
       type: "category", data: itens.map((it) => it.label),
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: "#cbd5e1", fontSize: 10, fontWeight: 700, interval: 0, rotate: 20 },
+      axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 10, fontWeight: 700, interval: 0, rotate: 20 },
     },
     yAxis: {
       type: "value", axisLine: { show: false }, axisTick: { show: false },
@@ -1118,7 +1141,7 @@ export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativ
       {
         name: "valor", type: "bar", stack: "cascata", barWidth: "55%",
         itemStyle: { borderRadius: [6, 6, 2, 2], color: (p: any) => cores[p.dataIndex] },
-        label: { show: true, position: "top", color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => fK(itens[p.dataIndex].valor) },
+        label: { show: true, position: "top", color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => fK(itens[p.dataIndex].valor) },
         data: valores,
       },
     ],
@@ -2158,8 +2181,11 @@ export function calcularIPPA(p: {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TIPOGRAFIA PREMIUM — padrão executivo do Dashboard (Georgia serif)
-// Usar em TODOS os títulos de painel e letreiros dos módulos.
+// TIPOGRAFIA — padronizada em 2026-09 pra Geist Sans (mesma fonte do resto
+// do Axioma) em vez do Georgia serifado antigo. Mantidas como objetos (não
+// deletadas) porque ~16 módulos ainda fazem `...FONTE_EXEC` — zerar
+// fontFamily aqui já limpa a fonte em todos eles de uma vez, sem precisar
+// tocar em cada arquivo.
 // ═══════════════════════════════════════════════════════════════
-export const FONTE_EXEC = { fontFamily: "'Georgia','Times New Roman',serif" };
-export const FONTE_EXEC_TITULO = { fontFamily: "'Georgia','Times New Roman',serif", letterSpacing: "0.3px" };
+export const FONTE_EXEC = {};
+export const FONTE_EXEC_TITULO = { letterSpacing: "0.3px" };

@@ -353,10 +353,10 @@ export default function DashComercial() {
       {/* LETREIRO EM LOOP */}
       <div className="relative rounded-xl overflow-hidden" style={{ background: demo ? `linear-gradient(90deg, ${C.ouro}22, ${C.ouro}12)` : "linear-gradient(90deg, rgba(6,182,212,0.12), rgba(212,175,55,0.10))", border: demo ? `1px solid ${C.ouro}55` : "1px solid rgba(6,182,212,0.22)" }}>
         <div className="marquee-com py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
-          <span className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }}>
+          <span className="text-sm font-bold tracking-wide">
             {marquee.map((t, i) => (<span key={i} style={{ color: i === 0 ? "#67e8f9" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#06b6d4" }}>{"  •  "}</span></span>))}
           </span>
-          <span className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden>
+          <span className="text-sm font-bold tracking-wide" aria-hidden>
             {marquee.map((t, i) => (<span key={`b${i}`} style={{ color: i === 0 ? "#67e8f9" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#06b6d4" }}>{"  •  "}</span></span>))}
           </span>
         </div>

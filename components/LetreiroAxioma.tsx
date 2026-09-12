@@ -13,9 +13,9 @@ export function LetreiroAxioma({ id, itens, cor }: { id: string; itens: string[]
     <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${cor}20, ${cor}0d)`, border: `1px solid ${cor}40` }}>
       <div className={`${classe} py-2.5 whitespace-nowrap`} style={{ display: "inline-block" }}>
         {[0, 1].map((rep) => (
-          <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
+          <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
             {todos.map((m, i) => (
-              <span key={i} style={{ color: i === 0 ? cor : "#e2e8f0" }}>
+              <span key={i} style={{ color: i === 0 ? cor : "var(--axi-text-primary)" }}>
                 {m}<span style={{ color: cor }}>{"  •  "}</span>
               </span>
             ))}

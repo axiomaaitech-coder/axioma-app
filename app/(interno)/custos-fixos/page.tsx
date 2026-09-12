@@ -11,7 +11,7 @@ import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
-  fBRL, fBRL2, CORES, porCategoria, optRosca, optBarrasV,
+  fBRL, fBRL2, CORES, corTema, porCategoria, optRosca, optBarrasV,
   radarRenovacoes, detectarDesperdicio, FONTE_EXEC, type ItemRenovavel, type ItemDespesa,
 } from "../../../lib/cfoCore";
 import { cfoT } from "../../../lib/cfoTextos";
@@ -19,6 +19,14 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { registrarAuditoriaCentro } from "../../../lib/centroCustoHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
+const RENOV_PAINEL_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))";
+const RENOV_PAINEL_CLARO = "linear-gradient(160deg, #fdf3ee, #f7f8fc)";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +47,14 @@ type CustoFixo = {
 
 export default function CustosFixos() {
   const { t, idioma } = useLanguage();
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
+  const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
+  const renovFundo = temaClaro ? RENOV_PAINEL_CLARO : RENOV_PAINEL_ESCURO;
+  const campoFundo = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const campoFundo3 = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.9)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
 
@@ -141,7 +157,8 @@ export default function CustosFixos() {
   // ═══════════ INTELIGÊNCIA CFO (alicerce) ═══════════
   const itensDespesa: ItemDespesa[] = custos.map(c => ({ descricao: c.descricao, valor: c.valor_mensal, categoria: c.categoria }));
   const itensRenov: ItemRenovavel[] = custos.map(c => ({ descricao: c.descricao, valor: c.valor_mensal, data_renovacao: c.data_renovacao, categoria: c.categoria }));
-  const composicao = porCategoria(custos.map(c => ({ valor: c.valor_mensal, data: "", categoria: c.categoria })), categorias, CAT_COR);
+  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, ct(v)]));
+  const composicao = porCategoria(custos.map(c => ({ valor: c.valor_mensal, data: "", categoria: c.categoria })), categorias, catCorAtual);
   const renovacoes = radarRenovacoes(itensRenov, 60);
   const { alertas: alertasDup, economiaPotencial } = detectarDesperdicio(itensDespesa);
   const temDados = custos.length > 0;
@@ -158,7 +175,7 @@ export default function CustosFixos() {
   }
 
   const rotuloUrg = (u: string) => u === "vencido" ? cx.urgVencido : u === "critico" ? cx.urgCritico : u === "proximo" ? cx.urgProximo : cx.urgFuturo;
-  const corUrg = (u: string) => u === "vencido" ? CORES.vermelho : u === "critico" ? CORES.laranja : u === "proximo" ? CORES.amarelo : CORES.cyan;
+  const corUrg = (u: string) => ct(u === "vencido" ? CORES.vermelho : u === "critico" ? CORES.laranja : u === "proximo" ? CORES.amarelo : CORES.cyan);
 
   // ═══════════ PDF ═══════════
   const exportarPDF = async () => {
@@ -205,16 +222,16 @@ export default function CustosFixos() {
   ].join("\n");
 
   // ═══════════ GRÁFICOS ═══════════
-  const optCat = optRosca(composicao, CORES.vermelho, cx.totalMensal.toUpperCase());
+  const optCat = optRosca(composicao, ct(CORES.vermelho), cx.totalMensal.toUpperCase(), temaClaro);
   const topCustos = [...custos].sort((a, b) => b.valor_mensal - a.valor_mensal).slice(0, 8);
-  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), CORES.laranja, CORES.laranjaC);
+  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(CORES.laranja), CORES.laranjaC, undefined, temaClaro);
 
   const kpisCFO = [
-    { l: cx.totalMensal, v: fBRL(totalMensal), c: CORES.vermelho, i: "📉" },
-    { l: cx.totalAnual, v: fBRL(totalAnual), c: CORES.amarelo, i: "📅" },
-    { l: t.custosFixos.itens, v: `${custos.length}`, c: CORES.azul, i: "📋" },
-    { l: cx.economiaPotencial, v: fBRL(economiaPotencial), c: CORES.verde, i: "💸" },
-    { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? CORES.laranja : CORES.teal, i: "🔔" },
+    { l: cx.totalMensal, v: fBRL(totalMensal), c: ct(CORES.vermelho), i: "📉" },
+    { l: cx.totalAnual, v: fBRL(totalAnual), c: ct(CORES.amarelo), i: "📅" },
+    { l: t.custosFixos.itens, v: `${custos.length}`, c: ct(CORES.azul), i: "📋" },
+    { l: cx.economiaPotencial, v: fBRL(economiaPotencial), c: ct(CORES.verde), i: "💸" },
+    { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? ct(CORES.laranja) : ct(CORES.teal), i: "🔔" },
   ];
 
   const marquee = [
@@ -225,10 +242,10 @@ export default function CustosFixos() {
   ].filter(Boolean);
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-        <p className="text-[13px] font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{titulo}</p>
+        <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
       </div>
       <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
     </div>
@@ -242,15 +259,17 @@ export default function CustosFixos() {
   };
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.custosFixos.titulo} subtitulo={t.custosFixos.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.custosFixos.novoCusto}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" }); setModalAberto(true); }}>
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", vencimento: "", categoria: categorias[0], renovacao: "", centro_custo_id: "" }); setModalAberto(true); }}
+      botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}>
+            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -258,13 +277,13 @@ export default function CustosFixos() {
         {/* KPIs originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: "#f87171" },
-            { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: "#fbbf24" },
-            { label: t.custosFixos.itens, value: `${custos.length}`, cor: "#6ab0ff" },
+            { label: t.custosFixos.totalMensal, value: fBRL(totalMensal), cor: ct("#f87171") },
+            { label: t.custosFixos.totalAnual, value: fBRL(totalAnual), cor: ct("#fbbf24") },
+            { label: t.custosFixos.itens, value: `${custos.length}`, cor: ct("#6ab0ff") },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
-                <p className="text-[10px] md:text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
+              <CanvasBox cor={card.cor} destaque>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
                 <p className="text-sm md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
@@ -279,10 +298,10 @@ export default function CustosFixos() {
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
                   className="rounded-2xl p-3 md:p-4"
-                  style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
+                  style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
-                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
@@ -291,8 +310,8 @@ export default function CustosFixos() {
             <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(239,68,68,0.12), rgba(249,115,22,0.10))", border: "1px solid rgba(239,68,68,0.22)" }}>
               <div className="marquee-cf py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#fca5a5" : "#e2e8f0" }}>{m}<span style={{ color: "#ef4444" }}>{"  •  "}</span></span>))}
+                  <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#fca5a5") : ct("#e2e8f0") }}>{m}<span style={{ color: ct("#ef4444") }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -301,21 +320,21 @@ export default function CustosFixos() {
 
             {/* RADAR DE RENOVAÇÕES — o diferencial mundial */}
             {renovacoes.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))", border: "1px solid rgba(249,115,22,0.25)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: renovFundo, border: "1px solid rgba(249,115,22,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Bell size={16} style={{ color: CORES.laranja }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.radarRenovacoes}</p>
+                  <Bell size={16} style={{ color: ct(CORES.laranja) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.radarRenovacoes}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {renovacoes.map((r, i) => (
                     <div key={i} className="flex items-center justify-between px-3 py-2.5 rounded-xl" style={{ background: `${corUrg(r.urgencia)}0e`, border: `1px solid ${corUrg(r.urgencia)}30` }}>
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold truncate" style={{ color: "#e2e8f0" }}>{r.descricao}</p>
-                        <p className="text-[10px] font-medium" style={{ color: corUrg(r.urgencia) }}>{fmtRenov(r)}</p>
+                        <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{r.descricao}</p>
+                        <p className="text-xs font-medium" style={{ color: corUrg(r.urgencia) }}>{fmtRenov(r)}</p>
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
                         <p className="text-sm font-black" style={{ color: corUrg(r.urgencia) }}>{fBRL(r.valor)}</p>
-                        <span className="text-[8px] px-1.5 py-0.5 rounded font-black" style={{ background: `${corUrg(r.urgencia)}22`, color: corUrg(r.urgencia) }}>{rotuloUrg(r.urgencia)}</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded font-black" style={{ background: `${corUrg(r.urgencia)}22`, color: corUrg(r.urgencia) }}>{rotuloUrg(r.urgencia)}</span>
                       </div>
                     </div>
                   ))}
@@ -324,35 +343,35 @@ export default function CustosFixos() {
             )}
 
             {/* MODAL ÚNICO — Análise */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ef4444,#f97316)", boxShadow: "0 0 12px #ef4444" }} />
                   <div>
-                    <p className="text-sm md:text-base font-black" style={{ color: "#f1f5f9", fontFamily: "'Georgia',serif" }}>{cx.analiseAnual}</p>
-                    <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{cx.composicao} · {cx.economiaPotencial}</p>
+                    <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.analiseAnual}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.composicao} · {cx.economiaPotencial}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={CORES.vermelho} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={CORES.laranja} option={optTop} altura={260} />
+                  <SubChart titulo={cx.composicao} cor={ct(CORES.vermelho)} option={optCat} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.laranja)} option={optTop} altura={260} />
                 </div>
               </div>
             </div>
 
             {/* Insights */}
             {insights.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={16} style={{ color: CORES.ouro }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.insights}</p>
+                  <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
                       style={{ background: ins.tipo === "alerta" ? "rgba(239,68,68,0.08)" : "rgba(16,185,129,0.08)", border: `1px solid ${ins.tipo === "alerta" ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)"}` }}>
-                      {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: CORES.vermelho, flexShrink: 0 }} /> : <Zap size={15} style={{ color: CORES.verde, flexShrink: 0 }} />}
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: ins.tipo === "alerta" ? "#fca5a5" : "#6ee7b7" }}>{ins.texto}</p>
+                      {ins.tipo === "alerta" ? <AlertTriangle size={15} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} /> : <Zap size={15} style={{ color: ct(CORES.verde), flexShrink: 0 }} />}
+                      <p className="text-xs font-medium" style={{ color: ins.tipo === "alerta" ? ct("#fca5a5") : ct("#6ee7b7") }}>{ins.texto}</p>
                     </div>
                   ))}
                 </div>
@@ -362,16 +381,16 @@ export default function CustosFixos() {
         )}
 
         {/* Busca */}
-        <CanvasBox cor="#3b6fd4">
+        <CanvasBox cor={ct("#3b6fd4")}>
           <div className="flex items-center gap-2 py-1">
-            <Search size={16} style={{ color: "#5a7a9a" }} />
+            <Search size={16} style={{ color: "var(--axi-text-secondary)" }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.custosFixos.buscar}
-              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "#c8d8f0" }} />
+              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "var(--axi-text-primary)" }} />
           </div>
         </CanvasBox>
 
         {/* Tabela */}
-        <CanvasBox cor="#f87171">
+        <CanvasBox cor={ct("#f87171")}>
           <div className="overflow-x-auto">
             {carregando ? (
               <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
@@ -380,26 +399,26 @@ export default function CustosFixos() {
                 <thead>
                   <tr style={{ borderBottom: "1px solid rgba(59,111,212,0.15)" }}>
                     {[t.geral.descricao, t.geral.categoria, t.custosFixos.vencimento, t.custosFixos.valorMensal, t.custosFixos.valorAnual, t.geral.acoes].map(h => (
-                      <th key={h} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "#5a7a9a" }}>{h}</th>
+                      <th key={h} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {custosFiltrados.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-12 text-sm" style={{ color: "#5a7a9a" }}>{t.custosFixos.semCustos}</td></tr>
+                    <tr><td colSpan={6} className="text-center py-12 text-sm" style={{ color: "var(--axi-text-secondary)" }}>{t.custosFixos.semCustos}</td></tr>
                   ) : custosFiltrados.map((c, i) => (
                     <motion.tr key={c.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       whileHover={{ backgroundColor: "rgba(248,113,113,0.02)" }}
                       style={{ borderBottom: i < custosFiltrados.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
-                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "#c8d8f0" }}>{c.descricao}</td>
-                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${CAT_COR[c.categoria]}18`, color: CAT_COR[c.categoria] || "#6ab0ff" }}>{c.categoria}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "#5a7a9a" }}>Dia {c.dia_vencimento}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: "#f87171" }}>{fBRL(c.valor_mensal)}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: "#fbbf24" }}>{fBRL(c.valor_mensal * 12)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
+                      <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#6ab0ff")}18`, color: catCorAtual[c.categoria] || ct("#6ab0ff") }}>{c.categoria}</span></td>
+                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "var(--axi-text-secondary)" }}>Dia {c.dia_vencimento}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#f87171") }}>{fBRL(c.valor_mensal)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#fbbf24") }}>{fBRL(c.valor_mensal * 12)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: "#6ab0ff" }}><Pencil size={16} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: "#f87171" }}><Trash2 size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#6ab0ff") }}><Pencil size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct("#f87171") }}><Trash2 size={16} /></motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -417,13 +436,13 @@ export default function CustosFixos() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-start justify-center pt-20 pb-8 px-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }} className="w-full max-w-md">
-              <CanvasBox cor="#f87171">
+              <CanvasBox cor={ct("#f87171")}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#f87171" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? (lang === "en" ? "Edit Fixed Cost" : lang === "es" ? "Editar Costo Fijo" : "Editar Custo Fixo") : t.custosFixos.novoCusto}</h3>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#f87171") }}>AXIOMA AI.TECH</p>
+                    <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Fixed Cost" : lang === "es" ? "Editar Costo Fijo" : "Editar Custo Fixo") : t.custosFixos.novoCusto}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-4">
                   {[
@@ -432,37 +451,37 @@ export default function CustosFixos() {
                     { label: t.custosFixos.vencimento, key: "vencimento", type: "number", placeholder: "Dia 1 a 31" },
                   ].map(({ label, key, type, placeholder }) => (
                     <div key={key}>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{label}</label>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{label}</label>
                       <input type={type} placeholder={placeholder} value={novo[key as keyof typeof novo]}
                         onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
                     </div>
                   ))}
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.categoria}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.categoria}</label>
                     <select value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
                       {categorias.map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>
-                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "#5a7a9a", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>
+                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "var(--axi-text-secondary)", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
                     </label>
                     <SeletorCentroCusto
                       value={novo.centro_custo_id} onChange={(id) => setNovo({ ...novo, centro_custo_id: id })}
                       centros={centrosCusto} empresaId={empresaIdAtivo} userId={userIdAtivo} lang={lang}
                       onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}
                     />
                   </div>
                   {/* NOVO: data de renovação (radar) */}
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block flex items-center gap-1.5" style={{ color: "#5a8fd4" }}>
-                      <Bell size={12} /> {cx.radarRenovacoes} <span style={{ color: "#5a7a9a", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block flex items-center gap-1.5" style={{ color: ct("#5a8fd4") }}>
+                      <Bell size={12} /> {cx.radarRenovacoes} <span style={{ color: "var(--axi-text-secondary)", textTransform: "none", letterSpacing: 0 }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
                     </label>
                     <input type="date" value={novo.renovacao} onChange={(e) => setNovo({ ...novo, renovacao: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(249,115,22,0.25)", color: "#c8d8f0" }} />
+                      className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo, border: "1px solid rgba(249,115,22,0.25)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #7f1d1d, #dc2626)", color: "#fff" }}>
@@ -493,5 +512,6 @@ export default function CustosFixos() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   );
 }
