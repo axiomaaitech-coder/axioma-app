@@ -15,6 +15,8 @@ import { CentroCompartilhamento } from '../../../../components/CentroCompartilha
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import {
@@ -28,18 +30,24 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const OURO = '#d4af37'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AZUL = '#6ab0ff'
-const AMBAR = '#f59e0b'
-const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa as mesmas cores 600/700 já padronizadas nos outros módulos do
+// MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
+// ON_ACCENT é o texto que vai POR CIMA de um fundo sólido nessas cores —
+// escuro no dark (acento é claro/pastel) e branco no Claro (acento vira
+// escuro/saturado), senão o texto do botão some.
+const PALETA = {
+  dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', ALARANJADO: '#fb923c', NEUTRO: '#5a7a9a', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', LINHA_BG: 'rgba(10,22,40,0.5)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', ALARANJADO: '#ea580c', NEUTRO: '#55637a', ON_ACCENT: '#ffffff', CAMPO_BG: 'rgba(11,31,58,0.03)', LINHA_BG: 'rgba(11,31,58,0.04)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(11,31,58,0.04)' },
+} as const
 const CATEGORIAS = ["Vendas de produtos", "Prestação de serviços", "Recorrentes", "Eventuais", "Outras"]
 
 type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; considera_teto_mei?: boolean | null }
 
 export default function FaturamentoMEI() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { OURO, VERDE, VERMELHO, AZUL, AMBAR, ALARANJADO, NEUTRO, ON_ACCENT, CAMPO_BG, LINHA_BG, SELECT_BG, POCO_BG } = PALETA[tema]
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -214,7 +222,7 @@ export default function FaturamentoMEI() {
   const deltaVsMedia = mediaMensal > 0 ? ((valorMesAtual - mediaMensal) / mediaMensal) * 100 : 0
   const deltaVsAnterior = valorMesAnterior > 0 ? ((valorMesAtual - valorMesAnterior) / valorMesAnterior) * 100 : 0
 
-  const corSemaforo4 = semaforo4 === 'vermelho' ? VERMELHO : semaforo4 === 'laranja' ? '#fb923c' : semaforo4 === 'amarelo' ? AMBAR : VERDE
+  const corSemaforo4 = semaforo4 === 'vermelho' ? VERMELHO : semaforo4 === 'laranja' ? ALARANJADO : semaforo4 === 'amarelo' ? AMBAR : VERDE
 
   // ---- Séries do gráfico (mesmo critério de "conta pro teto MEI" usado no resto da tela) ----
   const receitasBrutasMensais = receitasBrutasPorMes(receitas, anoAtual)
@@ -368,7 +376,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
       botaoExtra={
         <button onClick={() => setShareAberto(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+          style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
           <Share2 size={16} /> {t('compartilhar')}
         </button>
       }>
@@ -388,30 +396,30 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           {[
             { label: `${t('faturamento')} ${anoAtual}`, value: fmt(faturamentoAnual), cor: OURO },
             { label: t('limiteRestante'), value: fmt(restanteLimite), cor: VERDE },
-            { label: t('limiteUsado'), value: `${percentualReal.toFixed(1)}%`, cor: semaforo4 === 'vermelho' ? VERMELHO : semaforo4 === 'laranja' ? '#fb923c' : semaforo4 === 'amarelo' ? AMBAR : VERDE },
+            { label: t('limiteUsado'), value: `${percentualReal.toFixed(1)}%`, cor: semaforo4 === 'vermelho' ? VERMELHO : semaforo4 === 'laranja' ? ALARANJADO : semaforo4 === 'amarelo' ? AMBAR : VERDE },
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
-              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor, ...FONTE }}>{card.value}</p>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
             </CanvasBox>
           ))}
         </div>
 
-        <p className="text-xs px-1" style={{ color: '#5a7a9a' }}>
+        <p className="text-xs px-1" style={{ color: 'var(--axi-text-secondary)' }}>
           {t('seuTetoEm')} {anoAtual}: <strong style={{ color: OURO }}>{fmt(teto)}</strong> — {tetoInfo.proporcional
             ? (lang === 'pt' ? `proporcional a ${tetoInfo.mesesAtivos} meses de atividade (abriu em ${nomeMesAbertura})`
               : lang === 'en' ? `proportional to ${tetoInfo.mesesAtivos} months of activity (opened ${nomeMesAbertura})`
               : `proporcional a ${tetoInfo.mesesAtivos} meses de actividad (abrió en ${nomeMesAbertura})`)
             : t('tetoCheioTexto')}
         </p>
-        <p className="text-xs px-1" style={{ color: '#5a7a9a' }}>{mx.considerandoTodasReceitas}</p>
+        <p className="text-xs px-1" style={{ color: 'var(--axi-text-secondary)' }}>{mx.considerandoTodasReceitas}</p>
 
         {/* Reserva automática de imposto (Fase 2) */}
         {percentualReserva > 0 && (
           <CanvasBox cor={AMBAR}>
-            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#5a7a9a' }}>{mx.reservaAcumuladaTitulo}</p>
-            <p className="text-xl font-black" style={{ color: AMBAR, ...FONTE }}>{fmt(reservaAcumulada)}</p>
-            <p className="text-[10px] mt-1" style={{ color: '#5a7a9a' }}>
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{mx.reservaAcumuladaTitulo}</p>
+            <p className="text-xl font-black" style={{ color: AMBAR }}>{fmt(reservaAcumulada)}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>
               {mx.reservarDeste} {percentualReserva.toFixed(1)}% {lang === 'pt' ? 'de cada receita nova (DAS + IRPF proporcional).' : lang === 'en' ? 'of every new revenue (DAS + proportional IRPF).' : 'de cada nuevo ingreso (DAS + IRPF proporcional).'}
             </p>
           </CanvasBox>
@@ -419,7 +427,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
         {/* Velocímetro */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-3" style={{ color: '#c8d8f0', ...FONTE }}>{t('velocimetro')} {anoAtual}</p>
+          <p className="text-sm font-semibold mb-3" style={{ color: 'var(--axi-text-primary)' }}>{t('velocimetro')} {anoAtual}</p>
           <div className="w-full h-4 rounded-full mb-2" style={{ background: 'rgba(106,176,255,0.1)' }}>
             <motion.div
               initial={{ width: 0 }}
@@ -429,7 +437,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
               style={{ background: corSemaforo4 }}
             />
           </div>
-          <div className="flex justify-between text-xs mb-4" style={{ color: '#5a7a9a' }}>
+          <div className="flex justify-between text-xs mb-4" style={{ color: 'var(--axi-text-secondary)' }}>
             <span>{fmt(faturamentoAnual)}</span>
             <span className="font-bold" style={{ color: corSemaforo4 }}>{percentualReal.toFixed(1)}%</span>
             <span>{fmt(teto)}</span>
@@ -437,7 +445,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
           {semaforo4 === 'laranja' && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm mb-2"
-              style={{ background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.2)', color: '#fb923c' }}>
+              style={{ background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.2)', color: ALARANJADO }}>
               <AlertTriangle size={16} /> {t('faixaLaranja')}
             </div>
           )}
@@ -450,12 +458,12 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             <div className="rounded-xl p-3" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.12)' }}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#5a7a9a' }}>{t('margemMesTitulo')}</p>
-              <p className="text-lg font-black" style={{ color: VERDE, ...FONTE }}>{fmt(Math.max(0, margemRecomendadaMes))}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('margemMesTitulo')}</p>
+              <p className="text-lg font-black" style={{ color: VERDE }}>{fmt(Math.max(0, margemRecomendadaMes))}</p>
             </div>
             <div className="rounded-xl p-3" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.12)' }}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#5a7a9a' }}>{t('mesEstouroTitulo')}</p>
-              <p className="text-lg font-black capitalize" style={{ color: nomeMesEstouro ? VERMELHO : VERDE, ...FONTE }}>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('mesEstouroTitulo')}</p>
+              <p className="text-lg font-black capitalize" style={{ color: nomeMesEstouro ? VERMELHO : VERDE }}>
                 {nomeMesEstouro || t('mesEstouroNenhum')}
               </p>
             </div>
@@ -465,7 +473,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         {/* Gráfico + comparação */}
         <CanvasBox cor={AZUL}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <p className="text-sm font-semibold" style={{ color: '#c8d8f0', ...FONTE }}>{t('graficoTitulo')}</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('graficoTitulo')}</p>
             {mediaMensal > 0 && (
               <div className="flex gap-3 text-xs">
                 <span style={{ color: deltaVsMedia >= 0 ? VERDE : VERMELHO }}>
@@ -497,16 +505,16 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         {/* Análise Executiva por IA */}
         <CanvasBox cor={OURO}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <p className="text-sm font-semibold" style={{ color: '#c8d8f0', ...FONTE }}>{t('analiseIATitulo')}</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
               className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-[10px] mb-3" style={{ color: '#5a7a9a' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)', color: '#c8d8f0' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -514,7 +522,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
         {/* Faturamento por mês */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('faturamentoMensal')} — {anoAtual}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('faturamentoMensal')} — {anoAtual}</p>
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: `${OURO} transparent transparent transparent` }} />
@@ -530,18 +538,18 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
                 const ehMesAtual = i === mesAtual
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <p className="text-xs w-24 capitalize" style={{ color: ehMesAtual ? OURO : '#5a7a9a', fontWeight: ehMesAtual ? 700 : 400 }}>{nomeMes}</p>
+                    <p className="text-xs w-24 capitalize" style={{ color: ehMesAtual ? OURO : NEUTRO, fontWeight: ehMesAtual ? 700 : 400 }}>{nomeMes}</p>
                     <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(106,176,255,0.1)' }}>
                       <div className="h-2 rounded-full" style={{ width: `${Math.min(100, perc)}%`, background: OURO }} />
                     </div>
-                    <p className="text-xs w-28 text-right font-semibold" style={{ color: valor > 0 ? OURO : '#3a5a7a' }}>{fmt(valor)}</p>
+                    <p className="text-xs w-28 text-right font-semibold" style={{ color: valor > 0 ? OURO : NEUTRO }}>{fmt(valor)}</p>
                   </div>
                 )
               })}
             </div>
           )}
           <div className="mt-4 pt-4 flex flex-wrap items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(106,176,255,0.15)' }}>
-            <span className="text-sm font-semibold" style={{ color: '#c8d8f0' }}>{t('total')} {anoAtual}</span>
+            <span className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('total')} {anoAtual}</span>
             <span className="text-sm font-black" style={{ color: OURO }}>{fmt(faturamentoAnual)}</span>
           </div>
           <button onClick={() => gerarPdfTabela(montarArgsRelatorioReceitasBrutas(), (msg) => showToast(msg), lang)}
@@ -553,34 +561,34 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
 
         {/* Lançamentos — lápis/lixeira/toggle */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('lancamentos')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('lancamentos')}</p>
           {receitasAno.length === 0 ? (
-            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('semLancamentos')}</p>
+            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('semLancamentos')}</p>
           ) : (
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
               {receitasAno.map((r) => {
                 const conta = r.considera_teto_mei !== false
                 return (
                   <div key={r.id} className="flex items-center gap-2 p-3 rounded-xl flex-wrap"
-                    style={{ background: 'rgba(10,22,40,0.5)', border: '1px solid rgba(106,176,255,0.1)' }}>
+                    style={{ background: LINHA_BG, border: '1px solid rgba(106,176,255,0.1)' }}>
                     <div className="flex-1 min-w-[140px]">
-                      <p className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{r.descricao}</p>
-                      <p className="text-[10px]" style={{ color: '#5a7a9a' }}>
+                      <p className="text-xs font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{r.descricao}</p>
+                      <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
                         {new Date(r.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {r.categoria}
                       </p>
                       {percentualReserva > 0 && (
-                        <p className="text-[10px] mt-0.5" style={{ color: AMBAR }}>
+                        <p className="text-xs mt-0.5" style={{ color: AMBAR }}>
                           {mx.reservarDeste}: {fmt(valorASepararPorReceita(r.valor, percentualReserva))}
                         </p>
                       )}
                     </div>
                     <span className="text-sm font-bold" style={{ color: OURO }}>{fmt(r.valor)}</span>
                     <button onClick={() => alternarContaTeto(r)}
-                      className="text-[9px] px-2 py-1 rounded-full font-semibold"
+                      className="text-xs px-2 py-1 rounded-full font-semibold"
                       style={{
                         background: conta ? `${VERDE}15` : 'rgba(106,176,255,0.08)',
-                        color: conta ? VERDE : '#5a7a9a',
-                        border: `1px solid ${conta ? VERDE : '#5a7a9a'}30`,
+                        color: conta ? VERDE : NEUTRO,
+                        border: `1px solid ${conta ? VERDE : NEUTRO}30`,
                       }}>
                       {conta ? '✓ ' : '✕ '}{txt.contaTeto[lang]}
                     </button>
@@ -604,47 +612,47 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-md">
               <CanvasBox cor={OURO}>
                 <div className="flex justify-between items-center mb-5">
-                  <h3 className="text-lg font-bold" style={{ color: '#c8d8f0', ...FONTE }}>{t('lancamentos')}</h3>
-                  <button onClick={() => setEditando(null)} style={{ color: '#5a7a9a' }}><X size={20} /></button>
+                  <h3 className="text-lg font-bold" style={{ color: 'var(--axi-text-primary)' }}>{t('lancamentos')}</h3>
+                  <button onClick={() => setEditando(null)} style={{ color: 'var(--axi-text-secondary)' }}><X size={20} /></button>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: '#5a7a9a' }}>{t('descricao')}</label>
+                    <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('descricao')}</label>
                     <input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })}
-                      className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                      className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: '#5a7a9a' }}>{t('valor')}</label>
+                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('valor')}</label>
                       <input type="number" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })}
-                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: '#5a7a9a' }}>{t('data')}</label>
+                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('data')}</label>
                       <input type="date" value={form.data} onChange={e => setForm({ ...form, data: e.target.value })}
-                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: '#5a7a9a' }}>{t('categoria')}</label>
+                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('categoria')}</label>
                       <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}
-                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }}>
-                        {CATEGORIAS.map(c => <option key={c} value={c} style={{ background: '#020810' }}>{c}</option>)}
+                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }}>
+                        {CATEGORIAS.map(c => <option key={c} value={c} style={{ background: SELECT_BG }}>{c}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: '#5a7a9a' }}>{t('status')}</label>
+                      <label className="text-xs font-semibold uppercase mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('status')}</label>
                       <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }}>
-                        <option value="recebido" style={{ background: '#020810' }}>{t('recebido')}</option>
-                        <option value="pendente" style={{ background: '#020810' }}>{t('pendente')}</option>
+                        className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }}>
+                        <option value="recebido" style={{ background: SELECT_BG }}>{t('recebido')}</option>
+                        <option value="pendente" style={{ background: SELECT_BG }}>{t('pendente')}</option>
                       </select>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-2">
-                    <button onClick={() => setEditando(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(106,176,255,0.1)', color: '#5a7a9a' }}>{t('cancelar')}</button>
-                    <button onClick={salvarEdicao} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: OURO, color: '#020810' }}>{salvando ? '...' : t('salvar')}</button>
+                    <button onClick={() => setEditando(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(106,176,255,0.1)', color: 'var(--axi-text-secondary)' }}>{t('cancelar')}</button>
+                    <button onClick={salvarEdicao} disabled={salvando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: OURO, color: ON_ACCENT }}>{salvando ? '...' : t('salvar')}</button>
                   </div>
                 </div>
               </CanvasBox>
@@ -661,10 +669,10 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
             style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}>
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="w-full max-w-sm">
               <CanvasBox cor={VERMELHO}>
-                <p className="text-sm mb-5" style={{ color: '#c8d8f0' }}>{t('confirmarExcluir')}</p>
+                <p className="text-sm mb-5" style={{ color: 'var(--axi-text-primary)' }}>{t('confirmarExcluir')}</p>
                 <div className="flex gap-3">
-                  <button onClick={() => setExcluindo(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(106,176,255,0.1)', color: '#5a7a9a' }}>{t('cancelar')}</button>
-                  <button onClick={confirmarExclusao} className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: VERMELHO, color: '#020810' }}>{t('excluir')}</button>
+                  <button onClick={() => setExcluindo(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(106,176,255,0.1)', color: 'var(--axi-text-secondary)' }}>{t('cancelar')}</button>
+                  <button onClick={confirmarExclusao} className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: VERMELHO, color: ON_ACCENT }}>{t('excluir')}</button>
                 </div>
               </CanvasBox>
             </motion.div>

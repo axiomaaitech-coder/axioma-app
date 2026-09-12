@@ -20,22 +20,28 @@ import { CentroCompartilhamento } from '../../../../components/CentroCompartilha
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { meiT } from '../../../../lib/meiTextos'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const OURO = '#d4af37'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AZUL = '#6ab0ff'
-const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa as mesmas cores 600/700 já padronizadas nos outros módulos do
+// MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
+const PALETA = {
+  dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.02)', POCO_BG: 'rgba(0,0,0,0.3)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', ROXO: '#7c3aed', NEUTRO: '#55637a', CAMPO_BG: 'rgba(11,31,58,0.03)', PAINEL_BG: 'rgba(11,31,58,0.02)', POCO_BG: 'rgba(11,31,58,0.04)' },
+} as const
 
 type Modo = 'hora' | 'projeto' | 'produto'
 
 export default function PrecificacaoMEI() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { OURO, VERDE, VERMELHO, AZUL, ROXO, NEUTRO, CAMPO_BG, PAINEL_BG, POCO_BG } = PALETA[tema]
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const mx = meiT(lang)
 
@@ -251,7 +257,7 @@ export default function PrecificacaoMEI() {
   const dadosComposicao = [
     { name: t('custoBaseLbl'), value: Math.max(0, custoBase), color: AZUL },
     { name: t('dasLbl'), value: Math.max(0, dasReais), color: VERDE },
-    { name: t('irpfLbl'), value: Math.max(0, irpfReais), color: '#a78bfa' },
+    { name: t('irpfLbl'), value: Math.max(0, irpfReais), color: ROXO },
     { name: t('margemReaisLbl'), value: Math.max(0, margemReais), color: OURO },
   ]
 
@@ -444,13 +450,17 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
   ]
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
-          <Share2 size={16} /> {mx.compartilhar}
-        </button>
+        <>
+          <button onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            <Share2 size={16} /> {mx.compartilhar}
+          </button>
+          <ThemeToggle />
+        </>
       }>
       <div ref={conteudoRef} className="space-y-4">
 
@@ -464,15 +474,15 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             { label: t('receitaMediaLbl'), value: fmt(receitaMensalMedia), cor: VERDE },
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
-              <p className="text-lg md:text-xl font-black" style={{ color: card.cor, ...FONTE }}>{card.value}</p>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+              <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}>{card.value}</p>
             </CanvasBox>
           ))}
         </div>
 
         {/* Seletor de modo */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-3" style={{ color: '#c8d8f0', ...FONTE }}>{t('modoTitulo')}</p>
+          <p className="text-sm font-semibold mb-3" style={{ color: 'var(--axi-text-primary)' }}>{t('modoTitulo')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {([
               { key: 'hora' as Modo, label: t('modoHora') },
@@ -482,8 +492,8 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               <button key={op.key} onClick={() => trocarModo(op.key)}
                 className="py-2.5 rounded-xl text-xs font-bold transition-all"
                 style={modo === op.key
-                  ? { background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }
-                  : { background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }}>
+                  ? { background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }
+                  : { background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }}>
                 {op.label}
               </button>
             ))}
@@ -492,137 +502,137 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
         {/* Custos reais + inputs do modo */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', ...FONTE }}>{t('custosReaisTitulo')}</p>
-          <p className="text-[10px] mb-4 italic" style={{ color: '#5a7a9a' }}>
+          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('custosReaisTitulo')}</p>
+          <p className="text-xs mb-4 italic" style={{ color: 'var(--axi-text-secondary)' }}>
             {custoFixoNum > 0 || custoVarNum > 0 ? t('custosReaisPuxados') : t('custosReaisVazio')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('custoFixoLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('custoFixoLbl')}</label>
               <input type="number" value={custoFixoMensal} onChange={(e) => setCustoFixoMensal(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
             </div>
             <div>
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('custoVariavelLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('custoVariavelLbl')}</label>
               <input type="number" value={custoVariavelMensal} onChange={(e) => setCustoVariavelMensal(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
             </div>
 
             {(modo === 'hora' || modo === 'projeto') && (
-              <div className="sm:col-span-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${AZUL}15` }}>
+              <div className="sm:col-span-2 p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}15` }}>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasPorDiaLbl')}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasPorDiaLbl')}</label>
                     <input type="number" value={horasPorDia} onChange={(e) => setHorasPorDia(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('diasPorSemanaLbl')}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('diasPorSemanaLbl')}</label>
                     <input type="number" value={diasPorSemana} onChange={(e) => setDiasPorSemana(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('pctProdutivoLbl')}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('pctProdutivoLbl')}</label>
                     <input type="number" value={pctProdutivo} onChange={(e) => setPctProdutivo(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                 </div>
                 <p className="text-xs mt-3" style={{ color: AZUL }}>
                   {t('horasCalculadasTexto').replace('{v}', (Math.round(horasMensaisCalculadas(parseFloat(horasPorDia) || 0, parseFloat(diasPorSemana) || 0, parseFloat(pctProdutivo) || 100) * 10) / 10).toString())}
                 </p>
                 <div className="mt-3">
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasTrabalhadasLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasTrabalhadasLbl')}</label>
                   <input type="number" value={horasTrabalhadasMes} onChange={(e) => { setHorasTrabalhadasMes(e.target.value); setHorasTocado(true) }}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
-                  <p className="text-[10px] mt-1 italic" style={{ color: '#5a7a9a' }}>{t('horasOverrideNota')}</p>
+                    style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
+                  <p className="text-xs mt-1 italic" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasOverrideNota')}</p>
                 </div>
               </div>
             )}
             {modo === 'projeto' && (
               <>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('horasEstimadasLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasEstimadasLbl')}</label>
                   <input type="number" value={horasEstimadasProjeto} onChange={(e) => setHorasEstimadasProjeto(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('materiaisLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('materiaisLbl')}</label>
                   <input type="number" value={materiaisProjeto} onChange={(e) => setMateriaisProjeto(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                 </div>
               </>
             )}
             {modo === 'produto' && (
               <>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('custoUnitarioLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('custoUnitarioLbl')}</label>
                   <input type="number" value={custoUnitarioProduto} onChange={(e) => setCustoUnitarioProduto(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('unidadesVendidasLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('unidadesVendidasLbl')}</label>
                   <input type="number" value={unidadesVendidasMes} onChange={(e) => setUnidadesVendidasMes(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                 </div>
               </>
             )}
             <div>
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('margemLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('margemLbl')}</label>
               <input type="number" value={margemDesejada} onChange={(e) => setMargemDesejada(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${AZUL}30`, color: '#c8d8f0' }} />
+                style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
             </div>
           </div>
 
-          <p className="text-[10px] mt-3 italic" style={{ color: proLaboreDesejado ? '#5a7a9a' : VERMELHO }}>
+          <p className="text-xs mt-3 italic" style={{ color: proLaboreDesejado ? NEUTRO : VERMELHO }}>
             {proLaboreDesejado ? t('custoProprioNota').replace('{v}', fmt(proLaboreDesejado)) : t('custoProprioAusente')}
           </p>
         </CanvasBox>
 
         {/* Resultado */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('resultadoTitulo')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('resultadoTitulo')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              { label: t('custoBaseLbl'), value: fmt(custoBase), cor: '#5a7a9a' },
+              { label: t('custoBaseLbl'), value: fmt(custoBase), cor: NEUTRO },
               { label: t('dasLbl'), value: fmt(dasReais), cor: VERDE },
-              { label: t('irpfLbl'), value: fmt(irpfReais), cor: '#a78bfa' },
+              { label: t('irpfLbl'), value: fmt(irpfReais), cor: ROXO },
               { label: t('margemReaisLbl'), value: fmt(margemReais), cor: OURO },
             ].map((item, i) => (
               <div key={i} className="flex justify-between items-center p-3 rounded-xl"
                 style={{ background: `${item.cor}10`, border: `1px solid ${item.cor}20` }}>
-                <span className="text-xs" style={{ color: '#c8d8f0' }}>{item.label}</span>
+                <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
                 <span className="text-sm font-black" style={{ color: item.cor }}>{item.value}</span>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
             <div className="p-4 rounded-xl" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
-              <p className="text-xs mb-1" style={{ color: '#c8d8f0' }}>{t('precoMinimoLbl')}</p>
-              <p className="text-xl font-black" style={{ color: VERMELHO, ...FONTE }}>{fmt(precoMinimo)}</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('precoMinimoLbl')}</p>
+              <p className="text-xl font-black" style={{ color: VERMELHO }}>{fmt(precoMinimo)}</p>
             </div>
             <div className="p-4 rounded-xl" style={{ background: `${OURO}12`, border: `1px solid ${OURO}40` }}>
-              <p className="text-xs mb-1" style={{ color: '#c8d8f0' }}>{t('precoSugeridoLbl')}</p>
-              <p className="text-xl font-black" style={{ color: OURO, ...FONTE }}>{fmt(precoSugerido)}</p>
+              <p className="text-xs mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('precoSugeridoLbl')}</p>
+              <p className="text-xl font-black" style={{ color: OURO }}>{fmt(precoSugerido)}</p>
             </div>
           </div>
-          <p className="text-[10px] mt-3" style={{ color: '#5a7a9a' }}>{t('ticketMedioLbl')}: <b style={{ color: '#c8d8f0' }}>{fmt(ticket)}</b></p>
+          <p className="text-xs mt-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('ticketMedioLbl')}: <b style={{ color: 'var(--axi-text-primary)' }}>{fmt(ticket)}</b></p>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('urgenciaLbl')}</label>
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('urgenciaLbl')}</label>
             <input type="number" value={urgenciaPct} onChange={(e) => setUrgenciaPct(e.target.value)}
               className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+              style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
             {urgenciaFracao > 0 && (
               <p className="text-xs mt-2" style={{ color: OURO }}>{t('precoComUrgenciaLbl')}: <b>{fmt(precoComUrgencia)}</b></p>
             )}
@@ -630,19 +640,19 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
           <div className="mt-4 pt-4 flex flex-col sm:flex-row gap-2 items-stretch sm:items-end" style={{ borderTop: `1px solid ${OURO}20` }}>
             <div className="flex-1">
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('nomePrecoLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('nomePrecoLbl')}</label>
               <input type="text" value={nomePrecoSalvo} onChange={(e) => setNomePrecoSalvo(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+                style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
             </div>
             <button onClick={salvarPrecoAtual} disabled={salvandoPreco || !nomePrecoSalvo.trim()}
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               <Save size={14} /> {salvandoPreco ? t('salvando') : editandoId ? t('atualizarPreco') : t('salvarPreco')}
             </button>
           </div>
           {editandoId && (
-            <p className="text-[10px] mt-2 italic flex items-center gap-2" style={{ color: '#5a7a9a' }}>
+            <p className="text-xs mt-2 italic flex items-center gap-2" style={{ color: 'var(--axi-text-secondary)' }}>
               {t('editandoAviso').replace('{v}', nomePrecoSalvo)}
               <button onClick={cancelarEdicaoPreco} className="underline" style={{ color: AZUL }}>{t('cancelarEdicao')}</button>
             </p>
@@ -651,38 +661,38 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
         {/* Composição do preço */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-2" style={{ color: '#c8d8f0', ...FONTE }}>{t('composicaoTitulo')}</p>
+          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('composicaoTitulo')}</p>
           {precoSugerido > 0 ? (
             <ReactECharts option={optRosca(dadosComposicao, OURO, t('precoSugeridoLbl'))} style={{ height: 260, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'canvas' }} />
           ) : (
-            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('custosReaisVazio')}</p>
+            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('custosReaisVazio')}</p>
           )}
         </CanvasBox>
 
         {/* Detector "trabalhando de graça" */}
         <CanvasBox cor={detector?.situacao === 'prejuizo' ? VERMELHO : VERDE}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('detectorTitulo')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('detectorTitulo')}</p>
           <div className="mb-4">
-            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: '#5a7a9a' }}>{t('precoCobradoLbl')}</label>
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('precoCobradoLbl')}</label>
             <input type="number" value={precoCobradoHoje} onChange={(e) => setPrecoCobradoHoje(e.target.value)}
               className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}30`, color: '#c8d8f0' }} />
+              style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
           </div>
-          {!detector && <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('detectorVazio')}</p>}
+          {!detector && <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('detectorVazio')}</p>}
           {detector && detector.situacao === 'prejuizo' && (
             <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERMELHO}12`, border: `1px solid ${VERMELHO}40` }}>
               <AlertTriangle size={20} style={{ color: VERMELHO, flexShrink: 0 }} />
               <div>
                 <p className="text-sm font-black mb-1" style={{ color: VERMELHO }}>{t('prejuizoTitulo')}</p>
-                <p className="text-xs" style={{ color: '#c8d8f0' }}>{t('prejuizoTexto').replace('{v}', fmt(detector.prejuizoPorUnidade)).replace('{u}', unidadeLabel)}</p>
-                {volumeMensal > 0 && <p className="text-xs mt-1" style={{ color: '#c8d8f0' }}>{t('prejuizoMensal').replace('{v}', fmt(prejuizoMensalEstimado))}</p>}
+                <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('prejuizoTexto').replace('{v}', fmt(detector.prejuizoPorUnidade)).replace('{u}', unidadeLabel)}</p>
+                {volumeMensal > 0 && <p className="text-xs mt-1" style={{ color: 'var(--axi-text-primary)' }}>{t('prejuizoMensal').replace('{v}', fmt(prejuizoMensalEstimado))}</p>}
               </div>
             </div>
           )}
           {detector && detector.situacao !== 'prejuizo' && (
             <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERDE}12`, border: `1px solid ${VERDE}40` }}>
               <CheckCircle2 size={20} style={{ color: VERDE, flexShrink: 0 }} />
-              <p className="text-xs" style={{ color: '#c8d8f0' }}>
+              <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>
                 {(detector.situacao === 'saudavel' ? t('margemSaudavel') : t('margemApertada')).replace('{v}', detector.margemRealPct.toFixed(1))}
               </p>
             </div>
@@ -692,16 +702,16 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         {/* Análise Axioma */}
         <CanvasBox cor={OURO}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <p className="text-sm font-semibold" style={{ color: '#c8d8f0', ...FONTE }}>{t('analiseIATitulo')}</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
               className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-[10px] mb-3" style={{ color: '#5a7a9a' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)', color: '#c8d8f0' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -709,9 +719,9 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
         {/* Meus Preços Salvos */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('meusPrecosTitulo')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('meusPrecosTitulo')}</p>
           {precosSalvos.length === 0 ? (
-            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('meusPrecosVazio')}</p>
+            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('meusPrecosVazio')}</p>
           ) : (
             <>
               <div className="space-y-2">
@@ -719,8 +729,8 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
                   <div key={row.id} className="flex items-center justify-between gap-3 p-3 rounded-xl"
                     style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${OURO}20` }}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate" style={{ color: '#c8d8f0' }}>{row.nome}</p>
-                      <p className="text-[10px]" style={{ color: '#5a7a9a' }}>
+                      <p className="text-sm font-bold truncate" style={{ color: 'var(--axi-text-primary)' }}>{row.nome}</p>
+                      <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
                         {row.modo === 'hora' ? t('modoHora') : row.modo === 'projeto' ? t('modoProjeto') : t('modoProduto')}
                         {' · '}{fmt(row.dados?.resultado?.precoSugerido || 0)}
                       </p>
@@ -739,16 +749,16 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               {precosSalvos.length > ITENS_POR_PAGINA && (
                 <div className="flex items-center justify-between mt-4">
                   <button onClick={() => setPaginaAtual((p) => Math.max(0, p - 1))} disabled={paginaAtual === 0}
-                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                    <ChevronLeft size={16} style={{ color: '#c8d8f0' }} />
+                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
+                    <ChevronLeft size={16} style={{ color: 'var(--axi-text-primary)' }} />
                   </button>
-                  <p className="text-xs" style={{ color: '#5a7a9a' }}>
+                  <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
                     {t('paginaLbl').replace('{a}', String(paginaAtual + 1)).replace('{b}', String(Math.ceil(precosSalvos.length / ITENS_POR_PAGINA)))}
                   </p>
                   <button onClick={() => setPaginaAtual((p) => Math.min(Math.ceil(precosSalvos.length / ITENS_POR_PAGINA) - 1, p + 1))}
                     disabled={paginaAtual >= Math.ceil(precosSalvos.length / ITENS_POR_PAGINA) - 1}
-                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                    <ChevronRight size={16} style={{ color: '#c8d8f0' }} />
+                    className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
+                    <ChevronRight size={16} style={{ color: 'var(--axi-text-primary)' }} />
                   </button>
                 </div>
               )}
@@ -758,12 +768,12 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
         {/* Dicas */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('dicas')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('dicas')}</p>
           <div className="space-y-3">
             {dicas.map((dica, i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: `${AZUL}06`, border: `1px solid ${AZUL}15` }}>
                 <span className="text-sm flex-shrink-0" style={{ color: AZUL }}>💡</span>
-                <p className="text-xs" style={{ color: '#7a9aba' }}>{dica[lang]}</p>
+                <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{dica[lang]}</p>
               </div>
             ))}
           </div>
@@ -789,5 +799,6 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
