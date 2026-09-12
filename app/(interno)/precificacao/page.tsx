@@ -14,7 +14,7 @@ import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import {
-  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, corTema,
   montarDRE, margemContribuicao, coeficienteVariacao, concentracao,
   simularCenariosExecutivos, calcularImpactoPreco, calcularImpactoDesconto,
   estimarElasticidade, detectarOportunidadesPrecificacao, calcularIPPA, optRosca,
@@ -22,6 +22,8 @@ import {
   type Lancamento, type ChoqueSimulador, type ResultadoCenario,
   type TipoOportunidadePrecificacao,
 } from "../../../lib/cfoCore";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import {
   cfoT,
   nomeTipoOportunidadePrecificacao, montarNarrativaOportunidadePrecificacao,
@@ -37,8 +39,6 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const COR_PRC = CORES.amarelo;
-const COR_PRC_C = CORES.amareloC;
 
 type ProdutoRow = {
   id: string; produto_servico: string; custo_total: number; margem_desejada: number;
@@ -70,6 +70,21 @@ export default function Precificacao() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const COR_PRC = ct(CORES.amarelo);
+  const COR_PRC_C = ct(CORES.amareloC);
+  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+  const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
+  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
+  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const CAMPO_BORDA = temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,130,246,0.2)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(0,67,200,0.1)" : "rgba(59,130,246,0.1)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";
 
   const [produtos, setProdutos] = useState<ProdutoRow[]>([]);
   const [concorrentes, setConcorrentes] = useState<ConcorrenteRow[]>([]);
@@ -310,7 +325,7 @@ export default function Precificacao() {
     pctDecisoesComDesconto, concentracaoReceitaProdutosPct, coeficienteVariacaoReceitaPct, diferencaPctVsConcorrenteMedia,
   });
   const NIVEL_LABEL: Record<string, string> = { critico: cx.prcNivelCritico, atencao: cx.prcNivelAtencao, bom: cx.prcNivelBom, excelente: cx.prcNivelExcelente };
-  const NIVEL_COR: Record<string, string> = { critico: CORES.vermelho, atencao: CORES.amarelo, bom: CORES.verde, excelente: CORES.verde };
+  const NIVEL_COR: Record<string, string> = { critico: ct(CORES.vermelho), atencao: ct(CORES.amarelo), bom: ct(CORES.verde), excelente: ct(CORES.verde) };
   const SUB_LABEL: Record<string, string> = { margem: cx.prcSubMargem, dependenciaDesconto: cx.prcSubDependenciaDesconto, concentracao: cx.prcSubConcentracao, estabilidade: cx.prcSubEstabilidade, competitividade: cx.prcSubCompetitividade };
 
   // ═══════════════════════ MOTOR DE PRECIFICAÇÃO POR VALOR ═══════════════════════
@@ -435,8 +450,8 @@ export default function Precificacao() {
   const menorPreco = produtos.length > 0 ? Math.min(...produtos.map((p) => p.preco_sugerido || 0)) : 0;
   const maiorPreco = produtos.length > 0 ? Math.max(...produtos.map((p) => p.preco_sugerido || 0)) : 0;
 
-  const composicaoReceita = comDadosDeVenda.map((d, i) => ({ name: d.produto.produto_servico, value: d.receitaMensal, color: [CORES.amarelo, CORES.ouro, CORES.azul, CORES.verde, CORES.rosa, CORES.roxo][i % 6] }));
-  const optComposicaoReceita = optRosca(composicaoReceita, COR_PRC, cx.total);
+  const composicaoReceita = comDadosDeVenda.map((d, i) => ({ name: d.produto.produto_servico, value: d.receitaMensal, color: [ct(CORES.amarelo), ct(CORES.ouro), ct(CORES.azul), ct(CORES.verde), ct(CORES.rosa), ct(CORES.roxo)][i % 6] }));
+  const optComposicaoReceita = optRosca(composicaoReceita, COR_PRC, cx.total, temaClaro);
 
   const marquee = [
     "🚀 AXIOMA AI.TECH",
@@ -489,10 +504,11 @@ export default function Precificacao() {
     `_axiomaai.com.br_`,
   ].join("\n");
 
-  const inputStyle = { background: "rgba(255,255,255,0.04)", border: `1px solid ${COR_PRC}30`, color: "#c8d8f0" };
+  const inputStyle = { background: CAMPO_BG, border: `1px solid ${COR_PRC}30`, color: ct("#c8d8f0") };
 
   return (
-    <ModuloLayout titulo={cx.prcTitulo} subtitulo={cx.prcSubtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}>
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <ModuloLayout titulo={cx.prcTitulo} subtitulo={cx.prcSubtitulo} onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo} botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
@@ -516,14 +532,14 @@ export default function Precificacao() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: txt.produtos, value: `${produtos.length}`, cor: COR_PRC },
-            { label: txt.margemMedia, value: `${margemMedia}%`, cor: CORES.verde },
-            { label: txt.menorPreco, value: fmt(menorPreco), cor: CORES.azul },
-            { label: txt.maiorPreco, value: fmt(maiorPreco), cor: CORES.roxo },
+            { label: txt.margemMedia, value: `${margemMedia}%`, cor: ct(CORES.verde) },
+            { label: txt.menorPreco, value: fmt(menorPreco), cor: ct(CORES.azul) },
+            { label: txt.maiorPreco, value: fmt(maiorPreco), cor: ct(CORES.roxo) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
-                <p className="text-xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
+                <p className="text-xl font-black" style={{ color: card.cor }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
           ))}
@@ -533,17 +549,17 @@ export default function Precificacao() {
           <CanvasBox cor={COR_PRC}>
             <div className="flex flex-col items-center justify-center py-16">
               <Tag size={48} style={{ color: "#4a3a10" }} className="mb-4" />
-              <p className="text-sm text-center" style={{ color: "#5a7a9a" }}>{cx.prcNenhumProduto}</p>
+              <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.prcNenhumProduto}</p>
             </div>
           </CanvasBox>
         ) : (
           <>
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${COR_PRC}20, ${CORES.ouro}15)`, border: `1px solid ${COR_PRC}40` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${COR_PRC}20, ${ct(CORES.ouro)}15)`, border: `1px solid ${COR_PRC}40` }}>
               <div className="marquee-prc py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? COR_PRC_C : "#e2e8f0" }}>{m}<span style={{ color: COR_PRC }}>{"  •  "}</span></span>))}
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? COR_PRC_C : ct("#e2e8f0") }}>{m}<span style={{ color: COR_PRC }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -551,23 +567,23 @@ export default function Precificacao() {
             </div>
 
             {/* IPPA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}35` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}35` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Award size={16} style={{ color: COR_PRC }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcIppaTitulo}</p>
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcIppaTitulo}</p>
               </div>
-              <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.prcIppaSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.prcIppaSub}</p>
               <div className="flex items-center gap-4 mb-4">
-                <p className="text-4xl font-black" style={{ color: NIVEL_COR[ippa.nivel], ...FONTE_EXEC }}>{ippa.total}</p>
+                <p className="text-4xl font-black" style={{ color: NIVEL_COR[ippa.nivel] }}>{ippa.total}</p>
                 <div>
                   <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: `${NIVEL_COR[ippa.nivel]}18`, color: NIVEL_COR[ippa.nivel] }}>{NIVEL_LABEL[ippa.nivel]}</span>
-                  <p className="text-xs mt-1.5" style={{ color: "#94a3b8" }}>{montarNarrativaIPPA(lang, ippa)}</p>
+                  <p className="text-xs mt-1.5" style={{ color: ct("#94a3b8") }}>{montarNarrativaIPPA(lang, ippa)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {ippa.subscores.map((s) => (
-                  <div key={s.chave} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{SUB_LABEL[s.chave] || s.chave}</p>
+                  <div key={s.chave} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                    <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{SUB_LABEL[s.chave] || s.chave}</p>
                     <p className="text-sm font-black" style={{ color: COR_PRC_C }}>{Math.round(s.valor)}</p>
                   </div>
                 ))}
@@ -575,21 +591,21 @@ export default function Precificacao() {
             </div>
 
             {/* RADAR DE OPORTUNIDADES */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <AlertTriangle size={16} style={{ color: COR_PRC }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcRadarTitulo}</p>
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcRadarTitulo}</p>
               </div>
-              <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.prcRadarSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.prcRadarSub}</p>
               {oportunidades.length === 0 ? (
-                <p className="text-xs md:text-[13px] font-medium" style={{ color: "#6ee7b7" }}>{idioma === "pt" ? "Nenhuma oportunidade crítica detectada — cadastre unidades vendidas/mês pros produtos pra habilitar essa análise." : "No critical opportunity detected."}</p>
+                <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#6ee7b7") }}>{idioma === "pt" ? "Nenhuma oportunidade crítica detectada — cadastre unidades vendidas/mês pros produtos pra habilitar essa análise." : "No critical opportunity detected."}</p>
               ) : (
                 <div className="space-y-2">
                   {oportunidades.map((o, i) => {
-                    const corTipo = o.tipo === "destroiMargem" || o.tipo === "sobreprecificado" ? CORES.vermelho : o.tipo === "subprecificado" ? CORES.amarelo : CORES.verde;
+                    const corTipo = o.tipo === "destroiMargem" || o.tipo === "sobreprecificado" ? ct(CORES.vermelho) : o.tipo === "subprecificado" ? ct(CORES.amarelo) : ct(CORES.verde);
                     return (
                       <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap" style={{ background: `${corTipo}10`, border: `1px solid ${corTipo}25` }}>
-                        <p className="text-xs md:text-[13px] font-medium" style={{ color: "#e2e8f0" }}>{montarNarrativaOportunidadePrecificacao(lang, o)}</p>
+                        <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#e2e8f0") }}>{montarNarrativaOportunidadePrecificacao(lang, o)}</p>
                         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${corTipo}18`, color: corTipo }}>{nomeTipoOportunidadePrecificacao(lang, o.tipo as TipoOportunidadePrecificacao)}</span>
                       </div>
                     );
@@ -600,7 +616,7 @@ export default function Precificacao() {
             </div>
 
             {/* SELETOR DE PRODUTO (usado pelo Motor, Desconto, Concorrentes, Elasticidade) */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: COR_PRC_C }}>{txt.selecioneProduto}</label>
               <select value={produtoSelecionadoId} onChange={(e) => setProdutoSelecionadoId(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle}>
@@ -612,38 +628,38 @@ export default function Precificacao() {
             {produtoSelecionado && (
               <>
                 {/* MOTOR DE PRECIFICAÇÃO POR VALOR */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Sliders size={16} style={{ color: COR_PRC }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcMotorTitulo}</p>
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcMotorTitulo}</p>
                   </div>
-                  <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.prcMotorSub}</p>
+                  <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcMotorSub}</p>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                     <div>
-                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#94a3b8" }}>{cx.prcPrecoAtualLabel}</label>
-                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.02)", color: "#94a3b8" }}>R$ {fBRL2(produtoSelecionado.preco_sugerido || 0)}</div>
+                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcPrecoAtualLabel}</label>
+                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG2, color: ct("#94a3b8") }}>R$ {fBRL2(produtoSelecionado.preco_sugerido || 0)}</div>
                     </div>
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcPrecoCandidatoLabel}</label>
                       <input type="number" value={precoCandidato} onChange={(e) => setPrecoCandidato(e.target.value)} onBlur={(e) => setPrecoCandidato(precoBlur(e.target.value))} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     </div>
                     <div>
-                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: "#94a3b8" }}>{cx.prcUnidadesVendidasLabel}</label>
-                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.02)", color: "#94a3b8" }}>{produtoSelecionado.unidades_vendidas_mes ?? "—"}</div>
+                      <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcUnidadesVendidasLabel}</label>
+                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG2, color: ct("#94a3b8") }}>{produtoSelecionado.unidades_vendidas_mes ?? "—"}</div>
                     </div>
                   </div>
                   {impactoPreco && (
                     <>
-                      <p className="text-xs md:text-[13px] font-medium mb-3" style={{ color: "#e2e8f0" }}>{montarNarrativaImpactoPreco(lang, impactoPreco, produtoSelecionado.preco_sugerido || 0, parseFloat(precoCandidato))}</p>
+                      <p className="text-xs md:text-[13px] font-medium mb-3" style={{ color: ct("#e2e8f0") }}>{montarNarrativaImpactoPreco(lang, impactoPreco, produtoSelecionado.preco_sugerido || 0, parseFloat(precoCandidato))}</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                         {[
-                          { l: cx.prcImpactoReceitaLabel, v: fBRL(impactoPreco.deltaReceitaEmpresa), c: impactoPreco.deltaReceitaEmpresa >= 0 ? CORES.verde : CORES.vermelho },
-                          { l: cx.prcImpactoLucroLabel, v: fBRL(impactoPreco.deltaLucroLiquidoEmpresa), c: impactoPreco.deltaLucroLiquidoEmpresa >= 0 ? CORES.verde : CORES.vermelho },
-                          { l: cx.prcImpactoEbitdaLabel, v: fBRL(impactoPreco.deltaEbitdaEmpresa), c: impactoPreco.deltaEbitdaEmpresa >= 0 ? CORES.verde : CORES.vermelho },
+                          { l: cx.prcImpactoReceitaLabel, v: fBRL(impactoPreco.deltaReceitaEmpresa), c: impactoPreco.deltaReceitaEmpresa >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
+                          { l: cx.prcImpactoLucroLabel, v: fBRL(impactoPreco.deltaLucroLiquidoEmpresa), c: impactoPreco.deltaLucroLiquidoEmpresa >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
+                          { l: cx.prcImpactoEbitdaLabel, v: fBRL(impactoPreco.deltaEbitdaEmpresa), c: impactoPreco.deltaEbitdaEmpresa >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                           { l: cx.prcMargemNovaLabel, v: fPct(impactoPreco.margemContribuicaoPct), c: COR_PRC_C },
                         ].map((k, i) => (
-                          <div key={i} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                            <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{k.l}</p>
+                          <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                            <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{k.l}</p>
                             <p className="text-xs font-black" style={{ color: k.c }}>{k.v}</p>
                           </div>
                         ))}
@@ -657,40 +673,40 @@ export default function Precificacao() {
                 </div>
 
                 {/* ENGENHARIA DE DESCONTOS */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Percent size={16} style={{ color: COR_PRC }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcDescontoTitulo}</p>
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcDescontoTitulo}</p>
                   </div>
-                  <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.prcDescontoSub}</p>
+                  <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcDescontoSub}</p>
                   <div className="max-w-xs mb-3">
                     <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: COR_PRC_C }}>{cx.prcDescontoPctLabel}</label>
                     <input type="number" value={descontoPct} onChange={(e) => setDescontoPct(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                   </div>
                   {impactoDesconto && (
                     <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: impactoDesconto.dentroDoLimite ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${impactoDesconto.dentroDoLimite ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}` }}>
-                      {impactoDesconto.dentroDoLimite ? <ShieldCheck size={15} style={{ color: CORES.verdeC, flexShrink: 0, marginTop: 2 }} /> : <AlertTriangle size={15} style={{ color: CORES.vermelhoC, flexShrink: 0, marginTop: 2 }} />}
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: impactoDesconto.dentroDoLimite ? "#6ee7b7" : "#fca5a5" }}>{montarNarrativaImpactoDesconto(lang, impactoDesconto, parseFloat(descontoPct || "0"))}</p>
+                      {impactoDesconto.dentroDoLimite ? <ShieldCheck size={15} style={{ color: ct(CORES.verdeC), flexShrink: 0, marginTop: 2 }} /> : <AlertTriangle size={15} style={{ color: ct(CORES.vermelhoC), flexShrink: 0, marginTop: 2 }} />}
+                      <p className="text-xs md:text-[13px] font-medium" style={{ color: impactoDesconto.dentroDoLimite ? ct("#6ee7b7") : ct("#fca5a5") }}>{montarNarrativaImpactoDesconto(lang, impactoDesconto, parseFloat(descontoPct || "0"))}</p>
                     </div>
                   )}
                 </div>
 
                 {/* ELASTICIDADE */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingUp size={16} style={{ color: COR_PRC }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcElasticidadeTitulo}</p>
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcElasticidadeTitulo}</p>
                   </div>
-                  <p className="text-xs md:text-[13px] font-medium mt-2" style={{ color: elasticidade.temDadosSuficientes ? "#e2e8f0" : "#64748b" }}>{montarNarrativaElasticidade(lang, elasticidade)}</p>
+                  <p className="text-xs md:text-[13px] font-medium mt-2" style={{ color: elasticidade.temDadosSuficientes ? ct("#e2e8f0") : ct("#64748b") }}>{montarNarrativaElasticidade(lang, elasticidade)}</p>
                 </div>
 
                 {/* CONCORRENTES */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Users size={16} style={{ color: COR_PRC }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcConcorrentesTitulo}</p>
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcConcorrentesTitulo}</p>
                   </div>
-                  <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.prcConcorrentesSub}</p>
+                  <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcConcorrentesSub}</p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                     <input placeholder={cx.prcConcorrenteNomeLabel} value={novoConcorrenteNome} onChange={(e) => setNovoConcorrenteNome(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input type="number" placeholder={cx.prcConcorrentePrecoLabel} value={novoConcorrentePreco} onChange={(e) => setNovoConcorrentePreco(e.target.value)} onBlur={(e) => setNovoConcorrentePreco(precoBlur(e.target.value))} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
@@ -700,13 +716,13 @@ export default function Precificacao() {
                     </motion.button>
                   </div>
                   {(derivadoSelecionado?.concorrentesProduto.length || 0) === 0 ? (
-                    <p className="text-xs md:text-[13px] font-medium" style={{ color: "#64748b" }}>{cx.prcSemConcorrentes}</p>
+                    <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#64748b") }}>{cx.prcSemConcorrentes}</p>
                   ) : (
                     <div className="space-y-2">
                       {derivadoSelecionado?.concorrentesProduto.map((c) => (
-                        <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
-                          <p className="text-xs md:text-[13px] font-medium" style={{ color: "#e2e8f0" }}>{c.nome_concorrente} — R$ {fBRL2(c.preco)}{c.posicionamento ? ` (${c.posicionamento})` : ""}</p>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerConcorrente(c.id)}><Trash2 size={14} style={{ color: "#f87171" }} /></motion.button>
+                        <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: CAMPO_BG3 }}>
+                          <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#e2e8f0") }}>{c.nome_concorrente} — R$ {fBRL2(c.preco)}{c.posicionamento ? ` (${c.posicionamento})` : ""}</p>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerConcorrente(c.id)}><Trash2 size={14} style={{ color: ct("#f87171") }} /></motion.button>
                         </div>
                       ))}
                     </div>
@@ -716,12 +732,12 @@ export default function Precificacao() {
             )}
 
             {/* WAR ROOM */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Zap size={16} style={{ color: COR_PRC }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcWarRoomTitulo}</p>
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcWarRoomTitulo}</p>
               </div>
-              <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.prcWarRoomSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.prcWarRoomSub}</p>
               <div className="flex flex-wrap gap-2 mb-4">
                 {([
                   ["concorrenteReduz", cx.prcCenarioConcorrenteReduz], ["concorrenteAumenta", cx.prcCenarioConcorrenteAumenta],
@@ -742,12 +758,12 @@ export default function Precificacao() {
               {warResultado && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   {warResultado.map((r) => {
-                    const corCenario = r.nome === "otimista" ? CORES.verde : r.nome === "adverso" ? CORES.vermelho : r.nome === "base" ? COR_PRC : CORES.azul;
+                    const corCenario = r.nome === "otimista" ? ct(CORES.verde) : r.nome === "adverso" ? ct(CORES.vermelho) : r.nome === "base" ? COR_PRC : ct(CORES.azul);
                     return (
-                      <div key={r.nome} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corCenario}30` }}>
+                      <div key={r.nome} className="rounded-xl p-3" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
                         <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invLucroLiquidoMensal}</p>
-                        <p className="text-sm font-black" style={{ color: r.lucroLiquidoMensal >= 0 ? CORES.verde : CORES.vermelho }}>{fBRL(r.lucroLiquidoMensal)}</p>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
+                        <p className="text-sm font-black" style={{ color: r.lucroLiquidoMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(r.lucroLiquidoMensal)}</p>
                       </div>
                     );
                   })}
@@ -756,12 +772,12 @@ export default function Precificacao() {
             </div>
 
             {/* PAINEL DE ESPECIALISTAS */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
               <div className="flex items-center gap-2 mb-1">
-                <Users size={16} style={{ color: CORES.ouro }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcPainelEspecialistasTitulo}</p>
+                <Users size={16} style={{ color: ct(CORES.ouro) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcPainelEspecialistasTitulo}</p>
               </div>
-              <p className="text-[11px] mb-4" style={{ color: "#64748b" }}>{cx.prcPainelEspecialistasSub}</p>
+              <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{cx.prcPainelEspecialistasSub}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                 {[
                   { l: cx.prcEspecialistaCFO, t: `${cx.prcImpactoLucroLabel}: ${fBRL(dreAtual.lucroLiquido.valor)}` },
@@ -770,28 +786,28 @@ export default function Precificacao() {
                   { l: cx.prcEspecialistaRisco, t: `${cx.prcRadarTitulo}: ${oportunidadesRisco.length}` },
                   { l: cx.prcEspecialistaAnalista, t: elasticidade.temDadosSuficientes ? montarNarrativaElasticidade(lang, elasticidade) : cx.prcElasticidadeDadosInsuficientes },
                 ].map((e, i) => (
-                  <div key={i} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: CORES.ouro }}>{e.l}</p>
-                    <p className="text-xs font-medium" style={{ color: "#e2e8f0" }}>{e.t}</p>
+                  <div key={i} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
+                    <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{e.l}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.t}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: CORES.ouro }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
+              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
               <div className="space-y-1.5 mb-3">
-                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
-                  <Sparkles size={15} style={{ color: CORES.ouro, flexShrink: 0, marginTop: 2 }} />
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+                  <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0, marginTop: 2 }} />
                   <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{montarNarrativaIPPA(lang, ippa)}</p>
                 </div>
                 {piorOportunidade && (
                   <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-                    <AlertTriangle size={15} style={{ color: CORES.vermelhoC, flexShrink: 0, marginTop: 2 }} />
-                    <p className="text-xs md:text-[13px] font-medium" style={{ color: "#fca5a5" }}>{montarNarrativaOportunidadePrecificacao(lang, piorOportunidade)}</p>
+                    <AlertTriangle size={15} style={{ color: ct(CORES.vermelhoC), flexShrink: 0, marginTop: 2 }} />
+                    <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#fca5a5") }}>{montarNarrativaOportunidadePrecificacao(lang, piorOportunidade)}</p>
                   </div>
                 )}
                 {melhorOportunidade && (
                   <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                    <Sparkles size={15} style={{ color: CORES.verdeC, flexShrink: 0, marginTop: 2 }} />
-                    <p className="text-xs md:text-[13px] font-medium" style={{ color: "#6ee7b7" }}>{montarNarrativaOportunidadePrecificacao(lang, melhorOportunidade)}</p>
+                    <Sparkles size={15} style={{ color: ct(CORES.verdeC), flexShrink: 0, marginTop: 2 }} />
+                    <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#6ee7b7") }}>{montarNarrativaOportunidadePrecificacao(lang, melhorOportunidade)}</p>
                   </div>
                 )}
               </div>
@@ -799,26 +815,26 @@ export default function Precificacao() {
             </div>
 
             {/* MEMÓRIA ESTRATÉGICA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(45,35,10,0.9), rgba(10,8,32,0.95))", border: `1px solid ${COR_PRC}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Clock size={16} style={{ color: COR_PRC }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.prcMemoriaTitulo}</p>
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcMemoriaTitulo}</p>
               </div>
-              <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.prcMemoriaSub}</p>
+              <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.prcMemoriaSub}</p>
               {decisoes.length === 0 ? (
-                <p className="text-xs md:text-[13px] font-medium" style={{ color: "#64748b" }}>{cx.prcSemDecisoes}</p>
+                <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#64748b") }}>{cx.prcSemDecisoes}</p>
               ) : (
                 <div className="space-y-2">
                   {[...decisoes].reverse().slice(0, 10).map((d) => {
                     const produtoNome = produtos.find((p) => p.id === d.produto_id)?.produto_servico || "—";
                     return (
-                      <div key={d.id} className="px-3 py-2.5 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
+                      <div key={d.id} className="px-3 py-2.5 rounded-xl" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between flex-wrap gap-2 mb-1.5">
-                          <p className="text-xs font-bold" style={{ color: "#e2e8f0" }}>{produtoNome}</p>
-                          <p className="text-[11px]" style={{ color: "#94a3b8" }}>{fBRL(d.preco_anterior)} → {fBRL(d.preco_novo)}</p>
+                          <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{produtoNome}</p>
+                          <p className="text-[11px]" style={{ color: ct("#94a3b8") }}>{fBRL(d.preco_anterior)} → {fBRL(d.preco_novo)}</p>
                         </div>
                         <input placeholder={cx.prcResultadoRealLabel} defaultValue={d.resultado_real || ""} onBlur={(e) => atualizarResultadoReal(d.id, e.target.value)}
-                          className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none" style={{ background: "rgba(255,255,255,0.04)", color: "#c8d8f0" }} />
+                          className="w-full px-2.5 py-1.5 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
                       </div>
                     );
                   })}
@@ -832,17 +848,17 @@ export default function Precificacao() {
                 <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
                   <CanvasBox cor={COR_PRC}>
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-bold text-sm truncate mr-2" style={{ color: "#c8d8f0" }}>{p.produto_servico}</h3>
+                      <h3 className="font-bold text-sm truncate mr-2" style={{ color: ct("#c8d8f0") }}>{p.produto_servico}</h3>
                       <div className="flex gap-2 flex-shrink-0">
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}><Pencil size={15} style={{ color: "#6ab0ff" }} /></motion.button>
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirProduto(p.id)}><Trash2 size={15} style={{ color: "#f87171" }} /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(p)}><Pencil size={15} style={{ color: ct("#6ab0ff") }} /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirProduto(p.id)}><Trash2 size={15} style={{ color: ct("#f87171") }} /></motion.button>
                       </div>
                     </div>
                     <p className="text-2xl font-black mb-3" style={{ color: COR_PRC }}>{fmt(p.preco_sugerido || 0)}</p>
                     <div className="space-y-1.5">
-                      <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.custo}</span><span className="text-xs font-black" style={{ color: "#f87171" }}>{fmt(p.custo_total || 0)}</span></div>
-                      <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.margem}</span><span className="text-xs font-black" style={{ color: "#34d399" }}>{p.margem_desejada}%</span></div>
-                      {p.categoria && <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.categoriaLabel}</span><span className="text-xs font-black" style={{ color: "#94a3b8" }}>{p.categoria}</span></div>}
+                      <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.custo}</span><span className="text-xs font-black" style={{ color: ct("#f87171") }}>{fmt(p.custo_total || 0)}</span></div>
+                      <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.margem}</span><span className="text-xs font-black" style={{ color: ct("#34d399") }}>{p.margem_desejada}%</span></div>
+                      {p.categoria && <div className="flex justify-between"><span className="text-xs" style={{ color: ct("#3a6090") }}>{txt.categoriaLabel}</span><span className="text-xs font-black" style={{ color: ct("#94a3b8") }}>{p.categoria}</span></div>}
                     </div>
                   </CanvasBox>
                 </motion.div>
@@ -862,9 +878,9 @@ export default function Precificacao() {
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: COR_PRC }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? txt.editar : txt.novo}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{editando ? txt.editar : txt.novo}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
@@ -878,26 +894,26 @@ export default function Precificacao() {
                       { label: txt.unidadesLabel, value: unidadesVendidasMes, set: setUnidadesVendidasMes, type: "number" },
                     ].map((c, idx) => (
                       <div key={idx}>
-                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{c.label}</label>
+                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{c.label}</label>
                         <input type={c.type} value={c.value} onChange={(e) => c.set(e.target.value)} placeholder="0"
-                          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }} />
                       </div>
                     ))}
                     <div>
-                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{txt.statusLabel}</label>
-                      <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{txt.statusLabel}</label>
+                      <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: "1px solid rgba(59,111,212,0.2)", color: ct("#c8d8f0") }}>
                         <option value="ativo">{txt.statusAtivo}</option>
                         <option value="descontinuado">{txt.statusDescontinuado}</option>
                       </select>
                     </div>
                   </div>
                   <div className="flex flex-col justify-center items-center text-center gap-4">
-                    <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: "#5a7a9a" }}>{txt.precoAtual}</p>
+                    <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: ct("#5a7a9a") }}>{txt.precoAtual}</p>
                     <motion.p key={editando ? editando.preco_sugerido : precoPreview} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-4xl font-black" style={{ color: COR_PRC }}>
                       {fmt(editando ? editando.preco_sugerido : precoPreview)}
                     </motion.p>
                     <div className="flex gap-3 w-full">
-                      <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: "#5a7a9a" }}>{txt.cancelar}</button>
+                      <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{txt.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarProduto} disabled={salvando}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: `linear-gradient(135deg, #92400e, ${COR_PRC})`, color: "#1a1400" }}>
                         {salvando ? "..." : txt.salvar}
@@ -922,5 +938,6 @@ export default function Precificacao() {
         cor={COR_PRC}
       />
     </ModuloLayout>
+    </div>
   );
 }
