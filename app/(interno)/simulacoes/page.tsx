@@ -15,7 +15,7 @@ import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import {
-  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, corTema,
   resolverPeriodo, montarDRE,
   simularCenariosExecutivos, analiseSensibilidade, simulacaoMonteCarlo,
   gerarChoquePreset, receitaPctParaMultiplicarLucro, optBarrasV,
@@ -23,6 +23,8 @@ import {
   type ChoqueSimulador, type ResultadoCenario, type ImpactoSensibilidade, type ResultadoMonteCarlo,
   type PresetSimulacao, type DriverSensibilidade,
 } from "../../../lib/cfoCore";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import {
   cfoT,
   montarNarrativaSensibilidade, montarNarrativaMonteCarlo, montarNarrativaRiscoRuptura,
@@ -61,6 +63,19 @@ export default function Simulacoes() {
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+  const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
+  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
+  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const CAMPO_BORDA = temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,130,246,0.2)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(0,67,200,0.1)" : "rgba(59,130,246,0.1)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -245,7 +260,7 @@ export default function Simulacoes() {
     : resultado.monteCarlo.probabilidadeRupturaCaixaPct > 30 ? "baixo"
     : resultado.monteCarlo.probabilidadeRupturaCaixaPct > 10 ? "medio" : "alto";
   const NIVEL_LABEL: Record<string, string> = { baixo: cx.simConfiancaBaixo, medio: cx.simConfiancaMedio, alto: cx.simConfiancaAlto };
-  const NIVEL_COR: Record<string, string> = { baixo: CORES.vermelho, medio: CORES.amarelo, alto: CORES.verde };
+  const NIVEL_COR: Record<string, string> = { baixo: ct(CORES.vermelho), medio: ct(CORES.amarelo), alto: ct(CORES.verde) };
   const planoAcao: string[] = [];
   if (resultado) {
     planoAcao.push(cx.simPlanoAcaoRevisarCusto);
@@ -259,7 +274,7 @@ export default function Simulacoes() {
   const optCenarios = resultado ? optBarrasV(
     resultado.cenarios.map((c) => c.lucroLiquidoMensal),
     resultado.cenarios.map((c) => NOME_CENARIO[c.nome] || c.nome),
-    CORES.indigo, "#a5b4fc",
+    ct(CORES.indigo), "#a5b4fc", undefined, temaClaro,
   ) : null;
 
   const marquee = [
@@ -310,10 +325,11 @@ export default function Simulacoes() {
     "_axiomaai.com.br_",
   ].join("\n");
 
-  const inputStyle = { background: "rgba(255,255,255,0.04)", border: `1px solid ${CORES.indigo}30`, color: "#c8d8f0" };
+  const inputStyle = { background: CAMPO_BG, border: `1px solid ${ct(CORES.indigo)}30`, color: ct("#c8d8f0") };
 
   return (
-    <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
@@ -323,30 +339,30 @@ export default function Simulacoes() {
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={CORES.indigo} lang={lang} />
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.indigo)} lang={lang} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.4)", color: "#a5b4fc" }}>
+            style={{ background: PAINEL_BORDA, border: "1px solid rgba(99,102,241,0.4)", color: "#a5b4fc" }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
 
         {!temDadosSimulacao ? (
-          <CanvasBox cor={CORES.indigo}>
+          <CanvasBox cor={ct(CORES.indigo)}>
             <div className="flex flex-col items-center justify-center py-16">
               <Sliders size={48} style={{ color: "#2e2a5a" }} className="mb-4" />
-              <p className="text-sm text-center" style={{ color: "#5a7a9a" }}>{cx.simSemDados}</p>
+              <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.simSemDados}</p>
             </div>
           </CanvasBox>
         ) : (
           <>
             {/* PONTO DE PARTIDA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}35` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}35` }}>
               <div className="flex items-center gap-2 mb-1">
-                <Landmark size={16} style={{ color: CORES.indigo }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simPontoPartidaTitulo}</p>
+                <Landmark size={16} style={{ color: ct(CORES.indigo) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simPontoPartidaTitulo}</p>
               </div>
-              <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.simPontoPartidaSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simPontoPartidaSub}</p>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                 {[
                   { l: cx.simReceitaMensalLabel, v: fBRL(receitaMensalMedia) },
@@ -356,9 +372,9 @@ export default function Simulacoes() {
                   { l: cx.simCaixaDisponivelLabel, v: fBRL(caixaDisponivel) },
                   { l: cx.simRegimeAtualLabel, v: regimeTributario || "—" },
                 ].map((m, i) => (
-                  <div key={i} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{m.l}</p>
-                    <p className="text-xs md:text-sm font-black truncate" style={{ color: PRATAC }}>{m.v}</p>
+                  <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                    <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
+                    <p className="text-xs md:text-sm font-black truncate" style={{ color: ct(PRATAC) }}>{m.v}</p>
                   </div>
                 ))}
               </div>
@@ -366,21 +382,21 @@ export default function Simulacoes() {
 
             {/* INDICADORES DE MERCADO */}
             {macro && (
-              <div className="rounded-2xl p-3 md:p-4" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+              <div className="rounded-2xl p-3 md:p-4" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                 <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                   <div className="flex items-center gap-2">
-                    <Percent size={14} style={{ color: CORES.indigo }} />
-                    <p className="text-xs font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.invIndicadoresMacro}</p>
+                    <Percent size={14} style={{ color: ct(CORES.indigo) }} />
+                    <p className="text-xs font-black" style={{ color: ct("#f1f5f9") }}>{cx.invIndicadoresMacro}</p>
                   </div>
-                  <p className="text-[9px]" style={{ color: macro.fonte === "bcb" ? "#64748b" : CORES.amarelo }}>{macro.fonte === "bcb" ? cx.invFonteBcb : cx.invFonteFallback}</p>
+                  <p className="text-[9px]" style={{ color: macro.fonte === "bcb" ? ct("#64748b") : ct(CORES.amarelo) }}>{macro.fonte === "bcb" ? cx.invFonteBcb : cx.invFonteFallback}</p>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     { l: cx.invSelic, v: fPct(macro.selic) }, { l: cx.invCdi, v: fPct(macro.cdi) },
                     { l: cx.invIpca, v: fPct(macro.ipca12m) }, { l: cx.invDolar, v: `R$ ${macro.usdBrl.toFixed(2)}` },
                   ].map((m, i) => (
-                    <div key={i} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                      <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{m.l}</p>
+                    <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                      <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
                       <p className="text-sm font-black" style={{ color: "#a5b4fc" }}>{m.v}</p>
                     </div>
                   ))}
@@ -392,8 +408,8 @@ export default function Simulacoes() {
             <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(99,102,241,0.16), rgba(148,163,184,0.10))", border: "1px solid rgba(99,102,241,0.28)" }}>
               <div className="marquee-sim py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#a5b4fc" : "#e2e8f0" }}>{m}<span style={{ color: CORES.indigo }}>{"  •  "}</span></span>))}
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#a5b4fc" : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.indigo) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -401,62 +417,62 @@ export default function Simulacoes() {
             </div>
 
             {/* OBJETIVOS RÁPIDOS */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
               <div className="flex items-center gap-2 mb-1">
-                <Target size={16} style={{ color: CORES.indigo }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simObjetivosTitulo}</p>
+                <Target size={16} style={{ color: ct(CORES.indigo) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simObjetivosTitulo}</p>
               </div>
-              <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.simObjetivosSub}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simObjetivosSub}</p>
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("dobrarFaturamento")}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${CORES.indigo}40`, color: "#a5b4fc" }}>
+                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: "#a5b4fc" }}>
                   {cx.simObjDobrarFaturamento}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={aplicarPresetTriplicarLucro}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${CORES.indigo}40`, color: "#a5b4fc" }}>
+                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: "#a5b4fc" }}>
                   {cx.simObjTriplicarLucro}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("melhorarFluxoCaixa")}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${CORES.indigo}40`, color: "#a5b4fc" }}>
+                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: "#a5b4fc" }}>
                   {cx.simObjMelhorarFluxoCaixa}
                 </motion.button>
-                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${CORES.indigo}40` }}>
+                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
                   <button onClick={() => aplicarPreset("reduzirCustos")} className="text-xs font-bold" style={{ color: "#a5b4fc" }}>{cx.simObjReduzirCustos}</button>
                   <input type="number" value={reduzirCustosPct} onChange={(e) => setReduzirCustosPct(e.target.value)}
-                    className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }} />
-                  <span className="text-[10px]" style={{ color: "#64748b" }}>%</span>
+                    className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
+                  <span className="text-[10px]" style={{ color: ct("#64748b") }}>%</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${CORES.indigo}40` }}>
+                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
                   <button onClick={() => aplicarPreset("reduzirDivida")} className="text-xs font-bold" style={{ color: "#a5b4fc" }}>{cx.simObjReduzirDivida}</button>
                   <input type="number" value={reduzirJurosPontos} onChange={(e) => setReduzirJurosPontos(e.target.value)}
-                    className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }} />
-                  <span className="text-[10px]" style={{ color: "#64748b" }}>pts</span>
+                    className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
+                  <span className="text-[10px]" style={{ color: ct("#64748b") }}>pts</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("crise")}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(239,68,68,0.12)", border: `1px solid ${CORES.vermelho}40`, color: CORES.vermelhoC }}>
+                  style={{ background: "rgba(239,68,68,0.12)", border: `1px solid ${ct(CORES.vermelho)}40`, color: ct(CORES.vermelhoC) }}>
                   <Zap size={12} /> {cx.simPresetCrise}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("expansao")}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(16,185,129,0.12)", border: `1px solid ${CORES.verde}40`, color: CORES.verdeC }}>
+                  style={{ background: "rgba(16,185,129,0.12)", border: `1px solid ${ct(CORES.verde)}40`, color: ct(CORES.verdeC) }}>
                   <Zap size={12} /> {cx.simPresetExpansao}
                 </motion.button>
               </div>
             </div>
 
             {/* CHOQUES / MOTOR DE SIMULAÇÃO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
               <div className="flex items-center gap-2 mb-1">
-                <Sliders size={16} style={{ color: CORES.indigo }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.invSimuladorTitulo}</p>
+                <Sliders size={16} style={{ color: ct(CORES.indigo) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invSimuladorTitulo}</p>
               </div>
-              <p className="text-xs mb-4" style={{ color: "#64748b" }}>{cx.invSimuladorSub}</p>
+              <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.invSimuladorSub}</p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
                 {[
@@ -492,7 +508,7 @@ export default function Simulacoes() {
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={rodarSimulacao}
                 className="w-full py-3 rounded-xl text-sm font-bold"
-                style={{ background: `linear-gradient(135deg, #312e81, ${CORES.indigo})`, color: "#fff" }}>
+                style={{ background: `linear-gradient(135deg, #312e81, ${ct(CORES.indigo)})`, color: "#fff" }}>
                 {cx.simSimular}
               </motion.button>
             </div>
@@ -500,24 +516,24 @@ export default function Simulacoes() {
             {resultado && cenarioBase && (
               <>
                 {/* CENÁRIOS */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp size={16} style={{ color: CORES.indigo }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simCenariosTitulo}</p>
+                    <TrendingUp size={16} style={{ color: ct(CORES.indigo) }} />
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simCenariosTitulo}</p>
                   </div>
-                  <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.simCenariosSub}</p>
+                  <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simCenariosSub}</p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                     {resultado.cenarios.map((r) => {
-                      const corCenario = r.nome === "otimista" ? CORES.verde : r.nome === "adverso" ? CORES.vermelho : r.nome === "base" ? CORES.indigo : CORES.amarelo;
+                      const corCenario = r.nome === "otimista" ? ct(CORES.verde) : r.nome === "adverso" ? ct(CORES.vermelho) : r.nome === "base" ? ct(CORES.indigo) : ct(CORES.amarelo);
                       return (
-                        <div key={r.nome} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corCenario}30` }}>
+                        <div key={r.nome} className="rounded-xl p-3" style={{ background: CAMPO_BG3, border: `1px solid ${corCenario}30` }}>
                           <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: corCenario }}>{NOME_CENARIO[r.nome]}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invLucroLiquidoMensal}</p>
-                          <p className="text-sm font-black mb-2" style={{ color: r.lucroLiquidoMensal >= 0 ? CORES.verde : CORES.vermelho }}>{fBRL(r.lucroLiquidoMensal)}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invSaldoProjetado12m}</p>
-                          <p className="text-sm font-black mb-2" style={{ color: r.saldoCaixaProjetado >= 0 ? "#e2e8f0" : CORES.vermelho }}>{fBRL(r.saldoCaixaProjetado)}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.invRunwayCritico}</p>
-                          <p className="text-xs font-black" style={{ color: r.runwayMeses !== null ? CORES.vermelho : CORES.verde }}>{r.runwayMeses !== null ? `${r.runwayMeses}m` : cx.invSemRunway}</p>
+                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invLucroLiquidoMensal}</p>
+                          <p className="text-sm font-black mb-2" style={{ color: r.lucroLiquidoMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(r.lucroLiquidoMensal)}</p>
+                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invSaldoProjetado12m}</p>
+                          <p className="text-sm font-black mb-2" style={{ color: r.saldoCaixaProjetado >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(r.saldoCaixaProjetado)}</p>
+                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.invRunwayCritico}</p>
+                          <p className="text-xs font-black" style={{ color: r.runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde) }}>{r.runwayMeses !== null ? `${r.runwayMeses}m` : cx.invSemRunway}</p>
                         </div>
                       );
                     })}
@@ -526,25 +542,25 @@ export default function Simulacoes() {
                 </div>
 
                 {/* ANÁLISE DE SENSIBILIDADE */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <AlertTriangle size={16} style={{ color: CORES.indigo }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simSensibilidadeTitulo}</p>
+                    <AlertTriangle size={16} style={{ color: ct(CORES.indigo) }} />
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simSensibilidadeTitulo}</p>
                   </div>
-                  <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.simSensibilidadeSub}</p>
+                  <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simSensibilidadeSub}</p>
                   <div className="space-y-2">
                     {resultado.sensibilidade.map((s) => (
-                      <div key={s.driver} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
+                      <div key={s.driver} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-xs font-bold" style={{ color: "#e2e8f0" }}>{nomeDriverSensibilidade(lang, s.driver as DriverSensibilidade)}</p>
+                          <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{nomeDriverSensibilidade(lang, s.driver as DriverSensibilidade)}</p>
                           <p className="text-[10px] font-black" style={{ color: "#a5b4fc" }}>{fPct(s.pesoPct)} {cx.simPeso}</p>
                         </div>
-                        <div className="w-full h-1.5 rounded-full overflow-hidden mb-2" style={{ background: "rgba(255,255,255,0.06)" }}>
-                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.pesoPct)}%`, background: `linear-gradient(90deg, ${CORES.indigo}, #a5b4fc)` }} />
+                        <div className="w-full h-1.5 rounded-full overflow-hidden mb-2" style={{ background: CAMPO_BORDA2 }}>
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.pesoPct)}%`, background: `linear-gradient(90deg, ${ct(CORES.indigo)}, #a5b4fc)` }} />
                         </div>
                         <div className="flex items-center justify-between text-[11px]">
-                          <span style={{ color: CORES.vermelhoC }}>{cx.simDesfavoravel}: {fBRL(s.impactoDesfavoravelRS)}</span>
-                          <span style={{ color: CORES.verdeC }}>{cx.simFavoravel}: {fBRL(s.impactoFavoravelRS)}</span>
+                          <span style={{ color: ct(CORES.vermelhoC) }}>{cx.simDesfavoravel}: {fBRL(s.impactoDesfavoravelRS)}</span>
+                          <span style={{ color: ct(CORES.verdeC) }}>{cx.simFavoravel}: {fBRL(s.impactoFavoravelRS)}</span>
                         </div>
                       </div>
                     ))}
@@ -552,54 +568,54 @@ export default function Simulacoes() {
                 </div>
 
                 {/* MONTE CARLO */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Dices size={16} style={{ color: CORES.indigo }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simMonteCarloTitulo}</p>
+                    <Dices size={16} style={{ color: ct(CORES.indigo) }} />
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simMonteCarloTitulo}</p>
                   </div>
-                  <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.simMonteCarloSub} ({resultado.monteCarlo.iteracoes.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")} {cx.simIteracoes})</p>
+                  <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simMonteCarloSub} ({resultado.monteCarlo.iteracoes.toLocaleString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR")} {cx.simIteracoes})</p>
                   <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="rounded-xl p-3" style={{ background: "rgba(16,185,129,0.08)", border: `1px solid ${CORES.verde}30` }}>
-                      <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>{cx.simProbLucroPositivo}</p>
-                      <p className="text-xl font-black" style={{ color: CORES.verde }}>{fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)}</p>
+                    <div className="rounded-xl p-3" style={{ background: "rgba(16,185,129,0.08)", border: `1px solid ${ct(CORES.verde)}30` }}>
+                      <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbLucroPositivo}</p>
+                      <p className="text-xl font-black" style={{ color: ct(CORES.verde) }}>{fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)}</p>
                     </div>
-                    <div className="rounded-xl p-3" style={{ background: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? "rgba(239,68,68,0.1)" : "rgba(255,255,255,0.03)", border: `1px solid ${resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? CORES.vermelho : "rgba(255,255,255,0.1)"}30` }}>
-                      <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>{cx.simProbRupturaCaixa}</p>
-                      <p className="text-xl font-black" style={{ color: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? CORES.vermelho : "#e2e8f0" }}>{fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)}</p>
+                    <div className="rounded-xl p-3" style={{ background: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? "rgba(239,68,68,0.1)" : CAMPO_BG3, border: `1px solid ${resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : "rgba(255,255,255,0.1)"}30` }}>
+                      <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbRupturaCaixa}</p>
+                      <p className="text-xl font-black" style={{ color: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : ct("#e2e8f0") }}>{fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { l: "P10", v: resultado.monteCarlo.lucroLiquidoP10 }, { l: cx.simMediana, v: resultado.monteCarlo.lucroLiquidoP50 }, { l: "P90", v: resultado.monteCarlo.lucroLiquidoP90 },
                     ].map((m, i) => (
-                      <div key={i} className="rounded-xl px-3 py-2 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{m.l}</p>
-                        <p className="text-xs font-black" style={{ color: m.v >= 0 ? PRATAC : CORES.vermelhoC }}>{fBRL(m.v)}</p>
+                      <div key={i} className="rounded-xl px-3 py-2 text-center" style={{ background: CAMPO_BG3 }}>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
+                        <p className="text-xs font-black" style={{ color: m.v >= 0 ? ct(PRATAC) : ct(CORES.vermelhoC) }}>{fBRL(m.v)}</p>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* TRIBUTÁRIO */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: `1px solid ${CORES.indigo}30` }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Landmark size={16} style={{ color: CORES.indigo }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simTributarioTitulo}</p>
+                    <Landmark size={16} style={{ color: ct(CORES.indigo) }} />
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simTributarioTitulo}</p>
                   </div>
-                  <p className="text-xs mb-3" style={{ color: "#64748b" }}>{cx.simTributarioSub}</p>
+                  <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.simTributarioSub}</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {resultado.tributario.map((t) => {
                       const isMelhor = melhorTributario?.regime === t.regime;
                       return (
-                        <div key={t.regime} className="rounded-xl p-3" style={{ background: isMelhor ? "rgba(212,175,55,0.08)" : "rgba(255,255,255,0.03)", border: `1px solid ${isMelhor ? "rgba(212,175,55,0.35)" : "rgba(255,255,255,0.08)"}` }}>
+                        <div key={t.regime} className="rounded-xl p-3" style={{ background: isMelhor ? OURO_BADGE_BG : CAMPO_BG3, border: `1px solid ${isMelhor ? OURO_BADGE_BORDA : "var(--axi-border)"}` }}>
                           <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs font-black" style={{ color: "#e2e8f0" }}>{NOME_REGIME[t.regime]}</p>
-                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(212,175,55,0.15)", color: CORES.ouro }}>{cx.simRegimeMelhorTag}</span>}
+                            <p className="text-xs font-black" style={{ color: ct("#e2e8f0") }}>{NOME_REGIME[t.regime]}</p>
+                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(212,175,55,0.15)", color: ct(CORES.ouro) }}>{cx.simRegimeMelhorTag}</span>}
                           </div>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.simImpostoMensalLabel}</p>
-                          <p className="text-xs font-black mb-1.5" style={{ color: PRATAC }}>{fBRL(t.impostoMensal)}</p>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{cx.simLucroLiquidoRegimeLabel}</p>
-                          <p className="text-sm font-black" style={{ color: t.lucroLiquido >= 0 ? CORES.verde : CORES.vermelho }}>{fBRL(t.lucroLiquido)}</p>
+                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simImpostoMensalLabel}</p>
+                          <p className="text-xs font-black mb-1.5" style={{ color: ct(PRATAC) }}>{fBRL(t.impostoMensal)}</p>
+                          <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simLucroLiquidoRegimeLabel}</p>
+                          <p className="text-sm font-black" style={{ color: t.lucroLiquido >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(t.lucroLiquido)}</p>
                         </div>
                       );
                     })}
@@ -607,24 +623,24 @@ export default function Simulacoes() {
                 </div>
 
                 {/* CONSELHO EXECUTIVO */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(30,27,75,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(212,175,55,0.2)" }}>
+                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles size={16} style={{ color: CORES.ouro }} />
-                    <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simConselhoTitulo}</p>
+                    <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simConselhoTitulo}</p>
                   </div>
-                  <p className="text-[11px] mb-4" style={{ color: "#64748b" }}>{cx.simConselhoSub}</p>
+                  <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{cx.simConselhoSub}</p>
 
-                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: CORES.ouro }}>{cx.simResumoLabel}</p>
-                  <p className="text-xs md:text-[13px] font-medium mb-4" style={{ color: "#e2e8f0" }}>{montarNarrativaMonteCarlo(lang, resultado.monteCarlo)}</p>
+                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{cx.simResumoLabel}</p>
+                  <p className="text-xs md:text-[13px] font-medium mb-4" style={{ color: ct("#e2e8f0") }}>{montarNarrativaMonteCarlo(lang, resultado.monteCarlo)}</p>
 
                   {riscos.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: CORES.vermelhoC }}>{cx.simRiscosLabel}</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.vermelhoC) }}>{cx.simRiscosLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {riscos.map((r, i) => (
                           <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-                            <AlertTriangle size={13} style={{ color: CORES.vermelhoC, flexShrink: 0, marginTop: 2 }} />
-                            <p className="text-xs font-medium" style={{ color: "#fca5a5" }}>{r}</p>
+                            <AlertTriangle size={13} style={{ color: ct(CORES.vermelhoC), flexShrink: 0, marginTop: 2 }} />
+                            <p className="text-xs font-medium" style={{ color: ct("#fca5a5") }}>{r}</p>
                           </div>
                         ))}
                       </div>
@@ -633,12 +649,12 @@ export default function Simulacoes() {
 
                   {oportunidadesTxt.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: CORES.verdeC }}>{cx.simOportunidadesLabel}</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.verdeC) }}>{cx.simOportunidadesLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {oportunidadesTxt.map((o, i) => (
                           <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                            <Sparkles size={13} style={{ color: CORES.verdeC, flexShrink: 0, marginTop: 2 }} />
-                            <p className="text-xs font-medium" style={{ color: "#6ee7b7" }}>{o}</p>
+                            <Sparkles size={13} style={{ color: ct(CORES.verdeC), flexShrink: 0, marginTop: 2 }} />
+                            <p className="text-xs font-medium" style={{ color: ct("#6ee7b7") }}>{o}</p>
                           </div>
                         ))}
                       </div>
@@ -653,9 +669,9 @@ export default function Simulacoes() {
                       { l: cx.simPremissaCustoVariavel, v: fBRL(custoVariavelMensalMedia) },
                       { l: cx.invChoqueReceita, v: `${resultado.choque.receitaPct}%` },
                     ].map((p, i) => (
-                      <div key={i} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                        <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{p.l}</p>
-                        <p className="text-xs font-black" style={{ color: PRATAC }}>{p.v}</p>
+                      <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
+                        <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{p.l}</p>
+                        <p className="text-xs font-black" style={{ color: ct(PRATAC) }}>{p.v}</p>
                       </div>
                     ))}
                   </div>
@@ -667,11 +683,11 @@ export default function Simulacoes() {
 
                   {planoAcao.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: CORES.ouro }}>{cx.simPlanoAcaoLabel}</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{cx.simPlanoAcaoLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {planoAcao.map((a, i) => (
-                          <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
-                            <ShieldCheck size={15} style={{ color: CORES.ouro, flexShrink: 0 }} />
+                          <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+                            <ShieldCheck size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
                             <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{a}</p>
                           </div>
                         ))}
@@ -679,8 +695,8 @@ export default function Simulacoes() {
                     </>
                   )}
 
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#64748b" }}>{cx.simLimitacoesLabel}</p>
-                  <p className="text-[11px] leading-relaxed mb-2" style={{ color: "#64748b" }}>{cx.simLimitacoesTexto}</p>
+                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simLimitacoesLabel}</p>
+                  <p className="text-[11px] leading-relaxed mb-2" style={{ color: ct("#64748b") }}>{cx.simLimitacoesTexto}</p>
                   <p className="text-[10px] italic leading-relaxed" style={{ color: "#4b5563" }}>{cx.simTransparenciaTexto}</p>
                 </div>
               </>
@@ -697,8 +713,9 @@ export default function Simulacoes() {
         textoDetalhado={textoDetalhado}
         assunto={`${txt.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor={CORES.indigo}
+        cor={ct(CORES.indigo)}
       />
     </ModuloLayout>
+    </div>
   );
 }

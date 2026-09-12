@@ -368,6 +368,7 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   "#34d399": "#16a34a", "#fbbf24": "#d97706", "#f87171": "#dc2626", "#c4b5fd": "#7c3aed",
   "#5a7a9a": "#55637a", "#c8d8f0": "#17304f", "#f1f5f9": "#17304f", "#e2e8f0": "#17304f",
   "#64748b": "#55637a", "#6ee7b7": "#16a34a", "#fca5a5": "#dc2626",
+  "#94a3b8": "#55637a", "#cbd5e1": "#55637a", "#3a6090": "#55637a",
 };
 export function corTema(hex: string, claro?: boolean): string {
   return claro ? MAPA_CORES_CLARO[hex] ?? hex : hex;
