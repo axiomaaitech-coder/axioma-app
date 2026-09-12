@@ -15,7 +15,9 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
-import { fBRL, fBRL2, fPct, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { fBRL, fBRL2, fPct, corTema, optBarrasV, optVelocimetro, optRosca, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import { calcularImpostoRegime } from '../../../lib/iaTributariaHelpers'
@@ -52,16 +54,14 @@ const supabase = createBrowserClient(
 // borda de card premium, ícone de score Elite). Vermelho/âmbar/verde/azul
 // continuam com o significado padrão do Axioma (perda/atenção/recuperado/neutro)
 // — o índigo é identidade do módulo, nunca substitui essas cores de significado.
+// Há 3 modais com createPortal(document.body) nesta tela — por isso as cores
+// abaixo são valores JS por tema (PALETA), não var(--axi-*): o portal sai da
+// árvore do data-theme e as CSS var não chegariam nele.
 // ============================================================================
-const INDIGO = '#4f46e5'
-const SAFIRA = '#3730a3'
-const PLATINA = '#c0c5ce'
-const VERMELHO = '#f87171'
-const AMBAR = '#f59e0b'
-const VERDE = '#34d399'
-const AZUL = '#6ab0ff'
-const CINZA = '#5a7a9a'
-const BG_CARD = 'rgba(10,22,40,0.8)'
+const PALETA = {
+  dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#f59e0b', VERDE: '#34d399', AZUL: '#6ab0ff', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)' },
+  xms: { INDIGO: '#4338ca', SAFIRA: '#312e81', PLATINA: '#55637a', VERMELHO: '#dc2626', AMBAR: '#b45309', VERDE: '#16a34a', AZUL: '#0043c8', CINZA: '#55637a', BG_CARD: '#eef2f7' },
+} as const
 const CATEGORIAS_CASO = ['Vendas', 'Serviços', 'Mensalidade', 'Consultoria', 'Outros']
 
 type DreHistoricoAtual = {
@@ -73,6 +73,10 @@ export default function Inadimplencia() {
   const { idioma } = useLanguage()
   const lang = idioma as Idioma3
   const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const { INDIGO, SAFIRA, PLATINA, VERMELHO, AMBAR, VERDE, AZUL, CINZA, BG_CARD } = PALETA[tema]
+  const ct = (hex: string) => corTema(hex, temaClaro)
 
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [contas, setContas] = useState<ContaRow[]>([])
@@ -271,7 +275,7 @@ export default function Inadimplencia() {
     return { critica: L('Crítica', 'Critical', 'Crítica'), alta: L('Alta', 'High', 'Alta'), media: L('Média', 'Medium', 'Media'), baixa: L('Baixa', 'Low', 'Baja') }[p]
   }
   function prioridadeCor(p: NivelPrioridade) {
-    return { critica: VERMELHO, alta: '#fb923c', media: AMBAR, baixa: AZUL }[p]
+    return { critica: VERMELHO, alta: ct('#fb923c'), media: AMBAR, baixa: AZUL }[p]
   }
   function corCompromisso(status: CobrancaCompromisso['status']) {
     return status === 'cumprido' ? VERDE : status === 'quebrado' ? VERMELHO : AMBAR
@@ -503,12 +507,12 @@ export default function Inadimplencia() {
   ]
 
   const agingLabels = [L('0-30 dias', '0-30 days', '0-30 días'), L('31-60 dias', '31-60 days', '31-60 días'), L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días')]
-  const agingCores = [AMBAR, '#f59e0b', '#ef4444', VERMELHO]
-  const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5', agingCores) : null
+  const agingCores = [AMBAR, ct('#f59e0b'), ct('#ef4444'), VERMELHO]
+  const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5', agingCores, temaClaro) : null
 
   const gaugeOption = optVelocimetro(kpis.scoreMedioCarteiraInadimplente ?? 0, 1000, [
     { ate: 400, cor: VERMELHO }, { ate: 600, cor: AMBAR }, { ate: 750, cor: VERDE }, { ate: 900, cor: VERDE }, { ate: 1000, cor: VERDE },
-  ])
+  ], temaClaro)
 
   // ========== FASE 3 — GRÁFICOS ==========
   function nomeCenario(n: 'conservador' | 'base' | 'otimista' | 'adverso') {
@@ -523,18 +527,18 @@ export default function Inadimplencia() {
     backgroundColor: 'transparent',
     tooltip: { position: 'top', backgroundColor: 'rgba(10,8,30,0.97)', borderColor: VERMELHO, textStyle: { color: '#e2e8f0', fontSize: 12 }, formatter: (p: any) => `<b>${p.name}</b><br/>${fBRL(p.value[2])}` },
     grid: { left: 100, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
-    yAxis: { type: 'category', data: nomesClientesHeatmap, splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
+    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: ct('#94a3b8'), fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
+    yAxis: { type: 'category', data: nomesClientesHeatmap, splitArea: { show: true }, axisLabel: { color: ct('#cbd5e1'), fontSize: 10 }, axisLine: { show: false } },
     visualMap: { min: 0, max: Math.max(1, ...heatmapData.map((c) => c.valor)), calculable: false, show: false, inRange: { color: ['rgba(248,113,113,0.06)', AMBAR, VERMELHO] } },
-    series: [{ type: 'heatmap', data: heatmapData.map((c) => [['0-30', '31-60', '61-90', '90+'].indexOf(c.faixa), nomesClientesHeatmap.indexOf(c.clienteNome), c.valor]), label: { show: false }, itemStyle: { borderColor: '#020810', borderWidth: 2, borderRadius: 4 } }],
+    series: [{ type: 'heatmap', data: heatmapData.map((c) => [['0-30', '31-60', '61-90', '90+'].indexOf(c.faixa), nomesClientesHeatmap.indexOf(c.clienteNome), c.valor]), label: { show: false }, itemStyle: { borderColor: temaClaro ? '#ffffff' : '#020810', borderWidth: 2, borderRadius: 4 } }],
   } : null
 
-  const evolucaoOption = evolucao.some((s) => s.value > 0) ? optBarrasV(evolucao.map((s) => s.value), evolucao.map((s) => s.label), VERMELHO, '#fca5a5') : null
+  const evolucaoOption = evolucao.some((s) => s.value > 0) ? optBarrasV(evolucao.map((s) => s.value), evolucao.map((s) => s.label), VERMELHO, '#fca5a5', undefined, temaClaro) : null
 
-  const PALETA_GRUPOS = [INDIGO, VERMELHO, AMBAR, VERDE, AZUL, PLATINA, '#a78bfa', SAFIRA]
+  const PALETA_GRUPOS = [INDIGO, VERMELHO, AMBAR, VERDE, AZUL, PLATINA, ct('#a78bfa'), SAFIRA]
   const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
     grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
-    INDIGO, L('Total', 'Total', 'Total'),
+    INDIGO, L('Total', 'Total', 'Total'), temaClaro,
   ) : null
 
   const textoCompartilhar = `${L('Central de Recuperação Axioma', 'Axioma Recovery Center', 'Centro de Recuperación Axioma')}: ${L('inadimplente', 'delinquent', 'moroso')} R$ ${fBRL2(kpis.valorTotalInadimplente)}, ${L('recuperado no ano', 'recovered this year', 'recuperado este año')} R$ ${fBRL2(kpis.valorRecuperadoAno)}.`
@@ -584,16 +588,17 @@ export default function Inadimplencia() {
 
   const labelInput = 'text-[10px] font-semibold tracking-wider uppercase mb-1 block'
   const inputCls = 'w-full px-3 py-2.5 rounded-xl focus:outline-none text-xs'
-  const inputStyle = { background: 'rgba(255,255,255,0.04)', border: `1px solid ${INDIGO}30`, color: '#c8d8f0' }
-  const selectStyle = { background: 'rgba(10,22,40,0.9)', border: `1px solid ${INDIGO}30`, color: '#c8d8f0' }
+  const inputStyle = { background: temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)', border: `1px solid ${INDIGO}30`, color: ct('#c8d8f0') }
+  const selectStyle = { background: BG_CARD, border: `1px solid ${INDIGO}30`, color: ct('#c8d8f0') }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#020810' }}>
+    <div data-theme={tema} className="min-h-screen flex items-center justify-center" style={{ background: 'var(--axi-bg)' }}>
       <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: INDIGO, borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Inadimplência', 'Delinquency', 'Morosidad')}
       subtitulo={L('Centro de Inteligência de Recuperação Financeira — lê o Contas a Receber, não duplica dado', 'Financial Recovery Intelligence Center — reads Accounts Receivable, never duplicates data', 'Centro de Inteligencia de Recuperación Financiera — lee Cuentas por Cobrar, no duplica datos')}
@@ -602,11 +607,14 @@ export default function Inadimplencia() {
       onNovo={abrirNovoCaso}
       labelBotao={L('Novo Caso', 'New Case', 'Nuevo Caso')}
       botaoExtra={
-        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, ${INDIGO}, ${SAFIRA})`, color: '#fff' }}>
-          <Share2 size={16} /> {L('Compartilhar', 'Share', 'Compartir')}
-        </motion.button>
+        <>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${INDIGO}, ${SAFIRA})`, color: '#fff' }}>
+            <Share2 size={16} /> {L('Compartilhar', 'Share', 'Compartir')}
+          </motion.button>
+          <ThemeToggle />
+        </>
       }
     >
       <div className="space-y-4">
@@ -616,7 +624,7 @@ export default function Inadimplencia() {
           <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={INDIGO} lang={lang} />
           <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm px-3 py-2 rounded-xl" style={{ background: BG_CARD, border: `1px solid ${INDIGO}25` }}>
             <Search size={14} style={{ color: CINZA }} />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar cliente...', 'Search client...', 'Buscar cliente...')} className="bg-transparent flex-1 focus:outline-none text-xs" style={{ color: '#c8d8f0' }} />
+            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar cliente...', 'Search client...', 'Buscar cliente...')} className="bg-transparent flex-1 focus:outline-none text-xs" style={{ color: ct('#c8d8f0') }} />
           </div>
           <select value={filtroPrioridade} onChange={(e) => setFiltroPrioridade(e.target.value as any)} className="px-3 py-2 rounded-xl text-xs font-bold" style={selectStyle}>
             <option value="todas">{L('Todas Prioridades', 'All Priorities', 'Todas Prioridades')}</option>
@@ -640,7 +648,7 @@ export default function Inadimplencia() {
               {k.vazio ? (
                 <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
               ) : (
-                <p className="text-lg md:text-xl font-black" style={{ ...FONTE_EXEC, color: k.cor }}>{k.valor}</p>
+                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{k.valor}</p>
               )}
             </div>
           ))}
@@ -720,7 +728,7 @@ export default function Inadimplencia() {
             <div className="grid md:grid-cols-2 gap-5">
               <div className="flex flex-col items-center justify-center">
                 <ReactECharts option={gaugeOption} style={{ height: 200, width: '100%' }} notMerge lazyUpdate />
-                <p className="text-sm font-black" style={{ ...FONTE_EXEC, color: kpis.scoreMedioCarteiraInadimplente != null ? INDIGO : CINZA }}>
+                <p className="text-sm font-black" style={{ color: kpis.scoreMedioCarteiraInadimplente != null ? INDIGO : CINZA }}>
                   {L('Média da Carteira Inadimplente', 'Delinquent Portfolio Average', 'Promedio de Cartera Morosa')}
                 </p>
               </div>
@@ -731,7 +739,7 @@ export default function Inadimplencia() {
                 ) : rankingPioresScores.map((l, i) => (
                   <motion.button key={l.s.cliente.id} whileHover={{ scale: 1.01 }} onClick={() => abrirNegociacao(l)}
                     className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${nivelScoreCor(l.score.nivel)}25` }}>
+                    style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${nivelScoreCor(l.score.nivel)}25` }}>
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-bold w-4 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
                       {l.score.nivel === 'elite' && <Crown size={12} style={{ color: PLATINA }} className="flex-shrink-0" />}
@@ -761,7 +769,7 @@ export default function Inadimplencia() {
           ) : (
             <div className="grid md:grid-cols-2 gap-3">
               {sinaisPrevencao.map((c, i) => (
-                <div key={i} className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${INDIGO}20` }}>
+                <div key={i} className="rounded-xl p-3.5" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}20` }}>
                   <p className="text-xs font-black mb-2" style={{ color: INDIGO }}>{c.tema}</p>
                   <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
                   <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
@@ -798,9 +806,9 @@ export default function Inadimplencia() {
               {ORDEM_ESTAGIO_ESCALONAMENTO.map((estagio) => {
                 const etapa = etapasEscalonamento.find((e) => e.estagio === estagio)
                 if (!etapa) return null
-                const cor = COR_ESTAGIO_ESCALONAMENTO[estagio]
+                const cor = ct(COR_ESTAGIO_ESCALONAMENTO[estagio])
                 return (
-                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${etapa.ativo ? cor + '40' : 'rgba(255,255,255,0.08)'}` }}>
+                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${etapa.ativo ? cor + '40' : (temaClaro ? '#dce3ed' : 'rgba(255,255,255,0.08)')}` }}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-black" style={{ color: etapa.ativo ? cor : CINZA }}>{nomeEstagioEscalonamento(lang, estagio)}</span>
                       <div className="flex items-center gap-1.5">
@@ -808,7 +816,7 @@ export default function Inadimplencia() {
                         <button onClick={() => excluirEtapa(etapa.id)}><Trash2 size={11} style={{ color: VERMELHO }} /></button>
                       </div>
                     </div>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.06)'), color: CINZA }}>
                       D+{etapa.dias_relativos} · {etapa.canal}
                     </span>
                     <p className="text-[10px] line-clamp-2" style={{ color: '#c8d8f0' }}>{etapa.mensagem_modelo}</p>
@@ -849,7 +857,7 @@ export default function Inadimplencia() {
                 </thead>
                 <tbody>
                   {linhasFiltradas.map((l, i) => (
-                    <motion.tr key={l.s.cliente.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }} style={{ background: 'rgba(255,255,255,0.02)' }}>
+                    <motion.tr key={l.s.cliente.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }} style={{ background: (temaClaro ? '#f8fafc' : 'rgba(255,255,255,0.02)') }}>
                       <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: '#c8d8f0' }}>{l.s.cliente.nome}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: VERMELHO }}>{fBRL(l.s.valorVencido)}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: l.s.diasAtrasoAtual > 0 ? VERMELHO : CINZA }}>{l.s.diasAtrasoAtual || '—'}</td>
@@ -901,7 +909,7 @@ export default function Inadimplencia() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {cenariosRecuperacao.map((c) => (
-                  <div key={c.nome} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${corCenario(c.nome)}30` }}>
+                  <div key={c.nome} className="rounded-xl p-3" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCenario(c.nome)}30` }}>
                     <p className="text-[10px] font-bold uppercase mb-2" style={{ color: corCenario(c.nome) }}>{nomeCenario(c.nome)}</p>
                     <p className="text-[10px]" style={{ color: CINZA }}>{L('Recuperado', 'Recovered', 'Recuperado')}</p>
                     <p className="text-sm font-black mb-1.5" style={{ color: VERDE }}>{fBRL(c.valorRecuperado)}</p>
@@ -929,7 +937,7 @@ export default function Inadimplencia() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
               {previsaoRecuperacao.map((p) => (
-                <div key={p.horizonteDias} className="rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${AZUL}20` }}>
+                <div key={p.horizonteDias} className="rounded-xl p-2.5" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
                   <p className="text-[10px] font-black mb-1.5" style={{ color: AZUL }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
                   <p className="text-[9px]" style={{ color: VERDE }}>{L('Otimista', 'Optimistic', 'Optimista')}: {fBRL(p.otimista)}</p>
                   <p className="text-[9px]" style={{ color: AZUL }}>{L('Provável', 'Probable', 'Probable')}: {fBRL(p.provavel)}</p>
@@ -958,7 +966,7 @@ export default function Inadimplencia() {
           </div>
 
           {impactoDRE && (
-            <div className="rounded-xl p-3 mb-4" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${INDIGO}25` }}>
+            <div className="rounded-xl p-3 mb-4" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}25` }}>
               <p className="text-[10px] font-bold uppercase mb-2" style={{ color: INDIGO }}>{L('Impacto Simulado na DRE (mês atual)', 'Simulated DRE Impact (current month)', 'Impacto Simulado en la DRE (mes actual)')}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -1031,7 +1039,7 @@ export default function Inadimplencia() {
               {curvaABC.length === 0 ? <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p> : (
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {curvaABC.slice(0, 10).map((c) => (
-                    <div key={c.clienteId} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <div key={c.clienteId} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
                       <span className="text-[11px] truncate" style={{ color: '#c8d8f0' }}>{c.nome}</span>
                       <span className="text-[10px] font-bold flex-shrink-0" style={{ color: c.classe === 'A' ? VERMELHO : c.classe === 'B' ? AMBAR : VERDE }}>{c.classe} · {fBRL(c.valor)}</span>
                     </div>
@@ -1044,7 +1052,7 @@ export default function Inadimplencia() {
               {rankingRecuperacao.length === 0 ? <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem recuperações registradas.', 'No recoveries recorded.', 'Sin recuperaciones registradas.')}</p> : (
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {rankingRecuperacao.map((r, i) => (
-                    <div key={r.chave} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <div key={r.chave} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
                       <span className="text-[11px] truncate" style={{ color: '#c8d8f0' }}>{i + 1}. {r.chave}</span>
                       <span className="text-[10px] font-bold flex-shrink-0" style={{ color: VERDE }}>{fBRL(r.valor)}</span>
                     </div>
@@ -1066,11 +1074,11 @@ export default function Inadimplencia() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className="rounded-2xl p-6" style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: INDIGO }}>AXIOMA AI.TECH — {L('Central de Negociação', 'Negotiation Center', 'Central de Negociación')}</p>
-                      <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{linhaAberta.s.cliente.nome}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: '#e2ecf7' }}>{linhaAberta.s.cliente.nome}</h3>
                       <p className="text-xs mt-1" style={{ color: VERMELHO }}>{fBRL(linhaAberta.s.valorVencido)} · {linhaAberta.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')} · {L('Score', 'Score', 'Score')} <span style={{ color: nivelScoreCor(linhaAberta.score.nivel) }}>{linhaAberta.score.total}</span></p>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharNegociacao} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1080,7 +1088,7 @@ export default function Inadimplencia() {
                   <p className="text-[10px] font-bold uppercase mb-2" style={{ color: CINZA }}>{L('Títulos em Aberto', 'Open Invoices', 'Títulos Abiertos')}</p>
                   <div className="space-y-1.5 mb-4">
                     {titulosVencidosCliente.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${VERMELHO}20` }}>
+                      <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${VERMELHO}20` }}>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{c.numero_documento || c.descricao}</p>
                           <p className="text-[10px]" style={{ color: CINZA }}>{fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))} · {L('venceu em', 'due', 'venció el')} {new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
@@ -1099,7 +1107,7 @@ export default function Inadimplencia() {
                       <p className="text-[10px] font-bold uppercase mb-2 flex items-center gap-1.5" style={{ color: INDIGO }}><Sparkles size={12} /> {L('Estratégia Recomendada', 'Recommended Strategy', 'Estrategia Recomendada')}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {estrategiasCliente.map((e) => (
-                          <div key={e.tipo} className="rounded-lg px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                          <div key={e.tipo} className="rounded-lg px-2.5 py-2" style={{ background: (temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)') }}>
                             <p className="text-[11px] font-semibold" style={{ color: '#c8d8f0' }}>{e.label}</p>
                             <p className="text-xs font-black" style={{ color: VERDE }}>~{e.probabilidadeEstimada}% {L('de recuperar', 'to recover', 'de recuperar')}</p>
                           </div>
@@ -1115,7 +1123,7 @@ export default function Inadimplencia() {
                     ) : timelineCliente.map((t) => t.tipo === 'compromisso' ? (() => {
                       const c = t.item as CobrancaCompromisso
                       return (
-                        <div key={`c-${c.id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${corCompromisso(c.status)}25` }}>
+                        <div key={`c-${c.id}`} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${corCompromisso(c.status)}25` }}>
                           <div className="min-w-0">
                             <p className="text-xs font-bold" style={{ color: corCompromisso(c.status) }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')} · {fBRL(c.valor_compromissado)}{c.parcelas ? ` · ${c.parcelas}x` : ''}</p>
                             <p className="text-[10px]" style={{ color: CINZA }}>{L('Combinado para', 'Committed for', 'Comprometido para')} {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}{c.condicoes ? ` · ${c.condicoes}` : ''}{c.responsavel ? ` · ${c.responsavel}` : ''}</p>
@@ -1134,7 +1142,7 @@ export default function Inadimplencia() {
                     })() : (() => {
                       const it = t.item as CobrancaInteracao
                       return (
-                        <div key={`i-${it.id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${AZUL}20` }}>
+                        <div key={`i-${it.id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
                           <Phone size={12} style={{ color: AZUL }} className="flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{it.descricao}</p>
@@ -1148,7 +1156,7 @@ export default function Inadimplencia() {
                   {titulosVencidosCliente.length === 0 ? (
                     <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhum título vencido em aberto para negociar.', 'No open overdue invoice to negotiate.', 'Ningún título vencido abierto para negociar.')}</p>
                   ) : (
-                    <div className="grid sm:grid-cols-2 gap-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="grid sm:grid-cols-2 gap-4 pt-3" style={{ borderTop: temaClaro ? '1px solid #dce3ed' : '1px solid rgba(255,255,255,0.08)' }}>
                       {/* Registrar contato */}
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase" style={{ color: AZUL }}>{L('Registrar Contato', 'Log Contact', 'Registrar Contacto')}</p>
@@ -1197,7 +1205,7 @@ export default function Inadimplencia() {
                         <input placeholder={L('Condições (opcional)', 'Conditions (optional)', 'Condiciones (opcional)')} value={novoCompromisso.condicoes} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, condicoes: e.target.value })} className={inputCls} style={inputStyle} />
                         <div className="flex gap-2">
                           {editandoCompromissoId && (
-                            <button onClick={cancelarEdicaoCompromisso} className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                            <button onClick={cancelarEdicaoCompromisso} className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.05)'), color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                           )}
                           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCompromisso} disabled={salvandoCompromisso}
                             className="flex-1 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
@@ -1225,9 +1233,9 @@ export default function Inadimplencia() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${PLATINA}35` }}>
+                <div className="rounded-2xl p-6" style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: `1px solid ${PLATINA}35` }}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Etapa de Escalonamento', 'Escalation Step', 'Etapa de Escalonamiento')}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: '#e2ecf7' }}>{L('Etapa de Escalonamento', 'Escalation Step', 'Etapa de Escalonamiento')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoEtapa(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
                   <div className="space-y-3">
@@ -1257,7 +1265,7 @@ export default function Inadimplencia() {
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4">
-                    <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.05)'), color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarEtapa}
                       className="flex-1 py-3 rounded-xl text-sm font-bold"
                       style={{ background: `linear-gradient(135deg, ${SAFIRA}, ${INDIGO})`, color: '#fff' }}>
@@ -1281,11 +1289,11 @@ export default function Inadimplencia() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className="rounded-2xl p-6" style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: INDIGO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{editandoCaso ? L('Editar Caso', 'Edit Case', 'Editar Caso') : L('Novo Caso de Inadimplência', 'New Delinquency Case', 'Nuevo Caso de Morosidad')}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: '#e2ecf7' }}>{editandoCaso ? L('Editar Caso', 'Edit Case', 'Editar Caso') : L('Novo Caso de Inadimplência', 'New Delinquency Case', 'Nuevo Caso de Morosidad')}</h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCaso} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
@@ -1331,7 +1339,7 @@ export default function Inadimplencia() {
                       <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2} className={inputCls} style={inputStyle} />
                     </div>
                     <div className="flex gap-3 pt-2">
-                      <button onClick={fecharModalCaso} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                      <button onClick={fecharModalCaso} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.05)'), color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCaso} disabled={salvandoCaso}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                         style={{ background: `linear-gradient(135deg, ${SAFIRA}, ${INDIGO})`, color: '#fff' }}>
@@ -1363,5 +1371,6 @@ export default function Inadimplencia() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }

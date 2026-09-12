@@ -14,7 +14,9 @@ import {
 import ModuloLayout from '../../../components/ModuloLayout'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
-import { fBRL, fBRL2, FONTE_EXEC, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { fBRL, fBRL2, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import { statusEfetivo } from '../../../lib/fornecedorHelpers'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
@@ -54,15 +56,10 @@ const supabase = createBrowserClient(
 // azul/âmbar continuam com o significado padrão do Axioma (positivo/negativo/
 // neutro/atenção) — o tema nunca substitui essas cores de significado.
 // ============================================================================
-const ESMERALDA = '#059669'
-const TEAL = '#0d9488'
-const OURO = '#d4af37'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AZUL = '#6ab0ff'
-const AMBAR = '#f59e0b'
-const CINZA = '#5a7a9a'
-const BG_CARD = 'rgba(10,22,40,0.8)'
+const PALETA = {
+  dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#e2ecf7', TEXTO: '#c8d8f0', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
+  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#a16207', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#b45309', CINZA: '#55637a', BG_CARD: '#eef2f7', TITULO: '#0b1f3a', TEXTO: '#17304f', PAINEL_BG: '#eef2f7', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(0,67,200,0.08)' },
+} as const
 
 type CentroCusto = { id: string; nome: string }
 
@@ -120,6 +117,9 @@ export default function ContasReceber() {
   const { idioma } = useLanguage()
   const lang = idioma as Idioma3
   const L = (pt: string, en: string, es: string) => (idioma === 'en' ? en : idioma === 'es' ? es : pt)
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const { ESMERALDA, TEAL, OURO, VERDE, VERMELHO, AZUL, AMBAR, CINZA, BG_CARD, TITULO, TEXTO, PAINEL_BG, CAMPO_BG, SELECT_BG, BOTAO_BG } = PALETA[tema]
 
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
   function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
@@ -635,14 +635,15 @@ export default function ContasReceber() {
     L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días'),
   ]
   const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(
-    aging.map((f) => f.valor), agingLabels, VERMELHO, '#fca5a5',
-    aging.map((f) => f.chave === 'd30' ? AMBAR : f.chave === 'd60' ? '#f59e0b' : f.chave === 'd90' ? '#ef4444' : '#dc2626'),
+    aging.map((f) => f.valor), agingLabels, VERMELHO, temaClaro ? '#dc2626' : '#fca5a5',
+    aging.map((f) => f.chave === 'd30' ? AMBAR : f.chave === 'd60' ? AMBAR : f.chave === 'd90' ? VERMELHO : VERMELHO),
+    temaClaro,
   ) : null
 
   // ========== SCORE AXIOMA — gauge da carteira + ranking ==========
   const gaugeOption = optVelocimetro(scoreCarteira.amostraSuficiente ? scoreCarteira.media : 0, 1000, [
     { ate: 400, cor: VERMELHO }, { ate: 600, cor: AMBAR }, { ate: 750, cor: VERDE }, { ate: 900, cor: VERDE }, { ate: 1000, cor: OURO },
-  ])
+  ], temaClaro)
   const rankingTop = ranking.slice(0, 8)
   const scoreDrill = ranking.find((r) => r.s.cliente.id === clienteScoreDrill) || null
 
@@ -792,20 +793,20 @@ export default function ContasReceber() {
   const gruposCidade = useMemo(() => agruparCarteiraPorCampo(carteira, lang, 'cidade'), [carteira, lang])
   const concentracaoTop = useMemo(() => concentracaoTopClientes(carteira), [carteira])
 
-  const PALETA_GRUPOS = [ESMERALDA, OURO, AZUL, VERDE, AMBAR, '#a78bfa', VERMELHO, TEAL]
+  const PALETA_GRUPOS = [ESMERALDA, OURO, AZUL, VERDE, AMBAR, temaClaro ? '#7c3aed' : '#a78bfa', VERMELHO, TEAL]
   const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
     grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
-    ESMERALDA, L('Total', 'Total', 'Total'),
+    ESMERALDA, L('Total', 'Total', 'Total'), temaClaro,
   ) : null
 
   const heatmapOption = heatmapData.length > 0 ? {
     backgroundColor: 'transparent',
     tooltip: { position: 'top', backgroundColor: 'rgba(10,8,30,0.97)', borderColor: VERMELHO, textStyle: { color: '#e2e8f0', fontSize: 12 }, formatter: (p: any) => `<b>${p.name}</b><br/>${fBRL(p.value[2])}` },
     grid: { left: 100, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
-    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
+    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#55637a' : '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
+    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#55637a' : '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
     visualMap: { min: 0, max: Math.max(1, ...heatmapData.map((c) => c.valor)), calculable: false, show: false, inRange: { color: ['rgba(248,113,113,0.06)', AMBAR, VERMELHO] } },
-    series: [{ type: 'heatmap', data: heatmapData.map((c) => [c.faixa, c.clienteNome, c.valor]).map((d) => [['0-30', '31-60', '61-90', '90+'].indexOf(d[0] as string), [...new Set(heatmapData.map((x) => x.clienteNome))].indexOf(d[1] as string), d[2]]), label: { show: false }, itemStyle: { borderColor: '#020810', borderWidth: 2, borderRadius: 4 } }],
+    series: [{ type: 'heatmap', data: heatmapData.map((c) => [c.faixa, c.clienteNome, c.valor]).map((d) => [['0-30', '31-60', '61-90', '90+'].indexOf(d[0] as string), [...new Set(heatmapData.map((x) => x.clienteNome))].indexOf(d[1] as string), d[2]]), label: { show: false }, itemStyle: { borderColor: temaClaro ? '#ffffff' : '#020810', borderWidth: 2, borderRadius: 4 } }],
   } : null
 
   const evolucaoOption = evolucaoCarteiraData.cobrado.some((s) => s.value > 0) ? optLinhaMulti(
@@ -813,32 +814,36 @@ export default function ContasReceber() {
       { nome: L('Cobrado', 'Billed', 'Cobrado'), dados: evolucaoCarteiraData.cobrado.map((s) => s.value), cor: TEAL },
       { nome: L('Recebido', 'Received', 'Recibido'), dados: evolucaoCarteiraData.recebido.map((s) => s.value), cor: VERDE },
     ],
-    evolucaoCarteiraData.cobrado.map((s) => s.label), TEAL,
+    evolucaoCarteiraData.cobrado.map((s) => s.label), TEAL, temaClaro,
   ) : null
 
   const labelInput = 'text-xs font-semibold tracking-wider uppercase mb-2 block'
   const inputCls = 'w-full px-4 py-3 rounded-xl focus:outline-none text-sm'
-  const inputStyle = { background: 'rgba(255,255,255,0.04)', border: `1px solid ${TEAL}40`, color: '#c8d8f0' }
-  const selectStyle = { background: 'rgba(10,22,40,0.95)', border: `1px solid ${TEAL}40`, color: '#c8d8f0' }
+  const inputStyle = { background: CAMPO_BG, border: `1px solid ${TEAL}40`, color: TEXTO }
+  const selectStyle = { background: SELECT_BG, border: `1px solid ${TEAL}40`, color: TEXTO }
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#020810' }}>
+    <div data-theme={tema} className="min-h-screen flex items-center justify-center" style={{ background: 'var(--axi-bg)' }}>
       <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: ESMERALDA, borderTopColor: 'transparent' }} />
     </div>
   )
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Contas a Receber', 'Accounts Receivable', 'Cuentas por Cobrar')}
       subtitulo={L('Central de Inteligência Financeira de Recebimentos', 'Receivables Financial Intelligence Center', 'Centro de Inteligencia Financiera de Cobros')}
       onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo}
       labelBotao={L('Nova Conta', 'New Account', 'Nueva Cuenta')}
       botaoExtra={
-        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
-          <Share2 size={16} /> {L('Compartilhar', 'Share', 'Compartir')}
-        </motion.button>
+        <>
+          <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
+            <Share2 size={16} /> {L('Compartilhar', 'Share', 'Compartir')}
+          </motion.button>
+          <ThemeToggle />
+        </>
       }
     >
       {toast && (
@@ -868,7 +873,7 @@ export default function ContasReceber() {
 
         {/* ================= DASHBOARD EXECUTIVO ================= */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <h3 className="text-sm font-black tracking-[0.2em] uppercase" style={{ ...FONTE_EXEC, color: TEAL }}>
+          <h3 className="text-sm font-black tracking-[0.2em] uppercase" style={{ color: TEAL }}>
             {L('Dashboard Executivo', 'Executive Dashboard', 'Panel Ejecutivo')}
           </h3>
           <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ESMERALDA} lang={lang} />
@@ -886,7 +891,7 @@ export default function ContasReceber() {
               {k.vazio ? (
                 <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
               ) : (
-                <p className="text-lg md:text-xl font-black" style={{ ...FONTE_EXEC, color: k.cor }}>{k.valor}</p>
+                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{k.valor}</p>
               )}
               {k.drillable && !k.vazio && <ChevronRight size={13} className="absolute bottom-3 right-3" style={{ color: `${k.cor}80` }} />}
             </motion.button>
@@ -919,7 +924,7 @@ export default function ContasReceber() {
                   <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: severidadeCor(a.severidade) }} />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold" style={{ color: severidadeCor(a.severidade) }}>{a.titulo}</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#c8d8f0' }}>{a.descricao}</p>
+                    <p className="text-xs mt-0.5" style={{ color: TEXTO }}>{a.descricao}</p>
                     <p className="text-[10px] mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
                   </div>
                 </motion.button>
@@ -967,7 +972,7 @@ export default function ContasReceber() {
             <div className="grid md:grid-cols-2 gap-5">
               <div className="flex flex-col items-center justify-center">
                 <ReactECharts option={gaugeOption} style={{ height: 200, width: '100%' }} notMerge lazyUpdate />
-                <p className="text-sm font-black" style={{ ...FONTE_EXEC, color: scoreCarteira.amostraSuficiente ? nivelScoreCor(nivelPorTotal(scoreCarteira.media)) : CINZA }}>
+                <p className="text-sm font-black" style={{ color: scoreCarteira.amostraSuficiente ? nivelScoreCor(nivelPorTotal(scoreCarteira.media)) : CINZA }}>
                   {L('Média da Carteira', 'Portfolio Average', 'Promedio de Cartera')}
                 </p>
               </div>
@@ -975,11 +980,11 @@ export default function ContasReceber() {
                 {rankingTop.map((r, i) => (
                   <motion.button key={r.s.cliente.id} whileHover={{ scale: 1.01 }} onClick={() => setClienteScoreDrill(r.s.cliente.id)}
                     className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-left"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${nivelScoreCor(r.score.nivel)}25` }}>
+                    style={{ background: PAINEL_BG, border: `1px solid ${nivelScoreCor(r.score.nivel)}25` }}>
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-bold w-4 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
                       {r.score.nivel === 'elite' && <Crown size={12} style={{ color: OURO }} className="flex-shrink-0" />}
-                      <span className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{r.s.cliente.nome}</span>
+                      <span className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{r.s.cliente.nome}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(r.score.nivel) }}>{nivelScoreLabel(r.score.nivel)}</span>
@@ -1005,11 +1010,11 @@ export default function ContasReceber() {
           ) : (
             <div className="grid md:grid-cols-2 gap-3">
               {pareceresCobranca.map((c, i) => (
-                <div key={i} className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${TEAL}20` }}>
+                <div key={i} className="rounded-xl p-3.5" style={{ background: PAINEL_BG, border: `1px solid ${TEAL}20` }}>
                   <p className="text-xs font-black mb-2" style={{ color: TEAL }}>{c.tema}</p>
-                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
-                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
-                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}:</span> {c.impacto}</p>
+                  <p className="text-xs mb-1.5" style={{ color: TEXTO }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
+                  <p className="text-xs mb-1.5" style={{ color: TEXTO }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
+                  <p className="text-xs mb-1.5" style={{ color: TEXTO }}><span style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}:</span> {c.impacto}</p>
                   <p className="text-xs font-semibold" style={{ color: VERDE }}><span style={{ color: CINZA, fontWeight: 400 }}>{L('Ação', 'Action', 'Acción')}:</span> {c.acao}</p>
                 </div>
               ))}
@@ -1036,11 +1041,11 @@ export default function ContasReceber() {
                   <motion.button key={item.s.cliente.id} whileHover={{ scale: 1.005 }}
                     onClick={() => contaMaisAntiga && abrirCobranca(contas.find((c) => c.id === contaMaisAntiga.id) as Conta)}
                     className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${nivelScoreCor(item.score.nivel)}25` }}>
+                    style={{ background: PAINEL_BG, border: `1px solid ${nivelScoreCor(item.score.nivel)}25` }}>
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-bold w-5 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{item.s.cliente.nome}</p>
+                        <p className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{item.s.cliente.nome}</p>
                         <p className="text-[10px]" style={{ color: CINZA }}>{L('Score', 'Score', 'Score')} {item.score.total} · {item.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')}</p>
                       </div>
                     </div>
@@ -1075,7 +1080,7 @@ export default function ContasReceber() {
           ) : (
             <div className="flex flex-wrap gap-2">
               {[...etapasRegua].sort((a, b) => a.dias_relativos - b.dias_relativos).map((e) => (
-                <div key={e.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${e.ativo ? OURO + '35' : 'rgba(255,255,255,0.08)'}` }}>
+                <div key={e.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: PAINEL_BG, border: `1px solid ${e.ativo ? OURO + '35' : 'var(--axi-border)'}` }}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-black" style={{ color: e.ativo ? OURO : CINZA }}>
                       {e.dias_relativos === 0 ? L('No vencimento', 'On due date', 'En el vencimiento') : e.dias_relativos < 0 ? `D${e.dias_relativos}` : `D+${e.dias_relativos}`}
@@ -1085,11 +1090,11 @@ export default function ContasReceber() {
                       <button onClick={() => excluirEtapa(e.id)}><Trash2 size={11} style={{ color: VERMELHO }} /></button>
                     </div>
                   </div>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: BOTAO_BG, color: CINZA }}>
                     {e.canal === 'email' ? <Mail size={9} className="inline mr-1" /> : e.canal === 'whatsapp' ? <MessageSquare size={9} className="inline mr-1" /> : <Send size={9} className="inline mr-1" />}
                     {e.canal}
                   </span>
-                  <p className="text-[10px] line-clamp-2" style={{ color: '#c8d8f0' }}>{e.mensagem_modelo}</p>
+                  <p className="text-[10px] line-clamp-2" style={{ color: TEXTO }}>{e.mensagem_modelo}</p>
                 </div>
               ))}
             </div>
@@ -1114,20 +1119,20 @@ export default function ContasReceber() {
                     <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: AZUL }}>{L('Provável', 'Likely', 'Probable')}</th>
                     <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: AMBAR }}>{L('Em Risco', 'At Risk', 'En Riesgo')}</th>
                     <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: VERMELHO }}>{L('Perdido', 'Lost', 'Perdido')}</th>
-                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: '#c8d8f0' }}>{L('Total', 'Total', 'Total')}</th>
+                    <th className="text-right px-2 py-1.5 text-[9px] font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L('Total', 'Total', 'Total')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {previsaoHorizontes.map((h) => {
                     const total = h.previsto + h.provavel + h.emRisco + h.perdido
                     return (
-                      <tr key={h.horizonteDias} style={{ background: 'rgba(255,255,255,0.02)' }}>
-                        <td className="px-2 py-2 rounded-l-xl font-bold whitespace-nowrap" style={{ color: '#c8d8f0' }}>{h.horizonteDias} {L('dias', 'days', 'días')}</td>
+                      <tr key={h.horizonteDias} style={{ background: PAINEL_BG }}>
+                        <td className="px-2 py-2 rounded-l-xl font-bold whitespace-nowrap" style={{ color: TEXTO }}>{h.horizonteDias} {L('dias', 'days', 'días')}</td>
                         <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: VERDE }}>{fBRL(h.previsto)}</td>
                         <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: AZUL }}>{fBRL(h.provavel)}</td>
                         <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: AMBAR }}>{fBRL(h.emRisco)}</td>
                         <td className="px-2 py-2 text-right whitespace-nowrap" style={{ color: VERMELHO }}>{fBRL(h.perdido)}</td>
-                        <td className="px-2 py-2 rounded-r-xl text-right font-black whitespace-nowrap" style={{ color: '#c8d8f0' }}>{fBRL(total)}</td>
+                        <td className="px-2 py-2 rounded-r-xl text-right font-black whitespace-nowrap" style={{ color: TEXTO }}>{fBRL(total)}</td>
                       </tr>
                     )
                   })}
@@ -1179,9 +1184,9 @@ export default function ContasReceber() {
                     <div key={c.nome} className="rounded-xl p-3" style={{ background: `${cor}0c`, border: `1px solid ${cor}30` }}>
                       <p className="text-[10px] font-black uppercase tracking-wider mb-2" style={{ color: cor }}>{nomeLabel}</p>
                       <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Lucro líquido', 'Net profit', 'Ganancia neta')}</p>
-                      <p className="text-sm font-black mb-1.5" style={{ color: '#c8d8f0' }}>{fBRL(c.lucroLiquidoMensal)}</p>
+                      <p className="text-sm font-black mb-1.5" style={{ color: TEXTO }}>{fBRL(c.lucroLiquidoMensal)}</p>
                       <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('EBITDA', 'EBITDA', 'EBITDA')}</p>
-                      <p className="text-xs font-bold mb-1.5" style={{ color: '#c8d8f0' }}>{fBRL(c.ebitdaMensal)}</p>
+                      <p className="text-xs font-bold mb-1.5" style={{ color: TEXTO }}>{fBRL(c.ebitdaMensal)}</p>
                       <p className="text-[10px] mb-0.5" style={{ color: CINZA }}>{L('Caixa projetado', 'Projected cash', 'Caja proyectada')}</p>
                       <p className="text-xs font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? VERDE : VERMELHO }}>{fBRL(c.saldoCaixaProjetado)}</p>
                     </div>
@@ -1192,7 +1197,7 @@ export default function ContasReceber() {
           )}
 
           <div className="grid md:grid-cols-2 gap-3">
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${AZUL}25` }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}25` }}>
               <p className="text-xs font-black mb-2" style={{ color: AZUL }}>{L('Antecipação de Recebíveis', 'Receivables Anticipation', 'Anticipación de Cobros')}</p>
               <div className="flex gap-2 mb-3">
                 <div className="flex-1">
@@ -1204,18 +1209,18 @@ export default function ContasReceber() {
                   <input type="number" value={taxaAntecipacaoCard} onChange={(e) => setTaxaAntecipacaoCard(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
                 </div>
               </div>
-              <p className="text-xs" style={{ color: '#c8d8f0' }}>
+              <p className="text-xs" style={{ color: TEXTO }}>
                 {L('Você tem', 'You have', 'Tiene')} <b style={{ color: AZUL }}>{fBRL(antecipacaoResultado.valorBruto)}</b> {L('a receber nesse prazo. Antecipando, custa', 'receivable in that period. Anticipating costs', 'por cobrar en ese plazo. Al anticipar, cuesta')} <b style={{ color: VERMELHO }}>{fBRL(antecipacaoResultado.custo)}</b> {L('e sobra', 'and you keep', 'y le queda')} <b style={{ color: VERDE }}>{fBRL(antecipacaoResultado.valorLiquido)}</b>.
               </p>
             </div>
 
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${OURO}25` }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${OURO}25` }}>
               <p className="text-xs font-black mb-2" style={{ color: OURO }}>{L('Impacto do Split Payment (Reforma 2026/2027)', 'Split Payment Impact (2026/2027 Reform)', 'Impacto del Split Payment (Reforma 2026/2027)')}</p>
               <div className="mb-3">
                 <label className="text-[9px] uppercase font-semibold" style={{ color: CINZA }}>{L('Alíquota estimada IBS+CBS (%)', 'Estimated IBS+CBS rate (%)', 'Alícuota estimada IBS+CBS (%)')}</label>
                 <input type="number" value={aliquotaSplitPayment} onChange={(e) => setAliquotaSplitPayment(e.target.value)} className="w-full px-2 py-1.5 rounded-lg text-xs focus:outline-none" style={inputStyle} />
               </div>
-              <p className="text-xs mb-2" style={{ color: '#c8d8f0' }}>
+              <p className="text-xs mb-2" style={{ color: TEXTO }}>
                 {L('Do total a receber', 'Of the total receivable', 'Del total por cobrar')} (<b>{fBRL(kpis.valorTotalAReceber)}</b>), {L('uma estimativa de', 'an estimated', 'una estimación de')} <b style={{ color: VERMELHO }}>{fBRL(splitPaymentResultado.valorRetidoEstimado)}</b> {L('iria direto ao governo na liquidação, restando', 'would go directly to the government at settlement, leaving', 'iría directo al gobierno en la liquidación, quedando')} <b style={{ color: VERDE }}>{fBRL(splitPaymentResultado.valorLiquidoEstimado)}</b> {L('em caixa.', 'in cash.', 'en caja.')}
               </p>
               <p className="text-[10px] italic" style={{ color: CINZA }}>{L(`* Estimativa com base nas regras vigentes até ${new Date().toLocaleDateString('pt-BR')}. A Reforma Tributária ainda está em andamento e pode sofrer alterações — este número reflete o melhor entendimento atual.`, `* Estimate based on the rules in effect as of ${new Date().toLocaleDateString('en-US')}. The Tax Reform is still in progress and may change — this figure reflects the best current understanding.`, `* Estimación con base en las reglas vigentes hasta ${new Date().toLocaleDateString('es-ES')}. La Reforma Tributaria sigue en curso y puede sufrir cambios — este número refleja el mejor entendimiento actual.`)}</p>
@@ -1230,17 +1235,17 @@ export default function ContasReceber() {
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: VERMELHO }}>{L('Heatmap de Inadimplência', 'Delinquency Heatmap', 'Heatmap de Morosidad')}</p>
               {heatmapOption ? <ReactECharts option={heatmapOption} style={{ height: Math.max(160, new Set(heatmapData.map((c) => c.clienteNome)).size * 26) }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem contas vencidas.', 'No overdue accounts.', 'Sin cuentas vencidas.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: TEAL }}>{L('Evolução da Carteira (12 meses)', 'Portfolio Evolution (12 months)', 'Evolución de Cartera (12 meses)')}</p>
               {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem histórico suficiente.', 'Not enough history.', 'Sin historial suficiente.')}</p>}
             </div>
           </div>
 
-          <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <div className="rounded-xl p-4 mb-4" style={{ background: PAINEL_BG }}>
             <p className="text-xs font-bold mb-3" style={{ color: OURO }}>{L('Curva ABC de Clientes', 'Client ABC Curve', 'Curva ABC de Clientes')}</p>
             {curvaABC.length === 0 ? <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p> : (
               <div className="grid grid-cols-3 gap-3 mb-3">
@@ -1260,8 +1265,8 @@ export default function ContasReceber() {
             {curvaABC.length > 0 && (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {curvaABC.slice(0, 15).map((i) => (
-                  <div key={i.clienteId} className="flex justify-between items-center text-xs px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                    <span style={{ color: '#c8d8f0' }}>{i.nome} <span className="px-1.5 py-0.5 rounded ml-1 text-[9px] font-bold" style={{ background: `${i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO}20`, color: i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO }}>{i.classe}</span></span>
+                  <div key={i.clienteId} className="flex justify-between items-center text-xs px-2.5 py-1.5 rounded-lg" style={{ background: PAINEL_BG }}>
+                    <span style={{ color: TEXTO }}>{i.nome} <span className="px-1.5 py-0.5 rounded ml-1 text-[9px] font-bold" style={{ background: `${i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO}20`, color: i.classe === 'A' ? VERDE : i.classe === 'B' ? AMBAR : VERMELHO }}>{i.classe}</span></span>
                     <span style={{ color: CINZA }}>{fBRL(i.valor)} · {i.percentual}%</span>
                   </div>
                 ))}
@@ -1270,31 +1275,31 @@ export default function ContasReceber() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: ESMERALDA }}>{L('Receita Recorrente vs Não Recorrente', 'Recurring vs Non-recurring Revenue', 'Ingreso Recurrente vs No Recurrente')}</p>
               {kpis.receitaRecorrente + kpis.receitaNaoRecorrente > 0 ? (
                 <ReactECharts option={optRosca([
                   { name: L('Recorrente', 'Recurring', 'Recurrente'), value: kpis.receitaRecorrente, color: ESMERALDA },
                   { name: L('Não Recorrente', 'Non-recurring', 'No Recurrente'), value: kpis.receitaNaoRecorrente, color: CINZA },
-                ], ESMERALDA, L('Total', 'Total', 'Total'))} style={{ height: 200 }} notMerge lazyUpdate />
+                ], ESMERALDA, L('Total', 'Total', 'Total'), temaClaro)} style={{ height: 200 }} notMerge lazyUpdate />
               ) : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3 flex items-center gap-1.5" style={{ color: AZUL }}><MapIcon size={12} /> {L('Concentração — Top 5 Clientes', 'Concentration — Top 5 Clients', 'Concentración — Top 5 Clientes')}</p>
               {concentracaoTop.length > 0 ? <ReactECharts option={donutGrupos(concentracaoTop) as object} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: TEAL }}>{L('Por Segmento', 'By Segment', 'Por Segmento')}</p>
               {donutGrupos(gruposSegmento) ? <ReactECharts option={donutGrupos(gruposSegmento) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: OURO }}>{L('Por Estado', 'By State', 'Por Estado')}</p>
               {donutGrupos(gruposEstado) ? <ReactECharts option={donutGrupos(gruposEstado) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <div className="rounded-xl p-4" style={{ background: PAINEL_BG }}>
               <p className="text-xs font-bold mb-3" style={{ color: VERDE }}>{L('Por Cidade', 'By City', 'Por Ciudad')}</p>
               {donutGrupos(gruposCidade) ? <ReactECharts option={donutGrupos(gruposCidade) as object} style={{ height: 180 }} notMerge lazyUpdate /> : <p className="text-xs text-center py-8" style={{ color: CINZA }}>{L('Sem dados suficientes.', 'Not enough data.', 'Sin datos suficientes.')}</p>}
             </div>
@@ -1308,12 +1313,12 @@ export default function ContasReceber() {
           </p>
 
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${ESMERALDA}25` }}>
+            <div className="flex items-center gap-2 flex-1 min-w-[220px] px-3 py-2.5 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${ESMERALDA}25` }}>
               <Search size={15} style={{ color: CINZA }} />
-              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar por cliente, documento, responsável...', 'Search by client, document, owner...', 'Buscar por cliente, documento, responsable...')} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: '#c8d8f0' }} />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar por cliente, documento, responsável...', 'Search by client, document, owner...', 'Buscar por cliente, documento, responsable...')} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: TEXTO }} />
             </div>
             <div className="flex items-center gap-1.5 px-2" style={{ color: CINZA }}><Filter size={14} /></div>
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-xs font-bold focus:outline-none cursor-pointer" style={{ background: 'rgba(10,22,40,0.9)', border: `1px solid ${ESMERALDA}40`, color: ESMERALDA }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-xs font-bold focus:outline-none cursor-pointer" style={{ background: SELECT_BG, border: `1px solid ${ESMERALDA}40`, color: ESMERALDA }}>
               <option value="todos">{L('Todos os Status', 'All Statuses', 'Todos los Estados')}</option>
               <option value="pendente">{statusLabel('pendente')}</option>
               <option value="parcial">{statusLabel('parcial')}</option>
@@ -1356,18 +1361,18 @@ export default function ContasReceber() {
                     const cor = statusCor(statusExibido)
                     return (
                       <motion.tr key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }}
-                        style={{ background: 'rgba(255,255,255,0.02)' }}>
-                        <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: '#c8d8f0' }}>{cli?.nome || '—'}</td>
+                        style={{ background: PAINEL_BG }}>
+                        <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: TEXTO }}>{cli?.nome || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.numero_documento || '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.competencia ? new Date(c.competencia + 'T00:00:00').toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' }) : '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{c.data_emissao ? new Date(c.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: '#c8d8f0' }}>{new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: TEXTO }}>{new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: dias > 0 ? VERMELHO : CINZA }}>{dias > 0 ? dias : '—'}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: '#c8d8f0' }}>{fBRL(c.valor || 0)}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: TEXTO }}>{fBRL(c.valor || 0)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: desconto > 0 ? AZUL : CINZA }}>{desconto > 0 ? fBRL(desconto) : '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: juros > 0 ? AMBAR : CINZA }}>{juros > 0 ? fBRL(juros) : '—'}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: multa > 0 ? VERMELHO : CINZA }}>{multa > 0 ? fBRL(multa) : '—'}</td>
-                        <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: '#c8d8f0' }}>{fBRL(valorAtualizado)}</td>
+                        <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: TEXTO }}>{fBRL(valorAtualizado)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: VERDE }}>{fBRL(c.valor_recebido || 0)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: cor }}>{fBRL(saldo)}</td>
                         <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span></td>
@@ -1421,7 +1426,7 @@ export default function ContasReceber() {
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{editando ? L('Editar Conta', 'Edit Account', 'Editar Cuenta') : L('Nova Conta', 'New Account', 'Nueva Cuenta')}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TITULO }}>{editando ? L('Editar Conta', 'Edit Account', 'Editar Cuenta') : L('Nova Conta', 'New Account', 'Nueva Cuenta')}</h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
@@ -1521,7 +1526,7 @@ export default function ContasReceber() {
 
                     <div className="flex items-center gap-3 px-1">
                       <input type="checkbox" id="recorrente" checked={nc.recorrente} onChange={(e) => setNc({ ...nc, recorrente: e.target.checked })} className="w-4 h-4" />
-                      <label htmlFor="recorrente" className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{L('Cobrança recorrente', 'Recurring billing', 'Cobro recurrente')}</label>
+                      <label htmlFor="recorrente" className="text-xs font-semibold" style={{ color: TEXTO }}>{L('Cobrança recorrente', 'Recurring billing', 'Cobro recurrente')}</label>
                       {nc.recorrente && (
                         <select value={nc.frequencia_recorrencia} onChange={(e) => setNc({ ...nc, frequencia_recorrencia: e.target.value })} className="px-3 py-1.5 rounded-lg text-xs" style={selectStyle}>
                           <option value="mensal">{L('Mensal', 'Monthly', 'Mensual')}</option>
@@ -1538,7 +1543,7 @@ export default function ContasReceber() {
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <button onClick={fecharModal} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvar} disabled={salvando}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
@@ -1564,17 +1569,17 @@ export default function ContasReceber() {
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                 <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERDE}35` }}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Registrar Recebimento', 'Register Payment', 'Registrar Cobro')}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Registrar Recebimento', 'Register Payment', 'Registrar Cobro')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalReceber(false)} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>{contaReceber.descricao}</p>
+                  <p className="text-sm mb-1" style={{ color: TEXTO }}>{contaReceber.descricao}</p>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>
                     {L('Saldo em aberto', 'Open balance', 'Saldo abierto')}: <span style={{ color: AMBAR, fontWeight: 700 }}>{fBRL(calcularLinha(contaReceber).saldo)}</span>
                   </p>
                   <label className={labelInput} style={{ color: TEAL }}>{L('Valor a receber agora (R$)', 'Amount to receive (R$)', 'Monto a cobrar ahora (R$)')}</label>
                   <input type="number" value={valorReceber} onChange={(e) => setValorReceber(e.target.value)} className={inputCls} style={inputStyle} />
                   <div className="flex gap-3 pt-4">
-                    <button onClick={() => setModalReceber(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <button onClick={() => setModalReceber(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRecebimento} disabled={recebendo}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: `linear-gradient(135deg, ${VERDE}, #059669)`, color: '#fff' }}>
@@ -1600,10 +1605,10 @@ export default function ContasReceber() {
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                 <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERMELHO}35` }}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Estornar recebimento?', 'Reverse payment?', '¿Revertir cobro?')}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Estornar recebimento?', 'Reverse payment?', '¿Revertir cobro?')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharEstornar} disabled={estornando} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>
+                  <p className="text-sm mb-1" style={{ color: TEXTO }}>
                     {L('Desfaz o recebimento registrado e volta a conta pra "a receber". Esta ação não pode ser desfeita.', 'Undoes the registered payment and moves the bill back to "pending". This action cannot be undone.', 'Deshace el cobro registrado y devuelve la cuenta a "por cobrar". Esta acción no se puede deshacer.')}
                   </p>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>{contaEstornar.descricao} — {fBRL(contaEstornar.valor_recebido || 0)}</p>
@@ -1614,7 +1619,7 @@ export default function ContasReceber() {
                       className={inputCls} style={inputStyle} />
                   </div>
                   <div className="flex gap-3 pt-2">
-                    <button onClick={fecharEstornar} disabled={estornando} className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <button onClick={fecharEstornar} disabled={estornando} className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarEstorno} disabled={estornando || !motivoEstorno.trim()}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: VERMELHO, color: '#fff' }}>
@@ -1640,15 +1645,15 @@ export default function ContasReceber() {
                 className="w-full max-w-sm">
                 <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERMELHO}35` }}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Excluir conta?', 'Delete bill?', '¿Eliminar cuenta?')}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Excluir conta?', 'Delete bill?', '¿Eliminar cuenta?')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharConfirmarExclusao} disabled={processandoExclusao} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
-                  <p className="text-sm mb-1" style={{ color: '#c8d8f0' }}>
+                  <p className="text-sm mb-1" style={{ color: TEXTO }}>
                     {L('Excluir esta conta permanentemente? Esta ação não pode ser desfeita.', 'Delete this bill permanently? This action cannot be undone.', '¿Eliminar esta cuenta de forma permanente? Esta acción no se puede deshacer.')}
                   </p>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>{contaExcluir.descricao}</p>
                   <div className="flex gap-3 pt-2">
-                    <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao} className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao} className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarExclusao} disabled={processandoExclusao}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
                       style={{ background: VERMELHO, color: '#fff' }}>
@@ -1676,7 +1681,7 @@ export default function ContasReceber() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-[10px] font-bold tracking-wider uppercase" style={{ color: CINZA }}>{kpiAtivo.label}</p>
-                      <h3 className="text-2xl font-black" style={{ ...FONTE_EXEC, color: kpiAtivo.cor }}>{kpiAtivo.valor}</h3>
+                      <h3 className="text-2xl font-black" style={{ color: kpiAtivo.cor }}>{kpiAtivo.valor}</h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setDrillKpi(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
@@ -1684,8 +1689,8 @@ export default function ContasReceber() {
                     {drillLinhas(kpiAtivo.key).length === 0 ? (
                       <p className="text-xs text-center py-6" style={{ color: CINZA }}>{L('Sem itens para detalhar.', 'No items to break down.', 'Sin elementos para detallar.')}</p>
                     ) : drillLinhas(kpiAtivo.key).map((l, i) => (
-                      <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                        <span style={{ color: '#c8d8f0' }}>{l.label}</span>
+                      <div key={i} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: PAINEL_BG }}>
+                        <span style={{ color: TEXTO }}>{l.label}</span>
                         <span className="font-bold" style={{ color: kpiAtivo.cor }}>{l.valor}</span>
                       </div>
                     ))}
@@ -1712,7 +1717,7 @@ export default function ContasReceber() {
                     <div className="flex items-center gap-2">
                       {scoreDrill.score.nivel === 'elite' && <Crown size={16} style={{ color: OURO }} />}
                       <div>
-                        <h3 className="text-base font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{scoreDrill.s.cliente.nome}</h3>
+                        <h3 className="text-base font-bold" style={{ color: TITULO }}>{scoreDrill.s.cliente.nome}</h3>
                         <p className="text-xl font-black" style={{ color: nivelScoreCor(scoreDrill.score.nivel) }}>{scoreDrill.score.total}/1000 · {nivelScoreLabel(scoreDrill.score.nivel)}</p>
                       </div>
                     </div>
@@ -1720,9 +1725,9 @@ export default function ContasReceber() {
                   </div>
                   <div className="space-y-1.5 max-h-[45vh] overflow-y-auto">
                     {[...scoreDrill.score.criterios].sort((a, b) => b.peso - a.peso).map((c) => (
-                      <div key={c.chave} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.03)' }}>
-                        <span style={{ color: '#c8d8f0' }}>{nomeCriterioScoreCliente(lang, c.chave)} <span style={{ color: CINZA }}>({c.peso}%)</span></span>
-                        <span className="font-bold" style={{ color: c.semDados ? CINZA : '#c8d8f0' }}>{c.semDados ? L('sem dados', 'no data', 'sin datos') : `${Math.round(c.valor as number)}/100`}</span>
+                      <div key={c.chave} className="flex justify-between items-center px-3 py-2 rounded-lg text-xs" style={{ background: PAINEL_BG }}>
+                        <span style={{ color: TEXTO }}>{nomeCriterioScoreCliente(lang, c.chave)} <span style={{ color: CINZA }}>({c.peso}%)</span></span>
+                        <span className="font-bold" style={{ color: c.semDados ? CINZA : TEXTO }}>{c.semDados ? L('sem dados', 'no data', 'sin datos') : `${Math.round(c.valor as number)}/100`}</span>
                       </div>
                     ))}
                   </div>
@@ -1752,18 +1757,18 @@ export default function ContasReceber() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>{L('Central de Cobrança', 'Collection Center', 'Centro de Cobranza')}</p>
-                        <h3 className="text-base font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{cliente(contaCobranca.cliente_id)?.nome || contaCobranca.descricao}</h3>
+                        <h3 className="text-base font-bold" style={{ color: TITULO }}>{cliente(contaCobranca.cliente_id)?.nome || contaCobranca.descricao}</h3>
                         <p className="text-xs" style={{ color: CINZA }}>{contaCobranca.descricao} · {L('Saldo', 'Balance', 'Saldo')}: <span style={{ color: VERMELHO, fontWeight: 700 }}>{fBRL(calcularLinha(contaCobranca).saldo)}</span></p>
                       </div>
                       <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharCobranca} style={{ color: CINZA }}><X size={20} /></motion.button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <div className="rounded-xl p-3" style={{ background: PAINEL_BG }}>
                         <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Chance de receber no prazo', 'Chance of on-time payment', 'Probabilidad de cobro a tiempo')}</p>
                         <p className="text-xl font-black" style={{ color: prob == null ? CINZA : prob >= 70 ? VERDE : prob >= 40 ? AMBAR : VERMELHO }}>{prob != null ? `${prob}%` : L('sem dados', 'no data', 'sin datos')}</p>
                       </div>
-                      <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <div className="rounded-xl p-3" style={{ background: PAINEL_BG }}>
                         <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Próxima ação da régua', 'Next ladder step', 'Próxima acción de la regla')}</p>
                         <p className="text-xs font-bold" style={{ color: proximaEtapa ? OURO : CINZA }}>{proximaEtapa ? `${proximaEtapa.canal} — ${proximaEtapa.dias_relativos === 0 ? L('hoje', 'today', 'hoy') : proximaEtapa.dias_relativos < 0 ? `D${proximaEtapa.dias_relativos}` : `D+${proximaEtapa.dias_relativos}`}` : L('nenhuma configurada', 'none configured', 'ninguna configurada')}</p>
                       </div>
@@ -1792,7 +1797,7 @@ export default function ContasReceber() {
                         {carregandoInteracoes ? <p className="text-xs" style={{ color: CINZA }}>...</p> : interacoesConta.length === 0 ? (
                           <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhum contato registrado ainda.', 'No contact logged yet.', 'Ningún contacto registrado aún.')}</p>
                         ) : interacoesConta.map((it) => (
-                          <div key={it.id} className="text-xs px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', color: '#c8d8f0' }}>
+                          <div key={it.id} className="text-xs px-2.5 py-1.5 rounded-lg" style={{ background: PAINEL_BG, color: TEXTO }}>
                             <span style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')} · {it.canal}</span> — {it.descricao}
                           </div>
                         ))}
@@ -1821,7 +1826,7 @@ export default function ContasReceber() {
                           const cor = c.status === 'cumprido' ? VERDE : quebrado || c.status === 'quebrado' ? VERMELHO : AMBAR
                           return (
                             <div key={c.id} className="flex items-center justify-between gap-2 text-xs px-2.5 py-1.5 rounded-lg" style={{ background: `${cor}0c`, border: `1px solid ${cor}25` }}>
-                              <span style={{ color: '#c8d8f0' }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')}: {fBRL(c.valor_compromissado)} até {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                              <span style={{ color: TEXTO }}>{c.tipo === 'acordo' ? L('Acordo', 'Agreement', 'Acuerdo') : L('Promessa', 'Promise', 'Promesa')}: {fBRL(c.valor_compromissado)} até {new Date(c.data_compromissada + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                               {c.status === 'pendente' ? (
                                 <div className="flex gap-1.5 flex-shrink-0">
                                   <button onClick={() => marcarCompromisso(c.id, 'cumprido')} title={L('Cumprido', 'Fulfilled', 'Cumplido')}><CheckCircle2 size={13} style={{ color: VERDE }} /></button>
@@ -1853,7 +1858,7 @@ export default function ContasReceber() {
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
                 <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35` }}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ ...FONTE_EXEC, color: '#e2ecf7' }}>{L('Etapa da Régua', 'Ladder Step', 'Etapa de la Regla')}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Etapa da Régua', 'Ladder Step', 'Etapa de la Regla')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoEtapa(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
                   <div className="space-y-3">
@@ -1873,11 +1878,11 @@ export default function ContasReceber() {
                     </div>
                     <div className="flex items-center gap-2">
                       <input type="checkbox" id="etapaAtiva" checked={editandoEtapa.ativo ?? true} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, ativo: e.target.checked })} className="w-4 h-4" />
-                      <label htmlFor="etapaAtiva" className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{L('Etapa ativa', 'Step active', 'Etapa activa')}</label>
+                      <label htmlFor="etapaAtiva" className="text-xs font-semibold" style={{ color: TEXTO }}>{L('Etapa ativa', 'Step active', 'Etapa activa')}</label>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4">
-                    <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
+                    <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarEtapa}
                       className="flex-1 py-3 rounded-xl text-sm font-bold"
                       style={{ background: `linear-gradient(135deg, ${OURO}, #b8942c)`, color: '#1a1400' }}>
@@ -1901,6 +1906,7 @@ export default function ContasReceber() {
         cor={ESMERALDA}
       />
     </ModuloLayout>
+    </div>
   )
 }
 

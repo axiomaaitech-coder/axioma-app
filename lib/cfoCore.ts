@@ -369,6 +369,7 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   "#5a7a9a": "#55637a", "#c8d8f0": "#17304f", "#f1f5f9": "#17304f", "#e2e8f0": "#17304f",
   "#64748b": "#55637a", "#6ee7b7": "#16a34a", "#fca5a5": "#dc2626",
   "#94a3b8": "#55637a", "#cbd5e1": "#55637a", "#3a6090": "#55637a",
+  "#f59e0b": "#b45309", "#fb923c": "#c2410c", "#ef4444": "#dc2626",
 };
 export function corTema(hex: string, claro?: boolean): string {
   return claro ? MAPA_CORES_CLARO[hex] ?? hex : hex;
@@ -415,7 +416,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
 // Barras horizontais — mesmo motor visual do optBarrasV, com categoria e valor trocados
 // de eixo. Pra rankings onde o nome (centro, fornecedor...) precisa ficar legível na
 // lateral em vez de espremido embaixo de uma barra vertical.
-export function optBarrasH(dados: number[], labels: string[], cor: string, corC: string, coresIndividuais?: (string | null)[]) {
+export function optBarrasH(dados: number[], labels: string[], cor: string, corC: string, coresIndividuais?: (string | null)[], temaClaro?: boolean) {
   const gradientePadrao = { type: "linear", x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] };
   return {
     backgroundColor: "transparent", animationDuration: 900,
@@ -424,7 +425,7 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     yAxis: { type: "category", data: labels, inverse: true,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 } },
     xAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -433,7 +434,7 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
       itemStyle: { borderRadius: [0, 8, 8, 0],
         color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
         shadowColor: cor + "55", shadowBlur: 12 },
-      label: { show: true, position: "right", distance: 6, color: "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
+      label: { show: true, position: "right", distance: 6, color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
       emphasis: { itemStyle: { shadowBlur: 24 } }, data: dados,
     }],
   };
@@ -444,17 +445,18 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
 // cor por categoria.
 export function optBarrasComparativo(
   dadosA: number[], dadosB: number[], labels: string[],
-  corA: string, corB: string, nomeA: string, nomeB: string,
+  corA: string, corB: string, nomeA: string, nomeB: string, temaClaro?: boolean,
 ) {
+  const eixoCor = temaClaro ? "#55637a" : "#cbd5e1";
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 40, bottom: 28, containLabel: false },
-    legend: { top: 0, right: 0, itemWidth: 11, itemHeight: 11, icon: "circle", textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 600 } },
+    legend: { top: 0, right: 0, itemWidth: 11, itemHeight: 11, icon: "circle", textStyle: { color: eixoCor, fontSize: 11, fontWeight: 600 } },
     tooltip: { ...tipBase, trigger: "axis", borderColor: corA, axisPointer: { type: "shadow" },
       formatter: (ps: any[]) => `<b>${ps[0].name}</b><br/>` + ps.map((p) => `<span style="color:${p.color}">${p.seriesName}</span>: <b>${fBRL(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: eixoCor, fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -552,25 +554,27 @@ export function optLinhaMulti(
 
 // Dispersão (scatter) — posiciona pontos em dois eixos 0-100/0-1000 (ex: Mapa de Valor
 // de Clientes: score × saúde). Tamanho do ponto pode carregar uma terceira dimensão (ex: ticket).
-export function optDispersao(pontos: { nome: string; x: number; y: number; cor: string; tamanho?: number }[], labelX: string, labelY: string, maxX: number) {
+export function optDispersao(pontos: { nome: string; x: number; y: number; cor: string; tamanho?: number }[], labelX: string, labelY: string, maxX: number, temaClaro?: boolean) {
+  const eixoNomeCor = temaClaro ? "#55637a" : "#94a3b8";
+  const eixoLabelCor = temaClaro ? "#55637a" : "#64748b";
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 54, right: 24, top: 24, bottom: 44, containLabel: false },
     tooltip: { ...tipBase, trigger: "item",
       formatter: (p: any) => `<b>${p.data.nome}</b><br/>${labelX}: <b>${Math.round(p.value[0])}</b><br/>${labelY}: <b>${Math.round(p.value[1])}</b>` },
     xAxis: { type: "value", name: labelX, min: 0, max: maxX, nameLocation: "middle", nameGap: 28,
-      nameTextStyle: { color: "#94a3b8", fontSize: 10, fontWeight: 700 },
+      nameTextStyle: { color: eixoNomeCor, fontSize: 10, fontWeight: 700 },
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: "#64748b", fontSize: 10 },
+      axisLabel: { color: eixoLabelCor, fontSize: 10 },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } } },
-    yAxis: { type: "value", name: labelY, min: 0, max: 100, nameTextStyle: { color: "#94a3b8", fontSize: 10, fontWeight: 700 },
+    yAxis: { type: "value", name: labelY, min: 0, max: 100, nameTextStyle: { color: eixoNomeCor, fontSize: 10, fontWeight: 700 },
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: "#64748b", fontSize: 10 },
+      axisLabel: { color: eixoLabelCor, fontSize: 10 },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } } },
     series: [{
       type: "scatter",
       symbolSize: (_val: any, p: any) => Math.max(14, Math.min(46, p.data.tamanho || 20)),
-      itemStyle: { color: (p: any) => p.data.cor, borderColor: "#0a0820", borderWidth: 1.5, shadowBlur: 8, shadowColor: "rgba(0,0,0,0.4)" },
+      itemStyle: { color: (p: any) => p.data.cor, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 1.5, shadowBlur: 8, shadowColor: "rgba(0,0,0,0.4)" },
       emphasis: { itemStyle: { shadowBlur: 20 } },
       data: pontos.map((p) => ({ value: [p.x, p.y], nome: p.nome, cor: p.cor, tamanho: p.tamanho })),
     }],
@@ -579,17 +583,18 @@ export function optDispersao(pontos: { nome: string; x: number; y: number; cor: 
 
 // Velocímetro (gauge) — score/índice único 0..max com faixas de cor (ex: 0-400
 // vermelho, 401-700 âmbar, 701-1000 verde). "faixas" define até onde vai cada cor.
-export function optVelocimetro(valor: number, max: number, faixas: { ate: number; cor: string }[]) {
+export function optVelocimetro(valor: number, max: number, faixas: { ate: number; cor: string }[], temaClaro?: boolean) {
+  const ponteiroCor = temaClaro ? "#17304f" : "#e2e8f0";
   return {
     backgroundColor: "transparent", animationDuration: 900,
     series: [{
       type: "gauge", min: 0, max, startAngle: 210, endAngle: -30,
-      pointer: { itemStyle: { color: "#e2e8f0" } },
+      pointer: { itemStyle: { color: ponteiroCor } },
       progress: { show: false },
       axisLine: { lineStyle: { width: 14, color: faixas.map((f) => [f.ate / max, f.cor]) } },
       axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
-      anchor: { show: true, size: 12, itemStyle: { color: "#0a0820", borderColor: "#e2e8f0", borderWidth: 2 } },
-      detail: { valueAnimation: true, fontSize: 26, fontWeight: 900, color: "#f1f5f9", offsetCenter: [0, "60%"], formatter: (v: number) => `${Math.round(v)}` },
+      anchor: { show: true, size: 12, itemStyle: { color: temaClaro ? "#ffffff" : "#0a0820", borderColor: ponteiroCor, borderWidth: 2 } },
+      detail: { valueAnimation: true, fontSize: 26, fontWeight: 900, color: temaClaro ? "#0b1f3a" : "#f1f5f9", offsetCenter: [0, "60%"], formatter: (v: number) => `${Math.round(v)}` },
       data: [{ value: valor }],
     }],
   };
@@ -597,23 +602,23 @@ export function optVelocimetro(valor: number, max: number, faixas: { ate: number
 
 // Radar/spider chart — visão multi-eixo de um composto (ex: risco da carteira).
 // Cada indicador já deve vir normalizado (0..max) pelo chamador.
-export function optRadar(indicadores: { nome: string; max: number }[], valores: number[], cor: string) {
+export function optRadar(indicadores: { nome: string; max: number }[], valores: number[], cor: string, temaClaro?: boolean) {
   return {
     backgroundColor: "transparent", animationDuration: 900,
     tooltip: { ...tipBase, trigger: "item", borderColor: cor },
     radar: {
       indicator: indicadores.map((i) => ({ name: i.nome, max: i.max })),
       splitNumber: 4,
-      axisName: { color: "#94a3b8", fontSize: 10, fontWeight: 700 },
+      axisName: { color: temaClaro ? "#55637a" : "#94a3b8", fontSize: 10, fontWeight: 700 },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
-      splitArea: { areaStyle: { color: ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.03)"] } },
+      splitArea: { areaStyle: { color: temaClaro ? ["#f3f6fa", "#e8edf4"] : ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.03)"] } },
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
     },
     series: [{
       type: "radar",
       areaStyle: { color: cor + "33" },
       lineStyle: { width: 3, color: cor, shadowColor: cor + "80", shadowBlur: 10 },
-      itemStyle: { color: cor, borderColor: "#0a0820", borderWidth: 2 },
+      itemStyle: { color: cor, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 2 },
       data: [{ value: valores }],
     }],
   };

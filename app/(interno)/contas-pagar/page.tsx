@@ -10,6 +10,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../../../lib/LanguageContext";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -56,12 +58,13 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const VERDE = "#34d399";
-const VERMELHO = "#f87171";
-const AZUL = "#6ab0ff";
-const AMBAR = "#f59e0b";
-const CINZA = "#5a7a9a";
-const ROXO = "#a78bfa";
+// O modal de conta usa createPortal direto pro document.body — sai da árvore
+// do data-theme, então var(--axi-*) do CSS não alcança ele. Por isso PAINEL_BG
+// e CAMPO_BG são valores JS por tema (não CSS var).
+const PALETA = {
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#6ab0ff", AMBAR: "#f59e0b", CINZA: "#5a7a9a", ROXO: "#a78bfa", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
+  xms: { VERDE: "#16a34a", VERMELHO: "#dc2626", AZUL: "#0043c8", AMBAR: "#d97706", CINZA: "#55637a", ROXO: "#7c3aed", TEXTO: "#17304f", PAINEL_BG: "#ffffff", CAMPO_BG: "#eef2f7", CAMPO_BG2: "#eef2f7" },
+} as const;
 
 const FORMAS_PAGAMENTO = ["PIX", "Boleto", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"];
 const PAPEIS_ESCRITA = ["dono", "admin", "financeiro"];
@@ -88,6 +91,9 @@ export default function ContasPagarPage() {
   const { idioma } = useLanguage();
   const L = (pt: string, en: string, es: string) => (idioma === "en" ? en : idioma === "es" ? es : pt);
   const cat = (c: string) => labelCategoriaDespesa(c, idioma as "pt" | "en" | "es");
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const { VERDE, VERMELHO, AZUL, AMBAR, CINZA, ROXO, TEXTO } = PALETA[tema];
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -1685,6 +1691,7 @@ export default function ContasPagarPage() {
   const semDados = contas.length === 0;
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
       titulo={L("Contas a Pagar", "Accounts Payable", "Cuentas por Pagar")}
       subtitulo={L("Central de obrigações com fornecedores — vencimentos, baixas e anexos num só lugar.", "Supplier obligations center — due dates, payments and attachments in one place.", "Central de obligaciones con proveedores — vencimientos, pagos y adjuntos en un solo lugar.")}
@@ -1696,11 +1703,11 @@ export default function ContasPagarPage() {
             <>
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setModalCustoFixo(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-                style={{ background: "rgba(167,139,250,0.15)", color: ROXO, border: "1px solid rgba(167,139,250,0.3)" }}>
+                style={{ background: (temaClaro ? "rgba(124,58,237,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
                 <Landmark size={16} />{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}
               </motion.button>
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer"
-                style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                style={{ background: (temaClaro ? "rgba(22,163,74,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,163,74,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                 <Upload size={16} />{processandoNfe ? L("Lendo…", "Reading…", "Leyendo…") : L("Importar XML NF-e", "Import NF-e XML", "Importar XML NF-e")}
                 <input type="file" accept=".xml" className="hidden" disabled={processandoNfe}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) importarXmlNfe(f); e.target.value = ""; }} />
@@ -1709,14 +1716,15 @@ export default function ContasPagarPage() {
           )}
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+            style={{ background: (temaClaro ? "rgba(0,67,200,0.15)" : "rgba(106,176,255,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(0,67,200,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
             <Share2 size={16} />{L("Compartilhar", "Share", "Compartir")}
           </motion.button>
+          <ThemeToggle />
         </>
       }
     >
       {!podeEditar && papel && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", color: AMBAR }}>
+        <div className="mb-4 px-4 py-2.5 rounded-xl text-xs flex items-center gap-2" style={{ background: (temaClaro ? "rgba(217,119,6,0.08)" : "rgba(245,158,11,0.08)"), border: (temaClaro ? "1px solid rgba(217,119,6,0.2)" : "1px solid rgba(245,158,11,0.2)"), color: AMBAR }}>
           <AlertTriangle size={14} />
           {L("Seu perfil tem acesso somente leitura a Contas a Pagar.", "Your profile has read-only access to Accounts Payable.", "Su perfil tiene acceso solo lectura a Cuentas por Pagar.")}
         </div>
@@ -1726,18 +1734,18 @@ export default function ContasPagarPage() {
         <div className="mb-4">
           <CanvasBox cor={AMBAR}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
-            <p className="text-sm font-semibold mb-3" style={{ color: "#c8d8f0" }}>
+            <p className="text-sm font-semibold mb-3" style={{ color: TEXTO }}>
               {L(`Esta NF-e já foi importada pelo PDV para estoque em ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("pt-BR")}. Deseja vincular esta conta a pagar à compra existente?`,
                 `This NF-e was already imported by the POS into inventory on ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("en-US")}. Link this bill to the existing purchase?`,
                 `Esta NF-e ya fue importada por el PDV al inventario el ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("es-ES")}. ¿Vincular esta cuenta a la compra existente?`)}
             </p>
             <div className="flex gap-2">
               <button onClick={() => abrirModalComDadosNfe(avisoNfeDuplicada.dados, avisoNfeDuplicada.nfe.id)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "rgba(22,163,74,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE }}>
                 {L("Sim, vincular", "Yes, link", "Sí, vincular")}
               </button>
               <button onClick={() => setAvisoNfeDuplicada(null)}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: CINZA }}>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: CINZA }}>
                 {L("Não", "No", "No")}
               </button>
             </div>
@@ -1748,32 +1756,32 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={aba === "central" ? { background: (temaClaro ? "rgba(217,119,6,0.2)" : "rgba(245,158,11,0.2)"), color: AMBAR, border: `1px solid ${AMBAR}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={aba === "inteligencia" ? { background: (temaClaro ? "rgba(124,58,237,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "aprovacoes" ? { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={aba === "aprovacoes" ? { background: (temaClaro ? "rgba(22,163,74,0.2)" : "rgba(52,211,153,0.2)"), color: VERDE, border: `1px solid ${VERDE}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "pedidos" ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={aba === "pedidos" ? { background: (temaClaro ? "rgba(0,67,200,0.2)" : "rgba(106,176,255,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "conferencia" ? { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={aba === "conferencia" ? { background: (temaClaro ? "rgba(220,38,38,0.2)" : "rgba(248,113,113,0.2)"), color: VERMELHO, border: `1px solid ${VERMELHO}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "historico" ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+          style={aba === "historico" ? { background: (temaClaro ? "rgba(0,67,200,0.2)" : "rgba(106,176,255,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <History size={14} />{L("Histórico", "History", "Historial")}
         </button>
         {podeConfigurarAp && (
           <button onClick={abrirConfigAp} className="ml-auto px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-            style={{ background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+            style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
             <Settings size={14} />⚙️ {L("Configuração AP", "AP Configuration", "Configuración AP")}
           </button>
         )}
@@ -1801,9 +1809,9 @@ export default function ContasPagarPage() {
             <div className="relative flex-1 min-w-[180px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: CINZA }} />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
             </div>
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
               <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
               <option value="pendente">{statusLabel("pendente")}</option>
               <option value="parcial">{statusLabel("parcial")}</option>
@@ -1811,16 +1819,16 @@ export default function ContasPagarPage() {
               <option value="pago">{statusLabel("pago")}</option>
               <option value="aguardando_aprovacao">{statusLabel("aguardando_aprovacao")}</option>
             </select>
-            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
               <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
               {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
-            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
               <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
               {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
             </select>
-            <input type="date" value={filtroVencDe} onChange={(e) => setFiltroVencDe(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
-            <input type="date" value={filtroVencAte} onChange={(e) => setFiltroVencAte(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+            <input type="date" value={filtroVencDe} onChange={(e) => setFiltroVencDe(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
+            <input type="date" value={filtroVencAte} onChange={(e) => setFiltroVencAte(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
           </div>
 
           {/* Lista */}
@@ -1836,9 +1844,9 @@ export default function ContasPagarPage() {
                 return (
                   <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
-                    style={{ background: proximasAPagar.has(c.id) ? "rgba(167,139,250,0.08)" : "rgba(10,20,36,0.6)", border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
+                    style={{ background: proximasAPagar.has(c.id) ? (temaClaro ? "rgba(124,58,237,0.08)" : "rgba(167,139,250,0.08)") : (temaClaro ? "#ffffff" : "rgba(10,20,36,0.6)"), border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: "#c8d8f0" }}>
+                      <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: TEXTO }}>
                         {proximasAPagar.has(c.id) && (
                           <span title={L("Fixada em Prioridade de Pagamento", "Pinned in Payment Priority", "Fijada en Prioridad de Pago")}>
                             <Pin size={12} fill={ROXO} style={{ color: ROXO }} />
@@ -1864,7 +1872,7 @@ export default function ContasPagarPage() {
                     <div className="text-xs" style={{ color: CINZA }}>
                       {L("Vence", "Due", "Vence")} {c.data_vencimento ? new Date(c.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
                     </div>
-                    <p className="text-sm font-bold w-28 text-right" style={{ color: "#c8d8f0" }}>{fmt(c.valor_total)}</p>
+                    <p className="text-sm font-bold w-28 text-right" style={{ color: TEXTO }}>{fmt(c.valor_total)}</p>
                     <span className="px-2 py-1 rounded-lg text-xs font-semibold text-center w-24" style={{ background: `${cor}15`, color: cor }}>{statusLabel(statusExibido)}</span>
                     <div className="flex items-center gap-2 flex-shrink-0 justify-end">
                       <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirAnexo(c)} title={L("Anexar boleto/nota", "Attach invoice/receipt", "Adjuntar boleta/factura")} style={{ color: AZUL }}><Paperclip size={15} /></motion.button>
@@ -1878,7 +1886,7 @@ export default function ContasPagarPage() {
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarEstorno(c)} title={L("Estornar pagamento (desfazer baixa)", "Reverse payment (undo payment)", "Revertir pago (deshacer pago)")} style={{ color: CINZA }}><Undo2 size={15} /></motion.button>
                           )}
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar conta", "Edit bill", "Editar cuenta")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L("Excluir conta", "Delete bill", "Eliminar cuenta")} style={{ color: c.status === "pago" ? "rgba(248,113,113,0.3)" : VERMELHO }}><Trash2 size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L("Excluir conta", "Delete bill", "Eliminar cuenta")} style={{ color: c.status === "pago" ? (temaClaro ? "rgba(220,38,38,0.3)" : "rgba(248,113,113,0.3)") : VERMELHO }}><Trash2 size={15} /></motion.button>
                         </>
                       )}
                     </div>
@@ -1895,7 +1903,7 @@ export default function ContasPagarPage() {
           {/* Card CFO AP Briefing V1 + Natural Language CFO V1 (Entrega 4, Commit 5) */}
           <CanvasBox cor={ROXO}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: TEXTO }}>
               <Sparkles size={18} style={{ color: ROXO }} />
               {L("O que merece sua atenção hoje", "What deserves your attention today", "Qué merece su atención hoy")}
             </h3>
@@ -1910,8 +1918,8 @@ export default function ContasPagarPage() {
                   return (
                     <button key={i} onClick={() => irParaItemBriefing(item)}
                       className="w-full text-left rounded-xl p-3 flex items-center justify-between gap-3"
-                      style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${cor}30` }}>
-                      <span className="text-sm flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+                      style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${cor}30` }}>
+                      <span className="text-sm flex items-center gap-2" style={{ color: TEXTO }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cor }} />
                         {item.texto}
                       </span>
@@ -1922,7 +1930,7 @@ export default function ContasPagarPage() {
               </div>
             )}
 
-            <div className="pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="pt-3" style={{ borderTop: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
               <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
                 <MessageCircleQuestion size={14} />
                 {L("Pergunte ao Axioma CFO", "Ask Axioma CFO", "Pregunte al Axioma CFO")}
@@ -1932,25 +1940,25 @@ export default function ContasPagarPage() {
                   onKeyDown={(e) => { if (e.key === "Enter") perguntarAoCfo(); }}
                   disabled={carregandoRespostaCfo}
                   placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(167,139,250,0.2)", color: "#c8d8f0" }} />
-                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }}>
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.2)" : "1px solid rgba(167,139,250,0.2)"), color: TEXTO }} />
+                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: (temaClaro ? "rgba(124,58,237,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` }}>
                   <Send size={16} />
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {(PERGUNTAS_SUGERIDAS_CFO[idioma as "pt" | "en" | "es"] || PERGUNTAS_SUGERIDAS_CFO.pt).map((sug) => (
-                  <button key={sug} onClick={() => perguntarAoCfo(sug)} disabled={carregandoRespostaCfo} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <button key={sug} onClick={() => perguntarAoCfo(sug)} disabled={carregandoRespostaCfo} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                     {sug}
                   </button>
                 ))}
               </div>
               {carregandoRespostaCfo ? (
-                <div className="rounded-xl p-3" style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.25)" }}>
+                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(124,58,237,0.08)" : "rgba(167,139,250,0.08)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.25)" : "1px solid rgba(167,139,250,0.25)") }}>
                   <p className="text-sm" style={{ color: CINZA }}>{L("Pensando...", "Thinking...", "Pensando...")}</p>
                 </div>
               ) : respostaCfo && (
-                <div className="rounded-xl p-3" style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.25)" }}>
-                  <p className="text-sm" style={{ color: "#c8d8f0" }}>{respostaCfo}</p>
+                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(124,58,237,0.08)" : "rgba(167,139,250,0.08)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.25)" : "1px solid rgba(167,139,250,0.25)") }}>
+                  <p className="text-sm" style={{ color: TEXTO }}>{respostaCfo}</p>
                 </div>
               )}
             </div>
@@ -1959,7 +1967,7 @@ export default function ContasPagarPage() {
           {/* Card Forecast AP Multi-Horizonte (Entrega 3, Commit 1) */}
           <CanvasBox cor={pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: TEXTO }}>
               {pontoForecast && pontoForecast.ruptura ? <TrendingDown size={18} style={{ color: VERMELHO }} /> : <TrendingUp size={18} style={{ color: AZUL }} />}
               {L("Previsão de Caixa (AP Forecast)", "Cash Forecast (AP Forecast)", "Previsión de Caja (AP Forecast)")}
             </h3>
@@ -1974,28 +1982,28 @@ export default function ContasPagarPage() {
                     <button key={h} onClick={() => setHorizonteSelecionado(h)}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold"
                       style={horizonteSelecionado === h
-                        ? { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }
-                        : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+                        ? { background: (temaClaro ? "rgba(0,67,200,0.2)" : "rgba(106,176,255,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` }
+                        : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                       {L(`${h} dias`, `${h} days`, `${h} días`)}
                     </button>
                   ))}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
-                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(forecastAp.saldoAtual)}</p>
+                    <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(forecastAp.saldoAtual)}</p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
+                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Otimista (em dia, sem multa)", "Optimistic Scenario (on time, no fee)", "Escenario Optimista (a tiempo, sin multa)")}</p>
                     <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE }}>{fmt(pontoForecast.saldoProjetadoOtimista)}</p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
+                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Pessimista (com desvio real de atraso)", "Pessimistic Scenario (real delay deviation)", "Escenario Pesimista (con desvío real de atraso)")}</p>
                     <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR }}>{fmt(pontoForecast.saldoProjetadoPessimista)}</p>
                   </div>
-                  <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado sem pagar pendentes", "Projected without paying pending", "Proyectado sin pagar pendientes")}</p>
-                    <p className="text-lg font-black" style={{ color: "#c8d8f0" }}>{fmt(pontoForecast.saldoProjetadoSemPagamentos)}</p>
+                    <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(pontoForecast.saldoProjetadoSemPagamentos)}</p>
                   </div>
                 </div>
                 <p className="text-xs mb-3" style={{ color: CINZA }}>
@@ -2008,7 +2016,7 @@ export default function ContasPagarPage() {
                         "Sin historial suficiente de atraso con multa acordada todavía — el escenario pesimista es igual al optimista (nada se estima sin datos reales).")}
                 </p>
                 {pontoForecast.ruptura ? (
-                  <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.35)" }}>
+                  <div className="rounded-xl p-3 flex items-center gap-2" style={{ background: (temaClaro ? "rgba(220,38,38,0.1)" : "rgba(248,113,113,0.1)"), border: (temaClaro ? "1px solid rgba(220,38,38,0.35)" : "1px solid rgba(248,113,113,0.35)") }}>
                     <AlertTriangle size={16} style={{ color: VERMELHO }} />
                     <p className="text-sm font-semibold" style={{ color: VERMELHO }}>
                       {L(`Saldo fica negativo em ${pontoForecast.ruptura.diasRestantes} dias (${new Date(pontoForecast.ruptura.data + "T00:00:00").toLocaleDateString("pt-BR")}), projetado em ${fmt(pontoForecast.ruptura.saldoProjetado)}.`,
@@ -2028,7 +2036,7 @@ export default function ContasPagarPage() {
           {/* Card Prioridade de Pagamento */}
           <CanvasBox cor={ROXO}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-3" style={{ color: "#c8d8f0" }}>{L("Prioridade de Pagamento", "Payment Priority", "Prioridad de Pago")}</h3>
+            <h3 className="text-base font-bold mb-3" style={{ color: TEXTO }}>{L("Prioridade de Pagamento", "Payment Priority", "Prioridad de Pago")}</h3>
             {prioridadesOrdenadas.length === 0 ? (
               <p className="text-sm" style={{ color: CINZA }}>{L("Nenhuma conta pendente para priorizar.", "No pending bills to prioritize.", "Ninguna cuenta pendiente para priorizar.")}</p>
             ) : (
@@ -2036,11 +2044,11 @@ export default function ContasPagarPage() {
                 {prioridadesOrdenadas.map((item, i) => (
                   <div key={item.conta.id} className="flex items-center gap-3 p-3 rounded-xl"
                     style={proximasAPagar.has(item.conta.id)
-                      ? { background: "rgba(167,139,250,0.1)", border: `1px solid ${ROXO}50` }
-                      : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(167,139,250,0.15)" }}>
+                      ? { background: (temaClaro ? "rgba(124,58,237,0.1)" : "rgba(167,139,250,0.1)"), border: `1px solid ${ROXO}50` }
+                      : { background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.15)" : "1px solid rgba(167,139,250,0.15)") }}>
                     <span className="text-xs font-black w-6 text-center flex-shrink-0" style={{ color: CINZA }}>#{i + 1}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{item.conta.descricao} · {nomeFornecedor(item.conta.fornecedor_id)}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{item.conta.descricao} · {nomeFornecedor(item.conta.fornecedor_id)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>{item.explicacao}</p>
                     </div>
                     <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" title={L("Score de prioridade de pagamento", "Payment priority score", "Score de prioridad de pago")}
@@ -2055,7 +2063,7 @@ export default function ContasPagarPage() {
                           {L("Forn.", "Sup.", "Prov.")} {scoreForn.total}
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded-lg text-xs flex-shrink-0" style={{ color: CINZA, background: "rgba(255,255,255,0.04)" }}>
+                        <span className="px-2 py-1 rounded-lg text-xs flex-shrink-0" style={{ color: CINZA, background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)") }}>
                           {L("sem score", "no score", "sin score")}
                         </span>
                       );
@@ -2064,8 +2072,8 @@ export default function ContasPagarPage() {
                       title={proximasAPagar.has(item.conta.id) ? L("Fixado no topo — clique pra desafixar", "Pinned to top — click to unpin", "Fijado arriba — clic para desfijar") : L("Fixar no topo", "Pin to top", "Fijar arriba")}
                       className="flex-shrink-0 p-1.5 rounded-lg"
                       style={proximasAPagar.has(item.conta.id)
-                        ? { color: ROXO, background: "rgba(167,139,250,0.2)", border: `1px solid ${ROXO}` }
-                        : { color: CINZA, background: "transparent", border: "1px solid rgba(255,255,255,0.1)" }}>
+                        ? { color: ROXO, background: (temaClaro ? "rgba(124,58,237,0.2)" : "rgba(167,139,250,0.2)"), border: `1px solid ${ROXO}` }
+                        : { color: CINZA, background: "transparent", border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.1)") }}>
                       <Pin size={16} fill={proximasAPagar.has(item.conta.id) ? ROXO : "none"} />
                     </button>
                   </div>
@@ -2077,7 +2085,7 @@ export default function ContasPagarPage() {
           {/* Card Despesas Recorrentes Detectadas (Entrega 3, Commit 3) */}
           <CanvasBox cor={AMBAR}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <RotateCcw size={18} style={{ color: AMBAR }} />
               {L("Despesas Recorrentes Detectadas", "Detected Recurring Expenses", "Gastos Recurrentes Detectados")}
             </h3>
@@ -2091,9 +2099,9 @@ export default function ContasPagarPage() {
             ) : (
               <div className="space-y-2">
                 {padroesRecorrentes.map((p) => (
-                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                  <div key={p.idsContas.join(",")} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(217,119,6,0.15)" : "1px solid rgba(245,158,11,0.15)") }}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{p.descricaoExemplo} · {nomeFornecedor(p.fornecedorId)}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{p.descricaoExemplo} · {nomeFornecedor(p.fornecedorId)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>
                         {L(`${p.ocorrencias} ocorrências · ~${fmt(p.valorMedio)} a cada ~${p.intervaloMedioDias} dias`,
                           `${p.ocorrencias} occurrences · ~${fmt(p.valorMedio)} every ~${p.intervaloMedioDias} days`,
@@ -2104,12 +2112,12 @@ export default function ContasPagarPage() {
                       podeEditar && (
                         <button onClick={() => abrirTransformarPadrao(p)}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                          style={{ background: "rgba(245,158,11,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
+                          style={{ background: (temaClaro ? "rgba(217,119,6,0.15)" : "rgba(245,158,11,0.15)"), color: AMBAR, border: `1px solid ${AMBAR}50` }}>
                           {L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}
                         </button>
                       )
                     ) : (
-                      <span className="px-2 py-1 rounded-lg text-[10px] flex-shrink-0" style={{ color: CINZA, background: "rgba(255,255,255,0.04)" }} title={L("Recorrência não mensal — Custo Fixo hoje só modela despesa mensal.", "Non-monthly recurrence — Fixed Cost today only models monthly expenses.", "Recurrencia no mensual — Costo Fijo hoy solo modela gasto mensual.")}>
+                      <span className="px-2 py-1 rounded-lg text-[10px] flex-shrink-0" style={{ color: CINZA, background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)") }} title={L("Recorrência não mensal — Custo Fixo hoje só modela despesa mensal.", "Non-monthly recurrence — Fixed Cost today only models monthly expenses.", "Recurrencia no mensual — Costo Fijo hoy solo modela gasto mensual.")}>
                         {L("recorrência não mensal", "non-monthly recurrence", "recurrencia no mensual")}
                       </span>
                     )}
@@ -2122,7 +2130,7 @@ export default function ContasPagarPage() {
           {/* Card Recuperação de Valor (Entrega 3, Commit 4 — Value Recovery parte 1) */}
           <CanvasBox cor={VERDE}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <Sparkles size={18} style={{ color: VERDE }} />
               {L("Recuperação de Valor", "Value Recovery", "Recuperación de Valor")}
             </h3>
@@ -2137,7 +2145,7 @@ export default function ContasPagarPage() {
 
             {/* 1) Cobranças acima da média histórica */}
             <div className="mb-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                 {L("Cobranças Acima da Média Histórica", "Bills Above Historical Average", "Cobros Por Encima del Promedio Histórico")}
               </h4>
               {cobrancasAcimaMedia.length === 0 ? (
@@ -2145,9 +2153,9 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {cobrancasAcimaMedia.map((c) => (
-                    <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{c.nome}</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{c.nome}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
                           {L(`Ticket médio ${fmt(c.ticketMedio)} vs. média de ${cat(c.categoria)} de ${fmt(c.mediaGrupo)} (${c.percentualAcima}% acima, ${c.qtdCompras} compras)`,
                             `Average ticket ${fmt(c.ticketMedio)} vs. ${cat(c.categoria)} average of ${fmt(c.mediaGrupo)} (${c.percentualAcima}% above, ${c.qtdCompras} purchases)`,
@@ -2155,7 +2163,7 @@ export default function ContasPagarPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(c.valorRecuperavelEstimado)}</span>
-                      <button onClick={() => revisarNoCentral(c.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                      <button onClick={() => revisarNoCentral(c.id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2166,7 +2174,7 @@ export default function ContasPagarPage() {
 
             {/* 2) Multas evitáveis */}
             <div className="mb-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                 {L("Multas Evitáveis", "Avoidable Late Fees", "Multas Evitables")}
               </h4>
               {carregandoValueRecovery ? (
@@ -2176,9 +2184,9 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {multasEvitaveis.map((m) => (
-                    <div key={m.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <div key={m.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{m.descricao} · {nomeFornecedor(m.fornecedorId)}</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{m.descricao} · {nomeFornecedor(m.fornecedorId)}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
                           {L(`Paga com ${m.diasAtraso} dias de atraso — o caixa realizado em ${new Date(m.dataVencimento + "T00:00:00").toLocaleDateString("pt-BR")} já era ${fmt(m.saldoNaData)}, suficiente pra pagar em dia.`,
                             `Paid ${m.diasAtraso} days late — realized cash on ${new Date(m.dataVencimento + "T00:00:00").toLocaleDateString("en-US")} was already ${fmt(m.saldoNaData)}, enough to pay on time.`,
@@ -2186,7 +2194,7 @@ export default function ContasPagarPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(m.valorMulta)}</span>
-                      <button onClick={() => revisarNoCentral(m.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                      <button onClick={() => revisarNoCentral(m.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2197,7 +2205,7 @@ export default function ContasPagarPage() {
 
             {/* 3) Duplicidades passadas */}
             <div className="mb-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                 {L("Possíveis Duplicidades (revisão sugerida)", "Possible Duplicates (suggested review)", "Posibles Duplicados (revisión sugerida)")}
               </h4>
               {duplicidadesPassadas.length === 0 ? (
@@ -2205,9 +2213,9 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {duplicidadesPassadas.map((p) => (
-                    <div key={`${p.contaA.id}-${p.contaB.id}`} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <div key={`${p.contaA.id}-${p.contaB.id}`} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>
+                        <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>
                           {p.contaA.descricao} ({fmt(p.contaA.valor_total)}) {L("e", "and", "y")} {p.contaB.descricao} ({fmt(p.contaB.valor_total)})
                         </p>
                         <p className="text-xs" style={{ color: CINZA }}>
@@ -2217,7 +2225,7 @@ export default function ContasPagarPage() {
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" title={L("Score de semelhança", "Similarity score", "Score de semejanza")} style={{ background: `${p.score >= 85 ? VERMELHO : AMBAR}20`, color: p.score >= 85 ? VERMELHO : AMBAR }}>
                         {p.score}
                       </span>
-                      <button onClick={() => revisarNoCentral(p.contaA.fornecedor_id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                      <button onClick={() => revisarNoCentral(p.contaA.fornecedor_id)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2228,7 +2236,7 @@ export default function ContasPagarPage() {
 
             {/* 4) Desconto ainda aproveitável (Commit 5) + veredicto de caixa (Entrega 4, Commit 2) */}
             <div className="mb-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                 {L("Desconto Ainda Aproveitável", "Discount Still Available", "Descuento Todavía Aprovechable")}
               </h4>
               <p className="text-[10px] mb-2" style={{ color: CINZA }}>
@@ -2241,12 +2249,12 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {descontosComForecast.map((d) => (
-                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <input type="checkbox" checked={descontosSelecionados.has(d.contaId)} onChange={() => alternarDescontoSelecionado(d.contaId)}
                         title={L("Incluir no cálculo de impacto cumulativo", "Include in the cumulative impact calculation", "Incluir en el cálculo de impacto acumulativo")}
                         className="flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
                           {L(`Pague até ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("pt-BR")} (${d.diasRestantes} dias) e economize ${fmt(d.valorDesconto)} — ${d.percentual}% de desconto`,
                             `Pay by ${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("en-US")} (${d.diasRestantes} days) and save ${fmt(d.valorDesconto)} — ${d.percentual}% discount`,
@@ -2276,7 +2284,7 @@ export default function ContasPagarPage() {
                         }}>
                         {fmt(d.valorDesconto)}
                       </span>
-                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2286,7 +2294,7 @@ export default function ContasPagarPage() {
 
               {/* Impacto cumulativo das selecionadas (Entrega 4, Commit de melhoria) */}
               {descontosSelecionados.size > 0 && (
-                <div className="mt-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${ROXO}30` }}>
+                <div className="mt-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: `1px solid ${ROXO}30` }}>
                   <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: ROXO }}>
                     {L(`Impacto de Antecipar as ${descontosSelecionados.size} Selecionadas Juntas`, `Impact of Moving Up the ${descontosSelecionados.size} Selected Together`, `Impacto de Anticipar las ${descontosSelecionados.size} Seleccionadas Juntas`)}
                   </p>
@@ -2300,12 +2308,12 @@ export default function ContasPagarPage() {
                     </p>
                   ) : (
                     <div className="space-y-1.5">
-                      <p className="text-xs" style={{ color: "#c8d8f0" }}>
+                      <p className="text-xs" style={{ color: TEXTO }}>
                         {L(`Economia total: `, `Total savings: `, `Ahorro total: `)}
                         <span className="font-black" style={{ color: VERDE }}>{fmt(antecipacaoConjunta.economiaTotal)}</span>
                       </p>
                       {antecipacaoConjunta.dataCritica && antecipacaoConjunta.saldoResultantePessimista !== null && (
-                        <p className="text-xs" style={{ color: "#c8d8f0" }}>
+                        <p className="text-xs" style={{ color: TEXTO }}>
                           {L(`Se antecipar todas, o saldo projetado (cenário conservador) cai pra `, `If you move up all of them, the projected balance (conservative scenario) drops to `, `Si anticipa todas, el saldo proyectado (escenario conservador) baja a `)}
                           <span className="font-black" style={{ color: antecipacaoConjunta.saldoResultantePessimista >= 0 ? AMBAR : VERMELHO }}>{fmt(antecipacaoConjunta.saldoResultantePessimista)}</span>
                           {L(` até ${new Date(antecipacaoConjunta.dataCritica + "T00:00:00").toLocaleDateString("pt-BR")} (prazo do desconto mais distante entre as selecionadas).`,
@@ -2339,7 +2347,7 @@ export default function ContasPagarPage() {
 
             {/* 5) Desconto perdido (Commit 5) */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+              <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                 {L("Desconto Perdido", "Missed Discount", "Descuento Perdido")}
               </h4>
               {descontosPerdidos.length === 0 ? (
@@ -2347,9 +2355,9 @@ export default function ContasPagarPage() {
               ) : (
                 <div className="space-y-2">
                   {descontosPerdidos.map((d) => (
-                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                    <div key={d.contaId} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{d.descricao} · {nomeFornecedor(d.fornecedorId)}</p>
                         <p className="text-xs" style={{ color: CINZA }}>
                           {d.motivo === "pago_apos_limite"
                             ? L(`Paga depois do prazo (${new Date(d.dataLimite + "T00:00:00").toLocaleDateString("pt-BR")}) — deixou de economizar ${fmt(d.valorPerdido)} (${d.percentual}%)`,
@@ -2361,7 +2369,7 @@ export default function ContasPagarPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-xs font-black flex-shrink-0" style={{ background: `${VERDE}20`, color: VERDE }}>{fmt(d.valorPerdido)}</span>
-                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                      <button onClick={() => revisarNoCentral(d.fornecedorId)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                         {L("Revisar", "Review", "Revisar")}
                       </button>
                     </div>
@@ -2374,7 +2382,7 @@ export default function ContasPagarPage() {
           {/* Card Análise de Gasto (Entrega 3, Commit 6 — Spend Analytics) */}
           <CanvasBox cor={AZUL}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+            <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: TEXTO }}>
               <Landmark size={18} style={{ color: AZUL }} />
               {L("Análise de Gasto", "Spend Analytics", "Análisis de Gasto")}
             </h3>
@@ -2385,15 +2393,15 @@ export default function ContasPagarPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 1) Por categoria */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Por Categoria", "By Category", "Por Categoría")}</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>{L("Por Categoria", "By Category", "Por Categoría")}</h4>
                   <div className="space-y-1.5">
                     {spendPorCategoria.map((s) => (
                       <div key={s.chave}>
                         <div className="flex justify-between text-xs mb-0.5">
-                          <span style={{ color: "#c8d8f0" }}>{s.label}</span>
+                          <span style={{ color: TEXTO }}>{s.label}</span>
                           <span style={{ color: CINZA }}>{fmt(s.valor)} ({s.pct}%)</span>
                         </div>
-                        <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                        <div className="w-full h-1.5 rounded-full" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)") }}>
                           <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, s.pct)}%`, background: AZUL }} />
                         </div>
                       </div>
@@ -2403,16 +2411,16 @@ export default function ContasPagarPage() {
 
                 {/* 2) Por fornecedor */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Por Fornecedor (Top 10)", "By Supplier (Top 10)", "Por Proveedor (Top 10)")}</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>{L("Por Fornecedor (Top 10)", "By Supplier (Top 10)", "Por Proveedor (Top 10)")}</h4>
                   <div className="space-y-1.5">
                     {spendPorFornecedor.map((s) => (
                       <div key={s.fornecedorId || "sem-fornecedor"} className="flex items-center justify-between text-xs">
-                        <span className="truncate flex-1" style={{ color: "#c8d8f0" }}>{s.nome}</span>
+                        <span className="truncate flex-1" style={{ color: TEXTO }}>{s.nome}</span>
                         <span className="flex-shrink-0 ml-2" style={{ color: CINZA }}>{fmt(s.valor)}</span>
                         <span className="flex-shrink-0 ml-2 px-1.5 py-0.5 rounded font-bold"
                           style={{
                             color: s.tendencia === "subindo" ? VERMELHO : s.tendencia === "caindo" ? VERDE : CINZA,
-                            background: s.tendencia === "subindo" ? `${VERMELHO}15` : s.tendencia === "caindo" ? `${VERDE}15` : "rgba(255,255,255,0.04)",
+                            background: s.tendencia === "subindo" ? `${VERMELHO}15` : s.tendencia === "caindo" ? `${VERDE}15` : (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"),
                           }}
                           title={L("Tendência do ticket médio (mês atual vs. anterior)", "Average ticket trend (this month vs. last)", "Tendencia del ticket promedio (mes actual vs. anterior)")}>
                           {s.tendencia === "subindo" ? "↑" : s.tendencia === "caindo" ? "↓" : "–"}
@@ -2425,7 +2433,7 @@ export default function ContasPagarPage() {
 
                 {/* 3) Por centro de custo */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Por Centro de Custo", "By Cost Center", "Por Centro de Costo")}</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>{L("Por Centro de Custo", "By Cost Center", "Por Centro de Costo")}</h4>
                   {carregandoSpendCentro ? (
                     <p className="text-xs" style={{ color: CINZA }}>{L("Calculando...", "Calculating...", "Calculando...")}</p>
                   ) : spendPorCentroCusto.length === 0 ? (
@@ -2435,10 +2443,10 @@ export default function ContasPagarPage() {
                       {spendPorCentroCusto.map((s) => (
                         <div key={s.centroId || "sem-centro"}>
                           <div className="flex justify-between text-xs mb-0.5">
-                            <span style={{ color: "#c8d8f0" }}>{s.nome}</span>
+                            <span style={{ color: TEXTO }}>{s.nome}</span>
                             <span style={{ color: CINZA }}>{fmt(s.valor)} ({s.pct}%)</span>
                           </div>
-                          <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                          <div className="w-full h-1.5 rounded-full" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)") }}>
                             <div className="h-1.5 rounded-full" style={{ width: `${Math.min(100, s.pct)}%`, background: AZUL }} />
                           </div>
                         </div>
@@ -2449,7 +2457,7 @@ export default function ContasPagarPage() {
 
                 {/* 4) Tendência mensal */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>{L("Evolução do Gasto (12 meses)", "Spend Trend (12 months)", "Evolución del Gasto (12 meses)")}</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>{L("Evolução do Gasto (12 meses)", "Spend Trend (12 months)", "Evolución del Gasto (12 meses)")}</h4>
                   <div className="flex items-end gap-1" style={{ height: "80px" }}>
                     {tendenciaMensal.map((t, i) => (
                       <div key={i} className="flex-1 rounded-t" title={`${t.label}: ${fmt(t.valor)}`}
@@ -2468,7 +2476,7 @@ export default function ContasPagarPage() {
           {/* Card Pontos de Atenção (Entrega 4, Commit 1 — Fraud & Anomaly Engine) */}
           <CanvasBox cor={AMBAR}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
-            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+            <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <AlertTriangle size={18} style={{ color: AMBAR }} />
               {L("Pontos de Atenção", "Points to Review", "Puntos de Atención")}
             </h3>
@@ -2484,7 +2492,7 @@ export default function ContasPagarPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Muito acima do histórico */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                     {L("Muito Acima do Histórico", "Well Above History", "Muy Por Encima del Historial")}
                   </h4>
                   {anomaliasAcimaMedia.length === 0 ? (
@@ -2495,16 +2503,16 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(217,119,6,0.15)" : "1px solid rgba(245,158,11,0.15)") }}>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{a.descricao}</p>
+                              <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
                                 {L(`${fmt(a.valorAtual)}${pct !== null ? ` está ${pct}% acima` : " acima"} da média histórica desta descrição (${fmt(a.valorReferencia)}), com base em ${n} lançamento(s).`,
                                   `${fmt(a.valorAtual)}${pct !== null ? ` is ${pct}% above` : " above"} this description's historical average (${fmt(a.valorReferencia)}), based on ${n} bill(s).`,
                                   `${fmt(a.valorAtual)}${pct !== null ? ` está ${pct}% por encima` : " por encima"} del promedio histórico de esta descripción (${fmt(a.valorReferencia)}), con base en ${n} cuenta(s).`)}
                               </p>
                             </div>
-                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                               {L("Revisar", "Review", "Revisar")}
                             </button>
                           </div>
@@ -2516,7 +2524,7 @@ export default function ContasPagarPage() {
 
                 {/* Aumento silencioso */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#c8d8f0" }}>
+                  <h4 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: TEXTO }}>
                     {L("Aumento Silencioso (3 altas seguidas)", "Silent Increase (3 rises in a row)", "Aumento Silencioso (3 subidas seguidas)")}
                   </h4>
                   {anomaliasAumentoRecorrente.length === 0 ? (
@@ -2527,16 +2535,16 @@ export default function ContasPagarPage() {
                         const pct = percentualAnomalia(a);
                         const n = contagemPorDescricaoAnomalia.get(normalizarTexto(a.descricao)) || 0;
                         return (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(245,158,11,0.15)" }}>
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-xl flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(217,119,6,0.15)" : "1px solid rgba(245,158,11,0.15)") }}>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{a.descricao}</p>
+                              <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{a.descricao}</p>
                               <p className="text-xs" style={{ color: CINZA }}>
                                 {L(`Subiu 3 vezes seguidas: de ${fmt(a.valorReferencia)} pra ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, com base em ${n} lançamento(s).`,
                                   `Rose 3 times in a row: from ${fmt(a.valorReferencia)} to ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, based on ${n} bill(s).`,
                                   `Subió 3 veces seguidas: de ${fmt(a.valorReferencia)} a ${fmt(a.valorAtual)}${pct !== null ? ` (+${pct}%)` : ""}, con base en ${n} cuenta(s).`)}
                               </p>
                             </div>
-                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>
+                            <button onClick={() => revisarPorDescricaoNoCentral(a.descricao)} className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.06)"), color: TEXTO }}>
                               {L("Revisar", "Review", "Revisar")}
                             </button>
                           </div>
@@ -2554,7 +2562,7 @@ export default function ContasPagarPage() {
       {aba === "aprovacoes" && (
         <CanvasBox cor={VERDE}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
-          <h3 className="text-base font-bold mb-1" style={{ color: "#c8d8f0" }}>{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}</h3>
+          <h3 className="text-base font-bold mb-1" style={{ color: TEXTO }}>{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}</h3>
           {!podeAprovar && (
             <p className="text-xs mb-3" style={{ color: CINZA }}>{L("Você pode ver a fila, mas só quem está habilitado como aprovador pode decidir.", "You can see the queue, but only an enabled approver can decide.", "Puede ver la cola, pero solo un aprobador habilitado puede decidir.")}</p>
           )}
@@ -2565,10 +2573,10 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2 mt-3">
               {aprovacoes.map((a) => (
-                <div key={a.id} className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(52,211,153,0.15)" }}>
+                <div key={a.id} className="p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(22,163,74,0.15)" : "1px solid rgba(52,211,153,0.15)") }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{a.contas_pagar?.descricao || "—"}</p>
+                      <p className="text-sm font-semibold" style={{ color: TEXTO }}>{a.contas_pagar?.descricao || "—"}</p>
                       <p className="text-xs" style={{ color: CINZA }}>
                         {L("Solicitado por", "Requested by", "Solicitado por")} {nomeUsuario(a.solicitante_id)} · {fmt(a.valor)} · {L("vencimento", "due", "vencimiento")} {a.contas_pagar?.data_vencimento ? new Date(a.contas_pagar.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
                       </p>
@@ -2577,13 +2585,13 @@ export default function ContasPagarPage() {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <input value={motivoDecisao[a.id] || ""} onChange={(e) => setMotivoDecisao({ ...motivoDecisao, [a.id]: e.target.value })}
                           placeholder={L("Motivo (obrigatório se rejeitar)", "Reason (required to reject)", "Motivo (obligatorio si rechaza)")}
-                          className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="px-3 py-2 rounded-lg text-xs w-56" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                         <button onClick={() => decidir(a.id, "aprovada")} disabled={decidindoId === a.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(22,163,74,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,163,74,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                           <CheckCircle2 size={13} />{L("Aprovar", "Approve", "Aprobar")}
                         </button>
                         <button onClick={() => decidir(a.id, "rejeitada")} disabled={decidindoId === a.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO, border: "1px solid rgba(248,113,113,0.3)" }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(220,38,38,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: (temaClaro ? "1px solid rgba(220,38,38,0.3)" : "1px solid rgba(248,113,113,0.3)") }}>
                           <XCircle size={13} />{L("Rejeitar", "Reject", "Rechazar")}
                         </button>
                       </div>
@@ -2601,11 +2609,11 @@ export default function ContasPagarPage() {
           <div className="flex justify-between items-start mb-1 gap-3 flex-wrap">
             <div>
               <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
-              <h3 className="text-base font-bold" style={{ color: "#c8d8f0" }}>{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}</h3>
+              <h3 className="text-base font-bold" style={{ color: TEXTO }}>{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}</h3>
             </div>
             {podeEditar && (
               <button onClick={abrirNovoPedido} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 flex-shrink-0"
-                style={{ background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+                style={{ background: (temaClaro ? "rgba(0,67,200,0.15)" : "rgba(106,176,255,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(0,67,200,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
                 <Plus size={15} />{L("Novo Pedido", "New Order", "Nueva Orden")}
               </button>
             )}
@@ -2621,10 +2629,10 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2 mt-1">
               {pedidosCompra.map((p) => (
-                <div key={p.id} className="p-3 rounded-xl flex items-center justify-between gap-3 flex-wrap" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corStatusPedido(p.status)}30` }}>
+                <div key={p.id} className="p-3 rounded-xl flex items-center justify-between gap-3 flex-wrap" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${corStatusPedido(p.status)}30` }}>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{p.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}</span>
+                      <span className="text-sm font-semibold" style={{ color: TEXTO }}>{p.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}</span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusPedido(p.status)}20`, color: corStatusPedido(p.status) }}>
                         {labelStatusPedido(p.status)}
                       </span>
@@ -2661,7 +2669,7 @@ export default function ContasPagarPage() {
       {aba === "conferencia" && (
         <CanvasBox cor={VERMELHO}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
-          <h3 className="text-base font-bold mb-1" style={{ color: "#c8d8f0" }}>{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</h3>
+          <h3 className="text-base font-bold mb-1" style={{ color: TEXTO }}>{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</h3>
           <p className="text-xs mb-3" style={{ color: CINZA }}>
             {L("Conferência inteligente do Axioma: casa cada nota importada com o que foi recebido no estoque e com a conta a pagar — sem pedido de compra, automático.", "Axioma's smart matching: checks every imported invoice against what was received into stock and against the bill — no purchase order needed, automatic.", "Conciliación inteligente de Axioma: coteja cada factura importada con lo recibido en stock y con la cuenta a pagar — sin orden de compra, automático.")}
           </p>
@@ -2670,8 +2678,8 @@ export default function ContasPagarPage() {
             {(["excecao", "ok", "todas"] as const).map((f) => (
               <button key={f} onClick={() => setFiltroConferencia(f)} className="px-3 py-1.5 rounded-lg text-xs font-semibold"
                 style={filtroConferencia === f
-                  ? { background: "rgba(248,113,113,0.15)", color: VERMELHO, border: `1px solid ${VERMELHO}40` }
-                  : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
+                  ? { background: (temaClaro ? "rgba(220,38,38,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: `1px solid ${VERMELHO}40` }
+                  : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                 {f === "excecao" ? L("Divergências", "Discrepancies", "Discrepancias") : f === "ok" ? L("Conferidas", "Matched", "Conciliadas") : L("Todas", "All", "Todas")}
               </button>
             ))}
@@ -2694,18 +2702,18 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2 mt-1">
               {matchResultados.map((m) => (
-                <div key={m.id} className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${corStatusMatch(m.status)}30` }}>
+                <div key={m.id} className="p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${corStatusMatch(m.status)}30` }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>
+                        <span className="text-sm font-semibold" style={{ color: TEXTO }}>
                           {m.fornecedorNome || L("Fornecedor não identificado", "Supplier not identified", "Proveedor no identificado")}
                         </span>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${corStatusMatch(m.status)}20`, color: corStatusMatch(m.status) }}>
                           {labelStatusMatch(m.status)}
                         </span>
                         {m.nivel === "3way" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(167,139,250,0.15)", color: ROXO }}>3-way</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: (temaClaro ? "rgba(124,58,237,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO }}>3-way</span>
                         )}
                       </div>
                       <p className="text-xs" style={{ color: CINZA }}>
@@ -2716,18 +2724,18 @@ export default function ContasPagarPage() {
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                       {podeEditar && (
                         <button onClick={() => reconferirNota(m)} disabled={reconferindoId === m.id}
-                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
+                          className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(0,67,200,0.15)" : "rgba(106,176,255,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(0,67,200,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
                           <RotateCcw size={13} />{reconferindoId === m.id ? L("Conferindo…", "Checking…", "Conciliando…") : L("Reconferir", "Re-check", "Reconciliar")}
                         </button>
                       )}
                       {podeEditar && m.status === "excecao" && (
                         <>
                           <button onClick={() => decidirMatch(m, "aprovado")} disabled={decidindoMatchId === m.id}
-                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(22,163,74,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,163,74,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                             <CheckCircle2 size={13} />{L("Aprovar mesmo assim", "Approve anyway", "Aprobar de todos modos")}
                           </button>
                           <button onClick={() => decidirMatch(m, "rejeitado")} disabled={decidindoMatchId === m.id}
-                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO, border: "1px solid rgba(248,113,113,0.3)" }}>
+                            className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-60 flex items-center gap-1" style={{ background: (temaClaro ? "rgba(220,38,38,0.15)" : "rgba(248,113,113,0.15)"), color: VERMELHO, border: (temaClaro ? "1px solid rgba(220,38,38,0.3)" : "1px solid rgba(248,113,113,0.3)") }}>
                             <XCircle size={13} />{L("Rejeitar", "Reject", "Rechazar")}
                           </button>
                         </>
@@ -2740,7 +2748,7 @@ export default function ContasPagarPage() {
                   </div>
 
                   {expandido.has(m.id) && (
-                    <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div className="mt-3 pt-3" style={{ borderTop: (temaClaro ? "1px solid #eef2f7" : "1px solid rgba(255,255,255,0.06)") }}>
                       <p className="text-[10px] uppercase font-bold mb-2" style={{ color: CINZA }}>
                         {L("Chave de acesso", "Access key", "Clave de acceso")}: {m.chaveAcesso || "—"} · {L("Conta", "Bill", "Cuenta")}: {m.contaDescricao || L("ainda não existe", "doesn't exist yet", "todavía no existe")}
                       </p>
@@ -2751,7 +2759,7 @@ export default function ContasPagarPage() {
                       ) : (
                         <div className="space-y-1.5">
                           {divergenciasPorMatch[m.id].map((d) => (
-                            <div key={d.id} className="p-2 rounded-lg text-xs" style={{ background: "rgba(0,0,0,0.2)", color: "#c8d8f0" }}>
+                            <div key={d.id} className="p-2 rounded-lg text-xs" style={{ background: "rgba(0,0,0,0.2)", color: TEXTO }}>
                               <span className="font-bold" style={{ color: VERMELHO }}>{labelTipoDivergencia(d.tipo)}</span> — {explicarDivergencia(d)}
                             </div>
                           ))}
@@ -2769,9 +2777,9 @@ export default function ContasPagarPage() {
       {aba === "historico" && (
         <CanvasBox cor={AZUL}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
-          <h3 className="text-base font-bold mb-3" style={{ color: "#c8d8f0" }}>{L("Histórico da Conta", "Bill History", "Historial de la Cuenta")}</h3>
+          <h3 className="text-base font-bold mb-3" style={{ color: TEXTO }}>{L("Histórico da Conta", "Bill History", "Historial de la Cuenta")}</h3>
           <select value={contaHistoricoId} onChange={(e) => setContaHistoricoId(e.target.value)}
-            className="w-full mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+            className="w-full mb-4 px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
             <option value="">-- {L("Selecione uma conta", "Select a bill", "Seleccione una cuenta")} --</option>
             {contas.map((c) => <option key={c.id} value={c.id}>{c.descricao} ({fmt(c.valor_total)})</option>)}
           </select>
@@ -2785,10 +2793,10 @@ export default function ContasPagarPage() {
           ) : (
             <div className="space-y-2">
               {auditoria.map((ev) => (
-                <div key={ev.id} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.12)" }}>
+                <div key={ev.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.12)" : "1px solid rgba(106,176,255,0.12)") }}>
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{acaoLabel(ev.acao)}</p>
+                      <p className="text-sm font-semibold" style={{ color: TEXTO }}>{acaoLabel(ev.acao)}</p>
                       <p className="text-xs" style={{ color: CINZA }}>{nomeUsuario(ev.usuario_id)} · {new Date(ev.criado_em).toLocaleString("pt-BR")}</p>
                     </div>
                     {(ev.antes || ev.depois) && (
@@ -2803,13 +2811,13 @@ export default function ContasPagarPage() {
                       {ev.antes && (
                         <div>
                           <p className="text-[10px] uppercase font-bold mb-1" style={{ color: VERMELHO }}>{L("Antes", "Before", "Antes")}</p>
-                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: "#c8d8f0" }}>{JSON.stringify(ev.antes, null, 2)}</pre>
+                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: TEXTO }}>{JSON.stringify(ev.antes, null, 2)}</pre>
                         </div>
                       )}
                       {ev.depois && (
                         <div>
                           <p className="text-[10px] uppercase font-bold mb-1" style={{ color: VERDE }}>{L("Depois", "After", "Después")}</p>
-                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: "#c8d8f0" }}>{JSON.stringify(ev.depois, null, 2)}</pre>
+                          <pre className="text-[10px] p-2 rounded-lg overflow-x-auto" style={{ background: "rgba(0,0,0,0.3)", color: TEXTO }}>{JSON.stringify(ev.depois, null, 2)}</pre>
                         </div>
                       )}
                     </div>
@@ -2842,7 +2850,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? L("Editar Conta a Pagar", "Edit Bill", "Editar Cuenta a Pagar") : L("Nova Conta a Pagar", "New Bill", "Nueva Cuenta a Pagar")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{editando ? L("Editar Conta a Pagar", "Edit Bill", "Editar Cuenta a Pagar") : L("Nova Conta a Pagar", "New Bill", "Nueva Cuenta a Pagar")}</h3>
                     </div>
                     <button onClick={fecharModalConta} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -2850,7 +2858,7 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Fornecedor", "Supplier", "Proveedor")}</label>
                       <select value={nc.fornecedor_id} onChange={(e) => setNc({ ...nc, fornecedor_id: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                         <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                         {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                       </select>
@@ -2858,18 +2866,18 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Descrição", "Description", "Descripción")} *</label>
                       <input value={nc.descricao} onChange={(e) => setNc({ ...nc, descricao: e.target.value })} onBlur={sugerirCategoriaPorDescricao}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Total (R$)", "Total (R$)", "Total (R$)")} *</label>
                         <input type="number" value={nc.valor_total} onChange={(e) => setNc({ ...nc, valor_total: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Categoria", "Category", "Categoría")}</label>
                         <select value={nc.categoria} onChange={(e) => { setNc({ ...nc, categoria: e.target.value }); setSugestaoCategoria(null); }}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                           <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                           {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
                         </select>
@@ -2883,22 +2891,22 @@ export default function ContasPagarPage() {
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Emissão", "Issue Date", "Emisión")}</label>
                         <input type="date" value={nc.data_emissao} onChange={(e) => setNc({ ...nc, data_emissao: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Vencimento", "Due Date", "Vencimiento")} *</label>
                         <input type="date" value={nc.data_vencimento} onChange={(e) => setNc({ ...nc, data_vencimento: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Nº Nota Fiscal", "Invoice No.", "Nº Factura")}</label>
                         <input value={nc.numero_nota} onChange={(e) => setNc({ ...nc, numero_nota: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Forma de Pagamento", "Payment Method", "Forma de Pago")}</label>
                         <select value={nc.forma_pagamento} onChange={(e) => setNc({ ...nc, forma_pagamento: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                           {FORMAS_PAGAMENTO.map((f) => <option key={f}>{f}</option>)}
                         </select>
                       </div>
@@ -2908,34 +2916,34 @@ export default function ContasPagarPage() {
                           value={nc.centro_custo_id} onChange={(id) => setNc({ ...nc, centro_custo_id: id })}
                           centros={centrosCusto} empresaId={empresaId} userId={userId} lang={idioma as "pt" | "en" | "es"}
                           onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}
                         />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Multa/Juros por Atraso (%/mês)", "Late Penalty/Interest (%/mo.)", "Multa/Interés por Atraso (%/mes)")}</label>
                         <input type="number" step="0.01" value={nc.taxa_multa_mensal} onChange={(e) => setNc({ ...nc, taxa_multa_mensal: e.target.value })}
                           placeholder={L("Opcional", "Optional", "Opcional")}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Desconto por Pagamento Antecipado (%)", "Early Payment Discount (%)", "Descuento por Pago Anticipado (%)")}</label>
                         <input type="number" step="0.01" min="0" max="100" value={nc.desconto_disponivel_pct}
                           onChange={(e) => setNc({ ...nc, desconto_disponivel_pct: e.target.value, desconto_data_limite: e.target.value.trim() ? nc.desconto_data_limite : "" })}
                           placeholder={L("Opcional, ex: 2 para 2%", "Optional, e.g. 2 for 2%", "Opcional, ej: 2 para 2%")}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Desconto Válido Até", "Discount Valid Until", "Descuento Válido Hasta")}</label>
                         <input type="date" value={nc.desconto_data_limite} onChange={(e) => setNc({ ...nc, desconto_data_limite: e.target.value })}
                           disabled={!nc.desconto_disponivel_pct.trim()}
-                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-50" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-50" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                         <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Preencha os dois só se o fornecedor oferecer desconto por antecipar o pagamento.", "Only fill both if the supplier offers a discount for early payment.", "Complete ambos solo si el proveedor ofrece descuento por pago anticipado.")}</p>
                       </div>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observações", "Notes", "Observaciones")}</label>
                       <textarea value={nc.observacoes} onChange={(e) => setNc({ ...nc, observacoes: e.target.value })} rows={2}
-                        className="w-full px-4 py-3 rounded-xl text-sm resize-none" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="flex gap-3 pt-2">
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
@@ -2965,7 +2973,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editandoPedido ? L("Editar Pedido de Compra", "Edit Purchase Order", "Editar Orden de Compra") : L("Novo Pedido de Compra", "New Purchase Order", "Nueva Orden de Compra")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{editandoPedido ? L("Editar Pedido de Compra", "Edit Purchase Order", "Editar Orden de Compra") : L("Novo Pedido de Compra", "New Purchase Order", "Nueva Orden de Compra")}</h3>
                     </div>
                     <button onClick={fecharModalPedido} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -2974,7 +2982,7 @@ export default function ContasPagarPage() {
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Fornecedor", "Supplier", "Proveedor")} *</label>
                         <select value={formPedido.fornecedor_id} disabled={!!editandoPedido} onChange={(e) => setFormPedido({ ...formPedido, fornecedor_id: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                           <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                           {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
                         </select>
@@ -2982,18 +2990,18 @@ export default function ContasPagarPage() {
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Número do Pedido", "Order Number", "Número de la Orden")} *</label>
                         <input value={formPedido.numero} onChange={(e) => setFormPedido({ ...formPedido, numero: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Data de Emissão", "Issue Date", "Fecha de Emisión")}</label>
                         <input type="date" value={formPedido.data_emissao} onChange={(e) => setFormPedido({ ...formPedido, data_emissao: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observação", "Note", "Observación")}</label>
                       <input value={formPedido.observacao} onChange={(e) => setFormPedido({ ...formPedido, observacao: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
 
                     <div className="pt-2">
@@ -3006,21 +3014,21 @@ export default function ContasPagarPage() {
                           <div key={idx} className="p-2 rounded-lg" style={{ background: "rgba(0,0,0,0.2)" }}>
                             <div className="grid grid-cols-12 gap-2 items-center">
                               <input value={it.descricao} onChange={(e) => atualizarItemPedido(idx, "descricao", e.target.value)} placeholder={L("Descrição", "Description", "Descripción")}
-                                className="col-span-4 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                                className="col-span-4 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                               <input value={it.codigo_fornecedor} onChange={(e) => atualizarItemPedido(idx, "codigo_fornecedor", e.target.value)} placeholder={L("Cód. fornecedor", "Supplier code", "Cód. proveedor")}
-                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                               <input value={it.ean} onChange={(e) => atualizarItemPedido(idx, "ean", e.target.value)} placeholder="EAN"
-                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                               <input type="number" value={it.quantidade} onChange={(e) => atualizarItemPedido(idx, "quantidade", e.target.value)} placeholder={L("Qtd.", "Qty.", "Cant.")}
-                                className="col-span-1 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                                className="col-span-1 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                               <input type="number" step="0.01" value={it.valor_unitario} onChange={(e) => atualizarItemPedido(idx, "valor_unitario", e.target.value)} placeholder={L("Vlr. unit.", "Unit price", "Precio unit.")}
-                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                                className="col-span-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                               <button onClick={() => removerItemPedido(idx)} className="col-span-1 flex justify-center" title={L("Remover item", "Remove item", "Quitar ítem")} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
                             </div>
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs font-bold mt-2 text-right" style={{ color: "#c8d8f0" }}>{L("Total", "Total", "Total")}: {fmt(totalFormPedido)}</p>
+                      <p className="text-xs font-bold mt-2 text-right" style={{ color: TEXTO }}>{L("Total", "Total", "Total")}: {fmt(totalFormPedido)}</p>
                     </div>
 
                     <div className="flex gap-3 pt-2">
@@ -3051,7 +3059,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: TEXTO }}>
                         ⚠️ {L("Possível conta duplicada", "Possible duplicate bill", "Posible cuenta duplicada")}
                       </h3>
                     </div>
@@ -3061,9 +3069,9 @@ export default function ContasPagarPage() {
                   <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                     {duplicatas.map((d) => (
                       <div key={d.contas_pagar_id} className="p-3 rounded-xl flex items-center justify-between gap-3"
-                        style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${d.score >= 90 ? VERMELHO : AMBAR}40` }}>
+                        style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${d.score >= 90 ? VERMELHO : AMBAR}40` }}>
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{d.descricao}</p>
+                          <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{d.descricao}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
                             {L("Nº nota", "Invoice no.", "Nº factura")} {d.numero_nota || "—"} · {fmt(d.valor_total)} · {L("emissão", "issued", "emisión")} {d.data_emissao ? new Date(d.data_emissao + "T00:00:00").toLocaleDateString("pt-BR") : "—"} · {L("vencimento", "due", "vencimiento")} {d.data_vencimento ? new Date(d.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
                           </p>
@@ -3099,7 +3107,7 @@ export default function ContasPagarPage() {
                           <div className="space-y-2">
                             <input type="password" value={senhaForcar} onChange={(e) => setSenhaForcar(e.target.value)}
                               placeholder={L("Sua senha", "Your password", "Su contraseña")}
-                              className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(248,113,113,0.3)", color: "#c8d8f0" }} />
+                              className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(220,38,38,0.3)" : "1px solid rgba(248,113,113,0.3)"), color: TEXTO }} />
                             {erroForcar && <p className="text-xs" style={{ color: VERMELHO }}>{erroForcar}</p>}
                             <div className="flex gap-3">
                               <button onClick={fecharModalDuplicata} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
@@ -3141,7 +3149,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Dar Baixa", "Register Payment", "Registrar Pago")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{L("Dar Baixa", "Register Payment", "Registrar Pago")}</h3>
                     </div>
                     <button onClick={fecharBaixa} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -3150,17 +3158,17 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Pago (R$)", "Amount Paid (R$)", "Valor Pagado (R$)")}</label>
                       <input type="number" value={valorBaixa} onChange={(e) => setValorBaixa(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Data do Pagamento", "Payment Date", "Fecha de Pago")}</label>
                       <input type="date" value={dataBaixa} onChange={(e) => setDataBaixa(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Forma de Pagamento", "Payment Method", "Forma de Pago")}</label>
                       <select value={formaBaixa} onChange={(e) => setFormaBaixa(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                         {FORMAS_PAGAMENTO.map((f) => <option key={f}>{f}</option>)}
                       </select>
                     </div>
@@ -3189,11 +3197,11 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Desfazer pagamento?", "Undo payment?", "¿Deshacer el pago?")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{L("Desfazer pagamento?", "Undo payment?", "¿Deshacer el pago?")}</h3>
                     </div>
                     <button onClick={fecharConfirmarEstorno} disabled={processandoEstorno} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
-                  <p className="text-sm mb-4" style={{ color: "#c8d8f0" }}>
+                  <p className="text-sm mb-4" style={{ color: TEXTO }}>
                     {L("Tem certeza que deseja desfazer o pagamento desta conta? A conta voltará a ficar em aberto.", "Are you sure you want to undo the payment for this bill? The bill will go back to open.", "¿Seguro que desea deshacer el pago de esta cuenta? La cuenta volverá a quedar abierta.")}
                   </p>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>{contaEstornar.descricao}</p>
@@ -3202,18 +3210,18 @@ export default function ContasPagarPage() {
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Motivo do estorno *", "Reversal reason *", "Motivo del reverso *")}</label>
                       <input type="text" value={motivoEstorno} onChange={(e) => setMotivoEstorno(e.target.value)} disabled={processandoEstorno}
                         placeholder={L("Ex.: pagamento em duplicidade", "E.g.: duplicate payment", "Ej.: pago duplicado")}
-                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Observação (opcional)", "Note (optional)", "Observación (opcional)")}</label>
                       <textarea value={observacaoEstorno} onChange={(e) => setObservacaoEstorno(e.target.value)} disabled={processandoEstorno} rows={2}
-                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm disabled:opacity-60 resize-none" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={fecharConfirmarEstorno} disabled={processandoEstorno}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                      style={{ background: "rgba(255,255,255,0.05)", color: CINZA }}>
+                      style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>
                       {L("Cancelar", "Cancel", "Cancelar")}
                     </button>
                     <button onClick={confirmarEstorno} disabled={processandoEstorno || !motivoEstorno.trim()}
@@ -3242,18 +3250,18 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Excluir conta?", "Delete bill?", "¿Eliminar cuenta?")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{L("Excluir conta?", "Delete bill?", "¿Eliminar cuenta?")}</h3>
                     </div>
                     <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
-                  <p className="text-sm mb-4" style={{ color: "#c8d8f0" }}>
+                  <p className="text-sm mb-4" style={{ color: TEXTO }}>
                     {L("Excluir esta conta permanentemente? Esta ação não pode ser desfeita.", "Delete this bill permanently? This action cannot be undone.", "¿Eliminar esta cuenta de forma permanente? Esta acción no se puede deshacer.")}
                   </p>
                   <p className="text-xs mb-4" style={{ color: CINZA }}>{contaExcluir.descricao}</p>
                   <div className="flex items-center gap-2">
                     <button onClick={fecharConfirmarExclusao} disabled={processandoExclusao}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50"
-                      style={{ background: "rgba(255,255,255,0.05)", color: CINZA }}>
+                      style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.05)"), color: CINZA }}>
                       {L("Cancelar", "Cancel", "Cancelar")}
                     </button>
                     <button onClick={confirmarExclusao} disabled={processandoExclusao}
@@ -3282,7 +3290,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}</h3>
                     </div>
                     <button onClick={() => setModalCustoFixo(false)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -3292,14 +3300,14 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {custosFixos.map((cf) => (
-                        <div key={cf.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(167,139,250,0.15)" }}>
+                        <div key={cf.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.15)" : "1px solid rgba(167,139,250,0.15)") }}>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{cf.descricao}</p>
+                            <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{cf.descricao}</p>
                             <p className="text-xs" style={{ color: CINZA }}>{fmt(cf.valor_mensal)} · {L("dia", "day", "día")} {cf.dia_vencimento}</p>
                           </div>
                           <button onClick={() => gerarDeCustoFixo(cf)} disabled={gerando === cf.id}
                             className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 disabled:opacity-60"
-                            style={{ background: "rgba(167,139,250,0.15)", color: ROXO, border: "1px solid rgba(167,139,250,0.3)" }}>
+                            style={{ background: (temaClaro ? "rgba(124,58,237,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
                             {gerando === cf.id ? "..." : L("Gerar", "Generate", "Generar")}
                           </button>
                         </div>
@@ -3326,7 +3334,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{L("Anexos", "Attachments", "Adjuntos")}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{L("Anexos", "Attachments", "Adjuntos")}</h3>
                     </div>
                     <button onClick={fecharAnexo} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -3335,11 +3343,11 @@ export default function ContasPagarPage() {
                   {podeEditar && (
                     <div className="flex gap-2 mb-4">
                       <select value={tipoNovoDoc} onChange={(e) => setTipoNovoDoc(e.target.value)}
-                        className="px-3 py-2 rounded-lg text-xs flex-shrink-0" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                        className="px-3 py-2 rounded-lg text-xs flex-shrink-0" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                         {TIPOS_DOC.map((td) => <option key={td.key} value={td.key}>{(td.label as any)[idioma] || td.label.pt}</option>)}
                       </select>
                       <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer"
-                        style={{ background: "rgba(52,211,153,0.15)", color: VERDE, border: "1px solid rgba(52,211,153,0.3)" }}>
+                        style={{ background: (temaClaro ? "rgba(22,163,74,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,163,74,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
                         <Upload size={14} />{enviandoDoc ? L("Enviando...", "Uploading...", "Enviando...") : L("Enviar arquivo", "Upload file", "Enviar archivo")}
                         <input type="file" accept=".pdf,image/*" className="hidden" disabled={enviandoDoc}
                           onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarAnexo(f); e.target.value = ""; }} />
@@ -3352,10 +3360,10 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2">
                       {documentos.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                        <div key={doc.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
                           <button onClick={() => abrirDocumento(doc)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
                             <FileText size={16} style={{ color: AZUL }} />
-                            <span className="text-sm truncate" style={{ color: "#c8d8f0" }}>{doc.nome}</span>
+                            <span className="text-sm truncate" style={{ color: TEXTO }}>{doc.nome}</span>
                           </button>
                           {podeEditar && (
                             <button onClick={() => removerDocumento(doc)} title={L("Remover documento", "Remove document", "Quitar documento")} style={{ color: VERMELHO }}><Trash2 size={14} /></button>
@@ -3384,7 +3392,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-1">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><Link2 size={18} />{L("Rastreabilidade", "Traceability", "Trazabilidad")}</h3>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: TEXTO }}><Link2 size={18} />{L("Rastreabilidade", "Traceability", "Trazabilidad")}</h3>
                     </div>
                     <button onClick={fecharRastreabilidade} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -3395,10 +3403,10 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2">
                       {/* 1. Fornecedor */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.fornecedor.presente ? VERDE : CINZA)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.fornecedor.presente ? VERDE : CINZA)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.fornecedor.presente ? VERDE : CINZA }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Fornecedor", "Supplier", "Proveedor")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Fornecedor", "Supplier", "Proveedor")}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
                             {evidenceGraph.fornecedor.presente ? evidenceGraph.fornecedor.nome : L("Sem fornecedor vinculado", "No supplier linked", "Sin proveedor vinculado")}
                           </p>
@@ -3406,10 +3414,10 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 2. Contrato */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.contrato.status === "ativo" ? VERDE : AMBAR)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.contrato.status === "ativo" ? VERDE : AMBAR)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.contrato.status === "ativo" ? VERDE : evidenceGraph.contrato.status === "encerrado" ? AMBAR : CINZA }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Contrato", "Contract", "Contrato")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Contrato", "Contract", "Contrato")}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
                             {evidenceGraph.contrato.status === "sem_contrato" && L("Nenhum contrato cadastrado pra este fornecedor", "No contract registered for this supplier", "Ningún contrato registrado para este proveedor")}
                             {evidenceGraph.contrato.status === "ativo" && L(`Contrato vigente${evidenceGraph.contrato.descricao ? `: ${evidenceGraph.contrato.descricao}` : ""}`, `Active contract${evidenceGraph.contrato.descricao ? `: ${evidenceGraph.contrato.descricao}` : ""}`, `Contrato vigente${evidenceGraph.contrato.descricao ? `: ${evidenceGraph.contrato.descricao}` : ""}`)}
@@ -3419,7 +3427,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 3. Pedido — não capturado hoje */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)", border: `1px dashed ${CINZA}40` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Pedido de Compra", "Purchase Order", "Pedido de Compra")}</p>
@@ -3428,7 +3436,7 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 4. Recebimento — não capturado hoje */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.02)", border: `1px dashed ${CINZA}40` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)"), border: `1px dashed ${CINZA}40` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: CINZA }} />
                         <div className="min-w-0">
                           <p className="text-xs font-bold uppercase tracking-wider" style={{ color: CINZA }}>{L("Recebimento", "Goods Receipt", "Recepción")}</p>
@@ -3437,10 +3445,10 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 5. Fatura */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${VERDE}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${VERDE}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: VERDE }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Fatura", "Invoice", "Factura")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Fatura", "Invoice", "Factura")}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
                             {L(`${fmt(evidenceGraph.fatura.valorTotal)}${evidenceGraph.fatura.numeroNota ? ` · Nota ${evidenceGraph.fatura.numeroNota}` : ""} · ${evidenceGraph.fatura.qtdDocumentosAnexados} anexo(s)`,
                               `${fmt(evidenceGraph.fatura.valorTotal)}${evidenceGraph.fatura.numeroNota ? ` · Invoice ${evidenceGraph.fatura.numeroNota}` : ""} · ${evidenceGraph.fatura.qtdDocumentosAnexados} attachment(s)`,
@@ -3450,10 +3458,10 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 6. Pagamento */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.pagamento.status === "pago" ? VERDE : AMBAR }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Pagamento", "Payment", "Pago")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Pagamento", "Payment", "Pago")}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
                             {evidenceGraph.pagamento.status === "pago"
                               ? L(`Pago em ${evidenceGraph.pagamento.dataPagamento ? new Date(evidenceGraph.pagamento.dataPagamento + "T00:00:00").toLocaleDateString("pt-BR") : "—"} (${fmt(evidenceGraph.pagamento.valorPago)}) · ${evidenceGraph.pagamento.qtdEventosAuditoria} evento(s) na trilha`,
@@ -3467,10 +3475,10 @@ export default function ContasPagarPage() {
                       </div>
 
                       {/* 7. Banco */}
-                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${(evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA)}30` }}>
+                      <div className="flex items-start gap-3 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${(evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA)}30` }}>
                         <span className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: evidenceGraph.banco.status === "reconciliado" ? VERDE : evidenceGraph.banco.status === "nao_reconciliado" ? AMBAR : CINZA }} />
                         <div className="min-w-0">
-                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#c8d8f0" }}>{L("Banco", "Bank", "Banco")}</p>
+                          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: TEXTO }}>{L("Banco", "Bank", "Banco")}</p>
                           <p className="text-xs" style={{ color: CINZA }}>
                             {evidenceGraph.banco.status === "nao_conectado" && L("Open Finance não conectado nesta empresa.", "Open Finance not connected for this company.", "Open Finance no conectado en esta empresa.")}
                             {evidenceGraph.banco.status === "nao_reconciliado" && L("Conectado, mas nenhuma transação bancária reconciliada com esta conta ainda.", "Connected, but no bank transaction reconciled with this bill yet.", "Conectado, pero ninguna transacción bancaria reconciliada con esta cuenta todavía.")}
@@ -3503,7 +3511,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><Settings size={18} />{L("Configuração AP", "AP Configuration", "Configuración AP")}</h3>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: TEXTO }}><Settings size={18} />{L("Configuração AP", "AP Configuration", "Configuración AP")}</h3>
                     </div>
                     <button onClick={() => setModalConfigAp(false)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -3511,19 +3519,19 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Limite de Aprovação Automática (R$)", "Auto-approval Limit (R$)", "Límite de Aprobación Automática (R$)")}</label>
                       <input type="number" value={configForm.limite} onChange={(e) => setConfigForm({ ...configForm, limite: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Contas com valor acima disso pedem aprovação antes de poder ser pagas.", "Bills above this amount need approval before they can be paid.", "Cuentas con valor superior a esto piden aprobación antes de poder pagarse.")}</p>
                     </div>
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Aprovadores", "Approvers", "Aprobadores")}</label>
                       <p className="text-[10px] mb-1" style={{ color: CINZA }}>{L("O dono da empresa pode sempre aprovar, mesmo sem estar na lista.", "The company owner can always approve, even if not on this list.", "El dueño de la empresa siempre puede aprobar, incluso sin estar en la lista.")}</p>
-                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(106,176,255,0.1)" }}>
+                      <div className="space-y-1 max-h-40 overflow-y-auto rounded-xl p-2" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
                         {equipe.length === 0 ? (
                           <p className="text-xs px-2 py-1" style={{ color: CINZA }}>{L("Ninguém além de você tem acesso ainda.", "No one besides you has access yet.", "Nadie además de usted tiene acceso todavía.")}</p>
                         ) : equipe.filter((m) => m.origem === "ativo" && m.user_id).map((m) => (
-                          <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer" style={{ background: configForm.aprovadores.includes(m.user_id!) ? "rgba(52,211,153,0.1)" : "transparent" }}>
+                          <label key={m.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer" style={{ background: configForm.aprovadores.includes(m.user_id!) ? (temaClaro ? "rgba(22,163,74,0.1)" : "rgba(52,211,153,0.1)") : "transparent" }}>
                             <input type="checkbox" checked={configForm.aprovadores.includes(m.user_id!)} onChange={() => alternarAprovador(m.user_id!)} />
-                            <span className="text-xs" style={{ color: "#c8d8f0" }}>{m.nome || m.email} <span style={{ color: CINZA }}>({m.papel})</span></span>
+                            <span className="text-xs" style={{ color: TEXTO }}>{m.nome || m.email} <span style={{ color: CINZA }}>({m.papel})</span></span>
                           </label>
                         ))}
                       </div>
@@ -3535,20 +3543,20 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Janela de Busca de Duplicata (dias)", "Duplicate Search Window (days)", "Ventana de Búsqueda de Duplicado (días)")}</label>
                       <input type="number" value={configForm.diasJanela} onChange={(e) => setConfigForm({ ...configForm, diasJanela: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
-                    <div className="pt-1" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                      <p className="text-xs font-bold mt-2 mb-1 flex items-center gap-2" style={{ color: "#c8d8f0" }}><ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</p>
+                    <div className="pt-1" style={{ borderTop: (temaClaro ? "1px solid #eef2f7" : "1px solid rgba(255,255,255,0.06)") }}>
+                      <p className="text-xs font-bold mt-2 mb-1 flex items-center gap-2" style={{ color: TEXTO }}><ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Tolerância de valor (%)", "Amount tolerance (%)", "Tolerancia de valor (%)")}</label>
                           <input type="number" min="0" value={configForm.toleranciaValor} onChange={(e) => setConfigForm({ ...configForm, toleranciaValor: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                         </div>
                         <div>
                           <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Tolerância de quantidade (%)", "Quantity tolerance (%)", "Tolerancia de cantidad (%)")}</label>
                           <input type="number" min="0" value={configForm.toleranciaQuantidade} onChange={(e) => setConfigForm({ ...configForm, toleranciaQuantidade: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                            className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                         </div>
                       </div>
                       <p className="text-[10px] mt-1" style={{ color: CINZA }}>{L("Variação até esse percentual não vira exceção — ex: 2% cobre diferença de frete ou arredondamento entre a nota, o recebimento e a conta a pagar.", "A variance up to this percentage doesn't become an exception — e.g. 2% covers freight or rounding differences between the invoice, receiving and the bill.", "Una variación hasta ese porcentaje no se convierte en excepción — ej: 2% cubre diferencia de flete o redondeo entre la factura, la recepción y la cuenta a pagar.")}</p>
@@ -3580,7 +3588,7 @@ export default function ContasPagarPage() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "#c8d8f0" }}><RotateCcw size={18} />{L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}</h3>
+                      <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: TEXTO }}><RotateCcw size={18} />{L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}</h3>
                     </div>
                     <button onClick={() => setPadraoParaTransformar(null)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
                   </div>
@@ -3593,23 +3601,23 @@ export default function ContasPagarPage() {
                     <div>
                       <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Descrição", "Description", "Descripción")} *</label>
                       <input value={formCustoFixo.descricao} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, descricao: e.target.value })}
-                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                        className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Valor Mensal (R$)", "Monthly Amount (R$)", "Valor Mensual (R$)")} *</label>
                         <input type="number" step="0.01" value={formCustoFixo.valorMensal} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, valorMensal: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Dia de Vencimento", "Due Day", "Día de Vencimiento")} *</label>
                         <input type="number" min={1} max={28} value={formCustoFixo.diaVencimento} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, diaVencimento: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
                       </div>
                       <div>
                         <label className="text-xs font-semibold mb-1 block" style={{ color: AZUL }}>{L("Categoria", "Category", "Categoría")}</label>
                         <select value={formCustoFixo.categoria} onChange={(e) => setFormCustoFixo({ ...formCustoFixo, categoria: e.target.value })}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
                           <option value="">-- {L("Selecione", "Select", "Seleccione")} --</option>
                           {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
                         </select>
@@ -3620,7 +3628,7 @@ export default function ContasPagarPage() {
                           value={formCustoFixo.centroCustoId} onChange={(id) => setFormCustoFixo({ ...formCustoFixo, centroCustoId: id })}
                           centros={centrosCusto} empresaId={empresaId} userId={userId} lang={idioma as "pt" | "en" | "es"}
                           onCriado={(c) => setCentrosCusto((prev) => [...prev, c])}
-                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}
+                          className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}
                         />
                       </div>
                     </div>
@@ -3653,5 +3661,6 @@ export default function ContasPagarPage() {
         cor={AZUL}
       />
     </ModuloLayout>
+    </div>
   );
 }

@@ -13,7 +13,9 @@ import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela }
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { fBRL, fBRL2, optBarrasComparativo, optRosca, optBarrasH, FONTE_EXEC, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
+import { fBRL, fBRL2, optBarrasComparativo, optRosca, optBarrasH, corTema, precoPorMarkup, margemReal } from "../../../lib/cfoCore";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import { comprimirImagem } from "../../../lib/imagemHelpers";
 import { useLeitorCodigoBarras } from "../../../lib/estoqueDeviceAdapter";
 import {
@@ -56,15 +58,26 @@ const NEUTRO = "#6ab0ff";
 const ATENCAO = "#f59e0b";
 
 const inputCls = "w-full px-3 py-2.5 rounded-xl focus:outline-none text-sm";
-const inputStyle = { background: "rgba(255,255,255,0.04)", border: `1px solid rgba(4,120,87,0.25)`, color: "#c8d8f0" };
-const selectStyle = { background: "rgba(10,22,40,0.95)", border: `1px solid rgba(4,120,87,0.25)`, color: "#c8d8f0" };
 const labelCls = "text-xs font-semibold mb-1 block";
 const labelStyle = { color: BRONZE };
+
+// Hook compartilhado pelos subcomponentes de formulário abaixo (module-level,
+// fora do componente principal) — cada um chama isso pra ganhar ct()/estilos
+// de campo já corretos pro tema ativo, sem duplicar a derivação em cada um.
+function useEstoqueTema() {
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const inputStyle = { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
+  const selectStyle = { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
+  return { temaClaro, ct, inputStyle, selectStyle };
+}
 
 function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, onBlur, onFocus, readOnly, lista, dica }: {
   label: string; value: string; onChange?: (v: string) => void; tipo?: string; placeholder?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; onBlur?: () => void; onFocus?: () => void; readOnly?: boolean; lista?: string[]; dica?: string;
 }) {
+  const { ct, inputStyle } = useEstoqueTema();
   const listId = lista ? `dl-${label.replace(/\s/g, "")}` : undefined;
   return (
     <div>
@@ -77,7 +90,7 @@ function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, 
           {lista.map((o) => <option key={o} value={o} />)}
         </datalist>
       )}
-      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: "#5a7a9a" }}>{dica}</p>}
+      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: ct("#5a7a9a") }}>{dica}</p>}
     </div>
   );
 }
@@ -100,6 +113,7 @@ function parseMoeda(texto: string): number | null {
 function CampoMoeda({ label, valor, onChange, dica }: {
   label: string; valor: number | null | undefined; onChange: (v: number | null) => void; dica?: string;
 }) {
+  const { ct, inputStyle } = useEstoqueTema();
   const [texto, setTexto] = useState(valor != null ? valor.toFixed(2).replace(".", ",") : "");
   const [focado, setFocado] = useState(false);
   useEffect(() => {
@@ -118,7 +132,7 @@ function CampoMoeda({ label, valor, onChange, dica }: {
           onChange(numero);
         }}
         placeholder="0,00" className={inputCls} style={inputStyle} />
-      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: "#5a7a9a" }}>{dica}</p>}
+      {dica && <p className="text-[10px] mt-0.5 italic" style={{ color: ct("#5a7a9a") }}>{dica}</p>}
     </div>
   );
 }
@@ -126,6 +140,7 @@ function CampoMoeda({ label, valor, onChange, dica }: {
 function CampoSelect({ label, value, onChange, opcoes, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; opcoes: { value: string; label: string }[]; placeholder?: string;
 }) {
+  const { selectStyle } = useEstoqueTema();
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
@@ -137,6 +152,7 @@ function CampoSelect({ label, value, onChange, opcoes, placeholder }: {
   );
 }
 function CampoTextarea({ label, value, onChange, linhas = 2 }: { label: string; value: string; onChange: (v: string) => void; linhas?: number }) {
+  const { inputStyle } = useEstoqueTema();
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
@@ -163,6 +179,7 @@ function SecaoColapsavel({ titulo, aberta, onToggle, children }: { titulo: strin
 function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
   aberto: boolean; onFechar: () => void; titulo: string; children: React.ReactNode; largo?: boolean;
 }) {
+  const { ct } = useEstoqueTema();
   return (
     <AnimatePresence>
       {aberto && (
@@ -176,9 +193,9 @@ function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
               <div className="flex justify-between items-center mb-5">
                 <div>
                   <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
-                  <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{titulo}</h3>
+                  <h3 className="text-lg font-bold" style={{ color: ct(ct("#c8d8f0")) }}>{titulo}</h3>
                 </div>
-                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: ct(ct("#5a7a9a")) }}><X size={20} /></motion.button>
               </div>
               {children}
             </CanvasBox>
@@ -190,9 +207,10 @@ function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
 }
 
 function Paginacao({ pagina, total, onMudar, et }: { pagina: number; total: number; onMudar: (p: number) => void; et: any }) {
+  const { ct } = useEstoqueTema();
   const totalPaginas = Math.max(1, Math.ceil(total / PAGE_SIZE));
   return (
-    <div className="flex items-center justify-between mt-4 text-xs" style={{ color: "#5a7a9a" }}>
+    <div className="flex items-center justify-between mt-4 text-xs" style={{ color: ct(ct("#5a7a9a")) }}>
       <span>{total} {total === 1 ? et.paginacaoRegistro : et.paginacaoRegistros} — {et.paginacaoPagina} {pagina + 1} {et.paginacaoDe} {totalPaginas}</span>
       <div className="flex gap-2">
         <button onClick={() => onMudar(Math.max(0, pagina - 1))} disabled={pagina === 0}
@@ -210,6 +228,18 @@ export default function EstoquePage() {
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const et = t.estoque;
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const POSITIVO_CT = ct(POSITIVO);
+  const NEGATIVO_CT = ct(NEGATIVO);
+  const NEUTRO_CT = ct(NEUTRO);
+  const ATENCAO_CT = ct(ATENCAO);
+  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const inputStyle = { background: CAMPO_BG, border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
+  const selectStyle = { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
+  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const PILL_INATIVO = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.6)";
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -222,13 +252,13 @@ export default function EstoquePage() {
   const [centrosCustoDrop, setCentrosCustoDrop] = useState<{ id: string; nome: string }[]>([]);
 
   const TIPOS_MOV: { value: TipoMovimentacao; label: string; cor: string }[] = [
-    { value: "entrada", label: et.tipoEntrada, cor: POSITIVO },
-    { value: "saida", label: et.tipoSaida, cor: NEGATIVO },
-    { value: "transferencia", label: et.tipoTransferencia, cor: NEUTRO },
-    { value: "perda", label: et.tipoPerda, cor: NEGATIVO },
-    { value: "ajuste", label: et.tipoAjuste, cor: ATENCAO },
-    { value: "inventario", label: et.tipoInventario, cor: ATENCAO },
-    { value: "devolucao", label: et.tipoDevolucao, cor: NEUTRO },
+    { value: "entrada", label: et.tipoEntrada, cor: POSITIVO_CT },
+    { value: "saida", label: et.tipoSaida, cor: NEGATIVO_CT },
+    { value: "transferencia", label: et.tipoTransferencia, cor: NEUTRO_CT },
+    { value: "perda", label: et.tipoPerda, cor: NEGATIVO_CT },
+    { value: "ajuste", label: et.tipoAjuste, cor: ATENCAO_CT },
+    { value: "inventario", label: et.tipoInventario, cor: ATENCAO_CT },
+    { value: "devolucao", label: et.tipoDevolucao, cor: NEUTRO_CT },
   ];
 
   const SEVERIDADE_LABEL: Record<string, string> = {
@@ -454,10 +484,10 @@ export default function EstoquePage() {
         <td className="py-2 px-3">
           <input type="checkbox" className="w-4 h-4 rounded" checked={produtosSelecionados.has(p.id)} onChange={() => toggleSelecionado(p.id)} />
         </td>
-        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>
+        <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg relative overflow-hidden flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(4,120,87,0.25)" }}>
-              <ImagePlus size={14} style={{ color: "#5a7a9a" }} />
+              <ImagePlus size={14} style={{ color: ct("#5a7a9a") }} />
               {p.imagem_principal && (
                 <img src={urlImagemProduto(p.imagem_principal)} alt="" className="absolute inset-0 w-8 h-8 object-cover"
                   onError={(e) => { e.currentTarget.style.display = "none"; }} />
@@ -466,15 +496,15 @@ export default function EstoquePage() {
             {p.nome}
           </div>
         </td>
-        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
-        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{p.categoria || "—"}</td>
-        <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO : "#c8d8f0" }}>{p.saldo_disponivel}</td>
-        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{moeda(p.preco_medio)}</td>
-        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{moeda(p.preco_venda ?? p.preco_sugerido)}</td>
-        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO : "#5a7a9a" }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
+        <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{p.codigo_interno || p.codigo_barras || "—"}</td>
+        <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{p.categoria || "—"}</td>
+        <td className="py-2 px-3 text-right font-semibold" style={{ color: p.saldo_disponivel <= 0 ? NEGATIVO_CT : p.saldo_disponivel <= p.estoque_minimo ? ATENCAO_CT : ct("#c8d8f0") }}>{p.saldo_disponivel}</td>
+        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{moeda(p.preco_medio)}</td>
+        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{moeda(p.preco_venda ?? p.preco_sugerido)}</td>
+        <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: p.status === "ativo" ? "rgba(52,211,153,0.15)" : "rgba(90,122,154,0.15)", color: p.status === "ativo" ? POSITIVO_CT : ct("#5a7a9a") }}>{p.status === "ativo" ? et.statusAtivo : et.statusInativo}</span></td>
         <td className="py-2 px-3 text-right">
-          <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
-          <button onClick={() => excluirProdutoHandler(p)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO }}><Trash2 size={15} /></button>
+          <button onClick={() => abrirModalProduto(p)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO_CT }}><Pencil size={15} /></button>
+          <button onClick={() => excluirProdutoHandler(p)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO_CT }}><Trash2 size={15} /></button>
         </td>
       </tr>
     );
@@ -483,8 +513,8 @@ export default function EstoquePage() {
   function linhaGrupo(chave: string, nivel: 1 | 2, texto: string) {
     return (
       <tr key={chave} className="cursor-pointer select-none" onClick={() => toggleGrupo(chave)}
-        style={{ background: nivel === 1 ? "rgba(4,120,87,0.12)" : "rgba(255,255,255,0.03)" }}>
-        <td colSpan={9} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? BRONZE : "#94a3b8", paddingLeft: nivel === 1 ? 12 : 30 }}>
+        style={{ background: nivel === 1 ? "rgba(4,120,87,0.12)" : CAMPO_BG3 }}>
+        <td colSpan={9} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? BRONZE : ct("#94a3b8"), paddingLeft: nivel === 1 ? 12 : 30 }}>
           <span className="inline-flex items-center gap-1.5 uppercase tracking-wide">
             {gruposFechados.has(chave) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {texto}
@@ -909,27 +939,33 @@ export default function EstoquePage() {
   }
 
   if (carregando) {
-    return <ModuloLayout titulo={et.titulo} subtitulo={et.carregando}><div className="text-center py-20" style={{ color: "#5a7a9a" }}>{et.carregando}</div></ModuloLayout>;
+    return <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}><ModuloLayout titulo={et.titulo} subtitulo={et.carregando}><div className="text-center py-20" style={{ color: ct("#5a7a9a") }}>{et.carregando}</div></ModuloLayout></div>;
   }
 
   const opcoesFornecedor = fornecedoresDrop.map((f) => ({ value: f.id, label: f.nome }));
   const argsShare = montarArgsPdfAtual();
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
       titulo={et.titulo} subtitulo={et.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={aba === "produtos" ? () => abrirModalProduto() : aba === "movimentacoes" ? () => abrirModalMovimentacao() : undefined}
       labelBotao={aba === "produtos" ? et.novoProduto : et.novaMovimentacao}
-      botaoExtra={(aba === "produtos" || aba === "movimentacoes" || aba === "avisos") && (
-        <motion.button
-          whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
-          onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
-          <Share2 size={16} /> {et.compartilhar}
-        </motion.button>
-      )}
+      botaoExtra={
+        <>
+          {(aba === "produtos" || aba === "movimentacoes" || aba === "avisos") && (
+            <motion.button
+              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
+              onClick={() => setShareAberto(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+              style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+              <Share2 size={16} /> {et.compartilhar}
+            </motion.button>
+          )}
+          <ThemeToggle />
+        </>
+      }
     >
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
@@ -951,7 +987,7 @@ export default function EstoquePage() {
           <button key={a.key} onClick={() => setAba(a.key as any)}
             className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
             style={{
-              background: aba === a.key ? `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})` : "rgba(10,22,40,0.6)",
+              background: aba === a.key ? `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})` : PILL_INATIVO,
               color: aba === a.key ? "#fff" : JADE,
               border: aba === a.key ? `1px solid ${JADE}` : "1px solid rgba(4,120,87,0.2)",
             }}>
@@ -961,7 +997,7 @@ export default function EstoquePage() {
       </div>
 
       {!empresaId && (
-        <CanvasBox cor={NEGATIVO}><p style={{ color: "#c8d8f0" }}>{et.empresaNaoEncontrada}</p></CanvasBox>
+        <CanvasBox cor={NEGATIVO_CT}><p style={{ color: ct("#c8d8f0") }}>{et.empresaNaoEncontrada}</p></CanvasBox>
       )}
 
       {/* ================= PAINEL ================= */}
@@ -970,55 +1006,55 @@ export default function EstoquePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: et.kpiValorTotal, valor: fBRL(kpis?.valor_total_estoque || 0), cor: JADE },
-              { label: et.kpiProdutosAtivos, valor: String(kpis?.produtos_ativos || 0), cor: NEUTRO },
-              { label: et.kpiProdutosInativos, valor: String(kpis?.produtos_inativos || 0), cor: "#5a7a9a" },
-              { label: et.kpiRuptura, valor: String(kpis?.qtd_ruptura || 0), cor: NEGATIVO },
-              { label: et.kpiBaixoEstoque, valor: String(kpis?.qtd_baixo_estoque || 0), cor: ATENCAO },
-              { label: et.kpiProxValidade, valor: String(avisosValidadeResumo.filter((v) => v.severidade !== "vencido").length), cor: ATENCAO },
-              { label: et.kpiVencidos, valor: String(avisosValidadeResumo.filter((v) => v.severidade === "vencido").length), cor: NEGATIVO },
+              { label: et.kpiProdutosAtivos, valor: String(kpis?.produtos_ativos || 0), cor: NEUTRO_CT },
+              { label: et.kpiProdutosInativos, valor: String(kpis?.produtos_inativos || 0), cor: ct("#5a7a9a") },
+              { label: et.kpiRuptura, valor: String(kpis?.qtd_ruptura || 0), cor: NEGATIVO_CT },
+              { label: et.kpiBaixoEstoque, valor: String(kpis?.qtd_baixo_estoque || 0), cor: ATENCAO_CT },
+              { label: et.kpiProxValidade, valor: String(avisosValidadeResumo.filter((v) => v.severidade !== "vencido").length), cor: ATENCAO_CT },
+              { label: et.kpiVencidos, valor: String(avisosValidadeResumo.filter((v) => v.severidade === "vencido").length), cor: NEGATIVO_CT },
               { label: et.kpiCapitalParado, valor: String(kpis?.qtd_capital_parado || 0), cor: BRONZE },
             ].map((k) => (
               <CanvasBox key={k.label} cor={k.cor}>
-                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: "#5a7a9a" }}>{k.label}</p>
-                <p className="text-xl font-black" style={{ ...FONTE_EXEC, color: k.cor }}>{k.valor}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
+                <p className="text-xl font-black" style={{ color: k.cor }}>{k.valor}</p>
               </CanvasBox>
             ))}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <CanvasBox cor={JADE}>
-              <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.graficoCategoria}</p>
+              <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoCategoria}</p>
               {composicaoCategoria.length > 0 ? (
                 <ReactECharts style={{ height: 260 }} option={optRosca(
-                  composicaoCategoria.map((c, i) => ({ name: c.chave, value: c.valor_total, color: [JADE, BRONZE, NEUTRO, ATENCAO, POSITIVO, NEGATIVO][i % 6] })),
-                  JADE, fBRL(kpis?.valor_total_estoque || 0)
+                  composicaoCategoria.map((c, i) => ({ name: c.chave, value: c.valor_total, color: [JADE, BRONZE, NEUTRO_CT, ATENCAO_CT, POSITIVO_CT, NEGATIVO_CT][i % 6] })),
+                  JADE, fBRL(kpis?.valor_total_estoque || 0), temaClaro
                 )} />
-              ) : <p className="text-xs py-10 text-center" style={{ color: "#5a7a9a" }}>{et.semDadosCategoria}</p>}
+              ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosCategoria}</p>}
             </CanvasBox>
             <CanvasBox cor={BRONZE}>
-              <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.graficoFornecedor}</p>
+              <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoFornecedor}</p>
               {composicaoFornecedor.length > 0 ? (
                 <ReactECharts style={{ height: 260 }} option={optBarrasH(
-                  composicaoFornecedor.map((f) => f.valor_total), composicaoFornecedor.map((f) => f.chave), BRONZE, "#d4a017"
+                  composicaoFornecedor.map((f) => f.valor_total), composicaoFornecedor.map((f) => f.chave), BRONZE, "#d4a017", undefined, temaClaro
                 )} />
-              ) : <p className="text-xs py-10 text-center" style={{ color: "#5a7a9a" }}>{et.semDadosFornecedor}</p>}
+              ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosFornecedor}</p>}
             </CanvasBox>
           </div>
 
           <CanvasBox cor={JADE}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.graficoEvolucao}</p>
+            <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoEvolucao}</p>
             {evolucao.length > 0 ? (
               <ReactECharts style={{ height: 260 }} option={optBarrasComparativo(
                 evolucao.map((e) => e.entradas_qtd), evolucao.map((e) => e.saidas_qtd),
                 evolucao.map((e) => new Date(e.periodo).toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })),
-                POSITIVO, NEGATIVO, et.tipoEntrada, et.tipoSaida
+                POSITIVO_CT, NEGATIVO_CT, et.tipoEntrada, et.tipoSaida, temaClaro
               )} />
-            ) : <p className="text-xs py-10 text-center" style={{ color: "#5a7a9a" }}>{et.semDadosEvolucao}</p>}
+            ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosEvolucao}</p>}
           </CanvasBox>
 
-          <CanvasBox cor="#5a7a9a">
-            <p className="text-sm font-bold mb-2" style={{ color: "#c8d8f0" }}>{et.maisVendidosTitulo}</p>
-            <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.maisVendidosTexto}</p>
+          <CanvasBox cor={ct("#5a7a9a")}>
+            <p className="text-sm font-bold mb-2" style={{ color: ct("#c8d8f0") }}>{et.maisVendidosTitulo}</p>
+            <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.maisVendidosTexto}</p>
           </CanvasBox>
         </div>
       )}
@@ -1028,7 +1064,7 @@ export default function EstoquePage() {
         <div>
           <div className="flex flex-col md:flex-row gap-3 mb-4">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "#5a7a9a" }} />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: ct("#5a7a9a") }} />
               <input value={buscaProdutos} onChange={(e) => { setBuscaProdutos(e.target.value); setPaginaProdutos(0); }}
                 onKeyDown={leitorProdutos.onKeyDown}
                 placeholder={et.buscarPlaceholder}
@@ -1042,7 +1078,7 @@ export default function EstoquePage() {
               ]).map((s) => (
                 <button key={s.key} onClick={() => { setFiltroStatusProdutos(s.key); setPaginaProdutos(0); }}
                   className="px-3 py-2 rounded-xl text-xs font-semibold"
-                  style={{ background: filtroStatusProdutos === s.key ? JADE : "rgba(10,22,40,0.6)", color: filtroStatusProdutos === s.key ? "#fff" : "#94a3b8" }}>
+                  style={{ background: filtroStatusProdutos === s.key ? JADE : PILL_INATIVO, color: filtroStatusProdutos === s.key ? "#fff" : ct("#94a3b8") }}>
                   {s.label}
                 </button>
               ))}
@@ -1058,7 +1094,7 @@ export default function EstoquePage() {
                 <>
                   <button onClick={() => selecionarSegmento("todos")}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
-                    style={{ background: filtroSegmento === "todos" ? JADE : "rgba(10,22,40,0.6)", color: filtroSegmento === "todos" ? "#fff" : "#94a3b8" }}>
+                    style={{ background: filtroSegmento === "todos" ? JADE : PILL_INATIVO, color: filtroSegmento === "todos" ? "#fff" : ct("#94a3b8") }}>
                     {et.statusTodos} ({totalTodos})
                   </button>
                   {visiveis.map((c) => {
@@ -1066,7 +1102,7 @@ export default function EstoquePage() {
                     return (
                       <button key={c.segmento} onClick={() => selecionarSegmento(c.segmento)}
                         className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
-                        style={{ background: filtroSegmento === c.segmento ? JADE : "rgba(10,22,40,0.6)", color: filtroSegmento === c.segmento ? "#fff" : "#94a3b8" }}>
+                        style={{ background: filtroSegmento === c.segmento ? JADE : PILL_INATIVO, color: filtroSegmento === c.segmento ? "#fff" : ct("#94a3b8") }}>
                         {info ? info.label[idioma] : c.segmento} ({contarPara(c)})
                       </button>
                     );
@@ -1090,21 +1126,21 @@ export default function EstoquePage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <p className="text-xs font-bold mr-1" style={{ color: "#c8d8f0" }}>{et.automacoesTitulo}</p>
+              <p className="text-xs font-bold mr-1" style={{ color: ct("#c8d8f0") }}>{et.automacoesTitulo}</p>
               {produtosSelecionados.size > 0 && (
                 <span className="text-[11px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(4,120,87,0.15)", color: JADE }}>
                   {produtosSelecionados.size} {et.itensSelecionados}
                 </span>
               )}
               <button onClick={() => { setFormLote({}); setModalLoteAberto(true); }} disabled={produtosSelecionados.size === 0}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.editarEmLote}</button>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: ct("#c8d8f0") }}>{et.editarEmLote}</button>
               <button onClick={handleGerarEtiquetas} disabled={gerandoEtiquetas || produtos.length === 0}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.gerarEtiquetas}</button>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: ct("#c8d8f0") }}>{et.gerarEtiquetas}</button>
               <button onClick={() => handleExportar("excel")} disabled={exportando}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.exportarExcel}</button>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: ct("#c8d8f0") }}>{et.exportarExcel}</button>
               <button onClick={() => handleExportar("csv")} disabled={exportando}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0" }}>{et.exportarCsv}</button>
-              <label className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: "rgba(255,255,255,0.06)", color: "#c8d8f0", opacity: importando ? 0.4 : 1 }}>
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "rgba(255,255,255,0.06)", color: ct("#c8d8f0") }}>{et.exportarCsv}</button>
+              <label className="px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" style={{ background: "rgba(255,255,255,0.06)", color: ct("#c8d8f0"), opacity: importando ? 0.4 : 1 }}>
                 {et.importarArquivo}
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importando}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportarArquivo(f); e.target.value = ""; }} />
@@ -1150,7 +1186,7 @@ export default function EstoquePage() {
                     );
                   })}
                   {produtos.length === 0 && (
-                    <tr><td colSpan={9} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semProdutos}</td></tr>
+                    <tr><td colSpan={9} className="py-10 text-center text-xs" style={{ color: ct("#5a7a9a") }}>{et.semProdutos}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1166,11 +1202,11 @@ export default function EstoquePage() {
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             <button onClick={() => { setFiltroTipoMov("todos"); setPaginaMovimentacoes(0); }}
               className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-              style={{ background: filtroTipoMov === "todos" ? JADE : "rgba(10,22,40,0.6)", color: filtroTipoMov === "todos" ? "#fff" : "#94a3b8" }}>{et.statusTodos}</button>
+              style={{ background: filtroTipoMov === "todos" ? JADE : PILL_INATIVO, color: filtroTipoMov === "todos" ? "#fff" : ct("#94a3b8") }}>{et.statusTodos}</button>
             {TIPOS_MOV.map((tp) => (
               <button key={tp.value} onClick={() => { setFiltroTipoMov(tp.value); setPaginaMovimentacoes(0); }}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-                style={{ background: filtroTipoMov === tp.value ? tp.cor : "rgba(10,22,40,0.6)", color: filtroTipoMov === tp.value ? "#020810" : "#94a3b8" }}>{tp.label}</button>
+                style={{ background: filtroTipoMov === tp.value ? tp.cor : PILL_INATIVO, color: filtroTipoMov === tp.value ? "#020810" : ct("#94a3b8") }}>{tp.label}</button>
             ))}
           </div>
 
@@ -1193,29 +1229,29 @@ export default function EstoquePage() {
                     const tipoInfo = TIPOS_MOV.find((tp) => tp.value === m.tipo);
                     return (
                       <tr key={m.id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{new Date(m.data_hora).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
-                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{m.produto_nome}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{new Date(m.data_hora).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{m.produto_nome}</td>
                         <td className="py-2 px-3"><span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: `${tipoInfo?.cor}22`, color: tipoInfo?.cor }}>{tipoInfo?.label}</span></td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{m.quantidade}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.quantidade}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{m.valor_total != null ? fBRL(m.valor_total) : "—"}</td>
                         <td className="py-2 px-3">
                           {m.tipo === "entrada" && m.status_recebimento === "em_transito" ? (
-                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO }}>
+                            <button onClick={() => confirmarRecebimentoHandler(m.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO_CT }}>
                               <Truck size={11} /> {et.emTransitoConfirmar}
                             </button>
                           ) : (
-                            <span className="text-[10px]" style={{ color: "#5a7a9a" }}>—</span>
+                            <span className="text-[10px]" style={{ color: ct("#5a7a9a") }}>—</span>
                           )}
                         </td>
                         <td className="py-2 px-3 text-right">
-                          <button onClick={() => abrirModalMovimentacao(m)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO }}><Pencil size={15} /></button>
-                          <button onClick={() => excluirMovimentacaoHandler(m.id)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO }}><Trash2 size={15} /></button>
+                          <button onClick={() => abrirModalMovimentacao(m)} className="p-1.5 rounded-lg mr-1" style={{ color: NEUTRO_CT }}><Pencil size={15} /></button>
+                          <button onClick={() => excluirMovimentacaoHandler(m.id)} className="p-1.5 rounded-lg" style={{ color: NEGATIVO_CT }}><Trash2 size={15} /></button>
                         </td>
                       </tr>
                     );
                   })}
                   {movimentacoes.length === 0 && (
-                    <tr><td colSpan={7} className="py-10 text-center text-xs" style={{ color: "#5a7a9a" }}>{et.semMovimentacoes}</td></tr>
+                    <tr><td colSpan={7} className="py-10 text-center text-xs" style={{ color: ct("#5a7a9a") }}>{et.semMovimentacoes}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1228,23 +1264,23 @@ export default function EstoquePage() {
       {/* ================= AVISOS ================= */}
       {empresaId && aba === "avisos" && (
         <div className="space-y-5">
-          <CanvasBox cor={NEGATIVO}>
-            <p className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}><AlertTriangle size={16} /> {et.avisosEstoqueTitulo}</p>
+          <CanvasBox cor={NEGATIVO_CT}>
+            <p className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: ct("#c8d8f0") }}><AlertTriangle size={16} /> {et.avisosEstoqueTitulo}</p>
             {avisosEstoque.length === 0 ? (
-              <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.avisosEstoqueVazio}</p>
+              <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.avisosEstoqueVazio}</p>
             ) : (
               <div className="space-y-2">
                 {avisosEstoque.map((a) => (
-                  <div key={a.produto_id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
+                  <div key={a.produto_id} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG3 }}>
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{a.nome}</p>
-                      <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{et.colSaldo}: {a.saldo_disponivel} · {et.colPrecoMedio}: {fBRL(a.preco_medio)}</p>
+                      <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{a.nome}</p>
+                      <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{et.colSaldo}: {a.saldo_disponivel} · {et.colPrecoMedio}: {fBRL(a.preco_medio)}</p>
                     </div>
                     <div className="flex gap-1.5 flex-wrap">
-                      {a.ruptura && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO }}>{et.avisoRuptura}</span>}
-                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO }}>{et.avisoBaixoEstoque}</span>}
+                      {a.ruptura && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO_CT }}>{et.avisoRuptura}</span>}
+                      {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
                       {a.capital_parado && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(161,98,7,0.15)", color: BRONZE }}>{et.avisoCapitalParado}</span>}
-                      {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(106,176,255,0.15)", color: NEUTRO }}>{et.avisoCustoSubindo}</span>}
+                      {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(106,176,255,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
                     </div>
                   </div>
                 ))}
@@ -1252,20 +1288,20 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={ATENCAO}>
-            <p className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: "#c8d8f0" }}>⏳ {et.avisosValidadeTitulo}</p>
+          <CanvasBox cor={ATENCAO_CT}>
+            <p className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: ct("#c8d8f0") }}>⏳ {et.avisosValidadeTitulo}</p>
             {avisosValidade.length === 0 ? (
-              <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.avisosValidadeVazio}</p>
+              <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.avisosValidadeVazio}</p>
             ) : (
               <div className="space-y-2">
                 {avisosValidade.map((v) => {
-                  const cor = v.severidade === "vencido" || v.severidade === "ultimo_dia" || v.severidade === "critico_7" ? NEGATIVO
-                    : v.severidade === "atencao_30" || v.severidade === "aviso_60" ? ATENCAO : NEUTRO;
+                  const cor = v.severidade === "vencido" || v.severidade === "ultimo_dia" || v.severidade === "critico_7" ? NEGATIVO_CT
+                    : v.severidade === "atencao_30" || v.severidade === "aviso_60" ? ATENCAO_CT : NEUTRO_CT;
                   return (
-                    <div key={v.lote_id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <div key={v.lote_id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: CAMPO_BG3 }}>
                       <div>
-                        <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{v.produto_nome}</p>
-                        <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {new Date(v.data_validade).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{v.produto_nome}</p>
+                        <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{v.numero_lote || "—"} · {et.colQtd}: {v.quantidade_atual} · {new Date(v.data_validade).toLocaleDateString("pt-BR")}</p>
                       </div>
                       <span className="px-2 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap" style={{ background: `${cor}22`, color: cor }}>{SEVERIDADE_LABEL[v.severidade]}</span>
                     </div>
@@ -1281,14 +1317,15 @@ export default function EstoquePage() {
       {empresaId && aba === "inteligencia" && (
         <div className="space-y-5">
           <CanvasBox cor={JADE}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intCurvaAbcTitulo}</p>
-            {curvaAbc.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+            <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intCurvaAbcTitulo}</p>
+            {curvaAbc.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <>
                 <ReactECharts style={{ height: 240 }} option={optBarrasH(
                   curvaAbc.slice(0, 10).map((c) => c.valor_saida_90d),
                   curvaAbc.slice(0, 10).map((c) => c.nome),
-                  JADE, "#34d399",
-                  curvaAbc.slice(0, 10).map((c) => c.classe_abc === "A" ? POSITIVO : c.classe_abc === "B" ? ATENCAO : NEGATIVO)
+                  JADE, ct("#34d399"),
+                  curvaAbc.slice(0, 10).map((c) => c.classe_abc === "A" ? POSITIVO_CT : c.classe_abc === "B" ? ATENCAO_CT : NEGATIVO_CT),
+                  temaClaro
                 )} />
                 <div className="overflow-x-auto mt-3">
                   <table className="w-full text-sm">
@@ -1301,13 +1338,13 @@ export default function EstoquePage() {
                     <tbody>
                       {curvaAbc.map((c) => (
                         <tr key={c.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                          <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{c.nome}</td>
-                          <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(c.valor_saida_90d)}</td>
-                          <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{c.pct_acumulado}%</td>
+                          <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{c.nome}</td>
+                          <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{fBRL(c.valor_saida_90d)}</td>
+                          <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{c.pct_acumulado}%</td>
                           <td className="py-2 px-3">
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{
                               background: c.classe_abc === "A" ? "rgba(52,211,153,0.15)" : c.classe_abc === "B" ? "rgba(245,158,11,0.15)" : c.classe_abc === "C" ? "rgba(248,113,113,0.15)" : "rgba(90,122,154,0.15)",
-                              color: c.classe_abc === "A" ? POSITIVO : c.classe_abc === "B" ? ATENCAO : c.classe_abc === "C" ? NEGATIVO : "#5a7a9a",
+                              color: c.classe_abc === "A" ? POSITIVO_CT : c.classe_abc === "B" ? ATENCAO_CT : c.classe_abc === "C" ? NEGATIVO_CT : ct("#5a7a9a"),
                             }}>{c.classe_abc === "A" ? et.intClasseA : c.classe_abc === "B" ? et.intClasseB : c.classe_abc === "C" ? et.intClasseC : et.intSemGiro}</span>
                           </td>
                         </tr>
@@ -1319,9 +1356,9 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={NEUTRO}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intGiroTitulo}</p>
-            {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+          <CanvasBox cor={NEUTRO_CT}>
+            <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intGiroTitulo}</p>
+            {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left" style={{ color: BRONZE }}>
@@ -1333,10 +1370,10 @@ export default function EstoquePage() {
                   <tbody>
                     {giroEstoque.map((g) => (
                       <tr key={g.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{g.nome}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{g.saldo_disponivel}</td>
-                        <td className="py-2 px-3 text-right font-semibold" style={{ color: g.giro_90d == null ? "#5a7a9a" : g.giro_90d >= 1 ? POSITIVO : g.giro_90d > 0 ? ATENCAO : NEGATIVO }}>{g.giro_90d ?? "—"}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{g.velocidade_consumo_diaria}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{g.nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{g.saldo_disponivel}</td>
+                        <td className="py-2 px-3 text-right font-semibold" style={{ color: g.giro_90d == null ? ct("#5a7a9a") : g.giro_90d >= 1 ? POSITIVO_CT : g.giro_90d > 0 ? ATENCAO_CT : NEGATIVO_CT }}>{g.giro_90d ?? "—"}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{g.velocidade_consumo_diaria}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1346,8 +1383,8 @@ export default function EstoquePage() {
           </CanvasBox>
 
           <CanvasBox cor={BRONZE}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intCapitalTitulo}</p>
-            {capitalImobilizado.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+            <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intCapitalTitulo}</p>
+            {capitalImobilizado.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left" style={{ color: BRONZE }}>
@@ -1358,9 +1395,9 @@ export default function EstoquePage() {
                   <tbody>
                     {capitalImobilizado.slice().sort((a, b) => (b.dias_sem_movimento ?? 0) - (a.dias_sem_movimento ?? 0)).map((c) => (
                       <tr key={c.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{c.nome}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{fBRL(c.capital_imobilizado)}</td>
-                        <td className="py-2 px-3 text-right font-semibold" style={{ color: (c.dias_sem_movimento ?? 0) > 60 ? NEGATIVO : (c.dias_sem_movimento ?? 0) > 30 ? ATENCAO : "#94a3b8" }}>
+                        <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{c.nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{fBRL(c.capital_imobilizado)}</td>
+                        <td className="py-2 px-3 text-right font-semibold" style={{ color: (c.dias_sem_movimento ?? 0) > 60 ? NEGATIVO_CT : (c.dias_sem_movimento ?? 0) > 30 ? ATENCAO_CT : ct("#94a3b8") }}>
                           {c.dias_sem_movimento ?? et.intSemMovimento}
                         </td>
                       </tr>
@@ -1371,10 +1408,10 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={ATENCAO}>
-            <p className="text-sm font-bold mb-2" style={{ color: "#c8d8f0" }}>{et.intReposicaoTitulo}</p>
-            {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p>
-              : alertasReposicao.length === 0 ? <p className="text-xs py-4" style={{ color: "#5a7a9a" }}>{et.intSemLeadTime}</p> : (
+          <CanvasBox cor={ATENCAO_CT}>
+            <p className="text-sm font-bold mb-2" style={{ color: ct("#c8d8f0") }}>{et.intReposicaoTitulo}</p>
+            {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p>
+              : alertasReposicao.length === 0 ? <p className="text-xs py-4" style={{ color: ct("#5a7a9a") }}>{et.intSemLeadTime}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left" style={{ color: BRONZE }}>
@@ -1386,10 +1423,10 @@ export default function EstoquePage() {
                   <tbody>
                     {alertasReposicao.map((a) => (
                       <tr key={a.produto_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{a.nome}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{a.saldo_disponivel}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{a.pontoReposicao}</td>
-                        <td className="py-2 px-3 text-right font-bold" style={{ color: NEGATIVO }}>{a.diasRestantes}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{a.nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{a.saldo_disponivel}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{a.pontoReposicao}</td>
+                        <td className="py-2 px-3 text-right font-bold" style={{ color: NEGATIVO_CT }}>{a.diasRestantes}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1399,10 +1436,10 @@ export default function EstoquePage() {
           </CanvasBox>
 
           <CanvasBox cor={JADE}>
-            <p className="text-sm font-bold mb-1" style={{ color: "#c8d8f0" }}>{et.intRentabilidadeTitulo}</p>
-            <p className="text-[11px] mb-3 italic" style={{ color: "#5a7a9a" }}>{et.intRentabilidadeAviso}</p>
+            <p className="text-sm font-bold mb-1" style={{ color: ct("#c8d8f0") }}>{et.intRentabilidadeTitulo}</p>
+            <p className="text-[11px] mb-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeAviso}</p>
             {rentabilidadeCategoria.length === 0 && rentabilidadeFornecedor.length === 0 && rentabilidadeMarca.length === 0 ? (
-              <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p>
+              <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p>
             ) : (
               <div className="grid md:grid-cols-3 gap-4">
                 {[
@@ -1414,8 +1451,8 @@ export default function EstoquePage() {
                     <p className="text-xs font-bold mb-2" style={{ color: BRONZE }}>{grupo.titulo}</p>
                     {grupo.itens.map((it) => (
                       <div key={it.chave} className="flex justify-between text-xs py-1 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <span style={{ color: "#c8d8f0" }}>{it.chave}</span>
-                        <span style={{ color: it.margem_media == null ? "#5a7a9a" : it.margem_media > 0 ? POSITIVO : NEGATIVO }}>
+                        <span style={{ color: ct("#c8d8f0") }}>{it.chave}</span>
+                        <span style={{ color: it.margem_media == null ? ct("#5a7a9a") : it.margem_media > 0 ? POSITIVO_CT : NEGATIVO_CT }}>
                           {it.margem_media == null ? "—" : `${it.margem_media.toFixed(1)}%`}
                         </span>
                       </div>
@@ -1425,13 +1462,13 @@ export default function EstoquePage() {
               </div>
             )}
             {[...rentabilidadeCategoria, ...rentabilidadeFornecedor, ...rentabilidadeMarca].some((it) => it.margem_media == null) && (
-              <p className="text-[11px] mt-3 italic" style={{ color: "#5a7a9a" }}>{et.intRentabilidadeSemDado}</p>
+              <p className="text-[11px] mt-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeSemDado}</p>
             )}
           </CanvasBox>
 
-          <CanvasBox cor={NEUTRO}>
-            <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.intComparativoFornecedorTitulo}</p>
-            {comparativoFornecedores.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+          <CanvasBox cor={NEUTRO_CT}>
+            <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intComparativoFornecedorTitulo}</p>
+            {comparativoFornecedores.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-left" style={{ color: BRONZE }}>
@@ -1443,10 +1480,10 @@ export default function EstoquePage() {
                   <tbody>
                     {comparativoFornecedores.map((f) => (
                       <tr key={f.fornecedor_id} className="border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                        <td className="py-2 px-3" style={{ color: "#c8d8f0" }}>{f.fornecedor_nome}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#c8d8f0" }}>{f.preco_medio_compra != null ? fBRL(f.preco_medio_compra) : "—"}</td>
-                        <td className="py-2 px-3 text-right" style={{ color: "#94a3b8" }}>{f.frequencia_entregas}</td>
-                        <td className="py-2 px-3" style={{ color: "#94a3b8" }}>{f.ultima_entrada ? new Date(f.ultima_entrada).toLocaleDateString("pt-BR") : "—"}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#c8d8f0") }}>{f.fornecedor_nome}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#c8d8f0") }}>{f.preco_medio_compra != null ? fBRL(f.preco_medio_compra) : "—"}</td>
+                        <td className="py-2 px-3 text-right" style={{ color: ct("#94a3b8") }}>{f.frequencia_entregas}</td>
+                        <td className="py-2 px-3" style={{ color: ct("#94a3b8") }}>{f.ultima_entrada ? new Date(f.ultima_entrada).toLocaleDateString("pt-BR") : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1461,60 +1498,60 @@ export default function EstoquePage() {
       {empresaId && aba === "copiloto" && (
         <div className="space-y-5">
           {capitalImobilizado.length === 0 && curvaAbc.length === 0 ? (
-            <CanvasBox cor="#5a7a9a"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{et.copilotoSemDados}</p></CanvasBox>
+            <CanvasBox cor={ct("#5a7a9a")}><p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.copilotoSemDados}</p></CanvasBox>
           ) : (
             <>
-              <CanvasBox cor={NEGATIVO}>
-                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoParadoTitulo}</p>
+              <CanvasBox cor={NEGATIVO_CT}>
+                <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoParadoTitulo}</p>
                 {capitalImobilizado.slice().sort((a, b) => (b.dias_sem_movimento ?? 0) - (a.dias_sem_movimento ?? 0)).slice(0, 5).map((c) => (
                   <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                    <span style={{ color: "#c8d8f0" }}>{c.nome}</span>
-                    <span style={{ color: NEGATIVO }}>{c.dias_sem_movimento ?? et.intSemMovimento} {typeof c.dias_sem_movimento === "number" ? (idioma === "pt" ? "dias" : idioma === "es" ? "días" : "days") : ""}</span>
+                    <span style={{ color: ct("#c8d8f0") }}>{c.nome}</span>
+                    <span style={{ color: NEGATIVO_CT }}>{c.dias_sem_movimento ?? et.intSemMovimento} {typeof c.dias_sem_movimento === "number" ? (idioma === "pt" ? "dias" : idioma === "es" ? "días" : "days") : ""}</span>
                   </div>
                 ))}
               </CanvasBox>
 
               <CanvasBox cor={BRONZE}>
-                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoDinheiroParadoTitulo}</p>
+                <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoDinheiroParadoTitulo}</p>
                 {capitalImobilizado.slice().sort((a, b) => b.capital_imobilizado - a.capital_imobilizado).slice(0, 5).map((c) => (
                   <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                    <span style={{ color: "#c8d8f0" }}>{c.nome}</span>
+                    <span style={{ color: ct("#c8d8f0") }}>{c.nome}</span>
                     <span style={{ color: BRONZE }}>{fBRL(c.capital_imobilizado)}</span>
                   </div>
                 ))}
               </CanvasBox>
 
-              <CanvasBox cor={ATENCAO}>
-                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoReporTitulo}</p>
-                {alertasReposicao.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.intSemLeadTime}</p> : alertasReposicao.slice(0, 5).map((a) => (
+              <CanvasBox cor={ATENCAO_CT}>
+                <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoReporTitulo}</p>
+                {alertasReposicao.length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.intSemLeadTime}</p> : alertasReposicao.slice(0, 5).map((a) => (
                   <div key={a.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                    <span style={{ color: "#c8d8f0" }}>{a.nome}</span>
-                    <span style={{ color: ATENCAO }}>{a.pontoReposicao} un.</span>
+                    <span style={{ color: ct("#c8d8f0") }}>{a.nome}</span>
+                    <span style={{ color: ATENCAO_CT }}>{a.pontoReposicao} un.</span>
                   </div>
                 ))}
               </CanvasBox>
 
-              <CanvasBox cor={NEUTRO}>
-                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoPromoverTitulo}</p>
+              <CanvasBox cor={NEUTRO_CT}>
+                <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoPromoverTitulo}</p>
                 {(() => {
                   const idsParados = new Set(capitalImobilizado.filter((c) => (c.dias_sem_movimento ?? 0) > 30).map((c) => c.produto_id));
                   const classeCParada = curvaAbc.filter((c) => c.classe_abc === "C" && idsParados.has(c.produto_id));
-                  return classeCParada.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : classeCParada.slice(0, 5).map((c) => (
+                  return classeCParada.length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : classeCParada.slice(0, 5).map((c) => (
                     <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                      <span style={{ color: "#c8d8f0" }}>{c.nome}</span>
-                      <span style={{ color: NEUTRO }}>Classe C</span>
+                      <span style={{ color: ct("#c8d8f0") }}>{c.nome}</span>
+                      <span style={{ color: NEUTRO_CT }}>Classe C</span>
                     </div>
                   ));
                 })()}
               </CanvasBox>
 
-              <CanvasBox cor={NEGATIVO}>
-                <p className="text-sm font-bold mb-3" style={{ color: "#c8d8f0" }}>{et.copilotoRupturaTitulo}</p>
-                {alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{et.intSemDados}</p> : (
+              <CanvasBox cor={NEGATIVO_CT}>
+                <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoRupturaTitulo}</p>
+                {alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
                   alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).map((a) => (
                     <div key={a.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
-                      <span style={{ color: "#c8d8f0" }}>{a.nome}</span>
-                      <span style={{ color: NEGATIVO }} className="font-bold">{a.diasRestantes} {idioma === "pt" ? "dias" : idioma === "es" ? "días" : "days"}</span>
+                      <span style={{ color: ct("#c8d8f0") }}>{a.nome}</span>
+                      <span style={{ color: NEGATIVO_CT }} className="font-bold">{a.diasRestantes} {idioma === "pt" ? "dias" : idioma === "es" ? "días" : "days"}</span>
                     </div>
                   ))
                 )}
@@ -1572,7 +1609,7 @@ export default function EstoquePage() {
           <SecaoTitulo>{et.secaoLocalizacao}</SecaoTitulo>
           {combosLocalizacao.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              <span className="text-[10px] font-semibold" style={{ color: "#5a7a9a" }}>{et.localizacoesJaUsadas}</span>
+              <span className="text-[10px] font-semibold" style={{ color: ct("#5a7a9a") }}>{et.localizacoesJaUsadas}</span>
               {combosLocalizacao.map((c, i) => (
                 <button key={i} type="button" onClick={() => aplicarComboLocalizacao(c)}
                   className="px-2 py-1 rounded-lg text-[11px] font-semibold" style={{ background: "rgba(4,120,87,0.1)", color: JADE }}>
@@ -1661,7 +1698,7 @@ export default function EstoquePage() {
                     value={String((formProduto.atributos_nicho || {})[campo.chave] ?? "")}
                     onChange={(v) => setFormProduto((f) => ({ ...f, atributos_nicho: { ...(f.atributos_nicho || {}), [campo.chave]: campo.tipo === "number" ? (v ? Number(v) : null) : v } }))} />
                 </div>
-                <button type="button" onClick={() => excluirCampoPersonalizadoHandler(campo)} className="p-2.5 rounded-xl shrink-0" style={{ color: NEGATIVO }} title={et.excluirCampoPersonalizado}>
+                <button type="button" onClick={() => excluirCampoPersonalizadoHandler(campo)} className="p-2.5 rounded-xl shrink-0" style={{ color: NEGATIVO_CT }} title={et.excluirCampoPersonalizado}>
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -1691,8 +1728,8 @@ export default function EstoquePage() {
           <SecaoTitulo>{et.secaoPrecos}</SecaoTitulo>
           {produtoEditando && (
             <div className="p-3 rounded-xl mb-1" style={{ background: "rgba(4,120,87,0.08)" }}>
-              <p className="text-[10px] font-bold uppercase" style={{ color: "#5a7a9a" }}>{et.campoCustoMedioSistema}</p>
-              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{moeda(formProduto.preco_medio)}</p>
+              <p className="text-[10px] font-bold uppercase" style={{ color: ct("#5a7a9a") }}>{et.campoCustoMedioSistema}</p>
+              <p className="text-sm font-bold" style={{ color: ct("#c8d8f0") }}>{moeda(formProduto.preco_medio)}</p>
             </div>
           )}
           <div className="grid grid-cols-3 gap-3">
@@ -1712,7 +1749,7 @@ export default function EstoquePage() {
                 informativo, não um input. */}
             <div>
               <p className={labelCls} style={labelStyle}>{et.campoPrecoSugerido}</p>
-              <p className="text-sm py-2" style={{ color: "#c8d8f0" }}>{moeda(formProduto.preco_sugerido)}</p>
+              <p className="text-sm py-2" style={{ color: ct("#c8d8f0") }}>{moeda(formProduto.preco_sugerido)}</p>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 items-start">
@@ -1722,14 +1759,14 @@ export default function EstoquePage() {
               {(formProduto.preco_sugerido || 0) > 0 && (
                 <button type="button"
                   onClick={() => setFormProduto((f) => ({ ...f, preco_venda: f.preco_sugerido ?? null }))}
-                  className="text-xs font-semibold underline text-left mt-6" style={{ color: NEUTRO }}>
+                  className="text-xs font-semibold underline text-left mt-6" style={{ color: NEUTRO_CT }}>
                   {et.linkUsarSugestao} ({moeda(formProduto.preco_sugerido)})
                 </button>
               )}
             </div>
             {(formProduto.preco_venda || 0) > 0 && (
               <div className="mt-6">
-                <p className="text-xs font-semibold" style={{ color: POSITIVO }}>
+                <p className="text-xs font-semibold" style={{ color: POSITIVO_CT }}>
                   {et.campoMargemReal}: {margemReal(formProduto.preco_venda || 0, formProduto.preco_custo || 0).toFixed(1)}%
                 </p>
               </div>
@@ -1739,7 +1776,7 @@ export default function EstoquePage() {
             <CampoMoeda label={et.campoPrecoMinimo} valor={formProduto.preco_minimo} onChange={(v) => setFormProduto((f) => ({ ...f, preco_minimo: v }))} />
             <CampoMoeda label={et.campoPrecoPromocional} valor={formProduto.preco_promocional} onChange={(v) => setFormProduto((f) => ({ ...f, preco_promocional: v }))} />
             {produtoEditando && (
-              <div><p className={labelCls} style={labelStyle}>{et.campoMargemMarkup}</p><p className="text-sm py-2" style={{ color: "#c8d8f0" }}>{(formProduto.margem ?? 0).toFixed(1)}% / {(formProduto.markup ?? 0).toFixed(1)}%</p></div>
+              <div><p className={labelCls} style={labelStyle}>{et.campoMargemMarkup}</p><p className="text-sm py-2" style={{ color: ct("#c8d8f0") }}>{(formProduto.margem ?? 0).toFixed(1)}% / {(formProduto.markup ?? 0).toFixed(1)}%</p></div>
             )}
           </div>
 
@@ -1766,7 +1803,7 @@ export default function EstoquePage() {
             <label className={labelCls} style={labelStyle}>{et.campoImagem}</label>
             <div className="flex items-center gap-3">
               <div className="w-16 h-16 rounded-xl relative overflow-hidden flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(4,120,87,0.25)" }}>
-                <ImagePlus size={20} style={{ color: "#5a7a9a" }} />
+                <ImagePlus size={20} style={{ color: ct("#5a7a9a") }} />
                 {(previewImagem || formProduto.imagem_principal) && (
                   <img src={previewImagem || urlImagemProduto(formProduto.imagem_principal!)} alt="" className="absolute inset-0 w-16 h-16 object-cover"
                     onError={(e) => { e.currentTarget.style.display = "none"; }} />
@@ -1795,7 +1832,7 @@ export default function EstoquePage() {
           <CampoTextarea label={et.campoObservacoes} value={formProduto.observacoes || ""} onChange={(v) => setFormProduto((f) => ({ ...f, observacoes: v }))} />
 
           <div className="flex gap-2 pt-2">
-            <button onClick={() => setModalProdutoAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{et.cancelar}</button>
+            <button onClick={() => setModalProdutoAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
             <button onClick={salvarProduto} disabled={salvandoProduto} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
               {salvandoProduto ? et.salvando : et.salvar}
             </button>
@@ -1823,7 +1860,7 @@ export default function EstoquePage() {
             <CampoSelect label={et.colStatus} value={formLote.status || ""} onChange={(v) => setFormLote((f) => ({ ...f, status: (v || undefined) as any }))} opcoes={[{ value: "ativo", label: et.statusAtivo }, { value: "inativo", label: et.statusInativo }]} />
           </div>
           <div className="flex gap-2 pt-2">
-            <button onClick={() => setModalLoteAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{et.cancelar}</button>
+            <button onClick={() => setModalLoteAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
             <button onClick={salvarLote} disabled={salvandoLote} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
               {salvandoLote ? et.salvando : et.aplicarEmLote}
             </button>
@@ -1840,16 +1877,16 @@ export default function EstoquePage() {
               placeholder={et.campoProdutoBusca} disabled={!!movEditando}
               className={inputCls} style={{ ...inputStyle, opacity: movEditando ? 0.6 : 1 }} />
             {resultadosProdutoMov.length > 0 && (
-              <div className="mt-1 rounded-xl overflow-hidden" style={{ background: "rgba(10,22,40,0.95)", border: "1px solid rgba(4,120,87,0.25)" }}>
+              <div className="mt-1 rounded-xl overflow-hidden" style={{ background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: "1px solid rgba(4,120,87,0.25)" }}>
                 {resultadosProdutoMov.map((p) => (
-                  <button key={p.id} onClick={() => selecionarProdutoMov(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: "#c8d8f0" }}>
-                    {p.nome} <span style={{ color: "#5a7a9a" }}>· {et.colSaldo.toLowerCase()} {p.saldo_disponivel}</span>
+                  <button key={p.id} onClick={() => selecionarProdutoMov(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: ct("#c8d8f0") }}>
+                    {p.nome} <span style={{ color: ct("#5a7a9a") }}>· {et.colSaldo.toLowerCase()} {p.saldo_disponivel}</span>
                   </button>
                 ))}
               </div>
             )}
             {produtoSelecionadoMov && (
-              <p className="text-[11px] mt-1" style={{ color: POSITIVO }}>{produtoSelecionadoMov.nome} ({et.colSaldo}: {produtoSelecionadoMov.saldo_disponivel})</p>
+              <p className="text-[11px] mt-1" style={{ color: POSITIVO_CT }}>{produtoSelecionadoMov.nome} ({et.colSaldo}: {produtoSelecionadoMov.saldo_disponivel})</p>
             )}
           </div>
 
@@ -1897,7 +1934,7 @@ export default function EstoquePage() {
           <CampoTextarea label={et.campoMotivo} value={formMov.motivo || ""} onChange={(v) => setFormMov((f: any) => ({ ...f, motivo: v }))} />
 
           <div className="flex gap-2 pt-2">
-            <button onClick={() => setModalMovAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{et.cancelar}</button>
+            <button onClick={() => setModalMovAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
             <button onClick={salvarMovimentacao} disabled={salvandoMov} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
               {salvandoMov ? et.salvando : et.salvar}
             </button>
@@ -1916,5 +1953,6 @@ export default function EstoquePage() {
         cor={JADE}
       />
     </ModuloLayout>
+    </div>
   );
 }
