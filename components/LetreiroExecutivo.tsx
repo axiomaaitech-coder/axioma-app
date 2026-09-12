@@ -16,14 +16,16 @@ export type ItemLetreiro = { texto: string; destaque?: boolean; cor?: string; on
 export function LetreiroExecutivo({
   itens,
   cor,
-  textoBase = "#e2e8f0",
+  textoBase = "var(--axi-text-primary)",
 }: {
   itens: (string | ItemLetreiro | false | null | undefined)[];
   cor: string;
-  /** Cor do texto não-destacado. Opcional — os módulos que já usavam este
-   * componente não precisam passar nada e continuam iguais. Só existe pra
-   * telas com fundo claro (tema XMS), onde o cinza-claro padrão não teria
-   * contraste suficiente. */
+  /** Cor do texto não-destacado. Opcional — o padrão já resolve certo em
+   * qualquer tema (var(--axi-text-primary) segue o data-theme da tela).
+   * Só passe algo aqui se quiser fugir do padrão de propósito. Antes disso
+   * o padrão era um hex fixo claro, ilegível/"transparente" sobre fundo
+   * branco no tema Claro — corrigido pra nunca mais depender de cada
+   * módulo lembrar de passar essa prop. */
   textoBase?: string;
 }) {
   const normalizados: ItemLetreiro[] = itens
@@ -36,7 +38,7 @@ export function LetreiroExecutivo({
     <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${cor}18, ${cor}0c)`, border: `1px solid ${cor}30` }}>
       <div className="letreiro-axioma py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
         {[0, 1].map((rep) => (
-          <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
+          <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
             {normalizados.map((it, i) => (
               <span key={i}>
                 {it.onClick ? (

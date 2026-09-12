@@ -31,7 +31,7 @@ const supabase = createBrowserClient(
 // cores (escuro no dark, branco no Claro, senão o texto do botão some).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', TEAL: '#2dd4bf', NEUTRO: '#5a7a9a', DESABILITADO: '#2a4060', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.03)', BOTAO_SUTIL_BG: 'rgba(255,255,255,0.08)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)', COLOR_SCHEME: 'dark' as const },
-  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', TEAL: '#0d9488', NEUTRO: '#55637a', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: 'rgba(11,31,58,0.03)', PAINEL_BG: 'rgba(11,31,58,0.025)', BOTAO_SUTIL_BG: 'rgba(11,31,58,0.06)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(11,31,58,0.04)', COLOR_SCHEME: 'light' as const },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', TEAL: '#0d9488', NEUTRO: '#55637a', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7', BOTAO_SUTIL_BG: 'rgba(11,31,58,0.1)', SELECT_BG: '#ffffff', POCO_BG: '#eef2f7', COLOR_SCHEME: 'light' as const },
 } as const
 
 export default function ImpostoRendaMEI() {
@@ -461,7 +461,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             </label>
             <input type="number" value={outraRenda} onChange={e => setOutraRenda(e.target.value)}
               placeholder="0,00" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: CAMPO_BG, border: `1px solid ${OURO}20`, color: 'var(--axi-text-primary)' }} />
+              style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
           </div>
           <div className="space-y-2">
             {[

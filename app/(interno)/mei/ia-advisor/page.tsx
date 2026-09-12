@@ -31,7 +31,7 @@ const supabase = createBrowserClient(
 // (public/referencias/) dos demais módulos do MEI, nunca verde.
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', BOLHA_BG: 'rgba(255,255,255,0.05)', BOLHA_BORDA: 'rgba(255,255,255,0.06)', CAMPO_BG: 'rgba(255,255,255,0.04)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', ROXO: '#7c3aed', BOLHA_BG: 'rgba(11,31,58,0.05)', BOLHA_BORDA: 'rgba(11,31,58,0.08)', CAMPO_BG: 'rgba(11,31,58,0.03)', POCO_BG: 'rgba(11,31,58,0.04)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', ROXO: '#7c3aed', BOLHA_BG: '#ffffff', BOLHA_BORDA: 'rgba(11,31,58,0.12)', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
 } as const
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
@@ -367,7 +367,7 @@ DADOS REAIS DESTE MEI:
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line"
                   style={{
-                    background: msg.role === 'user' ? `${OURO}20` : BOLHA_BG,
+                    background: msg.role === 'user' ? `${OURO}25` : BOLHA_BG,
                     color: 'var(--axi-text-primary)',
                     border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
@@ -395,7 +395,7 @@ DADOS REAIS DESTE MEI:
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
               placeholder={t('placeholder') as string}
               className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: CAMPO_BG, border: `1px solid ${OURO}20`, color: 'var(--axi-text-primary)' }} />
+              style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
             <button onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
               className="px-4 py-3 rounded-xl font-bold text-sm disabled:opacity-50"
               style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
@@ -407,7 +407,7 @@ DADOS REAIS DESTE MEI:
             {((txt.sugestoes as any)[lang] as string[]).map((q: string, i: number) => (
               <button key={i} onClick={() => setChatInput(q)}
                 className="text-xs px-3 py-1.5 rounded-full"
-                style={{ background: `${OURO}10`, color: OURO, border: `1px solid ${OURO}25` }}>
+                style={{ background: `${OURO}15`, color: OURO, border: `1px solid ${OURO}35` }}>
                 {q}
               </button>
             ))}

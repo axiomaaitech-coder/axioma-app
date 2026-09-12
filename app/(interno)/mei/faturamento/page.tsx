@@ -38,7 +38,7 @@ const supabase = createBrowserClient(
 // escuro/saturado), senão o texto do botão some.
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', ALARANJADO: '#fb923c', NEUTRO: '#5a7a9a', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', LINHA_BG: 'rgba(10,22,40,0.5)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', ALARANJADO: '#ea580c', NEUTRO: '#55637a', ON_ACCENT: '#ffffff', CAMPO_BG: 'rgba(11,31,58,0.03)', LINHA_BG: 'rgba(11,31,58,0.04)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(11,31,58,0.04)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', ALARANJADO: '#ea580c', NEUTRO: '#55637a', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', LINHA_BG: '#eef2f7', SELECT_BG: '#ffffff', POCO_BG: '#eef2f7' },
 } as const
 const CATEGORIAS = ["Vendas de produtos", "Prestação de serviços", "Recorrentes", "Eventuais", "Outras"]
 

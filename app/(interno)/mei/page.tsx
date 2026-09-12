@@ -358,7 +358,6 @@ export default function PainelMEI() {
     }
   }
 
-  const textoLetreiro = tema === 'dark' ? '#e2e8f0' : 'var(--axi-text-primary)'
   const cardsPrincipais = [
     { label: `${t('faturamento')} ${anoAtual}`, value: faturamentoAnual, cor: OURO },
     { label: t('limiteRestante'), value: restanteLimite, cor: VERDE },
@@ -388,7 +387,7 @@ export default function PainelMEI() {
     >
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={ROYAL} textoBase={textoLetreiro} />
+        <LetreiroExecutivo itens={marquee} cor={ROYAL} />
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

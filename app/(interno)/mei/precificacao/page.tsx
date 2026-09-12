@@ -33,7 +33,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.02)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', ROXO: '#7c3aed', NEUTRO: '#55637a', CAMPO_BG: 'rgba(11,31,58,0.03)', PAINEL_BG: 'rgba(11,31,58,0.02)', POCO_BG: 'rgba(11,31,58,0.04)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', ROXO: '#7c3aed', NEUTRO: '#55637a', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7', POCO_BG: '#eef2f7' },
 } as const
 
 type Modo = 'hora' | 'projeto' | 'produto'
@@ -727,7 +727,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               <div className="space-y-2">
                 {precosSalvos.slice(paginaAtual * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA + ITENS_POR_PAGINA).map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3 p-3 rounded-xl"
-                    style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${OURO}20` }}>
+                    style={{ background: PAINEL_BG, border: `1px solid ${OURO}30` }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: 'var(--axi-text-primary)' }}>{row.nome}</p>
                       <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>

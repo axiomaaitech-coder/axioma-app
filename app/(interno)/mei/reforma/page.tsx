@@ -32,7 +32,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', POCO_BG: 'rgba(11,31,58,0.04)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', POCO_BG: '#eef2f7' },
 } as const
 
 export default function ReformaTributaria() {

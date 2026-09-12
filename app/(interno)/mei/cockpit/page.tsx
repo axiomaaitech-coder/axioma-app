@@ -381,8 +381,6 @@ export default function CockpitMEI() {
     )
   }
 
-  const textoLetreiro = tema === 'dark' ? '#e2e8f0' : 'var(--axi-text-primary)'
-
   const textoResumoCockpit = [
     `${t('titulo')} — ${nomeEmpresa || t('empresaFallback')}`,
     `${t('scoreLabel')}: ${score.score}/1000 (${score.nivel})`,
@@ -408,7 +406,7 @@ export default function CockpitMEI() {
     >
       <div className="space-y-4">
 
-        <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} textoBase={textoLetreiro} />
+        <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />
 
         {/* Saudação + Health Score */}
         <CanvasBox cor={JADE} motionIndex={0} glow destaque>
