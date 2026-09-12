@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, corTema, FONTE_EXEC,
   resolverPeriodo,
   montarDRE, semaforoSaude, optBarrasV, optLinhaMulti,
   escadaVencimentos, ordenarAvalanche, coberturaJuros, dividaEbitda, dividaReceita,
@@ -26,6 +26,12 @@ import {
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +65,13 @@ function mesesNoPeriodo(periodo: Periodo): number {
 export default function Endividamento() {
   const { t } = useLanguage();
   const { idioma } = useLanguage();
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
+  const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
+  const campoFundo = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const campoFundo3 = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.9)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
 
@@ -331,8 +344,8 @@ export default function Endividamento() {
   // ═══════════════════════ GRÁFICOS ═══════════════════════
   const escadaLabels = escada.map(b => b.label);
   const escadaValores = escada.map(b => b.valor);
-  const escadaCores = escada.map(b => b.muro ? CORES.vermelho : null);
-  const optEscada = optBarrasV(escadaValores, escadaLabels, CORES.rosa, CORES.rosaC, escadaCores);
+  const escadaCores = escada.map(b => b.muro ? ct(CORES.vermelho) : null);
+  const optEscada = optBarrasV(escadaValores, escadaLabels, ct(CORES.rosa), CORES.rosaC, escadaCores, temaClaro);
 
   const maxMesesQuit = Math.max(projMinimo.length, projAvalanche.length);
   const labelsQuit = Array.from({ length: maxMesesQuit }, (_, i) => `M${i}`);
@@ -340,19 +353,19 @@ export default function Endividamento() {
   const serieAva = Array.from({ length: maxMesesQuit }, (_, i) => projAvalanche[i]?.saldoDevedor ?? 0);
   const optQuitacao = optLinhaMulti(
     [
-      { nome: cx.cenarioMinimoLabel, dados: serieMin, cor: CORES.rosa, area: true },
-      { nome: cx.cenarioAvalancheLabel, dados: serieAva, cor: CORES.verde },
+      { nome: cx.cenarioMinimoLabel, dados: serieMin, cor: ct(CORES.rosa), area: true },
+      { nome: cx.cenarioAvalancheLabel, dados: serieAva, cor: ct(CORES.verde) },
     ],
-    labelsQuit, CORES.rosa
+    labelsQuit, ct(CORES.rosa), temaClaro
   );
 
   const kpisCFO = [
-    { l: cx.coberturaJurosLabel, v: coberturaJurosX === null ? cx.semJuros : `${coberturaJurosX.toFixed(1)}x`, c: coberturaJurosX === null ? CORES.verde : coberturaJurosX < 1.5 ? CORES.vermelho : coberturaJurosX < 3 ? CORES.amarelo : CORES.verde, i: "🛡️" },
-    { l: cx.dividaEbitdaLabel, v: dividaEbitdaX === null ? cx.semEbitda : `${dividaEbitdaX.toFixed(1)}x`, c: dividaEbitdaX === null ? CORES.amarelo : dividaEbitdaX > 4 ? CORES.vermelho : dividaEbitdaX > 2 ? CORES.amarelo : CORES.verde, i: "⚖️" },
-    { l: cx.dividaReceitaLabel, v: fPct(dividaReceitaPct), c: dividaReceitaPct > 50 ? CORES.vermelho : dividaReceitaPct > 30 ? CORES.amarelo : CORES.verde, i: "📊" },
-    { l: cx.comprometimentoMensalLabel, v: fPct(comprometimentoMensalPct), c: comprometimentoMensalPct > 20 ? CORES.vermelho : comprometimentoMensalPct > 10 ? CORES.amarelo : CORES.verde, i: "💳" },
-    { l: cx.fluxoCaixaSobreDividaLabel, v: fPct(fluxoCaixaSobreDividaPct), c: fluxoCaixaSobreDividaPct < 10 ? CORES.vermelho : fluxoCaixaSobreDividaPct < 20 ? CORES.amarelo : CORES.verde, i: "💰" },
-    { l: cx.runwayDividaTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "∞", c: runwayMeses === null ? CORES.vermelho : runwayMeses > 36 ? CORES.amarelo : CORES.verde, i: "⏳" },
+    { l: cx.coberturaJurosLabel, v: coberturaJurosX === null ? cx.semJuros : `${coberturaJurosX.toFixed(1)}x`, c: coberturaJurosX === null ? ct(CORES.verde) : coberturaJurosX < 1.5 ? ct(CORES.vermelho) : coberturaJurosX < 3 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
+    { l: cx.dividaEbitdaLabel, v: dividaEbitdaX === null ? cx.semEbitda : `${dividaEbitdaX.toFixed(1)}x`, c: dividaEbitdaX === null ? ct(CORES.amarelo) : dividaEbitdaX > 4 ? ct(CORES.vermelho) : dividaEbitdaX > 2 ? ct(CORES.amarelo) : ct(CORES.verde), i: "⚖️" },
+    { l: cx.dividaReceitaLabel, v: fPct(dividaReceitaPct), c: dividaReceitaPct > 50 ? ct(CORES.vermelho) : dividaReceitaPct > 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "📊" },
+    { l: cx.comprometimentoMensalLabel, v: fPct(comprometimentoMensalPct), c: comprometimentoMensalPct > 20 ? ct(CORES.vermelho) : comprometimentoMensalPct > 10 ? ct(CORES.amarelo) : ct(CORES.verde), i: "💳" },
+    { l: cx.fluxoCaixaSobreDividaLabel, v: fPct(fluxoCaixaSobreDividaPct), c: fluxoCaixaSobreDividaPct < 10 ? ct(CORES.vermelho) : fluxoCaixaSobreDividaPct < 20 ? ct(CORES.amarelo) : ct(CORES.verde), i: "💰" },
+    { l: cx.runwayDividaTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "∞", c: runwayMeses === null ? ct(CORES.vermelho) : runwayMeses > 36 ? ct(CORES.amarelo) : ct(CORES.verde), i: "⏳" },
   ];
 
   const marquee = [
@@ -363,19 +376,21 @@ export default function Endividamento() {
   ].filter(Boolean);
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-        <p className="text-[13px] font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{titulo}</p>
+        <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
       </div>
       <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
     </div>
   );
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={t.endividamento.titulo} subtitulo={t.endividamento.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} labelBotao={t.endividamento.novaDivida}
-      onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: tipos[0], valor_total: "", valor_pago: "", parcelas: "", vencimento: "", taxa_juros: "" }); setModalAberto(true); }}>
+      onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: tipos[0], valor_total: "", valor_pago: "", parcelas: "", vencimento: "", taxa_juros: "" }); setModalAberto(true); }}
+      botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
@@ -388,10 +403,10 @@ export default function Endividamento() {
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={CORES.rosa} lang={lang} />
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.rosa)} lang={lang} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}>
+            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -399,13 +414,13 @@ export default function Endividamento() {
         {/* Cards originais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t.endividamento.totalDividas, value: fBRL(totalDivida), cor: "#f87171" },
-            { label: t.endividamento.totalPago, value: fBRL(totalPago), cor: "#34d399" },
-            { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: "#fbbf24" },
+            { label: t.endividamento.totalDividas, value: fBRL(totalDivida), cor: ct("#f87171") },
+            { label: t.endividamento.totalPago, value: fBRL(totalPago), cor: ct("#34d399") },
+            { label: t.endividamento.saldoRestante, value: fBRL(totalRestante), cor: ct("#fbbf24") },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "#5a7a9a" }}>{card.label}</p>
+              <CanvasBox cor={card.cor} destaque>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
                 <p className="text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
@@ -413,23 +428,23 @@ export default function Endividamento() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={CORES.rosa}>
-            <p className="text-sm text-center py-8" style={{ color: "#5a7a9a" }}>{cx.semDividaTitulo}</p>
+          <CanvasBox cor={ct(CORES.rosa)}>
+            <p className="text-sm text-center py-8" style={{ color: "var(--axi-text-secondary)" }}>{cx.semDividaTitulo}</p>
           </CanvasBox>
         ) : (
           <>
             {/* SEMÁFORO DE SOLVÊNCIA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${corSolvencia === "verde" ? "rgba(16,185,129,0.3)" : corSolvencia === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: `1px solid ${corSolvencia === "verde" ? "rgba(16,185,129,0.3)" : corSolvencia === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={16} style={{ color: CORES.rosa }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.indicadoresSolvenciaTitulo}</p>
-                <span className="inline-block rounded-full flex-shrink-0" style={{ width: 14, height: 14, background: corSolvencia === "verde" ? CORES.verde : corSolvencia === "amarelo" ? CORES.amarelo : CORES.vermelho, boxShadow: `0 0 10px ${corSolvencia === "verde" ? CORES.verde : corSolvencia === "amarelo" ? CORES.amarelo : CORES.vermelho}` }} />
+                <ShieldCheck size={16} style={{ color: ct(CORES.rosa) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.indicadoresSolvenciaTitulo}</p>
+                <span className="inline-block rounded-full flex-shrink-0" style={{ width: 14, height: 14, background: corSolvencia === "verde" ? ct(CORES.verde) : corSolvencia === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho), boxShadow: `0 0 10px ${corSolvencia === "verde" ? ct(CORES.verde) : corSolvencia === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho)}` }} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                 {sinaisSolvencia.map((s, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
-                    <span className="inline-block rounded-full flex-shrink-0" style={{ width: 9, height: 9, background: s.cor === "verde" ? CORES.verde : s.cor === "amarelo" ? CORES.amarelo : CORES.vermelho }} />
-                    <p className="text-xs font-medium" style={{ color: "#cbd5e1" }}>{SINAL_LABEL[s.chave]}</p>
+                    <span className="inline-block rounded-full flex-shrink-0" style={{ width: 9, height: 9, background: s.cor === "verde" ? ct(CORES.verde) : s.cor === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho) }} />
+                    <p className="text-xs font-medium" style={{ color: ct("#cbd5e1") }}>{SINAL_LABEL[s.chave]}</p>
                   </div>
                 ))}
               </div>
@@ -440,10 +455,10 @@ export default function Endividamento() {
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
                   className="rounded-2xl p-3 md:p-4"
-                  style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
+                  style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
-                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
@@ -452,8 +467,8 @@ export default function Endividamento() {
             <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(236,72,153,0.14), rgba(139,92,246,0.10))", border: "1px solid rgba(236,72,153,0.24)" }}>
               <div className="marquee-end py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#f9a8d4" : "#e2e8f0" }}>{m}<span style={{ color: CORES.rosa }}>{"  •  "}</span></span>))}
+                  <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#f9a8d4") : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.rosa) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -461,33 +476,33 @@ export default function Endividamento() {
             </div>
 
             {/* ESCADA DE VENCIMENTOS */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : "rgba(236,72,153,0.2)"}` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : "rgba(236,72,153,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-2">
-                {proximoMuro ? <AlertTriangle size={16} style={{ color: CORES.vermelho }} /> : <ShieldCheck size={16} style={{ color: CORES.rosa }} />}
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.escadaVencimentosTitulo}</p>
+                {proximoMuro ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(CORES.rosa) }} />}
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.escadaVencimentosTitulo}</p>
               </div>
-              <p className="text-sm leading-relaxed mb-3" style={{ color: proximoMuro ? "#fca5a5" : "#e2e8f0" }}>{narrativaMuro}</p>
-              <SubChart titulo={cx.escadaVencimentosTitulo} cor={CORES.rosa} option={optEscada} altura={240} />
+              <p className="text-sm leading-relaxed mb-3" style={{ color: proximoMuro ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaMuro}</p>
+              <SubChart titulo={cx.escadaVencimentosTitulo} cor={ct(CORES.rosa)} option={optEscada} altura={240} />
             </div>
 
             {/* MÉTODO AVALANCHE */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(236,72,153,0.2)" }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(236,72,153,0.2)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} style={{ color: CORES.rosa }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.avalancheTitulo}</p>
+                <Zap size={16} style={{ color: ct(CORES.rosa) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.avalancheTitulo}</p>
               </div>
               <div className="space-y-2">
                 {avalanche.map((a, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: a.cara ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.03)", border: `1px solid ${a.cara ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.06)"}` }}>
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? CORES.rosa : "rgba(255,255,255,0.08)", color: a.ordem === 1 ? "#fff" : "#94a3b8" }}>{a.ordem}</span>
-                      <p className="text-sm font-bold truncate" style={{ color: "#e2e8f0" }}>{a.descricao}</p>
-                      {a.cara && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(239,68,68,0.15)", color: CORES.vermelho }}>{cx.dividaCaraTag}</span>}
-                      {a.ordem === 1 && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(236,72,153,0.15)", color: CORES.rosa }}>{cx.quitarPrimeiroLabel}</span>}
+                      <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(CORES.rosa) : "rgba(255,255,255,0.08)", color: a.ordem === 1 ? "#fff" : ct("#94a3b8") }}>{a.ordem}</span>
+                      <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
+                      {a.cara && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(239,68,68,0.15)", color: ct(CORES.vermelho) }}>{cx.dividaCaraTag}</span>}
+                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(236,72,153,0.15)", color: ct(CORES.rosa) }}>{cx.quitarPrimeiroLabel}</span>}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-black" style={{ color: a.cara ? CORES.vermelho : "#e2e8f0" }}>{fPct(a.taxaJurosAM)}/m</p>
-                      <p className="text-[10px]" style={{ color: "#64748b" }}>{fBRL(a.saldoDevedor)}</p>
+                      <p className="text-sm font-black" style={{ color: a.cara ? ct(CORES.vermelho) : ct("#e2e8f0") }}>{fPct(a.taxaJurosAM)}/m</p>
+                      <p className="text-xs" style={{ color: ct("#64748b") }}>{fBRL(a.saldoDevedor)}</p>
                     </div>
                   </div>
                 ))}
@@ -495,30 +510,30 @@ export default function Endividamento() {
             </div>
 
             {/* MODAL ÚNICO — Projeção de Quitação + Simulador */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#ec4899,#8b5cf6)", boxShadow: "0 0 12px #ec4899" }} />
                   <div>
-                    <p className="text-sm md:text-base font-black" style={{ color: "#f1f5f9", fontFamily: "'Georgia',serif" }}>{cx.projecaoQuitacaoTitulo}</p>
-                    <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{cx.cenarioMinimoLabel} × {cx.cenarioAvalancheLabel}</p>
+                    <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.projecaoQuitacaoTitulo}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.cenarioMinimoLabel} × {cx.cenarioAvalancheLabel}</p>
                   </div>
                 </div>
 
                 <div className="mb-5">
-                  <SubChart titulo={cx.projecaoQuitacaoTitulo} cor={CORES.rosa} option={optQuitacao} altura={280} />
+                  <SubChart titulo={cx.projecaoQuitacaoTitulo} cor={ct(CORES.rosa)} option={optQuitacao} altura={280} />
                 </div>
 
                 {/* Simulador de Refinanciamento */}
-                <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${CORES.rosa}20` }}>
+                <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${ct(CORES.rosa)}20` }}>
                   <div className="flex items-center gap-2 mb-3">
-                    <Sliders size={15} style={{ color: CORES.rosa }} />
-                    <p className="text-[13px] font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.simuladorTitulo}</p>
+                    <Sliders size={15} style={{ color: ct(CORES.rosa) }} />
+                    <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.simuladorTitulo}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                     <select value={simDividaId} onChange={(e) => setSimDividaId(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(236,72,153,0.2)", color: "#c8d8f0" }}>
+                      style={{ background: campoFundo3, border: "1px solid rgba(236,72,153,0.2)", color: "var(--axi-text-primary)" }}>
                       <option value="">{t.geral.descricao}...</option>
                       {dividas.filter(d => d.valor_total - d.valor_pago > 0).map(d => (
                         <option key={d.id} value={d.id}>{d.descricao} ({fPct(d.taxa_juros)}/m)</option>
@@ -526,21 +541,21 @@ export default function Endividamento() {
                     </select>
                     <input type="number" placeholder={cx.novaTaxaLabel} value={simNovaTaxa} onChange={(e) => setSimNovaTaxa(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(236,72,153,0.2)", color: "#c8d8f0" }} />
+                      style={{ background: campoFundo, border: "1px solid rgba(236,72,153,0.2)", color: "var(--axi-text-primary)" }} />
                     <input type="number" placeholder={cx.novoPrazoLabel} value={simNovoPrazo} onChange={(e) => setSimNovoPrazo(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(236,72,153,0.2)", color: "#c8d8f0" }} />
+                      style={{ background: campoFundo, border: "1px solid rgba(236,72,153,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
                   {resultadoSim && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {[
-                        { l: cx.economiaJurosLabel, v: fBRL(resultadoSim.economiaJurosMensal), c: resultadoSim.economiaJurosMensal >= 0 ? CORES.verde : CORES.vermelho },
-                        { l: cx.liberacaoCaixaLabel, v: fBRL(resultadoSim.liberacaoCaixaMensal), c: resultadoSim.liberacaoCaixaMensal >= 0 ? CORES.verde : CORES.vermelho },
-                        { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: CORES.rosa },
-                        { l: "Economia Total", v: fBRL(resultadoSim.economiaJurosTotal), c: resultadoSim.economiaJurosTotal >= 0 ? CORES.verde : CORES.vermelho },
+                        { l: cx.economiaJurosLabel, v: fBRL(resultadoSim.economiaJurosMensal), c: resultadoSim.economiaJurosMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
+                        { l: cx.liberacaoCaixaLabel, v: fBRL(resultadoSim.liberacaoCaixaMensal), c: resultadoSim.liberacaoCaixaMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
+                        { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: ct(CORES.rosa) },
+                        { l: "Economia Total", v: fBRL(resultadoSim.economiaJurosTotal), c: resultadoSim.economiaJurosTotal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                       ].map((c, i) => (
                         <div key={i} className="rounded-xl px-3 py-2" style={{ background: "rgba(255,255,255,0.03)" }}>
-                          <p className="text-[9px] uppercase tracking-wider" style={{ color: "#64748b" }}>{c.l}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{c.l}</p>
                           <p className="text-sm font-black" style={{ color: c.c }}>{c.v}</p>
                         </div>
                       ))}
@@ -551,42 +566,42 @@ export default function Endividamento() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(212,175,55,0.2)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={16} style={{ color: CORES.ouro }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.conselhoDividaTitulo}</p>
+                <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.conselhoDividaTitulo}</p>
               </div>
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
-                      <Sparkles size={15} style={{ color: CORES.ouro, flexShrink: 0 }} />
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{s}</p>
+                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
+                      <p className="text-xs font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs md:text-[13px] font-medium" style={{ color: "#6ee7b7" }}>{cx.semGatilhoDivida}</p>
+                <p className="text-xs font-medium" style={{ color: ct("#6ee7b7") }}>{cx.semGatilhoDivida}</p>
               )}
             </div>
 
             {/* Regra de ouro + Runway */}
-            <div className="rounded-2xl p-4 md:p-5 flex items-center gap-3" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : "rgba(236,72,153,0.2)"}` }}>
-              <Clock size={18} style={{ color: runwayMeses === null ? CORES.vermelho : CORES.rosa, flexShrink: 0 }} />
+            <div className="rounded-2xl p-4 md:p-5 flex items-center gap-3" style={{ background: painelFundo, border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : "rgba(236,72,153,0.2)"}` }}>
+              <Clock size={18} style={{ color: runwayMeses === null ? ct(CORES.vermelho) : ct(CORES.rosa), flexShrink: 0 }} />
               <div>
-                <p className="text-sm" style={{ color: runwayMeses === null ? "#fca5a5" : "#e2e8f0" }}>{narrativaRunway}</p>
-                <p className="text-xs mt-1" style={{ color: "#64748b" }}>{cx.regraOuroNegociar}</p>
+                <p className="text-sm" style={{ color: runwayMeses === null ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaRunway}</p>
+                <p className="text-xs mt-1" style={{ color: ct("#64748b") }}>{cx.regraOuroNegociar}</p>
               </div>
             </div>
           </>
         )}
 
         {/* Busca */}
-        <CanvasBox cor="#3b6fd4">
+        <CanvasBox cor={ct("#3b6fd4")}>
           <div className="flex items-center gap-2 py-1">
-            <Search size={16} style={{ color: "#5a7a9a" }} />
+            <Search size={16} style={{ color: "var(--axi-text-secondary)" }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.endividamento.buscar}
-              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "#c8d8f0" }} />
+              className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "var(--axi-text-primary)" }} />
           </div>
         </CanvasBox>
 
@@ -596,8 +611,8 @@ export default function Endividamento() {
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : dividasFiltradas.length === 0 ? (
-          <CanvasBox cor="#f87171">
-            <div className="text-center py-8"><p style={{ color: "#5a7a9a" }}>{t.endividamento.semDividas}</p></div>
+          <CanvasBox cor={ct("#f87171")}>
+            <div className="text-center py-8"><p style={{ color: "var(--axi-text-secondary)" }}>{t.endividamento.semDividas}</p></div>
           </CanvasBox>
         ) : (
           <div className="space-y-4">
@@ -606,37 +621,37 @@ export default function Endividamento() {
               const restante = d.valor_total - d.valor_pago;
               return (
                 <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor="#f87171">
+                  <CanvasBox cor={ct("#f87171")}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="font-bold mb-1" style={{ color: "#c8d8f0" }}>{d.descricao}</h3>
-                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.1)", color: "#f87171" }}>{d.tipo}</span>
+                        <h3 className="font-bold mb-1" style={{ color: "var(--axi-text-primary)" }}>{d.descricao}</h3>
+                        <span className="text-xs px-3 py-1 rounded-full" style={{ background: "rgba(248,113,113,0.1)", color: ct("#f87171") }}>{d.tipo}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right">
-                          <p className="text-xs mb-1" style={{ color: "#5a7a9a" }}>{t.endividamento.taxaJuros}</p>
-                          <p className="font-black text-sm" style={{ color: "#fbbf24" }}>{d.taxa_juros}% a.m.</p>
+                          <p className="text-xs mb-1" style={{ color: "var(--axi-text-secondary)" }}>{t.endividamento.taxaJuros}</p>
+                          <p className="font-black text-sm" style={{ color: ct("#fbbf24") }}>{d.taxa_juros}% a.m.</p>
                         </div>
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(d)} style={{ color: "#6ab0ff" }}><Pencil size={16} /></motion.button>
-                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(d.id)} style={{ color: "#f87171" }}><Trash2 size={16} /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(d)} style={{ color: ct("#6ab0ff") }}><Pencil size={16} /></motion.button>
+                        <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(d.id)} style={{ color: ct("#f87171") }}><Trash2 size={16} /></motion.button>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4">
                       {[
-                        { label: t.endividamento.valorTotal, value: fBRL(d.valor_total), cor: "#f87171" },
-                        { label: t.endividamento.jaPago, value: fBRL(d.valor_pago), cor: "#34d399" },
-                        { label: t.endividamento.restante, value: fBRL(restante), cor: "#fbbf24" },
+                        { label: t.endividamento.valorTotal, value: fBRL(d.valor_total), cor: ct("#f87171") },
+                        { label: t.endividamento.jaPago, value: fBRL(d.valor_pago), cor: ct("#34d399") },
+                        { label: t.endividamento.restante, value: fBRL(restante), cor: ct("#fbbf24") },
                       ].map((item) => (
                         <div key={item.label}>
-                          <p className="text-xs mb-1" style={{ color: "#5a7a9a" }}>{item.label}</p>
+                          <p className="text-xs mb-1" style={{ color: "var(--axi-text-secondary)" }}>{item.label}</p>
                           <p className="font-black text-sm" style={{ color: item.cor }}>{item.value}</p>
                         </div>
                       ))}
                     </div>
                     <div className="mb-2">
                       <div className="flex justify-between mb-1">
-                        <span className="text-xs" style={{ color: "#5a7a9a" }}>{t.endividamento.progresso}</span>
-                        <span className="text-xs font-black" style={{ color: "#6ab0ff" }}>{progresso.toFixed(1)}%</span>
+                        <span className="text-xs" style={{ color: "var(--axi-text-secondary)" }}>{t.endividamento.progresso}</span>
+                        <span className="text-xs font-black" style={{ color: ct("#6ab0ff") }}>{progresso.toFixed(1)}%</span>
                       </div>
                       <div className="w-full h-2 rounded-full" style={{ background: "rgba(59,111,212,0.1)" }}>
                         <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(progresso, 100)}%` }}
@@ -646,8 +661,8 @@ export default function Endividamento() {
                       </div>
                     </div>
                     <div className="flex justify-between mt-3 flex-wrap gap-1">
-                      <span className="text-xs" style={{ color: "#5a7a9a" }}>{t.endividamento.vencimento}: {new Date(d.vencimento + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-                      <span className="text-xs" style={{ color: "#5a7a9a" }}>{d.parcelas}x {t.endividamento.parcelas}</span>
+                      <span className="text-xs" style={{ color: "var(--axi-text-secondary)" }}>{t.endividamento.vencimento}: {new Date(d.vencimento + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      <span className="text-xs" style={{ color: "var(--axi-text-secondary)" }}>{d.parcelas}x {t.endividamento.parcelas}</span>
                     </div>
                   </CanvasBox>
                 </motion.div>
@@ -666,26 +681,26 @@ export default function Endividamento() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor="#f87171">
+              <CanvasBox cor={ct("#f87171")}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#f87171" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{editando ? "Editar Dívida" : t.endividamento.novaDivida}</h3>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#f87171") }}>AXIOMA AI.TECH</p>
+                    <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? "Editar Dívida" : t.endividamento.novaDivida}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.descricao}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.descricao}</label>
                     <input value={novo.descricao} onChange={(e) => setNovo({ ...novo, descricao: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                      style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.categoria}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.categoria}</label>
                     <select value={novo.tipo} onChange={(e) => setNovo({ ...novo, tipo: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(10,22,40,0.9)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }}>
+                      style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
                       {tipos.map(tp => <option key={tp}>{tp}</option>)}
                     </select>
                   </div>
@@ -697,19 +712,19 @@ export default function Endividamento() {
                       { label: t.endividamento.taxaJuros, key: "taxa_juros" },
                     ].map(({ label, key }) => (
                       <div key={key}>
-                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{label}</label>
+                        <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{label}</label>
                         <input type="number" value={novo[key as keyof typeof novo]}
                           onChange={(e) => setNovo({ ...novo, [key]: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                          style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
                       </div>
                     ))}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: "#5a8fd4" }}>{t.endividamento.vencimento}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.endividamento.vencimento}</label>
                     <input type="date" value={novo.vencimento} onChange={(e) => setNovo({ ...novo, vencimento: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
-                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(59,111,212,0.2)", color: "#c8d8f0" }} />
+                      style={{ background: campoFundo, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }} />
                   </div>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={salvar} disabled={salvando}
@@ -735,5 +750,6 @@ export default function Endividamento() {
         cor="#8b5cf6"
       />
     </ModuloLayout>
+    </div>
   );
 }

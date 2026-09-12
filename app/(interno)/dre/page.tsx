@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import {
-  fBRL, fBRL2, fPct, CORES, FONTE_EXEC,
+  fBRL, fBRL2, fPct, CORES, corTema, FONTE_EXEC,
   serieRolling, concentracao,
   pontoEquilibrio, margemSeguranca, pesoSobreReceita,
   resolverPeriodo, periodoAnterior, filtrarPorPeriodo, compararPeriodosPorCategoria, detectarAnomaliasHistoricas,
@@ -29,6 +29,14 @@ import { CentroCompartilhamento } from "../../../components/CentroCompartilhamen
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { carregarBenchmark, type BenchmarkSetor } from "../../../lib/iaFinanceiraHelpers";
 import { calcularImpostoRegime } from "../../../lib/iaTributariaHelpers";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+
+const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
+const PONTE_ALERTA_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))";
+const PONTE_ALERTA_CLARO = "linear-gradient(160deg, #fdf3ee, #f7f8fc)";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,6 +99,12 @@ const CorSemaforo = ({ cor, size = 12 }: { cor: CorSaude; size?: number }) => (
 
 export default function DREPage() {
   const { t, idioma } = useLanguage();
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
+  const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
+  const panelAlertaFundo = temaClaro ? PONTE_ALERTA_CLARO : PONTE_ALERTA_ESCURO;
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const d = t.dre;
@@ -423,15 +437,15 @@ export default function DREPage() {
     { label: cx.dreDespesasFinanceiras, valor: -dreAtual.despesasFinanceiras.valor, tipo: "variacao" },
     { label: cx.dreLucroLiquido, valor: dreAtual.lucroLiquido.valor, tipo: "subtotal" },
   ];
-  const optWaterfall = optCascata(itensCascata, CORES.verde, CORES.vermelho, CORES.teal);
+  const optWaterfall = optCascata(itensCascata, ct(CORES.verde), ct(CORES.vermelho), ct(CORES.teal), temaClaro);
 
   const kpisCFO = [
-    { l: cx.dreLucroLiquido, v: fBRL(dreAtual.lucroLiquido.valor), c: dreAtual.lucroLiquido.valor >= 0 ? CORES.verde : CORES.vermelho, i: "💰" },
-    { l: cx.dreEbitda, v: fBRL(dreAtual.ebitda.valor), c: dreAtual.ebitda.valor >= 0 ? CORES.teal : CORES.vermelho, i: "📈" },
-    { l: cx.dreMargemLiquida, v: fPct(dreAtual.margemLiquidaPct), c: dreAtual.margemLiquidaPct >= 10 ? CORES.verde : dreAtual.margemLiquidaPct >= 0 ? CORES.amarelo : CORES.vermelho, i: "🎯" },
-    { l: cx.dreMargemContribuicao, v: fPct(dreAtual.margemContribuicaoPct), c: CORES.cyan, i: "📊" },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? CORES.rosa : ms < 15 ? CORES.vermelho : ms < 30 ? CORES.amarelo : CORES.verde, i: "🛡️" },
-    { l: cx.runwayTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "—", c: runwayMeses !== null ? CORES.vermelho : CORES.verde, i: "⏳" },
+    { l: cx.dreLucroLiquido, v: fBRL(dreAtual.lucroLiquido.valor), c: dreAtual.lucroLiquido.valor >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "💰" },
+    { l: cx.dreEbitda, v: fBRL(dreAtual.ebitda.valor), c: dreAtual.ebitda.valor >= 0 ? ct(CORES.teal) : ct(CORES.vermelho), i: "📈" },
+    { l: cx.dreMargemLiquida, v: fPct(dreAtual.margemLiquidaPct), c: dreAtual.margemLiquidaPct >= 10 ? ct(CORES.verde) : dreAtual.margemLiquidaPct >= 0 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯" },
+    { l: cx.dreMargemContribuicao, v: fPct(dreAtual.margemContribuicaoPct), c: ct(CORES.cyan), i: "📊" },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
+    { l: cx.runwayTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "—", c: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), i: "⏳" },
   ];
 
   const marquee = [
@@ -441,17 +455,19 @@ export default function DREPage() {
   ].filter(Boolean);
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-        <p className="text-[13px] font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{titulo}</p>
+        <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
       </div>
       <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
     </div>
   );
 
   return (
-    <ModuloLayout titulo={`📈 ${d.titulo}`} subtitulo={d.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <ModuloLayout titulo={`📈 ${d.titulo}`} subtitulo={d.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
@@ -464,17 +480,17 @@ export default function DREPage() {
           <SeletorPeriodo
             preset={presetPeriodo} onChangePreset={setPresetPeriodo}
             personalizado={personalizado} onChangePersonalizado={setPersonalizado}
-            cor={CORES.verde} lang={lang}
+            cor={ct(CORES.verde)} lang={lang}
           />
           <div className="flex gap-2">
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setHistoricoAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: "rgba(20,184,166,0.15)", border: "1px solid rgba(20,184,166,0.4)", color: "#5eead4" }}>
+              style={{ background: "rgba(20,184,166,0.15)", border: "1px solid rgba(20,184,166,0.4)", color: ct("#5eead4") }}>
               <History size={16} /> {cx.verHistorico}
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd" }}>
+              style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
               <Share2 size={16} /> {cx.compartilhar}
             </motion.button>
           </div>
@@ -483,13 +499,13 @@ export default function DREPage() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: cx.dreReceitaBruta, value: fBRL(dreAtual.receitaBruta.valor), cor: CORES.verde },
-            { label: cx.dreLucroLiquido, value: fBRL(dreAtual.lucroLiquido.valor), cor: dreAtual.lucroLiquido.valor >= 0 ? CORES.teal : CORES.vermelho },
-            { label: cx.dreMargemLiquida, value: fPct(dreAtual.margemLiquidaPct), cor: CORES.verde },
+            { label: cx.dreReceitaBruta, value: fBRL(dreAtual.receitaBruta.valor), cor: ct(CORES.verde) },
+            { label: cx.dreLucroLiquido, value: fBRL(dreAtual.lucroLiquido.valor), cor: dreAtual.lucroLiquido.valor >= 0 ? ct(CORES.teal) : ct(CORES.vermelho) },
+            { label: cx.dreMargemLiquida, value: fPct(dreAtual.margemLiquidaPct), cor: ct(CORES.verde) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "#5a7a9a" }}>{card.label}</p>
+              <CanvasBox cor={card.cor} destaque>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
                 <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
               </CanvasBox>
             </motion.div>
@@ -497,23 +513,23 @@ export default function DREPage() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={CORES.verde}>
-            <p className="text-sm text-center py-8" style={{ color: "#5a7a9a" }}>{d.semDados}</p>
+          <CanvasBox cor={ct(CORES.verde)}>
+            <p className="text-sm text-center py-8" style={{ color: "var(--axi-text-secondary)" }}>{d.semDados}</p>
           </CanvasBox>
         ) : (
           <>
             {/* SEMÁFORO DE SAÚDE */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${corSaude === "verde" ? "rgba(16,185,129,0.3)" : corSaude === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: `1px solid ${corSaude === "verde" ? "rgba(16,185,129,0.3)" : corSaude === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={16} style={{ color: CORES.verde }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.semaforoSaudeTitulo}</p>
+                <ShieldCheck size={16} style={{ color: ct(CORES.verde) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.semaforoSaudeTitulo}</p>
                 <CorSemaforo cor={corSaude} size={14} />
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {sinaisSaude.map((s, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
                     <CorSemaforo cor={s.cor} size={9} />
-                    <p className="text-xs font-medium" style={{ color: "#cbd5e1" }}>{SINAL_LABEL[s.chave]}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#cbd5e1") }}>{SINAL_LABEL[s.chave]}</p>
                   </div>
                 ))}
               </div>
@@ -524,10 +540,10 @@ export default function DREPage() {
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
                   className="rounded-2xl p-3 md:p-4"
-                  style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
+                  style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
-                  <p className="text-[8px] md:text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
@@ -536,8 +552,8 @@ export default function DREPage() {
             <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(20,184,166,0.10))", border: "1px solid rgba(16,185,129,0.24)" }}>
               <div className="marquee-dre py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
-                  <span key={rep} className="text-[13px] font-bold tracking-wide" style={{ fontFamily: "'Georgia',serif" }} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#6ee7b7" : "#e2e8f0" }}>{m}<span style={{ color: CORES.verde }}>{"  •  "}</span></span>))}
+                  <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#6ee7b7") : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.verde) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -546,12 +562,12 @@ export default function DREPage() {
 
             {/* DIAGNÓSTICO DE LUCRATIVIDADE — causa raiz */}
             {narrativaCausaRaiz && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(16,185,129,0.2)" }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(16,185,129,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <MessageSquareText size={16} style={{ color: CORES.verde }} />
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.diagnosticoTitulo}</p>
+                  <MessageSquareText size={16} style={{ color: ct(CORES.verde) }} />
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.diagnosticoTitulo}</p>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: "#e2e8f0" }}>
+                <p className="text-sm leading-relaxed" style={{ color: ct("#e2e8f0") }}>
                   {narrativaCausaRaiz}
                   {categoriaReceitaPrincipal && ` (${lang === "en" ? "mainly" : lang === "es" ? "principalmente" : "principalmente"} ${categoriaReceitaPrincipal.categoria})`}
                 </p>
@@ -560,47 +576,47 @@ export default function DREPage() {
 
             {/* PONTE LUCRO × CAIXA */}
             {narrativaPonte && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: ponte.alerta ? "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${ponte.alerta ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.2)"}` }}>
+              <div className="rounded-2xl p-4 md:p-5" style={{ background: ponte.alerta ? panelAlertaFundo : painelFundo, border: `1px solid ${ponte.alerta ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.2)"}` }}>
                 <div className="flex items-center gap-2 mb-2">
-                  {ponte.alerta ? <AlertTriangle size={16} style={{ color: CORES.vermelho }} /> : <ShieldCheck size={16} style={{ color: CORES.verde }} />}
-                  <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.ponteLucroCaixaTitulo}</p>
+                  {ponte.alerta ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(CORES.verde) }} />}
+                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.ponteLucroCaixaTitulo}</p>
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: ponte.alerta ? "#fca5a5" : "#e2e8f0" }}>{narrativaPonte}</p>
+                <p className="text-sm leading-relaxed" style={{ color: ponte.alerta ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaPonte}</p>
               </div>
             )}
 
             {/* MODAL ÚNICO — Cascata + AV/AH + Projeção */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#10b981,#14b8a6)", boxShadow: "0 0 12px #10b981" }} />
                   <div>
-                    <p className="text-sm md:text-base font-black" style={{ color: "#f1f5f9", fontFamily: "'Georgia',serif" }}>{cx.cascataDRE}</p>
-                    <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
+                    <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.cascataDRE}</p>
+                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <SubChart titulo={cx.cascataDRE} cor={CORES.verde} option={optWaterfall} altura={300} />
+                  <SubChart titulo={cx.cascataDRE} cor={ct(CORES.verde)} option={optWaterfall} altura={300} />
                 </div>
 
                 {/* Tabela AV% / AH% */}
-                <div className="overflow-x-auto rounded-xl mb-4" style={{ background: "rgba(8,6,24,0.5)", border: `1px solid ${CORES.verde}20` }}>
+                <div className="overflow-x-auto rounded-xl mb-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${ct(CORES.verde)}20` }}>
                   <table className="w-full min-w-[480px]">
                     <thead>
                       <tr style={{ borderBottom: "1px solid rgba(16,185,129,0.15)" }}>
                         {[t.geral.descricao, t.geral.valor, "AV%", "AH%"].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: "#5a7a9a" }}>{h}</th>
+                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {linhasCascataTabela.map((l, i) => (
                         <tr key={i} style={{ borderBottom: i < linhasCascataTabela.length - 1 ? "1px solid rgba(59,111,212,0.06)" : "none" }}>
-                          <td className="px-4 py-2.5 text-sm" style={{ color: "#c8d8f0" }}>{l.label}</td>
-                          <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: l.linha.valor >= 0 ? "#e2e8f0" : CORES.vermelho }}>{fBRL(l.linha.valor)}</td>
-                          <td className="px-4 py-2.5 text-sm whitespace-nowrap" style={{ color: "#64748b" }}>{l.linha.avPct !== null ? fPct(l.linha.avPct) : "—"}</td>
-                          <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: Math.abs(l.ah) < 1 ? "#64748b" : l.ah > 0 ? CORES.verde : CORES.vermelho }}>
+                          <td className="px-4 py-2.5 text-sm" style={{ color: "var(--axi-text-primary)" }}>{l.label}</td>
+                          <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: l.linha.valor >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(l.linha.valor)}</td>
+                          <td className="px-4 py-2.5 text-sm whitespace-nowrap" style={{ color: ct("#64748b") }}>{l.linha.avPct !== null ? fPct(l.linha.avPct) : "—"}</td>
+                          <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: Math.abs(l.ah) < 1 ? ct("#64748b") : l.ah > 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>
                             {Math.abs(l.ah) < 1 ? cx.periodoEstavel : `${l.ah > 0 ? "▲" : "▼"} ${fPct(Math.abs(l.ah))}`}
                           </td>
                         </tr>
@@ -613,9 +629,9 @@ export default function DREPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {projecaoDRE.map((proj, i) => (
                     <div key={i} className="rounded-xl p-3" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                      <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: CORES.verde }}>{cx.previsao} +{i + 1}</p>
-                      <p className="text-base font-black" style={{ color: proj.lucroLiquido.valor >= 0 ? "#e2e8f0" : CORES.vermelho }}>{fBRL(proj.lucroLiquido.valor)}</p>
-                      <p className="text-[10px]" style={{ color: "#64748b" }}>{cx.dreLucroLiquido}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{cx.previsao} +{i + 1}</p>
+                      <p className="text-base font-black" style={{ color: proj.lucroLiquido.valor >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(proj.lucroLiquido.valor)}</p>
+                      <p className="text-xs" style={{ color: ct("#64748b") }}>{cx.dreLucroLiquido}</p>
                     </div>
                   ))}
                 </div>
@@ -623,29 +639,29 @@ export default function DREPage() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(212,175,55,0.2)" }}>
               <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} style={{ color: CORES.ouro }} />
-                <p className="text-sm font-black" style={{ color: "#f1f5f9", ...FONTE_EXEC }}>{cx.conselhoCfoTitulo}</p>
+                <Zap size={16} style={{ color: ct(CORES.ouro) }} />
+                <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.conselhoCfoTitulo}</p>
               </div>
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)" }}>
-                      <Sparkles size={15} style={{ color: CORES.ouro, flexShrink: 0 }} />
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{s}</p>
+                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
+                      <p className="text-xs font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs md:text-[13px] font-medium" style={{ color: "#6ee7b7" }}>{cx.semGatilhoConselho}</p>
+                <p className="text-xs font-medium" style={{ color: ct("#6ee7b7") }}>{cx.semGatilhoConselho}</p>
               )}
             </div>
 
             {/* Runway */}
-            <div className="rounded-2xl p-4 md:p-5 flex items-center gap-3" style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))", border: `1px solid ${runwayMeses !== null ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.2)"}` }}>
-              <Clock size={18} style={{ color: runwayMeses !== null ? CORES.vermelho : CORES.verde, flexShrink: 0 }} />
-              <p className="text-sm" style={{ color: runwayMeses !== null ? "#fca5a5" : "#e2e8f0" }}>{narrativaRunway}</p>
+            <div className="rounded-2xl p-4 md:p-5 flex items-center gap-3" style={{ background: painelFundo, border: `1px solid ${runwayMeses !== null ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.2)"}` }}>
+              <Clock size={18} style={{ color: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), flexShrink: 0 }} />
+              <p className="text-sm" style={{ color: runwayMeses !== null ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaRunway}</p>
             </div>
           </>
         )}
@@ -667,18 +683,18 @@ export default function DREPage() {
         {historicoAberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-start justify-center z-50 p-4 pt-16 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-              <CanvasBox cor={CORES.teal}>
+              <CanvasBox cor={ct(CORES.teal)}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#5eead4" }}>AXIOMA AI.TECH</p>
-                    <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cx.historicoTitulo}</h3>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#5eead4") }}>AXIOMA AI.TECH</p>
+                    <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{cx.historicoTitulo}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
                 </div>
 
                 {!snapshotSelecionado ? (
                   historico.length === 0 ? (
-                    <p className="text-sm text-center py-10" style={{ color: "#5a7a9a" }}>{cx.historicoVazio}</p>
+                    <p className="text-sm text-center py-10" style={{ color: "var(--axi-text-secondary)" }}>{cx.historicoVazio}</p>
                   ) : (
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                       {historico.map(h => (
@@ -686,18 +702,18 @@ export default function DREPage() {
                           <div className="flex items-center gap-2.5 min-w-0">
                             <CorSemaforo cor={h.semaforo_cor} />
                             <div className="min-w-0">
-                              <p className="text-sm font-bold truncate" style={{ color: "#e2e8f0" }}>{h.periodo_label} — {new Date(h.periodo_fim + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "numeric" })}</p>
-                              <p className="text-[11px]" style={{ color: h.periodo_fim < isoHoje() ? "#64748b" : "#5eead4" }}>{h.periodo_fim < isoHoje() ? cx.periodoFechado : cx.periodoAberto}</p>
+                              <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{h.periodo_label} — {new Date(h.periodo_fim + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "numeric" })}</p>
+                              <p className="text-xs" style={{ color: h.periodo_fim < isoHoje() ? ct("#64748b") : ct("#5eead4") }}>{h.periodo_fim < isoHoje() ? cx.periodoFechado : cx.periodoAberto}</p>
                             </div>
                           </div>
-                          <p className="text-sm font-black flex-shrink-0" style={{ color: h.lucro_liquido >= 0 ? CORES.verde : CORES.vermelho }}>{fBRL(h.lucro_liquido)}</p>
+                          <p className="text-sm font-black flex-shrink-0" style={{ color: h.lucro_liquido >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(h.lucro_liquido)}</p>
                         </button>
                       ))}
                     </div>
                   )
                 ) : (
                   <div className="space-y-3">
-                    <button onClick={() => setSnapshotSelecionado(null)} className="text-xs font-bold" style={{ color: "#5eead4" }}>← {cx.verHistorico}</button>
+                    <button onClick={() => setSnapshotSelecionado(null)} className="text-xs font-bold" style={{ color: ct("#5eead4") }}>← {cx.verHistorico}</button>
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { l: cx.dreReceitaBruta, v: fBRL(snapshotSelecionado.receita_bruta) },
@@ -708,16 +724,16 @@ export default function DREPage() {
                         { l: cx.dreMargemLiquida, v: fPct(snapshotSelecionado.margem_liquida_pct) },
                       ].map((c, i) => (
                         <div key={i} className="rounded-xl px-3 py-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
-                          <p className="text-[10px] uppercase tracking-wider" style={{ color: "#64748b" }}>{c.l}</p>
-                          <p className="text-sm font-bold" style={{ color: "#e2e8f0" }}>{c.v}</p>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{c.l}</p>
+                          <p className="text-sm font-bold" style={{ color: ct("#e2e8f0") }}>{c.v}</p>
                         </div>
                       ))}
                     </div>
                     {snapshotSelecionado.resultado_completo?.gatilhosConselho?.length > 0 && (
                       <div className="space-y-1.5">
-                        <p className="text-xs font-black" style={{ color: CORES.ouro }}>{cx.conselhoCfoTitulo}</p>
+                        <p className="text-xs font-black" style={{ color: ct(CORES.ouro) }}>{cx.conselhoCfoTitulo}</p>
                         {snapshotSelecionado.resultado_completo.gatilhosConselho.map((g: any, i: number) => (
-                          <p key={i} className="text-xs" style={{ color: "#f0d878" }}>{montarConselhoCFO(lang, g)}</p>
+                          <p key={i} className="text-xs" style={{ color: ct("#f0d878") }}>{montarConselhoCFO(lang, g)}</p>
                         ))}
                       </div>
                     )}
@@ -729,5 +745,6 @@ export default function DREPage() {
         )}
       </AnimatePresence>
     </ModuloLayout>
+    </div>
   );
 }

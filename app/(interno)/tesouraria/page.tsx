@@ -16,24 +16,22 @@ import {
   descreverAlerta, tituloAlertaLocalizado, responderZiaTesourariaPorRegra,
   type PosicaoCaixa, type FluxoProjetadoResultado, type AlertaTesouraria,
 } from '../../../lib/tesourariaHelpers'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZUL = '#3b6fd4'
-const AZULC = '#6ab0ff'
-const VERDE = '#34d399'
-const AMARELO = '#fbbf24'
-const LARANJA = '#fb923c'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa as mesmas cores 600/700 já padronizadas no resto do Axioma,
+// nunca a versão pastel do dark (ilegível em fundo branco).
+const PALETA = {
+  dark: { AZUL: '#3b6fd4', AZULC: '#6ab0ff', VERDE: '#34d399', AMARELO: '#fbbf24', LARANJA: '#fb923c', VERMELHO: '#f87171', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.95)', PAINEL_BG: 'rgba(10,20,36,0.7)' },
+  xms: { AZUL: '#0043c8', AZULC: '#0043c8', VERDE: '#16a34a', AMARELO: '#d97706', LARANJA: '#ea580c', VERMELHO: '#dc2626', ROXO: '#7c3aed', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7' },
+} as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']
 
-const CORES_SEVERIDADE: Record<string, string> = { normal: VERDE, atencao: AMARELO, risco: LARANJA, critico: VERMELHO }
 const EMOJI_SEVERIDADE: Record<string, string> = { normal: '🟢', atencao: '🟡', risco: '🟠', critico: '🔴' }
-const CORES_SCORE: Record<string, string> = { vermelho: VERMELHO, amarelo: AMARELO, azul: AZULC, verde: VERDE }
 const LABEL_TIPO_LIQUIDEZ: Record<string, { pt: string; en: string; es: string }> = {
   disponivel: { pt: 'Disponível', en: 'Available', es: 'Disponible' },
   aplicado: { pt: 'Aplicado', en: 'Invested', es: 'Aplicado' },
@@ -44,6 +42,10 @@ function hojeISO(): string { return new Date().toISOString().slice(0, 10) }
 
 export default function TesourariaPage() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { AZUL, AZULC, VERDE, AMARELO, LARANJA, VERMELHO, ROXO, CINZA, TEXTO, TITULO, CAMPO_BG, PAINEL_BG } = PALETA[tema]
+  const CORES_SEVERIDADE: Record<string, string> = { normal: VERDE, atencao: AMARELO, risco: LARANJA, critico: VERMELHO }
+  const CORES_SCORE: Record<string, string> = { vermelho: VERMELHO, amarelo: AMARELO, azul: AZULC, verde: VERDE }
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
@@ -173,6 +175,7 @@ export default function TesourariaPage() {
     es: ['¿Cómo está mi caja?', '¿Tengo dinero ocioso?', '¿Cuál es mi mayor riesgo?', '¿Mi caja aguanta 30 días?', '¿Puedo contratar a alguien?'],
   }
 
+  const temaClaro = tema === 'xms'
   const chartOption = fluxo ? optLinhaMulti(
     [
       { nome: L('Otimista', 'Optimistic', 'Optimista'), dados: fluxo.pontos.map((p) => p.saldoProjetado.otimista), cor: VERDE, tipo: 'dashed' },
@@ -180,7 +183,7 @@ export default function TesourariaPage() {
       { nome: L('Estressado', 'Stressed', 'Estresado'), dados: fluxo.pontos.map((p) => p.saldoProjetado.estressado), cor: VERMELHO, tipo: 'dashed' },
     ],
     fluxo.pontos.map((p) => `${p.horizonteDias}d`),
-    AZULC
+    AZULC, temaClaro
   ) : null
 
   const textoShareResumo = posicao ? [
@@ -191,7 +194,7 @@ export default function TesourariaPage() {
   ].filter(Boolean).join('\n') : ''
 
   return (
-    <>
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Tesouraria', 'Treasury', 'Tesorería')}
       subtitulo={L('Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só', 'Where cash stands, what happens next, and the risk — one view', 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una vista')}
@@ -200,7 +203,7 @@ export default function TesourariaPage() {
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
           <button onClick={() => router.push('/tesouraria/simulador')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: 'rgba(167,139,250,0.14)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }}>
+            style={{ background: 'rgba(167,139,250,0.14)', color: ROXO, border: '1px solid rgba(167,139,250,0.4)' }}>
             <SlidersHorizontal size={16} />{L('Simulador de Estresse', 'Stress Simulator', 'Simulador de Estrés')}
           </button>
           <button onClick={() => router.push('/tesouraria/gemeo')}
@@ -215,6 +218,7 @@ export default function TesourariaPage() {
               <Settings size={16} />{L('Configurar', 'Settings', 'Configurar')}
             </button>
           )}
+          <ThemeToggle />
         </>
       }
     >
@@ -233,7 +237,7 @@ export default function TesourariaPage() {
 
           {/* LIQUIDITY SCORE */}
           {score && (
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CORES_SCORE[score.cor]}30` }}>
+            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: `1px solid ${CORES_SCORE[score.cor]}30` }}>
               <div className="flex flex-wrap items-center gap-4">
                 <div className="text-4xl md:text-5xl font-black" style={{ color: CORES_SCORE[score.cor] }}>{score.total}</div>
                 <div className="flex-1 min-w-[220px]">
@@ -264,7 +268,7 @@ export default function TesourariaPage() {
               { label: L('Livre de Fato', 'Truly Free', 'Realmente Libre'), valor: posicao.totalLivre, cor: AMARELO },
               { label: L('Aplicado', 'Invested', 'Aplicado'), valor: posicao.totalAplicado, cor: AZUL },
             ].map((k) => (
-              <div key={k.label} className="rounded-2xl p-3 md:p-4" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${k.cor}25` }}>
+              <div key={k.label} className="rounded-2xl p-3 md:p-4" style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}>R$ {fBRL2(k.valor)}</p>
               </div>
@@ -375,7 +379,7 @@ export default function TesourariaPage() {
             ) : (
               <div className="space-y-2">
                 {alertas.map((a) => (
-                  <div key={a.id} className="flex items-start gap-3 rounded-xl p-3" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CORES_SEVERIDADE[a.severidade]}30` }}>
+                  <div key={a.id} className="flex items-start gap-3 rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${CORES_SEVERIDADE[a.severidade]}30` }}>
                     <span className="text-base leading-none">{EMOJI_SEVERIDADE[a.severidade]}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold" style={{ color: CORES_SEVERIDADE[a.severidade] }}>{tituloAlertaLocalizado(a.tipo, lang)}</p>
@@ -393,7 +397,7 @@ export default function TesourariaPage() {
           </div>
 
           {/* PERGUNTE À TESOURARIA (ZIA Copilot) */}
-          <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(167,139,250,0.2)' }}>
+          <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: '1px solid rgba(167,139,250,0.2)' }}>
             <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
               <MessageCircleQuestion size={14} />
               {L('Pergunte à Tesouraria', 'Ask Treasury', 'Pregunte a la Tesorería')}
@@ -403,8 +407,8 @@ export default function TesourariaPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') perguntarZia() }}
                 disabled={carregandoRespostaZia}
                 placeholder={L('Ex.: como está meu caixa?', 'E.g.: how is my cash?', 'Ej.: ¿cómo está mi caja?')}
-                className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: 'rgba(10,22,40,0.95)', border: '1px solid rgba(167,139,250,0.2)', color: '#c8d8f0' }} />
-              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: 'rgba(167,139,250,0.2)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.5)' }}>
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: CAMPO_BG, border: '1px solid rgba(167,139,250,0.2)', color: TEXTO }} />
+              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: 'rgba(167,139,250,0.2)', color: ROXO, border: '1px solid rgba(167,139,250,0.5)' }}>
                 <Send size={16} />
               </button>
             </div>
@@ -421,7 +425,7 @@ export default function TesourariaPage() {
               </div>
             ) : respostaZia && (
               <div className="rounded-xl p-3" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)' }}>
-                <p className="text-sm" style={{ color: '#c8d8f0' }}>{respostaZia}</p>
+                <p className="text-sm" style={{ color: TEXTO }}>{respostaZia}</p>
               </div>
             )}
           </div>
@@ -437,6 +441,6 @@ export default function TesourariaPage() {
       assunto={`${L('Tesouraria', 'Treasury', 'Tesorería')} — Axioma`}
       cor={AZULC}
     />
-    </>
+    </div>
   )
 }
