@@ -24,9 +24,9 @@ export function CanvasBox({
   corD?: string;
   motionIndex?: number;
   glow?: boolean;
-  /** Card "de destaque" (opt-in) — no tema Esmeralda o texto (var(--axi-text-*)
-   * dentro do card) vira verde; o fundo continua o mesmo --axi-surface de
-   * sempre. Em "dark"/"xms" não muda nada. */
+  /** Card "de destaque" (opt-in) — no tema Claro o fundo (var(--axi-card-destaque-bg))
+   * ganha um tingimento azul pra se destacar do card branco comum. No
+   * "dark" não muda nada (mesmo --axi-surface de sempre). */
   destaque?: boolean;
 }) {
   const classeDestaque = destaque ? " axi-card-destaque" : "";

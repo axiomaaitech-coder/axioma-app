@@ -39,34 +39,28 @@ const supabase = createBrowserClient(
 
 // Identidade do módulo no tema escuro (padrão, inalterado): dourado
 // champagne + azul-royal (mesmo tom de Investimentos/Contas a Receber) —
-// nunca mais laranja/rosa. No tema "XMS" a identidade troca pro verde/
+// nunca mais laranja/rosa. No tema "Claro" a identidade troca pro azul-royal/
 // azul-marinho da marca (ver useThemeAxioma abaixo).
-// AZUL fica fixo em qualquer tema — já era documentado como "neutro" em
-// todo o app (usado em `${cor}NN` pra opacidade, por isso hex real, nunca
-// var()). VERDE/VERMELHO/AMBAR abaixo seguem os mesmos hex dos tokens
-// --axi-success/warning/error, só que resolvidos aqui por tema porque
-// também precisam do sufixo de opacidade hex.
-const AZUL = '#6ab0ff'
+// VERDE/VERMELHO/AMBAR/AZUL seguem os mesmos hex dos tokens
+// --axi-success/warning/error/accent, só que resolvidos aqui por tema porque
+// também precisam do sufixo de opacidade hex (`${cor}NN`, por isso hex real,
+// nunca var()). AZUL varia por tema porque o tom do escuro (claro sobre fundo
+// navy) fica ilegível em cima do fundo branco do tema Claro.
 
 export default function PainelMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   // Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" é o
-  // papel branco (identidade XMS Contábil). "esmeralda" usa o MESMO
-  // azul-marinho do tema escuro (o Elias pediu explicitamente pra não
-  // inventar cor nova, reusar "o azul do Axioma") — só ROYAL muda pro
-  // verde exato extraído por pixel da imagem de referência
-  // (public/referencias/), já que é o acento que carrega a identidade
-  // "Esmeralda" (CTAs, Acesso Rápido, texto dos cards destaque).
+  // papel branco (identidade XMS Contábil): ROYAL/AZUL usam o mesmo
+  // azul-royal exato extraído por pixel da imagem de referência
+  // (public/referencias/), nunca verde — é o único acento da tela.
   const PALETA = {
-    dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
-    xms: { OURO: '#0b1f3a', ROYAL: '#0e9f6e', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
-    esmeralda: { OURO: '#d4af37', ROYAL: '#40d088', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
+    dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', AZUL: '#6ab0ff', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
+    xms: { OURO: '#0b1f3a', ROYAL: '#0043c8', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', AZUL: '#0043c8', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
   } as const
-  const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
+  const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, AZUL, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
   // Gráficos ECharts recebem um booleano "fundo claro" pra trocar a cor do
-  // texto/eixo — só o xms tem papel branco; esmeralda usa o mesmo fundo
-  // escuro do tema padrão.
+  // texto/eixo — só o xms tem papel branco.
   const temaClaro = tema === 'xms'
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)

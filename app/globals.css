@@ -25,16 +25,17 @@
   --axi-error: #f87171;
   --axi-accent: #6ab0ff;
   /* Fundo do card "destaque" (CanvasBox destaque) — igual ao --axi-surface
-     normal aqui e no xms (nenhuma mudança visual); só o Esmeralda redefine
-     pra verde de verdade. Ver bloco [data-theme="esmeralda"]. */
+     normal aqui (nenhuma mudança visual); o tema "xms" redefine pra um
+     tingimento azul. Ver bloco [data-theme="xms"] abaixo. */
   --axi-card-destaque-bg: var(--axi-surface);
-  --axi-card-destaque-text: var(--axi-text-primary);
-  --axi-card-destaque-text-secondary: var(--axi-text-secondary);
 }
 
 [data-theme="xms"] {
-  /* Tema "XMS" — proposto pra aprovação (identidade XMS Contábil):
-     azul-marinho profundo + verde vibrante + branco, elegante/empresarial. */
+  /* Tema "Claro" (2 temas no Axioma: Escuro e Claro) — branco + azul-marinho
+     + azul-royal, cores extraídas por pixel da referência (public/referencias/),
+     não aproximadas. Distribuição 60/30/10: branco domina o fundo, azul-marinho
+     carrega texto/hierarquia, azul-royal é o único acento (CTAs, cards
+     "destaque", bordas ativas) — nunca verde. */
   --axi-bg: #f3f6fa;
   --axi-surface: #ffffff;
   --axi-surface-solid: #ffffff;
@@ -45,46 +46,14 @@
   --axi-success: #16a34a;
   --axi-warning: #d97706;
   --axi-error: #dc2626;
-  --axi-accent: #0e9f6e;
-}
-
-[data-theme="esmeralda"] {
-  /* Tema "Esmeralda" — 3ª rodada, correção do Elias: nada de cor nova.
-     Container/cards voltam a usar o MESMO azul-marinho que já é a
-     identidade do Axioma (idêntico ao tema "escuro" — surface, borda,
-     textos e sombra são cópia exata de :root, mesmo efeito de
-     profundidade que separa card de fundo em todo módulo já existente,
-     "efeito 3D" sem inventar nada). A ÚNICA diferença real do Esmeralda
-     é o acento verde — extraído por pixel da imagem de referência
-     (public/referencias/), não aproximado — e o texto dos cards
-     "destaque" (CanvasBox destaque true), que fica verde em vez do
-     azul-claro padrão. */
-  --axi-bg: #080830;
-  --axi-surface: rgba(10, 20, 36, 0.7);
-  --axi-surface-solid: #0a1628;
-  --axi-border: rgba(106, 176, 255, 0.14);
-  --axi-text-heading: #e2ecf7;
-  --axi-text-primary: #c8d8f0;
-  --axi-text-secondary: #5a7a9a;
-  --axi-success: #34d399;
-  --axi-warning: #f59e0b;
-  --axi-error: #f87171;
-  --axi-accent: #40d088;
-  --axi-card-destaque-bg: var(--axi-surface);
-  --axi-card-destaque-text: #40d088;
-  --axi-card-destaque-text-secondary: rgba(64, 208, 136, 0.75);
-}
-
-/* Texto dentro de um card "destaque" (CanvasBox destaque) — só no tema
-   Esmeralda: os var(--axi-text-*) que o card já usa via CSS passam a
-   resolver pro par acima (verde, sobre o azul do card), sem precisar
-   tocar em cada `style` do MEI/Cockpit. Em "dark"/"xms" (sem
-   --axi-card-destaque-bg própria) CanvasBox cai no --axi-surface normal,
-   comportamento inalterado. */
-[data-theme="esmeralda"] .axi-card-destaque {
-  --axi-text-heading: var(--axi-card-destaque-text);
-  --axi-text-primary: var(--axi-card-destaque-text);
-  --axi-text-secondary: var(--axi-card-destaque-text-secondary);
+  --axi-accent: #0043c8;
+  /* Card "destaque" no Claro ganha um tingimento azul (tint do próprio
+     acento, 8% de opacidade) pra se destacar do card branco comum, igual
+     ao contraste "seção clara vs. seção de CTA" da referência — sem virar
+     um bloco azul sólido, que apagaria o número (cor por card: dourado/
+     verde/azul) escrito por cima. Texto continua nos mesmos --axi-text-*
+     de sempre, sem override — já tem contraste de sobra num fundo claro. */
+  --axi-card-destaque-bg: rgba(0, 67, 200, 0.08);
 }
 
 @theme inline {

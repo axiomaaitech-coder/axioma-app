@@ -1,5 +1,5 @@
 "use client";
-import { Moon, Sparkles, Gem } from "lucide-react";
+import { Moon, Sparkles } from "lucide-react";
 import { useThemeAxioma, type TemaAxioma } from "../lib/ThemeContext";
 
 // Seletor de tema — só aparece nas telas que o importam explicitamente
@@ -12,7 +12,6 @@ export function ThemeToggle() {
   const opcoes: { valor: TemaAxioma; label: string; Icone: typeof Moon }[] = [
     { valor: "dark", label: "Escuro", Icone: Moon },
     { valor: "xms", label: "Tema Claro", Icone: Sparkles },
-    { valor: "esmeralda", label: "Esmeralda", Icone: Gem },
   ];
 
   return (

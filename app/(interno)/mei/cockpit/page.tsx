@@ -28,10 +28,9 @@ const supabase = createBrowserClient(
 )
 
 // Paleta executiva desta tela no tema escuro (padrão, inalterada) —
-// jade/bronze, nunca laranja (pedido explícito). No tema "XMS" a
-// identidade troca pro verde/azul-marinho da marca — ver dentro do
+// jade/bronze, nunca laranja (pedido explícito). No tema "Claro" a
+// identidade troca pro azul-royal/azul-marinho da marca — ver dentro do
 // componente, onde `tema` já está disponível.
-const AZUL = '#6ab0ff'
 
 const MESES: Record<'pt' | 'en' | 'es', string[]> = {
   pt: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
@@ -98,18 +97,17 @@ export default function CockpitMEI() {
   const router = useRouter()
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
-  // "esmeralda" usa o MESMO azul-marinho do tema escuro (pedido explícito
-  // do Elias: reusar "o azul do Axioma", nada de cor nova) — só JADE/BRONZE
-  // (o par que carrega a identidade visual da tela) vira o verde exato
-  // extraído por pixel da imagem de referência (public/referencias/).
-  // VERDE/VERMELHO/AMBAR (semáforo positivo/negativo/atenção) ficam iguais
-  // ao tema escuro — mesmo fundo, mesmo contraste já comprovado.
+  // No tema "Claro" JADE/BRONZE (o par que carrega a identidade visual da
+  // tela) vira o azul-royal exato extraído por pixel da imagem de referência
+  // (public/referencias/) — nunca verde. AZUL varia por tema pelo mesmo
+  // motivo do MEI Painel: o tom claro do escuro fica ilegível no fundo
+  // branco. VERDE/VERMELHO/AMBAR (semáforo positivo/negativo/atenção)
+  // ficam iguais ao tema escuro — mesmo contraste já comprovado.
   const PALETA_COCKPIT = {
-    dark: { JADE: '#047857', BRONZE: '#065f46', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b' },
-    xms: { JADE: '#0e9f6e', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706' },
-    esmeralda: { JADE: '#40d088', BRONZE: '#40d088', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b' },
+    dark: { JADE: '#047857', BRONZE: '#065f46', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', AZUL: '#6ab0ff' },
+    xms: { JADE: '#0043c8', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', AZUL: '#0043c8' },
   } as const
-  const { JADE, BRONZE, VERDE, VERMELHO, AMBAR } = PALETA_COCKPIT[tema]
+  const { JADE, BRONZE, VERDE, VERMELHO, AMBAR, AZUL } = PALETA_COCKPIT[tema]
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
   const [nomeEmpresa, setNomeEmpresa] = useState<string | null>(null)
