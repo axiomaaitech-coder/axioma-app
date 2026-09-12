@@ -18,18 +18,21 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const OURO = '#d4af37'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AZUL = '#6ab0ff'
-const ROXO = '#a78bfa'
-const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa o mesmo azul-royal extraído por pixel da referência
+// (public/referencias/) dos demais módulos do MEI, nunca verde.
+const PALETA = {
+  dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', BOLHA_BG: 'rgba(255,255,255,0.05)', BOLHA_BORDA: 'rgba(255,255,255,0.06)', CAMPO_BG: 'rgba(255,255,255,0.04)', POCO_BG: 'rgba(0,0,0,0.3)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', ROXO: '#7c3aed', BOLHA_BG: 'rgba(11,31,58,0.05)', BOLHA_BORDA: 'rgba(11,31,58,0.08)', CAMPO_BG: 'rgba(11,31,58,0.03)', POCO_BG: 'rgba(11,31,58,0.04)' },
+} as const
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
 // no fim do arquivo (chamaria app/api/ia-chat/route.ts quando a chave
@@ -103,6 +106,8 @@ function gerarResposta(pergunta: string, dados: {
 
 export default function IAMEIAdvisor() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { OURO, VERDE, VERMELHO, AZUL, ROXO, BOLHA_BG, BOLHA_BORDA, CAMPO_BG, POCO_BG } = PALETA[tema]
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
@@ -306,13 +311,17 @@ DADOS REAIS DESTE MEI:
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout titulo={t('titulo') as string} subtitulo={t('subtitulo') as string} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
-          <Share2 size={16} /> {mx.compartilhar}
-        </button>
+        <>
+          <button onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            <Share2 size={16} /> {mx.compartilhar}
+          </button>
+          <ThemeToggle />
+        </>
       }>
       <div ref={conteudoRef} className="space-y-4">
 
@@ -332,24 +341,24 @@ DADOS REAIS DESTE MEI:
             { label: lang === 'pt' ? 'Limite usado' : lang === 'en' ? 'Limit used' : 'Límite usado', value: `${percentualLimite.toFixed(1)}%`, cor: percentualLimite >= 80 ? VERMELHO : VERDE },
             { label: lang === 'pt' ? 'Categoria MEI' : lang === 'en' ? 'MEI Category' : 'Categoría MEI', value: categoria, cor: AZUL },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
-              <p className="text-lg md:text-xl font-black" style={{ color: card.cor, ...FONTE }}>{card.value}</p>
+            <CanvasBox key={i} cor={card.cor} destaque>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+              <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}>{card.value}</p>
             </CanvasBox>
           ))}
         </div>
 
         {/* Chat */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-1" style={{ color: '#c8d8f0', ...FONTE }}>{t('titulo') as string}</p>
-          <p className="text-[10px] mb-4" style={{ color: '#5a7a9a' }}>{t('transparencia') as string}</p>
+          <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('titulo') as string}</p>
+          <p className="text-xs mb-4" style={{ color: 'var(--axi-text-secondary)' }}>{t('transparencia') as string}</p>
 
           <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3"
-            style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)' }}>
+            style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)' }}>
             {chatMensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full gap-3">
                 <Bot size={40} style={{ color: `${OURO}60` }} />
-                <p className="text-xs text-center px-4" style={{ color: '#5a7a9a' }}>
+                <p className="text-xs text-center px-4" style={{ color: 'var(--axi-text-secondary)' }}>
                   {(t('bemvindo') as string)}
                 </p>
               </div>
@@ -358,9 +367,9 @@ DADOS REAIS DESTE MEI:
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className="max-w-[85%] px-4 py-3 rounded-xl text-sm whitespace-pre-line"
                   style={{
-                    background: msg.role === 'user' ? `${OURO}20` : 'rgba(255,255,255,0.05)',
-                    color: '#c8d8f0',
-                    border: `1px solid ${msg.role === 'user' ? OURO + '30' : 'rgba(255,255,255,0.06)'}`,
+                    background: msg.role === 'user' ? `${OURO}20` : BOLHA_BG,
+                    color: 'var(--axi-text-primary)',
+                    border: `1px solid ${msg.role === 'user' ? OURO + '30' : BOLHA_BORDA}`,
                   }}>
                   {msg.content}
                 </div>
@@ -368,7 +377,7 @@ DADOS REAIS DESTE MEI:
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="px-4 py-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="px-4 py-3 rounded-xl" style={{ background: BOLHA_BG, border: `1px solid ${BOLHA_BORDA}` }}>
                   <div className="flex gap-1">
                     {[0, 1, 2].map(i => (
                       <motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
@@ -386,10 +395,10 @@ DADOS REAIS DESTE MEI:
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && enviarMensagem()}
               placeholder={t('placeholder') as string}
               className="flex-1 px-4 py-3 rounded-xl focus:outline-none text-sm"
-              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${OURO}20`, color: '#c8d8f0' }} />
+              style={{ background: CAMPO_BG, border: `1px solid ${OURO}20`, color: 'var(--axi-text-primary)' }} />
             <button onClick={enviarMensagem} disabled={chatLoading || !chatInput.trim()}
               className="px-4 py-3 rounded-xl font-bold text-sm disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {t('enviar')}
             </button>
           </div>
@@ -418,5 +427,6 @@ DADOS REAIS DESTE MEI:
         cor={OURO}
       />
     </ModuloLayout>
+    </div>
   )
 }

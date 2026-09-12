@@ -19,20 +19,26 @@ import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const OURO = '#d4af37'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AZUL = '#6ab0ff'
-const AMBAR = '#f59e0b'
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa as mesmas cores 600/700 já padronizadas nos outros módulos do
+// MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
+const PALETA = {
+  dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', POCO_BG: 'rgba(0,0,0,0.3)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', POCO_BG: 'rgba(11,31,58,0.04)' },
+} as const
 
 export default function ReformaTributaria() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { OURO, VERDE, VERMELHO, AZUL, AMBAR, POCO_BG } = PALETA[tema]
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [exportando, setExportando] = useState(false)
@@ -269,17 +275,21 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={t('titulo')}
       subtitulo={t('subtitulo')}
       onExportarPDF={exportarPDF}
       exportando={exportando}
       botaoExtra={
-        <button onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
-          <Share2 size={16} /> {mx.compartilhar}
-        </button>
+        <>
+          <button onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            <Share2 size={16} /> {mx.compartilhar}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {toast && (
@@ -299,7 +309,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           <CheckCircle2 size={20} style={{ color: VERDE, flexShrink: 0, marginTop: 2 }} />
           <div>
             <p className="text-sm font-bold mb-1" style={{ color: VERDE }}>{t('calma2026Titulo')}</p>
-            <p className="text-xs" style={{ color: '#c8d8f0' }}>{t('calma2026Texto')}</p>
+            <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('calma2026Texto')}</p>
           </div>
         </motion.div>
 
@@ -310,17 +320,17 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           <AlertTriangle size={20} style={{ color: AMBAR, flexShrink: 0, marginTop: 2 }} />
           <div>
             <p className="text-sm font-bold mb-1" style={{ color: AMBAR }}>{t('urgencia2027Titulo')}</p>
-            <p className="text-xs" style={{ color: '#c8d8f0' }}>{t('urgencia2027Texto')}</p>
+            <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('urgencia2027Texto')}</p>
           </div>
         </motion.div>
 
         {/* Reforma personalizada por perfil de cliente */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{t('perfilTitulo')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilTitulo')}</p>
 
           {!perfilCliente && (
             <div className="mb-4 p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.15)' }}>
-              <p className="text-xs mb-2" style={{ color: '#c8d8f0' }}>{t('perfilNaoConfigurado')}</p>
+              <p className="text-xs mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilNaoConfigurado')}</p>
               <Link href="/mei" className="text-xs font-bold" style={{ color: AZUL }}>{t('configurarPerfil')} →</Link>
             </div>
           )}
@@ -328,11 +338,11 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           <div className="space-y-4">
             {(perfilCliente === 'b2b' || perfilCliente === 'ambos' || !perfilCliente) && (
               <div className="p-4 rounded-xl" style={{ background: `${AMBAR}08`, border: `1px solid ${AMBAR}20` }}>
-                <p className="text-sm font-bold mb-2" style={{ color: '#c8d8f0' }}>{t('perfilB2BTitulo')}</p>
-                <p className="text-xs mb-3" style={{ color: '#5a8ab0' }}>{t('perfilB2BTexto')}</p>
+                <p className="text-sm font-bold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilB2BTitulo')}</p>
+                <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('perfilB2BTexto')}</p>
                 <ul className="space-y-1.5">
                   {perfilB2BAcoes[lang].map((acao, i) => (
-                    <li key={i} className="text-xs flex items-start gap-2" style={{ color: '#c8d8f0' }}>
+                    <li key={i} className="text-xs flex items-start gap-2" style={{ color: 'var(--axi-text-primary)' }}>
                       <span style={{ color: AMBAR }}>•</span> {acao}
                     </li>
                   ))}
@@ -341,48 +351,48 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
             )}
             {(perfilCliente === 'b2c' || perfilCliente === 'ambos' || !perfilCliente) && (
               <div className="p-4 rounded-xl" style={{ background: `${VERDE}08`, border: `1px solid ${VERDE}20` }}>
-                <p className="text-sm font-bold mb-2" style={{ color: '#c8d8f0' }}>{t('perfilB2CTitulo')}</p>
-                <p className="text-xs" style={{ color: '#5a8ab0' }}>{t('perfilB2CTexto')}</p>
+                <p className="text-sm font-bold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('perfilB2CTitulo')}</p>
+                <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('perfilB2CTexto')}</p>
               </div>
             )}
             {perfilCliente === 'ambos' && (
-              <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('perfilAmbosTexto')}</p>
+              <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('perfilAmbosTexto')}</p>
             )}
           </div>
         </CanvasBox>
 
         {/* Checklist — o que fazer agora */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{t('checklistTitulo')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('checklistTitulo')}</p>
           <div className="space-y-2.5">
             <div className="flex items-start justify-between gap-3 flex-wrap p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.05)', border: '1px solid rgba(106,176,255,0.1)' }}>
-              <p className="text-xs flex-1" style={{ color: '#c8d8f0' }}>1. {t('checklist1')}</p>
+              <p className="text-xs flex-1" style={{ color: 'var(--axi-text-primary)' }}>1. {t('checklist1')}</p>
               <Link href="/mei/das" className="text-xs font-bold whitespace-nowrap" style={{ color: AZUL }}>{t('verDAS')}</Link>
             </div>
             <div className="p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.05)', border: '1px solid rgba(106,176,255,0.1)' }}>
-              <p className="text-xs" style={{ color: '#c8d8f0' }}>2. {t('checklist2')}</p>
+              <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>2. {t('checklist2')}</p>
             </div>
             <div className="flex items-start justify-between gap-3 flex-wrap p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.05)', border: '1px solid rgba(106,176,255,0.1)' }}>
-              <p className="text-xs flex-1" style={{ color: '#c8d8f0' }}>3. {t('checklist3')}</p>
+              <p className="text-xs flex-1" style={{ color: 'var(--axi-text-primary)' }}>3. {t('checklist3')}</p>
               <Link href="/mei/faturamento" className="text-xs font-bold whitespace-nowrap" style={{ color: AZUL }}>{t('verFaturamento')}</Link>
             </div>
             <div className="p-3 rounded-xl" style={{ background: `${AMBAR}08`, border: `1px solid ${AMBAR}20` }}>
               <p className="text-xs font-semibold" style={{ color: AMBAR }}>4. {t('checklist4')}</p>
             </div>
             <div className="p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.05)', border: '1px solid rgba(106,176,255,0.1)' }}>
-              <p className="text-xs" style={{ color: '#c8d8f0' }}>5. {t('checklist5')} ({fmt(LIMITE_NANOEMPREENDEDOR)}/ano)</p>
+              <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>5. {t('checklist5')} ({fmt(LIMITE_NANOEMPREENDEDOR)}/ano)</p>
             </div>
           </div>
         </CanvasBox>
 
         {/* Simulador MEI vs ME */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{t('simulador')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('simulador')}</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-xl text-center" style={{ background: `${OURO}10`, border: `1px solid ${OURO}30` }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: OURO }}>MEI 2027</p>
               <p className="text-lg font-black mb-1" style={{ color: OURO }}>{fmt(dasValor)}</p>
-              <p className="text-xs mb-3" style={{ color: '#5a7a9a' }}>{t('porMes')}</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('porMes')}</p>
               <div className="space-y-1">
                 <p className="text-xs font-semibold" style={{ color: VERDE }}>✓ {lang === 'pt' ? 'Simples e barato' : lang === 'en' ? 'Simple and cheap' : 'Simple y barato'}</p>
                 <p className="text-xs font-semibold" style={{ color: VERDE }}>✓ {lang === 'pt' ? 'Sem contador obrigatório' : lang === 'en' ? 'No accountant required' : 'Sin contador obligatorio'}</p>
@@ -393,7 +403,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
             <div className="p-4 rounded-xl text-center" style={{ background: `${AZUL}10`, border: `1px solid ${AZUL}30` }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: AZUL }}>ME Simples</p>
               <p className="text-lg font-black mb-1" style={{ color: AZUL }}>{fmt(faturamentoAnual * 0.06 / 12)}</p>
-              <p className="text-xs mb-3" style={{ color: '#5a7a9a' }}>{t('estimado')}</p>
+              <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('estimado')}</p>
               <div className="space-y-1">
                 <p className="text-xs font-semibold" style={{ color: VERDE }}>✓ {lang === 'pt' ? 'Limite R$ 4,8M/ano' : lang === 'en' ? 'Limit R$ 4.8M/year' : 'Límite R$ 4,8M/año'}</p>
                 <p className="text-xs font-semibold" style={{ color: VERDE }}>✓ {lang === 'pt' ? 'Pode ter sócios' : lang === 'en' ? 'Can have partners' : 'Puede tener socios'}</p>
@@ -405,12 +415,12 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           {(perfilCliente === 'b2b' || perfilCliente === 'ambos') && (
             <p className="text-xs text-center mt-3 font-semibold" style={{ color: AMBAR }}>{t('creditoAvisoB2B')}</p>
           )}
-          <p className="text-xs text-center mt-3" style={{ color: '#5a7a9a' }}>{t('aviso')}</p>
+          <p className="text-xs text-center mt-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('aviso')}</p>
         </CanvasBox>
 
         {/* Timeline */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{t('timeline')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('timeline')}</p>
           <div className="relative">
             <div className="absolute left-6 top-0 bottom-0 w-0.5" style={{ background: `linear-gradient(180deg, ${OURO}, ${AZUL})` }} />
             <div className="space-y-4">
@@ -423,9 +433,9 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
                   </div>
                   <div className="flex-1 pb-2">
                     <p className="text-xs font-black mb-0.5" style={{ color: item.cor }}>
-                      {item.ano} {i === indiceFaseAtual && <span className="ml-1 px-2 py-0.5 rounded-full text-[9px]" style={{ background: `${item.cor}25`, color: item.cor }}>● {t('vocEstaAqui')}</span>}
+                      {item.ano} {i === indiceFaseAtual && <span className="ml-1 px-2 py-0.5 rounded-full text-xs" style={{ background: `${item.cor}25`, color: item.cor }}>● {t('vocEstaAqui')}</span>}
                     </p>
-                    <p className="text-xs" style={{ color: '#7a9aba' }}>{item.desc[lang]}</p>
+                    <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{item.desc[lang]}</p>
                   </div>
                 </motion.div>
               ))}
@@ -436,16 +446,16 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         {/* Análise Executiva por IA */}
         <CanvasBox cor={OURO}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <p className="text-sm font-semibold" style={{ color: '#c8d8f0', fontFamily: "'Georgia','Times New Roman',serif" }}>{t('analiseIATitulo')}</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
               className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-[10px] mb-3" style={{ color: '#5a7a9a' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)', color: '#c8d8f0' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -464,5 +474,6 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
         cor={OURO}
       />
     </ModuloLayout>
+    </div>
   )
 }

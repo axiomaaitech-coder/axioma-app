@@ -15,6 +15,8 @@ import { tratarFalhaExportacao } from '../../../../lib/erroUiHelpers'
 import { CentroCompartilhamento } from '../../../../components/CentroCompartilhamento'
 import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import { buscarIndicadoresMacro, type IndicadoresMacro } from '../../../../lib/bcbApi'
@@ -30,17 +32,20 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const OURO = '#d4af37'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AZUL = '#6ab0ff'
-const AMBAR = '#f59e0b'
-const FONTE = { fontFamily: "'Georgia','Times New Roman',serif" }
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa as mesmas cores 600/700 já padronizadas nos outros módulos do
+// MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
+const PALETA = {
+  dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', ALARANJADO: '#fb923c', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.06)', POCO_BG: 'rgba(0,0,0,0.3)' },
+  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', ALARANJADO: '#ea580c', NEUTRO: '#55637a', CAMPO_BG: 'rgba(11,31,58,0.05)', POCO_BG: 'rgba(11,31,58,0.04)' },
+} as const
 
 function pad(n: number) { return String(n).padStart(2, '0') }
 
 export default function DASObrigacoes() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { OURO, VERDE, VERMELHO, AZUL, AMBAR, ALARANJADO, NEUTRO, CAMPO_BG, POCO_BG } = PALETA[tema]
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [dasValor, setDasValor] = useState(String(dasMensalPorCategoria('Serviços')))
@@ -186,7 +191,7 @@ export default function DASObrigacoes() {
   const bolaDeNeve = temAtrasoReal ? projecaoBolaDeNeveDAS(divida.atrasos, selicAnual) : []
 
   const corFase = (f: FaseRiscoDAS) =>
-    f === 'em_dia' ? VERDE : f === 'atrasado' ? AMBAR : f === 'multa_teto' ? '#fb923c' : VERMELHO
+    f === 'em_dia' ? VERDE : f === 'atrasado' ? AMBAR : f === 'multa_teto' ? ALARANJADO : VERMELHO
 
   // ---- Simulador de Parcelamento (PGMEI) ----
   const maxParcelas = maxParcelasDAS(divida.totalAtualizado)
@@ -223,7 +228,7 @@ export default function DASObrigacoes() {
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
   const corStatus = (s: StatusObrigacao) =>
-    s === 'Entregue' ? VERDE : s === 'Atrasado' ? VERMELHO : s === 'Não obrigatório' ? '#5a7a9a' : AMBAR
+    s === 'Entregue' ? VERDE : s === 'Atrasado' ? VERMELHO : s === 'Não obrigatório' ? NEUTRO : AMBAR
 
   const marquee = [
     'AXIOMA',
@@ -357,10 +362,10 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         style={{ background: `${cor}08`, border: `1px solid ${cor}20` }}>
         {tipo === 'DAS' ? <Bell size={18} style={{ color: cor, flexShrink: 0 }} /> : <FileText size={18} style={{ color: cor, flexShrink: 0 }} />}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>{nome}</p>
-          <p className="text-xs" style={{ color: '#5a7a9a' }}>{prazo}</p>
+          <p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>{nome}</p>
+          <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{prazo}</p>
           {desc && <p className="text-xs font-semibold mt-1" style={{ color: cor }}>{desc}</p>}
-          {prazoTexto && <p className="text-[10px] mt-1 font-semibold" style={{ color: atrasado ? VERMELHO : AMBAR }}>{prazoTexto}</p>}
+          {prazoTexto && <p className="text-xs mt-1 font-semibold" style={{ color: atrasado ? VERMELHO : AMBAR }}>{prazoTexto}</p>}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           <AnimatePresence mode="wait">
@@ -389,13 +394,17 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
       botaoExtra={
-        <button onClick={() => setShareAberto(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
-          <Share2 size={16} /> {mx.compartilhar}
-        </button>
+        <>
+          <button onClick={() => setShareAberto(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            <Share2 size={16} /> {mx.compartilhar}
+          </button>
+          <ThemeToggle />
+        </>
       }>
       <div ref={conteudoRef} className="space-y-4">
 
@@ -409,8 +418,8 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             { label: `Receita Bruta ${anoAtual}`, value: fmt(faturamentoAnual), cor: VERDE },
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{card.label}</p>
-              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor, ...FONTE }}>{card.value}</p>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
             </CanvasBox>
           ))}
         </div>
@@ -420,18 +429,18 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
           <CanvasBox cor={corFase(faseAtual)}>
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle size={18} style={{ color: corFase(faseAtual) }} />
-              <p className="text-sm font-semibold" style={{ color: '#c8d8f0', ...FONTE }}>{t('mapaConsequencias')}</p>
+              <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('mapaConsequencias')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               <div className="rounded-xl p-3" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#5a7a9a' }}>{t('dividaAtualizada')}</p>
-                <p className="text-xl font-black" style={{ color: corFase(faseAtual), ...FONTE }}>{fmt(divida.totalAtualizado)}</p>
-                <p className="text-[10px] mt-1" style={{ color: '#5a7a9a' }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('dividaAtualizada')}</p>
+                <p className="text-xl font-black" style={{ color: corFase(faseAtual) }}>{fmt(divida.totalAtualizado)}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
               </div>
               <div className="rounded-xl p-3 flex flex-col justify-center" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: '#5a7a9a' }}>{lang === 'pt' ? 'Fase de risco' : lang === 'en' ? 'Risk phase' : 'Fase de riesgo'}</p>
-                <p className="text-lg font-black" style={{ color: corFase(faseAtual), ...FONTE }}>{t(`fase_${faseAtual}` as keyof typeof txt)}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{lang === 'pt' ? 'Fase de risco' : lang === 'en' ? 'Risk phase' : 'Fase de riesgo'}</p>
+                <p className="text-lg font-black" style={{ color: corFase(faseAtual) }}>{t(`fase_${faseAtual}` as keyof typeof txt)}</p>
               </div>
             </div>
 
@@ -446,16 +455,16 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                     style={{ background: `linear-gradient(90deg, #34d399 0%, #f59e0b ${pctMulta}%, #fb923c ${pctInapto}%, #f87171 100%)` }}>
                     <div className="absolute -top-1.5 flex flex-col items-center" style={{ left: `${pctHoje}%` }}>
                       <div className="w-5 h-5 rounded-full border-2" style={{ background: corFase(faseAtual), borderColor: '#020810' }} />
-                      <span className="text-[9px] font-bold mt-1 whitespace-nowrap" style={{ color: corFase(faseAtual) }}>{t('marcoHoje')}</span>
+                      <span className="text-xs font-bold mt-1 whitespace-nowrap" style={{ color: corFase(faseAtual) }}>{t('marcoHoje')}</span>
                     </div>
                     <div className="absolute -top-1" style={{ left: `${pctMulta}%` }}><div className="w-0.5 h-4" style={{ background: 'rgba(2,8,16,0.4)' }} /></div>
                     <div className="absolute -top-1" style={{ left: `${pctInapto}%` }}><div className="w-0.5 h-4" style={{ background: 'rgba(2,8,16,0.4)' }} /></div>
                   </div>
                 )
               })()}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]" style={{ color: '#5a7a9a' }}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
                 <div><span className="font-bold" style={{ color: AMBAR }}>0d</span> — {t('marcoVencimento')}</div>
-                <div><span className="font-bold" style={{ color: '#fb923c' }}>{DIAS_MULTA_TETO}d</span> — {t('marco61')}</div>
+                <div><span className="font-bold" style={{ color: ALARANJADO }}>{DIAS_MULTA_TETO}d</span> — {t('marco61')}</div>
                 <div><span className="font-bold" style={{ color: VERMELHO }}>12m</span> — {t('marco12m')}</div>
                 <div><span className="font-bold" style={{ color: VERMELHO }}>24m</span> — {t('marco24m')}</div>
               </div>
@@ -464,7 +473,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             {/* Bola de neve */}
             {bolaDeNeve.length > 0 && (
               <div className="mb-5">
-                <p className="text-xs font-semibold mb-3" style={{ color: '#c8d8f0' }}>{t('bolaDeNeveTitulo')}</p>
+                <p className="text-xs font-semibold mb-3" style={{ color: 'var(--axi-text-primary)' }}>{t('bolaDeNeveTitulo')}</p>
                 <ReactECharts
                   option={optLinhaMulti(
                     [{ nome: t('dividaAtualizada'), dados: [divida.totalAtualizado, ...bolaDeNeve.map(b => b.valorTotal)], cor: VERMELHO, area: true }],
@@ -480,28 +489,28 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: VERMELHO }}>
               <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {t('alertaINSS')}
             </div>
-            <p className="text-[9px] mt-2" style={{ color: '#5a7a9a' }}>{t('estimativaAviso')}</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--axi-text-secondary)' }}>{t('estimativaAviso')}</p>
           </CanvasBox>
         )}
 
         {/* Simulador de Parcelamento (PGMEI) */}
         {temAtrasoReal && (
           <CanvasBox cor={AZUL}>
-            <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('simuladorTitulo')}</p>
+            <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('simuladorTitulo')}</p>
             <div className="flex items-center gap-4 mb-4 flex-wrap">
               <div className="flex-1 min-w-[160px]">
-                <label className="text-[10px] uppercase tracking-wider mb-1 block" style={{ color: '#5a7a9a' }}>{t('numeroParcelas')} (1-{maxParcelas})</label>
+                <label className="text-xs uppercase tracking-wider mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('numeroParcelas')} (1-{maxParcelas})</label>
                 <input type="range" min={1} max={Math.max(1, maxParcelas)} value={parcelasEscolhidas}
                   onChange={e => setNumParcelas(parseInt(e.target.value, 10))} className="w-full" />
               </div>
               <div className="rounded-xl px-4 py-2 text-center" style={{ background: `${AZUL}10`, border: `1px solid ${AZUL}30` }}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: '#5a7a9a' }}>{parcelasEscolhidas}x — {t('valorParcela')}</p>
-                <p className="text-lg font-black" style={{ color: AZUL, ...FONTE }}>{fmt(valorPorParcela)}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{parcelasEscolhidas}x — {t('valorParcela')}</p>
+                <p className="text-lg font-black" style={{ color: AZUL }}>{fmt(valorPorParcela)}</p>
               </div>
             </div>
             <div className="space-y-2 mb-4">
-              <p className="text-[10px]" style={{ color: AMBAR }}>{t('avisoParcela1')}</p>
-              <p className="text-[10px]" style={{ color: VERMELHO }}>{t('avisoParcela2')}</p>
+              <p className="text-xs" style={{ color: AMBAR }}>{t('avisoParcela1')}</p>
+              <p className="text-xs" style={{ color: VERMELHO }}>{t('avisoParcela2')}</p>
             </div>
             <a href="https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao"
               target="_blank" rel="noopener noreferrer"
@@ -515,16 +524,16 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         {/* Análise Executiva por IA */}
         <CanvasBox cor={OURO}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-            <p className="text-sm font-semibold" style={{ color: '#c8d8f0', ...FONTE }}>{t('analiseIATitulo')}</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
               className="px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-60"
-              style={{ background: `linear-gradient(135deg, #1a3a8f, ${OURO})`, color: '#fff' }}>
+              style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-[10px] mb-3" style={{ color: '#5a7a9a' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(106,176,255,0.1)', color: '#c8d8f0' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
@@ -532,27 +541,27 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
         {/* Central de Obrigações */}
         <CanvasBox cor={OURO}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{mx.obrigacoes}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{mx.obrigacoes}</p>
           <div className="space-y-3">
 
             {/* DAS Mensal — valor editável + status */}
             <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap" style={{ background: `${OURO}08`, border: `1px solid ${OURO}20` }}>
               <Bell size={18} style={{ color: OURO, flexShrink: 0 }} />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold" style={{ color: '#c8d8f0' }}>DAS Mensal</p>
-                <p className="text-xs" style={{ color: '#5a7a9a' }}>{txt.dasTodoDia[lang].replace('{d}', String(diaVencimentoDas))}</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>DAS Mensal</p>
+                <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{txt.dasTodoDia[lang].replace('{d}', String(diaVencimentoDas))}</p>
                 {editandoDas ? (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <input type="number" value={dasValorTemp} onChange={e => setDasValorTemp(e.target.value)}
                       className="w-28 px-2 py-1 rounded-lg text-xs focus:outline-none"
-                      style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${OURO}40`, color: '#c8d8f0' }} autoFocus />
+                      style={{ background: CAMPO_BG, border: `1px solid ${OURO}40`, color: 'var(--axi-text-primary)' }} autoFocus />
                     <button onClick={salvarDasInline} className="p-1.5 rounded-lg" style={{ background: 'rgba(52,211,153,0.2)', color: VERDE }}><Check size={14} /></button>
                     <button onClick={() => setEditandoDas(false)} className="p-1.5 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: VERMELHO }}><X size={14} /></button>
                   </div>
                 ) : (
                   <p className="text-xs font-semibold mt-1" style={{ color: OURO }}>{fmt(parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei))))}</p>
                 )}
-                {(() => { const { texto, atrasado } = diasOuAtraso(vencimentoDas, statusDas); return texto ? <p className="text-[10px] mt-1 font-semibold" style={{ color: atrasado ? VERMELHO : AMBAR }}>{texto}</p> : null })()}
+                {(() => { const { texto, atrasado } = diasOuAtraso(vencimentoDas, statusDas); return texto ? <p className="text-xs mt-1 font-semibold" style={{ color: atrasado ? VERMELHO : AMBAR }}>{texto}</p> : null })()}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                 {!editandoDas && (
@@ -591,9 +600,9 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
         {/* Histórico do Ano — mesma lista que alimenta o cálculo da dívida, fonte única */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('historicoAno')} — {anoAtual}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('historicoAno')} — {anoAtual}</p>
           {competenciasAno.length === 0 ? (
-            <p className="text-xs" style={{ color: '#5a7a9a' }}>{t('historicoVazio')}</p>
+            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('historicoVazio')}</p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
               {competenciasAno.map((c) => {
@@ -603,8 +612,8 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 return (
                   <div key={c.competencia} className="rounded-xl p-2.5 text-center"
                     style={{ background: `${corStatus(c.status)}10`, border: `1px solid ${corStatus(c.status)}30` }}>
-                    <p className="text-xs font-bold capitalize" style={{ color: '#c8d8f0' }}>{nomeMesCurto}</p>
-                    <p className="text-[9px] font-semibold mt-1" style={{ color: corStatus(c.status) }}>{c.status}</p>
+                    <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
+                    <p className="text-xs font-semibold mt-1" style={{ color: corStatus(c.status) }}>{c.status}</p>
                   </div>
                 )
               })}
@@ -614,14 +623,14 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
         {/* Calculadora DASN */}
         <CanvasBox cor={AZUL}>
-          <p className="text-sm font-semibold mb-4" style={{ color: '#c8d8f0', ...FONTE }}>{t('calculadora')}</p>
+          <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('calculadora')}</p>
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${OURO}08`, border: `1px solid ${OURO}15` }}>
-              <span className="text-sm" style={{ color: '#c8d8f0' }}>{t('receitaBruta')} {anoAtual}</span>
+              <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
               <span className="text-sm font-black" style={{ color: OURO }}>{fmt(faturamentoAnual)}</span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${AZUL}08`, border: `1px solid ${AZUL}15` }}>
-              <span className="text-sm" style={{ color: '#c8d8f0' }}>{t('categoria')}</span>
+              <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}</span>
               <span className="text-sm font-bold" style={{ color: AZUL }}>{meiDados?.categoria_mei || 'Serviços'}</span>
             </div>
             <a href="https://www.gov.br/empresas-e-negocios/pt-br/empreendedor/servicos-para-mei/declaracao-anual-de-faturamento-dasn-simei"
@@ -653,5 +662,6 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
