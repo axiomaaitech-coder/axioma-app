@@ -15,6 +15,8 @@ import {
   type Descoberta, type StatusDescoberta, type TipoDescoberta, type Confianca,
 } from '../../../lib/contadorHelpers'
 import { fBRL2 } from '../../../lib/cfoCore'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,20 +25,14 @@ const supabase = createBrowserClient(
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const VERMELHO = '#f87171'
-const LARANJA = '#fb923c'
-const AMARELO = '#fbbf24'
-const VERDE = '#34d399'
-const AZULC = '#6ab0ff'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
-
-const COR_PRIORIDADE: Record<string, string> = { P0: VERMELHO, P1: LARANJA, P2: AMARELO, P3: CINZA }
-const COR_TIPO: Record<TipoDescoberta, string> = {
-  risco: VERMELHO, inconsistencia: LARANJA, divergencia: LARANJA, concentracao: AMARELO,
-  classificacao_suspeita: AMARELO, anomalia: AMARELO, oportunidade: VERDE, tendencia: AZULC,
-}
+// O modal "Explain this decision" usa createPortal direto pro document.body
+// — sai da árvore do data-theme, então var(--axi-*) do CSS não alcança ele.
+// Por isso as cores aqui são valores JS por tema (não CSS var), inclusive
+// PAINEL_BG/MODAL_BG.
+const PALETA = {
+  dark: { VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', MODAL_BG: '#0a1628' },
+  xms: { VERMELHO: '#dc2626', LARANJA: '#ea580c', AMARELO: '#d97706', VERDE: '#16a34a', AZULC: '#0043c8', ROXO: '#7c3aed', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a', PAINEL_BG: '#eef2f7', PAINEL_BG2: '#eef2f7', MODAL_BG: '#ffffff' },
+} as const
 
 const LABEL_TIPO: Record<TipoDescoberta, Record<Idioma3, string>> = {
   inconsistencia: { pt: 'Inconsistência', en: 'Inconsistency', es: 'Inconsistencia' },
@@ -56,8 +52,6 @@ const LABEL_CONFIANCA: Record<Confianca, Record<Idioma3, string>> = {
   previsao: { pt: 'Previsão', en: 'Forecast', es: 'Previsión' },
   cenario: { pt: 'Cenário', en: 'Scenario', es: 'Escenario' },
 }
-
-const COR_CONFIANCA: Record<Confianca, string> = { fato: VERDE, calculo: AZULC, inferencia: AMARELO, previsao: '#a78bfa', cenario: '#a78bfa' }
 
 const LABEL_STATUS: Record<StatusDescoberta, Record<Idioma3, string>> = {
   aberto: { pt: 'Aberta', en: 'Open', es: 'Abierta' },
@@ -83,6 +77,16 @@ export default function ContadorPage() {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const { VERMELHO, LARANJA, AMARELO, VERDE, AZULC, ROXO, CINZA, TEXTO, TITULO, PAINEL_BG, PAINEL_BG2, MODAL_BG } = PALETA[tema]
+
+  const COR_PRIORIDADE: Record<string, string> = { P0: VERMELHO, P1: LARANJA, P2: AMARELO, P3: CINZA }
+  const COR_TIPO: Record<TipoDescoberta, string> = {
+    risco: VERMELHO, inconsistencia: LARANJA, divergencia: LARANJA, concentracao: AMARELO,
+    classificacao_suspeita: AMARELO, anomalia: AMARELO, oportunidade: VERDE, tendencia: AZULC,
+  }
+  const COR_CONFIANCA: Record<Confianca, string> = { fato: VERDE, calculo: AZULC, inferencia: AMARELO, previsao: ROXO, cenario: ROXO }
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
@@ -147,11 +151,12 @@ export default function ContadorPage() {
     { emoji: '🟡', label: L('Pendências', 'Pending', 'Pendientes'), valor: contagem.P2, cor: AMARELO },
     { emoji: '🟢', label: L('Normal', 'Normal', 'Normal'), valor: normal ? L('Sim', 'Yes', 'Sí') : L('Não', 'No', 'No'), cor: normal ? VERDE : CINZA },
     { emoji: '📈', label: L('Oportunidades', 'Opportunities', 'Oportunidades'), valor: oportunidades, cor: VERDE },
-    { emoji: '🔮', label: L('Previsões', 'Forecasts', 'Previsiones'), valor: previsoes, cor: '#a78bfa' },
+    { emoji: '🔮', label: L('Previsões', 'Forecasts', 'Previsiones'), valor: previsoes, cor: ROXO },
     { emoji: '🧠', label: L('Descobertas da Axioma', "Axioma's Findings", 'Hallazgos de Axioma'), valor: contagem.totalAbertas, cor: AZULC },
   ]
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Contador', 'Accountant', 'Contador')}
       subtitulo={L('O que a Axioma descobriu sozinha nos seus números — não é balanço, é status de inteligência.', "What Axioma found on its own in your numbers — not a balance sheet, an intelligence status.", 'Lo que Axioma descubrió sola en sus números — no es un balance, es un estado de inteligencia.')}
@@ -163,7 +168,7 @@ export default function ContadorPage() {
             <BookOpenText size={15} />{L('Explique minha empresa', 'Explain my company', 'Explique mi empresa')}
           </button>
           <button onClick={() => router.push('/contador/projecao')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: 'rgba(167,139,250,0.14)', color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)' }}>
+            style={{ background: `${ROXO}18`, color: ROXO, border: `1px solid ${ROXO}40` }}>
             <TrendingDown size={15} />{L('Se eu fizer nada', 'If I do nothing', 'Si no hago nada')}
           </button>
           <button onClick={() => router.push('/contador/fechamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
@@ -180,6 +185,7 @@ export default function ContadorPage() {
             <RefreshCw size={16} className={rodando ? 'animate-spin' : ''} />
             {rodando ? L('Rodando...', 'Running...', 'Ejecutando...') : L('Rodar descoberta', 'Run discovery', 'Ejecutar descubrimiento')}
           </button>
+          <ThemeToggle />
         </>
       }
     >
@@ -205,7 +211,7 @@ export default function ContadorPage() {
           {/* STATUS DE INTELIGÊNCIA */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             {TILES.map((t) => (
-              <div key={t.label} className="rounded-xl p-3" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${t.cor}30` }}>
+              <div key={t.label} className="rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
                 <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
                 <p className="text-lg font-black leading-none" style={{ color: t.cor }}>{t.valor}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
@@ -223,16 +229,16 @@ export default function ContadorPage() {
             </div>
 
             {visiveis.length === 0 ? (
-              <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(10,20,36,0.5)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="rounded-xl p-6 text-center" style={{ background: PAINEL_BG2, border: '1px solid var(--axi-border)' }}>
                 <p className="text-sm" style={{ color: CINZA }}>
                   {L('Nenhuma descoberta ainda. Clique em "Rodar descoberta" pra a Axioma vasculhar seus dados.', 'No findings yet. Click "Run discovery" for Axioma to scan your data.', 'Ningún hallazgo aún. Haga clic en "Ejecutar descubrimiento" para que Axioma revise sus datos.')}
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid var(--axi-border)' }}>
                 <table className="w-full text-xs" style={{ minWidth: 640 }}>
                   <thead>
-                    <tr style={{ color: CINZA, background: 'rgba(255,255,255,0.03)' }}>
+                    <tr style={{ color: CINZA, background: 'var(--axi-surface)' }}>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Prioridade', 'Priority', 'Prioridad')}</th>
                       <th className="text-left py-2 px-3 font-semibold">{L('Descoberta', 'Finding', 'Hallazgo')}</th>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap hidden sm:table-cell">{L('Tipo', 'Type', 'Tipo')}</th>
@@ -243,7 +249,7 @@ export default function ContadorPage() {
                   </thead>
                   <tbody>
                     {visiveis.map((d) => (
-                      <tr key={d.id} onClick={() => setSelecionada(d)} className="cursor-pointer hover:bg-white/[0.02]" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <tr key={d.id} onClick={() => setSelecionada(d)} className="cursor-pointer hover:bg-white/[0.02]" style={{ borderTop: '1px solid var(--axi-border)' }}>
                         <td className="py-2.5 px-3">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-black" style={{ background: `${COR_PRIORIDADE[d.prioridade]}20`, color: COR_PRIORIDADE[d.prioridade] }}>
                             {d.prioridade}
@@ -278,7 +284,7 @@ export default function ContadorPage() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${COR_PRIORIDADE[selecionada.prioridade]}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className="rounded-2xl p-6" style={{ background: MODAL_BG, border: `1px solid ${COR_PRIORIDADE[selecionada.prioridade]}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-start mb-4 gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
@@ -295,7 +301,7 @@ export default function ContadorPage() {
                   {selecionada.descricao && <p className="text-xs mb-3" style={{ color: TEXTO }}>{selecionada.descricao}</p>}
 
                   {selecionada.causa && (
-                    <div className="rounded-lg p-3 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="rounded-lg p-3 mb-3" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
                       <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}</p>
                       <p className="text-xs" style={{ color: TEXTO }}>{selecionada.causa}</p>
                     </div>
@@ -319,7 +325,7 @@ export default function ContadorPage() {
                   </div>
 
                   {selecionada.evidencia && Object.keys(selecionada.evidencia).filter((k) => k !== 'chave').length > 0 && (
-                    <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="rounded-lg p-3 mb-4" style={{ background: PAINEL_BG2, border: `1px solid ${CINZA}30` }}>
                       <p className="text-[10px] font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: CINZA }}><Eye size={11} />{L('Evidência (dados e cálculo usados)', 'Evidence (data and calculation used)', 'Evidencia (datos y cálculo usados)')}</p>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1">
                         {Object.entries(selecionada.evidencia).filter(([k]) => k !== 'chave').map(([k, v]) => (
@@ -356,7 +362,7 @@ export default function ContadorPage() {
                       </button>
                       <button onClick={() => aplicarAcao('ignorado')} disabled={processandoAcao}
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold disabled:opacity-60"
-                        style={{ background: 'rgba(255,255,255,0.06)', color: CINZA, border: '1px solid rgba(255,255,255,0.12)' }}>
+                        style={{ background: `${CINZA}18`, color: CINZA, border: `1px solid ${CINZA}40` }}>
                         <XCircle size={14} />{L('Ignorar', 'Ignore', 'Ignorar')}
                       </button>
                     </div>
@@ -388,5 +394,6 @@ export default function ContadorPage() {
         cor={AZULC}
       />
     </ModuloLayout>
+    </div>
   )
 }
