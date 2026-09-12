@@ -11,20 +11,24 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { listarPlanoDeContas, type ContaContabil, type TipoContaContabil } from '../../../../lib/contabilidadeHelpers'
 import { listarLancamentos, listarPartidas, saldoNatural } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const TEAL = '#14b8a6'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) usa as mesmas cores 600/700 já padronizadas no resto do Axioma.
+const PALETA = {
+  dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7' },
+  xms: { TEAL: '#0f766e', VERDE: '#16a34a', VERMELHO: '#dc2626', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a' },
+} as const
 
 const ORDEM_TIPO: TipoContaContabil[] = ['ativo', 'passivo', 'patrimonio', 'receita', 'despesa']
 
 export default function BalancetePage() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
@@ -91,10 +95,16 @@ export default function BalancetePage() {
   }, [contas, totaisPorConta])
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación')}
       subtitulo={L('Saldo de todas as contas no período, agrupado por tipo — direto do ledger', 'Balance of every account in the period, grouped by type — straight from the ledger', 'Saldo de todas las cuentas en el período, agrupado por tipo — directo del libro mayor')}
-      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />}
+      botaoExtra={
+        <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />
+          <ThemeToggle />
+        </>
+      }
     >
       <div className="mb-5">
         <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
@@ -127,11 +137,11 @@ export default function BalancetePage() {
               <tbody>
                 {grupos.map((g) => (
                   <Fragment key={g.tipo}>
-                    <tr style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <tr style={{ borderTop: '1px solid var(--axi-border)' }}>
                       <td colSpan={5} className="py-2 font-black uppercase tracking-wide" style={{ color: TEAL, fontSize: 10 }}>{TIPO_LABEL[g.tipo]}</td>
                     </tr>
                     {g.linhas.map((l) => (
-                      <tr key={l.conta.id} onClick={() => router.push(`/contabilidade/razao?conta=${l.conta.id}`)} className="cursor-pointer" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <tr key={l.conta.id} onClick={() => router.push(`/contabilidade/razao?conta=${l.conta.id}`)} className="cursor-pointer" style={{ borderTop: '1px solid var(--axi-border)' }}>
                         <td className="py-2 whitespace-nowrap" style={{ color: CINZA }}>{l.conta.codigo}</td>
                         <td className="py-2" style={{ color: TEXTO }}>{l.conta.nome}</td>
                         <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{l.debito > 0 ? `R$ ${fBRL2(l.debito)}` : '—'}</td>
@@ -139,7 +149,7 @@ export default function BalancetePage() {
                         <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: l.saldo >= 0 ? VERDE : VERMELHO }}>R$ {fBRL2(l.saldo)}</td>
                       </tr>
                     ))}
-                    <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <tr style={{ borderTop: '1px solid var(--axi-border)' }}>
                       <td colSpan={2} className="py-1.5 text-right font-semibold" style={{ color: CINZA }}>{L('Subtotal', 'Subtotal', 'Subtotal')}</td>
                       <td className="text-right py-1.5 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(g.totalDebito)}</td>
                       <td className="text-right py-1.5 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(g.totalCredito)}</td>
@@ -181,5 +191,6 @@ export default function BalancetePage() {
         cor={TEAL}
       />
     </ModuloLayout>
+    </div>
   )
 }

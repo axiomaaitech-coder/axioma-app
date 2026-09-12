@@ -16,15 +16,19 @@ import {
   type LancamentoContabilRow, type PartidaRow,
 } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const TEAL = '#14b8a6'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// O modal de lançamento usa createPortal direto pro document.body — sai da
+// árvore do data-theme, então as var(--axi-*) do CSS não chegam nele. Por
+// isso as cores aqui são valores JS por tema (não CSS var), inclusive
+// CAMPO_BG e MODAL_BG que dependem do tema pra não ficar sempre escuro.
+const PALETA = {
+  dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.9)', MODAL_BG: '#0a1628' },
+  xms: { TEAL: '#0f766e', VERDE: '#16a34a', VERMELHO: '#dc2626', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a', CAMPO_BG: '#eef2f7', MODAL_BG: '#ffffff' },
+} as const
 
 // useSearchParams exige Suspense no App Router (mesmo padrão de pdv/cadastro).
 export default function RazaoPage() {
@@ -37,6 +41,8 @@ export default function RazaoPage() {
 
 function RazaoInner() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO, CAMPO_BG, MODAL_BG } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
@@ -120,10 +126,16 @@ function RazaoInner() {
   const contaNome = (id: string) => { const c = contas.find((x) => x.id === id); return c ? `${c.codigo} — ${c.nome}` : id }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Livro Razão', 'General Ledger', 'Libro Mayor')}
       subtitulo={L('Extrato por conta contábil, com saldo acumulado — direto do ledger', 'Account statement with running balance — straight from the ledger', 'Extracto por cuenta contable con saldo acumulado — directo del libro mayor')}
-      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />}
+      botaoExtra={
+        <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />
+          <ThemeToggle />
+        </>
+      }
     >
       {contaSelecionada && (
         <div className="mb-5">
@@ -139,7 +151,7 @@ function RazaoInner() {
           value={contaId}
           onChange={(e) => setContaId(e.target.value)}
           className="px-3 py-2 rounded-xl text-xs font-bold focus:outline-none cursor-pointer"
-          style={{ background: 'rgba(10,22,40,0.9)', border: `1px solid ${TEAL}40`, color: TEAL, minWidth: 220 }}
+          style={{ background: CAMPO_BG, border: `1px solid ${TEAL}40`, color: TEAL, minWidth: 220 }}
         >
           {contas.length === 0 && <option value="">{L('Nenhuma conta cadastrada', 'No accounts registered', 'Ninguna cuenta registrada')}</option>}
           {contas.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>)}
@@ -164,7 +176,7 @@ function RazaoInner() {
               </tr>
             </thead>
             <tbody>
-              <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <tr style={{ borderTop: '1px solid var(--axi-border)' }}>
                 <td className="py-2" colSpan={4} style={{ color: CINZA, fontStyle: 'italic' }}>{L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')}</td>
                 <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(saldoAnterior)}</td>
               </tr>
@@ -175,7 +187,7 @@ function RazaoInner() {
                 <tr><td colSpan={5} className="py-4 text-center" style={{ color: CINZA }}>{L('Nenhum lançamento no período selecionado.', 'No entries in the selected period.', 'Ningún asiento en el período seleccionado.')}</td></tr>
               )}
               {linhas.map(({ lancamento, partida, saldo }) => (
-                <tr key={partida.id} onClick={() => abrirLancamento(lancamento)} className="cursor-pointer" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <tr key={partida.id} onClick={() => abrirLancamento(lancamento)} className="cursor-pointer" style={{ borderTop: '1px solid var(--axi-border)' }}>
                   <td className="py-2 whitespace-nowrap" style={{ color: TEXTO }}>{new Date(lancamento.data + 'T00:00:00').toLocaleDateString(localeData)}</td>
                   <td className="py-2">
                     <span style={{ color: TEXTO }}>{lancamento.descricao}</span>
@@ -204,7 +216,7 @@ function RazaoInner() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${TEAL}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className="rounded-2xl p-6" style={{ background: MODAL_BG, border: `1px solid ${TEAL}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: TEAL }}>
@@ -226,7 +238,7 @@ function RazaoInner() {
                       </thead>
                       <tbody>
                         {partidasModal.map((p) => (
-                          <tr key={p.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                          <tr key={p.id} style={{ borderTop: '1px solid var(--axi-border)' }}>
                             <td className="py-1.5" style={{ color: TEXTO }}>{contaNome(p.conta_id)}</td>
                             <td className="text-right py-1.5 whitespace-nowrap" style={{ color: TEXTO }}>{p.tipo === 'debito' ? `R$ ${fBRL2(Number(p.valor))}` : '—'}</td>
                             <td className="text-right py-1.5 whitespace-nowrap" style={{ color: TEXTO }}>{p.tipo === 'credito' ? `R$ ${fBRL2(Number(p.valor))}` : '—'}</td>
@@ -257,5 +269,6 @@ function RazaoInner() {
         cor={TEAL}
       />
     </ModuloLayout>
+    </div>
   )
 }

@@ -12,19 +12,21 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { listarPlanoDeContas, type ContaContabil } from '../../../../lib/contabilidadeHelpers'
 import { listarLancamentos, listarPartidas, grupoDre } from '../../../../lib/contabilidadeRelatoriosHelpers'
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 type Grupo = '6' | '7' | '8' | '9' | '10'
 
-const TEAL = '#14b8a6'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+const PALETA = {
+  dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7' },
+  xms: { TEAL: '#0f766e', VERDE: '#16a34a', VERMELHO: '#dc2626', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a' },
+} as const
 
 export default function DrePage() {
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
@@ -107,10 +109,16 @@ export default function DrePage() {
   ]
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados')}
       subtitulo={L('Calculado direto do Livro Razão contábil — receita, custo e despesa vêm do ledger, não de planilha solta', 'Calculated straight from the accounting ledger — revenue, cost and expense come from the ledger, not a loose spreadsheet', 'Calculado directo del libro mayor contable — ingreso, costo y gasto vienen del libro mayor, no de una planilla suelta')}
-      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />}
+      botaoExtra={
+        <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />
+          <ThemeToggle />
+        </>
+      }
     >
       <div className="mb-5">
         <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
@@ -140,7 +148,7 @@ export default function DrePage() {
                     <tr
                       onClick={() => l.key !== null && setGrupoAberto(aberto ? null : l.key)}
                       className={l.key !== null ? 'cursor-pointer' : ''}
-                      style={{ borderTop: l.total ? `1px solid ${TEAL}40` : '1px solid rgba(255,255,255,0.06)' }}
+                      style={{ borderTop: l.total ? `1px solid ${TEAL}40` : '1px solid var(--axi-border)' }}
                     >
                       <td className="py-2.5 flex items-center gap-1.5" style={{ color: l.total ? TITULO : TEXTO, fontWeight: l.total ? 800 : 600 }}>
                         {l.key !== null && (
@@ -200,5 +208,6 @@ export default function DrePage() {
         cor={TEAL}
       />
     </ModuloLayout>
+    </div>
   )
 }
