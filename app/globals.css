@@ -102,3 +102,29 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .axi-card-hoverglow .axi-card-glare { transition: none; opacity: 0 !important; }
 }
+
+/* Card "premium" (creme) / bloco navy 3D — bisel de luz + barra e glow verde
+   no hover, regra fixa da referência (tema-tokens.md §5.1/§5.2). Opt-in via
+   CanvasBox premium3d={true} — hoje só o tema Claro do MEI usa. */
+.axi-card-premium3d {
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+.axi-card-premium3d .axi-card-premium3d-bar {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.axi-card-premium3d:hover {
+  border-color: #2ecc9b !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(16, 27, 61, 0.35),
+    0 32px 56px -14px rgba(16, 27, 61, 0.65),
+    0 0 28px rgba(46, 204, 155, 0.22) !important;
+}
+.axi-card-premium3d:hover .axi-card-premium3d-bar {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .axi-card-premium3d, .axi-card-premium3d .axi-card-premium3d-bar { transition: none; }
+}
