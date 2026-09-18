@@ -108,6 +108,12 @@ export default function CockpitMEI() {
     xms: { JADE: '#2ecc9b', BRONZE: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b' },
   } as const
   const { JADE, BRONZE, VERDE, VERMELHO, AMBAR, AZUL } = PALETA_COCKPIT[tema]
+  const temaClaro = tema === 'xms'
+  // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
+  // MEI"): card creme + efeito 3D no hover, texto secundário legível sobre
+  // bege, cabeçalho executivo em degradê. Escuro fica 100% inalterado.
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
   const [nomeEmpresa, setNomeEmpresa] = useState<string | null>(null)
@@ -360,7 +366,7 @@ export default function CockpitMEI() {
   const saudacao = t('saudacao').replace('{nome}', nomeEmpresa || t('empresaFallback'))
 
   const CardVeredito = ({ cor, titulo, children, href, motionIndex }: { cor: string; titulo: string; children: ReactNode; href: string; motionIndex: number }) => (
-    <CanvasBox cor={cor} motionIndex={motionIndex} glow destaque>
+    <CanvasBox cor={cor} motionIndex={motionIndex} glow destaque {...cartaoTema}>
       <p className="text-sm font-semibold mb-3" style={{ color: 'var(--axi-text-primary)' }}>{titulo}</p>
       <div className="mb-4">{children}</div>
       <a href={href} className="inline-flex items-center gap-1 text-xs font-semibold py-2 -my-2 px-1 -mx-1" style={{ color: cor, textDecoration: 'none' }}>
@@ -372,7 +378,7 @@ export default function CockpitMEI() {
   if (loading) {
     return (
       <div data-theme={tema}>
-        <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')}>
+        <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}>
           <div className="flex justify-center py-16">
             <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: `${JADE} transparent transparent transparent` }} />
           </div>
@@ -393,6 +399,7 @@ export default function CockpitMEI() {
       titulo={t('titulo')}
       subtitulo={t('subtitulo')}
       aurora={<AuroraBackground corA={JADE} corB={BRONZE} />}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
           <button onClick={() => setShareAberto(true)}
@@ -409,14 +416,14 @@ export default function CockpitMEI() {
         <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />
 
         {/* Saudação + Health Score */}
-        <CanvasBox cor={JADE} motionIndex={0} glow destaque>
+        <CanvasBox cor={JADE} motionIndex={0} glow destaque {...cartaoTema}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-base md:text-lg font-semibold text-center md:text-left" style={{ color: 'var(--axi-text-primary)' }}>{saudacao}</p>
             <div className="text-center md:text-right flex-shrink-0">
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('scoreLabel')}</p>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('scoreLabel')}</p>
               <div className="flex items-baseline gap-2 justify-center md:justify-end">
                 <span className="text-3xl font-black" style={{ color: score.cor }}><CountUp valor={score.score} formatar={(v) => String(Math.round(v))} /></span>
-                <span className="text-base" style={{ color: 'var(--axi-text-secondary)' }}>/ 1000</span>
+                <span className="text-base" style={{ color: TEXTO_SEC }}>/ 1000</span>
               </div>
               <p className="text-sm font-bold" style={{ color: score.cor }}>{score.nivel}</p>
             </div>
@@ -427,16 +434,16 @@ export default function CockpitMEI() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           <CardVeredito cor={corTeto} titulo={t('card1Titulo')} href="/mei/faturamento" motionIndex={1}>
-            <p className="text-2xl font-black mb-1" style={{ color: corTeto }}><CountUp valor={percentualLimiteAtual} formatar={(v) => `${v.toFixed(1)}%`} /> <span className="text-sm font-semibold" style={{ color: 'var(--axi-text-secondary)' }}>{t('card1DoTeto')}</span></p>
+            <p className="text-2xl font-black mb-1" style={{ color: corTeto }}><CountUp valor={percentualLimiteAtual} formatar={(v) => `${v.toFixed(1)}%`} /> <span className="text-sm font-semibold" style={{ color: TEXTO_SEC }}>{t('card1DoTeto')}</span></p>
             <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('card1Restam')}: <strong>{fmt(restanteLimite)}</strong></p>
-            <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>
+            <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>
               {mesEstouroLabel ? <>{t('card1Estoura')} <strong style={{ color: corTeto }}>{mesEstouroLabel}</strong></> : t('card1SemProjecao')}
             </p>
           </CardVeredito>
 
           <CardVeredito cor={cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO} titulo={t('card2Titulo')} href="/mei" motionIndex={2}>
             <p className="text-2xl font-black mb-1" style={{ color: cofre.proLaboreSeguro >= 0 ? VERDE : VERMELHO }}><CountUp valor={cofre.proLaboreSeguro} formatar={fmt} /></p>
-            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('card2Sub')}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('card2Sub')}</p>
           </CardVeredito>
 
           <CardVeredito cor={corDas} titulo={t('card3Titulo')} href="/mei/das" motionIndex={3}>
@@ -454,7 +461,7 @@ export default function CockpitMEI() {
           <CardVeredito cor={corGraca} titulo={t('card4Titulo')} href="/mei/precificacao" motionIndex={4}>
             {!detectorGraca ? (
               <>
-                <p className="text-xs mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{t('card4Vazio')}</p>
+                <p className="text-xs mb-2" style={{ color: TEXTO_SEC }}>{t('card4Vazio')}</p>
                 <p className="text-xs font-semibold" style={{ color: AZUL }}>{t('card4CtaVazio')}</p>
               </>
             ) : detectorGraca.situacao === 'prejuizo' ? (
@@ -474,16 +481,16 @@ export default function CockpitMEI() {
 
         {/* Faixa de KPIs de apoio */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <CanvasBox cor={BRONZE} motionIndex={5} glow>
-            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('kpiFaturamento')}</p>
+          <CanvasBox cor={BRONZE} motionIndex={5} glow {...cartaoTema}>
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('kpiFaturamento')}</p>
             <p className="text-lg font-black" style={{ color: BRONZE }}><CountUp valor={faturamentoAnual} formatar={fmt} /></p>
           </CanvasBox>
-          <CanvasBox cor={BRONZE} motionIndex={6} glow>
-            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('kpiProjecao')}</p>
+          <CanvasBox cor={BRONZE} motionIndex={6} glow {...cartaoTema}>
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('kpiProjecao')}</p>
             <p className="text-lg font-black" style={{ color: BRONZE }}><CountUp valor={projecao.projecaoAnual} formatar={fmt} /></p>
           </CanvasBox>
-          <CanvasBox cor={corReserva} motionIndex={7} glow>
-            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('kpiReserva')}</p>
+          <CanvasBox cor={corReserva} motionIndex={7} glow {...cartaoTema}>
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('kpiReserva')}</p>
             <p className="text-lg font-black" style={{ color: corReserva }}><CountUp valor={fluxo.sobra} formatar={fmt} /> / <CountUp valor={reservaNecessaria} formatar={fmt} /></p>
           </CanvasBox>
         </div>
