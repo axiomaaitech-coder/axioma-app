@@ -38,7 +38,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', ALARANJADO: '#fb923c', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.06)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', CAMPO_BG: '#eef2f7', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -47,6 +47,17 @@ export default function DASObrigacoes() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, AMBAR, ALARANJADO, NEUTRO, CAMPO_BG, POCO_BG } = PALETA[tema]
+  const temaClaro = tema === 'xms'
+  // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
+  // MEI"). Escuro fica 100% inalterado em tudo abaixo.
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  // Alertas/toast tinham o hex do Escuro fixo em decimal — mesmo bug já
+  // corrigido em 18 arquivos antes, corrigido aqui também.
+  const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
+  const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const [receitas, setReceitas] = useState<any[]>([])
   const [meiDados, setMeiDados] = useState<any>(null)
   const [dasValor, setDasValor] = useState(String(dasMensalPorCategoria('Serviços')))
@@ -360,11 +371,11 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
     const { texto: prazoTexto, atrasado } = diasOuAtraso(vencimento, status)
     return (
       <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap"
-        style={{ background: `${cor}08`, border: `1px solid ${cor}20` }}>
+        style={{ background: NESTED_BG ?? `${cor}08`, border: `1px solid ${NESTED_BORDA ?? cor + '20'}` }}>
         {tipo === 'DAS' ? <Bell size={18} style={{ color: cor, flexShrink: 0 }} /> : <FileText size={18} style={{ color: cor, flexShrink: 0 }} />}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>{nome}</p>
-          <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{prazo}</p>
+          <p className="text-xs" style={{ color: TEXTO_SEC }}>{prazo}</p>
           {desc && <p className="text-xs font-semibold mt-1" style={{ color: cor }}>{desc}</p>}
           {prazoTexto && <p className="text-xs mt-1 font-semibold" style={{ color: atrasado ? VERMELHO : AMBAR }}>{prazoTexto}</p>}
         </div>
@@ -397,6 +408,8 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <button onClick={() => setShareAberto(true)}
@@ -409,7 +422,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
       }>
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={VERMELHO} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : VERMELHO} corB={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -418,8 +431,8 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             { label: `DAS Anual ${anoAtual}`, value: fmt(parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei))) * 12), cor: AZUL },
             { label: `Receita Bruta ${anoAtual}`, value: fmt(faturamentoAnual), cor: VERDE },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+            <CanvasBox key={i} cor={card.cor} {...cartaoTema}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
               <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
@@ -427,7 +440,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
         {/* Mapa de Consequências — só aparece com atraso real, detectado por data */}
         {temAtrasoReal && (
-          <CanvasBox cor={corFase(faseAtual)}>
+          <CanvasBox cor={corFase(faseAtual)} {...cartaoTema}>
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle size={18} style={{ color: corFase(faseAtual) }} />
               <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('mapaConsequencias')}</p>
@@ -435,12 +448,12 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               <div className="rounded-xl p-3" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
-                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('dividaAtualizada')}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('dividaAtualizada')}</p>
                 <p className="text-xl font-black" style={{ color: corFase(faseAtual) }}><AnimatedNumber value={fmt(divida.totalAtualizado)} /></p>
-                <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
+                <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
               </div>
               <div className="rounded-xl p-3 flex flex-col justify-center" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
-                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{lang === 'pt' ? 'Fase de risco' : lang === 'en' ? 'Risk phase' : 'Fase de riesgo'}</p>
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{lang === 'pt' ? 'Fase de risco' : lang === 'en' ? 'Risk phase' : 'Fase de riesgo'}</p>
                 <p className="text-lg font-black" style={{ color: corFase(faseAtual) }}>{t(`fase_${faseAtual}` as keyof typeof txt)}</p>
               </div>
             </div>
@@ -463,7 +476,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                   </div>
                 )
               })()}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ color: TEXTO_SEC }}>
                 <div><span className="font-bold" style={{ color: AMBAR }}>0d</span> — {t('marcoVencimento')}</div>
                 <div><span className="font-bold" style={{ color: ALARANJADO }}>{DIAS_MULTA_TETO}d</span> — {t('marco61')}</div>
                 <div><span className="font-bold" style={{ color: VERMELHO }}>12m</span> — {t('marco12m')}</div>
@@ -487,25 +500,25 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
               </div>
             )}
 
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', color: VERMELHO }}>
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs" style={{ background: `rgba(${rgbVermelho},0.08)`, border: `1px solid rgba(${rgbVermelho},0.2)`, color: VERMELHO }}>
               <AlertTriangle size={14} style={{ flexShrink: 0 }} /> {t('alertaINSS')}
             </div>
-            <p className="text-xs mt-2" style={{ color: 'var(--axi-text-secondary)' }}>{t('estimativaAviso')}</p>
+            <p className="text-xs mt-2" style={{ color: TEXTO_SEC }}>{t('estimativaAviso')}</p>
           </CanvasBox>
         )}
 
         {/* Simulador de Parcelamento (PGMEI) */}
         {temAtrasoReal && (
-          <CanvasBox cor={AZUL}>
+          <CanvasBox cor={AZUL} {...cartaoTema}>
             <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('simuladorTitulo')}</p>
             <div className="flex items-center gap-4 mb-4 flex-wrap">
               <div className="flex-1 min-w-[160px]">
-                <label className="text-xs uppercase tracking-wider mb-1 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('numeroParcelas')} (1-{maxParcelas})</label>
+                <label className="text-xs uppercase tracking-wider mb-1 block" style={{ color: TEXTO_SEC }}>{t('numeroParcelas')} (1-{maxParcelas})</label>
                 <input type="range" min={1} max={Math.max(1, maxParcelas)} value={parcelasEscolhidas}
                   onChange={e => setNumParcelas(parseInt(e.target.value, 10))} className="w-full" />
               </div>
-              <div className="rounded-xl px-4 py-2 text-center" style={{ background: `${AZUL}10`, border: `1px solid ${AZUL}30` }}>
-                <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{parcelasEscolhidas}x — {t('valorParcela')}</p>
+              <div className="rounded-xl px-4 py-2 text-center" style={{ background: NESTED_BG ?? `${AZUL}10`, border: `1px solid ${NESTED_BORDA ?? AZUL + '30'}` }}>
+                <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{parcelasEscolhidas}x — {t('valorParcela')}</p>
                 <p className="text-lg font-black" style={{ color: AZUL }}><AnimatedNumber value={fmt(valorPorParcela)} /></p>
               </div>
             </div>
@@ -523,7 +536,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         )}
 
         {/* Análise Executiva por IA */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
@@ -532,32 +545,32 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
         </CanvasBox>
 
         {/* Central de Obrigações */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{mx.obrigacoes}</p>
           <div className="space-y-3">
 
             {/* DAS Mensal — valor editável + status */}
-            <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap" style={{ background: `${OURO}08`, border: `1px solid ${OURO}20` }}>
+            <div className="flex items-center gap-4 p-4 rounded-xl flex-wrap" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '20'}` }}>
               <Bell size={18} style={{ color: OURO, flexShrink: 0 }} />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold" style={{ color: 'var(--axi-text-primary)' }}>DAS Mensal</p>
-                <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{txt.dasTodoDia[lang].replace('{d}', String(diaVencimentoDas))}</p>
+                <p className="text-xs" style={{ color: TEXTO_SEC }}>{txt.dasTodoDia[lang].replace('{d}', String(diaVencimentoDas))}</p>
                 {editandoDas ? (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <input type="number" value={dasValorTemp} onChange={e => setDasValorTemp(e.target.value)}
                       className="w-28 px-2 py-1 rounded-lg text-xs focus:outline-none"
                       style={{ background: CAMPO_BG, border: `1px solid ${OURO}40`, color: 'var(--axi-text-primary)' }} autoFocus />
-                    <button onClick={salvarDasInline} className="p-1.5 rounded-lg" style={{ background: 'rgba(52,211,153,0.2)', color: VERDE }}><Check size={14} /></button>
-                    <button onClick={() => setEditandoDas(false)} className="p-1.5 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: VERMELHO }}><X size={14} /></button>
+                    <button onClick={salvarDasInline} className="p-1.5 rounded-lg" style={{ background: `rgba(${rgbVerde},0.2)`, color: VERDE }}><Check size={14} /></button>
+                    <button onClick={() => setEditandoDas(false)} className="p-1.5 rounded-lg" style={{ background: `rgba(${rgbVermelho},0.2)`, color: VERMELHO }}><X size={14} /></button>
                   </div>
                 ) : (
                   <p className="text-xs font-semibold mt-1" style={{ color: OURO }}>{fmt(parseFloat(dasValor || String(dasMensalPorCategoria(meiDados?.categoria_mei))))}</p>
@@ -600,10 +613,10 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         </CanvasBox>
 
         {/* Histórico do Ano — mesma lista que alimenta o cálculo da dívida, fonte única */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('historicoAno')} — {anoAtual}</p>
           {competenciasAno.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('historicoVazio')}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('historicoVazio')}</p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
               {competenciasAno.map((c) => {
@@ -623,14 +636,14 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
         </CanvasBox>
 
         {/* Calculadora DASN */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('calculadora')}</p>
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${OURO}08`, border: `1px solid ${OURO}15` }}>
+            <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: NESTED_BG ?? `${OURO}08`, border: `1px solid ${NESTED_BORDA ?? OURO + '15'}` }}>
               <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
               <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
             </div>
-            <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${AZUL}08`, border: `1px solid ${AZUL}15` }}>
+            <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: NESTED_BG ?? `${AZUL}08`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
               <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}</span>
               <span className="text-sm font-bold" style={{ color: AZUL }}>{meiDados?.categoria_mei || 'Serviços'}</span>
             </div>
@@ -658,7 +671,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
 
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
