@@ -1,4 +1,4 @@
-// 🦅 AXIOMA AI.TECH — Inadimplência: Centro de Inteligência de Recuperação
+﻿// 🦅 AXIOMA AI.TECH — Inadimplência: Centro de Inteligência de Recuperação
 // Financeira (Fase 1). NÃO recadastra contas nem clientes — só agrega o que já
 // existe em contas_receber/clientes (via clienteIntelHelpers.ts) e em
 // cobranca_compromissos (via cobrancaHelpers.ts, já a fonte real de "status de
@@ -254,7 +254,7 @@ export type EstagioEscalonamento = "amigavel" | "formal" | "protesto" | "juridic
 export const ORDEM_ESTAGIO_ESCALONAMENTO: EstagioEscalonamento[] = ["amigavel", "formal", "protesto", "juridico", "negativacao"];
 
 export const COR_ESTAGIO_ESCALONAMENTO: Record<EstagioEscalonamento, string> = {
-  amigavel: "#f59e0b", formal: "#fb923c", protesto: "#f87171", juridico: "#ef4444", negativacao: "#dc2626",
+  amigavel: "#f59e0b", formal: "#fb923c", protesto: "#f87171", juridico: "#ef4444", negativacao: "#ff5a6b",
 };
 
 const NOME_ESTAGIO_ESCALONAMENTO: Record<Idioma3, Record<EstagioEscalonamento, string>> = {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // 🦅 AXIOMA AI.TECH - Planilha Inteligente do Centro de Custos (Fase 3)
 // Grade própria (sem lib de terceiros) — sticky nativo via CSS, virtualização simples
 // por janela de scroll, fórmula escopada (lib/formulaHelpers.ts) que grava valor
@@ -501,7 +501,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
         <div className="flex gap-1.5 ml-auto">
           <button onClick={exportarCSV} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: `${VINHO}18`, color: VINHO }}><FileSpreadsheet size={13} />{t.exportarCSV}</button>
           <button onClick={exportarXLSX} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: `${VINHO}18`, color: VINHO }}><FileSpreadsheet size={13} />{t.exportarXLSX}</button>
-          <button onClick={exportarPDF} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "#dc262618", color: "#dc2626" }}><Download size={13} />{t.exportarPDF}</button>
+          <button onClick={exportarPDF} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "#ff5a6b18", color: "#ff5a6b" }}><Download size={13} />{t.exportarPDF}</button>
         </div>
       </div>
 

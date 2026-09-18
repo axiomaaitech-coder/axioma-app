@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
@@ -56,7 +56,7 @@ export default function PainelMEI() {
   // (public/referencias/), nunca verde — é o único acento da tela.
   const PALETA = {
     dark: { OURO: '#d4af37', ROYAL: '#2a5fd4', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', AZUL: '#6ab0ff', CAMPO_BG: 'rgba(255,255,255,0.04)', CHIP_BG: 'rgba(106,176,255,0.05)', CHIP_BORDA: 'rgba(106,176,255,0.1)' },
-    xms: { OURO: '#0b1f3a', ROYAL: '#0043c8', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', AZUL: '#0043c8', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
+    xms: { OURO: '#101b3d', ROYAL: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b', CAMPO_BG: '#eef2f7', CHIP_BG: 'rgba(11,31,58,0.05)', CHIP_BORDA: 'rgba(11,31,58,0.12)' },
   } as const
   const { OURO, ROYAL, VERDE, VERMELHO, AMBAR, AZUL, CAMPO_BG, CHIP_BG, CHIP_BORDA } = PALETA[tema]
   // Gráficos ECharts recebem um booleano "fundo claro" pra trocar a cor do

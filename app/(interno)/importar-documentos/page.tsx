@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -1495,7 +1495,7 @@ export default function ImportarDocumentosPage() {
                   </button>
                   <button onClick={continuarMesmoComDuplicata}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>
                     {tt.importarAssim}
                   </button>
                 </div>
@@ -1831,7 +1831,7 @@ export default function ImportarDocumentosPage() {
               )}
               <button onClick={shareBaixarPdfIndividual} disabled={gerandoPdfIndividual}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
-                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
+                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#ff5a6b" }}>
                 <span className="text-xl">{gerandoPdfIndividual ? "⏳" : "📄"}</span>
                 {gerandoPdfIndividual ? "Gerando..." : "PDF Individual"}
               </button>
@@ -1990,7 +1990,7 @@ function PreviewBlock(props: any) {
                   />
                   <button onClick={salvarComoTemplate}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>
                     💾 OK
                   </button>
                   <button onClick={() => { setMostrarSalvarTemplate(false); setNomeNovoTemplate(""); }}

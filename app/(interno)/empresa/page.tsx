@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -1203,7 +1203,7 @@ export default function EmpresaPage() {
 
   const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
   // Secundário de propósito — nunca pode se confundir com "Salvar" (verde) nem
-  // com "Exportar PDF" (vermelho #dc2626, padrão do projeto). Âmbar de alerta
+  // com "Exportar PDF" (vermelho #ff5a6b, padrão do projeto). Âmbar de alerta
   // suave, com contraste real no fundo escuro (não some como o cinza de antes).
   const estiloLimparCampos = { background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.5)", color: "#fbbf24" };
 
@@ -1696,7 +1696,7 @@ export default function EmpresaPage() {
                   </div>
                   <button onClick={() => setModalDocumento("novo")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>{tt.novoDocumento}</button>
+                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>{tt.novoDocumento}</button>
                 </div>
               </CanvasBox>
 
@@ -1905,7 +1905,7 @@ export default function EmpresaPage() {
                 <span className="text-xl">📋</span>{tt.copiar}
               </button>
               <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50"
-                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
+                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#ff5a6b" }}>
                 <span className="text-xl">{exportando ? "⏳" : "📄"}</span>
                 {exportando ? tt.gerando : tt.pdfCartao}
               </button>
@@ -2053,7 +2053,7 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
           style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form, file)} disabled={!form.nome}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>{tt.salvar}</button>
+          style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>{tt.salvar}</button>
       </div>
     </div>
   );

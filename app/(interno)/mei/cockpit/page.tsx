@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../../lib/LanguageContext'
@@ -105,7 +105,7 @@ export default function CockpitMEI() {
   // ficam iguais ao tema escuro — mesmo contraste já comprovado.
   const PALETA_COCKPIT = {
     dark: { JADE: '#047857', BRONZE: '#065f46', VERDE: '#34d399', VERMELHO: '#f87171', AMBAR: '#f59e0b', AZUL: '#6ab0ff' },
-    xms: { JADE: '#0043c8', BRONZE: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AMBAR: '#d97706', AZUL: '#0043c8' },
+    xms: { JADE: '#2ecc9b', BRONZE: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', AZUL: '#2ecc9b' },
   } as const
   const { JADE, BRONZE, VERDE, VERMELHO, AMBAR, AZUL } = PALETA_COCKPIT[tema]
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'

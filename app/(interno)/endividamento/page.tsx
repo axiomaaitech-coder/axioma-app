@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { Search, Trash2, X, Pencil, Share2, AlertTriangle, Sparkles, Zap, ShieldCheck, Clock, Sliders } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -729,7 +729,7 @@ export default function Endividamento() {
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={salvar} disabled={salvando}
                     className="w-full py-4 rounded-xl font-bold disabled:opacity-60"
-                    style={{ background: "linear-gradient(135deg, #7f1d1d, #dc2626)", color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, #7f1d1d, #ff5a6b)", color: "#fff" }}>
                     {salvando ? t.geral.carregando : editando ? "Salvar Alterações" : t.endividamento.salvarDivida}
                   </motion.button>
                 </div>

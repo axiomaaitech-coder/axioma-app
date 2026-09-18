@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -58,7 +58,7 @@ const supabase = createBrowserClient(
 // ============================================================================
 const PALETA = {
   dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#e2ecf7', TEXTO: '#c8d8f0', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
-  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#a16207', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#b45309', CINZA: '#55637a', BG_CARD: '#eef2f7', TITULO: '#0b1f3a', TEXTO: '#17304f', PAINEL_BG: '#eef2f7', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(0,67,200,0.08)' },
+  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#a16207', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#b45309', CINZA: '#6b7280', BG_CARD: '#eef2f7', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: '#eef2f7', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(0,67,200,0.08)' },
 } as const
 
 type CentroCusto = { id: string; nome: string }
@@ -635,7 +635,7 @@ export default function ContasReceber() {
     L('61-90 dias', '61-90 days', '61-90 días'), L('90+ dias', '90+ days', '90+ días'),
   ]
   const agingOption = aging.some((f) => f.valor > 0) ? optBarrasV(
-    aging.map((f) => f.valor), agingLabels, VERMELHO, temaClaro ? '#dc2626' : '#fca5a5',
+    aging.map((f) => f.valor), agingLabels, VERMELHO, temaClaro ? '#ff5a6b' : '#fca5a5',
     aging.map((f) => f.chave === 'd30' ? AMBAR : f.chave === 'd60' ? AMBAR : f.chave === 'd90' ? VERMELHO : VERMELHO),
     temaClaro,
   ) : null
@@ -803,8 +803,8 @@ export default function ContasReceber() {
     backgroundColor: 'transparent',
     tooltip: { position: 'top', backgroundColor: 'rgba(10,8,30,0.97)', borderColor: VERMELHO, textStyle: { color: '#e2e8f0', fontSize: 12 }, formatter: (p: any) => `<b>${p.name}</b><br/>${fBRL(p.value[2])}` },
     grid: { left: 100, right: 20, top: 10, bottom: 30 },
-    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#55637a' : '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
-    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#55637a' : '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
+    xAxis: { type: 'category', data: ['0-30', '31-60', '61-90', '90+'], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#6b7280' : '#94a3b8', fontSize: 10, fontWeight: 700 }, axisLine: { lineStyle: { color: 'rgba(148,163,184,0.18)' } } },
+    yAxis: { type: 'category', data: [...new Set(heatmapData.map((c) => c.clienteNome))], splitArea: { show: true }, axisLabel: { color: temaClaro ? '#6b7280' : '#cbd5e1', fontSize: 10 }, axisLine: { show: false } },
     visualMap: { min: 0, max: Math.max(1, ...heatmapData.map((c) => c.valor)), calculable: false, show: false, inRange: { color: ['rgba(248,113,113,0.06)', AMBAR, VERMELHO] } },
     series: [{ type: 'heatmap', data: heatmapData.map((c) => [c.faixa, c.clienteNome, c.valor]).map((d) => [['0-30', '31-60', '61-90', '90+'].indexOf(d[0] as string), [...new Set(heatmapData.map((x) => x.clienteNome))].indexOf(d[1] as string), d[2]]), label: { show: false }, itemStyle: { borderColor: temaClaro ? '#ffffff' : '#020810', borderWidth: 2, borderRadius: 4 } }],
   } : null
@@ -947,8 +947,8 @@ export default function ContasReceber() {
             <div className="grid md:grid-cols-2 gap-4 items-center">
               <div className="grid grid-cols-2 gap-3">
                 {aging.map((f, i) => (
-                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${[AMBAR, '#f59e0b', '#ef4444', '#dc2626'][i]}12`, border: `1px solid ${[AMBAR, '#f59e0b', '#ef4444', '#dc2626'][i]}35` }}>
-                    <p className="text-base font-black" style={{ color: [AMBAR, '#f59e0b', '#ef4444', '#dc2626'][i] }}>{fBRL(f.valor)}</p>
+                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${[AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i]}12`, border: `1px solid ${[AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i]}35` }}>
+                    <p className="text-base font-black" style={{ color: [AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i] }}>{fBRL(f.valor)}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('contas', 'accounts', 'cuentas')}</p>
                   </div>
                 ))}

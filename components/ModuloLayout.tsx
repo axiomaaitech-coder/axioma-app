@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { Download, Plus } from "lucide-react";
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
@@ -26,7 +26,7 @@ export function NeonCard({ children, cor = "#6ab0ff", className = "" }: { childr
       transition={{ duration: 0.35, ease: "easeOut" }}
       className={`relative rounded-2xl overflow-hidden ${className}`}
       style={{
-        background: "rgba(10,20,36,0.7)",
+        background: "var(--axi-surface)",
         border: `1px solid rgba(${corRgb},0.16)`,
         boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
       }}
@@ -66,7 +66,7 @@ export default function ModuloLayout({
               onClick={onExportarPDF}
               disabled={exportando}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-              style={{ background: "#dc2626", color: "#fff" }}
+              style={{ background: "#ff5a6b", color: "#fff" }}
             >
               <Download size={16} />
               {exportando ? "Gerando..." : "Exportar PDF"}
@@ -103,14 +103,14 @@ export default function ModuloLayout({
         {/* Acento de canto sutil — só uma linha fina no topo, estática */}
         <div
           className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-          style={{ background: "linear-gradient(90deg, rgba(106,176,255,0.5), rgba(52,211,153,0.3) 50%, transparent)" }}
+          style={{ background: "linear-gradient(90deg, color-mix(in srgb, var(--axi-accent) 50%, transparent), color-mix(in srgb, var(--axi-success) 30%, transparent) 50%, transparent)" }}
         />
 
         {/* Fundo interno suave (estático) */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse at 12% 0%, rgba(106,176,255,0.05) 0%, transparent 45%)",
+            background: "radial-gradient(ellipse at 12% 0%, color-mix(in srgb, var(--axi-accent) 5%, transparent) 0%, transparent 45%)",
           }}
         />
 

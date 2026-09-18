@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { Target, Trash2, X, Pencil, Share2, Sparkles, GitBranch, Archive, ArchiveRestore, Trophy } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -187,7 +187,7 @@ function serieHistoricaMetrica(tipo: TipoMeta, ctx: CtxMeta, ate: string, mesesJ
 
 // ═══════════════════════ GRÁFICO LOCAL — barras agrupadas (Real × Esperado) ═══════════════════════
 function optProgressoMetas(labels: string[], real: number[], esperado: number[], labelReal: string, labelEsperado: string, temaClaro?: boolean) {
-  const eixoCor = temaClaro ? "#55637a" : "#cbd5e1";
+  const eixoCor = temaClaro ? "#6b7280" : "#cbd5e1";
   const corReal = temaClaro ? "#7c3aed" : CORES.roxo;
   const corEsperado = temaClaro ? "#a16207" : CORES.ouro;
   return {
@@ -847,7 +847,7 @@ export default function Metas() {
                               <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(0, Math.min(100, c.progReal))}%` }}
                                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 + i * 0.06 }}
                                 className="h-2 rounded-full" style={{ background: concluida ? `linear-gradient(90deg, ${ct(CORES.ouro)}, ${ct(CORES.ouroC)})` : `linear-gradient(90deg, ${corSemaforo}, ${corSemaforo}cc)` }} />
-                              <span className="absolute top-0 h-2 w-0.5" style={{ left: `${Math.max(0, Math.min(100, c.progEspPct))}%`, background: temaClaro ? "#0b1f3a" : "#fff", opacity: 0.6 }} />
+                              <span className="absolute top-0 h-2 w-0.5" style={{ left: `${Math.max(0, Math.min(100, c.progEspPct))}%`, background: temaClaro ? "#101b3d" : "#fff", opacity: 0.6 }} />
                             </div>
                           </div>
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -890,7 +890,7 @@ export default function Relatorios() {
               </button>
               <button onClick={sharePdf} disabled={exportando}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50 sm:col-span-3"
-                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#dc2626" }}>
+                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#ff5a6b" }}>
                 <span className="text-xl">{exportando ? "⏳" : "📄"}</span>
                 {exportando ? "Gerando..." : "Baixar PDF Profissional"}
               </button>

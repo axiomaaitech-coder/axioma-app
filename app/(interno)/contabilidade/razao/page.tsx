@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { Suspense, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useSearchParams } from 'next/navigation'
@@ -27,7 +27,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // CAMPO_BG e MODAL_BG que dependem do tema pra não ficar sempre escuro.
 const PALETA = {
   dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.9)', MODAL_BG: '#0a1628' },
-  xms: { TEAL: '#0f766e', VERDE: '#16a34a', VERMELHO: '#dc2626', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a', CAMPO_BG: '#eef2f7', MODAL_BG: '#ffffff' },
+  xms: { TEAL: '#0f766e', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#eef2f7', MODAL_BG: '#ffffff' },
 } as const
 
 // useSearchParams exige Suspense no App Router (mesmo padrão de pdv/cadastro).

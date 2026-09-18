@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════
 // AXIOMA AI.TECH — cfoCore.ts
 // Núcleo de inteligência CFO. Funções puras, reutilizáveis por
 // QUALQUER módulo e pelo Dashboard principal. Escrito uma vez.
@@ -355,21 +355,26 @@ export const CORES = {
 // hex fora do mapa muda de comportamento.
 const MAPA_CORES_CLARO: Record<string, string> = {
   [CORES.ouro]: "#a16207", [CORES.roxo]: "#7c3aed", [CORES.cyan]: "#0e7490",
-  [CORES.verde]: "#16a34a", [CORES.vermelho]: "#dc2626", [CORES.laranja]: "#c2410c",
-  [CORES.rosa]: "#be185d", [CORES.azul]: "#0043c8", [CORES.indigo]: "#4338ca",
+  [CORES.verde]: "#16a97d", [CORES.vermelho]: "#ff5a6b", [CORES.laranja]: "#c2410c",
+  // azul/azulC viram azul-marinho (chart-2/chart-5 da paleta nova) e não
+  // verde-menta: verde-menta já é o CORES.verde desta mesma tabela — usar
+  // a mesma cor pros dois destruiria a distinção entre as duas categorias.
+  [CORES.rosa]: "#be185d", [CORES.azul]: "#101b3d", [CORES.indigo]: "#4338ca",
   [CORES.teal]: "#0f766e", [CORES.amarelo]: "#a16207",
   // Variantes "C" (companheiras claras/pastel de cada CORES.*, usadas como
   // texto/gradiente sobre fundo escuro) — mesmo destino da cor base, senão
   // ficam pastel-sobre-claro (ilegível) no tema Claro.
   [CORES.ouroC]: "#a16207", [CORES.roxoC]: "#7c3aed", [CORES.cyanC]: "#0e7490",
-  [CORES.verdeC]: "#16a34a", [CORES.vermelhoC]: "#dc2626", [CORES.laranjaC]: "#c2410c",
-  [CORES.rosaC]: "#be185d", [CORES.azulC]: "#0043c8", [CORES.amareloC]: "#a16207",
-  "#6ab0ff": "#0043c8", "#3b6fd4": "#0043c8", "#2a5fd4": "#0043c8", "#5a8fd4": "#0043c8",
-  "#34d399": "#16a34a", "#fbbf24": "#d97706", "#f87171": "#dc2626", "#c4b5fd": "#7c3aed",
-  "#5a7a9a": "#55637a", "#c8d8f0": "#17304f", "#f1f5f9": "#17304f", "#e2e8f0": "#17304f",
-  "#64748b": "#55637a", "#6ee7b7": "#16a34a", "#fca5a5": "#dc2626",
-  "#94a3b8": "#55637a", "#cbd5e1": "#55637a", "#3a6090": "#55637a",
-  "#f59e0b": "#b45309", "#fb923c": "#c2410c", "#ef4444": "#dc2626",
+  [CORES.verdeC]: "#16a97d", [CORES.vermelhoC]: "#ff5a6b", [CORES.laranjaC]: "#c2410c",
+  [CORES.rosaC]: "#be185d", [CORES.azulC]: "#122b54", [CORES.amareloC]: "#a16207",
+  // Estes 4 hex são variantes do --axi-accent do tema Escuro (não da
+  // categoria "azul" de gráfico acima) — no Claro o acento é verde-menta.
+  "#6ab0ff": "#2ecc9b", "#3b6fd4": "#2ecc9b", "#2a5fd4": "#2ecc9b", "#5a8fd4": "#2ecc9b",
+  "#34d399": "#16a97d", "#fbbf24": "#f5a623", "#f87171": "#ff5a6b", "#c4b5fd": "#7c3aed",
+  "#5a7a9a": "#6b7280", "#c8d8f0": "#101b3d", "#f1f5f9": "#101b3d", "#e2e8f0": "#101b3d",
+  "#64748b": "#6b7280", "#6ee7b7": "#16a97d", "#fca5a5": "#ff5a6b",
+  "#94a3b8": "#6b7280", "#cbd5e1": "#6b7280", "#3a6090": "#6b7280",
+  "#f59e0b": "#f5a623", "#fb923c": "#c2410c", "#ef4444": "#ff5a6b",
 };
 export function corTema(hex: string, claro?: boolean): string {
   return claro ? MAPA_CORES_CLARO[hex] ?? hex : hex;
@@ -398,7 +403,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     xAxis: { type: "category", data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -407,7 +412,7 @@ export function optBarrasV(dados: number[], labels: string[], cor: string, corC:
       itemStyle: { borderRadius: [8, 8, 2, 2],
         color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
         shadowColor: cor + "55", shadowBlur: 12 },
-      label: { show: true, position: "top", distance: 6, color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
+      label: { show: true, position: "top", distance: 6, color: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
       emphasis: { itemStyle: { shadowBlur: 24 } }, data: dados,
     }],
   };
@@ -425,7 +430,7 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     yAxis: { type: "category", data: labels, inverse: true,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 700 } },
     xAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -434,7 +439,7 @@ export function optBarrasH(dados: number[], labels: string[], cor: string, corC:
       itemStyle: { borderRadius: [0, 8, 8, 0],
         color: coresIndividuais ? (p: any) => coresIndividuais[p.dataIndex] || gradientePadrao : gradientePadrao,
         shadowColor: cor + "55", shadowBlur: 12 },
-      label: { show: true, position: "right", distance: 6, color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
+      label: { show: true, position: "right", distance: 6, color: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => p.value > 0 ? fK(p.value) : "" },
       emphasis: { itemStyle: { shadowBlur: 24 } }, data: dados,
     }],
   };
@@ -447,7 +452,7 @@ export function optBarrasComparativo(
   dadosA: number[], dadosB: number[], labels: string[],
   corA: string, corB: string, nomeA: string, nomeB: string, temaClaro?: boolean,
 ) {
-  const eixoCor = temaClaro ? "#55637a" : "#cbd5e1";
+  const eixoCor = temaClaro ? "#6b7280" : "#cbd5e1";
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 40, bottom: 28, containLabel: false },
@@ -476,7 +481,7 @@ export function optRosca(dados: { name: string; value: number; color: string }[]
     tooltip: { ...tipBase, trigger: "item", borderColor: cor,
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${cor}">${p.percent}%</span>` },
     legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle",
-      textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 600 },
+      textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 600 },
       formatter: (name: string) => { const d = dados.find((x) => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name.length > 14 ? name.slice(0, 13) + "…" : name}  ${pct}%`; } },
     series: [{ type: "pie", radius: ["54%", "80%"], center: ["32%", "52%"], avoidLabelOverlap: false,
       itemStyle: { borderColor: temaClaro ? "#ffffff" : "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
@@ -484,7 +489,7 @@ export function optRosca(dados: { name: string; value: number; color: string }[]
       emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 26 } },
       data: dados.map((d) => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })) }],
     graphic: [
-      { type: "text", left: "32%", top: "45%", style: { text: fK(total), textAlign: "center", fill: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
+      { type: "text", left: "32%", top: "45%", style: { text: fK(total), textAlign: "center", fill: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
       { type: "text", left: "32%", top: "55%", style: { text: centro, textAlign: "center", fill: "#64748b", fontSize: 9, fontWeight: 700 }, z: 10 },
     ],
   };
@@ -501,10 +506,10 @@ export function optLinhaPrevisao(
     grid: { left: 52, right: 16, top: 20, bottom: 28, containLabel: false },
     tooltip: { ...tipBase, trigger: "axis", borderColor: corProj,
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter((p) => p.value != null).map((p) => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
-    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [labelReal, labelProj] },
+    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [labelReal, labelProj] },
     xAxis: { type: "category", boundaryGap: false, data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: temaClaro ? "#55637a" : "#94a3b8", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#6b7280" : "#94a3b8", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -532,12 +537,12 @@ export function optLinhaMulti(
     backgroundColor: "transparent", animationDuration: 1100,
     grid: { left: 58, right: 24, top: 40, bottom: 30, containLabel: false },
     legend: { top: 2, right: 0, itemWidth: 16, itemHeight: 10, itemGap: 18, icon: "roundRect",
-      textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: series.map((s) => s.nome) },
+      textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: series.map((s) => s.nome) },
     tooltip: { ...tipBase, trigger: "axis", borderColor: corBorda,
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter((p) => p.value != null).map((p) => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", boundaryGap: false, data: labels,
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: temaClaro ? "#55637a" : "#94a3b8", fontSize: 11, fontWeight: 700 } },
+      axisLabel: { color: temaClaro ? "#6b7280" : "#94a3b8", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
       axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
@@ -555,8 +560,8 @@ export function optLinhaMulti(
 // Dispersão (scatter) — posiciona pontos em dois eixos 0-100/0-1000 (ex: Mapa de Valor
 // de Clientes: score × saúde). Tamanho do ponto pode carregar uma terceira dimensão (ex: ticket).
 export function optDispersao(pontos: { nome: string; x: number; y: number; cor: string; tamanho?: number }[], labelX: string, labelY: string, maxX: number, temaClaro?: boolean) {
-  const eixoNomeCor = temaClaro ? "#55637a" : "#94a3b8";
-  const eixoLabelCor = temaClaro ? "#55637a" : "#64748b";
+  const eixoNomeCor = temaClaro ? "#6b7280" : "#94a3b8";
+  const eixoLabelCor = temaClaro ? "#6b7280" : "#64748b";
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 54, right: 24, top: 24, bottom: 44, containLabel: false },
@@ -584,7 +589,7 @@ export function optDispersao(pontos: { nome: string; x: number; y: number; cor: 
 // Velocímetro (gauge) — score/índice único 0..max com faixas de cor (ex: 0-400
 // vermelho, 401-700 âmbar, 701-1000 verde). "faixas" define até onde vai cada cor.
 export function optVelocimetro(valor: number, max: number, faixas: { ate: number; cor: string }[], temaClaro?: boolean) {
-  const ponteiroCor = temaClaro ? "#17304f" : "#e2e8f0";
+  const ponteiroCor = temaClaro ? "#101b3d" : "#e2e8f0";
   return {
     backgroundColor: "transparent", animationDuration: 900,
     series: [{
@@ -594,7 +599,7 @@ export function optVelocimetro(valor: number, max: number, faixas: { ate: number
       axisLine: { lineStyle: { width: 14, color: faixas.map((f) => [f.ate / max, f.cor]) } },
       axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
       anchor: { show: true, size: 12, itemStyle: { color: temaClaro ? "#ffffff" : "#0a0820", borderColor: ponteiroCor, borderWidth: 2 } },
-      detail: { valueAnimation: true, fontSize: 26, fontWeight: 900, color: temaClaro ? "#0b1f3a" : "#f1f5f9", offsetCenter: [0, "60%"], formatter: (v: number) => `${Math.round(v)}` },
+      detail: { valueAnimation: true, fontSize: 26, fontWeight: 900, color: temaClaro ? "#101b3d" : "#f1f5f9", offsetCenter: [0, "60%"], formatter: (v: number) => `${Math.round(v)}` },
       data: [{ value: valor }],
     }],
   };
@@ -609,9 +614,9 @@ export function optRadar(indicadores: { nome: string; max: number }[], valores: 
     radar: {
       indicator: indicadores.map((i) => ({ name: i.nome, max: i.max })),
       splitNumber: 4,
-      axisName: { color: temaClaro ? "#55637a" : "#94a3b8", fontSize: 10, fontWeight: 700 },
+      axisName: { color: temaClaro ? "#6b7280" : "#94a3b8", fontSize: 10, fontWeight: 700 },
       splitLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
-      splitArea: { areaStyle: { color: temaClaro ? ["#f3f6fa", "#e8edf4"] : ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.03)"] } },
+      splitArea: { areaStyle: { color: temaClaro ? ["#f7f8fa", "#e8edf4"] : ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.03)"] } },
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
     },
     series: [{
@@ -1141,7 +1146,7 @@ export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativ
     xAxis: {
       type: "category", data: itens.map((it) => it.label),
       axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 10, fontWeight: 700, interval: 0, rotate: 20 },
+      axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 10, fontWeight: 700, interval: 0, rotate: 20 },
     },
     yAxis: {
       type: "value", axisLine: { show: false }, axisTick: { show: false },
@@ -1153,7 +1158,7 @@ export function optCascata(itens: ItemCascata[], corPositivo: string, corNegativ
       {
         name: "valor", type: "bar", stack: "cascata", barWidth: "55%",
         itemStyle: { borderRadius: [6, 6, 2, 2], color: (p: any) => cores[p.dataIndex] },
-        label: { show: true, position: "top", color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => fK(itens[p.dataIndex].valor) },
+        label: { show: true, position: "top", color: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 9, fontWeight: 800, formatter: (p: any) => fK(itens[p.dataIndex].valor) },
         data: valores,
       },
     ],

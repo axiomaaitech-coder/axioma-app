@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -739,7 +739,7 @@ export default function IAFinanceiraPage() {
                   </div>
                   <button onClick={executarWhatIf}
                     className="px-4 py-2 rounded-lg text-sm font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #d97706)", color: "#fff" }}>
+                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>
                     {tt.simular}
                   </button>
                 </div>

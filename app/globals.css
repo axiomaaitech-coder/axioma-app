@@ -31,29 +31,27 @@
 }
 
 [data-theme="xms"] {
-  /* Tema "Claro" (2 temas no Axioma: Escuro e Claro) — branco + azul-marinho
-     + azul-royal, cores extraídas por pixel da referência (public/referencias/),
-     não aproximadas. Distribuição 60/30/10: branco domina o fundo, azul-marinho
-     carrega texto/hierarquia, azul-royal é o único acento (CTAs, cards
-     "destaque", bordas ativas) — nunca verde. */
-  --axi-bg: #f3f6fa;
+  /* Tema "Claro" (2 temas no Axioma: Escuro e Claro) — valores exatos de
+     public/referencias/tema-tokens.md (fonte de verdade), mapeados 1:1 pros
+     nomes --axi-* já usados em produção. Branco domina o fundo, azul-marinho
+     carrega texto/hierarquia, verde-menta é o único acento (CTAs, foco,
+     nav ativo) — mesmo papel que --axi-accent já tem no tema Escuro. */
+  --axi-bg: #f7f8fa;
   --axi-surface: #ffffff;
   --axi-surface-solid: #ffffff;
-  --axi-border: #dce3ed;
-  --axi-text-heading: #0b1f3a;
-  --axi-text-primary: #17304f;
-  --axi-text-secondary: #55637a;
-  --axi-success: #16a34a;
-  --axi-warning: #d97706;
-  --axi-error: #dc2626;
-  --axi-accent: #0043c8;
-  /* Card "destaque" no Claro ganha um tingimento azul (tint do próprio
-     acento, 8% de opacidade) pra se destacar do card branco comum, igual
-     ao contraste "seção clara vs. seção de CTA" da referência — sem virar
-     um bloco azul sólido, que apagaria o número (cor por card: dourado/
-     verde/azul) escrito por cima. Texto continua nos mesmos --axi-text-*
-     de sempre, sem override — já tem contraste de sobra num fundo claro. */
-  --axi-card-destaque-bg: rgba(0, 67, 200, 0.08);
+  --axi-border: #e4e7ec;
+  --axi-text-heading: #101b3d;
+  --axi-text-primary: #101b3d;
+  --axi-text-secondary: #6b7280;
+  --axi-success: #16a97d;
+  --axi-warning: #f5a623;
+  --axi-error: #ff5a6b;
+  --axi-accent: #2ecc9b;
+  /* Card "destaque" no Claro ganha um tingimento verde-menta (tint do
+     próprio acento, 8% de opacidade) pra se destacar do card branco comum
+     — mesma fórmula de antes, só recalculada pro novo acento. Texto
+     continua nos mesmos --axi-text-* de sempre, sem override. */
+  --axi-card-destaque-bg: rgba(46, 204, 155, 0.08);
 }
 
 @theme inline {

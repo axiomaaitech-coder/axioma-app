@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import {
   TrendingUp, Trash2, X, Pencil, Share2, Sparkles, ShieldCheck, AlertTriangle,
@@ -65,8 +65,8 @@ function mesesNoPeriodo(periodo: Periodo): number {
 // Bar chart local para valores em % (score/radar) — optBarrasV do alicerce formata em R$,
 // unidade errada pra essas duas séries. Escopo pequeno demais pra virar helper do cfoCore.
 function optBarrasPct(dados: number[], labels: string[], cores: string[], temaClaro?: boolean) {
-  const eixoCor = temaClaro ? "#55637a" : "#cbd5e1";
-  const corFallback = temaClaro ? "#0043c8" : CORES.azul;
+  const eixoCor = temaClaro ? "#6b7280" : "#cbd5e1";
+  const corFallback = temaClaro ? "#2ecc9b" : CORES.azul;
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 40, right: 16, top: 24, bottom: 28, containLabel: false },
@@ -80,7 +80,7 @@ function optBarrasPct(dados: number[], labels: string[], cores: string[], temaCl
     series: [{
       type: "bar" as const, barWidth: "50%",
       itemStyle: { borderRadius: [8, 8, 2, 2], color: (p: any) => cores[p.dataIndex] || corFallback },
-      label: { show: true, position: "top" as const, distance: 6, color: temaClaro ? "#17304f" : "#f1f5f9", fontSize: 10, fontWeight: 800, formatter: (p: any) => `${p.value.toFixed(0)}%` },
+      label: { show: true, position: "top" as const, distance: 6, color: temaClaro ? "#101b3d" : "#f1f5f9", fontSize: 10, fontWeight: 800, formatter: (p: any) => `${p.value.toFixed(0)}%` },
       data: dados,
     }],
   };

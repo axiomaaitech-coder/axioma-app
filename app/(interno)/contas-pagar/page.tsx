@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -63,7 +63,7 @@ const supabase = createBrowserClient(
 // e CAMPO_BG são valores JS por tema (não CSS var).
 const PALETA = {
   dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#6ab0ff", AMBAR: "#f59e0b", CINZA: "#5a7a9a", ROXO: "#a78bfa", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
-  xms: { VERDE: "#16a34a", VERMELHO: "#dc2626", AZUL: "#0043c8", AMBAR: "#d97706", CINZA: "#55637a", ROXO: "#7c3aed", TEXTO: "#17304f", PAINEL_BG: "#ffffff", CAMPO_BG: "#eef2f7", CAMPO_BG2: "#eef2f7" },
+  xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AZUL: "#2ecc9b", AMBAR: "#f5a623", CINZA: "#6b7280", ROXO: "#7c3aed", TEXTO: "#101b3d", PAINEL_BG: "#ffffff", CAMPO_BG: "#eef2f7", CAMPO_BG2: "#eef2f7" },
 } as const;
 
 const FORMAS_PAGAMENTO = ["PIX", "Boleto", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"];
@@ -3639,7 +3639,7 @@ export default function ContasPagarPage() {
                     </p>
                     <div className="flex gap-3 pt-2">
                       <button onClick={() => setPadraoParaTransformar(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(59,111,212,0.1)", color: CINZA }}>{L("Cancelar", "Cancel", "Cancelar")}</button>
-                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #d97706, #f59e0b)", color: "#fff" }}>
+                      <button onClick={confirmarTransformarPadrao} disabled={transformando} className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60" style={{ background: "linear-gradient(135deg, #f5a623, #f59e0b)", color: "#fff" }}>
                         {transformando ? L("Criando...", "Creating...", "Creando...") : L("Confirmar e Criar", "Confirm and Create", "Confirmar y Crear")}
                       </button>
                     </div>

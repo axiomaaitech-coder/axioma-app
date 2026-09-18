@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
@@ -37,7 +37,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', ALARANJADO: '#fb923c', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.06)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#0b1f3a', VERDE: '#16a34a', VERMELHO: '#dc2626', AZUL: '#0043c8', AMBAR: '#d97706', ALARANJADO: '#ea580c', NEUTRO: '#55637a', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
 } as const
 
 function pad(n: number) { return String(n).padStart(2, '0') }

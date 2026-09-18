@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
@@ -20,7 +20,7 @@ type Grupo = '6' | '7' | '8' | '9' | '10'
 
 const PALETA = {
   dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7' },
-  xms: { TEAL: '#0f766e', VERDE: '#16a34a', VERMELHO: '#dc2626', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a' },
+  xms: { TEAL: '#0f766e', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d' },
 } as const
 
 export default function DrePage() {

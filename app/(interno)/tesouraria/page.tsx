@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
@@ -26,7 +26,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // nunca a versão pastel do dark (ilegível em fundo branco).
 const PALETA = {
   dark: { AZUL: '#3b6fd4', AZULC: '#6ab0ff', VERDE: '#34d399', AMARELO: '#fbbf24', LARANJA: '#fb923c', VERMELHO: '#f87171', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.95)', PAINEL_BG: 'rgba(10,20,36,0.7)' },
-  xms: { AZUL: '#0043c8', AZULC: '#0043c8', VERDE: '#16a34a', AMARELO: '#d97706', LARANJA: '#ea580c', VERMELHO: '#dc2626', ROXO: '#7c3aed', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7' },
+  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#ea580c', VERMELHO: '#ff5a6b', ROXO: '#7c3aed', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7' },
 } as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']

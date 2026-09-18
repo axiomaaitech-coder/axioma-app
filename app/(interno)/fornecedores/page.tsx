@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -66,10 +66,10 @@ function useCampoEstilos() {
   const { tema } = useThemeAxioma();
   const claro = tema === "xms";
   return {
-    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(180,83,9,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#17304f" : "#c8d8f0" },
-    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(180,83,9,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#17304f" : "#c8d8f0" },
+    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(180,83,9,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
+    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(180,83,9,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
     labelStyle: { color: claro ? "#92400e" : "#d4a017" },
-    erroStyle: { color: claro ? "#dc2626" : "#f87171" },
+    erroStyle: { color: claro ? "#ff5a6b" : "#f87171" },
   };
 }
 
@@ -1746,7 +1746,7 @@ export default function Fornecedores() {
       <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
         onClick={abrirNovaConta}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-        style={{ background: temaClaro ? "rgba(217,119,6,0.15)" : "rgba(251,191,36,0.15)", color: temaClaro ? "#d97706" : "#fbbf24", border: `1px solid ${temaClaro ? "rgba(217,119,6,0.3)" : "rgba(251,191,36,0.3)"}` }}>
+        style={{ background: temaClaro ? "rgba(217,119,6,0.15)" : "rgba(251,191,36,0.15)", color: temaClaro ? "#f5a623" : "#fbbf24", border: `1px solid ${temaClaro ? "rgba(217,119,6,0.3)" : "rgba(251,191,36,0.3)"}` }}>
         + {idioma === "pt" ? "Nova Conta a Pagar" : "New Bill"}
       </motion.button>
       <ThemeToggle />

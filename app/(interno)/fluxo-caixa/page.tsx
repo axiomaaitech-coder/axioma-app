@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, AlertTriangle, Pencil, Trash2, X, Share2, Sparkles, Zap, ShieldAlert, MessageSquareText } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -67,10 +67,10 @@ function optEntradasSaidas(labels: string[], entradas: number[], saidas: number[
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
-    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [cxE, cxS] },
+    legend: { top: 0, right: 0, itemWidth: 14, itemHeight: 9, itemGap: 14, textStyle: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 11, fontWeight: 700 }, data: [cxE, cxS] },
     tooltip: { ...tip, trigger: "axis", axisPointer: { type: "shadow" },
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.map((p) => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
-    xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#55637a" : "#cbd5e1", fontSize: 10, fontWeight: 700 } },
+    xAxis: { type: "category", data: labels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#6b7280" : "#cbd5e1", fontSize: 10, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } }, axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
     series: [
       { name: cxE, type: "bar", barGap: "10%", itemStyle: { borderRadius: [4, 4, 0, 0], color: corVerde }, data: entradas },

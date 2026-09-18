@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -53,9 +53,9 @@ function useCampoEstilo() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   return {
-    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#17304f" : "#c8d8f0" },
-    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#17304f" : "#c8d8f0" },
-    labelStyle: { color: temaClaro ? "#0043c8" : "#5a8fd4" },
+    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
+    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
+    labelStyle: { color: temaClaro ? "#2ecc9b" : "#5a8fd4" },
   };
 }
 

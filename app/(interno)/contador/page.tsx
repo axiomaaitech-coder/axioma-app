@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -31,7 +31,7 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // PAINEL_BG/MODAL_BG.
 const PALETA = {
   dark: { VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', MODAL_BG: '#0a1628' },
-  xms: { VERMELHO: '#dc2626', LARANJA: '#ea580c', AMARELO: '#d97706', VERDE: '#16a34a', AZULC: '#0043c8', ROXO: '#7c3aed', CINZA: '#55637a', TEXTO: '#17304f', TITULO: '#0b1f3a', PAINEL_BG: '#eef2f7', PAINEL_BG2: '#eef2f7', MODAL_BG: '#ffffff' },
+  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#7c3aed', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#eef2f7', PAINEL_BG2: '#eef2f7', MODAL_BG: '#ffffff' },
 } as const
 
 const LABEL_TIPO: Record<TipoDescoberta, Record<Idioma3, string>> = {

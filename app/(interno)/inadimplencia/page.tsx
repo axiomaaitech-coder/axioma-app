@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -60,7 +60,7 @@ const supabase = createBrowserClient(
 // ============================================================================
 const PALETA = {
   dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#f59e0b', VERDE: '#34d399', AZUL: '#6ab0ff', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)' },
-  xms: { INDIGO: '#4338ca', SAFIRA: '#312e81', PLATINA: '#55637a', VERMELHO: '#dc2626', AMBAR: '#b45309', VERDE: '#16a34a', AZUL: '#0043c8', CINZA: '#55637a', BG_CARD: '#eef2f7' },
+  xms: { INDIGO: '#4338ca', SAFIRA: '#312e81', PLATINA: '#6b7280', VERMELHO: '#ff5a6b', AMBAR: '#b45309', VERDE: '#16a97d', AZUL: '#2ecc9b', CINZA: '#6b7280', BG_CARD: '#eef2f7' },
 } as const
 const CATEGORIAS_CASO = ['Vendas', 'Serviços', 'Mensalidade', 'Consultoria', 'Outros']
 
@@ -808,7 +808,7 @@ export default function Inadimplencia() {
                 if (!etapa) return null
                 const cor = ct(COR_ESTAGIO_ESCALONAMENTO[estagio])
                 return (
-                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${etapa.ativo ? cor + '40' : (temaClaro ? '#dce3ed' : 'rgba(255,255,255,0.08)')}` }}>
+                  <div key={etapa.id} className="rounded-xl p-3 min-w-[180px] flex-1" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${etapa.ativo ? cor + '40' : (temaClaro ? '#e4e7ec' : 'rgba(255,255,255,0.08)')}` }}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-black" style={{ color: etapa.ativo ? cor : CINZA }}>{nomeEstagioEscalonamento(lang, estagio)}</span>
                       <div className="flex items-center gap-1.5">
@@ -1156,7 +1156,7 @@ export default function Inadimplencia() {
                   {titulosVencidosCliente.length === 0 ? (
                     <p className="text-xs italic" style={{ color: CINZA }}>{L('Nenhum título vencido em aberto para negociar.', 'No open overdue invoice to negotiate.', 'Ningún título vencido abierto para negociar.')}</p>
                   ) : (
-                    <div className="grid sm:grid-cols-2 gap-4 pt-3" style={{ borderTop: temaClaro ? '1px solid #dce3ed' : '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="grid sm:grid-cols-2 gap-4 pt-3" style={{ borderTop: temaClaro ? '1px solid #e4e7ec' : '1px solid rgba(255,255,255,0.08)' }}>
                       {/* Registrar contato */}
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase" style={{ color: AZUL }}>{L('Registrar Contato', 'Log Contact', 'Registrar Contacto')}</p>
