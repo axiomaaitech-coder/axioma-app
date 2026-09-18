@@ -385,11 +385,14 @@ export default function PainelMEI() {
       onNovo={() => setModalConfig(true)}
       labelBotao={t('configurar')}
       aurora={<AuroraBackground corA={OURO} corB={ROYAL} />}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
+      corNovo={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <button onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `linear-gradient(135deg, ${ROYAL}, ${OURO})`, color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${ROYAL}, ${OURO})`, color: '#fff' }}>
             <Share2 size={16} /> {t('compartilhar')}
           </button>
           <ThemeToggle />
@@ -398,7 +401,7 @@ export default function PainelMEI() {
     >
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={ROYAL} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : ROYAL} corB={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Cards principais */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -448,7 +451,7 @@ export default function PainelMEI() {
               <p className="text-xs uppercase tracking-wider mb-1 text-center" style={{ color: TEXTO_SEC }}>{mx.composicaoCofre}</p>
               <ReactECharts style={{ height: 200 }} option={optRosca(
                 [
-                  { name: mx.cofreDas, value: Math.max(0, cofre.das), color: VERMELHO },
+                  { name: mx.cofreDas, value: Math.max(0, cofre.das), color: temaClaro ? ROYAL : VERMELHO },
                   { name: mx.cofreIrpf, value: Math.max(0, cofre.irpfReserva), color: AMBAR },
                   { name: mx.cofreCompromissos, value: Math.max(0, cofre.compromissos), color: AZUL },
                   { name: mx.cofreReserva, value: Math.max(0, cofre.reservaEmergencia), color: '#a78bfa' },

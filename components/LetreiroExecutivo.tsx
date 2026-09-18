@@ -16,10 +16,16 @@ export type ItemLetreiro = { texto: string; destaque?: boolean; cor?: string; on
 export function LetreiroExecutivo({
   itens,
   cor,
+  corB,
   textoBase = "var(--axi-text-primary)",
 }: {
   itens: (string | ItemLetreiro | false | null | undefined)[];
   cor: string;
+  /** Opt-in — segunda cor pra virar a tira num degradê sólido de ${cor} até
+   * ${corB} (ex.: azul-marinho → verde-menta), em vez do tingimento
+   * translúcido padrão de uma cor só. Sem isso, comportamento 100% igual a
+   * antes (nenhum dos ~8 módulos que já usam este componente muda). */
+  corB?: string;
   /** Cor do texto não-destacado. Opcional — o padrão já resolve certo em
    * qualquer tema (var(--axi-text-primary) segue o data-theme da tela).
    * Só passe algo aqui se quiser fugir do padrão de propósito. Antes disso
@@ -34,8 +40,13 @@ export function LetreiroExecutivo({
 
   if (normalizados.length === 0) return null;
 
+  const corSeparador = corB || cor;
+
   return (
-    <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${cor}18, ${cor}0c)`, border: `1px solid ${cor}30` }}>
+    <div className="relative rounded-xl overflow-hidden" style={{
+      background: corB ? `linear-gradient(90deg, ${cor}, ${corB})` : `linear-gradient(90deg, ${cor}18, ${cor}0c)`,
+      border: `1px solid ${corB ? corB + '60' : cor + '30'}`,
+    }}>
       <div className="letreiro-axioma py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
         {[0, 1].map((rep) => (
           <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
@@ -55,7 +66,7 @@ export function LetreiroExecutivo({
                 ) : (
                   <span style={{ color: it.cor || (it.destaque ? cor : textoBase) }}>{it.texto}</span>
                 )}
-                <span style={{ color: cor }}>{"  •  "}</span>
+                <span style={{ color: corSeparador }}>{"  •  "}</span>
               </span>
             ))}
           </span>
