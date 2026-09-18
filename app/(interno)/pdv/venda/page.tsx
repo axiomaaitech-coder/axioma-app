@@ -3,7 +3,7 @@
 // Redesenho (2026-08-16) — estrutura de PDV de supermercado real: entrada
 // de código no topo, destaque do item mais recente, tabela de itens da
 // venda, rodapé de totais com números grandes, atalhos de teclado pro
-// operador não depender do mouse. Tema "azul" novo em components/PdvLayout.tsx.
+// operador não depender do mouse.
 // TODA a lógica (abertura de turno, finalizar_venda, baixa de estoque,
 // pendência de baixa) é a mesma de antes — só a camada visual mudou aqui.
 //

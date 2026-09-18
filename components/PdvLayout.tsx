@@ -1,26 +1,29 @@
 "use client";
-// 🦅 AXIOMA AI.TECH — PDV Fase 2.1: layout próprio do módulo, com 3 temas.
-// NUNCA importa nem altera components/ModuloLayout.tsx — decisão explícita
-// do Elias pra não arriscar nenhum outro módulo.
+// 🦅 AXIOMA AI.TECH — PDV: layout próprio do módulo, com os 2 temas oficiais
+// do Axioma (Escuro/Claro). NUNCA importa nem altera components/
+// ModuloLayout.tsx — decisão explícita do Elias pra não arriscar nenhum
+// outro módulo.
 //
-// Tema 1 (escuro, padrão) — APROVADO, não mudar: #020810, cards em glass
+// Tema escuro (padrão) — APROVADO, não mudar: #020810, cards em glass
 // azul-arroxeado, verde neon só no botão de ação (tokens.acaoBg).
 //
-// Temas 2 e 3 — hex FIXOS, sem interpretação (ver paleta abaixo). Zero
-// verde, zero preto, zero cinza neutro em qualquer um dos dois. Texto
-// escuro é sempre AZUL-NOITE (#0E0763); texto claro é sempre branco.
+// Tema claro — mesma paleta de public/referencias/tema-tokens.md usada no
+// resto do Axioma (branco + azul-marinho + verde-menta), não uma paleta
+// própria do PDV. Barra superior fica azul-marinho (#101b3d) mesmo no
+// claro — é "cor de bloco estrutural" (header/nav), nunca fundo de
+// página/card, igual ao resto do app.
 import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Sun, Moon, Contrast, Waves } from "lucide-react";
+import { ArrowLeft, Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 
-export type TemaPdv = "escuro" | "intermediario" | "claro" | "azul";
+export type TemaPdv = "escuro" | "claro";
 
 export type TokensPdv = {
   fundo: string;
   // Barra superior (onde título/seta/seletor de tema vivem) — cor PRÓPRIA,
   // pode ser diferente do fundo da página (é o caso do tema claro: fundo
-  // branco, barra azul-marca). No tema escuro/intermediário, barra === fundo.
+  // branco, barra navy). No tema escuro, barra === fundo.
   barraBg: string; barraTexto: string; barraAcentoBg: string; barraAcentoTexto: string;
   fundoContainer: string; bordaContainer: string; acentoTopo: string;
   texto: string; textoSecundario: string; textoMuted: string;
@@ -37,8 +40,8 @@ export type TokensPdv = {
   // (tabela/totais) — com acentoSuaveBg ali, esse conteúdo aparecia por
   // trás do modal.
   modalBg: string;
-  // Botão de AÇÃO (Salvar/Confirmar/+Novo/Consultar) — verde só no tema
-  // escuro; nos temas 2 e 3 é sempre AZUL-ELETRICO + texto branco.
+  // Botão de AÇÃO (Salvar/Confirmar/+Novo/Consultar) — verde-neon no tema
+  // escuro; verde-menta + texto navy no tema claro.
   acaoBg: string; acaoTexto: string;
   // Chips de filtro (Todos/Alimentos/Não-Alimentos) — ativo e inativo têm
   // pares cor+texto PRÓPRIOS por tema (não são sempre a mesma combinação
@@ -46,49 +49,6 @@ export type TokensPdv = {
   filtroAtivoBg: string; filtroAtivoTexto: string; filtroAtivoBorda: string;
   filtroInativoBg: string; filtroInativoTexto: string; filtroInativoBorda: string;
 };
-
-// ============================================================================
-// PALETA OFICIAL (temas 2 e 3) — hex fixos, usar SOMENTE estes valores.
-//   AZUL-ELETRICO #371AE5 — botões de ação, botão de filtro ativo
-//   AZUL-PROFUNDO #2914BA — cards no tema intermediário, hover
-//   AZUL-MARCA    #1B0D8E — barra superior, superfície principal do tema
-//                           intermediário, barra superior do tema claro
-//   AZUL-NOITE    #0E0763 — texto sobre fundos claros, títulos (NUNCA preto)
-//   BRANCO-GELO   #FAFAEA — fundo em volta dos cards no tema intermediário
-//   BRANCO-PURO   #FFFFFF — fundo geral do tema claro / texto sobre azul
-//   MARFIM        #F8F8DF — cards no tema claro
-// Regra de contraste: #FFFFFF só sobre AZUL-ELETRICO/PROFUNDO/MARCA/NOITE.
-// #0E0763 só sobre BRANCO-PURO/BRANCO-GELO/MARFIM. Nunca claro-sobre-claro
-// nem escuro-sobre-escuro.
-// ============================================================================
-const AZUL_ELETRICO = "#371AE5";
-const AZUL_PROFUNDO = "#2914BA";
-const AZUL_MARCA = "#1B0D8E";
-const AZUL_NOITE = "#0E0763";
-const BRANCO_GELO = "#FAFAEA";
-const BRANCO_PURO = "#FFFFFF";
-const MARFIM = "#F8F8DF";
-
-// ============================================================================
-// TEMA 4 "azul" (novo, PDV Fase 3 — Frente de Caixa) — navy profundo estilo
-// terminal de PDV de supermercado real, texto branco-gelo, acento ciano de
-// alto contraste. Paleta PRÓPRIA, não reaproveita os hex do tema 2/3 (que
-// são AZUL-ELETRICO/marca, mais roxo-azulado) — este é mais "navy/oceano",
-// pensado pra tela cheia usada o dia todo (menos saturado, cansa menos).
-// ============================================================================
-const NAVY_FUNDO = "#0A1B33";
-const NAVY_BARRA = "#0F2444";
-const NAVY_CARD = "#12294B";
-const CERULEO = "#4DA8FF";
-const CERULEO_FORTE = "#2E7BDB";
-// AZUL_BOTAO — só pro fundo de botão de ação (acaoBg) com texto branco em
-// cima. CERULEO sozinho (#4DA8FF) é claro DEMAIS pra texto branco: contraste
-// calculado ~2.5:1, abaixo até do mínimo de "texto grande" do WCAG (3:1).
-// AZUL_BOTAO garante >=4.2:1 na extremidade mais clara do gradiente e
-// ~6.7:1 na mais escura — CERULEO continua só como cor de TEXTO/ícone sobre
-// fundo escuro (acento), onde claro-sobre-escuro é o contraste certo.
-const AZUL_BOTAO = "#1D4ED8";
-const BRANCO_GELO_AZUL = "#EAF2FF";
 
 const TOKENS: Record<TemaPdv, TokensPdv> = {
   // TEMA 1 (padrão) — APROVADO, NÃO TOCAR na aparência.
@@ -107,50 +67,23 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     filtroAtivoBg: "rgba(106,176,255,0.22)", filtroAtivoTexto: "#6ab0ff", filtroAtivoBorda: "#6ab0ff",
     filtroInativoBg: "rgba(106,176,255,0.08)", filtroInativoTexto: "#5a7a9a", filtroInativoBorda: "rgba(106,176,255,0.22)",
   },
-  // TEMA 2 — azul-marca de fundo/barra, painel branco-gelo, cards azul-profundo.
-  intermediario: {
-    fundo: AZUL_MARCA,
-    barraBg: AZUL_MARCA, barraTexto: BRANCO_PURO, barraAcentoBg: "rgba(255,255,255,0.14)", barraAcentoTexto: BRANCO_PURO,
-    fundoContainer: BRANCO_GELO, bordaContainer: "rgba(55,26,229,0.25)",
-    acentoTopo: `linear-gradient(90deg, rgba(55,26,229,0.55), rgba(41,20,186,0.3) 50%, transparent)`,
-    texto: AZUL_NOITE, textoSecundario: AZUL_NOITE, textoMuted: "rgba(14,7,99,0.68)",
-    cardBg: AZUL_PROFUNDO, cardTexto: BRANCO_PURO, cardBorda: "rgba(55,26,229,0.4)",
-    inputBg: BRANCO_GELO, inputTexto: AZUL_NOITE, inputBorda: "rgba(55,26,229,0.35)",
-    acento: AZUL_ELETRICO, acentoSuaveBg: BRANCO_GELO, acentoSuaveBorda: "rgba(55,26,229,0.3)",
-    modalBg: BRANCO_GELO, // já era opaco — mantém a mesma cor
-    acaoBg: AZUL_ELETRICO, acaoTexto: BRANCO_PURO,
-    filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
-    filtroInativoBg: AZUL_MARCA, filtroInativoTexto: BRANCO_PURO, filtroInativoBorda: AZUL_MARCA,
-  },
-  // TEMA 3 — fundo branco-puro, barra azul-marca (casa com tema 2), cards marfim.
+  // Tema claro — paleta de public/referencias/tema-tokens.md. Barra
+  // superior fica navy (#101b3d, cor de bloco estrutural), fundo/cards
+  // brancos, acento verde-menta. Botão de ação tem texto NAVY (não branco)
+  // sobre o verde-menta — regra explícita da referência.
   claro: {
-    fundo: BRANCO_PURO,
-    barraBg: AZUL_MARCA, barraTexto: BRANCO_PURO, barraAcentoBg: "rgba(255,255,255,0.14)", barraAcentoTexto: BRANCO_PURO,
-    fundoContainer: BRANCO_PURO, bordaContainer: "rgba(55,26,229,0.25)",
-    acentoTopo: `linear-gradient(90deg, rgba(55,26,229,0.5), rgba(41,20,186,0.3) 50%, transparent)`,
-    texto: AZUL_NOITE, textoSecundario: AZUL_NOITE, textoMuted: "rgba(14,7,99,0.68)",
-    cardBg: MARFIM, cardTexto: AZUL_NOITE, cardBorda: AZUL_ELETRICO,
-    inputBg: MARFIM, inputTexto: AZUL_NOITE, inputBorda: AZUL_ELETRICO,
-    acento: AZUL_ELETRICO, acentoSuaveBg: MARFIM, acentoSuaveBorda: AZUL_ELETRICO,
-    modalBg: MARFIM, // já era opaco — mantém a mesma cor
-    acaoBg: AZUL_ELETRICO, acaoTexto: BRANCO_PURO,
-    filtroAtivoBg: AZUL_ELETRICO, filtroAtivoTexto: BRANCO_PURO, filtroAtivoBorda: AZUL_ELETRICO,
-    filtroInativoBg: MARFIM, filtroInativoTexto: AZUL_NOITE, filtroInativoBorda: AZUL_ELETRICO,
-  },
-  // TEMA 4 — navy profundo, cards em azul-navy, acento ciano. Ver nota acima.
-  azul: {
-    fundo: NAVY_FUNDO,
-    barraBg: NAVY_BARRA, barraTexto: BRANCO_GELO_AZUL, barraAcentoBg: "rgba(77,168,255,0.16)", barraAcentoTexto: CERULEO,
-    fundoContainer: `linear-gradient(160deg, ${NAVY_BARRA}, ${NAVY_FUNDO})`, bordaContainer: "rgba(77,168,255,0.22)",
-    acentoTopo: `linear-gradient(90deg, rgba(77,168,255,0.55), rgba(46,123,219,0.3) 50%, transparent)`,
-    texto: BRANCO_GELO_AZUL, textoSecundario: "#C7D9F2", textoMuted: "#7C93B8",
-    cardBg: NAVY_CARD, cardTexto: BRANCO_GELO_AZUL, cardBorda: "rgba(77,168,255,0.24)",
-    inputBg: NAVY_CARD, inputTexto: BRANCO_GELO_AZUL, inputBorda: "rgba(77,168,255,0.32)",
-    acento: CERULEO, acentoSuaveBg: "rgba(77,168,255,0.1)", acentoSuaveBorda: "rgba(77,168,255,0.28)",
-    modalBg: NAVY_CARD, // mesmo tom do cardBg, já opaco
-    acaoBg: `linear-gradient(135deg, ${AZUL_BOTAO}, ${CERULEO_FORTE})`, acaoTexto: "#FFFFFF",
-    filtroAtivoBg: "rgba(77,168,255,0.24)", filtroAtivoTexto: CERULEO, filtroAtivoBorda: CERULEO,
-    filtroInativoBg: "rgba(77,168,255,0.08)", filtroInativoTexto: "#7C93B8", filtroInativoBorda: "rgba(77,168,255,0.22)",
+    fundo: "#f7f8fa",
+    barraBg: "#101b3d", barraTexto: "#ffffff", barraAcentoBg: "rgba(255,255,255,0.14)", barraAcentoTexto: "#ffffff",
+    fundoContainer: "#ffffff", bordaContainer: "rgba(46,204,155,0.25)",
+    acentoTopo: "linear-gradient(90deg, rgba(46,204,155,0.5), rgba(16,169,125,0.3) 50%, transparent)",
+    texto: "#101b3d", textoSecundario: "#6b7280", textoMuted: "#6b7280",
+    cardBg: "#ffffff", cardTexto: "#101b3d", cardBorda: "#e4e7ec",
+    inputBg: "#f7f8fa", inputTexto: "#101b3d", inputBorda: "#e4e7ec",
+    acento: "#2ecc9b", acentoSuaveBg: "rgba(46,204,155,0.08)", acentoSuaveBorda: "rgba(46,204,155,0.3)",
+    modalBg: "#ffffff", // já era opaco — mantém a mesma cor
+    acaoBg: "#2ecc9b", acaoTexto: "#101b3d",
+    filtroAtivoBg: "#2ecc9b", filtroAtivoTexto: "#101b3d", filtroAtivoBorda: "#2ecc9b",
+    filtroInativoBg: "#f7f8fa", filtroInativoTexto: "#6b7280", filtroInativoBorda: "#e4e7ec",
   },
 };
 
@@ -183,7 +116,7 @@ function useProviderTema() {
 
 function SeletorTema({ tema, setTema, tokens }: { tema: TemaPdv; setTema: (t: TemaPdv) => void; tokens: TokensPdv }) {
   const opcoes: { valor: TemaPdv; Icone: typeof Sun }[] = [
-    { valor: "escuro", Icone: Moon }, { valor: "intermediario", Icone: Contrast }, { valor: "claro", Icone: Sun }, { valor: "azul", Icone: Waves },
+    { valor: "escuro", Icone: Moon }, { valor: "claro", Icone: Sun },
   ];
   return (
     <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background: tokens.barraAcentoBg }}>
