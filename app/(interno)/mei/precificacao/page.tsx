@@ -34,7 +34,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', NEUTRO: '#5a7a9a', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.02)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', NEUTRO: '#6b7280', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7', POCO_BG: '#eef2f7' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', NEUTRO: '#6b7280', CAMPO_BG: '#eef2f7', PAINEL_BG: 'rgba(255,255,255,0.5)', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 
 type Modo = 'hora' | 'projeto' | 'produto'
@@ -43,6 +43,16 @@ export default function PrecificacaoMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, ROXO, NEUTRO, CAMPO_BG, PAINEL_BG, POCO_BG } = PALETA[tema]
+  const temaClaro = tema === 'xms'
+  // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
+  // MEI"). Escuro fica 100% inalterado em tudo abaixo.
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const ATIVO = temaClaro ? '#2ecc9b' : OURO
+  const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
+  const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const mx = meiT(lang)
 
@@ -453,11 +463,13 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <button onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
             <Share2 size={16} /> {mx.compartilhar}
           </button>
           <ThemeToggle />
@@ -465,7 +477,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
       }>
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={AZUL} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : AZUL} corB={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Info do MEI */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -474,15 +486,15 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             { label: t('dasMensalLbl'), value: fmt(dasMensal), cor: AZUL },
             { label: t('receitaMediaLbl'), value: fmt(receitaMensalMedia), cor: VERDE },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+            <CanvasBox key={i} cor={card.cor} {...cartaoTema}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
               <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
 
         {/* Seletor de modo */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <p className="text-sm font-semibold mb-3" style={{ color: 'var(--axi-text-primary)' }}>{t('modoTitulo')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {([
@@ -493,7 +505,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               <button key={op.key} onClick={() => trocarModo(op.key)}
                 className="py-2.5 rounded-xl text-xs font-bold transition-all"
                 style={modo === op.key
-                  ? { background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }
+                  ? { background: temaClaro ? ATIVO : `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }
                   : { background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }}>
                 {op.label}
               </button>
@@ -502,42 +514,42 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </CanvasBox>
 
         {/* Custos reais + inputs do modo */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('custosReaisTitulo')}</p>
-          <p className="text-xs mb-4 italic" style={{ color: 'var(--axi-text-secondary)' }}>
+          <p className="text-xs mb-4 italic" style={{ color: TEXTO_SEC }}>
             {custoFixoNum > 0 || custoVarNum > 0 ? t('custosReaisPuxados') : t('custosReaisVazio')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('custoFixoLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('custoFixoLbl')}</label>
               <input type="number" value={custoFixoMensal} onChange={(e) => setCustoFixoMensal(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
             </div>
             <div>
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('custoVariavelLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('custoVariavelLbl')}</label>
               <input type="number" value={custoVariavelMensal} onChange={(e) => setCustoVariavelMensal(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
             </div>
 
             {(modo === 'hora' || modo === 'projeto') && (
-              <div className="sm:col-span-2 p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}15` }}>
+              <div className="sm:col-span-2 p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasPorDiaLbl')}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('horasPorDiaLbl')}</label>
                     <input type="number" value={horasPorDia} onChange={(e) => setHorasPorDia(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('diasPorSemanaLbl')}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('diasPorSemanaLbl')}</label>
                     <input type="number" value={diasPorSemana} onChange={(e) => setDiasPorSemana(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('pctProdutivoLbl')}</label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('pctProdutivoLbl')}</label>
                     <input type="number" value={pctProdutivo} onChange={(e) => setPctProdutivo(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                       style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
@@ -547,24 +559,24 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
                   {t('horasCalculadasTexto').replace('{v}', (Math.round(horasMensaisCalculadas(parseFloat(horasPorDia) || 0, parseFloat(diasPorSemana) || 0, parseFloat(pctProdutivo) || 100) * 10) / 10).toString())}
                 </p>
                 <div className="mt-3">
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasTrabalhadasLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('horasTrabalhadasLbl')}</label>
                   <input type="number" value={horasTrabalhadasMes} onChange={(e) => { setHorasTrabalhadasMes(e.target.value); setHorasTocado(true) }}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                     style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
-                  <p className="text-xs mt-1 italic" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasOverrideNota')}</p>
+                  <p className="text-xs mt-1 italic" style={{ color: TEXTO_SEC }}>{t('horasOverrideNota')}</p>
                 </div>
               </div>
             )}
             {modo === 'projeto' && (
               <>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('horasEstimadasLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('horasEstimadasLbl')}</label>
                   <input type="number" value={horasEstimadasProjeto} onChange={(e) => setHorasEstimadasProjeto(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                     style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('materiaisLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('materiaisLbl')}</label>
                   <input type="number" value={materiaisProjeto} onChange={(e) => setMateriaisProjeto(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                     style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
@@ -574,13 +586,13 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             {modo === 'produto' && (
               <>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('custoUnitarioLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('custoUnitarioLbl')}</label>
                   <input type="number" value={custoUnitarioProduto} onChange={(e) => setCustoUnitarioProduto(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                     style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('unidadesVendidasLbl')}</label>
+                  <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('unidadesVendidasLbl')}</label>
                   <input type="number" value={unidadesVendidasMes} onChange={(e) => setUnidadesVendidasMes(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                     style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
@@ -588,7 +600,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               </>
             )}
             <div>
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('margemLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('margemLbl')}</label>
               <input type="number" value={margemDesejada} onChange={(e) => setMargemDesejada(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
@@ -601,7 +613,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </CanvasBox>
 
         {/* Resultado */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('resultadoTitulo')}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -611,7 +623,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               { label: t('margemReaisLbl'), value: fmt(margemReais), cor: OURO },
             ].map((item, i) => (
               <div key={i} className="flex justify-between items-center p-3 rounded-xl"
-                style={{ background: `${item.cor}10`, border: `1px solid ${item.cor}20` }}>
+                style={{ background: NESTED_BG ?? `${item.cor}10`, border: `1px solid ${NESTED_BORDA ?? item.cor + '20'}` }}>
                 <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
                 <span className="text-sm font-black" style={{ color: item.cor }}><AnimatedNumber value={item.value} /></span>
               </div>
@@ -627,10 +639,10 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               <p className="text-xl font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(precoSugerido)} /></p>
             </div>
           </div>
-          <p className="text-xs mt-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('ticketMedioLbl')}: <b style={{ color: 'var(--axi-text-primary)' }}>{fmt(ticket)}</b></p>
+          <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{t('ticketMedioLbl')}: <b style={{ color: 'var(--axi-text-primary)' }}>{fmt(ticket)}</b></p>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('urgenciaLbl')}</label>
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('urgenciaLbl')}</label>
             <input type="number" value={urgenciaPct} onChange={(e) => setUrgenciaPct(e.target.value)}
               className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
               style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
@@ -641,7 +653,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
           <div className="mt-4 pt-4 flex flex-col sm:flex-row gap-2 items-stretch sm:items-end" style={{ borderTop: `1px solid ${OURO}20` }}>
             <div className="flex-1">
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('nomePrecoLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('nomePrecoLbl')}</label>
               <input type="text" value={nomePrecoSalvo} onChange={(e) => setNomePrecoSalvo(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
                 style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
@@ -653,7 +665,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
             </button>
           </div>
           {editandoId && (
-            <p className="text-xs mt-2 italic flex items-center gap-2" style={{ color: 'var(--axi-text-secondary)' }}>
+            <p className="text-xs mt-2 italic flex items-center gap-2" style={{ color: TEXTO_SEC }}>
               {t('editandoAviso').replace('{v}', nomePrecoSalvo)}
               <button onClick={cancelarEdicaoPreco} className="underline" style={{ color: AZUL }}>{t('cancelarEdicao')}</button>
             </p>
@@ -661,25 +673,25 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </CanvasBox>
 
         {/* Composição do preço */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-2" style={{ color: 'var(--axi-text-primary)' }}>{t('composicaoTitulo')}</p>
           {precoSugerido > 0 ? (
             <ReactECharts option={optRosca(dadosComposicao, OURO, t('precoSugeridoLbl'))} style={{ height: 260, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'canvas' }} />
           ) : (
-            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('custosReaisVazio')}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('custosReaisVazio')}</p>
           )}
         </CanvasBox>
 
         {/* Detector "trabalhando de graça" */}
-        <CanvasBox cor={detector?.situacao === 'prejuizo' ? VERMELHO : VERDE}>
+        <CanvasBox cor={detector?.situacao === 'prejuizo' ? VERMELHO : VERDE} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('detectorTitulo')}</p>
           <div className="mb-4">
-            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('precoCobradoLbl')}</label>
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('precoCobradoLbl')}</label>
             <input type="number" value={precoCobradoHoje} onChange={(e) => setPrecoCobradoHoje(e.target.value)}
               className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm"
               style={{ background: CAMPO_BG, border: `1px solid ${OURO}30`, color: 'var(--axi-text-primary)' }} />
           </div>
-          {!detector && <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('detectorVazio')}</p>}
+          {!detector && <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('detectorVazio')}</p>}
           {detector && detector.situacao === 'prejuizo' && (
             <div className="p-4 rounded-xl flex items-start gap-3" style={{ background: `${VERMELHO}12`, border: `1px solid ${VERMELHO}40` }}>
               <AlertTriangle size={20} style={{ color: VERMELHO, flexShrink: 0 }} />
@@ -701,7 +713,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </CanvasBox>
 
         {/* Análise Axioma */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
@@ -710,28 +722,28 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
         </CanvasBox>
 
         {/* Meus Preços Salvos */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('meusPrecosTitulo')}</p>
           {precosSalvos.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('meusPrecosVazio')}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('meusPrecosVazio')}</p>
           ) : (
             <>
               <div className="space-y-2">
                 {precosSalvos.slice(paginaAtual * ITENS_POR_PAGINA, paginaAtual * ITENS_POR_PAGINA + ITENS_POR_PAGINA).map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3 p-3 rounded-xl"
-                    style={{ background: PAINEL_BG, border: `1px solid ${OURO}30` }}>
+                    style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? OURO + '30'}` }}>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold truncate" style={{ color: 'var(--axi-text-primary)' }}>{row.nome}</p>
-                      <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
+                      <p className="text-xs" style={{ color: TEXTO_SEC }}>
                         {row.modo === 'hora' ? t('modoHora') : row.modo === 'projeto' ? t('modoProjeto') : t('modoProduto')}
                         {' · '}{fmt(row.dados?.resultado?.precoSugerido || 0)}
                       </p>
@@ -753,7 +765,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
                     className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
                     <ChevronLeft size={16} style={{ color: 'var(--axi-text-primary)' }} />
                   </button>
-                  <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
+                  <p className="text-xs" style={{ color: TEXTO_SEC }}>
                     {t('paginaLbl').replace('{a}', String(paginaAtual + 1)).replace('{b}', String(Math.ceil(precosSalvos.length / ITENS_POR_PAGINA)))}
                   </p>
                   <button onClick={() => setPaginaAtual((p) => Math.min(Math.ceil(precosSalvos.length / ITENS_POR_PAGINA) - 1, p + 1))}
@@ -768,13 +780,13 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
         </CanvasBox>
 
         {/* Dicas */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('dicas')}</p>
           <div className="space-y-3">
             {dicas.map((dica, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: `${AZUL}06`, border: `1px solid ${AZUL}15` }}>
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl" style={{ background: NESTED_BG ?? `${AZUL}06`, border: `1px solid ${NESTED_BORDA ?? AZUL + '15'}` }}>
                 <span className="text-sm flex-shrink-0" style={{ color: AZUL }}>💡</span>
-                <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{dica[lang]}</p>
+                <p className="text-xs" style={{ color: TEXTO_SEC }}>{dica[lang]}</p>
               </div>
             ))}
           </div>
@@ -795,7 +807,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
 
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
