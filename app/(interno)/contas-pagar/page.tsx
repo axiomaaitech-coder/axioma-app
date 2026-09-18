@@ -13,6 +13,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
@@ -1991,15 +1992,15 @@ export default function ContasPagarPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
                   <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(0,67,200,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Saldo Atual", "Current Balance", "Saldo Actual")}</p>
-                    <p className="text-lg font-black" style={{ color: TEXTO }}>{fmt(forecastAp.saldoAtual)}</p>
+                    <p className="text-lg font-black" style={{ color: TEXTO }}><AnimatedNumber value={fmt(forecastAp.saldoAtual)} /></p>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE}30` }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Otimista (em dia, sem multa)", "Optimistic Scenario (on time, no fee)", "Escenario Optimista (a tiempo, sin multa)")}</p>
-                    <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE }}>{fmt(pontoForecast.saldoProjetadoOtimista)}</p>
+                    <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoOtimista < 0 ? VERMELHO : VERDE }}><AnimatedNumber value={fmt(pontoForecast.saldoProjetadoOtimista)} /></p>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: `1px solid ${pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR}30` }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Cenário Pessimista (com desvio real de atraso)", "Pessimistic Scenario (real delay deviation)", "Escenario Pesimista (con desvío real de atraso)")}</p>
-                    <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR }}>{fmt(pontoForecast.saldoProjetadoPessimista)}</p>
+                    <p className="text-lg font-black" style={{ color: pontoForecast.saldoProjetadoPessimista < 0 ? VERMELHO : AMBAR }}><AnimatedNumber value={fmt(pontoForecast.saldoProjetadoPessimista)} /></p>
                   </div>
                   <div className="rounded-xl p-3" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
                     <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{L("Projetado sem pagar pendentes", "Projected without paying pending", "Proyectado sin pagar pendientes")}</p>

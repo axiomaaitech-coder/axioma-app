@@ -20,6 +20,7 @@ import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -343,7 +344,7 @@ DADOS REAIS DESTE MEI:
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor} destaque>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}>{card.value}</p>
+              <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>

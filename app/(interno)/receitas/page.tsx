@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
@@ -293,7 +294,7 @@ export default function Receitas() {
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor} destaque>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
-                <p className="text-sm md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
+                <p className="text-sm md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
             </motion.div>
           ))}

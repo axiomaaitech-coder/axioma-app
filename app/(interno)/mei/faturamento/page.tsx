@@ -17,6 +17,7 @@ import { meiT } from '../../../../lib/meiTextos'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import {
@@ -400,7 +401,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
+              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
@@ -418,7 +419,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         {percentualReserva > 0 && (
           <CanvasBox cor={AMBAR}>
             <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{mx.reservaAcumuladaTitulo}</p>
-            <p className="text-xl font-black" style={{ color: AMBAR }}>{fmt(reservaAcumulada)}</p>
+            <p className="text-xl font-black" style={{ color: AMBAR }}><AnimatedNumber value={fmt(reservaAcumulada)} /></p>
             <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>
               {mx.reservarDeste} {percentualReserva.toFixed(1)}% {lang === 'pt' ? 'de cada receita nova (DAS + IRPF proporcional).' : lang === 'en' ? 'of every new revenue (DAS + proportional IRPF).' : 'de cada nuevo ingreso (DAS + IRPF proporcional).'}
             </p>
@@ -459,7 +460,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
             <div className="rounded-xl p-3" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.12)' }}>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('margemMesTitulo')}</p>
-              <p className="text-lg font-black" style={{ color: VERDE }}>{fmt(Math.max(0, margemRecomendadaMes))}</p>
+              <p className="text-lg font-black" style={{ color: VERDE }}><AnimatedNumber value={fmt(Math.max(0, margemRecomendadaMes))} /></p>
             </div>
             <div className="rounded-xl p-3" style={{ background: 'rgba(106,176,255,0.06)', border: '1px solid rgba(106,176,255,0.12)' }}>
               <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('mesEstouroTitulo')}</p>
@@ -550,7 +551,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           )}
           <div className="mt-4 pt-4 flex flex-wrap items-center justify-between gap-3" style={{ borderTop: '1px solid rgba(106,176,255,0.15)' }}>
             <span className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('total')} {anoAtual}</span>
-            <span className="text-sm font-black" style={{ color: OURO }}>{fmt(faturamentoAnual)}</span>
+            <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
           </div>
           <button onClick={() => gerarPdfTabela(montarArgsRelatorioReceitasBrutas(), (msg) => showToast(msg), lang)}
             className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold"

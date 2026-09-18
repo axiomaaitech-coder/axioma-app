@@ -15,6 +15,7 @@ import { calcularIRPF, percentualIsentoPorCategoria } from '../../../../lib/meiH
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import {
   listarDocumentosFiscais, uploadDocumentoFiscal, atualizarDocumentoFiscal, excluirDocumentoFiscal, urlDocumentoFiscal,
   TIPOS_DOCUMENTO_FISCAL, TIPOS_ESPERADOS_IRPF, type TipoDocumentoFiscal, type DocumentoFiscal,
@@ -447,7 +448,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-base md:text-lg font-black" style={{ color: card.cor }}>{card.value}</p>
+              <p className="text-base md:text-lg font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
@@ -475,7 +476,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             ].map((item, i) => (
               <div key={i} className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${item.cor}08`, border: `1px solid ${item.cor}15` }}>
                 <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
-                <span className="text-sm font-black" style={{ color: item.cor }}>{item.value}</span>
+                <span className="text-sm font-black" style={{ color: item.cor }}><AnimatedNumber value={item.value} /></span>
               </div>
             ))}
           </div>

@@ -5,6 +5,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
@@ -1186,7 +1187,8 @@ export default function ClientesPage() {
                     </div>
                     <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{tt.ivcaSub}</p>
                     <div className="flex items-center gap-4 mb-4 flex-wrap">
-                      <p className="text-4xl font-black" style={{ color: NIVEL_COR[clienteAtual.ivca.nivel] }}>{clienteAtual.ivca.total}</p>
+                      <p className="text-4xl font-black" style={{ color: NIVEL_COR[clienteAtual.ivca.nivel] }}><AnimatedNumber value={String(clienteAtual.ivca.total)} /></p>
+
                       <div>
                         <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: `${NIVEL_COR[clienteAtual.ivca.nivel]}18`, color: NIVEL_COR[clienteAtual.ivca.nivel] }}>{clienteAtual.ivca.nivel.toUpperCase()}</span>
                         <p className="text-xs mt-1.5" style={{ color: ct("#94a3b8") }}>{montarNarrativaIVCA(lang, clienteAtual.ivca)}</p>

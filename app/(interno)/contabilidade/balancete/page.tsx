@@ -13,6 +13,7 @@ import { listarLancamentos, listarPartidas, saldoNatural } from '../../../../lib
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -159,8 +160,8 @@ export default function BalancetePage() {
                 ))}
                 <tr style={{ borderTop: `2px solid ${TEAL}50` }}>
                   <td colSpan={2} className="py-2 text-right font-black" style={{ color: TITULO }}>{L('TOTAL GERAL', 'GRAND TOTAL', 'TOTAL GENERAL')}</td>
-                  <td className="text-right py-2 font-black whitespace-nowrap" style={{ color: TITULO }}>R$ {fBRL2(totalDebitoGeral)}</td>
-                  <td className="text-right py-2 font-black whitespace-nowrap" style={{ color: TITULO }}>R$ {fBRL2(totalCreditoGeral)}</td>
+                  <td className="text-right py-2 font-black whitespace-nowrap" style={{ color: TITULO }}><AnimatedNumber value={`R$ ${fBRL2(totalDebitoGeral)}`} /></td>
+                  <td className="text-right py-2 font-black whitespace-nowrap" style={{ color: TITULO }}><AnimatedNumber value={`R$ ${fBRL2(totalCreditoGeral)}`} /></td>
                   <td />
                 </tr>
               </tbody>

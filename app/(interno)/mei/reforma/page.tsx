@@ -21,6 +21,7 @@ import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -391,7 +392,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-xl text-center" style={{ background: `${OURO}10`, border: `1px solid ${OURO}30` }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: OURO }}>MEI 2027</p>
-              <p className="text-lg font-black mb-1" style={{ color: OURO }}>{fmt(dasValor)}</p>
+              <p className="text-lg font-black mb-1" style={{ color: OURO }}><AnimatedNumber value={fmt(dasValor)} /></p>
               <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('porMes')}</p>
               <div className="space-y-1">
                 <p className="text-xs font-semibold" style={{ color: VERDE }}>✓ {lang === 'pt' ? 'Simples e barato' : lang === 'en' ? 'Simple and cheap' : 'Simple y barato'}</p>
@@ -402,7 +403,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
             </div>
             <div className="p-4 rounded-xl text-center" style={{ background: `${AZUL}10`, border: `1px solid ${AZUL}30` }}>
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: AZUL }}>ME Simples</p>
-              <p className="text-lg font-black mb-1" style={{ color: AZUL }}>{fmt(faturamentoAnual * 0.06 / 12)}</p>
+              <p className="text-lg font-black mb-1" style={{ color: AZUL }}><AnimatedNumber value={fmt(faturamentoAnual * 0.06 / 12)} /></p>
               <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('estimado')}</p>
               <div className="space-y-1">
                 <p className="text-xs font-semibold" style={{ color: VERDE }}>✓ {lang === 'pt' ? 'Limite R$ 4,8M/ano' : lang === 'en' ? 'Limit R$ 4.8M/year' : 'Límite R$ 4,8M/año'}</p>

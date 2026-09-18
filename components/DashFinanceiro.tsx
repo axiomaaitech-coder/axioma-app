@@ -6,6 +6,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import ReactECharts from "echarts-for-react";
+import { AnimatedNumber } from "./AnimatedNumber";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -327,7 +328,7 @@ export default function DashFinanceiro() {
                 <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={{ background: (k as any).up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: (k as any).up ? C.verde : C.vermelho }}>{(k as any).d}</span>
               )}
             </div>
-            <p className="text-lg font-black tracking-tight" style={{ color: k.c }}>{k.v}</p>
+            <p className="text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
             <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
           </div>
         ))}

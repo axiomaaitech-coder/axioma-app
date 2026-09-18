@@ -14,6 +14,7 @@ import { listarLancamentos, listarPartidas, grupoDre } from '../../../../lib/con
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 type Grupo = '6' | '7' | '8' | '9' | '10'
@@ -159,7 +160,9 @@ export default function DrePage() {
                         {l.label}
                       </td>
                       <td className="py-2.5 text-right whitespace-nowrap" style={{ color: l.total ? (l.valor >= 0 ? VERDE : VERMELHO) : TEXTO, fontWeight: l.total ? 800 : 600 }}>
-                        {l.sinal && '− '}R$ {fBRL2(Math.abs(l.valor))}
+                        {l.total
+                          ? <AnimatedNumber value={`${l.sinal ? '− ' : ''}R$ ${fBRL2(Math.abs(l.valor))}`} />
+                          : <>{l.sinal && '− '}R$ {fBRL2(Math.abs(l.valor))}</>}
                       </td>
                     </tr>
                     {l.key !== null && (

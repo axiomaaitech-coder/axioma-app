@@ -17,6 +17,7 @@ import { LetreiroExecutivo } from '../../../../components/LetreiroExecutivo'
 import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import ReactECharts from 'echarts-for-react'
 import { optLinhaMulti } from '../../../../lib/cfoCore'
 import { buscarIndicadoresMacro, type IndicadoresMacro } from '../../../../lib/bcbApi'
@@ -419,7 +420,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
+              <p className="text-xl md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
@@ -435,7 +436,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
               <div className="rounded-xl p-3" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('dividaAtualizada')}</p>
-                <p className="text-xl font-black" style={{ color: corFase(faseAtual) }}>{fmt(divida.totalAtualizado)}</p>
+                <p className="text-xl font-black" style={{ color: corFase(faseAtual) }}><AnimatedNumber value={fmt(divida.totalAtualizado)} /></p>
                 <p className="text-xs mt-1" style={{ color: 'var(--axi-text-secondary)' }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
               </div>
               <div className="rounded-xl p-3 flex flex-col justify-center" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
@@ -505,7 +506,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
               </div>
               <div className="rounded-xl px-4 py-2 text-center" style={{ background: `${AZUL}10`, border: `1px solid ${AZUL}30` }}>
                 <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{parcelasEscolhidas}x — {t('valorParcela')}</p>
-                <p className="text-lg font-black" style={{ color: AZUL }}>{fmt(valorPorParcela)}</p>
+                <p className="text-lg font-black" style={{ color: AZUL }}><AnimatedNumber value={fmt(valorPorParcela)} /></p>
               </div>
             </div>
             <div className="space-y-2 mb-4">
@@ -627,7 +628,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
           <div className="space-y-3">
             <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${OURO}08`, border: `1px solid ${OURO}15` }}>
               <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('receitaBruta')} {anoAtual}</span>
-              <span className="text-sm font-black" style={{ color: OURO }}>{fmt(faturamentoAnual)}</span>
+              <span className="text-sm font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(faturamentoAnual)} /></span>
             </div>
             <div className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${AZUL}08`, border: `1px solid ${AZUL}15` }}>
               <span className="text-sm" style={{ color: 'var(--axi-text-primary)' }}>{t('categoria')}</span>

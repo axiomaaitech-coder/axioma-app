@@ -6,6 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
@@ -446,7 +447,7 @@ export default function FluxoCaixa() {
                   <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
                   <card.Icon size={16} style={{ color: card.cor }} />
                 </div>
-                <p className="text-2xl font-black" style={{ color: card.cor }}>{card.value}</p>
+                <p className="text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
             </motion.div>
           ))}

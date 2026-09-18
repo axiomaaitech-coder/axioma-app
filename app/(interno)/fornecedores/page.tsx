@@ -9,6 +9,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -1911,7 +1912,7 @@ export default function Fornecedores() {
               {inflacao && inflacao.amostraSuficiente ? (
                 <div>
                   <p className="text-2xl font-black" style={{ color: inflacao.variacaoPct > 0 ? ct("#f87171") : inflacao.variacaoPct < 0 ? ct("#34d399") : ct("#6ab0ff") }}>
-                    {inflacao.variacaoPct > 0 ? "+" : ""}{inflacao.variacaoPct}%
+                    <AnimatedNumber value={`${inflacao.variacaoPct > 0 ? "+" : ""}${inflacao.variacaoPct.toLocaleString("pt-BR")}%`} />
                   </p>
                   <p className="text-[10px] mt-1" style={{ color: ct("#5a7a9a") }}>{fmt(inflacao.ticketAnterior)} → {fmt(inflacao.ticketAtual)}</p>
                 </div>
@@ -2900,7 +2901,7 @@ export default function Fornecedores() {
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setDrillDown(null)} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>
                   </div>
-                  <p className="text-3xl font-black mb-3" style={{ color: kpiAtivo.cor }}>{kpiAtivo.valor}</p>
+                  <p className="text-3xl font-black mb-3" style={{ color: kpiAtivo.cor }}><AnimatedNumber value={String(kpiAtivo.valor)} /></p>
                   <p className="text-xs leading-relaxed mb-3" style={{ color: ct("#c8d8f0") }}>{(tt.explicacoes as Record<string, string>)[kpiAtivo.key]}</p>
                   {kpiAtivo.vazio && kpiAtivo.mensagemVazio && (
                     <div className="rounded-xl p-3 flex items-start gap-2" style={{ background: "rgba(245,158,11,0.08)", border: `1px solid ${AMBAR}30` }}>

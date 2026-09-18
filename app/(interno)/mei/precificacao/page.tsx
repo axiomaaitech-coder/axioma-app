@@ -22,6 +22,7 @@ import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { meiT } from '../../../../lib/meiTextos'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -475,7 +476,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
           ].map((card, i) => (
             <CanvasBox key={i} cor={card.cor}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
-              <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}>{card.value}</p>
+              <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
@@ -612,18 +613,18 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
               <div key={i} className="flex justify-between items-center p-3 rounded-xl"
                 style={{ background: `${item.cor}10`, border: `1px solid ${item.cor}20` }}>
                 <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
-                <span className="text-sm font-black" style={{ color: item.cor }}>{item.value}</span>
+                <span className="text-sm font-black" style={{ color: item.cor }}><AnimatedNumber value={item.value} /></span>
               </div>
             ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
             <div className="p-4 rounded-xl" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}30` }}>
               <p className="text-xs mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('precoMinimoLbl')}</p>
-              <p className="text-xl font-black" style={{ color: VERMELHO }}>{fmt(precoMinimo)}</p>
+              <p className="text-xl font-black" style={{ color: VERMELHO }}><AnimatedNumber value={fmt(precoMinimo)} /></p>
             </div>
             <div className="p-4 rounded-xl" style={{ background: `${OURO}12`, border: `1px solid ${OURO}40` }}>
               <p className="text-xs mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('precoSugeridoLbl')}</p>
-              <p className="text-xl font-black" style={{ color: OURO }}>{fmt(precoSugerido)}</p>
+              <p className="text-xl font-black" style={{ color: OURO }}><AnimatedNumber value={fmt(precoSugerido)} /></p>
             </div>
           </div>
           <p className="text-xs mt-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('ticketMedioLbl')}: <b style={{ color: 'var(--axi-text-primary)' }}>{fmt(ticket)}</b></p>

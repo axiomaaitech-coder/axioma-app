@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, LineChart, Line } from "recharts";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -543,7 +544,7 @@ export default function Relatorios() {
               <div className="text-center md:text-left flex-1">
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>🎯 {tt.scoreCFO}</p>
                 <div className="flex items-baseline gap-2 justify-center md:justify-start">
-                  <span className="text-5xl md:text-6xl font-black" style={{ color: scoreCFO.cor }}>{scoreCFO.score}</span>
+                  <span className="text-5xl md:text-6xl font-black" style={{ color: scoreCFO.cor }}><AnimatedNumber value={String(scoreCFO.score)} /></span>
                   <span className="text-xl" style={{ color: "#5a7a9a" }}>/ 100</span>
                 </div>
                 <p className="text-sm font-bold mt-1" style={{ color: scoreCFO.cor }}>{scoreCFO.nivel}</p>
@@ -788,7 +789,7 @@ export default function Relatorios() {
               <div>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🎯 {tt.scoreCFO}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black" style={{ color: scoreCFO.cor }}>{scoreCFO.score}</span>
+                  <span className="text-4xl font-black" style={{ color: scoreCFO.cor }}><AnimatedNumber value={String(scoreCFO.score)} /></span>
                   <span style={{ color: "#5a7a9a" }}>/ 100</span>
                   <span className="text-sm font-bold ml-2" style={{ color: scoreCFO.cor }}>{scoreCFO.nivel}</span>
                 </div>
@@ -812,7 +813,7 @@ export default function Relatorios() {
                     {k.atingido ? "✓" : "✗"}
                   </span>
                 </div>
-                <p className="text-2xl font-black mb-1" style={{ color: k.atingido ? "#34d399" : "#f87171" }}>{k.valor}</p>
+                <p className="text-2xl font-black mb-1" style={{ color: k.atingido ? "#34d399" : "#f87171" }}><AnimatedNumber value={String(k.valor)} /></p>
                 <p className="text-[10px]" style={{ color: "#5a7a9a" }}>
                   {tt.metaProp}: <strong>{k.meta}</strong>
                 </p>
