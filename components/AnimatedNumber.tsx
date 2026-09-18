@@ -20,6 +20,10 @@ export function AnimatedNumber({
 
   useEffect(() => {
     if (!ref.current) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      ref.current.textContent = value;
+      return;
+    }
     // Núcleo numérico no formato pt-BR (milhar com ".", decimal com ",") —
     // NÃO usar replace(/[^\d]/g,"") sozinho: isso junta "42,5" em "425" e
     // corrompe qualquer valor com casas decimais (percentuais, taxas etc).

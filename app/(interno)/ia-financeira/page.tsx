@@ -4,6 +4,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
@@ -497,7 +498,7 @@ export default function IAFinanceiraPage() {
             <CanvasBox cor={score360.cor}>
               <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🏆 Score 360°</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black" style={{ color: score360.cor }}>{score360.total}</span>
+                <span className="text-4xl font-black" style={{ color: score360.cor }}><AnimatedNumber value={String(score360.total)} /></span>
                 <span style={{ color: "#5a7a9a" }}>/100</span>
               </div>
               <p className="text-xs font-bold" style={{ color: score360.cor }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
@@ -509,7 +510,7 @@ export default function IAFinanceiraPage() {
             ].map((c, i) => (
               <CanvasBox key={i} cor={c.cor}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</p>
-                <p className="text-xl font-black mt-1" style={{ color: c.cor }}>{c.valor}</p>
+                <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
               </CanvasBox>
             ))}
           </div>
@@ -588,7 +589,7 @@ export default function IAFinanceiraPage() {
                   <CanvasBox key={i} cor={d.cor}>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-bold" style={{ color: d.cor }}>{dimNome(d)}</p>
-                      <span className="text-lg font-black" style={{ color: d.cor }}>{d.score}</span>
+                      <span className="text-lg font-black" style={{ color: d.cor }}><AnimatedNumber value={String(d.score)} /></span>
                     </div>
                     <div className="space-y-1 mb-3">
                       {d.indicadores.map((ind, j) => (

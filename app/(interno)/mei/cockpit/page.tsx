@@ -459,7 +459,7 @@ export default function CockpitMEI() {
               </>
             ) : detectorGraca.situacao === 'prejuizo' ? (
               <>
-                <p className="text-2xl font-black mb-1" style={{ color: VERMELHO }}>{fmt(detectorGraca.prejuizoPorUnidade)}</p>
+                <p className="text-2xl font-black mb-1" style={{ color: VERMELHO }}><CountUp valor={detectorGraca.prejuizoPorUnidade} formatar={fmt} /></p>
                 <p className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{t('card4Prejuizo')} {fmt(detectorGraca.prejuizoPorUnidade)} {t('card4PorUnidade')}</p>
               </>
             ) : (
@@ -476,15 +476,15 @@ export default function CockpitMEI() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <CanvasBox cor={BRONZE} motionIndex={5} glow>
             <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('kpiFaturamento')}</p>
-            <p className="text-lg font-black" style={{ color: BRONZE }}>{fmt(faturamentoAnual)}</p>
+            <p className="text-lg font-black" style={{ color: BRONZE }}><CountUp valor={faturamentoAnual} formatar={fmt} /></p>
           </CanvasBox>
           <CanvasBox cor={BRONZE} motionIndex={6} glow>
             <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('kpiProjecao')}</p>
-            <p className="text-lg font-black" style={{ color: BRONZE }}>{fmt(projecao.projecaoAnual)}</p>
+            <p className="text-lg font-black" style={{ color: BRONZE }}><CountUp valor={projecao.projecaoAnual} formatar={fmt} /></p>
           </CanvasBox>
           <CanvasBox cor={corReserva} motionIndex={7} glow>
             <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--axi-text-secondary)' }}>{t('kpiReserva')}</p>
-            <p className="text-lg font-black" style={{ color: corReserva }}>{fmt(fluxo.sobra)} / {fmt(reservaNecessaria)}</p>
+            <p className="text-lg font-black" style={{ color: corReserva }}><CountUp valor={fluxo.sobra} formatar={fmt} /> / <CountUp valor={reservaNecessaria} formatar={fmt} /></p>
           </CanvasBox>
         </div>
 

@@ -8,6 +8,7 @@ import ReactECharts from "echarts-for-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../../../lib/LanguageContext";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela, textoResumoPdf, textoDetalhadoPdf, type ArgsPdfTabela } from "../../../lib/gerarPdfTabela";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -1016,7 +1017,7 @@ export default function EstoquePage() {
             ].map((k) => (
               <CanvasBox key={k.label} cor={k.cor}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
-                <p className="text-xl font-black" style={{ color: k.cor }}>{k.valor}</p>
+                <p className="text-xl font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
               </CanvasBox>
             ))}
           </div>

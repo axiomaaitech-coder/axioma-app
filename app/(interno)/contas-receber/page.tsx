@@ -12,6 +12,7 @@ import {
   Brain, Mail, Send, Plus, TrendingUp, Landmark, Layers, Map as MapIcon, Undo2,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fBRL2, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
@@ -891,7 +892,7 @@ export default function ContasReceber() {
               {k.vazio ? (
                 <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
               ) : (
-                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{k.valor}</p>
+                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
               )}
               {k.drillable && !k.vazio && <ChevronRight size={13} className="absolute bottom-3 right-3" style={{ color: `${k.cor}80` }} />}
             </motion.button>
@@ -1681,7 +1682,7 @@ export default function ContasReceber() {
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-[10px] font-bold tracking-wider uppercase" style={{ color: CINZA }}>{kpiAtivo.label}</p>
-                      <h3 className="text-2xl font-black" style={{ color: kpiAtivo.cor }}>{kpiAtivo.valor}</h3>
+                      <h3 className="text-2xl font-black" style={{ color: kpiAtivo.cor }}><AnimatedNumber value={String(kpiAtivo.valor)} /></h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setDrillKpi(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
@@ -1766,7 +1767,7 @@ export default function ContasReceber() {
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="rounded-xl p-3" style={{ background: PAINEL_BG }}>
                         <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Chance de receber no prazo', 'Chance of on-time payment', 'Probabilidad de cobro a tiempo')}</p>
-                        <p className="text-xl font-black" style={{ color: prob == null ? CINZA : prob >= 70 ? VERDE : prob >= 40 ? AMBAR : VERMELHO }}>{prob != null ? `${prob}%` : L('sem dados', 'no data', 'sin datos')}</p>
+                        <p className="text-xl font-black" style={{ color: prob == null ? CINZA : prob >= 70 ? VERDE : prob >= 40 ? AMBAR : VERMELHO }}><AnimatedNumber value={prob != null ? `${prob}%` : L('sem dados', 'no data', 'sin datos')} /></p>
                       </div>
                       <div className="rounded-xl p-3" style={{ background: PAINEL_BG }}>
                         <p className="text-[10px] uppercase font-semibold mb-1" style={{ color: CINZA }}>{L('Próxima ação da régua', 'Next ladder step', 'Próxima acción de la regla')}</p>

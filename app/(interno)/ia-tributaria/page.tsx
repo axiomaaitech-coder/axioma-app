@@ -4,6 +4,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
@@ -332,7 +333,7 @@ export default function IATributariaPage() {
             <CanvasBox cor={scoreFiscal.cor}>
               <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🛡️ {tt.scoreFiscal}</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black" style={{ color: scoreFiscal.cor }}>{scoreFiscal.score}</span>
+                <span className="text-4xl font-black" style={{ color: scoreFiscal.cor }}><AnimatedNumber value={String(scoreFiscal.score)} /></span>
                 <span style={{ color: "#5a7a9a" }}>/100</span>
               </div>
               <p className="text-xs font-bold" style={{ color: scoreFiscal.cor }}>{lang === "en" ? scoreFiscal.nivel_en : lang === "es" ? scoreFiscal.nivel_es : scoreFiscal.nivel}</p>
@@ -344,7 +345,7 @@ export default function IATributariaPage() {
             ].map((c, i) => (
               <CanvasBox key={i} cor={c.cor}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</p>
-                <p className="text-xl font-black mt-1" style={{ color: c.cor }}>{c.valor}</p>
+                <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
               </CanvasBox>
             ))}
           </div>
@@ -482,7 +483,7 @@ export default function IATributariaPage() {
                 <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.cargaTitulo}</p>
                 <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.cargaDesc}</p>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-5xl font-black" style={{ color: carga.carga_pct > 15 ? "#fbbf24" : "#34d399" }}>{carga.carga_pct.toFixed(1)}%</span>
+                  <span className="text-5xl font-black" style={{ color: carga.carga_pct > 15 ? "#fbbf24" : "#34d399" }}><AnimatedNumber value={`${carga.carga_pct.toFixed(1)}%`} /></span>
                   <span className="text-sm" style={{ color: "#5a7a9a" }}>{tt.cargaSobreReceita}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
@@ -521,11 +522,11 @@ export default function IATributariaPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <div className="rounded-xl p-3 text-center" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.economiaMensal}</p>
-                    <p className="text-2xl font-black" style={{ color: "#34d399" }}>{formatBRL(economia.economia_mensal)}</p>
+                    <p className="text-2xl font-black" style={{ color: "#34d399" }}><AnimatedNumber value={formatBRL(economia.economia_mensal)} /></p>
                   </div>
                   <div className="rounded-xl p-3 text-center" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.economiaAnual}</p>
-                    <p className="text-2xl font-black" style={{ color: "#34d399" }}>{formatBRL(economia.economia_anual)}</p>
+                    <p className="text-2xl font-black" style={{ color: "#34d399" }}><AnimatedNumber value={formatBRL(economia.economia_anual)} /></p>
                   </div>
                   <div className="rounded-xl p-3 text-center" style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.regimeIdeal}</p>

@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, X, CheckCircle2, XCircle, Eye, CalendarClock, Settings, ScrollText, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -240,7 +241,7 @@ export default function FiscalPage() {
             <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: `1px solid ${AZULC}30` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Fiscal Health Score', 'Fiscal Health Score', 'Fiscal Health Score')}</p>
               <div className="flex flex-wrap items-baseline gap-3 mb-1">
-                <span className="text-4xl font-black leading-none" style={{ color: health.score >= 750 ? VERDE : health.score >= 500 ? AMARELO : VERMELHO }}>{health.score}</span>
+                <span className="text-4xl font-black leading-none" style={{ color: health.score >= 750 ? VERDE : health.score >= 500 ? AMARELO : VERMELHO }}><AnimatedNumber value={String(health.score)} /></span>
                 <span className="text-xs" style={{ color: CINZA }}>/ 1000</span>
               </div>
               <p className="text-xs" style={{ color: TEXTO }}>{explicarFiscalHealth(health, lang)}</p>
@@ -252,7 +253,7 @@ export default function FiscalPage() {
             {TILES.map((t) => (
               <div key={t.label} className="rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
                 <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
-                <p className="text-lg font-black leading-none" style={{ color: t.cor }}>{t.valor}</p>
+                <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
                 <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
               </div>
             ))}

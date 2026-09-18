@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
 import { CheckCircle2, Settings, ChevronRight, SlidersHorizontal, Building2, MessageCircleQuestion, Send } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -239,7 +240,7 @@ export default function TesourariaPage() {
           {score && (
             <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: `1px solid ${CORES_SCORE[score.cor]}30` }}>
               <div className="flex flex-wrap items-center gap-4">
-                <div className="text-4xl md:text-5xl font-black" style={{ color: CORES_SCORE[score.cor] }}>{score.total}</div>
+                <div className="text-4xl md:text-5xl font-black" style={{ color: CORES_SCORE[score.cor] }}><AnimatedNumber value={String(score.total)} /></div>
                 <div className="flex-1 min-w-[220px]">
                   <p className="text-[10px] font-black tracking-[0.25em] uppercase mb-1" style={{ color: CORES_SCORE[score.cor] }}>
                     {L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}
@@ -270,7 +271,7 @@ export default function TesourariaPage() {
             ].map((k) => (
               <div key={k.label} className="rounded-2xl p-3 md:p-4" style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
-                <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}>R$ {fBRL2(k.valor)}</p>
+                <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}><AnimatedNumber value={`R$ ${fBRL2(k.valor)}`} /></p>
               </div>
             ))}
           </div>

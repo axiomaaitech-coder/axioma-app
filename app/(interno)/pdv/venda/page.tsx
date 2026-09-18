@@ -20,6 +20,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import { motion } from "framer-motion";
 import { Search, Plus, Minus, Trash2, ShoppingCart, Loader2, Percent, Banknote, Maximize2, Minimize2, Printer, Settings, LayoutDashboard, Lock } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
+import { AnimatedNumber } from "../../../../components/AnimatedNumber";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
 import { obterEmpresaAtiva, obterMeuPapel } from "../../../../lib/empresaHelpers";
@@ -1456,7 +1457,7 @@ function FinalizarVendaModal({
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4" style={{ background: "rgba(2,8,16,0.6)" }}>
       <div className="w-full max-w-md rounded-2xl p-6" style={{ background: tokens.modalBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
         <h3 className="text-sm font-bold mb-1" style={{ color: tokens.texto }}>{t("finalizarVenda", lang)}</h3>
-        <p className="text-4xl font-black mb-1" style={{ color: tokens.acento }}>{moeda(totalAPagar)}</p>
+        <p className="text-4xl font-black mb-1" style={{ color: tokens.acento }}><AnimatedNumber value={moeda(totalAPagar)} /></p>
         <p className="text-xs flex items-center gap-1 mb-4" style={{ color: tokens.textoMuted }}>
           <Percent size={12} />{t("tributosAproximados", lang)}: {moeda(tributoAproximado)}
         </p>

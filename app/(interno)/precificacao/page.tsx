@@ -9,6 +9,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
@@ -539,7 +540,7 @@ export default function Precificacao() {
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
-                <p className="text-xl font-black" style={{ color: card.cor }}>{card.value}</p>
+                <p className="text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
             </motion.div>
           ))}
@@ -574,7 +575,7 @@ export default function Precificacao() {
               </div>
               <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{cx.prcIppaSub}</p>
               <div className="flex items-center gap-4 mb-4">
-                <p className="text-4xl font-black" style={{ color: NIVEL_COR[ippa.nivel] }}>{ippa.total}</p>
+                <p className="text-4xl font-black" style={{ color: NIVEL_COR[ippa.nivel] }}><AnimatedNumber value={String(ippa.total)} /></p>
                 <div>
                   <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: `${NIVEL_COR[ippa.nivel]}18`, color: NIVEL_COR[ippa.nivel] }}>{NIVEL_LABEL[ippa.nivel]}</span>
                   <p className="text-xs mt-1.5" style={{ color: ct("#94a3b8") }}>{montarNarrativaIPPA(lang, ippa)}</p>

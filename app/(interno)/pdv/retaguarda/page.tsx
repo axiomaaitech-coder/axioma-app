@@ -18,6 +18,7 @@ import {
   Calculator, Banknote,
 } from "lucide-react";
 import PdvLayout, { useTemaPdv } from "../../../../components/PdvLayout";
+import { AnimatedNumber } from "../../../../components/AnimatedNumber";
 import { CardGenerico, BreadcrumbGenerico, EstadoVazio, type ItemBreadcrumb } from "../../../../components/PdvCatalogoNav";
 import { useLanguage } from "../../../../lib/LanguageContext";
 import type { Idioma } from "../../../../lib/translations";
@@ -699,7 +700,7 @@ function CardEstat({ label, valor, cor }: { label: string; valor: string; cor?: 
   return (
     <div className="rounded-xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1 truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
-      <p className="text-xl md:text-2xl font-black truncate" style={{ color: cor || tokens.cardTexto }}>{valor}</p>
+      <p className="text-xl md:text-2xl font-black truncate" style={{ color: cor || tokens.cardTexto }}><AnimatedNumber value={valor} /></p>
     </div>
   );
 }
@@ -1203,11 +1204,11 @@ function CardResultadoFechamento({ lang, resultado, onVerComposicao }: { lang: I
       <div className="grid grid-cols-3 gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("esperado", lang)}</p>
-          <p className="text-lg font-black" style={{ color: tokens.cardTexto }}>{moeda(resultado.valorEsperado)}</p>
+          <p className="text-lg font-black" style={{ color: tokens.cardTexto }}><AnimatedNumber value={moeda(resultado.valorEsperado)} /></p>
         </div>
         <div>
           <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("contado", lang)}</p>
-          <p className="text-lg font-black" style={{ color: tokens.cardTexto }}>{moeda(resultado.valorContado)}</p>
+          <p className="text-lg font-black" style={{ color: tokens.cardTexto }}><AnimatedNumber value={moeda(resultado.valorContado)} /></p>
         </div>
         <div>
           <p className="text-[11px] font-bold uppercase mb-1" style={{ color: tokens.cardTexto, opacity: 0.65 }}>{t("diferenca", lang)}</p>
@@ -1389,7 +1390,7 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
 
           <div className="flex items-center justify-between px-3 py-3 rounded-xl mt-1" style={{ background: tokens.acaoBg }}>
             <span className="text-xs font-black" style={{ color: tokens.acaoTexto }}>{t("totalEsperadoLinha", lang)}</span>
-            <span className="text-lg font-black" style={{ color: tokens.acaoTexto }}>{moeda(totalEsperado)}</span>
+            <span className="text-lg font-black" style={{ color: tokens.acaoTexto }}><AnimatedNumber value={moeda(totalEsperado)} /></span>
           </div>
         </div>
       </div>

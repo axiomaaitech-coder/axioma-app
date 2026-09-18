@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 import { RefreshCw, X, CheckCircle2, XCircle, Eye, BookOpenText, TrendingDown, ClipboardCheck, BookText } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -213,7 +214,7 @@ export default function ContadorPage() {
             {TILES.map((t) => (
               <div key={t.label} className="rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
                 <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
-                <p className="text-lg font-black leading-none" style={{ color: t.cor }}>{t.valor}</p>
+                <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
                 <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
               </div>
             ))}

@@ -4,6 +4,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
@@ -1269,7 +1270,7 @@ export default function EmpresaPage() {
               <button onClick={() => setModalScoreDetalhe("health")} className="w-full text-left">
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.healthScore}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black" style={{ color: healthScore.cor }}>{healthScore.score}</span>
+                  <span className="text-3xl font-black" style={{ color: healthScore.cor }}><AnimatedNumber value={String(healthScore.score)} /></span>
                   <span style={{ color: "#5a7a9a" }}>/100</span>
                   <span className="text-xs font-bold" style={{ color: healthScore.cor }}>{healthScore.nivel}</span>
                 </div>
@@ -1281,7 +1282,7 @@ export default function EmpresaPage() {
               <button onClick={() => setModalScoreDetalhe("compliance")} className="w-full text-left">
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.complianceScore}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black" style={{ color: complianceScore.cor }}>{complianceScore.score}</span>
+                  <span className="text-3xl font-black" style={{ color: complianceScore.cor }}><AnimatedNumber value={String(complianceScore.score)} /></span>
                   <span style={{ color: "#5a7a9a" }}>/100</span>
                   <span className="text-xs font-bold" style={{ color: complianceScore.cor }}>{complianceScore.nivel}</span>
                 </div>

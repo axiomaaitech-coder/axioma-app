@@ -12,6 +12,7 @@ import {
   Plus, Trash2, Pencil, Phone, Sparkles, Calculator, TrendingUp, PiggyBank, BarChart3,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao } from '../../../lib/erroUiHelpers'
@@ -648,7 +649,7 @@ export default function Inadimplencia() {
               {k.vazio ? (
                 <p className="text-xs italic" style={{ color: CINZA }}>{L('Sem dados suficientes', 'Not enough data', 'Sin datos suficientes')}</p>
               ) : (
-                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{k.valor}</p>
+                <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
               )}
             </div>
           ))}

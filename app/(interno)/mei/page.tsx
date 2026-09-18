@@ -586,15 +586,15 @@ export default function PainelMEI() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="rounded-xl p-3" style={{ background: `${VERDE}10`, border: `1px solid ${VERDE}25` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{mx.entrou}</p>
-              <p className="text-lg font-black" style={{ color: VERDE }}>{fmt(fluxo.entrou)}</p>
+              <p className="text-lg font-black" style={{ color: VERDE }}><CountUp valor={fluxo.entrou} formatar={fmt} /></p>
             </div>
             <div className="rounded-xl p-3" style={{ background: `${VERMELHO}10`, border: `1px solid ${VERMELHO}25` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{mx.saiu}</p>
-              <p className="text-lg font-black" style={{ color: VERMELHO }}>{fmt(fluxo.saiu)}</p>
+              <p className="text-lg font-black" style={{ color: VERMELHO }}><CountUp valor={fluxo.saiu} formatar={fmt} /></p>
             </div>
             <div className="rounded-xl p-3" style={{ background: `${fluxo.sobra >= 0 ? AZUL : VERMELHO}10`, border: `1px solid ${fluxo.sobra >= 0 ? AZUL : VERMELHO}25` }}>
               <p className="text-xs uppercase tracking-wider" style={{ color: 'var(--axi-text-secondary)' }}>{mx.sobra}</p>
-              <p className="text-lg font-black" style={{ color: fluxo.sobra >= 0 ? AZUL : VERMELHO }}>{fmt(fluxo.sobra)}</p>
+              <p className="text-lg font-black" style={{ color: fluxo.sobra >= 0 ? AZUL : VERMELHO }}><CountUp valor={fluxo.sobra} formatar={fmt} /></p>
             </div>
           </div>
           <p className="text-xs mt-3" style={{ color: AMBAR }}>⏰ {mx.atencaoDas}</p>

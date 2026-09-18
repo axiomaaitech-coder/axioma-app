@@ -8,6 +8,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { motion, AnimatePresence } from "framer-motion";
@@ -577,11 +578,11 @@ export default function Simulacoes() {
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div className="rounded-xl p-3" style={{ background: "rgba(16,185,129,0.08)", border: `1px solid ${ct(CORES.verde)}30` }}>
                       <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbLucroPositivo}</p>
-                      <p className="text-xl font-black" style={{ color: ct(CORES.verde) }}>{fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)}</p>
+                      <p className="text-xl font-black" style={{ color: ct(CORES.verde) }}><AnimatedNumber value={fPct(resultado.monteCarlo.probabilidadeLucroPositivoPct)} /></p>
                     </div>
                     <div className="rounded-xl p-3" style={{ background: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? "rgba(239,68,68,0.1)" : CAMPO_BG3, border: `1px solid ${resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : "rgba(255,255,255,0.1)"}30` }}>
                       <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{cx.simProbRupturaCaixa}</p>
-                      <p className="text-xl font-black" style={{ color: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : ct("#e2e8f0") }}>{fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)}</p>
+                      <p className="text-xl font-black" style={{ color: resultado.monteCarlo.probabilidadeRupturaCaixaPct > 15 ? ct(CORES.vermelho) : ct("#e2e8f0") }}><AnimatedNumber value={fPct(resultado.monteCarlo.probabilidadeRupturaCaixaPct)} /></p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">

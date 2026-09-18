@@ -5,6 +5,7 @@ import { Share2, AlertTriangle, Sparkles, Zap, MessageSquareText, History, X, Sh
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
@@ -506,7 +507,7 @@ export default function DREPage() {
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor} destaque>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
-                <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}>{card.value}</p>
+                <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
             </motion.div>
           ))}
@@ -542,7 +543,7 @@ export default function DREPage() {
                   className="rounded-2xl p-3 md:p-4"
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
-                  <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
+                  <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}><AnimatedNumber value={k.v} /></p>
                   <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
                 </motion.div>
               ))}
