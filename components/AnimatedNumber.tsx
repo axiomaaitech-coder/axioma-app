@@ -6,7 +6,10 @@ import { useEffect, useRef } from "react";
 // — usado em KPIs e valores de destaque nos dois temas (Escuro/Claro), não
 // muda cor/fonte, só anima o dígito. Formato sempre pt-BR (mesma convenção
 // já usada em todo valor monetário do Axioma, independente do idioma da UI
-// — ver fBRL/toLocaleString("pt-BR") espalhados pelos módulos).
+// — ver fBRL/toLocaleString("pt-BR") espalhados pelos módulos). Sempre anima,
+// mesmo com prefers-reduced-motion ativo no sistema — decisão explícita do
+// Elias (é assinatura visual do painel, não decorativo), mesmo critério do
+// CountUp.
 export function AnimatedNumber({
   value,
   className,
@@ -20,10 +23,6 @@ export function AnimatedNumber({
 
   useEffect(() => {
     if (!ref.current) return;
-    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      ref.current.textContent = value;
-      return;
-    }
     // Núcleo numérico no formato pt-BR (milhar com ".", decimal com ",") —
     // NÃO usar replace(/[^\d]/g,"") sozinho: isso junta "42,5" em "425" e
     // corrompe qualquer valor com casas decimais (percentuais, taxas etc).
