@@ -4,6 +4,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
@@ -1466,7 +1467,7 @@ export default function ImportarDocumentosPage() {
                     <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#5a7a9a" }}>{card.label}</span>
                     <span className="text-base">{card.icon}</span>
                   </div>
-                  <p className="text-base md:text-lg font-bold truncate" style={{ color: card.cor }}>{card.valor}</p>
+                  <p className="text-base md:text-lg font-bold truncate" style={{ color: card.cor }}><AnimatedNumber value={String(card.valor)} /></p>
                 </div>
               ))}
             </div>
@@ -1610,7 +1611,7 @@ export default function ImportarDocumentosPage() {
                     { label: tt.erros, valor: sucesso.erro, cor: "#f87171" },
                   ].map((s, i) => (
                     <div key={i} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.6)", border: `1px solid ${s.cor}30` }}>
-                      <p className="text-xl font-bold" style={{ color: s.cor }}>{s.valor}</p>
+                      <p className="text-xl font-bold" style={{ color: s.cor }}><AnimatedNumber value={String(s.valor)} /></p>
                       <p className="text-xs" style={{ color: "#5a7a9a" }}>{s.label}</p>
                     </div>
                   ))}
@@ -2303,7 +2304,7 @@ function PreviewBlock(props: any) {
                 { label: tt.erros, valor: simulacao.erro, cor: "#f87171" },
               ].map((s: any, i: number) => (
                 <div key={i} className="rounded-lg p-2 text-center" style={{ background: "rgba(2,8,16,0.5)" }}>
-                  <p className="text-lg font-bold" style={{ color: s.cor }}>{s.valor}</p>
+                  <p className="text-lg font-bold" style={{ color: s.cor }}><AnimatedNumber value={String(s.valor)} /></p>
                   <p className="text-[10px]" style={{ color: "#5a7a9a" }}>{s.label}</p>
                 </div>
               ))}
@@ -2316,7 +2317,7 @@ function PreviewBlock(props: any) {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.valorTotal}</p>
-              <p className="text-xl font-bold" style={{ color: "#34d399" }}>{formatBRL(valorTotalPreview)}</p>
+              <p className="text-xl font-bold" style={{ color: "#34d399" }}><AnimatedNumber value={formatBRL(valorTotalPreview)} /></p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={cancelarUpload}
