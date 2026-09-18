@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
@@ -32,7 +32,7 @@ const supabase = createBrowserClient(
 // (public/referencias/) dos demais módulos do MEI, nunca verde.
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', BOLHA_BG: 'rgba(255,255,255,0.05)', BOLHA_BORDA: 'rgba(255,255,255,0.06)', CAMPO_BG: 'rgba(255,255,255,0.04)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', BOLHA_BG: '#ffffff', BOLHA_BORDA: 'rgba(11,31,58,0.12)', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', BOLHA_BG: '#ffffff', BOLHA_BORDA: 'rgba(16,27,61,0.12)', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
 } as const
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa

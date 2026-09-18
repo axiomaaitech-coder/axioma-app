@@ -37,7 +37,7 @@ export function AvisoErro({ texto }: { texto: string }) {
   const claro = tema !== "escuro";
   return (
     <div className="mb-4 px-4 py-3 rounded-xl text-sm"
-      style={{ background: claro ? "rgba(220,38,38,0.08)" : "rgba(239,68,68,0.12)", color: claro ? "#b91c1c" : "#fca5a5", border: `1px solid ${claro ? "rgba(220,38,38,0.25)" : "rgba(239,68,68,0.3)"}` }}>
+      style={{ background: claro ? "rgba(255,90,107,0.08)" : "rgba(239,68,68,0.12)", color: claro ? "#b91c1c" : "#fca5a5", border: `1px solid ${claro ? "rgba(255,90,107,0.25)" : "rgba(239,68,68,0.3)"}` }}>
       {texto}
     </div>
   );

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect } from "react";
 import { Target, Trash2, X, Pencil, Share2, Sparkles, GitBranch, Archive, ArchiveRestore, Trophy } from "lucide-react";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -221,13 +221,13 @@ export default function Metas() {
   const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
   const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
   const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
-  const CAMPO_BORDA = temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)";
+  const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)";
   const ROXO_CHIP_BG = temaClaro ? "rgba(124,58,237,0.12)" : "rgba(139,92,246,0.12)";
   const ROXO_CHIP_BG_ATIVO = temaClaro ? "rgba(124,58,237,0.2)" : "rgba(139,92,246,0.2)";
   const ROXO_CHIP_BORDA = temaClaro ? "rgba(124,58,237,0.4)" : "rgba(139,92,246,0.4)";
   const ROXO_CHIP_BORDA_FRACA = temaClaro ? "rgba(124,58,237,0.15)" : "rgba(59,111,212,0.1)";
-  const AMARELO_CHIP_BG = temaClaro ? "rgba(217,119,6,0.12)" : "rgba(234,179,8,0.12)";
-  const AMARELO_CHIP_BORDA = temaClaro ? "rgba(217,119,6,0.25)" : "rgba(234,179,8,0.25)";
+  const AMARELO_CHIP_BG = temaClaro ? "rgba(245,166,35,0.12)" : "rgba(234,179,8,0.12)";
+  const AMARELO_CHIP_BORDA = temaClaro ? "rgba(245,166,35,0.25)" : "rgba(234,179,8,0.25)";
   const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.15)" : "rgba(212,175,55,0.15)";
   const OURO_BADGE_BG_FRACO = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.2)" : "rgba(212,175,55,0.2)";
@@ -703,7 +703,7 @@ export default function Metas() {
               {narrativasDependencia.length > 0 ? (
                 <div className="space-y-2">
                   {narrativasDependencia.map((n, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(220,38,38,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${temaClaro ? "rgba(220,38,38,0.25)" : "rgba(239,68,68,0.2)"}` }}>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(255,90,107,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.25)" : "rgba(239,68,68,0.2)"}` }}>
                       <GitBranch size={14} style={{ color: ct(CORES.vermelho), flexShrink: 0 }} />
                       <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#fca5a5") }}>{n}</p>
                     </div>
@@ -814,7 +814,7 @@ export default function Metas() {
                               </span>
                             )}
                             {m.responsavel && (
-                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(85,99,122,0.12)" : "rgba(148,163,184,0.1)", color: ct("#cbd5e1") }}>
+                              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(107,114,128,0.12)" : "rgba(148,163,184,0.1)", color: ct("#cbd5e1") }}>
                                 👤 {m.responsavel}
                               </span>
                             )}
@@ -881,7 +881,7 @@ export default function Metas() {
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs" style={{ color: ct("#3a6090") }}>{m.prazo ? fmtData(lang, m.prazo) : "—"}</p>
                         {concluida && <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: OURO_BADGE_BG, color: ct(CORES.ouro) }}><Trophy size={11} /> {cx.metaConcluidaAuto}</span>}
-                        {arquivada && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(85,99,122,0.15)" : "rgba(148,163,184,0.12)", color: ct("#94a3b8") }}>{cx.metaArquivada}</span>}
+                        {arquivada && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(107,114,128,0.15)" : "rgba(148,163,184,0.12)", color: ct("#94a3b8") }}>{cx.metaArquivada}</span>}
                       </div>
                     </div>
                   </CanvasBox>
@@ -973,7 +973,7 @@ export default function Metas() {
                       style={{ background: CAMPO_BG, border: `1px solid ${CAMPO_BORDA}`, color: ct("#c8d8f0") }} />
                   </div>
                   {erroModal && (
-                    <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: temaClaro ? "rgba(220,38,38,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${temaClaro ? "rgba(220,38,38,0.3)" : "rgba(239,68,68,0.3)"}`, color: ct("#fca5a5") }}>
+                    <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: temaClaro ? "rgba(255,90,107,0.1)" : "rgba(239,68,68,0.1)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.3)" : "rgba(239,68,68,0.3)"}`, color: ct("#fca5a5") }}>
                       {erroModal}
                     </div>
                   )}

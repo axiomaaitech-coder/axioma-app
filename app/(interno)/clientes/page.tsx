@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLanguage } from "../../../lib/LanguageContext";
@@ -54,8 +54,8 @@ function useCampoEstilo() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   return {
-    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
-    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(0,67,200,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
+    inputStyle: { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
+    selectStyle: { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)"}`, color: temaClaro ? "#101b3d" : "#c8d8f0" },
     labelStyle: { color: temaClaro ? "#2ecc9b" : "#5a8fd4" },
   };
 }
@@ -390,7 +390,7 @@ export default function ClientesPage() {
   const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
   const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
   const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
-  const CAMPO_BORDA2 = temaClaro ? "rgba(0,67,200,0.1)" : "rgba(59,130,246,0.1)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilo();
   const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
@@ -1832,7 +1832,7 @@ export default function ImportarDocumentosPage() {
               )}
               <button onClick={shareBaixarPdfIndividual} disabled={gerandoPdfIndividual}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90 disabled:opacity-50"
-                style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.35)", color: "#ff5a6b" }}>
+                style={{ background: "rgba(255,90,107,0.12)", border: "1px solid rgba(255,90,107,0.35)", color: "#ff5a6b" }}>
                 <span className="text-xl">{gerandoPdfIndividual ? "⏳" : "📄"}</span>
                 {gerandoPdfIndividual ? "Gerando..." : "PDF Individual"}
               </button>

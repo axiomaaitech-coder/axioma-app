@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
@@ -555,7 +555,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
           </div>
           <button onClick={() => gerarPdfTabela(montarArgsRelatorioReceitasBrutas(), (msg) => showToast(msg), lang)}
             className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold"
-            style={{ background: 'rgba(220,38,38,0.12)', border: '1px solid rgba(220,38,38,0.35)', color: '#ff5a6b' }}>
+            style={{ background: 'rgba(255,90,107,0.12)', border: '1px solid rgba(255,90,107,0.35)', color: '#ff5a6b' }}>
             {t('relatorioBrutas')}
           </button>
         </CanvasBox>

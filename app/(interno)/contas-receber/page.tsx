@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLanguage } from '../../../lib/LanguageContext'
@@ -59,7 +59,7 @@ const supabase = createBrowserClient(
 // ============================================================================
 const PALETA = {
   dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#e2ecf7', TEXTO: '#c8d8f0', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
-  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#a16207', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#b45309', CINZA: '#6b7280', BG_CARD: '#eef2f7', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: '#eef2f7', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(0,67,200,0.08)' },
+  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#a16207', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#b45309', CINZA: '#6b7280', BG_CARD: '#eef2f7', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: '#eef2f7', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(46,204,155,0.08)' },
 } as const
 
 type CentroCusto = { id: string; nome: string }

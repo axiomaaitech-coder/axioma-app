@@ -261,7 +261,7 @@ export default function EquipePage() {
           {mensagem && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{ background: tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.15)' : 'rgba(220,38,38,0.15)', border: `1px solid ${tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.4)' : 'rgba(220,38,38,0.4)'}` }}>
+              style={{ background: tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.15)' : 'rgba(255,90,107,0.15)', border: `1px solid ${tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.4)' : 'rgba(255,90,107,0.4)'}` }}>
               {tipoMsg === 'sucesso' ? <CheckCircle size={18} color={VERDE} /> : <AlertCircle size={18} color={VERMELHO} />}
               <p className="text-sm font-semibold" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>
             </motion.div>

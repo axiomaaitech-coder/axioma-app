@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -719,7 +719,7 @@ export default function Fornecedores() {
   const AMBAR = temaClaro ? "#b45309" : "#f59e0b";
   const BRONZE = temaClaro ? "#7c2d12" : "#b45309";
   const PAINEL_BG = temaClaro ? "#eef2f7" : "rgba(10,20,36,0.7)";
-  const CAMPO_BORDA2 = temaClaro ? "rgba(0,67,200,0.1)" : "rgba(59,111,212,0.15)";
+  const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,111,212,0.15)";
   const CAMPO_BG2 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
   const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.02)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilos();
@@ -1747,7 +1747,7 @@ export default function Fornecedores() {
       <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
         onClick={abrirNovaConta}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-        style={{ background: temaClaro ? "rgba(217,119,6,0.15)" : "rgba(251,191,36,0.15)", color: temaClaro ? "#f5a623" : "#fbbf24", border: `1px solid ${temaClaro ? "rgba(217,119,6,0.3)" : "rgba(251,191,36,0.3)"}` }}>
+        style={{ background: temaClaro ? "rgba(245,166,35,0.15)" : "rgba(251,191,36,0.15)", color: temaClaro ? "#f5a623" : "#fbbf24", border: `1px solid ${temaClaro ? "rgba(245,166,35,0.3)" : "rgba(251,191,36,0.3)"}` }}>
         + {idioma === "pt" ? "Nova Conta a Pagar" : "New Bill"}
       </motion.button>
       <ThemeToggle />
