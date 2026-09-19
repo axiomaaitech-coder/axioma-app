@@ -10,7 +10,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { CanvasBox } from "../../../components/CanvasBox";
+import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import SeletorPeriodo from "../../../components/SeletorPeriodo";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
@@ -1804,7 +1804,7 @@ export default function Fornecedores() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
             {kpis.map((k) => (
               <button key={k.key} onClick={() => setDrillDown(k.key)} className={`text-left rounded-xl p-3 transition-all hover:scale-[1.02]${classePremium3d}`}
-                style={{ background: PAINEL_BG, border: `1px solid ${k.cor}30` }}>
+                style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                 <p className="text-[10px] font-semibold tracking-wider uppercase mb-1.5" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
                 <p className="text-lg font-black" style={{ color: k.cor }}>{k.valor}</p>
                 {k.sub && <p className="text-[10px] truncate mt-0.5" style={{ color: ct("#5a7a9a") }}>{k.sub}</p>}
@@ -1815,7 +1815,7 @@ export default function Fornecedores() {
 
           {/* Curva ABC + Distribuição Geográfica */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.curvaAbcTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.curvaAbcSub}</p>
               {curvaABCOption ? (
@@ -1829,7 +1829,7 @@ export default function Fornecedores() {
                 </>
               ) : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.curvaAbcVazio}</p>}
             </div>
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.geoTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.geoSub}</p>
               {geoOption ? <ReactECharts option={geoOption} style={{ height: 220 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.geoVazio}</p>}
@@ -1838,12 +1838,12 @@ export default function Fornecedores() {
 
           {/* Radar de Risco + Escada de Vencimentos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.radarTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.radarSub}</p>
               {radarTemDado ? <ReactECharts option={radarOption} style={{ height: 240 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.radarVazio}</p>}
             </div>
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.escadaTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.escadaSub}</p>
               {escadaVencimentos.length === 0 ? (
@@ -1865,7 +1865,7 @@ export default function Fornecedores() {
           </div>
 
           {/* Ranking Axioma (Fase 3) */}
-          <div className={`rounded-xl p-4 mt-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+          <div className={`rounded-xl p-4 mt-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <p className="text-sm font-black mb-0.5 flex items-center gap-2" style={{ color: ct("#f1f5f9") }}><Trophy size={15} style={{ color: AMBAR }} /> {tt.rankingTitulo}</p>
             <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.rankingSub}</p>
             {rankingAxioma.length === 0 ? (
@@ -1910,11 +1910,11 @@ export default function Fornecedores() {
 
           {/* Evolução + Inflação + Tendência de Reajuste */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-            <div className={`lg:col-span-2 rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`lg:col-span-2 rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.evolucaoComprasTitulo}{fornecedorEvolucaoAtual ? ` — ${fornecedorEvolucaoAtual.nome}` : ""}</p>
               {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.evolucaoComprasVazio}</p>}
             </div>
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.inflacaoTitulo}</p>
               {inflacao && inflacao.amostraSuficiente ? (
                 <div>
@@ -1927,7 +1927,7 @@ export default function Fornecedores() {
             </div>
           </div>
 
-          <div className={`rounded-xl p-4 mb-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+          <div className={`rounded-xl p-4 mb-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.tendenciaTitulo}{fornecedorEvolucaoAtual ? ` — ${fornecedorEvolucaoAtual.nome}` : ""}</p>
             {tendenciaFornecedor.length === 0 ? (
               <p className="text-xs py-4 text-center" style={{ color: ct("#5a7a9a") }}>{tt.tendenciaVazio}</p>
@@ -1948,12 +1948,12 @@ export default function Fornecedores() {
 
           {/* Sazonalidade + Desperdícios */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.sazonalidadeTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeSub}</p>
               {sazonalidadeOption ? <ReactECharts option={sazonalidadeOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeVazio}</p>}
             </div>
-            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.desperdiciosTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.desperdiciosSub}</p>
               {desperdicios.alertas.length === 0 ? (
@@ -1972,7 +1972,7 @@ export default function Fornecedores() {
           </div>
 
           {/* Oportunidades de Consolidação */}
-          <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+          <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: temaClaro ? BORDA_3D : `1px solid ${AMBAR}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.consolidacaoTitulo}</p>
             <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.consolidacaoSub}</p>
             {consolidacao.length === 0 ? (

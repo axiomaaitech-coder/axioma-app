@@ -6,7 +6,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { CanvasBox } from "../../../components/CanvasBox";
+import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
@@ -1188,7 +1188,7 @@ export default function ClientesPage() {
                   </CanvasBox>
 
                   {/* IVCA */}
-                  <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.cyan)}30` }}>
+                  <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: temaClaro ? BORDA_3D : `1px solid ${ct(CORES.cyan)}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                     <div className="flex items-center gap-2 mb-1">
                       <Award size={16} style={{ color: ct("#6ab0ff") }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.ivcaTitulo}</p>

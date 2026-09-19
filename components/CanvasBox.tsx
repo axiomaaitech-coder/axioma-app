@@ -13,7 +13,12 @@ import { motion } from "motion/react";
 // Sombra "painel 3D" (bisel de luz) + glow verde no hover — valores exatos de
 // public/referencias/tema-tokens.md §4/§5.1, usados só quando premium3d=true
 // (opt-in, hoje só o tema Claro do MEI passa isso).
-const SOMBRA_3D = "inset 0 1px 0 0 rgba(255,255,255,0.12), inset 0 -1px 0 0 rgba(0,0,0,0.25), 0 1px 2px rgba(16,27,61,0.3), 0 24px 48px -12px rgba(16,27,61,0.55)";
+export const SOMBRA_3D = "inset 0 1px 0 0 rgba(255,255,255,0.12), inset 0 -1px 0 0 rgba(0,0,0,0.25), 0 1px 2px rgba(16,27,61,0.3), 0 24px 48px -12px rgba(16,27,61,0.55)";
+// Borda padrão do card/painel premium3d (creme) - SEMPRE verde-menta a 45%,
+// nunca a cor do módulo (ver comentário em `borda` abaixo). Exportada pra
+// painéis "raw div" (não-CanvasBox) que também usam classePremium3d
+// aplicarem o mesmo estado de repouso, não só o hover via CSS.
+export const BORDA_3D = "1px solid rgba(46,204,155,0.45)";
 
 export function CanvasBox({
   children,

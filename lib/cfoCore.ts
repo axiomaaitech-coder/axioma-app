@@ -621,23 +621,45 @@ export function optVelocimetro(valor: number, max: number, faixas: { ate: number
 
 // Radar/spider chart — visão multi-eixo de um composto (ex: risco da carteira).
 // Cada indicador já deve vir normalizado (0..max) pelo chamador.
+// Radar "futurista" — única tela que foge da paleta padrão por pedido
+// explícito do Elias (2026-09-19): aqui pode colorir e usar efeito, ao
+// contrário do resto do Claro que colapsa tudo pra verde-menta. Gradiente
+// neon ciano→magenta com glow forte, nos dois temas.
 export function optRadar(indicadores: { nome: string; max: number }[], valores: number[], cor: string, temaClaro?: boolean) {
+  const NEON_A = "#00e5ff", NEON_B = "#a855f7", NEON_C = "#f471b5";
+  const gradienteArea = {
+    type: "radial", x: 0.5, y: 0.5, r: 0.75,
+    colorStops: [
+      { offset: 0, color: NEON_A + "55" },
+      { offset: 0.55, color: NEON_B + "40" },
+      { offset: 1, color: NEON_C + "12" },
+    ],
+  };
+  const gradienteLinha = {
+    type: "linear", x: 0, y: 0, x2: 1, y2: 1,
+    colorStops: [
+      { offset: 0, color: NEON_A },
+      { offset: 0.5, color: NEON_B },
+      { offset: 1, color: NEON_C },
+    ],
+  };
   return {
     backgroundColor: "transparent", animationDuration: 900,
-    tooltip: { ...tipBase, trigger: "item", borderColor: cor },
+    tooltip: { ...tipBase, trigger: "item", borderColor: NEON_B },
     radar: {
       indicator: indicadores.map((i) => ({ name: i.nome, max: i.max })),
       splitNumber: 4,
-      axisName: { color: temaClaro ? "#6b7280" : "#94a3b8", fontSize: 10, fontWeight: 700 },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
-      splitArea: { areaStyle: { color: temaClaro ? ["#f7f8fa", "#e8edf4"] : ["rgba(255,255,255,0.01)", "rgba(255,255,255,0.03)"] } },
-      axisLine: { lineStyle: { color: "rgba(148,163,184,0.15)" } },
+      axisName: { color: temaClaro ? "#4c1d95" : "#c4b5fd", fontSize: 10, fontWeight: 800 },
+      splitLine: { lineStyle: { color: temaClaro ? "rgba(168,85,247,0.18)" : "rgba(168,85,247,0.22)" } },
+      splitArea: { areaStyle: { color: temaClaro ? ["rgba(0,229,255,0.03)", "rgba(168,85,247,0.05)"] : ["rgba(0,229,255,0.02)", "rgba(168,85,247,0.05)"] } },
+      axisLine: { lineStyle: { color: temaClaro ? "rgba(168,85,247,0.25)" : "rgba(168,85,247,0.3)" } },
     },
     series: [{
       type: "radar",
-      areaStyle: { color: cor + "33" },
-      lineStyle: { width: 3, color: cor, shadowColor: cor + "80", shadowBlur: 10 },
-      itemStyle: { color: cor, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 2 },
+      areaStyle: { color: gradienteArea, shadowColor: NEON_B + "50", shadowBlur: 24 },
+      lineStyle: { width: 3, color: gradienteLinha, shadowColor: NEON_A + "aa", shadowBlur: 16 },
+      itemStyle: { color: NEON_A, borderColor: temaClaro ? "#ffffff" : "#0a0820", borderWidth: 2, shadowColor: NEON_A, shadowBlur: 12 },
+      symbolSize: 7,
       data: [{ value: valores }],
     }],
   };
