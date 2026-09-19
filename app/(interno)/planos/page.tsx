@@ -5,6 +5,8 @@ import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -67,6 +69,16 @@ function CanvasEpico() {
 export default function Planos() {
   const router = useRouter()
   const { idioma } = useLanguage()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  // Paleta Claro segue tema-tokens.md — card creme (#f6f7c4, padrão já usado
+  // em todo módulo "repintado"), texto azul-marinho, muted #374151 (mesmo
+  // ajuste de contraste já feito nos demais módulos sobre fundo creme).
+  const PAG_BG = temaClaro ? '#f7f8fa' : '#020810'
+  const CARD_BG = temaClaro ? '#f6f7c4' : 'rgba(4,10,22,0.97)'
+  const TEXTO_PRINC = temaClaro ? '#101b3d' : '#c8d8f0'
+  const TEXTO_MUTED = temaClaro ? '#374151' : '#6a8bbd'
+  const TEXTO_MUTED2 = temaClaro ? '#374151' : '#5a7aaa'
   const [hover, setHover] = useState<string | null>(null)
   const [loadingPlano, setLoadingPlano] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -193,11 +205,15 @@ export default function Planos() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-auto" style={{ background: "#020810" }}>
+    <div data-theme={tema} className="relative min-h-screen overflow-auto" style={{ background: PAG_BG }}>
       <CanvasEpico />
       <div className="absolute inset-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse at 50% 20%, rgba(106,176,255,0.08) 0%, transparent 60%)',
+        background: temaClaro
+          ? 'radial-gradient(ellipse at 50% 20%, rgba(46,204,155,0.08) 0%, transparent 60%)'
+          : 'radial-gradient(ellipse at 50% 20%, rgba(106,176,255,0.08) 0%, transparent 60%)',
       }} />
+
+      <div className="absolute top-5 right-5 z-20"><ThemeToggle /></div>
 
       <div className="relative z-10 px-4 py-12 md:py-16">
 
@@ -209,18 +225,18 @@ export default function Planos() {
 
           <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 3, repeat: Infinity }}
             className="text-xs font-black tracking-[0.4em] uppercase mb-3"
-            style={{ color: '#6ab0ff', textShadow: '0 0 30px #6ab0ff' }}>
+            style={{ color: temaClaro ? '#101b3d' : '#6ab0ff', textShadow: temaClaro ? 'none' : '0 0 30px #6ab0ff' }}>
             AXIOMA AI.TECH
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
             className="text-4xl md:text-6xl font-black text-center mb-4"
-            style={{ color: '#c8d8f0', textShadow: '0 0 40px rgba(106,176,255,0.3)', lineHeight: 1.1 }}>
+            style={{ color: TEXTO_PRINC, textShadow: temaClaro ? 'none' : '0 0 40px rgba(106,176,255,0.3)', lineHeight: 1.1 }}>
             {txt.titulo}
           </motion.h1>
 
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            className="text-sm md:text-base text-center mb-4 max-w-md" style={{ color: '#6a8bbd' }}>
+            className="text-sm md:text-base text-center mb-4 max-w-md" style={{ color: TEXTO_MUTED }}>
             {txt.sub}
           </motion.p>
 
@@ -229,7 +245,7 @@ export default function Planos() {
             {erro && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="mt-4 px-6 py-3 rounded-xl text-sm font-semibold"
-                style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}>
+                style={{ background: temaClaro ? 'rgba(255,90,107,0.1)' : 'rgba(248,113,113,0.1)', border: `1px solid ${temaClaro ? 'rgba(255,90,107,0.3)' : 'rgba(248,113,113,0.3)'}`, color: temaClaro ? '#ff5a6b' : '#f87171' }}>
                 {erro}
               </motion.div>
             )}
@@ -245,9 +261,9 @@ export default function Planos() {
               <motion.div key={plano.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.12 }}
                 onHoverStart={() => setHover(plano.id)} onHoverEnd={() => setHover(null)}
-                className="relative rounded-3xl overflow-hidden flex flex-col"
+                className={`relative rounded-3xl overflow-hidden flex flex-col${temaClaro ? ' axi-card-premium3d' : ''}`}
                 style={{
-                  background: 'rgba(4,10,22,0.97)',
+                  background: CARD_BG,
                   border: `1px solid ${plano.cor}${plano.destaque ? '70' : '30'}`,
                   boxShadow: isHover || plano.destaque ? `0 0 60px ${plano.cor}22, 0 0 30px ${plano.cor}10` : 'none',
                 }}>
@@ -286,17 +302,17 @@ export default function Planos() {
                     <h2 className="text-2xl font-black" style={{ color: plano.cor, textShadow: `0 0 20px ${plano.cor}60` }}>{plano.nome}</h2>
                   </div>
 
-                  <p className="text-xs mb-5" style={{ color: '#6a8bbd' }}>{plano.desc}</p>
+                  <p className="text-xs mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
 
                   <div className="mb-4">
                     <div className="flex items-end gap-2">
                       <span className="text-4xl md:text-5xl font-black"
-                        style={{ color: '#c8d8f0', textShadow: `0 0 30px ${plano.cor}40` }}>
+                        style={{ color: TEXTO_PRINC, textShadow: temaClaro ? 'none' : `0 0 30px ${plano.cor}40` }}>
                         R$ {plano.mensal}
                       </span>
-                      <span className="text-sm mb-2" style={{ color: '#6a8bbd' }}>{txt.mes}</span>
+                      <span className="text-sm mb-2" style={{ color: TEXTO_MUTED }}>{txt.mes}</span>
                     </div>
-                    <p className="text-xs mt-2" style={{ color: '#6a8bbd' }}>
+                    <p className="text-xs mt-2" style={{ color: TEXTO_MUTED }}>
                       {txt.ate} {plano.usuarios} {txt.usuarios}
                     </p>
                   </div>
@@ -316,7 +332,7 @@ export default function Planos() {
                           style={{ background: `${plano.cor}20` }}>
                           <Check size={12} style={{ color: plano.cor }} />
                         </div>
-                        <span className="text-sm" style={{ color: '#c8d8f0' }}>{label}</span>
+                        <span className="text-sm" style={{ color: TEXTO_PRINC }}>{label}</span>
                       </div>
                     ))}
                   </div>
@@ -344,14 +360,14 @@ export default function Planos() {
 
         {/* Rodapé */}
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="text-center text-xs mt-12" style={{ color: '#6a8bbd' }}>
+          className="text-center text-xs mt-12" style={{ color: TEXTO_MUTED }}>
           {txt.cancelar}
         </motion.p>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
           className="flex justify-center gap-6 mt-6 flex-wrap">
           {['🔒 SSL Seguro', '💳 Pagamento Seguro via Stripe', '⚡ Ativação Imediata', '🔄 Cancele Quando Quiser'].map((item, i) => (
-            <span key={i} className="text-xs" style={{ color: '#5a7aaa' }}>{item}</span>
+            <span key={i} className="text-xs" style={{ color: TEXTO_MUTED2 }}>{item}</span>
           ))}
         </motion.div>
       </div>
