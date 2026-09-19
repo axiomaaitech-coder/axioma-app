@@ -67,9 +67,9 @@ function useCampoEstilos() {
   const { tema } = useThemeAxioma();
   const claro = tema === "xms";
   return {
-    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(180,83,9,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
-    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(180,83,9,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
-    labelStyle: { color: claro ? "#92400e" : "#d4a017" },
+    inputStyle: { background: claro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
+    selectStyle: { background: claro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid ${claro ? "rgba(46,204,155,0.3)" : "rgba(245,158,11,0.2)"}`, color: claro ? "#101b3d" : "#c8d8f0" },
+    labelStyle: { color: claro ? "#2ecc9b" : "#d4a017" },
     erroStyle: { color: claro ? "#ff5a6b" : "#f87171" },
   };
 }
@@ -715,14 +715,18 @@ export default function Fornecedores() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  // Identidade visual do módulo — âmbar/bronze (diferente do azul neutro usado em status)
-  const AMBAR = temaClaro ? "#b45309" : "#f59e0b";
-  const BRONZE = temaClaro ? "#7c2d12" : "#b45309";
-  const PAINEL_BG = temaClaro ? "#eef2f7" : "rgba(10,20,36,0.7)";
+  // Identidade visual do módulo — âmbar/bronze no Escuro. Âmbar não é cor
+  // de marca da paleta padrão do Claro (tema-tokens.md §1.1) - vira
+  // verde-menta oficial, igual toda outra "identidade" decorativa do app.
+  const AMBAR = temaClaro ? "#2ecc9b" : "#f59e0b";
+  const BRONZE = temaClaro ? "#2ecc9b" : "#b45309";
+  const PAINEL_BG = temaClaro ? "#f6f7c4" : "rgba(10,20,36,0.7)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,111,212,0.15)";
-  const CAMPO_BG2 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
-  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.02)";
+  const CAMPO_BG2 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
+  const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.02)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilos();
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -1507,7 +1511,7 @@ export default function Fornecedores() {
   function corUrgencia(u: string) {
     if (u === "vencido") return ct("#f87171");
     if (u === "critico") return ct("#f87171");
-    if (u === "proximo") return "#fbbf24";
+    if (u === "proximo") return ct("#fbbf24");
     return ct("#6ab0ff");
   }
   function textoUrgencia(dias: number) {
@@ -1747,7 +1751,7 @@ export default function Fornecedores() {
       <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
         onClick={abrirNovaConta}
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-        style={{ background: temaClaro ? "rgba(245,166,35,0.15)" : "rgba(251,191,36,0.15)", color: temaClaro ? "#f5a623" : "#fbbf24", border: `1px solid ${temaClaro ? "rgba(245,166,35,0.3)" : "rgba(251,191,36,0.3)"}` }}>
+        style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
         + {idioma === "pt" ? "Nova Conta a Pagar" : "New Bill"}
       </motion.button>
       <ThemeToggle />
@@ -1764,6 +1768,9 @@ export default function Fornecedores() {
       onNovo={abrirNovoForn}
       labelBotao={t.fornecedores.novoFornecedor}
       botaoExtra={botaoNovaConta}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
     >
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
@@ -1777,7 +1784,7 @@ export default function Fornecedores() {
       <div className="space-y-4">
 
         {/* ====== DASHBOARD EXECUTIVO (Fase 2) ====== */}
-        <CanvasBox cor={AMBAR}>
+        <CanvasBox {...cartaoTema} cor={AMBAR}>
           <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
             <div>
               <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
@@ -1787,7 +1794,7 @@ export default function Fornecedores() {
             <div className="flex items-center gap-2 flex-wrap">
               <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={periodoPersonalizado} onChangePersonalizado={setPeriodoPersonalizado} cor={AMBAR} lang={lang} />
               <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold" style={{ background: "rgba(245,158,11,0.12)", border: `1px solid ${AMBAR}40`, color: AMBAR }}>
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold" style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(245,158,11,0.12)", border: `1px solid ${AMBAR}40`, color: AMBAR }}>
                 <Share2 size={14} /> {cx.compartilhar}
               </motion.button>
             </div>
@@ -1796,7 +1803,7 @@ export default function Fornecedores() {
           {/* Grid de 17 KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-5">
             {kpis.map((k) => (
-              <button key={k.key} onClick={() => setDrillDown(k.key)} className="text-left rounded-xl p-3 transition-all hover:scale-[1.02]"
+              <button key={k.key} onClick={() => setDrillDown(k.key)} className={`text-left rounded-xl p-3 transition-all hover:scale-[1.02]${classePremium3d}`}
                 style={{ background: PAINEL_BG, border: `1px solid ${k.cor}30` }}>
                 <p className="text-[10px] font-semibold tracking-wider uppercase mb-1.5" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
                 <p className="text-lg font-black" style={{ color: k.cor }}>{k.valor}</p>
@@ -1808,7 +1815,7 @@ export default function Fornecedores() {
 
           {/* Curva ABC + Distribuição Geográfica */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.curvaAbcTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.curvaAbcSub}</p>
               {curvaABCOption ? (
@@ -1816,13 +1823,13 @@ export default function Fornecedores() {
                   <ReactECharts option={curvaABCOption} style={{ height: 220 }} notMerge lazyUpdate />
                   <div className="flex items-center gap-3 mt-2 flex-wrap text-[10px]">
                     <span className="flex items-center gap-1" style={{ color: ct("#f87171") }}>● {tt.classeA}</span>
-                    <span className="flex items-center gap-1" style={{ color: "#fbbf24" }}>● {tt.classeB}</span>
+                    <span className="flex items-center gap-1" style={{ color: ct("#fbbf24") }}>● {tt.classeB}</span>
                     <span className="flex items-center gap-1" style={{ color: ct("#34d399") }}>● {tt.classeC}</span>
                   </div>
                 </>
               ) : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.curvaAbcVazio}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.geoTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.geoSub}</p>
               {geoOption ? <ReactECharts option={geoOption} style={{ height: 220 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.geoVazio}</p>}
@@ -1831,12 +1838,12 @@ export default function Fornecedores() {
 
           {/* Radar de Risco + Escada de Vencimentos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.radarTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.radarSub}</p>
               {radarTemDado ? <ReactECharts option={radarOption} style={{ height: 240 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.radarVazio}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.escadaTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.escadaSub}</p>
               {escadaVencimentos.length === 0 ? (
@@ -1858,7 +1865,7 @@ export default function Fornecedores() {
           </div>
 
           {/* Ranking Axioma (Fase 3) */}
-          <div className="rounded-xl p-4 mt-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+          <div className={`rounded-xl p-4 mt-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
             <p className="text-sm font-black mb-0.5 flex items-center gap-2" style={{ color: ct("#f1f5f9") }}><Trophy size={15} style={{ color: AMBAR }} /> {tt.rankingTitulo}</p>
             <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.rankingSub}</p>
             {rankingAxioma.length === 0 ? (
@@ -1885,7 +1892,7 @@ export default function Fornecedores() {
         </CanvasBox>
 
         {/* ====== INTELIGÊNCIA DE COMPRAS (Fase 4) ====== */}
-        <CanvasBox cor={AMBAR}>
+        <CanvasBox {...cartaoTema} cor={AMBAR}>
           <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
             <div>
               <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
@@ -1903,11 +1910,11 @@ export default function Fornecedores() {
 
           {/* Evolução + Inflação + Tendência de Reajuste */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-            <div className="lg:col-span-2 rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`lg:col-span-2 rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.evolucaoComprasTitulo}{fornecedorEvolucaoAtual ? ` — ${fornecedorEvolucaoAtual.nome}` : ""}</p>
               {evolucaoOption ? <ReactECharts option={evolucaoOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.evolucaoComprasVazio}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.inflacaoTitulo}</p>
               {inflacao && inflacao.amostraSuficiente ? (
                 <div>
@@ -1920,7 +1927,7 @@ export default function Fornecedores() {
             </div>
           </div>
 
-          <div className="rounded-xl p-4 mb-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+          <div className={`rounded-xl p-4 mb-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
             <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.tendenciaTitulo}{fornecedorEvolucaoAtual ? ` — ${fornecedorEvolucaoAtual.nome}` : ""}</p>
             {tendenciaFornecedor.length === 0 ? (
               <p className="text-xs py-4 text-center" style={{ color: ct("#5a7a9a") }}>{tt.tendenciaVazio}</p>
@@ -1941,12 +1948,12 @@ export default function Fornecedores() {
 
           {/* Sazonalidade + Desperdícios */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.sazonalidadeTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeSub}</p>
               {sazonalidadeOption ? <ReactECharts option={sazonalidadeOption} style={{ height: 200 }} notMerge lazyUpdate /> : <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.sazonalidadeVazio}</p>}
             </div>
-            <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+            <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
               <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.desperdiciosTitulo}</p>
               <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.desperdiciosSub}</p>
               {desperdicios.alertas.length === 0 ? (
@@ -1965,7 +1972,7 @@ export default function Fornecedores() {
           </div>
 
           {/* Oportunidades de Consolidação */}
-          <div className="rounded-xl p-4" style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
+          <div className={`rounded-xl p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMBAR}20` }}>
             <p className="text-sm font-black mb-0.5" style={{ color: ct("#f1f5f9") }}>{tt.consolidacaoTitulo}</p>
             <p className="text-[10px] mb-3" style={{ color: ct("#5a7a9a") }}>{tt.consolidacaoSub}</p>
             {consolidacao.length === 0 ? (
@@ -1994,7 +2001,7 @@ export default function Fornecedores() {
         </CanvasBox>
 
         {/* ====== PAINEL DE ALERTAS (Fase 4) ====== */}
-        <CanvasBox cor={alertasCriticos > 0 ? ct("#f87171") : alertasAtencao > 0 ? AMBAR : ct("#34d399")}>
+        <CanvasBox {...cartaoTema} cor={alertasCriticos > 0 ? ct("#f87171") : alertasAtencao > 0 ? AMBAR : ct("#34d399")}>
           <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
             <div>
               <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
@@ -2028,7 +2035,7 @@ export default function Fornecedores() {
         </CanvasBox>
 
         {/* ====== SIMULADOR EXECUTIVO (Fase 5A) ====== */}
-        <CanvasBox cor={AMBAR}>
+        <CanvasBox {...cartaoTema} cor={AMBAR}>
           <div className="mb-4">
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
             <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{tt.simuladorTitulo}</h3>
@@ -2106,7 +2113,7 @@ export default function Fornecedores() {
         </CanvasBox>
 
         {/* ====== REFORMA TRIBUTÁRIA 2026 (Fase 5B) ====== */}
-        <CanvasBox cor={AMBAR}>
+        <CanvasBox {...cartaoTema} cor={AMBAR}>
           <div className="mb-4">
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
             <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{tt.reformaTitulo}</h3>
@@ -2142,7 +2149,7 @@ export default function Fornecedores() {
         </CanvasBox>
 
         {/* ====== IA EXECUTIVA (Fase 5C) ====== */}
-        <CanvasBox cor={AMBAR}>
+        <CanvasBox {...cartaoTema} cor={AMBAR}>
           <div className="mb-4">
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
             <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: ct("#c8d8f0") }}><Sparkles size={16} style={{ color: AMBAR }} /> {tt.iaExecutivaTitulo}</h3>
@@ -2174,13 +2181,13 @@ export default function Fornecedores() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[
             { label: idioma === "pt" ? "Fornecedores" : "Suppliers", value: `${fornecedores.length}`, cor: AMBAR },
-            { label: idioma === "pt" ? "A Pagar (aberto)" : "Payable", value: fmt(totalEmAberto), cor: "#fbbf24" },
+            { label: idioma === "pt" ? "A Pagar (aberto)" : "Payable", value: fmt(totalEmAberto), cor: ct("#fbbf24") },
             { label: idioma === "pt" ? "Total Pago" : "Total Paid", value: fmt(totalPago), cor: ct("#34d399") },
             { label: idioma === "pt" ? "Vencido" : "Overdue", value: fmt(totalVencido), cor: ct("#f87171") },
             { label: tt.kpiDocumentosVencer, value: `${qtdDocVencer}`, cor: qtdDocVencer > 0 ? ct("#f87171") : ct("#5a7a9a") },
             { label: tt.kpiContratosVencer, value: `${qtdContratoVencer}`, cor: qtdContratoVencer > 0 ? ct("#f87171") : ct("#5a7a9a") },
           ].map((card) => (
-            <CanvasBox key={card.label} cor={card.cor}>
+            <CanvasBox {...cartaoTema} key={card.label} cor={card.cor}>
               <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
               <p className="text-xl font-bold" style={{ color: card.cor }}>{card.value}</p>
             </CanvasBox>
@@ -2196,7 +2203,7 @@ export default function Fornecedores() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBusca(""); setBuscaContas(""); }}
               className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
-              style={{ background: aba === a.key ? (temaClaro ? "rgba(180,83,9,0.2)" : "rgba(245,158,11,0.2)") : PAINEL_BG, color: aba === a.key ? AMBAR : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(180,83,9,0.4)" : "rgba(245,158,11,0.4)") : CAMPO_BORDA2}` }}>
+              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(245,158,11,0.2)") : PAINEL_BG, color: aba === a.key ? AMBAR : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(245,158,11,0.4)") : CAMPO_BORDA2}` }}>
               <a.Icon size={15} /> {a.label}
             </motion.button>
           ))}
@@ -2205,7 +2212,7 @@ export default function Fornecedores() {
         {/* ====== ABA FORNECEDORES ====== */}
         {aba === "fornecedores" && (
           <div className="space-y-3">
-            <CanvasBox cor={AMBAR}>
+            <CanvasBox {...cartaoTema} cor={AMBAR}>
               <div className="flex items-center gap-2">
                 <Search size={16} style={{ color: ct("#5a7a9a") }} />
                 <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.fornecedores.buscar} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: ct("#c8d8f0") }} />
@@ -2217,7 +2224,7 @@ export default function Fornecedores() {
                 <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : fornecedoresFiltrados.length === 0 ? (
-              <CanvasBox cor={AMBAR}>
+              <CanvasBox {...cartaoTema} cor={AMBAR}>
                 <div className="text-center py-12"><p style={{ color: ct("#5a7a9a") }}>{t.fornecedores.semFornecedores}</p></div>
               </CanvasBox>
             ) : (
@@ -2229,7 +2236,7 @@ export default function Fornecedores() {
                   const scoreItem = rankingAxioma.find(r => r.fornecedor.id === f.id);
                   return (
                     <motion.div key={f.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                      <CanvasBox cor={AMBAR}>
+                      <CanvasBox {...cartaoTema} cor={AMBAR}>
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold" style={{ background: "rgba(245,158,11,0.2)", color: AMBAR }}>{f.nome.charAt(0).toUpperCase()}</div>
@@ -2269,7 +2276,7 @@ export default function Fornecedores() {
                         {contasForn.length > 0 && (
                           <div className="mt-3 pt-3 grid grid-cols-2 gap-2" style={{ borderTop: "1px solid rgba(245,158,11,0.1)" }}>
                             <div className="text-center rounded-xl p-2" style={{ background: "rgba(251,191,36,0.08)" }}>
-                              <p className="text-xs font-black" style={{ color: "#fbbf24" }}>{fmt(aberto)}</p>
+                              <p className="text-xs font-black" style={{ color: ct("#fbbf24") }}>{fmt(aberto)}</p>
                               <p style={{ color: ct("#5a7a9a"), fontSize: "9px" }}>{idioma === "pt" ? "Em aberto" : "Open"}</p>
                             </div>
                             <div className="text-center rounded-xl p-2" style={{ background: "rgba(245,158,11,0.08)" }}>
@@ -2290,7 +2297,7 @@ export default function Fornecedores() {
         {/* ====== ABA CONTAS A PAGAR ====== */}
         {aba === "contas" && (
           <div className="space-y-3">
-            <CanvasBox cor={ct("#3b6fd4")}>
+            <CanvasBox {...cartaoTema} cor={ct("#3b6fd4")}>
               <div className="flex items-center gap-2">
                 <Search size={16} style={{ color: ct("#5a7a9a") }} />
                 <input value={buscaContas} onChange={(e) => setBuscaContas(e.target.value)} placeholder={idioma === "pt" ? "Buscar por descrição ou fornecedor..." : "Search..."} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: ct("#c8d8f0") }} />
@@ -2302,7 +2309,7 @@ export default function Fornecedores() {
                 <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : contasFiltradas.length === 0 ? (
-              <CanvasBox cor="#fbbf24">
+              <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
                 <div className="text-center py-12"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma conta a pagar cadastrada." : "No payables yet."}</p></div>
               </CanvasBox>
             ) : (
@@ -2314,7 +2321,7 @@ export default function Fornecedores() {
                   const cor = statusCor(c.status);
                   return (
                     <motion.div key={c.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                      <CanvasBox cor={cor}>
+                      <CanvasBox {...cartaoTema} cor={cor}>
                         <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                           <div className="min-w-0 flex-1">
                             <p className="font-bold text-sm" style={{ color: ct("#c8d8f0") }}>{c.descricao}</p>
@@ -2334,7 +2341,7 @@ export default function Fornecedores() {
                           {[
                             { label: idioma === "pt" ? "Total" : "Total", val: fmt(c.valor_total), cor: ct("#c8d8f0") },
                             { label: idioma === "pt" ? "Pago" : "Paid", val: fmt(c.valor_pago), cor: ct("#34d399") },
-                            { label: idioma === "pt" ? "Resta" : "Remaining", val: fmt(resta), cor: "#fbbf24" },
+                            { label: idioma === "pt" ? "Resta" : "Remaining", val: fmt(resta), cor: ct("#fbbf24") },
                           ].map((s) => (
                             <div key={s.label}>
                               <p className="text-xs mb-0.5" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
@@ -2379,7 +2386,7 @@ export default function Fornecedores() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
                 className="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
-                <CanvasBox cor={AMBAR}>
+                <CanvasBox {...cartaoTema} cor={AMBAR}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
@@ -2791,10 +2798,10 @@ export default function Fornecedores() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
                 className="w-full max-w-lg max-h-[calc(100vh-8rem)] overflow-y-auto">
-                <CanvasBox cor="#fbbf24">
+                <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
-                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#fbbf24" }}>AXIOMA AI.TECH</p>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#fbbf24") }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{editandoConta ? (idioma === "pt" ? "Editar Conta a Pagar" : "Edit Bill") : (idioma === "pt" ? "Nova Conta a Pagar" : "New Bill")}</h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalConta} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>
@@ -2870,7 +2877,7 @@ export default function Fornecedores() {
                       <button onClick={fecharModalConta} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: CAMPO_BORDA2, color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                        style={{ background: "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #92400e, #f59e0b)", color: "#fff" }}>
                         {salvandoConta ? t.geral.carregando : (idioma === "pt" ? "Salvar Conta" : "Save Bill")}
                       </motion.button>
                     </div>
@@ -2893,7 +2900,7 @@ export default function Fornecedores() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
                 className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                <CanvasBox cor={kpiAtivo.cor === ct("#5a7a9a") ? AMBAR : kpiAtivo.cor}>
+                <CanvasBox {...cartaoTema} cor={kpiAtivo.cor === ct("#5a7a9a") ? AMBAR : kpiAtivo.cor}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
@@ -2927,7 +2934,7 @@ export default function Fornecedores() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
                 className="w-full max-w-xl max-h-[calc(100vh-8rem)] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                <CanvasBox cor={NIVEL_SCORE_COR[scoreDrillItem.score.nivel]}>
+                <CanvasBox {...cartaoTema} cor={NIVEL_SCORE_COR[scoreDrillItem.score.nivel]}>
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
