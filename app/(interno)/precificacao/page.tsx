@@ -79,10 +79,13 @@ export default function Precificacao() {
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   const COR_PRC = ct(CORES.amarelo);
   const COR_PRC_C = ct(CORES.amareloC);
-  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+  // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
   const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
-  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
   const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
@@ -529,7 +532,9 @@ export default function Precificacao() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: `${COR_PRC}20`, border: `1px solid ${COR_PRC}50`, color: COR_PRC_C }}>
+            style={temaClaro
+              ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
+              : { background: `${COR_PRC}20`, border: `1px solid ${COR_PRC}50`, color: COR_PRC_C }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -543,7 +548,7 @@ export default function Precificacao() {
             { label: txt.maiorPreco, value: fmt(maiorPreco), cor: ct(CORES.roxo) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
+              <CanvasBox cor={card.cor} {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                 <p className="text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
@@ -552,7 +557,7 @@ export default function Precificacao() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={COR_PRC}>
+          <CanvasBox cor={COR_PRC} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <Tag size={48} style={{ color: "#4a3a10" }} className="mb-4" />
               <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.prcNenhumProduto}</p>
@@ -573,7 +578,7 @@ export default function Precificacao() {
             </div>
 
             {/* IPPA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}35` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}35` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Award size={16} style={{ color: COR_PRC }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcIppaTitulo}</p>
@@ -597,7 +602,7 @@ export default function Precificacao() {
             </div>
 
             {/* RADAR DE OPORTUNIDADES */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <AlertTriangle size={16} style={{ color: COR_PRC }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcRadarTitulo}</p>
@@ -622,7 +627,7 @@ export default function Precificacao() {
             </div>
 
             {/* SELETOR DE PRODUTO (usado pelo Motor, Desconto, Concorrentes, Elasticidade) */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <label className="text-[10px] font-black uppercase tracking-wider mb-2 block" style={{ color: COR_PRC_C }}>{txt.selecioneProduto}</label>
               <select value={produtoSelecionadoId} onChange={(e) => setProdutoSelecionadoId(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle}>
@@ -634,7 +639,7 @@ export default function Precificacao() {
             {produtoSelecionado && (
               <>
                 {/* MOTOR DE PRECIFICAÇÃO POR VALOR */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Sliders size={16} style={{ color: COR_PRC }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcMotorTitulo}</p>
@@ -679,7 +684,7 @@ export default function Precificacao() {
                 </div>
 
                 {/* ENGENHARIA DE DESCONTOS */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Percent size={16} style={{ color: COR_PRC }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcDescontoTitulo}</p>
@@ -698,7 +703,7 @@ export default function Precificacao() {
                 </div>
 
                 {/* ELASTICIDADE */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingUp size={16} style={{ color: COR_PRC }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcElasticidadeTitulo}</p>
@@ -707,7 +712,7 @@ export default function Precificacao() {
                 </div>
 
                 {/* CONCORRENTES */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Users size={16} style={{ color: COR_PRC }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcConcorrentesTitulo}</p>
@@ -738,7 +743,7 @@ export default function Precificacao() {
             )}
 
             {/* WAR ROOM */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Zap size={16} style={{ color: COR_PRC }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcWarRoomTitulo}</p>
@@ -778,7 +783,7 @@ export default function Precificacao() {
             </div>
 
             {/* PAINEL DE ESPECIALISTAS */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Users size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcPainelEspecialistasTitulo}</p>
@@ -821,7 +826,7 @@ export default function Precificacao() {
             </div>
 
             {/* MEMÓRIA ESTRATÉGICA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${COR_PRC}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Clock size={16} style={{ color: COR_PRC }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcMemoriaTitulo}</p>
@@ -852,7 +857,7 @@ export default function Precificacao() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {produtos.map((p, i) => (
                 <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={COR_PRC}>
+                  <CanvasBox cor={COR_PRC} {...cartaoTema}>
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="font-bold text-sm truncate mr-2" style={{ color: ct("#c8d8f0") }}>{p.produto_servico}</h3>
                       <div className="flex gap-2 flex-shrink-0">
@@ -880,7 +885,7 @@ export default function Precificacao() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-start justify-center pt-20 pb-8 px-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }} className="w-full max-w-2xl">
-              <CanvasBox cor={COR_PRC}>
+              <CanvasBox cor={COR_PRC} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: COR_PRC }}>AXIOMA AI.TECH</p>
