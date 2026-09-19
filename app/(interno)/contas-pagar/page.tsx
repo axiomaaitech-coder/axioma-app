@@ -64,7 +64,11 @@ const supabase = createBrowserClient(
 // e CAMPO_BG são valores JS por tema (não CSS var).
 const PALETA = {
   dark: { VERDE: "#34d399", VERMELHO: "#f87171", AZUL: "#6ab0ff", AMBAR: "#f59e0b", CINZA: "#5a7a9a", ROXO: "#a78bfa", TEXTO: "#c8d8f0", PAINEL_BG: "rgba(10,22,40,0.95)", CAMPO_BG: "rgba(255,255,255,0.04)", CAMPO_BG2: "rgba(255,255,255,0.03)" },
-  xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AZUL: "#2ecc9b", AMBAR: "#f5a623", CINZA: "#6b7280", ROXO: "#7c3aed", TEXTO: "#101b3d", PAINEL_BG: "#ffffff", CAMPO_BG: "#eef2f7", CAMPO_BG2: "#eef2f7" },
+  // ROXO no Claro vira azul-marinho (chart-2 da paleta oficial, tema-tokens.md
+  // §1.4) em vez de colapsar pra verde-menta como todo outro decorativo -
+  // aqui ROXO distingue "aguardando aprovação" de AZUL ("parcial"), que já é
+  // verde-menta; colapsar os dois juntaria dois status diferentes na mesma cor.
+  xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AZUL: "#2ecc9b", AMBAR: "#f5a623", CINZA: "#6b7280", ROXO: "#101b3d", TEXTO: "#101b3d", PAINEL_BG: "#f6f7c4", CAMPO_BG: "#eef2f7", CAMPO_BG2: "#eef2f7" },
 } as const;
 
 const FORMAS_PAGAMENTO = ["PIX", "Boleto", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Transferência"];
@@ -95,6 +99,8 @@ export default function ContasPagarPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const { VERDE, VERMELHO, AZUL, AMBAR, CINZA, ROXO, TEXTO } = PALETA[tema];
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -1698,13 +1704,15 @@ export default function ContasPagarPage() {
       subtitulo={L("Central de obrigações com fornecedores — vencimentos, baixas e anexos num só lugar.", "Supplier obligations center — due dates, payments and attachments in one place.", "Central de obligaciones con proveedores — vencimientos, pagos y adjuntos en un solo lugar.")}
       onNovo={podeEditar ? abrirNovaConta : undefined}
       labelBotao={L("Nova Conta", "New Bill", "Nueva Cuenta")}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={
         <>
           {podeEditar && (
             <>
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setModalCustoFixo(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-                style={{ background: (temaClaro ? "rgba(124,58,237,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
+                style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(16,27,61,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
                 <Landmark size={16} />{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}
               </motion.button>
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer"
@@ -1733,7 +1741,7 @@ export default function ContasPagarPage() {
 
       {avisoNfeDuplicada && (
         <div className="mb-4">
-          <CanvasBox cor={AMBAR}>
+          <CanvasBox {...cartaoTema} cor={AMBAR}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
             <p className="text-sm font-semibold mb-3" style={{ color: TEXTO }}>
               {L(`Esta NF-e já foi importada pelo PDV para estoque em ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("pt-BR")}. Deseja vincular esta conta a pagar à compra existente?`,
@@ -1761,7 +1769,7 @@ export default function ContasPagarPage() {
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? { background: (temaClaro ? "rgba(124,58,237,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "inteligencia" ? { background: (temaClaro ? "rgba(16,27,61,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
@@ -1798,7 +1806,7 @@ export default function ContasPagarPage() {
               { label: L("Vencidas", "Overdue", "Vencidas"), valor: kpis.vencidas, cor: VERMELHO },
               { label: L("Pagas no Mês", "Paid this Month", "Pagadas este Mes"), valor: kpis.pagasNoMes, cor: VERDE },
             ].map((k) => (
-              <CanvasBox key={k.label} cor={k.cor}>
+              <CanvasBox {...cartaoTema} key={k.label} cor={k.cor}>
                 <p className="text-[10px] uppercase tracking-wider font-bold mb-1" style={{ color: CINZA }}>{k.label}</p>
                 <p className="text-lg md:text-xl font-black" style={{ color: k.cor }}>{semDados ? "—" : fmt(k.valor)}</p>
               </CanvasBox>
@@ -1845,7 +1853,7 @@ export default function ContasPagarPage() {
                 return (
                   <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                     className="rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
-                    style={{ background: proximasAPagar.has(c.id) ? (temaClaro ? "rgba(124,58,237,0.08)" : "rgba(167,139,250,0.08)") : (temaClaro ? "#ffffff" : "rgba(10,20,36,0.6)"), border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
+                    style={{ background: proximasAPagar.has(c.id) ? (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(167,139,250,0.08)") : (temaClaro ? "#ffffff" : "rgba(10,20,36,0.6)"), border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: TEXTO }}>
                         {proximasAPagar.has(c.id) && (
@@ -1902,7 +1910,7 @@ export default function ContasPagarPage() {
       {aba === "inteligencia" && (
         <div className="space-y-4">
           {/* Card CFO AP Briefing V1 + Natural Language CFO V1 (Entrega 4, Commit 5) */}
-          <CanvasBox cor={ROXO}>
+          <CanvasBox {...cartaoTema} cor={ROXO}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: TEXTO }}>
               <Sparkles size={18} style={{ color: ROXO }} />
@@ -1941,8 +1949,8 @@ export default function ContasPagarPage() {
                   onKeyDown={(e) => { if (e.key === "Enter") perguntarAoCfo(); }}
                   disabled={carregandoRespostaCfo}
                   placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
-                  className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.2)" : "1px solid rgba(167,139,250,0.2)"), color: TEXTO }} />
-                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: (temaClaro ? "rgba(124,58,237,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` }}>
+                  className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(167,139,250,0.2)"), color: TEXTO }} />
+                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: (temaClaro ? "rgba(16,27,61,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` }}>
                   <Send size={16} />
                 </button>
               </div>
@@ -1954,11 +1962,11 @@ export default function ContasPagarPage() {
                 ))}
               </div>
               {carregandoRespostaCfo ? (
-                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(124,58,237,0.08)" : "rgba(167,139,250,0.08)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.25)" : "1px solid rgba(167,139,250,0.25)") }}>
+                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(167,139,250,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(167,139,250,0.25)") }}>
                   <p className="text-sm" style={{ color: CINZA }}>{L("Pensando...", "Thinking...", "Pensando...")}</p>
                 </div>
               ) : respostaCfo && (
-                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(124,58,237,0.08)" : "rgba(167,139,250,0.08)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.25)" : "1px solid rgba(167,139,250,0.25)") }}>
+                <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(167,139,250,0.08)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.25)" : "1px solid rgba(167,139,250,0.25)") }}>
                   <p className="text-sm" style={{ color: TEXTO }}>{respostaCfo}</p>
                 </div>
               )}
@@ -1966,7 +1974,7 @@ export default function ContasPagarPage() {
           </CanvasBox>
 
           {/* Card Forecast AP Multi-Horizonte (Entrega 3, Commit 1) */}
-          <CanvasBox cor={pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL}>
+          <CanvasBox {...cartaoTema} cor={pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: pontoForecast && pontoForecast.ruptura ? VERMELHO : AZUL }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: TEXTO }}>
               {pontoForecast && pontoForecast.ruptura ? <TrendingDown size={18} style={{ color: VERMELHO }} /> : <TrendingUp size={18} style={{ color: AZUL }} />}
@@ -2035,7 +2043,7 @@ export default function ContasPagarPage() {
           </CanvasBox>
 
           {/* Card Prioridade de Pagamento */}
-          <CanvasBox cor={ROXO}>
+          <CanvasBox {...cartaoTema} cor={ROXO}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-3" style={{ color: TEXTO }}>{L("Prioridade de Pagamento", "Payment Priority", "Prioridad de Pago")}</h3>
             {prioridadesOrdenadas.length === 0 ? (
@@ -2045,8 +2053,8 @@ export default function ContasPagarPage() {
                 {prioridadesOrdenadas.map((item, i) => (
                   <div key={item.conta.id} className="flex items-center gap-3 p-3 rounded-xl"
                     style={proximasAPagar.has(item.conta.id)
-                      ? { background: (temaClaro ? "rgba(124,58,237,0.1)" : "rgba(167,139,250,0.1)"), border: `1px solid ${ROXO}50` }
-                      : { background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.15)" : "1px solid rgba(167,139,250,0.15)") }}>
+                      ? { background: (temaClaro ? "rgba(16,27,61,0.1)" : "rgba(167,139,250,0.1)"), border: `1px solid ${ROXO}50` }
+                      : { background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(167,139,250,0.15)") }}>
                     <span className="text-xs font-black w-6 text-center flex-shrink-0" style={{ color: CINZA }}>#{i + 1}</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{item.conta.descricao} · {nomeFornecedor(item.conta.fornecedor_id)}</p>
@@ -2073,7 +2081,7 @@ export default function ContasPagarPage() {
                       title={proximasAPagar.has(item.conta.id) ? L("Fixado no topo — clique pra desafixar", "Pinned to top — click to unpin", "Fijado arriba — clic para desfijar") : L("Fixar no topo", "Pin to top", "Fijar arriba")}
                       className="flex-shrink-0 p-1.5 rounded-lg"
                       style={proximasAPagar.has(item.conta.id)
-                        ? { color: ROXO, background: (temaClaro ? "rgba(124,58,237,0.2)" : "rgba(167,139,250,0.2)"), border: `1px solid ${ROXO}` }
+                        ? { color: ROXO, background: (temaClaro ? "rgba(16,27,61,0.2)" : "rgba(167,139,250,0.2)"), border: `1px solid ${ROXO}` }
                         : { color: CINZA, background: "transparent", border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.1)") }}>
                       <Pin size={16} fill={proximasAPagar.has(item.conta.id) ? ROXO : "none"} />
                     </button>
@@ -2084,7 +2092,7 @@ export default function ContasPagarPage() {
           </CanvasBox>
 
           {/* Card Despesas Recorrentes Detectadas (Entrega 3, Commit 3) */}
-          <CanvasBox cor={AMBAR}>
+          <CanvasBox {...cartaoTema} cor={AMBAR}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <RotateCcw size={18} style={{ color: AMBAR }} />
@@ -2129,7 +2137,7 @@ export default function ContasPagarPage() {
           </CanvasBox>
 
           {/* Card Recuperação de Valor (Entrega 3, Commit 4 — Value Recovery parte 1) */}
-          <CanvasBox cor={VERDE}>
+          <CanvasBox {...cartaoTema} cor={VERDE}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <Sparkles size={18} style={{ color: VERDE }} />
@@ -2381,7 +2389,7 @@ export default function ContasPagarPage() {
           </CanvasBox>
 
           {/* Card Análise de Gasto (Entrega 3, Commit 6 — Spend Analytics) */}
-          <CanvasBox cor={AZUL}>
+          <CanvasBox {...cartaoTema} cor={AZUL}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: TEXTO }}>
               <Landmark size={18} style={{ color: AZUL }} />
@@ -2475,7 +2483,7 @@ export default function ContasPagarPage() {
           </CanvasBox>
 
           {/* Card Pontos de Atenção (Entrega 4, Commit 1 — Fraud & Anomaly Engine) */}
-          <CanvasBox cor={AMBAR}>
+          <CanvasBox {...cartaoTema} cor={AMBAR}>
             <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <AlertTriangle size={18} style={{ color: AMBAR }} />
@@ -2561,7 +2569,7 @@ export default function ContasPagarPage() {
       )}
 
       {aba === "aprovacoes" && (
-        <CanvasBox cor={VERDE}>
+        <CanvasBox {...cartaoTema} cor={VERDE}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
           <h3 className="text-base font-bold mb-1" style={{ color: TEXTO }}>{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}</h3>
           {!podeAprovar && (
@@ -2606,7 +2614,7 @@ export default function ContasPagarPage() {
       )}
 
       {aba === "pedidos" && (
-        <CanvasBox cor={AZUL}>
+        <CanvasBox {...cartaoTema} cor={AZUL}>
           <div className="flex justify-between items-start mb-1 gap-3 flex-wrap">
             <div>
               <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
@@ -2668,7 +2676,7 @@ export default function ContasPagarPage() {
       )}
 
       {aba === "conferencia" && (
-        <CanvasBox cor={VERMELHO}>
+        <CanvasBox {...cartaoTema} cor={VERMELHO}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
           <h3 className="text-base font-bold mb-1" style={{ color: TEXTO }}>{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}</h3>
           <p className="text-xs mb-3" style={{ color: CINZA }}>
@@ -2714,7 +2722,7 @@ export default function ContasPagarPage() {
                           {labelStatusMatch(m.status)}
                         </span>
                         {m.nivel === "3way" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: (temaClaro ? "rgba(124,58,237,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO }}>3-way</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO }}>3-way</span>
                         )}
                       </div>
                       <p className="text-xs" style={{ color: CINZA }}>
@@ -2776,7 +2784,7 @@ export default function ContasPagarPage() {
       )}
 
       {aba === "historico" && (
-        <CanvasBox cor={AZUL}>
+        <CanvasBox {...cartaoTema} cor={AZUL}>
           <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
           <h3 className="text-base font-bold mb-3" style={{ color: TEXTO }}>{L("Histórico da Conta", "Bill History", "Historial de la Cuenta")}</h3>
           <select value={contaHistoricoId} onChange={(e) => setContaHistoricoId(e.target.value)}
@@ -2847,7 +2855,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
-                <CanvasBox cor={AMBAR}>
+                <CanvasBox {...cartaoTema} cor={AMBAR}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
@@ -2970,7 +2978,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-2xl">
-                <CanvasBox cor={AZUL}>
+                <CanvasBox {...cartaoTema} cor={AZUL}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
@@ -3056,7 +3064,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
-                <CanvasBox cor={VERMELHO}>
+                <CanvasBox {...cartaoTema} cor={VERMELHO}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
@@ -3146,7 +3154,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
-                <CanvasBox cor={VERDE}>
+                <CanvasBox {...cartaoTema} cor={VERDE}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERDE }}>AXIOMA AI.TECH</p>
@@ -3194,7 +3202,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
-                <CanvasBox cor={CINZA}>
+                <CanvasBox {...cartaoTema} cor={CINZA}>
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
@@ -3247,7 +3255,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-sm">
-                <CanvasBox cor={VERMELHO}>
+                <CanvasBox {...cartaoTema} cor={VERMELHO}>
                   <div className="flex justify-between items-center mb-3">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: VERMELHO }}>AXIOMA AI.TECH</p>
@@ -3287,7 +3295,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
-                <CanvasBox cor={ROXO}>
+                <CanvasBox {...cartaoTema} cor={ROXO}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
@@ -3301,14 +3309,14 @@ export default function ContasPagarPage() {
                   ) : (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
                       {custosFixos.map((cf) => (
-                        <div key={cf.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(124,58,237,0.15)" : "1px solid rgba(167,139,250,0.15)") }}>
+                        <div key={cf.id} className="flex items-center justify-between gap-2 p-3 rounded-xl" style={{ background: (temaClaro ? "#f8fafc" : "rgba(255,255,255,0.03)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.15)" : "1px solid rgba(167,139,250,0.15)") }}>
                           <div className="min-w-0">
                             <p className="text-sm font-semibold truncate" style={{ color: TEXTO }}>{cf.descricao}</p>
                             <p className="text-xs" style={{ color: CINZA }}>{fmt(cf.valor_mensal)} · {L("dia", "day", "día")} {cf.dia_vencimento}</p>
                           </div>
                           <button onClick={() => gerarDeCustoFixo(cf)} disabled={gerando === cf.id}
                             className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0 disabled:opacity-60"
-                            style={{ background: (temaClaro ? "rgba(124,58,237,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
+                            style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(16,27,61,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
                             {gerando === cf.id ? "..." : L("Gerar", "Generate", "Generar")}
                           </button>
                         </div>
@@ -3331,7 +3339,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
-                <CanvasBox cor={AZUL}>
+                <CanvasBox {...cartaoTema} cor={AZUL}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AZUL }}>AXIOMA AI.TECH</p>
@@ -3389,7 +3397,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
-                <CanvasBox cor={ROXO}>
+                <CanvasBox {...cartaoTema} cor={ROXO}>
                   <div className="flex justify-between items-center mb-1">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ROXO }}>AXIOMA AI.TECH</p>
@@ -3508,7 +3516,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
-                <CanvasBox cor={CINZA}>
+                <CanvasBox {...cartaoTema} cor={CINZA}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: CINZA }}>AXIOMA AI.TECH</p>
@@ -3585,7 +3593,7 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
-                <CanvasBox cor={AMBAR}>
+                <CanvasBox {...cartaoTema} cor={AMBAR}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
