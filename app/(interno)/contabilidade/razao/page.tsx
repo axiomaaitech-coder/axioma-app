@@ -27,7 +27,10 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // CAMPO_BG e MODAL_BG que dependem do tema pra não ficar sempre escuro.
 const PALETA = {
   dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.9)', MODAL_BG: '#0a1628' },
-  xms: { TEAL: '#0f766e', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#eef2f7', MODAL_BG: '#ffffff' },
+  // TEAL não é cor da nossa paleta padrão — no Claro vira verde-menta
+  // (nossa cor de destaque/CTA, tema-tokens.md §1.1). Creme #f6f7c4,
+  // cinza #374151 e input branco seguem o mesmo padrão dos demais módulos.
+  xms: { TEAL: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#ffffff', MODAL_BG: '#f6f7c4' },
 } as const
 
 // useSearchParams exige Suspense no App Router (mesmo padrão de pdv/cadastro).
@@ -42,6 +45,8 @@ export default function RazaoPage() {
 function RazaoInner() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
   const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO, CAMPO_BG, MODAL_BG } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -130,16 +135,17 @@ function RazaoInner() {
     <ModuloLayout
       titulo={L('Livro Razão', 'General Ledger', 'Libro Mayor')}
       subtitulo={L('Extrato por conta contábil, com saldo acumulado — direto do ledger', 'Account statement with running balance — straight from the ledger', 'Extracto por cuenta contable con saldo acumulado — directo del libro mayor')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
-          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} solido={temaClaro} />
           <ThemeToggle />
         </>
       }
     >
       {contaSelecionada && (
         <div className="mb-5">
-          <LetreiroAxioma id="razao" cor={TEAL} itens={[
+          <LetreiroAxioma id="razao" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
             `${contaSelecionada.codigo} — ${contaSelecionada.nome}`,
             `${L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')} R$ ${fBRL2(saldoAnterior)}`,
             `${L('Saldo Atual', 'Current Balance', 'Saldo Actual')} R$ ${fBRL2(linhas.length > 0 ? linhas[linhas.length - 1].saldo : saldoAnterior)}`,
@@ -156,7 +162,7 @@ function RazaoInner() {
           {contas.length === 0 && <option value="">{L('Nenhuma conta cadastrada', 'No accounts registered', 'Ninguna cuenta registrada')}</option>}
           {contas.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>)}
         </select>
-        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
+        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
       </div>
 
       {loading ? (
@@ -216,7 +222,7 @@ function RazaoInner() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: MODAL_BG, border: `1px solid ${TEAL}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: MODAL_BG, border: `1px solid ${TEAL}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: TEAL }}>
