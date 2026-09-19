@@ -582,7 +582,7 @@ export default function Investimentos() {
                 {radarRisco.map((r, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: CAMPO_BG3 }}>
                     <span className="inline-block rounded-full flex-shrink-0" style={{ width: 9, height: 9, background: CORHEX[r.cor] }} />
-                    <p className="text-xs font-medium" style={{ color: "#cbd5e1" }}>{RISCO_LABEL[r.chave]}</p>
+                    <p className="text-xs font-medium" style={{ color: temaClaro ? "#101b3d" : "#cbd5e1" }}>{RISCO_LABEL[r.chave]}</p>
                   </div>
                 ))}
               </div>
@@ -650,7 +650,7 @@ export default function Investimentos() {
                 backgroundColor: "transparent", animationDuration: 900,
                 grid: { left: 52, right: 16, top: 20, bottom: 28 },
                 tooltip: { backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, padding: [10, 14], textStyle: { color: ct("#e2e8f0"), fontSize: 13 }, extraCssText: "border-radius:12px;", trigger: "item" as const, formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${ct(CORES.azulC)}">${fBRL(p.value)}</b>` },
-                xAxis: { type: "category" as const, data: escadaLabels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: "#cbd5e1", fontSize: 10, fontWeight: 700 } },
+                xAxis: { type: "category" as const, data: escadaLabels, axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false }, axisLabel: { color: temaClaro ? "#374151" : "#cbd5e1", fontSize: 10, fontWeight: 700 } },
                 yAxis: { type: "value" as const, axisLine: { show: false }, axisTick: { show: false }, splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" as const } }, axisLabel: { color: ct("#64748b"), fontSize: 10 } },
                 series: [{ type: "bar" as const, barWidth: "58%", itemStyle: { borderRadius: [8, 8, 2, 2], color: ct(CORES.azul), shadowColor: ct(CORES.azul) + "55", shadowBlur: 12 }, data: escadaValores }],
               }} altura={220} />
