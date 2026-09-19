@@ -516,7 +516,7 @@ export default function Investimentos() {
   ].join("\n");
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f8fafc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)", border: `1px solid ${temaClaro ? "rgba(16,27,61,0.12)" : `${cor}20`}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-[13px] font-black" style={{ color: ct("#f1f5f9") }}>{titulo}</p>
@@ -603,7 +603,7 @@ export default function Investimentos() {
 
             {/* INDICADORES DE MERCADO (BCB) */}
             {macro && (
-              <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
+              <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}` }}>
                 <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                   <div className="flex items-center gap-2">
                     <Landmark size={14} style={{ color: ct(CORES.azul) }} />
@@ -626,11 +626,11 @@ export default function Investimentos() {
             )}
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(46,204,155,0.10))" : "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(212,175,55,0.10))", border: "1px solid rgba(59,130,246,0.24)" }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(59,130,246,0.24)"}` }}>
               <div className="marquee-inv py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct(CORES.azulC) : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.azul) }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? ct(CORES.azulC) : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct(CORES.azul) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -638,7 +638,7 @@ export default function Investimentos() {
             </div>
 
             {/* ESCADA DE LIQUIDEZ */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-2">
                 <Wallet size={16} style={{ color: ct(CORES.azul) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invEscadaLiquidezTitulo}</p>
@@ -681,7 +681,7 @@ export default function Investimentos() {
               className={`w-full rounded-2xl overflow-hidden text-left${classePremium3d}`}
               style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5 flex items-center gap-3">
-                <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: temaClaro ? "linear-gradient(180deg,#3b82f6,#2ecc9b)" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
+                <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#3b82f6"}` }} />
                 <div>
                   <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.invModalAnaliseTitulo}</p>
                   <p className="text-[11px] font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
@@ -714,7 +714,7 @@ export default function Investimentos() {
         {/* ═══════════════════════ FASE 2 — CAPITAL ALLOCATION ENGINE + SIMULADOR EXECUTIVO ═══════════════════════ */}
         {temDadosFinanceiros && (
           <>
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Layers size={16} style={{ color: ct(CORES.azul) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invAllocationTitulo}</p>
@@ -724,30 +724,30 @@ export default function Investimentos() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                 <select value={novaCategoria} onChange={(e) => setNovaCategoria(e.target.value as CategoriaAlocacao)}
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                  style={{ background: CAMPO_BG, border: "1px solid rgba(59,130,246,0.2)", color: ct("#c8d8f0") }}>
+                  style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}`, color: ct("#c8d8f0") }}>
                   {(["cdb", "tesouro", "fundos", "debentures", "expansao", "equipamento", "marketing", "contratacao", "automacao", "reducao_divida"] as CategoriaAlocacao[]).map((c) => (
                     <option key={c} value={c}>{nomeCategoriaAlocacao(lang, c)}</option>
                   ))}
                 </select>
                 <input type="number" placeholder={cx.invValorAlocarLabel} value={novoValorAlocacao} onChange={(e) => setNovoValorAlocacao(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                  style={{ background: CAMPO_BG, border: "1px solid rgba(59,130,246,0.2)", color: ct("#c8d8f0") }} />
+                  style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}`, color: ct("#c8d8f0") }} />
                 {CATEGORIAS_FINANCEIRAS.includes(novaCategoria) ? (
                   <input type="number" placeholder={cx.invRetornoMensalLabel} value={novoRetornoPct} onChange={(e) => setNovoRetornoPct(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                    style={{ background: CAMPO_BG, border: "1px solid rgba(59,130,246,0.2)", color: ct("#c8d8f0") }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}`, color: ct("#c8d8f0") }} />
                 ) : novaCategoria === "reducao_divida" ? (
-                  <div className="flex items-center px-3 py-2.5 rounded-xl text-xs" style={{ background: CAMPO_BG2, border: "1px solid rgba(59,130,246,0.1)", color: ct("#64748b") }}>
+                  <div className="flex items-center px-3 py-2.5 rounded-xl text-xs" style={{ background: CAMPO_BG2, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,130,246,0.1)"}`, color: ct("#64748b") }}>
                     {taxaMaisCaraAM > 0 ? `${fPct(taxaMaisCaraAM)}/m (dívida mais cara)` : "—"}
                   </div>
                 ) : (
                   <input type="number" placeholder={cx.invGanhoMensalLabel} value={novoGanhoMensal} onChange={(e) => setNovoGanhoMensal(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                    style={{ background: CAMPO_BG, border: "1px solid rgba(59,130,246,0.2)", color: ct("#c8d8f0") }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(59,130,246,0.2)"}`, color: ct("#c8d8f0") }} />
                 )}
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarOpcaoAlocacao}
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
-                  style={{ background: "linear-gradient(135deg, #1e3a8a, #3b82f6)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1e3a8a, #3b82f6)", color: "#fff" }}>
                   <Plus size={16} /> {cx.invAdicionarOpcao}
                 </motion.button>
               </div>
@@ -769,7 +769,7 @@ export default function Investimentos() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => simularOportunidade(r)}
-                          className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(59,130,246,0.15)", color: ct(CORES.azulC) }}>
+                          className="text-[10px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,130,246,0.15)", color: ct(CORES.azulC) }}>
                           {cx.invUsarNaSimulacao}
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerOpcaoAlocacao(r.id)}>
@@ -912,7 +912,7 @@ export default function Investimentos() {
                 <div className="p-4 md:p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "linear-gradient(180deg,#3b82f6,#2ecc9b)" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
+                      <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#3b82f6"}` }} />
                       <div>
                         <p className="text-base md:text-lg font-black" style={{ color: ct("#f1f5f9") }}>{cx.invModalAnaliseTitulo}</p>
                         <p className="text-[11px] font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
@@ -1046,7 +1046,7 @@ export default function Investimentos() {
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={salvar} disabled={salvando}
                       className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
-                      style={{ background: "linear-gradient(135deg, #1e3a8a, #3b82f6)", color: "#fff" }}>
+                      style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1e3a8a, #3b82f6)", color: "#fff" }}>
                       {salvando ? "..." : txt.salvarBtn}
                     </motion.button>
                   </div>
@@ -1065,7 +1065,7 @@ export default function Investimentos() {
         textoDetalhado={textoDetalhado}
         assunto={`${txt.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#8b5cf6"
+        cor={temaClaro ? "#2ecc9b" : "#8b5cf6"}
       />
 
       {toast && (
