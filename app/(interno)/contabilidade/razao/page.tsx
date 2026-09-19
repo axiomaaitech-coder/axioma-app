@@ -145,27 +145,21 @@ function RazaoInner() {
         </>
       }
     >
-      <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
-      {contaSelecionada && (
-        <div className="mb-5">
-          <LetreiroAxioma id="razao" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
-            `${contaSelecionada.codigo} — ${contaSelecionada.nome}`,
-            `${L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')} R$ ${fBRL2(saldoAnterior)}`,
-            `${L('Saldo Atual', 'Current Balance', 'Saldo Actual')} R$ ${fBRL2(linhas.length > 0 ? linhas[linhas.length - 1].saldo : saldoAnterior)}`,
-          ]} />
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <select
-          value={contaId}
-          onChange={(e) => setContaId(e.target.value)}
-          className="px-3 py-2 rounded-xl text-xs font-bold focus:outline-none cursor-pointer"
-          style={{ background: CAMPO_BG, border: `1px solid ${TEAL}40`, color: TEAL, minWidth: 220 }}
-        >
-          {contas.length === 0 && <option value="">{L('Nenhuma conta cadastrada', 'No accounts registered', 'Ninguna cuenta registrada')}</option>}
-          {contas.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>)}
-        </select>
-        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
+      <div className="mb-5">
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={contaId}
+              onChange={(e) => setContaId(e.target.value)}
+              className="px-3 py-2 rounded-xl text-xs font-bold focus:outline-none cursor-pointer"
+              style={{ background: CAMPO_BG, border: `1px solid ${TEAL}40`, color: TEAL, minWidth: 220 }}
+            >
+              {contas.length === 0 && <option value="">{L('Nenhuma conta cadastrada', 'No accounts registered', 'Ninguna cuenta registrada')}</option>}
+              {contas.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>)}
+            </select>
+            <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
+          </div>
+        </CanvasBox>
       </div>
 
       {loading ? (
@@ -173,6 +167,16 @@ function RazaoInner() {
       ) : !contaSelecionada ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Cadastre o plano de contas para ver o Razão.', 'Set up the chart of accounts to see the ledger.', 'Registre el plan de cuentas para ver el libro mayor.')}</p>
       ) : (
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+        {contaSelecionada && (
+          <div className="mb-5">
+            <LetreiroAxioma id="razao" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
+              `${contaSelecionada.codigo} — ${contaSelecionada.nome}`,
+              `${L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')} R$ ${fBRL2(saldoAnterior)}`,
+              `${L('Saldo Atual', 'Current Balance', 'Saldo Actual')} R$ ${fBRL2(linhas.length > 0 ? linhas[linhas.length - 1].saldo : saldoAnterior)}`,
+            ]} />
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-xs" style={{ minWidth: 640 }}>
             <thead>
@@ -214,8 +218,8 @@ function RazaoInner() {
             </tbody>
           </table>
         </div>
+        </CanvasBox>
       )}
-      </CanvasBox>
 
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>

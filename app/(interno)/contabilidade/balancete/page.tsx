@@ -113,9 +113,10 @@ export default function BalancetePage() {
         </>
       }
     >
-      <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
       <div className="mb-5">
-        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+          <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
+        </CanvasBox>
       </div>
 
       {loading ? (
@@ -123,7 +124,7 @@ export default function BalancetePage() {
       ) : grupos.length === 0 ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum lançamento no período selecionado.', 'No entries in the selected period.', 'Ningún asiento en el período seleccionado.')}</p>
       ) : (
-        <>
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
           <div className="mb-5">
             <LetreiroAxioma id="balancete" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
               `${L('Débito', 'Debit', 'Débito')} R$ ${fBRL2(totalDebitoGeral)}`,
@@ -182,9 +183,8 @@ export default function BalancetePage() {
               ? L('Balancete fechado: débito total = crédito total', 'Trial balance closed: total debit = total credit', 'Balance cerrado: débito total = crédito total')
               : L('Atenção: débito total ≠ crédito total', 'Warning: total debit ≠ total credit', 'Atención: débito total ≠ crédito total')}
           </div>
-        </>
+        </CanvasBox>
       )}
-      </CanvasBox>
 
       <CentroCompartilhamento
         aberto={shareAberto}

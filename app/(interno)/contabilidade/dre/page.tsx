@@ -127,9 +127,10 @@ export default function DrePage() {
         </>
       }
     >
-      <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
       <div className="mb-5">
-        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
+          <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
+        </CanvasBox>
       </div>
 
       {loading ? (
@@ -137,7 +138,7 @@ export default function DrePage() {
       ) : semDados ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum lançamento no período selecionado.', 'No entries in the selected period.', 'Ningún asiento en el período seleccionado.')}</p>
       ) : (
-        <>
+        <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
           <div className="mb-5">
             <LetreiroAxioma id="dre-contabil" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
               `${L('Receita Bruta', 'Gross Revenue', 'Ingreso Bruto')} R$ ${fBRL2(receitaBruta)}`,
@@ -158,7 +159,7 @@ export default function DrePage() {
                       className={l.key !== null ? 'cursor-pointer' : ''}
                       style={{ borderTop: l.total ? `1px solid ${TEAL}40` : '1px solid var(--axi-border)' }}
                     >
-                      <td className="py-2.5 flex items-center gap-1.5" style={{ color: l.total ? TITULO : TEXTO, fontWeight: l.total ? 800 : 600 }}>
+                      <td className="py-2.5 flex items-center gap-1.5" style={{ color: l.total ? TITULO : (temaClaro ? TEAL : TEXTO), fontWeight: l.total ? 800 : 600 }}>
                         {l.key !== null && (
                           <motion.span animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.15 }}>
                             <ChevronDown size={13} style={{ color: CINZA }} />
@@ -199,9 +200,8 @@ export default function DrePage() {
             </tbody>
           </table>
         </div>
-        </>
+        </CanvasBox>
       )}
-      </CanvasBox>
 
       <CentroCompartilhamento
         aberto={shareAberto}
