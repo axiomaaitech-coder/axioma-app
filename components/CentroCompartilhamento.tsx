@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CanvasBox } from "./CanvasBox";
 import Modal from "./Modal";
 import { canaisCompartilhamento, cfoT } from "../lib/cfoTextos";
+import { useThemeAxioma } from "../lib/ThemeContext";
 
 // Centro de Compartilhamento padrão do projeto (extraído do Receitas, o
 // original) — WhatsApp/Telegram/Gmail/Outlook + Copiar (resumo/detalhado) +
@@ -29,6 +30,8 @@ export function CentroCompartilhamento({
   aberto, onFechar, lang, textoResumo, assunto, textoDetalhado, onExportarPDF, cor = "#8b5cf6",
 }: Props) {
   const cx = cfoT(lang);
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
   const [copiado, setCopiado] = useState(false);
   const [copiadoDetalhado, setCopiadoDetalhado] = useState(false);
   const canais = canaisCompartilhamento(textoResumo, assunto);
@@ -43,13 +46,13 @@ export function CentroCompartilhamento({
 
   return (
     <Modal open={aberto} onClose={onFechar}>
-      <CanvasBox cor={cor}>
+      <CanvasBox cor={cor} fundo={temaClaro ? "#f6f7c4" : undefined} premium3d={temaClaro}>
         <div className="flex justify-between items-center mb-5">
           <div>
-            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#c4b5fd" }}>AXIOMA AI.TECH</p>
-            <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{cx.centroCompart}</h3>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#101b3d" : "#c4b5fd" }}>AXIOMA AI.TECH</p>
+            <h3 className="text-lg font-bold" style={{ color: temaClaro ? "#101b3d" : "#c8d8f0" }}>{cx.centroCompart}</h3>
           </div>
-          <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: "#5a7a9a" }}>
+          <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: temaClaro ? "#374151" : "#5a7a9a" }}>
             <X size={20} />
           </motion.button>
         </div>
@@ -63,20 +66,20 @@ export function CentroCompartilhamento({
           ))}
           <button onClick={copiar}
             className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-            style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>
+            style={{ background: temaClaro ? "rgba(16,27,61,0.06)" : "rgba(148,163,184,0.12)", border: `1px solid ${temaClaro ? "rgba(16,27,61,0.18)" : "rgba(148,163,184,0.4)"}`, color: temaClaro ? "#374151" : "#cbd5e1" }}>
             {copiado ? cx.copiado : `${cx.copiar} (resumo)`}
           </button>
           {textoDetalhado && (
             <button onClick={copiarDetalhado}
               className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-              style={{ background: "rgba(148,163,184,0.12)", border: "1px solid rgba(148,163,184,0.4)", color: "#cbd5e1" }}>
+              style={{ background: temaClaro ? "rgba(16,27,61,0.06)" : "rgba(148,163,184,0.12)", border: `1px solid ${temaClaro ? "rgba(16,27,61,0.18)" : "rgba(148,163,184,0.4)"}`, color: temaClaro ? "#374151" : "#cbd5e1" }}>
               {copiadoDetalhado ? cx.copiado : `${cx.copiar} (detalhado)`}
             </button>
           )}
           {onExportarPDF && (
             <button onClick={() => { onFechar(); onExportarPDF(); }}
               className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
-              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>
+              style={{ background: temaClaro ? "rgba(255,90,107,0.12)" : "rgba(239,68,68,0.12)", border: `1px solid ${temaClaro ? "rgba(255,90,107,0.4)" : "rgba(239,68,68,0.4)"}`, color: temaClaro ? "#ff5a6b" : "#fca5a5" }}>
               PDF
             </button>
           )}

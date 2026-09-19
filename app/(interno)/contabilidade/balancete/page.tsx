@@ -150,15 +150,15 @@ export default function BalancetePage() {
                       <tr key={l.conta.id} onClick={() => router.push(`/contabilidade/razao?conta=${l.conta.id}`)} className="cursor-pointer" style={{ borderTop: '1px solid var(--axi-border)' }}>
                         <td className="py-2 whitespace-nowrap" style={{ color: CINZA }}>{l.conta.codigo}</td>
                         <td className="py-2" style={{ color: TEXTO }}>{l.conta.nome}</td>
-                        <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{l.debito > 0 ? `R$ ${fBRL2(l.debito)}` : '—'}</td>
-                        <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{l.credito > 0 ? `R$ ${fBRL2(l.credito)}` : '—'}</td>
-                        <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: l.saldo >= 0 ? VERDE : VERMELHO }}>R$ {fBRL2(l.saldo)}</td>
+                        <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{l.debito > 0 ? <AnimatedNumber value={`R$ ${fBRL2(l.debito)}`} /> : '—'}</td>
+                        <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{l.credito > 0 ? <AnimatedNumber value={`R$ ${fBRL2(l.credito)}`} /> : '—'}</td>
+                        <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: l.saldo >= 0 ? VERDE : VERMELHO }}><AnimatedNumber value={`${l.saldo < 0 ? '− ' : ''}R$ ${fBRL2(Math.abs(l.saldo))}`} /></td>
                       </tr>
                     ))}
                     <tr style={{ borderTop: '1px solid var(--axi-border)' }}>
                       <td colSpan={2} className="py-1.5 text-right font-semibold" style={{ color: CINZA }}>{L('Subtotal', 'Subtotal', 'Subtotal')}</td>
-                      <td className="text-right py-1.5 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(g.totalDebito)}</td>
-                      <td className="text-right py-1.5 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(g.totalCredito)}</td>
+                      <td className="text-right py-1.5 font-semibold whitespace-nowrap" style={{ color: TEXTO }}><AnimatedNumber value={`R$ ${fBRL2(g.totalDebito)}`} /></td>
+                      <td className="text-right py-1.5 font-semibold whitespace-nowrap" style={{ color: TEXTO }}><AnimatedNumber value={`R$ ${fBRL2(g.totalCredito)}`} /></td>
                       <td />
                     </tr>
                   </Fragment>

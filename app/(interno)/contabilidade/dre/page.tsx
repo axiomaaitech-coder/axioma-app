@@ -165,9 +165,7 @@ export default function DrePage() {
                         {l.label}
                       </td>
                       <td className="py-2.5 text-right whitespace-nowrap" style={{ color: l.total ? (l.valor >= 0 ? VERDE : VERMELHO) : TEXTO, fontWeight: l.total ? 800 : 600 }}>
-                        {l.total
-                          ? <AnimatedNumber value={`${l.sinal ? '− ' : ''}R$ ${fBRL2(Math.abs(l.valor))}`} />
-                          : <>{l.sinal && '− '}R$ {fBRL2(Math.abs(l.valor))}</>}
+                        <AnimatedNumber value={`${l.sinal ? '− ' : ''}R$ ${fBRL2(Math.abs(l.valor))}`} />
                       </td>
                     </tr>
                     {l.key !== null && (
@@ -183,7 +181,7 @@ export default function DrePage() {
                                     <div key={c.conta.id} onClick={(e) => { e.stopPropagation(); router.push(`/contabilidade/razao?conta=${c.conta.id}`) }}
                                       className="flex items-center justify-between py-1.5 text-xs cursor-pointer hover:underline" style={{ color: CINZA }}>
                                       <span>{c.conta.codigo} — {c.conta.nome}</span>
-                                      <span style={{ color: TEXTO }}>R$ {fBRL2(c.valor)}</span>
+                                      <span style={{ color: TEXTO }}><AnimatedNumber value={`R$ ${fBRL2(c.valor)}`} /></span>
                                     </div>
                                   ))}
                                 </div>
