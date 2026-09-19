@@ -1712,11 +1712,11 @@ export default function ContasPagarPage() {
             <>
               <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setModalCustoFixo(true)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-                style={{ background: (temaClaro ? "rgba(16,27,61,0.15)" : "rgba(167,139,250,0.15)"), color: ROXO, border: (temaClaro ? "1px solid rgba(16,27,61,0.3)" : "1px solid rgba(167,139,250,0.3)") }}>
+                style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
                 <Landmark size={16} />{L("Gerar de Custo Fixo", "Generate from Fixed Cost", "Generar de Costo Fijo")}
               </motion.button>
               <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm cursor-pointer"
-                style={{ background: (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)"), color: VERDE, border: (temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)") }}>
+                style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
                 <Upload size={16} />{processandoNfe ? L("Lendo…", "Reading…", "Leyendo…") : L("Importar XML NF-e", "Import NF-e XML", "Importar XML NF-e")}
                 <input type="file" accept=".xml" className="hidden" disabled={processandoNfe}
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) importarXmlNfe(f); e.target.value = ""; }} />
@@ -1725,7 +1725,7 @@ export default function ContasPagarPage() {
           )}
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
+            style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(106,176,255,0.15)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
             <Share2 size={16} />{L("Compartilhar", "Share", "Compartir")}
           </motion.button>
           <ThemeToggle />
@@ -1742,7 +1742,7 @@ export default function ContasPagarPage() {
       {avisoNfeDuplicada && (
         <div className="mb-4">
           <CanvasBox {...cartaoTema} cor={AMBAR}>
-            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>AXIOMA AI.TECH</p>
             <p className="text-sm font-semibold mb-3" style={{ color: TEXTO }}>
               {L(`Esta NF-e já foi importada pelo PDV para estoque em ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("pt-BR")}. Deseja vincular esta conta a pagar à compra existente?`,
                 `This NF-e was already imported by the POS into inventory on ${new Date(avisoNfeDuplicada.nfe.created_at).toLocaleDateString("en-US")}. Link this bill to the existing purchase?`,
@@ -1765,15 +1765,15 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? { background: (temaClaro ? "rgba(245,166,35,0.2)" : "rgba(245,158,11,0.2)"), color: AMBAR, border: `1px solid ${AMBAR}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "central" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? { background: (temaClaro ? "rgba(16,27,61,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "inteligencia" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }) : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "aprovacoes" ? { background: (temaClaro ? "rgba(22,169,125,0.2)" : "rgba(52,211,153,0.2)"), color: VERDE, border: `1px solid ${VERDE}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "aprovacoes" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` }) : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
@@ -1894,7 +1894,7 @@ export default function ContasPagarPage() {
                           {(c.status === "pago" || c.status === "parcial") && (
                             <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarEstorno(c)} title={L("Estornar pagamento (desfazer baixa)", "Reverse payment (undo payment)", "Revertir pago (deshacer pago)")} style={{ color: CINZA }}><Undo2 size={15} /></motion.button>
                           )}
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar conta", "Edit bill", "Editar cuenta")} style={{ color: AMBAR }}><Pencil size={15} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoConta(c)} title={L("Editar conta", "Edit bill", "Editar cuenta")} style={{ color: AZUL }}><Pencil size={15} /></motion.button>
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirConfirmarExclusao(c)} title={L("Excluir conta", "Delete bill", "Eliminar cuenta")} style={{ color: c.status === "pago" ? (temaClaro ? "rgba(255,90,107,0.3)" : "rgba(248,113,113,0.3)") : VERMELHO }}><Trash2 size={15} /></motion.button>
                         </>
                       )}
@@ -1950,7 +1950,7 @@ export default function ContasPagarPage() {
                   disabled={carregandoRespostaCfo}
                   placeholder={L("Ex.: quanto vou pagar em 30 dias?", "E.g.: how much will I pay in 30 days?", "Ej.: ¿cuánto voy a pagar en 30 días?")}
                   className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(16,27,61,0.2)" : "1px solid rgba(167,139,250,0.2)"), color: TEXTO }} />
-                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: (temaClaro ? "rgba(16,27,61,0.2)" : "rgba(167,139,250,0.2)"), color: ROXO, border: `1px solid ${ROXO}50` }}>
+                <button onClick={() => perguntarAoCfo()} disabled={carregandoRespostaCfo} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(167,139,250,0.2)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.5)" }}>
                   <Send size={16} />
                 </button>
               </div>
@@ -2093,7 +2093,7 @@ export default function ContasPagarPage() {
 
           {/* Card Despesas Recorrentes Detectadas (Entrega 3, Commit 3) */}
           <CanvasBox {...cartaoTema} cor={AMBAR}>
-            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <RotateCcw size={18} style={{ color: AMBAR }} />
               {L("Despesas Recorrentes Detectadas", "Detected Recurring Expenses", "Gastos Recurrentes Detectados")}
@@ -2121,7 +2121,7 @@ export default function ContasPagarPage() {
                       podeEditar && (
                         <button onClick={() => abrirTransformarPadrao(p)}
                           className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0"
-                          style={{ background: (temaClaro ? "rgba(245,166,35,0.15)" : "rgba(245,158,11,0.15)"), color: AMBAR, border: `1px solid ${AMBAR}50` }}>
+                          style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(245,158,11,0.15)", color: AMBAR, border: `1px solid ${AMBAR}50` }}>
                           {L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}
                         </button>
                       )
@@ -2484,7 +2484,7 @@ export default function ContasPagarPage() {
 
           {/* Card Pontos de Atenção (Entrega 4, Commit 1 — Fraud & Anomaly Engine) */}
           <CanvasBox {...cartaoTema} cor={AMBAR}>
-            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+            <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>AXIOMA AI.TECH</p>
             <h3 className="text-base font-bold mb-1 flex items-center gap-2" style={{ color: TEXTO }}>
               <AlertTriangle size={18} style={{ color: AMBAR }} />
               {L("Pontos de Atenção", "Points to Review", "Puntos de Atención")}
@@ -2855,10 +2855,10 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-lg">
-                <CanvasBox {...cartaoTema} cor={AMBAR}>
+                <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : AMBAR}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
-                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold" style={{ color: TEXTO }}>{editando ? L("Editar Conta a Pagar", "Edit Bill", "Editar Cuenta a Pagar") : L("Nova Conta a Pagar", "New Bill", "Nueva Cuenta a Pagar")}</h3>
                     </div>
                     <button onClick={fecharModalConta} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
@@ -3593,10 +3593,10 @@ export default function ContasPagarPage() {
               style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-md">
-                <CanvasBox {...cartaoTema} cor={AMBAR}>
+                <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : AMBAR}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: AMBAR }}>AXIOMA AI.TECH</p>
+                      <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>AXIOMA AI.TECH</p>
                       <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: TEXTO }}><RotateCcw size={18} />{L("Transformar em Custo Fixo", "Turn into Fixed Cost", "Convertir en Costo Fijo")}</h3>
                     </div>
                     <button onClick={() => setPadraoParaTransformar(null)} title={L("Fechar", "Close", "Cerrar")} style={{ color: CINZA }}><X size={20} /></button>
