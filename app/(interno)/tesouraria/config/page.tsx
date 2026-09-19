@@ -1,7 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Save, Lock } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../../lib/empresaHelpers'
 import {
@@ -11,12 +14,12 @@ import {
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZULC = '#6ab0ff'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
+const PALETA = {
+  dark: { AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BORDA: 'rgba(255,255,255,0.08)', FORM_BORDA: 'rgba(106,176,255,0.16)' },
+  xms: { AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', CAMPO_BG: '#ffffff', BORDA: 'rgba(16,27,61,0.12)', FORM_BORDA: 'rgba(46,204,155,0.35)' },
+} as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']
 
@@ -30,6 +33,11 @@ export default function TesourariaConfigPage() {
   const { idioma } = useLanguage()
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const { AZULC, VERDE, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BORDA, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [podeEditar, setPodeEditar] = useState(false)
@@ -94,9 +102,21 @@ export default function TesourariaConfigPage() {
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Configuração da Tesouraria', 'Treasury Settings', 'Configuración de Tesorería')}
       subtitulo={L('Reserva mínima, alerta de ruptura e nome amigável de cada conta', 'Minimum reserve, rupture alert, and a friendly name for each account', 'Reserva mínima, alerta de ruptura y nombre amigable de cada cuenta')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      botaoExtra={
+        <>
+          <button onClick={() => router.push('/tesouraria')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
+          </button>
+          <ThemeToggle />
+        </>
+      }
     >
       {loading ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Carregando...', 'Loading...', 'Cargando...')}</p>
@@ -111,7 +131,7 @@ export default function TesourariaConfigPage() {
             </div>
           )}
 
-          <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(106,176,255,0.16)' }}>
+          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
             <h3 className="text-sm font-bold mb-4" style={{ color: TITULO }}>{L('Regras Gerais', 'General Rules', 'Reglas Generales')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -121,7 +141,7 @@ export default function TesourariaConfigPage() {
                 <input type="text" inputMode="decimal" disabled={!podeEditar} value={reservaMinima}
                   onChange={(e) => setReservaMinima(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none disabled:opacity-50"
-                  style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                  style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 <p className="text-[10px] mt-1" style={{ color: CINZA }}>
                   {L('Caixa que você quer manter sempre intocado — usado no Liquidity Score e no Radar de ruptura.', 'Cash you always want to keep untouched — used in the Liquidity Score and the rupture radar.', 'Caja que quieres mantener siempre intocada — usada en el Liquidity Score y el radar de ruptura.')}
                 </p>
@@ -133,13 +153,13 @@ export default function TesourariaConfigPage() {
                 <input type="number" min={1} disabled={!podeEditar} value={diasAlerta}
                   onChange={(e) => setDiasAlerta(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none disabled:opacity-50"
-                  style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                  style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
               </div>
             </div>
             {podeEditar && (
               <button onClick={salvarConfig} disabled={salvando}
                 className="flex items-center gap-2 mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
                 <Save size={16} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
               </button>
             )}
@@ -152,7 +172,7 @@ export default function TesourariaConfigPage() {
                 <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma conta de tesouraria encontrada.', 'No treasury accounts found.', 'Ninguna cuenta de tesorería encontrada.')}</p>
               )}
               {contas.map((c) => (
-                <div key={c.id} className="flex flex-wrap items-center gap-3 rounded-xl p-3" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <div key={c.id} className={`flex flex-wrap items-center gap-3 rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${BORDA}` }}>
                   <div className="min-w-[140px]">
                     <p className="text-xs font-bold" style={{ color: TEXTO }}>{c.conta_codigo} — {c.conta_nome}</p>
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase" style={{ background: `${AZULC}15`, color: AZULC }}>
@@ -163,11 +183,11 @@ export default function TesourariaConfigPage() {
                     placeholder={L('Nome amigável (ex: Itaú CC)', 'Friendly name (e.g. Chase Checking)', 'Nombre amigable (ej: BBVA CC)')}
                     onChange={(e) => setBancoEditando((prev) => ({ ...prev, [c.id]: e.target.value }))}
                     className="flex-1 min-w-[160px] px-3 py-2 rounded-xl text-xs focus:outline-none disabled:opacity-50"
-                    style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                    style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                   {podeEditar && (
                     <button onClick={() => salvarBanco(c)} disabled={salvandoConta === c.id}
                       className="text-[10px] font-bold px-3 py-2 rounded-lg whitespace-nowrap disabled:opacity-60"
-                      style={{ background: 'rgba(59,111,212,0.14)', color: AZULC }}>
+                      style={{ background: `${AZULC}18`, color: AZULC }}>
                       {salvandoConta === c.id ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
                     </button>
                   )}
@@ -185,5 +205,6 @@ export default function TesourariaConfigPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
