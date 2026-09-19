@@ -277,7 +277,7 @@ export default function FiscalPage() {
               </button>
             </div>
             {obrigacoesProximas.length === 0 ? (
-              <div className="rounded-xl p-4 text-center" style={{ background: PAINEL_BG2, border: '1px solid var(--axi-border)' }}>
+              <div className={`rounded-xl p-4 text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid var(--axi-border)' }}>
                 <p className="text-xs" style={{ color: CINZA }}>{L('Nenhuma obrigação vencendo nos próximos 30 dias.', 'No obligation due in the next 30 days.', 'Ninguna obligación vence en los próximos 30 días.')}</p>
               </div>
             ) : (
@@ -313,7 +313,7 @@ export default function FiscalPage() {
             </div>
 
             {visiveis.length === 0 ? (
-              <div className="rounded-xl p-6 text-center" style={{ background: PAINEL_BG2, border: '1px solid var(--axi-border)' }}>
+              <div className={`rounded-xl p-6 text-center${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid var(--axi-border)' }}>
                 <p className="text-sm" style={{ color: CINZA }}>
                   {L('Nenhuma descoberta ainda. Clique em "Rodar descoberta" pra a Axioma vasculhar suas obrigações e impostos.', 'No findings yet. Click "Run discovery" for Axioma to scan your obligations and taxes.', 'Ningún hallazgo aún. Haga clic en "Ejecutar descubrimiento" para que Axioma revise sus obligaciones e impuestos.')}
                 </p>
