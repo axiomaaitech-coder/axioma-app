@@ -123,6 +123,7 @@ export default function Precificacao() {
 
   const [produtoSelecionadoId, setProdutoSelecionadoId] = useState<string>("");
   const [precoCandidato, setPrecoCandidato] = useState("");
+  const [unidadesCandidato, setUnidadesCandidato] = useState("");
   const [descontoPct, setDescontoPct] = useState("10");
   const [novoConcorrenteNome, setNovoConcorrenteNome] = useState("");
   const [novoConcorrentePreco, setNovoConcorrentePreco] = useState("");
@@ -342,9 +343,10 @@ export default function Precificacao() {
   // ═══════════════════════ MOTOR DE PRECIFICAÇÃO POR VALOR ═══════════════════════
   const produtoSelecionado = produtos.find((p) => p.id === produtoSelecionadoId) || null;
   const derivadoSelecionado = produtosDerivados.find((d) => d.produto.id === produtoSelecionadoId) || null;
+  const unidadesVendidasMesEfetivo = unidadesCandidato ? parseFloat(unidadesCandidato) : (produtoSelecionado?.unidades_vendidas_mes || 0);
   const impactoPreco = produtoSelecionado && precoCandidato
     ? calcularImpactoPreco({
-        custoUnitario: produtoSelecionado.custo_total || 0, unidadesVendidasMes: produtoSelecionado.unidades_vendidas_mes || 0,
+        custoUnitario: produtoSelecionado.custo_total || 0, unidadesVendidasMes: unidadesVendidasMesEfetivo,
         precoCandidato: parseFloat(precoCandidato), aliquotaEfetivaPct,
         receitaMensalProdutoAtual: derivadoSelecionado?.receitaMensal || 0,
         custoMensalProdutoAtual: (produtoSelecionado.custo_total || 0) * (produtoSelecionado.unidades_vendidas_mes || 0),
@@ -376,7 +378,7 @@ export default function Precificacao() {
       await carregarTudo();
       return;
     }
-    setPrecoCandidato(""); showToast(txt.sucessoAplicarPreco, "ok"); await carregarTudo();
+    setPrecoCandidato(""); setUnidadesCandidato(""); showToast(txt.sucessoAplicarPreco, "ok"); await carregarTudo();
   }
 
   const impactoDesconto = derivadoSelecionado && produtoSelecionado
@@ -665,7 +667,9 @@ export default function Precificacao() {
                     </div>
                     <div>
                       <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#94a3b8") }}>{cx.prcUnidadesVendidasLabel}</label>
-                      <div className="w-full px-3 py-2.5 rounded-xl text-sm" style={{ background: CAMPO_BG2, color: ct("#94a3b8") }}>{produtoSelecionado.unidades_vendidas_mes ?? "—"}</div>
+                      <input type="number" value={unidadesCandidato} onChange={(e) => setUnidadesCandidato(e.target.value)}
+                        placeholder={produtoSelecionado.unidades_vendidas_mes != null ? String(produtoSelecionado.unidades_vendidas_mes) : "0"}
+                        className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     </div>
                   </div>
                   {impactoPreco && (
