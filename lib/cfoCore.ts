@@ -384,7 +384,7 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   // #f6f7c4 dos cards do tema Claro (mesmo problema já corrigido no MEI,
   // ver feedback_linguagem_simples_elias / regra 3 do rollout Claro) —
   // #374151 é o tom aprovado.
-  "#5a7a9a": "#374151", "#c8d8f0": "#101b3d", "#f1f5f9": "#101b3d", "#e2e8f0": "#101b3d",
+  "#5a7a9a": "#374151", "#c8d8f0": "#101b3d", "#f1f5f9": "#101b3d", "#e2e8f0": "#101b3d", "#e2ecf7": "#101b3d",
   "#64748b": "#374151", "#6ee7b7": "#16a97d", "#fca5a5": "#ff5a6b",
   "#94a3b8": "#374151", "#cbd5e1": "#374151", "#3a6090": "#374151",
   "#f59e0b": "#f5a623", "#fb923c": "#f5a623", "#ef4444": "#ff5a6b",

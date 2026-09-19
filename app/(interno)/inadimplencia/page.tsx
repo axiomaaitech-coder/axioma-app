@@ -12,6 +12,7 @@ import {
   Plus, Trash2, Pencil, Phone, Sparkles, Calculator, TrendingUp, PiggyBank, BarChart3,
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { SOMBRA_3D, BORDA_3D } from '../../../components/CanvasBox'
 import { AnimatedNumber } from '../../../components/AnimatedNumber'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
@@ -61,7 +62,11 @@ const supabase = createBrowserClient(
 // ============================================================================
 const PALETA = {
   dark: { INDIGO: '#4f46e5', SAFIRA: '#3730a3', PLATINA: '#c0c5ce', VERMELHO: '#f87171', AMBAR: '#f59e0b', VERDE: '#34d399', AZUL: '#6ab0ff', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)' },
-  xms: { INDIGO: '#4338ca', SAFIRA: '#312e81', PLATINA: '#6b7280', VERMELHO: '#ff5a6b', AMBAR: '#b45309', VERDE: '#16a97d', AZUL: '#2ecc9b', CINZA: '#6b7280', BG_CARD: '#eef2f7' },
+  // INDIGO/SAFIRA são identidade decorativa do Escuro - no Claro colapsam
+  // pra verde-menta oficial (tema-tokens.md §1.1), igual toda outra cor de
+  // marca/módulo. AMBAR usa o âmbar aprovado (#f5a623), não o marrom
+  // "amenizado" que já causou problema antes.
+  xms: { INDIGO: '#2ecc9b', SAFIRA: '#2ecc9b', PLATINA: '#6b7280', VERMELHO: '#ff5a6b', AMBAR: '#f5a623', VERDE: '#16a97d', AZUL: '#2ecc9b', CINZA: '#6b7280', BG_CARD: '#f6f7c4' },
 } as const
 const CATEGORIAS_CASO = ['Vendas', 'Serviços', 'Mensalidade', 'Consultoria', 'Outros']
 
@@ -78,6 +83,7 @@ export default function Inadimplencia() {
   const temaClaro = tema === 'xms'
   const { INDIGO, SAFIRA, PLATINA, VERMELHO, AMBAR, VERDE, AZUL, CINZA, BG_CARD } = PALETA[tema]
   const ct = (hex: string) => corTema(hex, temaClaro)
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
 
   const [clientes, setClientes] = useState<ClienteRow[]>([])
   const [contas, setContas] = useState<ContaRow[]>([])
@@ -536,7 +542,13 @@ export default function Inadimplencia() {
 
   const evolucaoOption = evolucao.some((s) => s.value > 0) ? optBarrasV(evolucao.map((s) => s.value), evolucao.map((s) => s.label), VERMELHO, '#fca5a5', undefined, temaClaro) : null
 
-  const PALETA_GRUPOS = [INDIGO, VERMELHO, AMBAR, VERDE, AZUL, PLATINA, ct('#a78bfa'), SAFIRA]
+  // Claro: sequência oficial (tema-tokens.md §1.4) + semânticos permitidos -
+  // INDIGO/AZUL/SAFIRA colapsam todos pra verde-menta agora, então usar eles
+  // juntos aqui juntaria fatias diferentes na mesma cor num gráfico de várias
+  // categorias. Escuro inalterado.
+  const PALETA_GRUPOS = temaClaro
+    ? ['#2ecc9b', '#101b3d', '#34d399', '#6b7280', '#122b54', '#f5a623', '#ff5a6b', '#374151']
+    : [INDIGO, VERMELHO, AMBAR, VERDE, AZUL, PLATINA, '#a78bfa', SAFIRA]
   const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
     grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
     INDIGO, L('Total', 'Total', 'Total'), temaClaro,
@@ -607,6 +619,9 @@ export default function Inadimplencia() {
       exportando={exportando}
       onNovo={abrirNovoCaso}
       labelBotao={L('Novo Caso', 'New Case', 'Nuevo Caso')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
+      corNovo={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
@@ -643,7 +658,7 @@ export default function Inadimplencia() {
         {/* ================= DASHBOARD EXECUTIVO — 15 KPIs ================= */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {kpiTiles.map((k) => (
-            <div key={k.key} className="rounded-2xl p-4 relative overflow-hidden" style={{ background: BG_CARD, border: `1px solid ${k.cor}30` }}>
+            <div key={k.key} className={`rounded-2xl p-4 relative overflow-hidden${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
               <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
               {k.vazio ? (
@@ -656,7 +671,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : VERDE}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : VERDE}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: alertasCriticos > 0 ? VERMELHO : VERDE }}>
               <Bell size={14} /> {L('Alertas Inteligentes', 'Smart Alerts', 'Alertas Inteligentes')}
@@ -681,7 +696,7 @@ export default function Inadimplencia() {
                   <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: severidadeCor(a.severidade) }} />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold" style={{ color: severidadeCor(a.severidade) }}>{a.titulo}</p>
-                    <p className="text-xs mt-0.5" style={{ color: '#c8d8f0' }}>{a.descricao}</p>
+                    <p className="text-xs mt-0.5" style={{ color: ct('#c8d8f0') }}>{a.descricao}</p>
                     <p className="text-[10px] mt-1 italic" style={{ color: CINZA }}>{L('Ação sugerida', 'Suggested action', 'Acción sugerida')}: {a.acao}</p>
                   </div>
                 </motion.button>
@@ -691,7 +706,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= AGING DA INADIMPLÊNCIA ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}25`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: VERMELHO }}>
             {L('Aging da Inadimplência', 'Delinquency Aging', 'Antigüedad de la Morosidad')}
           </p>
@@ -716,13 +731,13 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= SCORE DE RISCO AXIOMA ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${PLATINA}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${PLATINA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: PLATINA }}>
             <Shield size={14} /> {L('Score de Risco Axioma', 'Axioma Risk Score', 'Score de Riesgo Axioma')}
           </p>
           {ranking.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10">
-              <Users size={36} style={{ color: '#1a3a5a' }} className="mb-2" />
+              <Users size={36} style={{ color: temaClaro ? '#a8b0bc' : '#1a3a5a' }} className="mb-2" />
               <p className="text-sm" style={{ color: CINZA }}>{L('Sem clientes com cobranças ainda.', 'No clients with billing yet.', 'Sin clientes con cobros aún.')}</p>
             </div>
           ) : (
@@ -744,7 +759,7 @@ export default function Inadimplencia() {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="text-xs font-bold w-4 flex-shrink-0" style={{ color: CINZA }}>{i + 1}</span>
                       {l.score.nivel === 'elite' && <Crown size={12} style={{ color: PLATINA }} className="flex-shrink-0" />}
-                      <span className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{l.s.cliente.nome}</span>
+                      <span className="text-xs font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{l.s.cliente.nome}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(l.score.nivel) }}>{nivelScoreLabel(l.score.nivel)}</span>
@@ -758,7 +773,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= IA DE PREVENÇÃO ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${INDIGO}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${INDIGO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
             <Brain size={14} /> {L('Prevenção Axioma', 'Axioma Prevention', 'Prevención Axioma')}
           </p>
@@ -772,9 +787,9 @@ export default function Inadimplencia() {
               {sinaisPrevencao.map((c, i) => (
                 <div key={i} className="rounded-xl p-3.5" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${INDIGO}20` }}>
                   <p className="text-xs font-black mb-2" style={{ color: INDIGO }}>{c.tema}</p>
-                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
-                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
-                  <p className="text-xs mb-1.5" style={{ color: '#c8d8f0' }}><span style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}:</span> {c.impacto}</p>
+                  <p className="text-xs mb-1.5" style={{ color: ct('#c8d8f0') }}><span style={{ color: CINZA }}>{L('O que aconteceu', 'What happened', 'Qué pasó')}:</span> {c.oQueAconteceu}</p>
+                  <p className="text-xs mb-1.5" style={{ color: ct('#c8d8f0') }}><span style={{ color: CINZA }}>{L('Por quê', 'Why', 'Por qué')}:</span> {c.porQue}</p>
+                  <p className="text-xs mb-1.5" style={{ color: ct('#c8d8f0') }}><span style={{ color: CINZA }}>{L('Impacto', 'Impact', 'Impacto')}:</span> {c.impacto}</p>
                   <p className="text-xs font-semibold" style={{ color: VERDE }}><span style={{ color: CINZA, fontWeight: 400 }}>{L('Melhor estratégia', 'Best strategy', 'Mejor estrategia')}:</span> {c.acao}</p>
                 </div>
               ))}
@@ -783,7 +798,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= RÉGUA DE RECUPERAÇÃO ESCALONADA ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${PLATINA}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${PLATINA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: PLATINA }}>
               <MessageSquare size={14} /> {L('Régua de Recuperação Escalonada', 'Escalated Recovery Ladder', 'Regla de Recuperación Escalonada')}
@@ -820,7 +835,7 @@ export default function Inadimplencia() {
                     <span className="text-[10px] px-1.5 py-0.5 rounded-md inline-block mb-1.5" style={{ background: (temaClaro ? '#e2e8f0' : 'rgba(255,255,255,0.06)'), color: CINZA }}>
                       D+{etapa.dias_relativos} · {etapa.canal}
                     </span>
-                    <p className="text-[10px] line-clamp-2" style={{ color: '#c8d8f0' }}>{etapa.mensagem_modelo}</p>
+                    <p className="text-[10px] line-clamp-2" style={{ color: ct('#c8d8f0') }}>{etapa.mensagem_modelo}</p>
                   </div>
                 )
               })}
@@ -829,7 +844,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= MAPA EXECUTIVO DE RISCO ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${INDIGO}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${INDIGO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
             <AlertTriangle size={14} /> {L('Mapa Executivo de Risco', 'Executive Risk Map', 'Mapa Ejecutivo de Riesgo')}
           </p>
@@ -837,7 +852,7 @@ export default function Inadimplencia() {
 
           {linhasFiltradas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <Inbox size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
+              <Inbox size={48} style={{ color: temaClaro ? '#a8b0bc' : '#1a3a5a' }} className="mb-4" />
               <p className="text-sm" style={{ color: CINZA }}>{linhasRisco.length === 0 ? L('Nenhum cliente inadimplente no momento.', 'No delinquent clients right now.', 'Ningún cliente moroso por el momento.') : L('Nenhum resultado para o filtro atual.', 'No results for the current filter.', 'Ningún resultado para el filtro actual.')}</p>
             </div>
           ) : (
@@ -859,10 +874,10 @@ export default function Inadimplencia() {
                 <tbody>
                   {linhasFiltradas.map((l, i) => (
                     <motion.tr key={l.s.cliente.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(i, 20) * 0.02 }} style={{ background: (temaClaro ? '#f8fafc' : 'rgba(255,255,255,0.02)') }}>
-                      <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: '#c8d8f0' }}>{l.s.cliente.nome}</td>
+                      <td className="px-2 py-2.5 rounded-l-xl whitespace-nowrap font-semibold" style={{ color: ct('#c8d8f0') }}>{l.s.cliente.nome}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap font-black" style={{ color: VERMELHO }}>{fBRL(l.s.valorVencido)}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: l.s.diasAtrasoAtual > 0 ? VERMELHO : CINZA }}>{l.s.diasAtrasoAtual || '—'}</td>
-                      <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: '#c8d8f0' }}>{l.qtdTitulos}</td>
+                      <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: ct('#c8d8f0') }}>{l.qtdTitulos}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{l.ultimoPagamento ? new Date(l.ultimoPagamento + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: l.historicoAtrasos > 0 ? AMBAR : CINZA }}>{l.historicoAtrasos}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap font-bold" style={{ color: l.probabilidadeRecuperacao != null ? VERDE : CINZA }}>{l.probabilidadeRecuperacao != null ? `${l.probabilidadeRecuperacao}%` : L('sem dados', 'no data', 'sin datos')}</td>
@@ -872,7 +887,7 @@ export default function Inadimplencia() {
                         <span className="text-[10px] font-bold" style={{ color: nivelScoreCor(l.score.nivel) }}>({nivelScoreLabel(l.score.nivel)})</span>
                       </td>
                       <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${prioridadeCor(l.prioridade)}15`, color: prioridadeCor(l.prioridade) }}>{prioridadeLabel(l.prioridade)}</span></td>
-                      <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: '#c8d8f0' }}>{fPct(l.impactoFinanceiroPct)}</td>
+                      <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: ct('#c8d8f0') }}>{fPct(l.impactoFinanceiroPct)}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap" style={{ color: CINZA }}>{l.responsavel || '—'}</td>
                       <td className="px-2 py-2.5 whitespace-nowrap"><span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: `${l.negociacao.cor}15`, color: l.negociacao.cor }}>{l.negociacao.label}</span></td>
                       <td className="px-2 py-2.5 rounded-r-xl whitespace-nowrap">
@@ -889,7 +904,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= SIMULADOR EXECUTIVO DE RECUPERAÇÃO ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${INDIGO}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${INDIGO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: INDIGO }}>
             <Calculator size={14} /> {L('Simulador Executivo de Recuperação', 'Executive Recovery Simulator', 'Simulador Ejecutivo de Recuperación')}
           </p>
@@ -917,7 +932,7 @@ export default function Inadimplencia() {
                     <p className="text-[10px]" style={{ color: CINZA }}>{L('Perda Assumida', 'Assumed Loss', 'Pérdida Asumida')}</p>
                     <p className="text-sm font-black mb-1.5" style={{ color: VERMELHO }}>{fBRL(c.perdaAssumida)}</p>
                     <p className="text-[10px]" style={{ color: CINZA }}>{L('EBITDA Mensal', 'Monthly EBITDA', 'EBITDA Mensual')}</p>
-                    <p className="text-xs font-bold mb-1.5" style={{ color: '#c8d8f0' }}>{fBRL(c.ebitdaMensal)}</p>
+                    <p className="text-xs font-bold mb-1.5" style={{ color: ct('#c8d8f0') }}>{fBRL(c.ebitdaMensal)}</p>
                     <p className="text-[10px]" style={{ color: CINZA }}>{L('Caixa Projetado', 'Projected Cash', 'Caja Proyectada')}</p>
                     <p className="text-xs font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? VERDE : VERMELHO }}>{fBRL(c.saldoCaixaProjetado)}</p>
                   </div>
@@ -928,7 +943,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= PREVISÃO DE RECUPERAÇÃO MULTI-HORIZONTE ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${AZUL}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${AZUL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: AZUL }}>
             <TrendingUp size={14} /> {L('Previsão de Recuperação Multi-Horizonte', 'Multi-Horizon Recovery Forecast', 'Previsión de Recuperación Multi-Horizonte')}
           </p>
@@ -951,7 +966,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= PERDA ESPERADA (PCLD) + CUSTO-BENEFÍCIO + IMPACTO NA DRE ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}25`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: VERMELHO }}>
             <PiggyBank size={14} /> {L('Perda Esperada — Provisão PCLD', 'Expected Loss — PCLD Provision', 'Pérdida Esperada — Provisión PCLD')}
           </p>
@@ -960,7 +975,7 @@ export default function Inadimplencia() {
             {perdaPorFaixa.map((f) => (
               <div key={f.faixa} className="rounded-xl p-3 text-center" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}30` }}>
                 <p className="text-[10px] mb-1" style={{ color: CINZA }}>{f.faixa} {L('dias', 'days', 'días')}</p>
-                <p className="text-sm font-black" style={{ color: '#c8d8f0' }}>{fBRL(f.valorVencido)}</p>
+                <p className="text-sm font-black" style={{ color: ct('#c8d8f0') }}>{fBRL(f.valorVencido)}</p>
                 <p className="text-xs font-bold mt-1" style={{ color: f.perdaEsperada != null ? VERMELHO : CINZA }}>{f.perdaEsperada != null ? fBRL(f.perdaEsperada) : L('sem dados suficientes', 'not enough data', 'sin datos suficientes')}</p>
               </div>
             ))}
@@ -972,7 +987,7 @@ export default function Inadimplencia() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px]" style={{ color: CINZA }}>{L('Margem Líquida Atual', 'Current Net Margin', 'Margen Neto Actual')}</p>
-                  <p className="text-sm font-black" style={{ color: '#c8d8f0' }}>{fPct(impactoDRE.dreAtual.margemLiquidaPct)}</p>
+                  <p className="text-sm font-black" style={{ color: ct('#c8d8f0') }}>{fPct(impactoDRE.dreAtual.margemLiquidaPct)}</p>
                 </div>
                 <div>
                   <p className="text-[10px]" style={{ color: CINZA }}>{L('Margem com Provisão', 'Margin with Provision', 'Margen con Provisión')}</p>
@@ -998,7 +1013,7 @@ export default function Inadimplencia() {
             <div className="space-y-1.5">
               {naoValeAPena.slice(0, 8).map((c) => (
                 <div key={c.linha.s.cliente.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: `${VERMELHO}0c`, border: `1px solid ${VERMELHO}20` }}>
-                  <span className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{c.linha.s.cliente.nome}</span>
+                  <span className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{c.linha.s.cliente.nome}</span>
                   <span className="text-[10px]" style={{ color: VERMELHO }}>{L('Custo', 'Cost', 'Costo')} {fBRL(c.custoEstimado)} &gt; {L('recuperável', 'recoverable', 'recuperable')} {fBRL(c.valorRecuperavelEstimado)}</span>
                 </div>
               ))}
@@ -1007,7 +1022,7 @@ export default function Inadimplencia() {
         </div>
 
         {/* ================= ANÁLISES EXECUTIVAS ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${PLATINA}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${PLATINA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: PLATINA }}>
             <BarChart3 size={14} /> {L('Análises Executivas', 'Executive Analytics', 'Análisis Ejecutivos')}
           </p>
@@ -1041,7 +1056,7 @@ export default function Inadimplencia() {
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {curvaABC.slice(0, 10).map((c) => (
                     <div key={c.clienteId} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
-                      <span className="text-[11px] truncate" style={{ color: '#c8d8f0' }}>{c.nome}</span>
+                      <span className="text-[11px] truncate" style={{ color: ct('#c8d8f0') }}>{c.nome}</span>
                       <span className="text-[10px] font-bold flex-shrink-0" style={{ color: c.classe === 'A' ? VERMELHO : c.classe === 'B' ? AMBAR : VERDE }}>{c.classe} · {fBRL(c.valor)}</span>
                     </div>
                   ))}
@@ -1054,7 +1069,7 @@ export default function Inadimplencia() {
                 <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
                   {rankingRecuperacao.map((r, i) => (
                     <div key={r.chave} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)') }}>
-                      <span className="text-[11px] truncate" style={{ color: '#c8d8f0' }}>{i + 1}. {r.chave}</span>
+                      <span className="text-[11px] truncate" style={{ color: ct('#c8d8f0') }}>{i + 1}. {r.chave}</span>
                       <span className="text-[10px] font-bold flex-shrink-0" style={{ color: VERDE }}>{fBRL(r.valor)}</span>
                     </div>
                   ))}
@@ -1075,11 +1090,11 @@ export default function Inadimplencia() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? '#f6f7c4' : '#0a1628', border: temaClaro ? BORDA_3D : `1px solid ${INDIGO}35`, boxShadow: temaClaro ? SOMBRA_3D : '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: INDIGO }}>AXIOMA AI.TECH — {L('Central de Negociação', 'Negotiation Center', 'Central de Negociación')}</p>
-                      <h3 className="text-lg font-bold" style={{ color: '#e2ecf7' }}>{linhaAberta.s.cliente.nome}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: temaClaro ? '#101b3d' : ct('#e2ecf7') }}>{linhaAberta.s.cliente.nome}</h3>
                       <p className="text-xs mt-1" style={{ color: VERMELHO }}>{fBRL(linhaAberta.s.valorVencido)} · {linhaAberta.s.diasAtrasoAtual} {L('dias em atraso', 'days overdue', 'días de atraso')} · {L('Score', 'Score', 'Score')} <span style={{ color: nivelScoreCor(linhaAberta.score.nivel) }}>{linhaAberta.score.total}</span></p>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharNegociacao} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1091,7 +1106,7 @@ export default function Inadimplencia() {
                     {titulosVencidosCliente.map((c) => (
                       <div key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${VERMELHO}20` }}>
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold truncate" style={{ color: '#c8d8f0' }}>{c.numero_documento || c.descricao}</p>
+                          <p className="text-xs font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{c.numero_documento || c.descricao}</p>
                           <p className="text-[10px]" style={{ color: CINZA }}>{fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))} · {L('venceu em', 'due', 'venció el')} {new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -1109,7 +1124,7 @@ export default function Inadimplencia() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         {estrategiasCliente.map((e) => (
                           <div key={e.tipo} className="rounded-lg px-2.5 py-2" style={{ background: (temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)') }}>
-                            <p className="text-[11px] font-semibold" style={{ color: '#c8d8f0' }}>{e.label}</p>
+                            <p className="text-[11px] font-semibold" style={{ color: ct('#c8d8f0') }}>{e.label}</p>
                             <p className="text-xs font-black" style={{ color: VERDE }}>~{e.probabilidadeEstimada}% {L('de recuperar', 'to recover', 'de recuperar')}</p>
                           </div>
                         ))}
@@ -1146,7 +1161,7 @@ export default function Inadimplencia() {
                         <div key={`i-${it.id}`} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: (temaClaro ? '#f1f5f9' : 'rgba(255,255,255,0.03)'), border: `1px solid ${AZUL}20` }}>
                           <Phone size={12} style={{ color: AZUL }} className="flex-shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{it.descricao}</p>
+                            <p className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{it.descricao}</p>
                             <p className="text-[10px]" style={{ color: CINZA }}>{new Date(it.data + 'T00:00:00').toLocaleDateString('pt-BR')}{it.canal ? ` · ${it.canal}` : ''}</p>
                           </div>
                         </div>
@@ -1234,9 +1249,9 @@ export default function Inadimplencia() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: `1px solid ${PLATINA}35` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? '#f6f7c4' : '#0a1628', border: temaClaro ? BORDA_3D : `1px solid ${PLATINA}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold" style={{ color: '#e2ecf7' }}>{L('Etapa de Escalonamento', 'Escalation Step', 'Etapa de Escalonamiento')}</h3>
+                    <h3 className="text-lg font-bold" style={{ color: ct('#e2ecf7') }}>{L('Etapa de Escalonamento', 'Escalation Step', 'Etapa de Escalonamiento')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoEtapa(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
                   <div className="space-y-3">
@@ -1262,7 +1277,7 @@ export default function Inadimplencia() {
                     </div>
                     <div className="flex items-center gap-2">
                       <input type="checkbox" id="etapaAtiva" checked={editandoEtapa.ativo ?? true} onChange={(e) => setEditandoEtapa({ ...editandoEtapa, ativo: e.target.checked })} className="w-4 h-4" />
-                      <label htmlFor="etapaAtiva" className="text-xs font-semibold" style={{ color: '#c8d8f0' }}>{L('Etapa ativa', 'Step active', 'Etapa activa')}</label>
+                      <label htmlFor="etapaAtiva" className="text-xs font-semibold" style={{ color: ct('#c8d8f0') }}>{L('Etapa ativa', 'Step active', 'Etapa activa')}</label>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4">
@@ -1290,11 +1305,11 @@ export default function Inadimplencia() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: temaClaro ? '#ffffff' : '#0a1628', border: `1px solid ${INDIGO}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? '#f6f7c4' : '#0a1628', border: temaClaro ? BORDA_3D : `1px solid ${INDIGO}35`, boxShadow: temaClaro ? SOMBRA_3D : '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: INDIGO }}>AXIOMA AI.TECH</p>
-                      <h3 className="text-lg font-bold" style={{ color: '#e2ecf7' }}>{editandoCaso ? L('Editar Caso', 'Edit Case', 'Editar Caso') : L('Novo Caso de Inadimplência', 'New Delinquency Case', 'Nuevo Caso de Morosidad')}</h3>
+                      <h3 className="text-lg font-bold" style={{ color: ct('#e2ecf7') }}>{editandoCaso ? L('Editar Caso', 'Edit Case', 'Editar Caso') : L('Novo Caso de Inadimplência', 'New Delinquency Case', 'Nuevo Caso de Morosidad')}</h3>
                     </div>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModalCaso} style={{ color: CINZA }}><X size={20} /></motion.button>
                   </div>
