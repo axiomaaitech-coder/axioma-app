@@ -65,7 +65,7 @@ export default function PainelMEI() {
   // Cards do tema Claro seguem a referência (public/referencias/): fundo
   // creme (#f6f7c4) + sombra com bisel de luz e brilho verde no hover. No
   // Escuro (fundação, inalterado) os cards continuam exatamente como sempre.
-  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#eef085', premium3d: true } as const : {}
   // Indicador de "selecionado" (chips de categoria/perfil): verde no Claro
   // (regra da referência — ativo é sempre verde), dourado no Escuro (inalterado).
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
@@ -78,7 +78,7 @@ export default function PainelMEI() {
   // valores) segue sempre o MESMO tom bege — nunca branco, nunca tingida por
   // categoria (isso é reservado pra alerta/perigo de verdade, tipo o card do
   // "Guardião da Reserva"). Só o texto/número dentro pode continuar colorido.
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.2)' : undefined
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
   const [loading, setLoading] = useState(true)
   const [exportando, setExportando] = useState(false)

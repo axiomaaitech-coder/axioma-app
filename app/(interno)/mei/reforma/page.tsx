@@ -33,7 +33,7 @@ const supabase = createBrowserClient(
 // MEI (nunca a versão pastel do dark, que fica ilegível em fundo branco).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', POCO_BG: 'rgba(255,255,255,0.5)' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', POCO_BG: 'rgba(255,255,255,0.2)' },
 } as const
 
 export default function ReformaTributaria() {
@@ -43,9 +43,9 @@ export default function ReformaTributaria() {
   const temaClaro = tema === 'xms'
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
-  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#eef085', premium3d: true } as const : {}
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.2)' : undefined
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
   // Banners/toast tinham o hex do Escuro fixo em decimal — mesmo bug já
   // corrigido em 18 arquivos antes, corrigido aqui também.

@@ -32,13 +32,24 @@ const supabase = createBrowserClient(
 // cores (escuro no dark, branco no Claro, senão o texto do botão some).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', TEAL: '#2dd4bf', NEUTRO: '#5a7a9a', DESABILITADO: '#2a4060', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.03)', BOTAO_SUTIL_BG: 'rgba(255,255,255,0.08)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)', COLOR_SCHEME: 'dark' as const },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', TEAL: '#0d9488', NEUTRO: '#6b7280', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7', BOTAO_SUTIL_BG: 'rgba(16,27,61,0.1)', SELECT_BG: '#ffffff', POCO_BG: '#eef2f7', COLOR_SCHEME: 'light' as const },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', TEAL: '#0d9488', NEUTRO: '#6b7280', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', PAINEL_BG: 'rgba(255,255,255,0.2)', BOTAO_SUTIL_BG: 'rgba(16,27,61,0.1)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.2)', COLOR_SCHEME: 'light' as const },
 } as const
 
 export default function ImpostoRendaMEI() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, AMBAR, TEAL, NEUTRO, DESABILITADO, ON_ACCENT, CAMPO_BG, PAINEL_BG, BOTAO_SUTIL_BG, SELECT_BG, POCO_BG, COLOR_SCHEME } = PALETA[tema]
+  const temaClaro = tema === 'xms'
+  // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
+  // MEI"). Escuro fica 100% inalterado em tudo abaixo.
+  const cartaoTema = temaClaro ? { fundo: '#eef085', premium3d: true } as const : {}
+  const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.2)' : undefined
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const ATIVO = temaClaro ? '#2ecc9b' : OURO
+  const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(106,176,255,${alpha})`
+  const rgbVermelho = temaClaro ? '255,90,107' : '248,113,113'
+  const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
   const [outraRenda, setOutraRenda] = useState('')
@@ -388,16 +399,18 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     {toastDoc && (
       <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-        style={{ background: toastDoc.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : toastDoc.tipo === 'ok' ? 'rgba(52,211,153,0.95)' : 'rgba(106,176,255,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+        style={{ background: toastDoc.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : toastDoc.tipo === 'ok' ? `rgba(${rgbVerde},0.95)` : neutro(0.95), color: '#020810', fontWeight: 600, fontSize: 13 }}>
         {toastDoc.msg}
       </div>
     )}
     <ModuloLayout titulo={t('titulo')} subtitulo={t('subtitulo')} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <button onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
             <Share2 size={16} /> {t('compartilhar')}
           </button>
           <ThemeToggle />
@@ -405,19 +418,19 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
       }>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={TEAL} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : TEAL} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Status obrigatoriedade */}
         <div className="flex items-center gap-3 p-4 rounded-2xl"
           style={{
-            background: obrigado ? 'rgba(248,113,113,0.08)' : 'rgba(52,211,153,0.08)',
-            border: `1px solid ${obrigado ? 'rgba(248,113,113,0.3)' : 'rgba(52,211,153,0.3)'}`,
+            background: obrigado ? `rgba(${rgbVermelho},0.08)` : `rgba(${rgbVerde},0.08)`,
+            border: `1px solid ${obrigado ? `rgba(${rgbVermelho},0.3)` : `rgba(${rgbVerde},0.3)`}`,
           }}>
           {obrigado
             ? <AlertTriangle size={22} style={{ color: VERMELHO, flexShrink: 0 }} />
@@ -426,7 +439,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             <p className="text-sm font-black" style={{ color: obrigado ? VERMELHO : VERDE }}>
               {obrigado ? t('obrigatorio') : t('naoObrigatorio')}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--axi-text-secondary)' }}>
+            <p className="text-xs mt-0.5" style={{ color: TEXTO_SEC }}>
               {obrigado
                 ? (lang === 'pt' ? `Sua renda tributável (${fmt(rendaTotalAnual)}/ano) supera o limite de isenção de R$ 33.888/ano.`
                   : lang === 'en' ? `Your taxable income (${fmt(rendaTotalAnual)}/year) exceeds the exemption limit of R$ 33,888/year.`
@@ -446,18 +459,18 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             { label: t('rendaTributavel'), value: fmt(rendaTributavelMEI), cor: AMBAR },
             { label: lang === 'pt' ? 'IRPF estimado/ano' : lang === 'en' ? 'Estimated IRPF/year' : 'IRPF estimado/año', value: fmt(impostoAnual), cor: obrigado ? VERMELHO : NEUTRO },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+            <CanvasBox key={i} cor={card.cor} {...cartaoTema}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
               <p className="text-base md:text-lg font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
 
         {/* Calculadora */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('resumo')}</p>
           <div className="mb-4">
-            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>
+            <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>
               {t('outraRenda')}
             </label>
             <input type="number" value={outraRenda} onChange={e => setOutraRenda(e.target.value)}
@@ -474,7 +487,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
               { label: lang === 'pt' ? 'Alíquota efetiva IRPF' : lang === 'en' ? 'Effective IRPF rate' : 'Alícuota efectiva IRPF', value: `${aliquotaEfetiva.toFixed(1)}%`, cor: obrigado ? VERMELHO : VERDE },
               { label: lang === 'pt' ? '💰 IRPF total estimado/ano' : lang === 'en' ? '💰 Estimated total IRPF/year' : '💰 IRPF total estimado/año', value: fmt(impostoAnual), cor: obrigado ? VERMELHO : VERDE },
             ].map((item, i) => (
-              <div key={i} className="flex justify-between items-center p-3 rounded-xl" style={{ background: `${item.cor}08`, border: `1px solid ${item.cor}15` }}>
+              <div key={i} className="flex justify-between items-center p-3 rounded-xl" style={{ background: NESTED_BG ?? `${item.cor}08`, border: `1px solid ${NESTED_BORDA ?? item.cor + '15'}` }}>
                 <span className="text-xs" style={{ color: 'var(--axi-text-primary)' }}>{item.label}</span>
                 <span className="text-sm font-black" style={{ color: item.cor }}><AnimatedNumber value={item.value} /></span>
               </div>
@@ -483,7 +496,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         </CanvasBox>
 
         {/* Análise Axioma */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('analiseIATitulo')}</p>
             <button onClick={analisarComIA} disabled={analisandoIA}
@@ -492,16 +505,16 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
               {analisandoIA ? t('analisando') : t('analisarIA')}
             </button>
           </div>
-          <p className="text-xs mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('analiseIATransparencia')}</p>
+          <p className="text-xs mb-3" style={{ color: TEXTO_SEC }}>{t('analiseIATransparencia')}</p>
           {analiseIA && (
-            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)', color: 'var(--axi-text-primary)' }}>
+            <div className="rounded-xl p-4 text-sm whitespace-pre-line" style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}`, color: 'var(--axi-text-primary)' }}>
               {analiseIA}
             </div>
           )}
         </CanvasBox>
 
         {/* Tabela progressiva */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-4" style={{ color: 'var(--axi-text-primary)' }}>{t('tabela')}</p>
           <div className="overflow-x-auto">
             <div className="min-w-[400px]">
@@ -511,7 +524,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                   lang === 'pt' ? 'Alíquota' : lang === 'en' ? 'Rate' : 'Alícuota',
                   lang === 'pt' ? 'Dedução' : lang === 'en' ? 'Deduction' : 'Deducción',
                 ].map((h, i) => (
-                  <p key={i} className="text-xs font-bold uppercase tracking-wider px-2" style={{ color: 'var(--axi-text-secondary)' }}>{h}</p>
+                  <p key={i} className="text-xs font-bold uppercase tracking-wider px-2" style={{ color: TEXTO_SEC }}>{h}</p>
                 ))}
               </div>
               {[
@@ -534,15 +547,15 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                       background: ehFaixaAtual ? `${row.cor}15` : `${row.cor}05`,
                       border: `1px solid ${ehFaixaAtual ? row.cor + '40' : row.cor + '15'}`,
                     }}>
-                    <p className="text-xs" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : 'var(--axi-text-secondary)' }}>{ehFaixaAtual ? '👉 ' : ''}{row.faixa}</p>
+                    <p className="text-xs" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : TEXTO_SEC }}>{ehFaixaAtual ? '👉 ' : ''}{row.faixa}</p>
                     <p className="text-xs font-bold text-center" style={{ color: row.cor }}>{row.aliquota}</p>
-                    <p className="text-xs text-right" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : 'var(--axi-text-secondary)' }}>{row.deducao}</p>
+                    <p className="text-xs text-right" style={{ color: ehFaixaAtual ? 'var(--axi-text-primary)' : TEXTO_SEC }}>{row.deducao}</p>
                   </div>
                 )
               })}
             </div>
           </div>
-          <p className="text-xs mt-3" style={{ color: 'var(--axi-text-secondary)' }}>
+          <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>
             {lang === 'pt' ? '* Tabela IRPF 2025, calculada automaticamente com base nos seus dados reais.'
               : lang === 'en' ? '* IRPF 2025 table, calculated automatically based on your real data.'
               : '* Tabla IRPF 2025, calculada automáticamente con base en sus datos reales.'}
@@ -550,11 +563,11 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         </CanvasBox>
 
         {/* Checklist clicável */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <p className="text-sm font-semibold" style={{ color: 'var(--axi-text-primary)' }}>{t('checklist')}</p>
             <div className="flex items-center gap-2">
-              <div className="h-2 w-24 rounded-full overflow-hidden" style={{ background: 'rgba(106,176,255,0.15)' }}>
+              <div className="h-2 w-24 rounded-full overflow-hidden" style={{ background: neutro(0.15) }}>
                 <div className="h-2 rounded-full" style={{ width: `${(itensConcluidos / totalItens) * 100}%`, background: `linear-gradient(90deg, ${VERDE}, ${AZUL})` }} />
               </div>
               <span className="text-xs font-bold" style={{ color: VERDE }}>
@@ -572,8 +585,8 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                   onClick={() => toggleChecklist(i)}
                   className="flex items-center gap-3 p-3 rounded-xl transition-all"
                   style={{
-                    background: marcado ? 'rgba(52,211,153,0.08)' : 'rgba(106,176,255,0.05)',
-                    border: `1px solid ${marcado ? 'rgba(52,211,153,0.25)' : 'rgba(106,176,255,0.12)'}`,
+                    background: marcado ? `rgba(${rgbVerde},0.08)` : neutro(0.05),
+                    border: `1px solid ${marcado ? `rgba(${rgbVerde},0.25)` : neutro(0.12)}`,
                     cursor: clicavel ? 'pointer' : 'default',
                   }}>
                   <div className="flex-shrink-0">
@@ -583,17 +596,17 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                       <div className="w-[18px] h-[18px] rounded-full border-2" style={{ borderColor: clicavel ? NEUTRO : DESABILITADO }} />
                     )}
                   </div>
-                  <p className="text-xs flex-1" style={{ color: marcado ? 'var(--axi-text-primary)' : 'var(--axi-text-secondary)' }}>
+                  <p className="text-xs flex-1" style={{ color: marcado ? 'var(--axi-text-primary)' : TEXTO_SEC }}>
                     {item[lang]}
                   </p>
                   {item.auto && (
                     <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
-                      style={{ background: 'rgba(52,211,153,0.15)', color: VERDE, fontSize: 10 }}>
+                      style={{ background: `rgba(${rgbVerde},0.15)`, color: VERDE, fontSize: 10 }}>
                       auto
                     </span>
                   )}
                   {clicavel && !marcado && (
-                    <span className="text-xs flex-shrink-0" style={{ color: 'var(--axi-text-secondary)', fontSize: 10 }}>
+                    <span className="text-xs flex-shrink-0" style={{ color: TEXTO_SEC, fontSize: 10 }}>
                       {lang === 'pt' ? 'clique para marcar' : lang === 'en' ? 'click to check' : 'clic para marcar'}
                     </span>
                   )}
@@ -603,7 +616,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           </div>
 
           {itensConcluidos === totalItens && (
-            <div className="mt-4 p-3 rounded-xl text-center" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)' }}>
+            <div className="mt-4 p-3 rounded-xl text-center" style={{ background: `rgba(${rgbVerde},0.1)`, border: `1px solid rgba(${rgbVerde},0.3)` }}>
               <p className="text-sm font-bold" style={{ color: VERDE }}>
                 🎉 {lang === 'pt' ? 'Checklist completo! Você está pronto para declarar.' : lang === 'en' ? 'Checklist complete! You are ready to file.' : '¡Checklist completo! Está listo para declarar.'}
               </p>
@@ -619,22 +632,22 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         </CanvasBox>
 
         {/* Documentos Fiscais */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox cor={AZUL} {...cartaoTema}>
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('docTitulo')}</p>
-          <p className="text-xs mb-4" style={{ color: 'var(--axi-text-secondary)' }}>{t('docSub')}</p>
+          <p className="text-xs mb-4" style={{ color: TEXTO_SEC }}>{t('docSub')}</p>
 
-          <div className="p-4 rounded-xl mb-4" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}20` }}>
-            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('docEnviarTitulo')}</p>
+          <div className="p-4 rounded-xl mb-4" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '20'}` }}>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: TEXTO_SEC }}>{t('docEnviarTitulo')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('docAno')}</label>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('docAno')}</label>
                 <select value={anoDocSelecionado} onChange={(e) => setAnoDocSelecionado(Number(e.target.value))}
                   className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }}>
                   {anosComDocumentos.map((a) => <option key={a} value={a} style={{ background: SELECT_BG, color: 'var(--axi-text-primary)' }}>{a}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('docTipoLbl')}</label>
+                <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('docTipoLbl')}</label>
                 <select value={tipoUploadDoc} onChange={(e) => setTipoUploadDoc(e.target.value as TipoDocumentoFiscal)}
                   className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }}>
                   {TIPOS_DOCUMENTO_FISCAL.map((tp) => <option key={tp} value={tp} style={{ background: SELECT_BG, color: 'var(--axi-text-primary)' }}>{TIPO_DOC_LABEL[tp][lang]}</option>)}
@@ -642,12 +655,12 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
               </div>
             </div>
             <div className="mb-3">
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('docDescricaoLbl')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('docDescricaoLbl')}</label>
               <input type="text" value={descricaoUploadDoc} onChange={(e) => setDescricaoUploadDoc(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: `1px solid ${AZUL}30`, color: 'var(--axi-text-primary)' }} />
             </div>
             <div className="mb-3">
-              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: 'var(--axi-text-secondary)' }}>{t('docSelecionarArquivo')}</label>
+              <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: TEXTO_SEC }}>{t('docSelecionarArquivo')}</label>
               <input ref={fileInputDocRef} type="file" accept="application/pdf,image/*" onChange={(e) => setArquivoDoc(e.target.files?.[0] || null)}
                 className="w-full text-xs" style={{ color: 'var(--axi-text-primary)', colorScheme: COLOR_SCHEME }} />
               {arquivoDoc && (
@@ -662,8 +675,8 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
             </button>
           </div>
 
-          <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.15)' }}>
-            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--axi-text-secondary)' }}>{t('docChecklistTitulo')} ({anoDocSelecionado})</p>
+          <div className="p-4 rounded-xl mb-4" style={{ background: NESTED_BG ?? `rgba(${rgbVerde},0.04)`, border: `1px solid ${NESTED_BORDA ?? `rgba(${rgbVerde},0.15)`}` }}>
+            <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: TEXTO_SEC }}>{t('docChecklistTitulo')} ({anoDocSelecionado})</p>
             <div className="flex flex-wrap gap-2">
               {checklistDocItens.map((item) => (
                 <div key={item.tipo} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs"
@@ -680,7 +693,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
               {anosComDocumentos.map((a) => (
                 <button key={a} onClick={() => setAnoDocSelecionado(a)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold"
-                  style={a === anoDocSelecionado ? { background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' } : { background: CAMPO_BG, color: 'var(--axi-text-secondary)' }}>
+                  style={a === anoDocSelecionado ? { background: temaClaro ? ATIVO : `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' } : { background: CAMPO_BG, color: TEXTO_SEC }}>
                   {a}
                 </button>
               ))}
@@ -693,12 +706,12 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
           </div>
 
           {documentosFiltrados.length === 0 ? (
-            <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('docListaVazia')}</p>
+            <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('docListaVazia')}</p>
           ) : (
             <>
               <div className="space-y-2">
                 {documentosPaginaAtual.map((doc) => (
-                  <div key={doc.id} className="p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${AZUL}20` }}>
+                  <div key={doc.id} className="p-3 rounded-xl" style={{ background: PAINEL_BG, border: `1px solid ${NESTED_BORDA ?? AZUL + '20'}` }}>
                     {editandoDocId === doc.id ? (
                       <div className="space-y-2">
                         <select value={editTipoDoc} onChange={(e) => setEditTipoDoc(e.target.value as TipoDocumentoFiscal)}
@@ -720,7 +733,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-bold truncate" style={{ color: 'var(--axi-text-primary)' }}>{doc.nome_arquivo}</p>
-                          <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>
+                          <p className="text-xs" style={{ color: TEXTO_SEC }}>
                             {TIPO_DOC_LABEL[doc.tipo][lang]}{doc.descricao ? ` · ${doc.descricao}` : ''} · {fmtBytes(doc.tamanho_bytes)} · {new Date(doc.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
@@ -746,7 +759,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
                     className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
                     <ChevronLeft size={16} style={{ color: 'var(--axi-text-primary)' }} />
                   </button>
-                  <p className="text-xs" style={{ color: 'var(--axi-text-secondary)' }}>{t('docPaginaLbl').replace('{a}', String(paginaDocumentos + 1)).replace('{b}', String(totalPaginasDoc))}</p>
+                  <p className="text-xs" style={{ color: TEXTO_SEC }}>{t('docPaginaLbl').replace('{a}', String(paginaDocumentos + 1)).replace('{b}', String(totalPaginasDoc))}</p>
                   <button onClick={() => setPaginaDocumentos((p) => Math.min(totalPaginasDoc - 1, p + 1))} disabled={paginaDocumentos >= totalPaginasDoc - 1}
                     className="p-2 rounded-lg disabled:opacity-30" style={{ background: CAMPO_BG }}>
                     <ChevronRight size={16} style={{ color: 'var(--axi-text-primary)' }} />

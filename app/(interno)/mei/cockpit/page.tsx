@@ -112,7 +112,7 @@ export default function CockpitMEI() {
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"): card creme + efeito 3D no hover, texto secundário legível sobre
   // bege, cabeçalho executivo em degradê. Escuro fica 100% inalterado.
-  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#eef085', premium3d: true } as const : {}
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
   const lang = (idioma as 'pt' | 'en' | 'es') || 'pt'
   const [loading, setLoading] = useState(true)
