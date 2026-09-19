@@ -32,7 +32,7 @@ const supabase = createBrowserClient(
 // (public/referencias/) dos demais módulos do MEI, nunca verde.
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', ROXO: '#a78bfa', BOLHA_BG: 'rgba(255,255,255,0.05)', BOLHA_BORDA: 'rgba(255,255,255,0.06)', CAMPO_BG: 'rgba(255,255,255,0.04)', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', BOLHA_BG: '#ffffff', BOLHA_BORDA: 'rgba(16,27,61,0.12)', CAMPO_BG: '#eef2f7', POCO_BG: '#eef2f7' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', ROXO: '#7c3aed', BOLHA_BG: 'rgba(255,255,255,0.5)', BOLHA_BORDA: 'rgba(16,27,61,0.12)', CAMPO_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 
 // Respostas por regra baseadas nos dados reais — ver gancho de IA generativa
@@ -109,6 +109,13 @@ export default function IAMEIAdvisor() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
   const { OURO, VERDE, VERMELHO, AZUL, ROXO, BOLHA_BG, BOLHA_BORDA, CAMPO_BG, POCO_BG } = PALETA[tema]
+  const temaClaro = tema === 'xms'
+  // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
+  // MEI"). Escuro fica 100% inalterado em tudo abaixo.
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
+  const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
+  const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
+  const rgbVerde = temaClaro ? '22,169,125' : '52,211,153'
   const [meiDados, setMeiDados] = useState<any>(null)
   const [receitas, setReceitas] = useState<any[]>([])
   const [custosVariaveis, setCustosVariaveis] = useState<any[]>([])
@@ -314,11 +321,13 @@ DADOS REAIS DESTE MEI:
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout titulo={t('titulo') as string} subtitulo={t('subtitulo') as string} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <button onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${AZUL}, ${OURO})`, color: '#fff' }}>
             <Share2 size={16} /> {mx.compartilhar}
           </button>
           <ThemeToggle />
@@ -326,11 +335,11 @@ DADOS REAIS DESTE MEI:
       }>
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={ROXO} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : ROXO} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {toast && (
           <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
-            style={{ background: 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600 }}>
+            style={{ background: `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600 }}>
             {toast}
           </div>
         )}
@@ -342,24 +351,24 @@ DADOS REAIS DESTE MEI:
             { label: lang === 'pt' ? 'Limite usado' : lang === 'en' ? 'Limit used' : 'Límite usado', value: `${percentualLimite.toFixed(1)}%`, cor: percentualLimite >= 80 ? VERMELHO : VERDE },
             { label: lang === 'pt' ? 'Categoria MEI' : lang === 'en' ? 'MEI Category' : 'Categoría MEI', value: categoria, cor: AZUL },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor} destaque>
-              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: 'var(--axi-text-secondary)' }}>{card.label}</p>
+            <CanvasBox key={i} cor={card.cor} destaque {...cartaoTema}>
+              <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
               <p className="text-lg md:text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
             </CanvasBox>
           ))}
         </div>
 
         {/* Chat */}
-        <CanvasBox cor={OURO}>
+        <CanvasBox cor={OURO} {...cartaoTema}>
           <p className="text-sm font-semibold mb-1" style={{ color: 'var(--axi-text-primary)' }}>{t('titulo') as string}</p>
-          <p className="text-xs mb-4" style={{ color: 'var(--axi-text-secondary)' }}>{t('transparencia') as string}</p>
+          <p className="text-xs mb-4" style={{ color: TEXTO_SEC }}>{t('transparencia') as string}</p>
 
           <div className="h-96 overflow-y-auto rounded-xl p-3 mb-3 space-y-3"
-            style={{ background: POCO_BG, border: '1px solid rgba(106,176,255,0.1)' }}>
+            style={{ background: POCO_BG, border: `1px solid ${NESTED_BORDA ?? 'rgba(106,176,255,0.1)'}` }}>
             {chatMensagens.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full gap-3">
                 <Bot size={40} style={{ color: `${OURO}60` }} />
-                <p className="text-xs text-center px-4" style={{ color: 'var(--axi-text-secondary)' }}>
+                <p className="text-xs text-center px-4" style={{ color: TEXTO_SEC }}>
                   {(t('bemvindo') as string)}
                 </p>
               </div>
