@@ -533,7 +533,9 @@ export default function Investimentos() {
           <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.azul)} lang={lang} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? "rgba(124,58,237,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(124,58,237,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct("#c4b5fd") }}>
+            style={temaClaro
+              ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
+              : { background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>

@@ -190,7 +190,7 @@ function serieHistoricaMetrica(tipo: TipoMeta, ctx: CtxMeta, ate: string, mesesJ
 function optProgressoMetas(labels: string[], real: number[], esperado: number[], labelReal: string, labelEsperado: string, temaClaro?: boolean) {
   const eixoCor = temaClaro ? "#6b7280" : "#cbd5e1";
   const corReal = temaClaro ? "#7c3aed" : CORES.roxo;
-  const corEsperado = temaClaro ? "#a16207" : CORES.ouro;
+  const corEsperado = temaClaro ? "#2ecc9b" : CORES.ouro;
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 44, right: 16, top: 34, bottom: 44, containLabel: false },
@@ -233,9 +233,15 @@ export default function Metas() {
   const ROXO_CHIP_BORDA_FRACA = temaClaro ? "rgba(124,58,237,0.15)" : "rgba(59,111,212,0.1)";
   const AMARELO_CHIP_BG = temaClaro ? "rgba(245,166,35,0.12)" : "rgba(234,179,8,0.12)";
   const AMARELO_CHIP_BORDA = temaClaro ? "rgba(245,166,35,0.25)" : "rgba(234,179,8,0.25)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.15)" : "rgba(212,175,55,0.15)";
-  const OURO_BADGE_BG_FRACO = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.2)" : "rgba(212,175,55,0.2)";
+  // Dourado não é cor da nossa paleta padrão (tema-tokens.md) - no Claro
+  // vira verde-menta, a cor de destaque/CTA oficial. Escuro mantém o
+  // dourado original (identidade "roxo+dourado" do módulo, intocada).
+  const OURO_CLARO = "#2ecc9b";
+  const corOuro = temaClaro ? OURO_CLARO : ct(CORES.ouro);
+  const corOuroC = temaClaro ? OURO_CLARO : ct(CORES.ouroC);
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(212,175,55,0.15)";
+  const OURO_BADGE_BG_FRACO = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)";
 
   const [metas, setMetas] = useState<MetaRow[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -522,8 +528,8 @@ export default function Metas() {
     { l: cx.metaKpiEmRisco, v: String(emRisco), c: ct(CORES.vermelho), i: "⚠️" },
     { l: cx.metaKpiValorEmJogo, v: fBRL(valorEmJogo), c: ct(CORES.roxo), i: "💎" },
     { l: cx.metaKpiTaxaSucesso, v: fPct(taxaSucesso), c: ct(taxaSucesso >= 60 ? CORES.verde : taxaSucesso >= 30 ? CORES.amarelo : CORES.vermelho), i: "📈" },
-    { l: cx.metaKpiProximaPrazo, v: proximaPrazo ? `${proximaPrazo.diasRestantes}d` : "—", c: ct(CORES.ouro), i: "⏳" },
-    { l: cx.metaKpiMarcos, v: String(marcosConquistados), c: ct(CORES.ouroC), i: "🏆" },
+    { l: cx.metaKpiProximaPrazo, v: proximaPrazo ? `${proximaPrazo.diasRestantes}d` : "—", c: corOuro, i: "⏳" },
+    { l: cx.metaKpiMarcos, v: String(marcosConquistados), c: corOuroC, i: "🏆" },
   ];
 
   const marquee = [
@@ -573,7 +579,7 @@ export default function Metas() {
     );
     optEvolucao = optLinhaMulti([
       { nome: cx.metaProgressoReal, dados: serieReal, cor: ct(CORES.roxo), area: true },
-      { nome: cx.metaRitmoNecessario, dados: necessarioLinha, cor: ct(CORES.ouro), tipo: "dashed" },
+      { nome: cx.metaRitmoNecessario, dados: necessarioLinha, cor: corOuro, tipo: "dashed" },
     ], labelsEvolucao, ct(CORES.roxo), temaClaro);
   }
 
@@ -656,7 +662,7 @@ export default function Metas() {
           {[
             { label: txt.totalMetas, value: String(metasVisiveis.length), cor: ct(CORES.roxo) },
             { label: txt.concluidas, value: String(metas.filter(m => m.status === "concluida").length), cor: ct(CORES.verde) },
-            { label: cx.metaKpiValorEmJogo, value: fBRL(valorEmJogo), cor: ct(CORES.ouro) },
+            { label: cx.metaKpiValorEmJogo, value: fBRL(valorEmJogo), cor: corOuro },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor} {...cartaoTema}>
@@ -740,7 +746,7 @@ export default function Metas() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {metasAtivasComputadas.length > 0 && <SubChart titulo={cx.metaGraficoProgresso} cor={ct(CORES.roxo)} option={optProgresso} altura={240} />}
-                  {statusRosca.length > 0 && <SubChart titulo={cx.metaGraficoStatus} cor={ct(CORES.ouro)} option={optStatus} altura={240} />}
+                  {statusRosca.length > 0 && <SubChart titulo={cx.metaGraficoStatus} cor={corOuro} option={optStatus} altura={240} />}
                 </div>
               </div>
             </div>
@@ -748,14 +754,14 @@ export default function Metas() {
             {/* CONSELHO CFO */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                <Sparkles size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.metaConselhoTitulo}</p>
               </div>
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG_FRACO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
-                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
+                      <Sparkles size={15} style={{ color: corOuro, flexShrink: 0 }} />
                       <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
@@ -800,7 +806,7 @@ export default function Metas() {
               const corSemaforo = ct(c ? (c.semaforo === "verde" ? CORES.verde : c.semaforo === "amarelo" ? CORES.amarelo : CORES.vermelho) : "#6ab0ff");
               return (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={concluida ? ct(CORES.ouro) : corSemaforo} {...cartaoTema}>
+                  <CanvasBox cor={concluida ? corOuro : corSemaforo} {...cartaoTema}>
                     <div style={{ opacity: arquivada ? 0.6 : 1 }}>
                       <div className="flex justify-between items-start mb-3">
                         <div className="min-w-0 mr-2">
@@ -836,7 +842,7 @@ export default function Metas() {
                         </div>
                       </div>
 
-                      <p className="text-2xl font-black mb-0.5" style={{ color: concluida ? ct(CORES.ouro) : ct("#e2e8f0") }}>
+                      <p className="text-2xl font-black mb-0.5" style={{ color: concluida ? corOuro : ct("#e2e8f0") }}>
                         {formatarValorMeta(m.tipo_meta, m.valor_meta)}
                       </p>
                       <p className="text-[11px] mb-1" style={{ color: ct("#5a7a9a") }}>
@@ -854,7 +860,7 @@ export default function Metas() {
                             <div className="relative w-full h-2 rounded-full" style={{ background: CAMPO_BORDA }}>
                               <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(0, Math.min(100, c.progReal))}%` }}
                                 transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 + i * 0.06 }}
-                                className="h-2 rounded-full" style={{ background: concluida ? `linear-gradient(90deg, ${ct(CORES.ouro)}, ${ct(CORES.ouroC)})` : `linear-gradient(90deg, ${corSemaforo}, ${corSemaforo}cc)` }} />
+                                className="h-2 rounded-full" style={{ background: concluida ? `linear-gradient(90deg, ${corOuro}, ${corOuroC})` : `linear-gradient(90deg, ${corSemaforo}, ${corSemaforo}cc)` }} />
                               <span className="absolute top-0 h-2 w-0.5" style={{ left: `${Math.max(0, Math.min(100, c.progEspPct))}%`, background: temaClaro ? "#101b3d" : "#fff", opacity: 0.6 }} />
                             </div>
                           </div>
@@ -887,7 +893,7 @@ export default function Metas() {
 
                       <div className="flex items-center justify-between mt-2">
                         <p className="text-xs" style={{ color: ct("#3a6090") }}>{m.prazo ? fmtData(lang, m.prazo) : "—"}</p>
-                        {concluida && <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: OURO_BADGE_BG, color: ct(CORES.ouro) }}><Trophy size={11} /> {cx.metaConcluidaAuto}</span>}
+                        {concluida && <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: OURO_BADGE_BG, color: corOuro }}><Trophy size={11} /> {cx.metaConcluidaAuto}</span>}
                         {arquivada && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(107,114,128,0.15)" : "rgba(148,163,184,0.12)", color: ct("#94a3b8") }}>{cx.metaArquivada}</span>}
                       </div>
                     </div>
