@@ -353,24 +353,33 @@ export const CORES = {
 // equivalente (mesmo padrão já usado no MEI); sem o 2º argumento (ou
 // false), devolve o hex original — nenhuma tela que já chama isso com um
 // hex fora do mapa muda de comportamento.
+// REGRA ATUAL (2026-09-19, substitui a tabela antiga de "cada cor vira uma
+// variante mais escura de si mesma"): toda cor DECORATIVA/de identidade de
+// módulo (roxo, azul, dourado, ciano, rosa, índigo, teal) vira verde-menta
+// (#2ecc9b) no Claro — nunca sobra um "roxo mais escuro" ou "azul-marinho"
+// como cor de módulo. Só ficam com cor própria as cores REALMENTE
+// semânticas: verde=sucesso (#16a97d), vermelho=erro (#ff5a6b). Amarelo/
+// laranja (âmbar) são opção secundária/terciária — só aparecem em alerta
+// real (aviso genuíno) ou quando um gráfico tem muitas séries de dados e
+// precisa de mais de 2 cores pra diferenciar; nunca como cor de marca de
+// módulo. Ver [[feedback_sem_dourado_no_claro]] e a mesma regra já usada em
+// Tesouraria/Contador/Fiscal (roxo->verde, comentário original ali).
+const VERDE_MENTA = "#2ecc9b";
 const MAPA_CORES_CLARO: Record<string, string> = {
-  [CORES.ouro]: "#a16207", [CORES.roxo]: "#7c3aed", [CORES.cyan]: "#0e7490",
-  [CORES.verde]: "#16a97d", [CORES.vermelho]: "#ff5a6b", [CORES.laranja]: "#c2410c",
-  // azul/azulC viram azul-marinho (chart-2/chart-5 da paleta nova) e não
-  // verde-menta: verde-menta já é o CORES.verde desta mesma tabela — usar
-  // a mesma cor pros dois destruiria a distinção entre as duas categorias.
-  [CORES.rosa]: "#be185d", [CORES.azul]: "#101b3d", [CORES.indigo]: "#4338ca",
-  [CORES.teal]: "#0f766e", [CORES.amarelo]: "#a16207",
+  [CORES.ouro]: VERDE_MENTA, [CORES.roxo]: VERDE_MENTA, [CORES.cyan]: VERDE_MENTA,
+  [CORES.verde]: "#16a97d", [CORES.vermelho]: "#ff5a6b", [CORES.laranja]: "#f5a623",
+  [CORES.rosa]: VERDE_MENTA, [CORES.azul]: VERDE_MENTA, [CORES.indigo]: VERDE_MENTA,
+  [CORES.teal]: VERDE_MENTA, [CORES.amarelo]: "#f5a623",
   // Variantes "C" (companheiras claras/pastel de cada CORES.*, usadas como
   // texto/gradiente sobre fundo escuro) — mesmo destino da cor base, senão
   // ficam pastel-sobre-claro (ilegível) no tema Claro.
-  [CORES.ouroC]: "#a16207", [CORES.roxoC]: "#7c3aed", [CORES.cyanC]: "#0e7490",
-  [CORES.verdeC]: "#16a97d", [CORES.vermelhoC]: "#ff5a6b", [CORES.laranjaC]: "#c2410c",
-  [CORES.rosaC]: "#be185d", [CORES.azulC]: "#122b54", [CORES.amareloC]: "#a16207",
+  [CORES.ouroC]: VERDE_MENTA, [CORES.roxoC]: VERDE_MENTA, [CORES.cyanC]: VERDE_MENTA,
+  [CORES.verdeC]: "#16a97d", [CORES.vermelhoC]: "#ff5a6b", [CORES.laranjaC]: "#f5a623",
+  [CORES.rosaC]: VERDE_MENTA, [CORES.azulC]: VERDE_MENTA, [CORES.amareloC]: "#f5a623",
   // Estes 4 hex são variantes do --axi-accent do tema Escuro (não da
   // categoria "azul" de gráfico acima) — no Claro o acento é verde-menta.
-  "#6ab0ff": "#2ecc9b", "#3b6fd4": "#2ecc9b", "#2a5fd4": "#2ecc9b", "#5a8fd4": "#2ecc9b",
-  "#34d399": "#16a97d", "#fbbf24": "#f5a623", "#f87171": "#ff5a6b", "#c4b5fd": "#7c3aed",
+  "#6ab0ff": VERDE_MENTA, "#3b6fd4": VERDE_MENTA, "#2a5fd4": VERDE_MENTA, "#5a8fd4": VERDE_MENTA,
+  "#34d399": "#16a97d", "#fbbf24": "#f5a623", "#f87171": "#ff5a6b", "#c4b5fd": VERDE_MENTA,
   // Cinzas de texto secundário/meta: #6b7280 não bate 4.5:1 sobre o creme
   // #f6f7c4 dos cards do tema Claro (mesmo problema já corrigido no MEI,
   // ver feedback_linguagem_simples_elias / regra 3 do rollout Claro) —
@@ -378,7 +387,8 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   "#5a7a9a": "#374151", "#c8d8f0": "#101b3d", "#f1f5f9": "#101b3d", "#e2e8f0": "#101b3d",
   "#64748b": "#374151", "#6ee7b7": "#16a97d", "#fca5a5": "#ff5a6b",
   "#94a3b8": "#374151", "#cbd5e1": "#374151", "#3a6090": "#374151",
-  "#f59e0b": "#f5a623", "#fb923c": "#c2410c", "#ef4444": "#ff5a6b",
+  "#f59e0b": "#f5a623", "#fb923c": "#f5a623", "#ef4444": "#ff5a6b",
+  "#d4af37": VERDE_MENTA, "#f0d878": VERDE_MENTA,
 };
 export function corTema(hex: string, claro?: boolean): string {
   return claro ? MAPA_CORES_CLARO[hex] ?? hex : hex;
