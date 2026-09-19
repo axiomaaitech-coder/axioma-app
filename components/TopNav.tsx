@@ -468,7 +468,7 @@ export default function TopNav() {
               transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
               onClick={() => navegar("/open-finance")}
               title={conectarLabel}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide"
               style={{
                 background: ofAtivo
                   ? "linear-gradient(135deg, rgba(16,185,129,0.4), rgba(52,211,153,0.5))"
@@ -478,10 +478,10 @@ export default function TopNav() {
                 textShadow: "0 0 8px rgba(52,211,153,0.6)",
               }}
             >
-              <Landmark size={15} />
+              <Landmark size={13} />
               <span>{conectarLabelCurto}</span>
-              <span className="px-1.5 py-0.5 rounded-full font-black"
-                style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 8, border: "1px solid rgba(52,211,153,0.6)" }}>
+              <span className="px-1 py-0.5 rounded-full font-black"
+                style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 7, border: "1px solid rgba(52,211,153,0.6)" }}>
                 NOVO
               </span>
             </motion.button>
