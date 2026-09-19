@@ -35,7 +35,11 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
+// Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
+// escurecer/saturar mais (ver memória do rollout Claro).
+const PAINEL_CLARO_FUNDO = "#f6f7c4";
+// Ponte Lucro×Caixa em alerta é risco real (regra 4, exceção de alerta) —
+// mantém o tingimento de aviso, nunca vira creme neutro.
 const PONTE_ALERTA_ESCURO = "linear-gradient(160deg, rgba(40,20,10,0.6), rgba(10,8,32,0.95))";
 const PONTE_ALERTA_CLARO = "linear-gradient(160deg, #fdf3ee, #f7f8fc)";
 
@@ -109,6 +113,15 @@ export default function DREPage() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const d = t.dre;
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
+  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
+  const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(20,184,166,0.10))";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(16,185,129,0.24)";
+  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
+  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#6ee7b7");
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -456,7 +469,7 @@ export default function DREPage() {
   ].filter(Boolean);
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
@@ -468,6 +481,8 @@ export default function DREPage() {
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={`📈 ${d.titulo}`} subtitulo={d.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
@@ -505,8 +520,8 @@ export default function DREPage() {
             { label: cx.dreMargemLiquida, value: fPct(dreAtual.margemLiquidaPct), cor: ct(CORES.verde) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor} destaque>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
+              <CanvasBox cor={card.cor} destaque {...cartaoTema}>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
                 <p className="text-base md:text-2xl font-black" style={{ color: card.cor, ...FONTE_EXEC }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
             </motion.div>
@@ -514,13 +529,13 @@ export default function DREPage() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={ct(CORES.verde)}>
-            <p className="text-sm text-center py-8" style={{ color: "var(--axi-text-secondary)" }}>{d.semDados}</p>
+          <CanvasBox cor={ct(CORES.verde)} {...cartaoTema}>
+            <p className="text-sm text-center py-8" style={{ color: TEXTO_SEC }}>{d.semDados}</p>
           </CanvasBox>
         ) : (
           <>
             {/* SEMÁFORO DE SAÚDE */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: `1px solid ${corSaude === "verde" ? "rgba(16,185,129,0.3)" : corSaude === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${corSaude === "verde" ? "rgba(16,185,129,0.3)" : corSaude === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck size={16} style={{ color: ct(CORES.verde) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.semaforoSaudeTitulo}</p>
@@ -528,9 +543,9 @@ export default function DREPage() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {sinaisSaude.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.03)" }}>
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
                     <CorSemaforo cor={s.cor} size={9} />
-                    <p className="text-xs font-medium" style={{ color: ct("#cbd5e1") }}>{SINAL_LABEL[s.chave]}</p>
+                    <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#cbd5e1") }}>{SINAL_LABEL[s.chave]}</p>
                   </div>
                 ))}
               </div>
@@ -540,21 +555,21 @@ export default function DREPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className="rounded-2xl p-3 md:p-4"
+                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}><AnimatedNumber value={k.v} /></p>
-                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: TEXTO_SEC }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(16,185,129,0.14), rgba(20,184,166,0.10))", border: "1px solid rgba(16,185,129,0.24)" }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: LETREIRO_BG, border: `1px solid ${LETREIRO_BORDA}` }}>
               <div className="marquee-dre py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#6ee7b7") : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.verde) }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? LETREIRO_DESTAQUE : LETREIRO_TEXTO }}>{m}<span style={{ color: LETREIRO_DESTAQUE }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -563,7 +578,7 @@ export default function DREPage() {
 
             {/* DIAGNÓSTICO DE LUCRATIVIDADE — causa raiz */}
             {narrativaCausaRaiz && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(16,185,129,0.2)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(16,185,129,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquareText size={16} style={{ color: ct(CORES.verde) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.diagnosticoTitulo}</p>
@@ -577,7 +592,7 @@ export default function DREPage() {
 
             {/* PONTE LUCRO × CAIXA */}
             {narrativaPonte && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: ponte.alerta ? panelAlertaFundo : painelFundo, border: `1px solid ${ponte.alerta ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.2)"}` }}>
+              <div className={`rounded-2xl p-4 md:p-5${ponte.alerta ? "" : classePremium3d}`} style={{ background: ponte.alerta ? panelAlertaFundo : painelFundo, border: `1px solid ${ponte.alerta ? "rgba(239,68,68,0.3)" : "rgba(16,185,129,0.2)"}` }}>
                 <div className="flex items-center gap-2 mb-2">
                   {ponte.alerta ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(CORES.verde) }} />}
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.ponteLucroCaixaTitulo}</p>
@@ -587,13 +602,13 @@ export default function DREPage() {
             )}
 
             {/* MODAL ÚNICO — Cascata + AV/AH + Projeção */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#10b981,#14b8a6)", boxShadow: "0 0 12px #10b981" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.cascataDRE}</p>
-                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
+                    <p className="text-xs font-medium" style={{ color: TEXTO_SEC }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
                   </div>
                 </div>
 
@@ -602,22 +617,22 @@ export default function DREPage() {
                 </div>
 
                 {/* Tabela AV% / AH% */}
-                <div className="overflow-x-auto rounded-xl mb-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${ct(CORES.verde)}20` }}>
+                <div className="overflow-x-auto rounded-xl mb-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : ct(CORES.verde) + "20"}` }}>
                   <table className="w-full min-w-[480px]">
                     <thead>
-                      <tr style={{ borderBottom: "1px solid rgba(16,185,129,0.15)" }}>
+                      <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(16,185,129,0.15)" }}>
                         {[t.geral.descricao, t.geral.valor, "AV%", "AH%"].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{h}</th>
+                          <th key={h} className="text-left px-4 py-3 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {linhasCascataTabela.map((l, i) => (
-                        <tr key={i} style={{ borderBottom: i < linhasCascataTabela.length - 1 ? "1px solid rgba(59,111,212,0.06)" : "none" }}>
+                        <tr key={i} style={{ borderBottom: i < linhasCascataTabela.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.06)"}` : "none" }}>
                           <td className="px-4 py-2.5 text-sm" style={{ color: "var(--axi-text-primary)" }}>{l.label}</td>
                           <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: l.linha.valor >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(l.linha.valor)}</td>
-                          <td className="px-4 py-2.5 text-sm whitespace-nowrap" style={{ color: ct("#64748b") }}>{l.linha.avPct !== null ? fPct(l.linha.avPct) : "—"}</td>
-                          <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: Math.abs(l.ah) < 1 ? ct("#64748b") : l.ah > 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>
+                          <td className="px-4 py-2.5 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{l.linha.avPct !== null ? fPct(l.linha.avPct) : "—"}</td>
+                          <td className="px-4 py-2.5 text-sm font-bold whitespace-nowrap" style={{ color: Math.abs(l.ah) < 1 ? TEXTO_SEC : l.ah > 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>
                             {Math.abs(l.ah) < 1 ? cx.periodoEstavel : `${l.ah > 0 ? "▲" : "▼"} ${fPct(Math.abs(l.ah))}`}
                           </td>
                         </tr>
@@ -626,13 +641,14 @@ export default function DREPage() {
                   </table>
                 </div>
 
-                {/* Projeção 3 meses */}
+                {/* Projeção 3 meses — grid de valores, sempre bege neutro
+                    (regra 4), nunca tingido igual pros três (não é alerta). */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {projecaoDRE.map((proj, i) => (
-                    <div key={i} className="rounded-xl p-3" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                    <div key={i} className="rounded-xl p-3" style={{ background: temaClaro ? NESTED_BG : "rgba(16,185,129,0.06)", border: `1px solid ${temaClaro ? NESTED_BORDA : "rgba(16,185,129,0.2)"}` }}>
                       <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: ct(CORES.verde) }}>{cx.previsao} +{i + 1}</p>
                       <p className="text-base font-black" style={{ color: proj.lucroLiquido.valor >= 0 ? ct("#e2e8f0") : ct(CORES.vermelho) }}>{fBRL(proj.lucroLiquido.valor)}</p>
-                      <p className="text-xs" style={{ color: ct("#64748b") }}>{cx.dreLucroLiquido}</p>
+                      <p className="text-xs" style={{ color: TEXTO_SEC }}>{cx.dreLucroLiquido}</p>
                     </div>
                   ))}
                 </div>
@@ -640,7 +656,7 @@ export default function DREPage() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(212,175,55,0.2)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <Zap size={16} style={{ color: ct(CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.conselhoCfoTitulo}</p>
@@ -650,7 +666,7 @@ export default function DREPage() {
                   {conselhos.map((s, i) => (
                     <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.2)"}` }}>
                       <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
-                      <p className="text-xs font-medium" style={{ color: ct("#f0d878") }}>{s}</p>
+                      <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
                 </div>
@@ -660,7 +676,7 @@ export default function DREPage() {
             </div>
 
             {/* Runway */}
-            <div className="rounded-2xl p-4 md:p-5 flex items-center gap-3" style={{ background: painelFundo, border: `1px solid ${runwayMeses !== null ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses !== null ? "rgba(239,68,68,0.25)" : "rgba(16,185,129,0.2)"}` }}>
               <Clock size={18} style={{ color: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), flexShrink: 0 }} />
               <p className="text-sm" style={{ color: runwayMeses !== null ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaRunway}</p>
             </div>
@@ -684,27 +700,27 @@ export default function DREPage() {
         {historicoAberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-start justify-center z-50 p-4 pt-16 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-              <CanvasBox cor={ct(CORES.teal)}>
+              <CanvasBox cor={ct(CORES.teal)} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#5eead4") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{cx.historicoTitulo}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
                 </div>
 
                 {!snapshotSelecionado ? (
                   historico.length === 0 ? (
-                    <p className="text-sm text-center py-10" style={{ color: "var(--axi-text-secondary)" }}>{cx.historicoVazio}</p>
+                    <p className="text-sm text-center py-10" style={{ color: TEXTO_SEC }}>{cx.historicoVazio}</p>
                   ) : (
                     <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                       {historico.map(h => (
-                        <button key={h.id} onClick={() => setSnapshotSelecionado(h)} className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all hover:scale-[1.01]" style={{ background: "rgba(20,184,166,0.06)", border: "1px solid rgba(20,184,166,0.18)" }}>
+                        <button key={h.id} onClick={() => setSnapshotSelecionado(h)} className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-left transition-all hover:scale-[1.01]" style={{ background: temaClaro ? NESTED_BG : "rgba(20,184,166,0.06)", border: `1px solid ${temaClaro ? NESTED_BORDA : "rgba(20,184,166,0.18)"}` }}>
                           <div className="flex items-center gap-2.5 min-w-0">
                             <CorSemaforo cor={h.semaforo_cor} />
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{h.periodo_label} — {new Date(h.periodo_fim + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "numeric" })}</p>
-                              <p className="text-xs" style={{ color: h.periodo_fim < isoHoje() ? ct("#64748b") : ct("#5eead4") }}>{h.periodo_fim < isoHoje() ? cx.periodoFechado : cx.periodoAberto}</p>
+                              <p className="text-xs" style={{ color: h.periodo_fim < isoHoje() ? TEXTO_SEC : ct("#5eead4") }}>{h.periodo_fim < isoHoje() ? cx.periodoFechado : cx.periodoAberto}</p>
                             </div>
                           </div>
                           <p className="text-sm font-black flex-shrink-0" style={{ color: h.lucro_liquido >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(h.lucro_liquido)}</p>
@@ -724,8 +740,8 @@ export default function DREPage() {
                         { l: cx.dreLucroLiquido, v: fBRL(snapshotSelecionado.lucro_liquido) },
                         { l: cx.dreMargemLiquida, v: fPct(snapshotSelecionado.margem_liquida_pct) },
                       ].map((c, i) => (
-                        <div key={i} className="rounded-xl px-3 py-2.5" style={{ background: "rgba(255,255,255,0.03)" }}>
-                          <p className="text-xs uppercase tracking-wider" style={{ color: ct("#64748b") }}>{c.l}</p>
+                        <div key={i} className="rounded-xl px-3 py-2.5" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
+                          <p className="text-xs uppercase tracking-wider" style={{ color: TEXTO_SEC }}>{c.l}</p>
                           <p className="text-sm font-bold" style={{ color: ct("#e2e8f0") }}>{c.v}</p>
                         </div>
                       ))}
@@ -734,7 +750,7 @@ export default function DREPage() {
                       <div className="space-y-1.5">
                         <p className="text-xs font-black" style={{ color: ct(CORES.ouro) }}>{cx.conselhoCfoTitulo}</p>
                         {snapshotSelecionado.resultado_completo.gatilhosConselho.map((g: any, i: number) => (
-                          <p key={i} className="text-xs" style={{ color: ct("#f0d878") }}>{montarConselhoCFO(lang, g)}</p>
+                          <p key={i} className="text-xs" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{montarConselhoCFO(lang, g)}</p>
                         ))}
                       </div>
                     )}
