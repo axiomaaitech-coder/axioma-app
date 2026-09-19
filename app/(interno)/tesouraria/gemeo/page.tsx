@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
 import { TrendingUp, Building2, Landmark, Wallet } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { optLinhaMulti, fBRL2 } from '../../../../lib/cfoCore'
@@ -16,17 +18,21 @@ import {
 type Idioma3 = 'pt' | 'en' | 'es'
 type Mudanca = 'nenhuma' | 'receita30' | 'emprestimo' | 'filial'
 
-const AZUL = '#3b6fd4'
-const AZULC = '#6ab0ff'
-const ROXO = '#a78bfa'
-const VERDE = '#34d399'
-const AMARELO = '#fbbf24'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx. ROXO não
+// é cor da nossa paleta padrão — no Claro vira verde-menta.
+const PALETA = {
+  dark: {
+    AZULC: '#6ab0ff', ROXO: '#a78bfa', VERDE: '#34d399', AMARELO: '#fbbf24', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.04)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)',
+  },
+  xms: {
+    AZULC: '#2ecc9b', ROXO: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
+    PAINEL_BG: '#f6f7c4', CAMPO_BG: '#ffffff', BTN_BG: 'rgba(16,27,61,0.05)', BORDA: 'rgba(16,27,61,0.12)', BORDA_SUAVE: 'rgba(16,27,61,0.08)', NESTED_BG: 'rgba(255,255,255,0.5)',
+  },
+} as const
 
-const CORES_SCORE: Record<string, string> = { vermelho: VERMELHO, amarelo: AMARELO, azul: AZULC, verde: VERDE }
+function coresScore(VERMELHO: string, AMARELO: string, AZULC: string, VERDE: string): Record<string, string> { return { vermelho: VERMELHO, amarelo: AMARELO, azul: AZULC, verde: VERDE } }
 const NIVEL_LABEL: Record<string, { pt: string; en: string; es: string }> = {
   critico: { pt: 'Crítico', en: 'Critical', es: 'Crítico' },
   atencao: { pt: 'Atenção', en: 'Attention', es: 'Atención' },
@@ -41,6 +47,11 @@ export default function TesourariaGemeoPage() {
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const { AZULC, ROXO, VERDE, AMARELO, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, BORDA, BORDA_SUAVE, NESTED_BG } = PALETA[tema]
+  const CORES_SCORE = coresScore(VERMELHO, AMARELO, AZULC, VERDE)
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -108,10 +119,14 @@ export default function TesourariaGemeoPage() {
 
   const dividaDepois = dividaPendente + (mudanca === 'emprestimo' ? (Number(emprestimoValor.replace(',', '.')) || 0) : 0)
 
+  // Duas séries num mesmo gráfico precisam de cores distintas — segue a
+  // sequência oficial chart-1/chart-2 do tema-tokens.md em vez do ROXO
+  // (que no resto da tela virou verde-menta e colidiria com AZULC).
+  const corSerieMudanca = temaClaro ? '#101b3d' : ROXO
   const chartOption = fluxo && simulacao ? optLinhaMulti(
     [
       { nome: L('Hoje, se nada mudar', 'Today, if nothing changes', 'Hoy, si nada cambia'), dados: fluxo.pontos.map((p) => p.saldoProjetado.base), cor: AZULC, area: mudanca === 'nenhuma' },
-      { nome: L('Com a mudança aplicada', 'With the change applied', 'Con el cambio aplicado'), dados: simulacao.pontos.map((p) => p.saldoProjetadoSimulado), cor: ROXO, area: mudanca !== 'nenhuma' },
+      { nome: L('Com a mudança aplicada', 'With the change applied', 'Con el cambio aplicado'), dados: simulacao.pontos.map((p) => p.saldoProjetadoSimulado), cor: corSerieMudanca, area: mudanca !== 'nenhuma' },
     ],
     fluxo.pontos.map((p) => `${p.horizonteDias}d`),
     AZULC
@@ -124,15 +139,20 @@ export default function TesourariaGemeoPage() {
   ]
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Gêmeo Financeiro', 'Digital Twin', 'Gemelo Financiero')}
       subtitulo={L('Como sua empresa está agora e como estará em 30/60/90 dias — com ou sem uma mudança grande', 'Where your company stands now and where it will be in 30/60/90 days — with or without one big change', 'Cómo está su empresa ahora y cómo estará en 30/60/90 días — con o sin un cambio grande')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
-        <button onClick={() => router.push('/tesouraria')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
-        </button>
+        <>
+          <button onClick={() => router.push('/tesouraria')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {loading ? (
@@ -150,7 +170,7 @@ export default function TesourariaGemeoPage() {
               { label: L('Dívida Pendente', 'Outstanding Debt', 'Deuda Pendiente'), valor: dividaPendente, cor: AMARELO, icone: Landmark },
               { label: L('Liquidity Score', 'Liquidity Score', 'Liquidity Score'), valor: scoreAtual.total, cor: CORES_SCORE[scoreAtual.cor], icone: Building2, semReais: true },
             ].map((k) => (
-              <div key={k.label} className="rounded-2xl p-3 md:p-4" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${k.cor}25` }}>
+              <div key={k.label} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}>{(k as any).semReais ? k.valor : `R$ ${fBRL2(k.valor)}`}</p>
               </div>
@@ -163,12 +183,12 @@ export default function TesourariaGemeoPage() {
           </p>
 
           {/* SELETOR DE MUDANÇA GRANDE */}
-          <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${ROXO}30` }}>
+          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${ROXO}30` }}>
             <h3 className="text-sm font-bold mb-3" style={{ color: TITULO }}>{L('Aplicar uma mudança grande', 'Apply one big change', 'Aplicar un cambio grande')}</h3>
             <div className="flex flex-wrap gap-2 mb-4">
               <button onClick={() => setMudanca('nenhuma')}
                 className="px-3 py-2 rounded-xl text-xs font-semibold"
-                style={{ background: mudanca === 'nenhuma' ? `${AZULC}25` : 'rgba(255,255,255,0.04)', color: mudanca === 'nenhuma' ? AZULC : CINZA, border: `1px solid ${mudanca === 'nenhuma' ? AZULC : 'rgba(255,255,255,0.08)'}` }}>
+                style={{ background: mudanca === 'nenhuma' ? `${AZULC}25` : BTN_BG, color: mudanca === 'nenhuma' ? AZULC : CINZA, border: `1px solid ${mudanca === 'nenhuma' ? AZULC : BORDA}` }}>
                 {L('Nenhuma (como está)', 'None (as is)', 'Ninguno (como está)')}
               </button>
               {MUDANCAS.map((m) => {
@@ -176,7 +196,7 @@ export default function TesourariaGemeoPage() {
                 return (
                   <button key={m.chave} onClick={() => setMudanca(m.chave)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold"
-                    style={{ background: mudanca === m.chave ? `${ROXO}25` : 'rgba(255,255,255,0.04)', color: mudanca === m.chave ? ROXO : CINZA, border: `1px solid ${mudanca === m.chave ? ROXO : 'rgba(255,255,255,0.08)'}` }}>
+                    style={{ background: mudanca === m.chave ? `${ROXO}25` : BTN_BG, color: mudanca === m.chave ? ROXO : CINZA, border: `1px solid ${mudanca === m.chave ? ROXO : BORDA}` }}>
                     <Icone size={13} />{m.label}
                   </button>
                 )
@@ -188,12 +208,12 @@ export default function TesourariaGemeoPage() {
                 <div>
                   <label className="text-[10px]" style={{ color: CINZA }}>{L('Valor do empréstimo', 'Loan amount', 'Monto del préstamo')}</label>
                   <input type="text" inputMode="decimal" value={emprestimoValor} onChange={(e) => setEmprestimoValor(e.target.value)} placeholder="0"
-                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${ROXO}30`, color: TEXTO }} />
+                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
                 <div>
                   <label className="text-[10px]" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
                   <input type="text" inputMode="decimal" value={emprestimoParcela} onChange={(e) => setEmprestimoParcela(e.target.value)} placeholder="0"
-                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${ROXO}30`, color: TEXTO }} />
+                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
               </div>
             )}
@@ -203,12 +223,12 @@ export default function TesourariaGemeoPage() {
                 <div>
                   <label className="text-[10px]" style={{ color: CINZA }}>{L('Investimento inicial', 'Initial investment', 'Inversión inicial')}</label>
                   <input type="text" inputMode="decimal" value={filialInvestimento} onChange={(e) => setFilialInvestimento(e.target.value)} placeholder="0"
-                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${ROXO}30`, color: TEXTO }} />
+                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
                 <div>
                   <label className="text-[10px]" style={{ color: CINZA }}>{L('Custo mensal adicional', 'Additional monthly cost', 'Costo mensual adicional')}</label>
                   <input type="text" inputMode="decimal" value={filialCustoMensal} onChange={(e) => setFilialCustoMensal(e.target.value)} placeholder="0"
-                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${ROXO}30`, color: TEXTO }} />
+                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                 </div>
               </div>
             )}
@@ -219,34 +239,34 @@ export default function TesourariaGemeoPage() {
           {/* COMPARATIVO ANTES / DEPOIS */}
           <div>
             <h3 className="text-sm font-bold mb-2" style={{ color: TITULO }}>{L('Antes × Depois', 'Before × After', 'Antes × Después')}</h3>
-            <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="overflow-x-auto rounded-2xl" style={{ border: `1px solid ${BORDA}` }}>
               <table className="w-full text-xs" style={{ minWidth: 480 }}>
                 <thead>
-                  <tr style={{ color: CINZA, background: 'rgba(255,255,255,0.03)' }}>
+                  <tr style={{ color: CINZA, background: NESTED_BG }}>
                     <th className="text-left py-2 px-3 font-semibold">{L('Indicador', 'Indicator', 'Indicador')}</th>
                     <th className="text-right py-2 px-3 font-semibold">{L('Hoje', 'Today', 'Hoy')}</th>
                     <th className="text-right py-2 px-3 font-semibold">{L('Com a mudança', 'With the change', 'Con el cambio')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
                     <td className="py-2 px-3 font-semibold" style={{ color: TEXTO }}>{L('Caixa disponível', 'Available cash', 'Caja disponible')}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CINZA }}>R$ {fBRL2(posicao.totalDisponivel)}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: AZULC }}>R$ {fBRL2(simulacao.caixaDisponivelSimulado)}</td>
                   </tr>
-                  <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
                     <td className="py-2 px-3 font-semibold" style={{ color: TEXTO }}>{L('Saldo projetado 90d', 'Projected 90d balance', 'Saldo proyectado 90d')}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CINZA }}>R$ {fBRL2(fluxo90?.saldoProjetado.base || 0)}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: simulacao.rupturaHorizonte ? VERMELHO : AZULC }}>
                       R$ {fBRL2(simulacao.pontos.find((p) => p.horizonteDias === 90)?.saldoProjetadoSimulado || 0)}
                     </td>
                   </tr>
-                  <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
                     <td className="py-2 px-3 font-semibold" style={{ color: TEXTO }}>{L('Dívida pendente', 'Outstanding debt', 'Deuda pendiente')}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CINZA }}>R$ {fBRL2(dividaPendente)}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: dividaDepois > dividaPendente ? AMARELO : AZULC }}>R$ {fBRL2(dividaDepois)}</td>
                   </tr>
-                  <tr style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <tr style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
                     <td className="py-2 px-3 font-semibold" style={{ color: TEXTO }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CORES_SCORE[scoreAtual.cor] }}>{scoreAtual.total} ({NIVEL_LABEL[scoreAtual.nivel][lang]})</td>
                     <td className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: CORES_SCORE[simulacao.liquidityScoreSimulado.cor] }}>
@@ -267,5 +287,6 @@ export default function TesourariaGemeoPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
