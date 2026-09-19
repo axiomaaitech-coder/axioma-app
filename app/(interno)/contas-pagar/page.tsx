@@ -14,7 +14,7 @@ import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { CanvasBox } from "../../../components/CanvasBox";
+import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
 import { SeletorCentroCusto } from "../../../components/SeletorCentroCusto";
 import { obterEmpresaAtiva, obterMeuPapel, listarEquipe, type MembroEquipe } from "../../../lib/empresaHelpers";
@@ -1765,32 +1765,32 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "central" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }) : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "inteligencia" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "aprovacoes" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` }) : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "aprovacoes" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "pedidos" ? { background: (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "pedidos" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "conferencia" ? { background: (temaClaro ? "rgba(255,90,107,0.2)" : "rgba(248,113,113,0.2)"), color: VERMELHO, border: `1px solid ${VERMELHO}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "conferencia" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "historico" ? { background: (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)"), color: AZUL, border: `1px solid ${AZUL}50` } : { background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+          style={aba === "historico" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <History size={14} />{L("Histórico", "History", "Historial")}
         </button>
         {podeConfigurarAp && (
           <button onClick={abrirConfigAp} className="ml-auto px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-            style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), color: CINZA, border: (temaClaro ? "1px solid #e2e8f0" : "1px solid rgba(255,255,255,0.08)") }}>
+            style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" }}>
             <Settings size={14} />⚙️ {L("Configuração AP", "AP Configuration", "Configuración AP")}
           </button>
         )}
@@ -1820,7 +1820,7 @@ export default function ContasPagarPage() {
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
             </div>
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
               <option value="pendente">{statusLabel("pendente")}</option>
               <option value="parcial">{statusLabel("parcial")}</option>
@@ -1828,11 +1828,11 @@ export default function ContasPagarPage() {
               <option value="pago">{statusLabel("pago")}</option>
               <option value="aguardando_aprovacao">{statusLabel("aguardando_aprovacao")}</option>
             </select>
-            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroFornecedor !== "" ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
               {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
-            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }}>
+            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroCategoria !== "" ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
               {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
             </select>
@@ -1852,8 +1852,12 @@ export default function ContasPagarPage() {
                 const cor = statusCor(statusExibido);
                 return (
                   <motion.div key={c.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    className="rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
-                    style={{ background: proximasAPagar.has(c.id) ? (temaClaro ? "rgba(16,27,61,0.08)" : "rgba(167,139,250,0.08)") : (temaClaro ? "#ffffff" : "rgba(10,20,36,0.6)"), border: proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25` }}>
+                    className={`rounded-xl p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4${classePremium3d}`}
+                    style={{
+                      background: temaClaro ? "#f6f7c4" : (proximasAPagar.has(c.id) ? "rgba(167,139,250,0.08)" : "rgba(10,20,36,0.6)"),
+                      border: temaClaro ? (proximasAPagar.has(c.id) ? "1px solid rgba(16,27,61,0.4)" : BORDA_3D) : (proximasAPagar.has(c.id) ? `1px solid ${ROXO}50` : `1px solid ${cor}25`),
+                      boxShadow: temaClaro ? SOMBRA_3D : undefined,
+                    }}>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate flex items-center gap-1.5" style={{ color: TEXTO }}>
                         {proximasAPagar.has(c.id) && (
@@ -2622,7 +2626,7 @@ export default function ContasPagarPage() {
             </div>
             {podeEditar && (
               <button onClick={abrirNovoPedido} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 flex-shrink-0"
-                style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZUL, border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
+                style={temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(106,176,255,0.15)", color: AZUL, border: "1px solid rgba(106,176,255,0.3)" }}>
                 <Plus size={15} />{L("Novo Pedido", "New Order", "Nueva Orden")}
               </button>
             )}
