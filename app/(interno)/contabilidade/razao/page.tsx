@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { CanvasBox } from '../../../../components/CanvasBox'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
 import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../../components/CentroCompartilhamento'
@@ -18,6 +19,7 @@ import {
 import { fBRL2, resolverPeriodo, type Periodo, type PeriodoPreset } from '../../../../lib/cfoCore'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -143,6 +145,7 @@ function RazaoInner() {
         </>
       }
     >
+      <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
       {contaSelecionada && (
         <div className="mb-5">
           <LetreiroAxioma id="razao" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
@@ -184,7 +187,7 @@ function RazaoInner() {
             <tbody>
               <tr style={{ borderTop: '1px solid var(--axi-border)' }}>
                 <td className="py-2" colSpan={4} style={{ color: CINZA, fontStyle: 'italic' }}>{L('Saldo Anterior', 'Opening Balance', 'Saldo Anterior')}</td>
-                <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: TEXTO }}>R$ {fBRL2(saldoAnterior)}</td>
+                <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: TEXTO }}><AnimatedNumber value={`R$ ${fBRL2(saldoAnterior)}`} /></td>
               </tr>
               {carregandoExtrato && (
                 <tr><td colSpan={5} className="py-4 text-center" style={{ color: CINZA }}>{L('Carregando extrato...', 'Loading statement...', 'Cargando extracto...')}</td></tr>
@@ -203,15 +206,16 @@ function RazaoInner() {
                       </span>
                     )}
                   </td>
-                  <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{partida.tipo === 'debito' ? `R$ ${fBRL2(Number(partida.valor))}` : '—'}</td>
-                  <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{partida.tipo === 'credito' ? `R$ ${fBRL2(Number(partida.valor))}` : '—'}</td>
-                  <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: saldo >= 0 ? VERDE : VERMELHO }}>R$ {fBRL2(saldo)}</td>
+                  <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{partida.tipo === 'debito' ? <AnimatedNumber value={`R$ ${fBRL2(Number(partida.valor))}`} /> : '—'}</td>
+                  <td className="text-right py-2 whitespace-nowrap" style={{ color: TEXTO }}>{partida.tipo === 'credito' ? <AnimatedNumber value={`R$ ${fBRL2(Number(partida.valor))}`} /> : '—'}</td>
+                  <td className="text-right py-2 font-bold whitespace-nowrap" style={{ color: saldo >= 0 ? VERDE : VERMELHO }}><AnimatedNumber value={`${saldo < 0 ? '− ' : ''}R$ ${fBRL2(Math.abs(saldo))}`} /></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+      </CanvasBox>
 
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
@@ -246,8 +250,8 @@ function RazaoInner() {
                         {partidasModal.map((p) => (
                           <tr key={p.id} style={{ borderTop: '1px solid var(--axi-border)' }}>
                             <td className="py-1.5" style={{ color: TEXTO }}>{contaNome(p.conta_id)}</td>
-                            <td className="text-right py-1.5 whitespace-nowrap" style={{ color: TEXTO }}>{p.tipo === 'debito' ? `R$ ${fBRL2(Number(p.valor))}` : '—'}</td>
-                            <td className="text-right py-1.5 whitespace-nowrap" style={{ color: TEXTO }}>{p.tipo === 'credito' ? `R$ ${fBRL2(Number(p.valor))}` : '—'}</td>
+                            <td className="text-right py-1.5 whitespace-nowrap" style={{ color: TEXTO }}>{p.tipo === 'debito' ? <AnimatedNumber value={`R$ ${fBRL2(Number(p.valor))}`} /> : '—'}</td>
+                            <td className="text-right py-1.5 whitespace-nowrap" style={{ color: TEXTO }}>{p.tipo === 'credito' ? <AnimatedNumber value={`R$ ${fBRL2(Number(p.valor))}`} /> : '—'}</td>
                           </tr>
                         ))}
                       </tbody>

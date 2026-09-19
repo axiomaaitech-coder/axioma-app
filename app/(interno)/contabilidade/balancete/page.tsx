@@ -3,6 +3,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { CanvasBox } from '../../../../components/CanvasBox'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
 import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../../components/CentroCompartilhamento'
@@ -112,6 +113,7 @@ export default function BalancetePage() {
         </>
       }
     >
+      <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
       <div className="mb-5">
         <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
       </div>
@@ -182,6 +184,7 @@ export default function BalancetePage() {
           </div>
         </>
       )}
+      </CanvasBox>
 
       <CentroCompartilhamento
         aberto={shareAberto}

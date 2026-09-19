@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { CanvasBox } from '../../../../components/CanvasBox'
 import SeletorPeriodo from '../../../../components/SeletorPeriodo'
 import { LetreiroAxioma } from '../../../../components/LetreiroAxioma'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../../components/CentroCompartilhamento'
@@ -126,6 +127,7 @@ export default function DrePage() {
         </>
       }
     >
+      <CanvasBox cor={TEAL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
       <div className="mb-5">
         <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
       </div>
@@ -199,6 +201,7 @@ export default function DrePage() {
         </div>
         </>
       )}
+      </CanvasBox>
 
       <CentroCompartilhamento
         aberto={shareAberto}
