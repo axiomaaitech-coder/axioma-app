@@ -26,9 +26,11 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
+// Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
+// escurecer/saturar mais (ver memória do rollout Claro).
+const PAINEL_CLARO_FUNDO = "#f6f7c4";
 const SUB_PAINEL_ESCURO = "rgba(8,6,24,0.5)";
-const SUB_PAINEL_CLARO = "#f7f8fc";
+const SUB_PAINEL_CLARO = "rgba(255,255,255,0.5)";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,9 +55,24 @@ export default function Receitas() {
   const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
   const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
   const subPainelFundo = temaClaro ? SUB_PAINEL_CLARO : SUB_PAINEL_ESCURO;
-  const campoFundo = temaClaro ? "#eef2f7" : "rgba(10,20,36,0.7)";
-  const campoFundo2 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
-  const campoFundo3 = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.9)";
+  // Input sempre branco puro no Claro (nunca o azul-acinzentado antigo —
+  // regra 13 do rollout Claro).
+  const campoFundo = temaClaro ? "#ffffff" : "rgba(10,20,36,0.7)";
+  const campoFundo2 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
+  const campoFundo3 = temaClaro ? "#ffffff" : "rgba(10,22,40,0.9)";
+  // Card premium3d (creme + glow verde no hover, igual ao Painel MEI) —
+  // spread em todo <CanvasBox>. Nested = caixinha aninhada dentro de card,
+  // sempre bege translúcido (nunca tingida por categoria).
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
+  const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
+  // Letreiro — regra absoluta: igual ao do Painel MEI (sólido azul-marinho,
+  // texto branco, destaque verde-menta), nunca o degradê roxo/cyan antigo.
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(139,92,246,0.22)";
+  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
+  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#c4b5fd");
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
   const meses = mesesPorLang(lang);
@@ -258,7 +275,7 @@ export default function Receitas() {
   ];
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: subPainelFundo, border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: subPainelFundo, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{titulo}</p>
@@ -273,6 +290,9 @@ export default function Receitas() {
       exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", valor: "", data: "", categoria: categorias[0], status: "recebido", cliente_id: "", centro_custo_id: "" }); setModalAberto(true); }}
       labelBotao={t.receitas.novaReceita}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
@@ -292,8 +312,8 @@ export default function Receitas() {
             { label: t.receitas.pendente, value: fBRL(totalPendente), cor: ct("#fbbf24") },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor} destaque>
-                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
+              <CanvasBox cor={card.cor} destaque {...cartaoTema}>
+                <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: TEXTO_SEC }}>{card.label}</p>
                 <p className="text-sm md:text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
             </motion.div>
@@ -306,27 +326,27 @@ export default function Receitas() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className="rounded-2xl p-3 md:p-4"
+                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}>{k.v}</p>
-                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: TEXTO_SEC }}>{k.l}</p>
                 </motion.div>
               ))}
             </div>
 
-            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.22)" }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: LETREIRO_BG, border: `1px solid ${LETREIRO_BORDA}` }}>
               <div className="marquee-rec py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#c4b5fd") : ct("#e2e8f0") }}>{m}<span style={{ color: ct("#8b5cf6") }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? LETREIRO_DESTAQUE : LETREIRO_TEXTO }}>{m}<span style={{ color: LETREIRO_DESTAQUE }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
               <style>{`.marquee-rec{animation:marqueeRec 30s linear infinite}@keyframes marqueeRec{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-rec:hover{animation-play-state:paused}`}</style>
             </div>
 
-            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#8b5cf6,#06b6d4)", boxShadow: "0 0 12px #8b5cf6" }} />
@@ -344,7 +364,7 @@ export default function Receitas() {
             </div>
 
             {insights.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.insights}</p>
@@ -365,9 +385,9 @@ export default function Receitas() {
 
         {/* Busca + filtro */}
         <div className="flex flex-col md:flex-row gap-3">
-          <CanvasBox cor={ct("#3b6fd4")}>
+          <CanvasBox cor={ct("#3b6fd4")} {...cartaoTema}>
             <div className="flex items-center gap-2 py-1">
-              <Search size={16} style={{ color: "var(--axi-text-secondary)" }} />
+              <Search size={16} style={{ color: TEXTO_SEC }} />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={t.receitas.buscar}
                 className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: "var(--axi-text-primary)", minWidth: "160px" }} />
             </div>
@@ -381,26 +401,26 @@ export default function Receitas() {
         </div>
 
         {/* Tabela */}
-        <CanvasBox cor={ct("#6ab0ff")}>
+        <CanvasBox cor={ct("#6ab0ff")} {...cartaoTema}>
           <div className="overflow-x-auto">
             {carregando ? (
               <div className="flex items-center justify-center py-16"><div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /></div>
             ) : (
               <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid rgba(59,111,212,0.15)" }}>
+                  <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(59,111,212,0.15)" }}>
                     {[t.geral.descricao, t.geral.categoria, t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
-                      <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{h}</th>
+                      <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {receitasFiltradas.length === 0 ? (
-                    <tr><td colSpan={6} className="text-center py-12 text-sm" style={{ color: "var(--axi-text-secondary)" }}>{t.receitas.semReceitas}</td></tr>
+                    <tr><td colSpan={6} className="text-center py-12 text-sm" style={{ color: TEXTO_SEC }}>{t.receitas.semReceitas}</td></tr>
                   ) : receitasFiltradas.map((r, i) => (
                     <motion.tr key={r.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                      whileHover={{ backgroundColor: "rgba(106,176,255,0.03)" }}
-                      style={{ borderBottom: i < receitasFiltradas.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
+                      whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(106,176,255,0.03)" }}
+                      style={{ borderBottom: i < receitasFiltradas.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>
                         {r.descricao}
                         {r.cliente_id && (
@@ -410,7 +430,7 @@ export default function Receitas() {
                         )}
                       </td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: `${catCorAtual[r.categoria] || ct("#6ab0ff")}18`, color: catCorAtual[r.categoria] || ct("#6ab0ff") }}>{r.categoria}</span></td>
-                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: "var(--axi-text-secondary)" }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full" style={{ background: r.status === "recebido" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: r.status === "recebido" ? ct("#34d399") : ct("#fbbf24") }}>{r.status === "recebido" ? t.receitas.recebido : t.receitas.pendente}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#34d399") }}>{fBRL(r.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
@@ -434,13 +454,13 @@ export default function Receitas() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-start justify-center pt-20 pb-8 px-4 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }} className="w-full max-w-md">
-              <CanvasBox cor={ct("#6ab0ff")}>
+              <CanvasBox cor={ct("#6ab0ff")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#6ab0ff") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Revenue" : lang === "es" ? "Editar Ingreso" : "Editar Receita") : t.receitas.novaReceita}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-4">
                   {[
@@ -461,7 +481,7 @@ export default function Receitas() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.clientes.cliente} <span style={{ color: "var(--axi-text-secondary)", textTransform: "none" }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span></label>
+                    <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.clientes.cliente} <span style={{ color: TEXTO_SEC, textTransform: "none" }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span></label>
                     <select value={novo.cliente_id} onChange={(e) => setNovo({ ...novo, cliente_id: e.target.value })} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={{ background: campoFundo3, border: "1px solid rgba(59,111,212,0.2)", color: "var(--axi-text-primary)" }}>
                       <option value="">-- {t.clientes.cliente} --</option>
                       {clientesOpcoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -469,7 +489,7 @@ export default function Receitas() {
                   </div>
                   <div>
                     <label className="text-xs font-semibold tracking-wider uppercase mb-2 block" style={{ color: ct("#5a8fd4") }}>
-                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: "var(--axi-text-secondary)", textTransform: "none" }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
+                      {lang === "en" ? "Cost Center" : lang === "es" ? "Centro de Costo" : "Centro de Custo"} <span style={{ color: TEXTO_SEC, textTransform: "none" }}>({lang === "en" ? "optional" : lang === "es" ? "opcional" : "opcional"})</span>
                     </label>
                     <SeletorCentroCusto
                       value={novo.centro_custo_id} onChange={(id) => setNovo({ ...novo, centro_custo_id: id })}
@@ -483,7 +503,7 @@ export default function Receitas() {
                     <div className="flex gap-2">
                       {["recebido", "pendente"].map((s) => (
                         <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(59,111,212,0.05)", color: novo.status === s ? (s === "recebido" ? ct("#34d399") : ct("#fbbf24")) : "var(--axi-text-secondary)", border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(59,111,212,0.1)"}` }}>
+                          style={{ background: novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.2)" : "rgba(251,191,36,0.2)") : "rgba(59,111,212,0.05)", color: novo.status === s ? (s === "recebido" ? ct("#34d399") : ct("#fbbf24")) : TEXTO_SEC, border: `1px solid ${novo.status === s ? (s === "recebido" ? "rgba(52,211,153,0.4)" : "rgba(251,191,36,0.4)") : "rgba(59,111,212,0.1)"}` }}>
                           {s === "recebido" ? t.receitas.recebido : t.receitas.pendente}
                         </motion.button>
                       ))}

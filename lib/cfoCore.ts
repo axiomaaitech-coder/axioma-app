@@ -371,9 +371,13 @@ const MAPA_CORES_CLARO: Record<string, string> = {
   // categoria "azul" de gráfico acima) — no Claro o acento é verde-menta.
   "#6ab0ff": "#2ecc9b", "#3b6fd4": "#2ecc9b", "#2a5fd4": "#2ecc9b", "#5a8fd4": "#2ecc9b",
   "#34d399": "#16a97d", "#fbbf24": "#f5a623", "#f87171": "#ff5a6b", "#c4b5fd": "#7c3aed",
-  "#5a7a9a": "#6b7280", "#c8d8f0": "#101b3d", "#f1f5f9": "#101b3d", "#e2e8f0": "#101b3d",
-  "#64748b": "#6b7280", "#6ee7b7": "#16a97d", "#fca5a5": "#ff5a6b",
-  "#94a3b8": "#6b7280", "#cbd5e1": "#6b7280", "#3a6090": "#6b7280",
+  // Cinzas de texto secundário/meta: #6b7280 não bate 4.5:1 sobre o creme
+  // #f6f7c4 dos cards do tema Claro (mesmo problema já corrigido no MEI,
+  // ver feedback_linguagem_simples_elias / regra 3 do rollout Claro) —
+  // #374151 é o tom aprovado.
+  "#5a7a9a": "#374151", "#c8d8f0": "#101b3d", "#f1f5f9": "#101b3d", "#e2e8f0": "#101b3d",
+  "#64748b": "#374151", "#6ee7b7": "#16a97d", "#fca5a5": "#ff5a6b",
+  "#94a3b8": "#374151", "#cbd5e1": "#374151", "#3a6090": "#374151",
   "#f59e0b": "#f5a623", "#fb923c": "#c2410c", "#ef4444": "#ff5a6b",
 };
 export function corTema(hex: string, claro?: boolean): string {
