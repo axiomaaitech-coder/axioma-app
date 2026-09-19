@@ -566,7 +566,7 @@ export default function Metas() {
     { name: cx.metaSemaforoAmarelo, value: metasAtivasComputadas.filter(m => m.semaforo === "amarelo").length, color: ct(CORES.amarelo) },
     { name: cx.metaSemaforoVermelho, value: metasAtivasComputadas.filter(m => m.semaforo === "vermelho").length, color: ct(CORES.vermelho) },
   ].filter(s => s.value > 0);
-  const optStatus = optRosca(statusRosca, ct(CORES.roxo), cx.total, temaClaro);
+  const optStatus = optRosca(statusRosca, temaClaro ? "#2ecc9b" : ct(CORES.roxo), cx.total, temaClaro);
 
   // Evolução da meta em destaque (mais próxima do prazo) — real até hoje vs trajetória necessária
   const metaDestaque = proximaPrazo;
@@ -645,6 +645,8 @@ export default function Metas() {
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
