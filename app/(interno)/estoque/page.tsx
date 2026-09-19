@@ -246,7 +246,12 @@ export default function EstoquePage() {
   const inputStyle = { background: CAMPO_BG, border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
   const selectStyle = { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
   const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
-  const PILL_INATIVO = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.6)";
+  // Pill/aba inativa: azul-marinho solido + texto branco no Claro; ativa vira
+  // verde-menta escuro/forte (#16a97d, par "Sucesso" oficial) - pedido
+  // explicito do Elias, 2026-09-19, aplicado daqui pra frente em todo modulo.
+  const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)";
+  const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : ct("#94a3b8");
+  const PILL_ATIVA = temaClaro ? "#16a97d" : ct(JADE);
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -997,9 +1002,9 @@ export default function EstoquePage() {
           <button key={a.key} onClick={() => setAba(a.key as any)}
             className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
             style={{
-              background: aba === a.key ? `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})` : PILL_INATIVO,
-              color: aba === a.key ? "#fff" : ct(JADE),
-              border: aba === a.key ? `1px solid ${ct(JADE)}` : "1px solid rgba(4,120,87,0.2)",
+              background: aba === a.key ? (temaClaro ? PILL_ATIVA : `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`) : PILL_INATIVO,
+              color: aba === a.key ? "#fff" : PILL_INATIVO_TEXTO,
+              border: aba === a.key ? `1px solid ${PILL_ATIVA}` : (temaClaro ? "1px solid #101b3d" : "1px solid rgba(4,120,87,0.2)"),
             }}>
             {a.label}
           </button>
@@ -1088,7 +1093,7 @@ export default function EstoquePage() {
               ]).map((s) => (
                 <button key={s.key} onClick={() => { setFiltroStatusProdutos(s.key); setPaginaProdutos(0); }}
                   className="px-3 py-2 rounded-xl text-xs font-semibold"
-                  style={{ background: filtroStatusProdutos === s.key ? ct(JADE) : PILL_INATIVO, color: filtroStatusProdutos === s.key ? "#fff" : ct("#94a3b8") }}>
+                  style={{ background: filtroStatusProdutos === s.key ? PILL_ATIVA : PILL_INATIVO, color: filtroStatusProdutos === s.key ? "#fff" : PILL_INATIVO_TEXTO }}>
                   {s.label}
                 </button>
               ))}
@@ -1104,7 +1109,7 @@ export default function EstoquePage() {
                 <>
                   <button onClick={() => selecionarSegmento("todos")}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
-                    style={{ background: filtroSegmento === "todos" ? ct(JADE) : PILL_INATIVO, color: filtroSegmento === "todos" ? "#fff" : ct("#94a3b8") }}>
+                    style={{ background: filtroSegmento === "todos" ? PILL_ATIVA : PILL_INATIVO, color: filtroSegmento === "todos" ? "#fff" : PILL_INATIVO_TEXTO }}>
                     {et.statusTodos} ({totalTodos})
                   </button>
                   {visiveis.map((c) => {
@@ -1112,7 +1117,7 @@ export default function EstoquePage() {
                     return (
                       <button key={c.segmento} onClick={() => selecionarSegmento(c.segmento)}
                         className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
-                        style={{ background: filtroSegmento === c.segmento ? ct(JADE) : PILL_INATIVO, color: filtroSegmento === c.segmento ? "#fff" : ct("#94a3b8") }}>
+                        style={{ background: filtroSegmento === c.segmento ? PILL_ATIVA : PILL_INATIVO, color: filtroSegmento === c.segmento ? "#fff" : PILL_INATIVO_TEXTO }}>
                         {info ? info.label[idioma] : c.segmento} ({contarPara(c)})
                       </button>
                     );
@@ -1212,11 +1217,11 @@ export default function EstoquePage() {
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             <button onClick={() => { setFiltroTipoMov("todos"); setPaginaMovimentacoes(0); }}
               className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-              style={{ background: filtroTipoMov === "todos" ? ct(JADE) : PILL_INATIVO, color: filtroTipoMov === "todos" ? "#fff" : ct("#94a3b8") }}>{et.statusTodos}</button>
+              style={{ background: filtroTipoMov === "todos" ? PILL_ATIVA : PILL_INATIVO, color: filtroTipoMov === "todos" ? "#fff" : PILL_INATIVO_TEXTO }}>{et.statusTodos}</button>
             {TIPOS_MOV.map((tp) => (
               <button key={tp.value} onClick={() => { setFiltroTipoMov(tp.value); setPaginaMovimentacoes(0); }}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-                style={{ background: filtroTipoMov === tp.value ? tp.cor : PILL_INATIVO, color: filtroTipoMov === tp.value ? "#020810" : ct("#94a3b8") }}>{tp.label}</button>
+                style={{ background: filtroTipoMov === tp.value ? tp.cor : PILL_INATIVO, color: filtroTipoMov === tp.value ? "#020810" : PILL_INATIVO_TEXTO }}>{tp.label}</button>
             ))}
           </div>
 
