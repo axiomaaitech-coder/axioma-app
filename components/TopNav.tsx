@@ -286,6 +286,42 @@ export default function TopNav() {
     </motion.button>
   );
 
+  // Extraído do map original — cada grupo do menu superior (dropdown com
+  // seta), usado nas 2 linhas em que o menu desktop agora é distribuído.
+  function renderGrupoDesktop(grupo: (typeof grupos)[number]) {
+    const ativo = grupoAtivo(grupo.itens);
+    const aberto = dropdown === grupo.label.pt;
+    const ehMei = (grupo as any).destaque === true;
+    const grupoEl = (
+      <div key={grupo.label.pt} className="relative">
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={(e) => {
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            setDropdownPos({ top: r.bottom, left: r.left });
+            setDropdown(aberto ? null : grupo.label.pt);
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
+          style={{
+            background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "transparent",
+            color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
+            border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(212,175,55,0.3)" : "1px solid transparent",
+            boxShadow: ehMei ? "0 0 12px rgba(212,175,55,0.15)" : "none",
+          }}
+        >
+          <span className="text-xs">{grupo.label[lang]}</span>
+          {ehMei && <BadgeDestaque lang={lang} />}
+          <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown size={13} />
+          </motion.div>
+        </motion.button>
+      </div>
+    );
+    if (!ehMei) return grupoEl;
+    return [grupoEl, pdvBotaoDesktop];
+  }
+
   return (
     <>
       {/* DESKTOP */}
@@ -294,7 +330,7 @@ export default function TopNav() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 h-16"
+        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 py-2 h-24"
         style={{
           background: "linear-gradient(90deg, #060f1e 0%, #0a1628 60%, #060f1e 100%)",
           borderBottom: "1px solid rgba(59,111,212,0.25)",
@@ -322,10 +358,13 @@ export default function TopNav() {
           </div>
         </motion.div>
 
-        {/* Módulos — trecho com scroll próprio (nav é fixed: o que passasse da
-            borda direita ficava cortado sem chance de rolar, e sumia visualmente,
-            derrubando o seletor de idioma e o Sair do lado direito) */}
-        <div className="flex items-center gap-1 overflow-x-auto min-w-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+        {/* Módulos — duas fileiras (cascata) em vez de 1 fileira com scroll
+            escondido: o scroll existia mas não tinha nenhuma pista visual de
+            que dava pra rolar, então IA Premium/Config pareciam ter sumido
+            de vez. Distribuindo em 2 linhas, tudo fica visível de cara, sem
+            precisar rolar nada. */}
+        <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
+        <div className="flex items-center gap-1 flex-wrap">
 
         {/* Dashboard — fora do alcance do operador (é o financeiro do dono) */}
         {!isOperador && (
@@ -348,44 +387,19 @@ export default function TopNav() {
         {/* Nexus — item próprio, fora de qualquer grupo, fácil de achar */}
         {!isOperador && nexusBotaoDesktop}
 
-        {/* Grupos — nenhum aparece pro operador (nenhum é PDV, todos tocam dado do dono) */}
-        {!isOperador && gruposVisiveis.map((grupo) => {
-          const ativo = grupoAtivo(grupo.itens);
-          const aberto = dropdown === grupo.label.pt;
-          const ehMei = (grupo as any).destaque === true;
-          const grupoEl = (
-            <div key={grupo.label.pt} className="relative">
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={(e) => {
-                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                  setDropdownPos({ top: r.bottom, left: r.left });
-                  setDropdown(aberto ? null : grupo.label.pt);
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "transparent",
-                  color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
-                  border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(212,175,55,0.3)" : "1px solid transparent",
-                  boxShadow: ehMei ? "0 0 12px rgba(212,175,55,0.15)" : "none",
-                }}
-              >
-                <span className="text-xs">{grupo.label[lang]}</span>
-                {ehMei && <BadgeDestaque lang={lang} />}
-                <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronDown size={13} />
-                </motion.div>
-              </motion.button>
-            </div>
-          );
-          if (!ehMei) return grupoEl;
-          return [grupoEl, pdvBotaoDesktop];
-        })}
+        {/* Linha 1 — MEI/PDV + os 2 grupos mais usados no dia a dia */}
+        {!isOperador && gruposVisiveis.slice(0, 3).map((grupo) => renderGrupoDesktop(grupo))}
 
         {/* Operador: PDV é a única coisa que sobra no menu (o mapa acima nem roda) */}
         {isOperador && pdvBotaoDesktop}
 
+        </div>
+        {/* Linha 2 — demais grupos, mesma fileira de sempre, só que embaixo */}
+        {!isOperador && (
+          <div className="flex items-center gap-1 flex-wrap">
+            {gruposVisiveis.slice(3).map((grupo) => renderGrupoDesktop(grupo))}
+          </div>
+        )}
         </div>
 
         {/* Painel do dropdown de grupo — em portal pro body: a linha de módulos
@@ -652,7 +666,7 @@ export default function TopNav() {
         )}
       </AnimatePresence>
 
-      <div className="h-16 md:h-16" />
+      <div className="h-16 md:h-24" />
 
       {cadastroIncompleto && (
         <div
