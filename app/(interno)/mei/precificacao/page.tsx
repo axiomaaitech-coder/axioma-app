@@ -477,7 +477,7 @@ Focus on: whether the price is healthy, how much to raise it, how to justify a p
       }>
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : AZUL} corB={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : AZUL} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Info do MEI */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

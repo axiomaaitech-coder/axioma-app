@@ -413,7 +413,7 @@ export default function CockpitMEI() {
     >
       <div className="space-y-4">
 
-        <LetreiroExecutivo itens={itensLetreiro} cor={corLetreiro} />
+        <LetreiroExecutivo itens={itensLetreiro} cor={temaClaro ? BRONZE : corLetreiro} solido={temaClaro} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Saudação + Health Score */}
         <CanvasBox cor={JADE} motionIndex={0} glow destaque {...cartaoTema}>

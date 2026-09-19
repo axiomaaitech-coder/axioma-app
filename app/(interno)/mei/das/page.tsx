@@ -422,7 +422,7 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
       }>
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : VERMELHO} corB={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : VERMELHO} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Cards resumo */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -447,14 +447,14 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-              <div className="rounded-xl p-3" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
+              <div className="rounded-xl p-3" style={{ background: NESTED_BG ?? `${corFase(faseAtual)}10`, border: `1px solid ${NESTED_BORDA ?? corFase(faseAtual) + '30'}` }}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{t('dividaAtualizada')}</p>
-                <p className="text-xl font-black" style={{ color: corFase(faseAtual) }}><AnimatedNumber value={fmt(divida.totalAtualizado)} /></p>
+                <p className="text-xl font-black" style={{ color: temaClaro ? OURO : corFase(faseAtual) }}><AnimatedNumber value={fmt(divida.totalAtualizado)} /></p>
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{divida.piorDiasAtraso} {t('diasEmAtraso')}</p>
               </div>
-              <div className="rounded-xl p-3 flex flex-col justify-center" style={{ background: `${corFase(faseAtual)}10`, border: `1px solid ${corFase(faseAtual)}30` }}>
+              <div className="rounded-xl p-3 flex flex-col justify-center" style={{ background: NESTED_BG ?? `${corFase(faseAtual)}10`, border: `1px solid ${NESTED_BORDA ?? corFase(faseAtual) + '30'}` }}>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: TEXTO_SEC }}>{lang === 'pt' ? 'Fase de risco' : lang === 'en' ? 'Risk phase' : 'Fase de riesgo'}</p>
-                <p className="text-lg font-black" style={{ color: corFase(faseAtual) }}>{t(`fase_${faseAtual}` as keyof typeof txt)}</p>
+                <p className="text-lg font-black" style={{ color: temaClaro ? (faseAtual === 'em_dia' ? VERDE : OURO) : corFase(faseAtual) }}>{t(`fase_${faseAtual}` as keyof typeof txt)}</p>
               </div>
             </div>
 
@@ -625,9 +625,9 @@ Foque em: o que resolver primeiro, a urgência real (sem exagerar nem minimizar)
                 )
                 return (
                   <div key={c.competencia} className="rounded-xl p-2.5 text-center"
-                    style={{ background: `${corStatus(c.status)}10`, border: `1px solid ${corStatus(c.status)}30` }}>
+                    style={{ background: NESTED_BG ?? `${corStatus(c.status)}10`, border: `1px solid ${NESTED_BORDA ?? corStatus(c.status) + '30'}` }}>
                     <p className="text-xs font-bold capitalize" style={{ color: 'var(--axi-text-primary)' }}>{nomeMesCurto}</p>
-                    <p className="text-xs font-semibold mt-1" style={{ color: corStatus(c.status) }}>{c.status}</p>
+                    <p className="text-xs font-semibold mt-1" style={{ color: temaClaro ? (c.status === 'Entregue' ? VERDE : OURO) : corStatus(c.status) }}>{c.status}</p>
                   </div>
                 )
               })}

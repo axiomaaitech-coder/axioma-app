@@ -315,7 +315,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
       )}
       <div ref={conteudoRef} className="space-y-4">
 
-        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : VERDE} corB={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
+        <LetreiroExecutivo itens={marquee} cor={temaClaro ? OURO : VERDE} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {/* Calmo pra 2026 — diferencial contra concorrente que assusta o MEI */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}

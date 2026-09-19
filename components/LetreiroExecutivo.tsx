@@ -16,16 +16,20 @@ export type ItemLetreiro = { texto: string; destaque?: boolean; cor?: string; on
 export function LetreiroExecutivo({
   itens,
   cor,
-  corB,
+  solido = false,
+  corDestaque,
   textoBase = "var(--axi-text-primary)",
 }: {
   itens: (string | ItemLetreiro | false | null | undefined)[];
   cor: string;
-  /** Opt-in — segunda cor pra virar a tira num degradê sólido de ${cor} até
-   * ${corB} (ex.: azul-marinho → verde-menta), em vez do tingimento
-   * translúcido padrão de uma cor só. Sem isso, comportamento 100% igual a
-   * antes (nenhum dos ~8 módulos que já usam este componente muda). */
-  corB?: string;
+  /** Opt-in — fundo sólido (opaco) na cor `cor`, em vez do tingimento
+   * translúcido padrão. Sem isso, comportamento 100% igual a antes (nenhum
+   * dos ~8 módulos que já usam este componente muda). */
+  solido?: boolean;
+  /** Cor do texto/separador dos itens "destaque" quando `solido` — pra dar
+   * contraste sobre o fundo sólido (ex.: verde-menta sobre azul-marinho).
+   * Sem isso, usa `cor` (comportamento de sempre). */
+  corDestaque?: string;
   /** Cor do texto não-destacado. Opcional — o padrão já resolve certo em
    * qualquer tema (var(--axi-text-primary) segue o data-theme da tela).
    * Só passe algo aqui se quiser fugir do padrão de propósito. Antes disso
@@ -40,12 +44,12 @@ export function LetreiroExecutivo({
 
   if (normalizados.length === 0) return null;
 
-  const corSeparador = corB || cor;
+  const corAcento = corDestaque || cor;
 
   return (
     <div className="relative rounded-xl overflow-hidden" style={{
-      background: corB ? `linear-gradient(90deg, ${cor}, ${corB})` : `linear-gradient(90deg, ${cor}18, ${cor}0c)`,
-      border: `1px solid ${corB ? corB + '60' : cor + '30'}`,
+      background: solido ? cor : `linear-gradient(90deg, ${cor}18, ${cor}0c)`,
+      border: solido ? "1px solid rgba(255,255,255,0.15)" : `1px solid ${cor}30`,
     }}>
       <div className="letreiro-axioma py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
         {[0, 1].map((rep) => (
@@ -59,14 +63,14 @@ export function LetreiroExecutivo({
                     onClick={it.onClick}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); it.onClick!(); } }}
                     className="cursor-pointer px-1 -mx-1 py-2 -my-2 rounded active:opacity-70"
-                    style={{ color: it.cor || (it.destaque ? cor : textoBase) }}
+                    style={{ color: it.cor || (it.destaque ? corAcento : textoBase) }}
                   >
                     {it.texto}
                   </span>
                 ) : (
-                  <span style={{ color: it.cor || (it.destaque ? cor : textoBase) }}>{it.texto}</span>
+                  <span style={{ color: it.cor || (it.destaque ? corAcento : textoBase) }}>{it.texto}</span>
                 )}
-                <span style={{ color: corSeparador }}>{"  •  "}</span>
+                <span style={{ color: corAcento }}>{"  •  "}</span>
               </span>
             ))}
           </span>
