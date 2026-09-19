@@ -30,7 +30,9 @@ const PALETA = {
   // Creme #f6f7c4 e cinza secundário #374151 — valores finais aprovados no
   // rollout do Painel MEI (ver memória do rollout Claro). CAMPO_BG branco
   // puro (regra 13, nunca o azul-acinzentado antigo).
-  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#ea580c', VERMELHO: '#ff5a6b', ROXO: '#7c3aed', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#ffffff', PAINEL_BG: '#f6f7c4' },
+  // ROXO não é cor da nossa paleta padrão — no Claro vira verde-menta
+  // (mesmo destino de AZUL/AZULC aqui: decorativo = verde, nunca roxo).
+  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#ea580c', VERMELHO: '#ff5a6b', ROXO: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#ffffff', PAINEL_BG: '#f6f7c4' },
 } as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']
@@ -213,7 +215,7 @@ export default function TesourariaPage() {
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
           <button onClick={() => router.push('/tesouraria/simulador')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: 'rgba(167,139,250,0.14)', color: ROXO, border: '1px solid rgba(167,139,250,0.4)' }}>
+            style={{ background: 'rgba(46,204,155,0.14)', color: ROXO, border: '1px solid rgba(46,204,155,0.4)' }}>
             <SlidersHorizontal size={16} />{L('Simulador de Estresse', 'Stress Simulator', 'Simulador de Estrés')}
           </button>
           <button onClick={() => router.push('/tesouraria/gemeo')}
@@ -407,7 +409,7 @@ export default function TesourariaPage() {
           </div>
 
           {/* PERGUNTE À TESOURARIA (ZIA Copilot) */}
-          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid rgba(167,139,250,0.2)' }}>
+          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid rgba(46,204,155,0.2)' }}>
             <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
               <MessageCircleQuestion size={14} />
               {L('Pergunte à Tesouraria', 'Ask Treasury', 'Pregunte a la Tesorería')}
@@ -417,8 +419,8 @@ export default function TesourariaPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') perguntarZia() }}
                 disabled={carregandoRespostaZia}
                 placeholder={L('Ex.: como está meu caixa?', 'E.g.: how is my cash?', 'Ej.: ¿cómo está mi caja?')}
-                className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: CAMPO_BG, border: '1px solid rgba(167,139,250,0.2)', color: TEXTO }} />
-              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: 'rgba(167,139,250,0.2)', color: ROXO, border: '1px solid rgba(167,139,250,0.5)' }}>
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm disabled:opacity-60" style={{ background: CAMPO_BG, border: '1px solid rgba(46,204,155,0.2)', color: TEXTO }} />
+              <button onClick={() => perguntarZia()} disabled={carregandoRespostaZia} className="px-3 py-2.5 rounded-xl flex items-center justify-center disabled:opacity-60" style={{ background: 'rgba(46,204,155,0.2)', color: ROXO, border: '1px solid rgba(46,204,155,0.5)' }}>
                 <Send size={16} />
               </button>
             </div>
@@ -430,11 +432,11 @@ export default function TesourariaPage() {
               ))}
             </div>
             {carregandoRespostaZia ? (
-              <div className="rounded-xl p-3" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)' }}>
+              <div className="rounded-xl p-3" style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)' }}>
                 <p className="text-sm" style={{ color: CINZA }}>{L('Pensando...', 'Thinking...', 'Pensando...')}</p>
               </div>
             ) : respostaZia && (
-              <div className="rounded-xl p-3" style={{ background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.25)' }}>
+              <div className="rounded-xl p-3" style={{ background: 'rgba(46,204,155,0.08)', border: '1px solid rgba(46,204,155,0.25)' }}>
                 <p className="text-sm" style={{ color: TEXTO }}>{respostaZia}</p>
               </div>
             )}

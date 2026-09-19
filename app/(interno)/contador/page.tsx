@@ -35,7 +35,10 @@ const PALETA = {
   // Creme #f6f7c4, cinza #374151 e modal creme (igual ao CanvasBox dos
   // demais módulos) — valores finais do rollout Claro. PAINEL_BG2 é a
   // caixinha ANINHADA dentro do modal creme, por isso fica bege translúcido.
-  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#7c3aed', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', PAINEL_BG2: 'rgba(255,255,255,0.5)', MODAL_BG: '#f6f7c4' },
+  // ROXO não é cor da nossa paleta padrão — no Claro vira azul-marinho
+  // (chart-2 do tema-tokens.md), reservado pra classificação estrutural
+  // (previsão/cenário), nunca decorativo solto.
+  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#101b3d', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', PAINEL_BG2: 'rgba(255,255,255,0.5)', MODAL_BG: '#f6f7c4' },
 } as const
 
 const LABEL_TIPO: Record<TipoDescoberta, Record<Idioma3, string>> = {
@@ -83,6 +86,7 @@ export default function ContadorPage() {
   const router = useRouter()
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
   const { VERMELHO, LARANJA, AMARELO, VERDE, AZULC, ROXO, CINZA, TEXTO, TITULO, PAINEL_BG, PAINEL_BG2, MODAL_BG } = PALETA[tema]
 
   const COR_PRIORIDADE: Record<string, string> = { P0: VERMELHO, P1: LARANJA, P2: AMARELO, P3: CINZA }
@@ -164,9 +168,10 @@ export default function ContadorPage() {
     <ModuloLayout
       titulo={L('Contador', 'Accountant', 'Contador')}
       subtitulo={L('O que a Axioma descobriu sozinha nos seus números — não é balanço, é status de inteligência.', "What Axioma found on its own in your numbers — not a balance sheet, an intelligence status.", 'Lo que Axioma descubrió sola en sus números — no es un balance, es un estado de inteligencia.')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
-          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
           <button onClick={() => router.push('/contador/explicar')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: 'rgba(52,211,153,0.14)', color: VERDE, border: `1px solid ${VERDE}40` }}>
             <BookOpenText size={15} />{L('Explique minha empresa', 'Explain my company', 'Explique mi empresa')}
@@ -185,7 +190,7 @@ export default function ContadorPage() {
           </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
             <RefreshCw size={16} className={rodando ? 'animate-spin' : ''} />
             {rodando ? L('Rodando...', 'Running...', 'Ejecutando...') : L('Rodar descoberta', 'Run discovery', 'Ejecutar descubrimiento')}
           </button>
@@ -200,7 +205,7 @@ export default function ContadorPage() {
       ) : (
         <div className="space-y-6">
 
-          <LetreiroAxioma id="contador" cor={AZULC} itens={[
+          <LetreiroAxioma id="contador" cor={AZULC} solido={temaClaro} corDestaque="#2ecc9b" itens={[
             `${L('Descobertas abertas', 'Open findings', 'Hallazgos abiertos')} ${contagem.totalAbertas}`,
             normal ? `${L('Sem riscos críticos', 'No critical risks', 'Sin riesgos críticos')} ✅` : `${L('Riscos críticos', 'Critical risks', 'Riesgos críticos')}: ${contagem.P0 + contagem.P1}`,
             oportunidades > 0 ? `${L('Oportunidades', 'Opportunities', 'Oportunidades')} ${oportunidades}` : '',
@@ -215,7 +220,7 @@ export default function ContadorPage() {
           {/* STATUS DE INTELIGÊNCIA */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             {TILES.map((t) => (
-              <div key={t.label} className="rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
+              <div key={t.label} className={`rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
                 <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
                 <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
                 <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
@@ -288,7 +293,7 @@ export default function ContadorPage() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: MODAL_BG, border: `1px solid ${COR_PRIORIDADE[selecionada.prioridade]}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: MODAL_BG, border: `1px solid ${COR_PRIORIDADE[selecionada.prioridade]}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-start mb-4 gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
