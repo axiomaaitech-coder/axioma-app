@@ -95,6 +95,9 @@ export default function Investimentos() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
+  // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
+  // (tema-tokens.md §1.1). Escuro mantém o dourado original.
+  const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   const corTipo: Record<TipoInvestimento, string> = {
     renda_fixa: ct(CORES.verde), renda_variavel: ct(CORES.amarelo), criptomoeda: ct(CORES.roxo), imovel: ct(CORES.azul), outro: ct(CORES.rosa),
   };
@@ -109,8 +112,8 @@ export default function Investimentos() {
   const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
     setToast({ msg, tipo });
@@ -429,9 +432,9 @@ export default function Investimentos() {
   const composicaoTipo = (Object.keys(porTipoMap) as TipoInvestimento[]).map((tp) => ({ name: NOME_TIPO[tp] || tp, value: porTipoMap[tp], color: corTipo[tp] || ct(CORES.azul) }));
   const optComposicaoTipo = optRosca(composicaoTipo, ct(CORES.azul), cx.total, temaClaro);
 
-  const PALETA_INST = [ct(CORES.azul), ct(CORES.ouro), ct(CORES.verde), ct(CORES.rosa), ct(CORES.laranja), ct(CORES.cyan), ct(CORES.roxo)];
+  const PALETA_INST = [ct(CORES.azul), corOuro, ct(CORES.verde), ct(CORES.rosa), ct(CORES.laranja), ct(CORES.cyan), ct(CORES.roxo)];
   const composicaoInst = Object.entries(porInstMap).map(([nome, valor], i) => ({ name: nome, value: valor, color: PALETA_INST[i % PALETA_INST.length] }));
-  const optComposicaoInst = optRosca(composicaoInst, ct(CORES.ouro), cx.total, temaClaro);
+  const optComposicaoInst = optRosca(composicaoInst, corOuro, cx.total, temaClaro);
 
   const RISCO_LABEL: Record<string, string> = {
     concentracaoTipo: cx.invRiscoConcentracaoTipo, concentracaoInstituicao: cx.invRiscoConcentracaoInstituicao,
@@ -544,7 +547,7 @@ export default function Investimentos() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: txt.totalInvestido, value: fBRL(totalInvestido), cor: ct(CORES.azul) },
-            { label: txt.ativos, value: `${investimentos.length}`, cor: ct(CORES.ouro) },
+            { label: txt.ativos, value: `${investimentos.length}`, cor: corOuro },
             { label: txt.melhorRent, value: `${melhorRent}% a.a.`, cor: ct(CORES.verde) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
@@ -620,7 +623,7 @@ export default function Investimentos() {
             )}
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(212,175,55,0.10))", border: "1px solid rgba(59,130,246,0.24)" }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(46,204,155,0.10))" : "linear-gradient(90deg, rgba(59,130,246,0.14), rgba(212,175,55,0.10))", border: "1px solid rgba(59,130,246,0.24)" }}>
               <div className="marquee-inv py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
@@ -675,7 +678,7 @@ export default function Investimentos() {
               className={`w-full rounded-2xl overflow-hidden text-left${classePremium3d}`}
               style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5 flex items-center gap-3">
-                <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
+                <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: temaClaro ? "linear-gradient(180deg,#3b82f6,#2ecc9b)" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
                 <div>
                   <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.invModalAnaliseTitulo}</p>
                   <p className="text-[11px] font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
@@ -684,17 +687,17 @@ export default function Investimentos() {
             </motion.button>
 
             {/* CONSELHO CFO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                <Sparkles size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invConselhoTitulo}</p>
               </div>
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: "1px solid rgba(212,175,55,0.2)" }}>
-                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
-                      <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{s}</p>
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}` }}>
+                      <Sparkles size={15} style={{ color: corOuro, flexShrink: 0 }} />
+                      <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#f0d878" }}>{s}</p>
                     </div>
                   ))}
                 </div>
@@ -747,7 +750,7 @@ export default function Investimentos() {
               </div>
 
               {/* RADAR DE OPORTUNIDADES */}
-              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: ct(CORES.ouro) }}>{cx.invRadarOportunidadesTitulo}</p>
+              <p className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: corOuro }}>{cx.invRadarOportunidadesTitulo}</p>
               {resultadosAlocacao.length === 0 ? (
                 <p className="text-xs md:text-[13px] font-medium" style={{ color: ct("#64748b") }}>{cx.invSemOpcoes}</p>
               ) : (
@@ -755,7 +758,7 @@ export default function Investimentos() {
                   {resultadosAlocacao.map((r) => (
                     <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl flex-wrap" style={{ background: r.prioridade === 1 ? OURO_BADGE_BG : CAMPO_BG3, border: `1px solid ${r.prioridade === 1 ? OURO_BADGE_BORDA : "rgba(255,255,255,0.06)"}` }}>
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.prioridade === 1 ? ct(CORES.ouro) : "rgba(255,255,255,0.08)", color: r.prioridade === 1 ? "#1a1400" : ct("#94a3b8") }}>{r.prioridade}</span>
+                        <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: r.prioridade === 1 ? corOuro : "rgba(255,255,255,0.08)", color: r.prioridade === 1 ? "#1a1400" : ct("#94a3b8") }}>{r.prioridade}</span>
                         <p className="text-xs md:text-[13px] font-medium truncate" style={{ color: ct("#e2e8f0") }}>{montarNarrativaAlocacao(lang, r)}</p>
                         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: r.risco === "alto" ? "rgba(239,68,68,0.15)" : r.risco === "medio" ? "rgba(234,179,8,0.15)" : "rgba(16,185,129,0.15)", color: r.risco === "alto" ? ct(CORES.vermelho) : r.risco === "medio" ? ct(CORES.amarelo) : ct(CORES.verde) }}>
                           {r.risco === "alto" ? cx.invRiscoAlto : r.risco === "medio" ? cx.invRiscoMedio : cx.invRiscoBaixo}
@@ -777,9 +780,9 @@ export default function Investimentos() {
             </div>
 
             {/* SIMULADOR EXECUTIVO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-1">
-                <Sliders size={16} style={{ color: ct(CORES.ouro) }} />
+                <Sliders size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invSimuladorTitulo}</p>
               </div>
               <p className="text-xs mb-4" style={{ color: ct("#64748b") }}>{cx.invSimuladorSub}</p>
@@ -797,14 +800,14 @@ export default function Investimentos() {
                     <label className="text-[9px] font-semibold tracking-wider uppercase mb-1.5 block" style={{ color: ct("#5a8fd4") }}>{f.l}</label>
                     <input type="number" value={f.v} onChange={(e) => f.set(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: CAMPO_BG, border: "1px solid rgba(212,175,55,0.2)", color: ct("#c8d8f0") }} />
+                      style={{ background: CAMPO_BG, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.25)" : "rgba(212,175,55,0.2)"}`, color: ct("#c8d8f0") }} />
                   </div>
                 ))}
               </div>
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => simularCenariosClick()}
                 className="w-full py-3 rounded-xl text-sm font-bold mb-4"
-                style={{ background: "linear-gradient(135deg, #7a5c00, #d4af37)", color: "#1a1400" }}>
+                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #7a5c00, #d4af37)", color: temaClaro ? "#fff" : "#1a1400" }}>
                 {cx.invSimular}
               </motion.button>
 
@@ -906,7 +909,7 @@ export default function Investimentos() {
                 <div className="p-4 md:p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
+                      <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "linear-gradient(180deg,#3b82f6,#2ecc9b)" : "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
                       <div>
                         <p className="text-base md:text-lg font-black" style={{ color: ct("#f1f5f9") }}>{cx.invModalAnaliseTitulo}</p>
                         <p className="text-[11px] font-medium" style={{ color: ct("#64748b") }}>{cx.invModalAnaliseSub}</p>
@@ -919,7 +922,7 @@ export default function Investimentos() {
                     <SubChart titulo={cx.invGraficoComposicaoTipo} cor={ct(CORES.azul)} option={optComposicaoTipo} altura={260} />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <SubChart titulo={cx.invRiscoConcentracaoInstituicao} cor={ct(CORES.ouro)} option={optComposicaoInst} altura={240} />
+                    <SubChart titulo={cx.invRiscoConcentracaoInstituicao} cor={corOuro} option={optComposicaoInst} altura={240} />
                     <SubChart titulo={cx.invRadarRiscoTitulo} cor={ct(CORES.vermelho)} option={optRadarRisco} altura={240} />
                     <SubChart titulo={cx.invScoreTitulo} cor={ct(CORES.azul)} option={optScoreBreakdown} altura={240} />
                   </div>
