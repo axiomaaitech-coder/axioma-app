@@ -76,9 +76,13 @@ const TOKENS: Record<TemaPdv, TokensPdv> = {
     barraBg: "#101b3d", barraTexto: "#ffffff", barraAcentoBg: "rgba(255,255,255,0.14)", barraAcentoTexto: "#ffffff",
     fundoContainer: "#ffffff", bordaContainer: "rgba(46,204,155,0.25)",
     acentoTopo: "linear-gradient(90deg, rgba(46,204,155,0.5), rgba(16,169,125,0.3) 50%, transparent)",
-    texto: "#101b3d", textoSecundario: "#6b7280", textoMuted: "#6b7280",
-    cardBg: "#ffffff", cardTexto: "#101b3d", cardBorda: "#e4e7ec",
-    inputBg: "#f7f8fa", inputTexto: "#101b3d", inputBorda: "#e4e7ec",
+    texto: "#101b3d", textoSecundario: "#374151", textoMuted: "#6b7280",
+    // Card creme (#f6f7c4) — mesmo padrão do rollout do MEI (ver memória
+    // "Rollout tema Claro nos módulos MEI"), não mais branco puro.
+    cardBg: "#f6f7c4", cardTexto: "#101b3d", cardBorda: "rgba(16,27,61,0.12)",
+    // Input branco puro — regra da referência (`.field input` = var(--card)
+    // = branco), não mais o cinza-azulado do fundo da página.
+    inputBg: "#ffffff", inputTexto: "#101b3d", inputBorda: "#e4e7ec",
     acento: "#2ecc9b", acentoSuaveBg: "rgba(46,204,155,0.08)", acentoSuaveBorda: "rgba(46,204,155,0.3)",
     modalBg: "#ffffff", // já era opaco — mantém a mesma cor
     acaoBg: "#2ecc9b", acaoTexto: "#101b3d",
