@@ -27,7 +27,10 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // nunca a versão pastel do dark (ilegível em fundo branco).
 const PALETA = {
   dark: { AZUL: '#3b6fd4', AZULC: '#6ab0ff', VERDE: '#34d399', AMARELO: '#fbbf24', LARANJA: '#fb923c', VERMELHO: '#f87171', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', CAMPO_BG: 'rgba(10,22,40,0.95)', PAINEL_BG: 'rgba(10,20,36,0.7)' },
-  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#ea580c', VERMELHO: '#ff5a6b', ROXO: '#7c3aed', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#eef2f7', PAINEL_BG: '#eef2f7' },
+  // Creme #f6f7c4 e cinza secundário #374151 — valores finais aprovados no
+  // rollout do Painel MEI (ver memória do rollout Claro). CAMPO_BG branco
+  // puro (regra 13, nunca o azul-acinzentado antigo).
+  xms: { AZUL: '#2ecc9b', AZULC: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', LARANJA: '#ea580c', VERMELHO: '#ff5a6b', ROXO: '#7c3aed', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', CAMPO_BG: '#ffffff', PAINEL_BG: '#f6f7c4' },
 } as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']
@@ -47,6 +50,12 @@ export default function TesourariaPage() {
   const { AZUL, AZULC, VERDE, AMARELO, LARANJA, VERMELHO, ROXO, CINZA, TEXTO, TITULO, CAMPO_BG, PAINEL_BG } = PALETA[tema]
   const CORES_SEVERIDADE: Record<string, string> = { normal: VERDE, atencao: AMARELO, risco: LARANJA, critico: VERMELHO }
   const CORES_SCORE: Record<string, string> = { vermelho: VERMELHO, amarelo: AMARELO, azul: AZULC, verde: VERDE }
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  // Inverte tingimento branco-sobre-escuro pra navy-sobre-claro (mesmo
+  // "neutro()" já usado nos outros módulos do rollout Claro).
+  const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(255,255,255,${alpha})`
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.03)'
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
@@ -176,7 +185,6 @@ export default function TesourariaPage() {
     es: ['¿Cómo está mi caja?', '¿Tengo dinero ocioso?', '¿Cuál es mi mayor riesgo?', '¿Mi caja aguanta 30 días?', '¿Puedo contratar a alguien?'],
   }
 
-  const temaClaro = tema === 'xms'
   const chartOption = fluxo ? optLinhaMulti(
     [
       { nome: L('Otimista', 'Optimistic', 'Optimista'), dados: fluxo.pontos.map((p) => p.saldoProjetado.otimista), cor: VERDE, tipo: 'dashed' },
@@ -199,6 +207,7 @@ export default function TesourariaPage() {
     <ModuloLayout
       titulo={L('Tesouraria', 'Treasury', 'Tesorería')}
       subtitulo={L('Como está o caixa, o que vai acontecer e qual o risco — tudo numa visão só', 'Where cash stands, what happens next, and the risk — one view', 'Cómo está la caja, qué va a pasar y cuál es el riesgo — todo en una vista')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
@@ -230,7 +239,7 @@ export default function TesourariaPage() {
       ) : (
         <div className="space-y-6">
 
-          <LetreiroAxioma id="tesouraria" cor={AZULC} itens={[
+          <LetreiroAxioma id="tesouraria" cor={AZULC} solido={temaClaro} corDestaque="#2ecc9b" itens={[
             `${L('Disponível', 'Available', 'Disponible')} R$ ${fBRL2(posicao.totalDisponivel)}`,
             score ? `${L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')} ${score.total}` : '',
             alertas.length > 0 ? `${L('Riscos ativos', 'Active risks', 'Riesgos activos')}: ${alertas.length}` : L('Sem riscos ativos', 'No active risks', 'Sin riesgos activos'),
@@ -238,7 +247,7 @@ export default function TesourariaPage() {
 
           {/* LIQUIDITY SCORE */}
           {score && (
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: `1px solid ${CORES_SCORE[score.cor]}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${CORES_SCORE[score.cor]}30` }}>
               <div className="flex flex-wrap items-center gap-4">
                 <div className="text-4xl md:text-5xl font-black" style={{ color: CORES_SCORE[score.cor] }}><AnimatedNumber value={String(score.total)} /></div>
                 <div className="flex-1 min-w-[220px]">
@@ -250,7 +259,7 @@ export default function TesourariaPage() {
               </div>
               <div className="grid grid-cols-3 gap-2 mt-4">
                 {(['cobertura', 'reserva', 'folga'] as const).map((k) => (
-                  <div key={k} className="rounded-xl p-2 text-center" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <div key={k} className="rounded-xl p-2 text-center" style={{ background: NESTED_BG }}>
                     <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>
                       {k === 'cobertura' ? L('Cobertura', 'Coverage', 'Cobertura') : k === 'reserva' ? L('Reserva', 'Reserve', 'Reserva') : L('Folga', 'Slack', 'Holgura')}
                     </p>
@@ -269,7 +278,7 @@ export default function TesourariaPage() {
               { label: L('Livre de Fato', 'Truly Free', 'Realmente Libre'), valor: posicao.totalLivre, cor: AMARELO },
               { label: L('Aplicado', 'Invested', 'Aplicado'), valor: posicao.totalAplicado, cor: AZUL },
             ].map((k) => (
-              <div key={k.label} className="rounded-2xl p-3 md:p-4" style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
+              <div key={k.label} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}><AnimatedNumber value={`R$ ${fBRL2(k.valor)}`} /></p>
               </div>
@@ -279,10 +288,10 @@ export default function TesourariaPage() {
           {/* POSIÇÃO DE CAIXA — TABELA */}
           <div>
             <h3 className="text-sm font-bold mb-2" style={{ color: TITULO }}>{L('Posição de Caixa', 'Cash Position', 'Posición de Caja')}</h3>
-            <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className={`overflow-x-auto rounded-2xl${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${neutro(0.08)}` }}>
               <table className="w-full text-xs" style={{ minWidth: 480 }}>
                 <thead>
-                  <tr style={{ color: CINZA, background: 'rgba(255,255,255,0.03)' }}>
+                  <tr style={{ color: CINZA, background: NESTED_BG }}>
                     <th className="text-left py-2 px-3 font-semibold">{L('Conta', 'Account', 'Cuenta')}</th>
                     <th className="text-left py-2 px-3 font-semibold">{L('Tipo', 'Type', 'Tipo')}</th>
                     <th className="text-right py-2 px-3 font-semibold">{L('Saldo', 'Balance', 'Saldo')}</th>
@@ -295,7 +304,7 @@ export default function TesourariaPage() {
                   )}
                   {posicao.linhas.map((l) => (
                     <tr key={l.conta_id} onClick={() => router.push(`/contabilidade/razao?conta=${l.conta_id}`)}
-                      className="cursor-pointer" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      className="cursor-pointer" style={{ borderTop: `1px solid ${neutro(0.06)}` }}>
                       <td className="py-2 px-3" style={{ color: TEXTO }}>
                         {l.banco_nome || l.conta_nome} <span style={{ color: CINZA }}>({l.conta_codigo})</span>
                       </td>
@@ -333,10 +342,10 @@ export default function TesourariaPage() {
           <div>
             <h3 className="text-sm font-bold mb-2" style={{ color: TITULO }}>{L('Fluxo Projetado', 'Projected Cash Flow', 'Flujo Proyectado')}</h3>
             {chartOption && <ReactECharts option={chartOption} style={{ height: 240, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'canvas' }} />}
-            <div className="overflow-x-auto rounded-2xl mt-2" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className={`overflow-x-auto rounded-2xl mt-2${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${neutro(0.08)}` }}>
               <table className="w-full text-xs" style={{ minWidth: 460 }}>
                 <thead>
-                  <tr style={{ color: CINZA, background: 'rgba(255,255,255,0.03)' }}>
+                  <tr style={{ color: CINZA, background: NESTED_BG }}>
                     <th className="text-left py-2 px-3 font-semibold">{L('Horizonte', 'Horizon', 'Horizonte')}</th>
                     <th className="text-right py-2 px-3 font-semibold">{L('Otimista', 'Optimistic', 'Optimista')}</th>
                     <th className="text-right py-2 px-3 font-semibold">{L('Base', 'Base', 'Base')}</th>
@@ -345,7 +354,7 @@ export default function TesourariaPage() {
                 </thead>
                 <tbody>
                   {fluxo.pontos.map((p) => (
-                    <tr key={p.horizonteDias} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <tr key={p.horizonteDias} style={{ borderTop: `1px solid ${neutro(0.06)}` }}>
                       <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{p.horizonteDias} {L('dias', 'days', 'días')}</td>
                       <td className="text-right py-2 px-3 whitespace-nowrap" style={{ color: VERDE }}>R$ {fBRL2(p.saldoProjetado.otimista)}</td>
                       <td className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: p.abaixoDaReserva.base ? VERMELHO : AZULC }}>
@@ -388,7 +397,7 @@ export default function TesourariaPage() {
                     </div>
                     <button onClick={() => marcarResolvido(a.id)}
                       className="text-[10px] font-bold px-2 py-1 rounded-lg whitespace-nowrap"
-                      style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                      style={{ background: neutro(0.06), color: CINZA }}>
                       {L('Resolver', 'Resolve', 'Resolver')}
                     </button>
                   </div>
@@ -398,7 +407,7 @@ export default function TesourariaPage() {
           </div>
 
           {/* PERGUNTE À TESOURARIA (ZIA Copilot) */}
-          <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: '1px solid rgba(167,139,250,0.2)' }}>
+          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid rgba(167,139,250,0.2)' }}>
             <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: CINZA }}>
               <MessageCircleQuestion size={14} />
               {L('Pergunte à Tesouraria', 'Ask Treasury', 'Pregunte a la Tesorería')}
@@ -415,7 +424,7 @@ export default function TesourariaPage() {
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {PERGUNTAS_SUGERIDAS_ZIA[lang].map((sug) => (
-                <button key={sug} onClick={() => perguntarZia(sug)} disabled={carregandoRespostaZia} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: 'rgba(255,255,255,0.04)', color: CINZA, border: '1px solid rgba(255,255,255,0.08)' }}>
+                <button key={sug} onClick={() => perguntarZia(sug)} disabled={carregandoRespostaZia} className="px-2.5 py-1 rounded-full text-[11px] disabled:opacity-60" style={{ background: neutro(0.04), color: CINZA, border: `1px solid ${neutro(0.08)}` }}>
                   {sug}
                 </button>
               ))}
