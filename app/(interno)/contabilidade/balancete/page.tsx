@@ -21,7 +21,10 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // Claro) usa as mesmas cores 600/700 já padronizadas no resto do Axioma.
 const PALETA = {
   dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7' },
-  xms: { TEAL: '#0f766e', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d' },
+  // TEAL não é cor da nossa paleta padrão — no Claro vira verde-menta
+  // (nossa cor de destaque/CTA, tema-tokens.md §1.1). CINZA sobe pra
+  // #374151, mesmo padrão já usado nos demais módulos.
+  xms: { TEAL: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d' },
 } as const
 
 const ORDEM_TIPO: TipoContaContabil[] = ['ativo', 'passivo', 'patrimonio', 'receita', 'despesa']
@@ -29,6 +32,7 @@ const ORDEM_TIPO: TipoContaContabil[] = ['ativo', 'passivo', 'patrimonio', 'rece
 export default function BalancetePage() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
   const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -100,15 +104,16 @@ export default function BalancetePage() {
     <ModuloLayout
       titulo={L('Balancete de Verificação', 'Trial Balance', 'Balance de Comprobación')}
       subtitulo={L('Saldo de todas as contas no período, agrupado por tipo — direto do ledger', 'Balance of every account in the period, grouped by type — straight from the ledger', 'Saldo de todas las cuentas en el período, agrupado por tipo — directo del libro mayor')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
-          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} solido={temaClaro} />
           <ThemeToggle />
         </>
       }
     >
       <div className="mb-5">
-        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
+        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
       </div>
 
       {loading ? (
@@ -118,7 +123,7 @@ export default function BalancetePage() {
       ) : (
         <>
           <div className="mb-5">
-            <LetreiroAxioma id="balancete" cor={TEAL} itens={[
+            <LetreiroAxioma id="balancete" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
               `${L('Débito', 'Debit', 'Débito')} R$ ${fBRL2(totalDebitoGeral)}`,
               `${L('Crédito', 'Credit', 'Crédito')} R$ ${fBRL2(totalCreditoGeral)}`,
               fecha ? `${L('Balancete fechado', 'Trial balance closed', 'Balance cerrado')} ✓` : `${L('Não fecha', "Doesn't close", 'No cierra')} ⚠️`,

@@ -21,12 +21,16 @@ type Grupo = '6' | '7' | '8' | '9' | '10'
 
 const PALETA = {
   dark: { TEAL: '#14b8a6', VERDE: '#34d399', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7' },
-  xms: { TEAL: '#0f766e', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d' },
+  // TEAL não é cor da nossa paleta padrão — no Claro vira verde-menta
+  // (nossa cor de destaque/CTA, tema-tokens.md §1.1). CINZA sobe pra
+  // #374151, mesmo padrão já usado nos demais módulos.
+  xms: { TEAL: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d' },
 } as const
 
 export default function DrePage() {
   const { idioma } = useLanguage()
   const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
   const { TEAL, VERDE, VERMELHO, CINZA, TEXTO, TITULO } = PALETA[tema]
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -114,15 +118,16 @@ export default function DrePage() {
     <ModuloLayout
       titulo={L('DRE — Demonstrativo de Resultado', 'Income Statement', 'Estado de Resultados')}
       subtitulo={L('Calculado direto do Livro Razão contábil — receita, custo e despesa vêm do ledger, não de planilha solta', 'Calculated straight from the accounting ledger — revenue, cost and expense come from the ledger, not a loose spreadsheet', 'Calculado directo del libro mayor contable — ingreso, costo y gasto vienen del libro mayor, no de una planilla suelta')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
-          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} />
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={TEAL} corTexto={TEAL} solido={temaClaro} />
           <ThemeToggle />
         </>
       }
     >
       <div className="mb-5">
-        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} />
+        <SeletorPeriodo preset={preset} onChangePreset={setPreset} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={TEAL} lang={lang} temaClaro={temaClaro} />
       </div>
 
       {loading ? (
@@ -132,7 +137,7 @@ export default function DrePage() {
       ) : (
         <>
           <div className="mb-5">
-            <LetreiroAxioma id="dre-contabil" cor={TEAL} itens={[
+            <LetreiroAxioma id="dre-contabil" cor={TEAL} solido={temaClaro} corDestaque="#2ecc9b" itens={[
               `${L('Receita Bruta', 'Gross Revenue', 'Ingreso Bruto')} R$ ${fBRL2(receitaBruta)}`,
               `${L('Lucro Bruto', 'Gross Profit', 'Utilidad Bruta')} R$ ${fBRL2(lucroBruto)}`,
               `${L('Resultado Líquido', 'Net Result', 'Resultado Neto')} R$ ${fBRL2(resultadoLiquido)}`,
