@@ -64,7 +64,12 @@ const PALETA = {
   // Claro vira verde-menta oficial, igual toda outra identidade decorativa
   // (tema-tokens.md §1.1); AMBAR é semântico ("atenção") e usa o âmbar
   // aprovado (#f5a623), não o marrom "amenizado" que já causou problema antes.
-  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', CINZA: '#6b7280', BG_CARD: '#f6f7c4', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: 'rgba(255,255,255,0.5)', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(46,204,155,0.08)' },
+  // ESMERALDA/TEAL eram variantes escuras de verde so pra dar identidade
+  // visual por secao - no Claro isso vira "carnaval" (cada card com um tom
+  // diferente). Ambos colapsam pro mesmo verde-menta forte (#16a97d, par
+  // "Sucesso" oficial) que ja e VERDE aqui - uma so identidade, igual
+  // Contas a Pagar/Estoque. Escuro inalterado.
+  xms: { ESMERALDA: '#16a97d', TEAL: '#16a97d', OURO: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', CINZA: '#6b7280', BG_CARD: '#f6f7c4', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: 'rgba(255,255,255,0.5)', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(46,204,155,0.08)' },
 } as const
 
 type CentroCusto = { id: string; nome: string }
@@ -962,12 +967,19 @@ export default function ContasReceber() {
           ) : (
             <div className="grid md:grid-cols-2 gap-4 items-center">
               <div className="grid grid-cols-2 gap-3">
-                {aging.map((f, i) => (
-                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${[AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i]}12`, border: `1px solid ${[AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i]}35` }}>
-                    <p className="text-base font-black" style={{ color: [AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i] }}>{fBRL(f.valor)}</p>
+                {aging.map((f, i) => {
+                  // Escala de gravidade 0-30/31-60/61-90/90+ - no Claro usa so
+                  // os 2 semanticos oficiais (ambar/vermelho aprovados), sem
+                  // hex cru do Escuro vazando (#f59e0b/#ef4444 nao existiam
+                  // no Claro, cada bucket saia com um tom levemente diferente).
+                  const corAging = temaClaro ? [AMBAR, AMBAR, VERMELHO, VERMELHO][i] : [AMBAR, '#f59e0b', '#ef4444', '#ff5a6b'][i];
+                  return (
+                  <div key={f.chave} className="rounded-xl p-3 text-center" style={{ background: `${corAging}12`, border: `1px solid ${corAging}35` }}>
+                    <p className="text-base font-black" style={{ color: corAging }}>{fBRL(f.valor)}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{agingLabels[i]} · {f.qtdContas} {L('contas', 'accounts', 'cuentas')}</p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {agingOption && <ReactECharts option={agingOption} style={{ height: 220 }} notMerge lazyUpdate />}
             </div>
@@ -1081,11 +1093,11 @@ export default function ContasReceber() {
             </p>
             <div className="flex items-center gap-2">
               {etapasRegua.length === 0 && (
-                <button onClick={usarReguaPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${OURO}15`, color: OURO, border: `1px solid ${OURO}30` }}>
+                <button onClick={usarReguaPadrao} className="px-3 py-1.5 rounded-lg text-[10px] font-bold" style={temaClaro ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: `${OURO}15`, color: OURO, border: `1px solid ${OURO}30` }}>
                   {L('Usar régua padrão', 'Use default ladder', 'Usar regla predeterminada')}
                 </button>
               )}
-              <button onClick={abrirNovaEtapa} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold" style={{ background: `${ESMERALDA}20`, color: ESMERALDA, border: `1px solid ${ESMERALDA}30` }}>
+              <button onClick={abrirNovaEtapa} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold" style={temaClaro ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: `${ESMERALDA}20`, color: ESMERALDA, border: `1px solid ${ESMERALDA}30` }}>
                 <Plus size={12} /> {L('Nova Etapa', 'New Step', 'Nueva Etapa')}
               </button>
             </div>
@@ -1334,7 +1346,7 @@ export default function ContasReceber() {
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L('Buscar por cliente, documento, responsável...', 'Search by client, document, owner...', 'Buscar por cliente, documento, responsable...')} className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: TEXTO }} />
             </div>
             <div className="flex items-center gap-1.5 px-2" style={{ color: CINZA }}><Filter size={14} /></div>
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-xs font-bold focus:outline-none cursor-pointer" style={{ background: SELECT_BG, border: `1px solid ${ESMERALDA}40`, color: ESMERALDA }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-xs font-bold focus:outline-none cursor-pointer" style={temaClaro ? (filtroStatus !== 'todos' ? { background: '#16a97d', color: '#ffffff', border: '1px solid #16a97d' } : { background: '#101b3d', color: '#ffffff', border: '1px solid #101b3d' }) : { background: SELECT_BG, border: `1px solid ${ESMERALDA}40`, color: ESMERALDA }}>
               <option value="todos">{L('Todos os Status', 'All Statuses', 'Todos los Estados')}</option>
               <option value="pendente">{statusLabel('pendente')}</option>
               <option value="parcial">{statusLabel('parcial')}</option>
