@@ -210,7 +210,7 @@ export default function TesourariaPage() {
       headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
-          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
           <button onClick={() => router.push('/tesouraria/simulador')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: 'rgba(167,139,250,0.14)', color: ROXO, border: '1px solid rgba(167,139,250,0.4)' }}>

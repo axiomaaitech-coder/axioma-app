@@ -402,7 +402,7 @@ export default function CustosVariaveis() {
           />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct(temaClaro ? CORES.verde : CORES.roxoC) }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -410,9 +410,9 @@ export default function CustosVariaveis() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct("#f97316") },
+            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.azul : "#f97316") },
             { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#6ab0ff") },
-            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct("#fbbf24") },
+            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.azul : "#fbbf24") },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -560,7 +560,7 @@ export default function CustosVariaveis() {
         </CanvasBox>
 
         {/* Tabela */}
-        <CanvasBox cor={ct("#f97316")} {...cartaoTema}>
+        <CanvasBox cor={ct(temaClaro ? CORES.azul : "#f97316")} {...cartaoTema}>
           <div className="overflow-x-auto">
             {carregando ? (
               <div className="flex items-center justify-center py-16">
@@ -585,11 +585,11 @@ export default function CustosVariaveis() {
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#6ab0ff")}18`, color: catCorAtual[c.categoria] || ct("#6ab0ff") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct("#f97316") }}>{fBRL(c.valor)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.azul : "#f97316") }}>{fBRL(c.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#6ab0ff") }}><Pencil size={16} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct("#f97316") }}><Trash2 size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct(temaClaro ? CORES.azul : "#f97316") }}><Trash2 size={16} /></motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -610,10 +610,10 @@ export default function CustosVariaveis() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor={ct("#f97316")} {...cartaoTema}>
+              <CanvasBox cor={ct(temaClaro ? CORES.azul : "#f97316")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#f97316") }}>AXIOMA AI.TECH</p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? CORES.azul : "#f97316") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Variable Cost" : lang === "es" ? "Editar Costo Variable" : "Editar Custo Variável") : t.custosVariaveis.novoCusto}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>

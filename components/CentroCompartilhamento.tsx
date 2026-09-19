@@ -87,11 +87,19 @@ export function CentroCompartilhamento({
 }
 
 // Botão padrão que abre o Centro — mesmo visual usado no Receitas.
-export function BotaoCompartilhar({ onClick, texto, cor = "#8b5cf6", corTexto = "#c4b5fd" }: { onClick: () => void; texto: string; cor?: string; corTexto?: string }) {
+export function BotaoCompartilhar({ onClick, texto, cor = "#8b5cf6", corTexto = "#c4b5fd", solido }: {
+  onClick: () => void; texto: string; cor?: string; corTexto?: string;
+  /** Opt-in — fundo SÓLIDO em degradê verde (igual ao botão Exportar PDF do
+   * ModuloLayout), no lugar do pill translúcido de sempre. undefined =
+   * comportamento idêntico ao de sempre (nenhum módulo muda sem passar isso). */
+  solido?: boolean;
+}) {
   return (
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={onClick}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-      style={{ background: `${cor}26`, border: `1px solid ${cor}66`, color: corTexto }}>
+      style={solido
+        ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
+        : { background: `${cor}26`, border: `1px solid ${cor}66`, color: corTexto }}>
       <Share2 size={16} /> {texto}
     </motion.button>
   );
