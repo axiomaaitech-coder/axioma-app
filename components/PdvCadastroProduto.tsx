@@ -950,11 +950,11 @@ function BlocoPrecificacao({
       {temCusto && (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            <div className="p-3 rounded-xl axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
               <p className="text-[10px] uppercase tracking-wide" style={{ color: tokens.textoMuted }}>{t("labelMargemReal", lang)}</p>
               <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{margemRealPct.toFixed(1)}%</p>
             </div>
-            <div className="p-3 rounded-xl" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            <div className="p-3 rounded-xl axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
               <p className="text-[10px] uppercase tracking-wide" style={{ color: tokens.textoMuted }}>{t("labelLucroUnidade", lang)}</p>
               <p className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{moeda(lucroUnidade)}</p>
             </div>

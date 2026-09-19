@@ -490,7 +490,7 @@ function AreaUpload({ lang, inputRef, processando, erro, onArquivo }: {
 function FornecedorCard({ lang, info }: { lang: Lang; info: { existente: FornecedorMinimo | null; cnpj: string; razaoSocial?: string; fantasia?: string } }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="p-4 rounded-xl flex items-center justify-between flex-wrap gap-2" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="p-4 rounded-xl flex items-center justify-between flex-wrap gap-2 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div>
         <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("fornecedorTitulo", lang)}</p>
         <p className="text-sm" style={{ color: tokens.cardTexto }}>{info.existente?.nome || info.fantasia || info.razaoSocial || info.cnpj}</p>
@@ -521,7 +521,7 @@ function TabelaConferencia({ lang, nicho, itens, classificando, margemPct, onMar
         </button>
       )}
 
-      <div className="flex items-end gap-2 flex-wrap p-3 rounded-xl" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="flex items-end gap-2 flex-wrap p-3 rounded-xl axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         <div>
           <label className="text-xs font-semibold block mb-1" style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("margemLabel", lang)}</label>
           <input type="number" value={margemPct} onChange={(e) => onMargemChange(e.target.value)}

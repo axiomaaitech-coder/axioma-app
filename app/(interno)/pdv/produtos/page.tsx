@@ -339,7 +339,7 @@ function ModalConfirmarExclusao({ produto, lang, excluindo, onCancelar, onConfir
   const { tokens } = useTemaPdv();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-      <div className="w-full max-w-sm rounded-2xl p-5" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="w-full max-w-sm rounded-2xl p-5 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         <h3 className="text-base font-bold mb-2" style={{ color: tokens.cardTexto }}>{t("confirmarExclusaoTitulo", lang)}</h3>
         <p className="text-sm mb-5" style={{ color: tokens.cardTexto, opacity: 0.85 }}>{t("confirmarExclusaoTexto", lang, { nome: produto.nome })}</p>
         <div className="flex justify-end gap-2">

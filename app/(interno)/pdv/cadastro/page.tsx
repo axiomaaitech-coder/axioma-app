@@ -547,7 +547,7 @@ function BipagemMassa({
       <AnimatePresence>
         {cartaoPendente && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="p-4 rounded-xl space-y-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+            className="p-4 rounded-xl space-y-3 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
             <p className="text-xs font-semibold" style={{ color: cartaoPendente.nome && cartaoPendente.categoria ? AMBAR : tokens.cardTexto }}>
               {cartaoPendente.nome && cartaoPendente.categoria ? t("precoParaSalvar", lang) : t("faltaCompletar", lang)}
             </p>

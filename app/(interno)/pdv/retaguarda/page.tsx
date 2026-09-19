@@ -698,7 +698,7 @@ function Assistente({ lang, configAtual, salvando, podeCancelar, comoModal, onSa
 function CardEstat({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="rounded-xl p-3 md:p-4 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <p className="text-[11px] font-bold uppercase tracking-wide mb-1 truncate" style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
       <p className="text-xl md:text-2xl font-black truncate" style={{ color: cor || tokens.cardTexto }}><AnimatedNumber value={valor} /></p>
     </div>
@@ -1033,7 +1033,7 @@ function PainelFechamento({
           onVerComposicao={composicaoDisponivel ? onVerComposicao : undefined} />
       )}
 
-      <div className="rounded-2xl p-4" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+      <div className="rounded-2xl p-4 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
         {turnos.length === 0 ? (
           <p className="text-sm text-center py-4" style={{ color: tokens.cardTexto, opacity: 0.6 }}>{t("nenhumTurnoAberto", lang)}</p>
         ) : (
@@ -1191,7 +1191,7 @@ function CardResultadoFechamento({ lang, resultado, onVerComposicao }: { lang: I
   const diferenca = resultado.diferenca;
   const corDiferenca = diferenca === null ? tokens.cardTexto : diferenca === 0 ? tokens.acento : diferenca > 0 ? "#34d399" : "#f87171";
   return (
-    <div className="rounded-2xl p-4" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
+    <div className="rounded-2xl p-4 axi-card-premium3d" style={{ background: tokens.cardBg, border: `2px solid ${tokens.acento}` }}>
       <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="text-sm font-bold" style={{ color: tokens.cardTexto }}>{t("resultadoFechamentoTitulo", lang)}</h3>
         {onVerComposicao && (
@@ -1285,7 +1285,7 @@ function SecaoComposicao({ titulo, total, sinal, cor, expandido, onToggle, vazio
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="rounded-xl p-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="rounded-xl p-3 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <button onClick={onToggle} disabled={vazio} className="w-full flex items-center justify-between gap-2 text-left disabled:opacity-60">
         <span className="text-xs font-bold flex items-center gap-1.5" style={{ color: tokens.cardTexto }}>
           {!vazio && (expandido ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
@@ -1333,7 +1333,7 @@ function ModalComposicaoEsperado({ lang, linhas, onFechar }: {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="rounded-xl p-3" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+          <div className="rounded-xl p-3 axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-bold" style={{ color: tokens.cardTexto }}>{t("compAbertura", lang)}</p>

@@ -1192,7 +1192,7 @@ function QuadroValor({ label, valor, corValor, grande, tamanho }: {
   const { tokens } = useTemaPdv();
   const tamanhoFinal = tamanho ?? (grande ? "text-2xl md:text-3xl" : "text-lg md:text-xl");
   return (
-    <div className={grande ? "shrink-0 rounded-xl px-3 py-2" : "shrink-0 rounded-xl px-2.5 py-1.5"}
+    <div className={(grande ? "shrink-0 rounded-xl px-3 py-2" : "shrink-0 rounded-xl px-2.5 py-1.5") + " axi-card-premium3d"}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <p className={grande ? "text-[10px] font-bold uppercase tracking-wide mb-1 truncate" : "text-[9px] font-bold uppercase tracking-wide leading-none truncate"}
         style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
@@ -1221,7 +1221,7 @@ function LogoBoxGrande({ lang, idle, grande }: { lang: Idioma; idle: boolean; gr
   // mais espaço de verdade) sem nunca estourar — quem trava o limite é o
   // próprio flexbox, não um número chutado.
   return (
-    <div className={`flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center text-center overflow-hidden ${grande ? "p-4 gap-2" : "p-2 gap-1"}`}
+    <div className={`flex-1 min-h-0 rounded-2xl flex flex-col items-center justify-center text-center overflow-hidden axi-card-premium3d ${grande ? "p-4 gap-2" : "p-2 gap-1"}`}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <motion.div
         className={`relative w-full min-h-0 flex-1 ${grande ? "max-w-[80%]" : "max-w-[74%]"}`}
@@ -1254,7 +1254,7 @@ function CampoBuscaBox({ lang, busca, onBusca, onKeyDown, inputRef, termo, resul
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className={`shrink-0 relative rounded-xl ${grande ? "px-3 py-2" : "px-2.5 py-1.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className={`shrink-0 relative rounded-xl axi-card-premium3d ${grande ? "px-3 py-2" : "px-2.5 py-1.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <p className={grande ? "text-[10px] font-bold uppercase tracking-wide mb-1" : "text-[9px] font-bold uppercase tracking-wide leading-none mb-1"}
         style={{ color: tokens.cardTexto, opacity: 0.72 }}>{t("labelCodigoBarras", lang)}</p>
       <CampoBusca lang={lang} busca={busca} onBusca={onBusca} onKeyDown={onKeyDown} inputRef={inputRef} grande={grande} />
@@ -1304,7 +1304,7 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className="flex-1 min-h-0 flex flex-col rounded-2xl overflow-hidden axi-card-premium3d" style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       <div className={`shrink-0 flex items-center justify-between ${grande ? "px-3 py-2" : "px-3 py-1.5"}`} style={{ background: tokens.acentoSuaveBg }}>
         <div className="flex items-center gap-1.5">
           <ShoppingCart size={grande ? 16 : 13} style={{ color: tokens.acento }} />
@@ -1370,7 +1370,7 @@ function RodapeTotais({
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className={`shrink-0 rounded-xl ${grande ? "p-3" : "p-2 md:p-2.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className={`shrink-0 rounded-xl axi-card-premium3d ${grande ? "p-3" : "p-2 md:p-2.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       {/* SUBTOTAL */}
       <div className={`flex items-center justify-between ${grande ? "mb-1.5" : "mb-1"}`}>
         <span className={grande ? "text-sm font-semibold" : "text-xs font-semibold"} style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>

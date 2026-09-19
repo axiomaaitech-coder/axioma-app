@@ -103,7 +103,7 @@ export function CardGenerico({ label, sublabel, onClick }: { label: string; subl
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px]"
+      className="flex flex-col items-start gap-1 p-4 rounded-xl text-left min-h-[76px] axi-card-premium3d"
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}
     >
       <span className="text-sm font-semibold truncate w-full" style={{ color: tokens.cardTexto }}>{label}</span>
