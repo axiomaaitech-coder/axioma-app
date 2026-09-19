@@ -98,10 +98,13 @@ export default function Investimentos() {
   const corTipo: Record<TipoInvestimento, string> = {
     renda_fixa: ct(CORES.verde), renda_variavel: ct(CORES.amarelo), criptomoeda: ct(CORES.roxo), imovel: ct(CORES.azul), outro: ct(CORES.rosa),
   };
-  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+  // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
   const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
-  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
   const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
@@ -543,7 +546,7 @@ export default function Investimentos() {
             { label: txt.melhorRent, value: `${melhorRent}% a.a.`, cor: ct(CORES.verde) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
+              <CanvasBox cor={card.cor} {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-2" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                 <p className="text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
@@ -552,7 +555,7 @@ export default function Investimentos() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={ct(CORES.azul)}>
+          <CanvasBox cor={ct(CORES.azul)} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <TrendingUp size={48} style={{ color: "#1a3a5a" }} className="mb-4" />
               <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.invSemDados}</p>
@@ -561,7 +564,7 @@ export default function Investimentos() {
         ) : (
           <>
             {/* RADAR DE RISCOS — semáforo resumo */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${corExposicao === "verde" ? "rgba(16,185,129,0.3)" : corExposicao === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${corExposicao === "verde" ? "rgba(16,185,129,0.3)" : corExposicao === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck size={16} style={{ color: ct(CORES.azul) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invRadarRiscoTitulo}</p>
@@ -581,7 +584,7 @@ export default function Investimentos() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className="rounded-2xl p-3 md:p-4"
+                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
                   style={{ background: PAINEL_FUNDO, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
@@ -592,7 +595,7 @@ export default function Investimentos() {
 
             {/* INDICADORES DE MERCADO (BCB) */}
             {macro && (
-              <div className="rounded-2xl p-3 md:p-4" style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
+              <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
                 <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                   <div className="flex items-center gap-2">
                     <Landmark size={14} style={{ color: ct(CORES.azul) }} />
@@ -627,7 +630,7 @@ export default function Investimentos() {
             </div>
 
             {/* ESCADA DE LIQUIDEZ */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
               <div className="flex items-center gap-2 mb-2">
                 <Wallet size={16} style={{ color: ct(CORES.azul) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invEscadaLiquidezTitulo}</p>
@@ -646,7 +649,7 @@ export default function Investimentos() {
             </div>
 
             {/* CUSTO DE OPORTUNIDADE vs DÍVIDA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${oportunidades.length ? "rgba(239,68,68,0.3)" : CAMPO_BORDA}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${oportunidades.length ? "rgba(239,68,68,0.3)" : CAMPO_BORDA}` }}>
               <div className="flex items-center gap-2 mb-3">
                 {oportunidades.length ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <PiggyBank size={16} style={{ color: ct(CORES.azul) }} />}
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invCustoOportunidadeTitulo}</p>
@@ -667,7 +670,7 @@ export default function Investimentos() {
 
             {/* MODAL ÚNICO — abre a Análise de Investimentos */}
             <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} onClick={() => setAnaliseAberta(true)}
-              className="w-full rounded-2xl overflow-hidden text-left"
+              className={`w-full rounded-2xl overflow-hidden text-left${classePremium3d}`}
               style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5 flex items-center gap-3">
                 <span className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ background: "linear-gradient(180deg,#3b82f6,#d4af37)", boxShadow: "0 0 12px #3b82f6" }} />
@@ -679,7 +682,7 @@ export default function Investimentos() {
             </motion.button>
 
             {/* CONSELHO CFO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(212,175,55,0.2)" }}>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invConselhoTitulo}</p>
@@ -703,7 +706,7 @@ export default function Investimentos() {
         {/* ═══════════════════════ FASE 2 — CAPITAL ALLOCATION ENGINE + SIMULADOR EXECUTIVO ═══════════════════════ */}
         {temDadosFinanceiros && (
           <>
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(59,130,246,0.2)" }}>
               <div className="flex items-center gap-2 mb-1">
                 <Layers size={16} style={{ color: ct(CORES.azul) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invAllocationTitulo}</p>
@@ -772,7 +775,7 @@ export default function Investimentos() {
             </div>
 
             {/* SIMULADOR EXECUTIVO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: "1px solid rgba(212,175,55,0.2)" }}>
               <div className="flex items-center gap-2 mb-1">
                 <Sliders size={16} style={{ color: ct(CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invSimuladorTitulo}</p>
@@ -827,7 +830,7 @@ export default function Investimentos() {
         )}
 
         {/* Busca */}
-        <CanvasBox cor={ct("#3b6fd4")}>
+        <CanvasBox cor={ct("#3b6fd4")} {...cartaoTema}>
           <div className="flex items-center gap-2 py-1">
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={txt.buscar}
               className="bg-transparent flex-1 focus:outline-none text-sm" style={{ color: ct("#c8d8f0") }} />
@@ -840,7 +843,7 @@ export default function Investimentos() {
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : investimentosFiltrados.length === 0 ? (
-          <CanvasBox cor={ct(CORES.azul)}>
+          <CanvasBox cor={ct(CORES.azul)} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <TrendingUp size={48} style={{ color: "#1a3a5a" }} className="mb-4" />
               <p className="text-sm" style={{ color: "#3a6090" }}>{txt.semInv}</p>
@@ -853,7 +856,7 @@ export default function Investimentos() {
               const liquidaAA = rentabilidadeLiquidaAnual({ tipo: inv.tipo, rentabilidade: inv.rentabilidade, data: inv.data });
               return (
                 <motion.div key={inv.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                  <CanvasBox cor={cor}>
+                  <CanvasBox cor={cor} {...cartaoTema}>
                     <div className="flex justify-between items-start mb-3">
                       <div className="min-w-0 mr-2">
                         <h3 className="font-bold text-sm mb-1 truncate" style={{ color: ct("#c8d8f0") }}>{inv.nome}</h3>
@@ -897,7 +900,7 @@ export default function Investimentos() {
             onClick={() => setAnaliseAberta(false)}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
               transition={{ duration: 0.22 }} className="w-full max-w-4xl max-h-[88vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-              <div className="rounded-2xl overflow-hidden" style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.2)" }}>
+              <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: PAINEL_FUNDO_B, border: "1px solid rgba(99,102,241,0.2)" }}>
                 <div className="p-4 md:p-6">
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-2">
@@ -934,7 +937,7 @@ export default function Investimentos() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor={ct(CORES.azul)}>
+              <CanvasBox cor={ct(CORES.azul)} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(CORES.azulC) }}>AXIOMA AI.TECH</p>

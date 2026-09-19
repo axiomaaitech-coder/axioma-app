@@ -313,11 +313,11 @@ export default function TopNav() {
         title={title}
         className="relative flex items-center justify-center gap-1.5 rounded-xl text-sm font-semibold h-12 w-full px-2 transition-all"
         style={{
-          background: ativo ? `${cor}30` : `${cor}1c`,
-          border: `1px solid ${cor}${ativo ? "a0" : "75"}`,
-          boxShadow: ativo ? `0 0 18px ${cor}55, inset 0 0 10px ${cor}20` : `0 0 12px ${cor}35, inset 0 0 6px ${cor}10`,
-          color: ativo ? cor : "#c8d8f0",
-          textShadow: `0 0 8px ${cor}40`,
+          background: ativo ? `${cor}38` : `${cor}30`,
+          border: `1px solid ${cor}${ativo ? "c0" : "a0"}`,
+          boxShadow: ativo ? `0 0 20px ${cor}70, inset 0 0 12px ${cor}25` : `0 0 16px ${cor}55, inset 0 0 8px ${cor}18`,
+          color: cor,
+          textShadow: `0 0 8px ${cor}50`,
         }}
       >
         {children}
@@ -384,7 +384,7 @@ export default function TopNav() {
       </CardNav>
     ));
     construtoresCartas.push((i) => (
-      <div key="idioma" className="h-12 rounded-xl flex items-center justify-center" style={{ background: `${corCasa(i)}1c`, border: `1px solid ${corCasa(i)}75`, boxShadow: `0 0 12px ${corCasa(i)}35` }}>
+      <div key="idioma" className="h-12 rounded-xl flex items-center justify-center" style={{ background: `${corCasa(i)}30`, border: `1px solid ${corCasa(i)}a0`, boxShadow: `0 0 16px ${corCasa(i)}55` }}>
         <SeletorIdioma />
       </div>
     ));
