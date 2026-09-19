@@ -39,7 +39,7 @@ const supabase = createBrowserClient(
 // escuro/saturado), senão o texto do botão some.
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', ALARANJADO: '#fb923c', NEUTRO: '#5a7a9a', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', LINHA_BG: '#0a1628', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)' },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', LINHA_BG: 'rgba(255,255,255,0.2)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.2)' },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', ALARANJADO: '#ea580c', NEUTRO: '#6b7280', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', LINHA_BG: 'rgba(255,255,255,0.5)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)' },
 } as const
 const CATEGORIAS = ["Vendas de produtos", "Prestação de serviços", "Recorrentes", "Eventuais", "Outras"]
 
@@ -52,9 +52,9 @@ export default function FaturamentoMEI() {
   const temaClaro = tema === 'xms'
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
-  const cartaoTema = temaClaro ? { fundo: '#eef085', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.2)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
   // Fundo/borda decorativos neutros (trilha de barra, botão cancelar, divisor)
   // eram um azul fixo em decimal — nunca trocavam de tom no Claro (mesmo bug

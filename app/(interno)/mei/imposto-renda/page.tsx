@@ -32,7 +32,7 @@ const supabase = createBrowserClient(
 // cores (escuro no dark, branco no Claro, senão o texto do botão some).
 const PALETA = {
   dark: { OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', TEAL: '#2dd4bf', NEUTRO: '#5a7a9a', DESABILITADO: '#2a4060', ON_ACCENT: '#020810', CAMPO_BG: 'rgba(255,255,255,0.04)', PAINEL_BG: 'rgba(255,255,255,0.03)', BOTAO_SUTIL_BG: 'rgba(255,255,255,0.08)', SELECT_BG: '#020810', POCO_BG: 'rgba(0,0,0,0.3)', COLOR_SCHEME: 'dark' as const },
-  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', TEAL: '#0d9488', NEUTRO: '#6b7280', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', PAINEL_BG: 'rgba(255,255,255,0.2)', BOTAO_SUTIL_BG: 'rgba(16,27,61,0.1)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.2)', COLOR_SCHEME: 'light' as const },
+  xms: { OURO: '#101b3d', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', TEAL: '#0d9488', NEUTRO: '#6b7280', DESABILITADO: '#c3cedb', ON_ACCENT: '#ffffff', CAMPO_BG: '#eef2f7', PAINEL_BG: 'rgba(255,255,255,0.5)', BOTAO_SUTIL_BG: 'rgba(16,27,61,0.1)', SELECT_BG: '#ffffff', POCO_BG: 'rgba(255,255,255,0.5)', COLOR_SCHEME: 'light' as const },
 } as const
 
 export default function ImpostoRendaMEI() {
@@ -42,9 +42,9 @@ export default function ImpostoRendaMEI() {
   const temaClaro = tema === 'xms'
   // Regras do rollout tema Claro (ver memória "Rollout tema Claro nos módulos
   // MEI"). Escuro fica 100% inalterado em tudo abaixo.
-  const cartaoTema = temaClaro ? { fundo: '#eef085', premium3d: true } as const : {}
+  const cartaoTema = temaClaro ? { fundo: '#f6f7c4', premium3d: true } as const : {}
   const TEXTO_SEC = temaClaro ? '#374151' : 'var(--axi-text-secondary)'
-  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.2)' : undefined
+  const NESTED_BG = temaClaro ? 'rgba(255,255,255,0.5)' : undefined
   const NESTED_BORDA = temaClaro ? 'rgba(16,27,61,0.12)' : undefined
   const ATIVO = temaClaro ? '#2ecc9b' : OURO
   const neutro = (alpha: number) => temaClaro ? `rgba(16,27,61,${alpha})` : `rgba(106,176,255,${alpha})`
