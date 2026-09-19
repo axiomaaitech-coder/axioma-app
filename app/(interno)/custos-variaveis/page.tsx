@@ -308,13 +308,13 @@ export default function CustosVariaveis() {
   // ═══════════════════════ GRÁFICOS ═══════════════════════
   const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, ct(v)]));
   const composicao = porCategoria(custosNoPeriodo, categorias, catCorAtual);
-  const optCat = optRosca(composicao, ct(CORES.laranja), cx.custoVariavelMes.toUpperCase(), temaClaro);
+  const optCat = optRosca(composicao, ct(CORES.verde), cx.custoVariavelMes.toUpperCase(), temaClaro);
 
   const topCustos = [...custosNoPeriodo].sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0)).slice(0, 8) as (Lancamento & { descricao: string })[];
   const optTop = optBarrasV(
     topCustos.map(c => Number(c.valor) || 0),
     topCustos.map(c => (c.descricao || "").length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao),
-    ct(CORES.amarelo), CORES.amareloC, undefined, temaClaro
+    ct(CORES.azul), CORES.azulC, undefined, temaClaro
   );
 
   const labelsHist = serieCVHist.map(b => b.label);
@@ -322,10 +322,10 @@ export default function CustosVariaveis() {
   const optMargem = optLinhaMulti(
     [
       { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRolling(receitas, 12, periodo.fim).map(b => b.value), cor: ct(CORES.verde), area: true },
-      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(CORES.laranja) },
+      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(CORES.azul) },
       { nome: cx.pontoEquilibrio, dados: peSerie, cor: ct(CORES.rosa), tipo: "dashed" as const },
     ],
-    labelsHist, ct(CORES.laranja), temaClaro
+    labelsHist, ct(CORES.azul), temaClaro
   );
 
   const labelsProj = ["+1", "+2", "+3"];
@@ -333,7 +333,7 @@ export default function CustosVariaveis() {
     [...serieCVHist.slice(-6).map(b => b.value), ...Array(3).fill(null)],
     previsaoCV,
     [...serieCVHist.slice(-6).map(b => b.label), ...labelsProj],
-    cx.realizado, cx.projetado, ct(CORES.laranja), CORES.laranjaC, temaClaro
+    cx.realizado, cx.projetado, ct(CORES.azul), CORES.azulC, temaClaro
   );
 
   const kpisCFO = [
@@ -471,13 +471,13 @@ export default function CustosVariaveis() {
                 </div>
 
                 <div className="mb-4">
-                  <SubChart titulo={cx.analiseMargem} cor={ct(CORES.laranja)} option={optMargem} altura={280} />
+                  <SubChart titulo={cx.analiseMargem} cor={ct(CORES.azul)} option={optMargem} altura={280} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <SubChart titulo={t.geral.categoria} cor={ct(CORES.laranja)} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.amarelo)} option={optTop} altura={260} />
-                  <SubChart titulo={cx.previsao} cor={ct(CORES.roxo)} option={optProjecao} altura={260} />
+                  <SubChart titulo={t.geral.categoria} cor={ct(CORES.verde)} option={optCat} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.azul)} option={optTop} altura={260} />
+                  <SubChart titulo={cx.previsao} cor={ct(CORES.azul)} option={optProjecao} altura={260} />
                 </div>
               </div>
             </div>

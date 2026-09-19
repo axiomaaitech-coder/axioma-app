@@ -249,7 +249,7 @@ export default function Receitas() {
 
   // ═══════════ GRÁFICOS (options do alicerce) ═══════════
   const optEvol = optBarrasV(serie12, meses, ct(CORES.roxo), CORES.roxoC, undefined, temaClaro);
-  const optCat = optRosca(composicao, ct(CORES.ouro), (t.receitas.totalReceitas || cx.total).toUpperCase(), temaClaro);
+  const optCat = optRosca(composicao, ct(CORES.verde), (t.receitas.totalReceitas || cx.total).toUpperCase(), temaClaro);
   const histInicio = Math.max(0, mesAtual - 2);
   const optPrev = optLinhaPrevisao(
     [...serie12.slice(histInicio, mesAtual + 1), null, null, null],
@@ -357,7 +357,7 @@ export default function Receitas() {
                 </div>
                 <div className="mb-4"><SubChart titulo={cx.evolucao} cor={ct(CORES.roxo)} option={optEvol} altura={260} /></div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={ct(CORES.ouro)} option={optCat} altura={240} />
+                  <SubChart titulo={cx.composicao} cor={ct(CORES.verde)} option={optCat} altura={240} />
                   <SubChart titulo={cx.previsao} cor={ct(CORES.cyan)} option={optPrev} altura={240} />
                 </div>
               </div>

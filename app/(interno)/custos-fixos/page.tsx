@@ -234,9 +234,9 @@ export default function CustosFixos() {
   ].join("\n");
 
   // ═══════════ GRÁFICOS ═══════════
-  const optCat = optRosca(composicao, ct(CORES.vermelho), cx.totalMensal.toUpperCase(), temaClaro);
+  const optCat = optRosca(composicao, ct(CORES.verde), cx.totalMensal.toUpperCase(), temaClaro);
   const topCustos = [...custos].sort((a, b) => b.valor_mensal - a.valor_mensal).slice(0, 8);
-  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(CORES.laranja), CORES.laranjaC, undefined, temaClaro);
+  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(CORES.azul), CORES.azulC, undefined, temaClaro);
 
   const kpisCFO = [
     { l: cx.totalMensal, v: fBRL(totalMensal), c: ct(CORES.vermelho), i: "📉" },
@@ -368,8 +368,8 @@ export default function CustosFixos() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={ct(CORES.vermelho)} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.laranja)} option={optTop} altura={260} />
+                  <SubChart titulo={cx.composicao} cor={ct(CORES.verde)} option={optCat} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.azul)} option={optTop} altura={260} />
                 </div>
               </div>
             </div>
