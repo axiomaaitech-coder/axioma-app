@@ -35,7 +35,13 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // PAINEL_BG/MODAL_BG.
 const PALETA = {
   dark: { VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', PAINEL_BG3: 'rgba(10,20,36,0.6)', MODAL_BG: '#0a1628' },
-  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#7c3aed', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#eef2f7', PAINEL_BG2: '#eef2f7', PAINEL_BG3: '#eef2f7', MODAL_BG: '#ffffff' },
+  // Creme #f6f7c4, cinza #374151 e modal creme (igual ao CanvasBox dos
+  // demais módulos) — valores finais do rollout Claro. PAINEL_BG2 é a
+  // caixinha aninhada translúcida; PAINEL_BG3 acompanha o card creme.
+  // ROXO não é cor da nossa paleta padrão — no Claro vira azul-marinho
+  // (chart-2 do tema-tokens.md), reservado pra classificação estrutural
+  // (previsão/cenário), nunca decorativo solto.
+  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#101b3d', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', PAINEL_BG2: 'rgba(255,255,255,0.5)', PAINEL_BG3: '#f6f7c4', MODAL_BG: '#f6f7c4' },
 } as const
 
 const LABEL_TIPO: Record<TipoDescoberta, Record<Idioma3, string>> = {
@@ -87,6 +93,8 @@ export default function FiscalPage() {
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const router = useRouter()
   const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
   const { VERMELHO, LARANJA, AMARELO, VERDE, AZULC, ROXO, CINZA, TEXTO, TITULO, PAINEL_BG, PAINEL_BG2, PAINEL_BG3, MODAL_BG } = PALETA[tema]
 
   const COR_PRIORIDADE: Record<string, string> = { P0: VERMELHO, P1: LARANJA, P2: AMARELO, P3: CINZA }
@@ -182,20 +190,21 @@ export default function FiscalPage() {
     <ModuloLayout
       titulo={L('Fiscal', 'Tax', 'Fiscal')}
       subtitulo={L('Status fiscal da sua empresa — obrigações, descobertas e o Health Score explicado, não um formulário.', "Your company's tax status — obligations, findings, and the Health Score explained, not a form.", 'Estado fiscal de su empresa — obligaciones, hallazgos y el Health Score explicado, no un formulario.')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
         <>
-          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} />
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={AZULC} corTexto={AZULC} solido={temaClaro} />
           <button onClick={() => router.push('/fiscal/obrigacoes')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
             style={{ background: `${AZULC}18`, color: AZULC, border: `1px solid ${AZULC}40` }}>
             <CalendarClock size={15} />{L('Calendário', 'Calendar', 'Calendario')}
           </button>
           <button onClick={() => router.push('/fiscal/config')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `${CINZA}18`, color: TEXTO, border: `1px solid ${CINZA}40` }}>
+            style={temaClaro ? { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' } : { background: `${CINZA}18`, color: TEXTO, border: `1px solid ${CINZA}40` }}>
             <Settings size={15} />{L('Atividade Fiscal', 'Tax Activity', 'Actividad Fiscal')}
           </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
             <RefreshCw size={16} className={rodando ? 'animate-spin' : ''} />
             {rodando ? L('Rodando...', 'Running...', 'Ejecutando...') : L('Rodar descoberta', 'Run discovery', 'Ejecutar descubrimiento')}
           </button>
@@ -210,7 +219,7 @@ export default function FiscalPage() {
       ) : (
         <div className="space-y-6">
 
-          <LetreiroAxioma id="fiscal" cor={AZULC} itens={[
+          <LetreiroAxioma id="fiscal" cor={AZULC} solido={temaClaro} corDestaque="#2ecc9b" itens={[
             health ? `Fiscal Health Score ${health.score}` : '',
             `${L('Descobertas abertas', 'Open findings', 'Hallazgos abiertos')} ${contagem.totalAbertas}`,
             proximosSete > 0 ? `${L('Obrigações nos próx. 7 dias', 'Obligations in the next 7 days', 'Obligaciones en los próx. 7 días')}: ${proximosSete}` : L('Nenhuma obrigação vencendo em 7 dias', 'No obligation due in 7 days', 'Ninguna obligación vence en 7 días'),
@@ -238,7 +247,7 @@ export default function FiscalPage() {
 
           {/* FISCAL HEALTH SCORE — sempre explicado */}
           {health && (
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_BG, border: `1px solid ${AZULC}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}30` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: CINZA }}>{L('Fiscal Health Score', 'Fiscal Health Score', 'Fiscal Health Score')}</p>
               <div className="flex flex-wrap items-baseline gap-3 mb-1">
                 <span className="text-4xl font-black leading-none" style={{ color: health.score >= 750 ? VERDE : health.score >= 500 ? AMARELO : VERMELHO }}><AnimatedNumber value={String(health.score)} /></span>
@@ -251,7 +260,7 @@ export default function FiscalPage() {
           {/* STATUS DE INTELIGÊNCIA */}
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
             {TILES.map((t) => (
-              <div key={t.label} className="rounded-xl p-3" style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
+              <div key={t.label} className={`rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${t.cor}30` }}>
                 <p className="text-lg leading-none mb-1.5">{t.emoji}</p>
                 <p className="text-lg font-black leading-none" style={{ color: t.cor }}><AnimatedNumber value={String(t.valor)} /></p>
                 <p className="text-[10px] font-bold uppercase tracking-wide mt-1" style={{ color: CINZA }}>{t.label}</p>
@@ -354,7 +363,7 @@ export default function FiscalPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {reforma.slice(0, 2).map((a, i) => (
-                <div key={i} className="rounded-xl p-3" style={{ background: PAINEL_BG3, border: `1px solid ${a.impacto === 'negativo' ? VERMELHO : a.impacto === 'positivo' ? VERDE : CINZA}30` }}>
+                <div key={i} className={`rounded-xl p-3${classePremium3d}`} style={{ background: PAINEL_BG3, border: `1px solid ${a.impacto === 'negativo' ? VERMELHO : a.impacto === 'positivo' ? VERDE : CINZA}30` }}>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-bold" style={{ color: TEXTO }}>{lang === 'en' ? a.titulo_en : lang === 'es' ? a.titulo_es : a.titulo}</p>
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: `${CINZA}18`, color: CINZA }}>{a.data}</span>
@@ -380,7 +389,7 @@ export default function FiscalPage() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: MODAL_BG, border: `1px solid ${COR_PRIORIDADE[selecionada.prioridade]}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: MODAL_BG, border: `1px solid ${COR_PRIORIDADE[selecionada.prioridade]}35`, boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
                   <div className="flex justify-between items-start mb-4 gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
