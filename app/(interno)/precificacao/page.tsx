@@ -86,16 +86,16 @@ export default function Precificacao() {
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
   const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-  const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
+  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(99,102,241,0.15)";
   const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
-  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
 
   const [produtos, setProdutos] = useState<ProdutoRow[]>([]);
   const [concorrentes, setConcorrentes] = useState<ConcorrenteRow[]>([]);
@@ -461,7 +461,10 @@ export default function Precificacao() {
   const menorPreco = produtos.length > 0 ? Math.min(...produtos.map((p) => p.preco_sugerido || 0)) : 0;
   const maiorPreco = produtos.length > 0 ? Math.max(...produtos.map((p) => p.preco_sugerido || 0)) : 0;
 
-  const composicaoReceita = comDadosDeVenda.map((d, i) => ({ name: d.produto.produto_servico, value: d.receitaMensal, color: [ct(CORES.amarelo), corOuro, ct(CORES.azul), ct(CORES.verde), ct(CORES.rosa), ct(CORES.roxo)][i % 6] }));
+  // Claro: sequência OFICIAL de cores pra gráficos (tema-tokens.md §1.4) - Escuro inalterado.
+  const CHART_CLARO = ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54"];
+  const CORES_COMPOSICAO_ESCURO = [ct(CORES.amarelo), corOuro, ct(CORES.azul), ct(CORES.verde), ct(CORES.rosa), ct(CORES.roxo)];
+  const composicaoReceita = comDadosDeVenda.map((d, i) => ({ name: d.produto.produto_servico, value: d.receitaMensal, color: temaClaro ? CHART_CLARO[i % CHART_CLARO.length] : CORES_COMPOSICAO_ESCURO[i % CORES_COMPOSICAO_ESCURO.length] }));
   const optComposicaoReceita = optRosca(composicaoReceita, COR_PRC, cx.total, temaClaro);
 
   const marquee = [
@@ -565,7 +568,7 @@ export default function Precificacao() {
         {!temDados ? (
           <CanvasBox cor={COR_PRC} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
-              <Tag size={48} style={{ color: "#4a3a10" }} className="mb-4" />
+              <Tag size={48} style={{ color: temaClaro ? "#a8b0bc" : "#4a3a10" }} className="mb-4" />
               <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.prcNenhumProduto}</p>
             </div>
           </CanvasBox>
@@ -682,7 +685,7 @@ export default function Precificacao() {
                         ))}
                       </div>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={aplicarPreco}
-                        className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: "#1a1400" }}>
+                        className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: temaClaro ? "#fff" : "#1a1400" }}>
                         {cx.prcAplicarPreco}
                       </motion.button>
                     </>
@@ -728,7 +731,7 @@ export default function Precificacao() {
                     <input placeholder={cx.prcConcorrenteNomeLabel} value={novoConcorrenteNome} onChange={(e) => setNovoConcorrenteNome(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input type="number" placeholder={cx.prcConcorrentePrecoLabel} value={novoConcorrentePreco} onChange={(e) => setNovoConcorrentePreco(e.target.value)} onBlur={(e) => setNovoConcorrentePreco(precoBlur(e.target.value))} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                     <input placeholder={cx.prcConcorrentePosicionamentoLabel} value={novoConcorrentePosicionamento} onChange={(e) => setNovoConcorrentePosicionamento(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
-                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: "#1a1400" }}>
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={adicionarConcorrente} className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: temaClaro ? "#fff" : "#1a1400" }}>
                       <Plus size={16} /> {cx.prcAdicionarConcorrente}
                     </motion.button>
                   </div>
@@ -769,7 +772,7 @@ export default function Precificacao() {
                 ))}
               </div>
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={rodarWarRoom}
-                className="w-full py-3 rounded-xl text-sm font-bold mb-4" style={{ background: `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: "#1a1400" }}>
+                className="w-full py-3 rounded-xl text-sm font-bold mb-4" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #7a5c00, ${COR_PRC})`, color: temaClaro ? "#fff" : "#1a1400" }}>
                 {cx.simSimular}
               </motion.button>
               {warResultado && (
@@ -873,8 +876,8 @@ export default function Precificacao() {
                     </div>
                     <p className="text-2xl font-black mb-3" style={{ color: COR_PRC }}>{fmt(p.preco_sugerido || 0)}</p>
                     <div className="space-y-1.5">
-                      <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.custo}</span><span className="text-xs font-black" style={{ color: ct("#f87171") }}>{fmt(p.custo_total || 0)}</span></div>
-                      <div className="flex justify-between"><span className="text-xs" style={{ color: "#3a6090" }}>{txt.margem}</span><span className="text-xs font-black" style={{ color: ct("#34d399") }}>{p.margem_desejada}%</span></div>
+                      <div className="flex justify-between"><span className="text-xs" style={{ color: ct("#3a6090") }}>{txt.custo}</span><span className="text-xs font-black" style={{ color: ct("#f87171") }}>{fmt(p.custo_total || 0)}</span></div>
+                      <div className="flex justify-between"><span className="text-xs" style={{ color: ct("#3a6090") }}>{txt.margem}</span><span className="text-xs font-black" style={{ color: ct("#34d399") }}>{p.margem_desejada}%</span></div>
                       {p.categoria && <div className="flex justify-between"><span className="text-xs" style={{ color: ct("#3a6090") }}>{txt.categoriaLabel}</span><span className="text-xs font-black" style={{ color: ct("#94a3b8") }}>{p.categoria}</span></div>}
                     </div>
                   </CanvasBox>
