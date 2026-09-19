@@ -308,7 +308,7 @@ Foque em: o que muda de verdade pro caso dele (considerando o perfil de cliente)
       }
     >
       {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>

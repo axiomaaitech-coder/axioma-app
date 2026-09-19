@@ -1102,7 +1102,7 @@ function LogoAxioma({ tamanho }: { tamanho: number }) {
 
 function Toast({ toast }: { toast: { msg: string; tipo: "ok" | "erro" | "info" } }) {
   return (
-    <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+    <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
       style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
       {toast.msg}
     </div>
@@ -1865,7 +1865,7 @@ function BotaoImprimirNota({ lang, cupom, jaImpresso, onImprimir }: {
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className="fixed top-20 right-4 z-50 w-full max-w-xs flex flex-col items-stretch gap-2.5 rounded-2xl px-4 py-4 shadow-2xl" style={{ background: tokens.modalBg, border: `3px solid ${tokens.acento}` }}>
+    <div className="fixed top-28 right-4 z-50 w-full max-w-xs flex flex-col items-stretch gap-2.5 rounded-2xl px-4 py-4 shadow-2xl" style={{ background: tokens.modalBg, border: `3px solid ${tokens.acento}` }}>
       <span className="text-sm font-bold text-center" style={{ color: tokens.texto }}>
         {t("vendaConcluida", lang, { valor: moeda(cupom.totalAPagar) })}
       </span>

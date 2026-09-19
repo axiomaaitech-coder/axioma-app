@@ -398,7 +398,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
   return (
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     {toastDoc && (
-      <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+      <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
         style={{ background: toastDoc.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : toastDoc.tipo === 'ok' ? `rgba(${rgbVerde},0.95)` : neutro(0.95), color: '#020810', fontWeight: 600, fontSize: 13 }}>
         {toastDoc.msg}
       </div>
@@ -417,7 +417,7 @@ Focus on: whether they must file and why, how to declare correctly (exempt vs ta
         </>
       }>
       {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === 'erro' ? `rgba(${rgbVermelho},0.95)` : `rgba(${rgbVerde},0.95)`, color: '#020810', fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>

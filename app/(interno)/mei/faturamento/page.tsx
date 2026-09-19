@@ -407,7 +407,7 @@ Foque em: ritmo de faturamento, risco real de estourar o teto, sazonalidade perc
         <LetreiroExecutivo itens={marquee} cor={OURO} solido={temaClaro} corDestaque={temaClaro ? '#2ecc9b' : undefined} textoBase={temaClaro ? '#ffffff' : undefined} />
 
         {toast && (
-          <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
+          <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm text-sm"
             style={{ background: toast.tipo === 'ok' ? 'rgba(52,211,153,0.95)' : 'rgba(248,113,113,0.95)', color: '#020810', fontWeight: 600 }}>
             {toast.msg}
           </div>

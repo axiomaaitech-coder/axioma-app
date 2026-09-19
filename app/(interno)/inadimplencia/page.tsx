@@ -45,6 +45,8 @@ import {
   type LinhaRiscoInadimplencia, type NivelPrioridade, type EstagioEscalonamento,
 } from '../../../lib/inadimplenciaHelpers'
 import { heatmapInadimplencia } from '../../../lib/previsaoRecebimentoHelpers'
+import { statusEfetivo } from '../../../lib/fornecedorHelpers'
+import { publicarEventoNaoBloqueante } from '../../../lib/contabilidadeConsumidor'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -490,6 +492,31 @@ export default function Inadimplencia() {
     }
     setContas(contas.filter((c) => c.id !== id))
     showToast(L('Caso excluído.', 'Case deleted.', 'Caso eliminado.'), 'ok')
+  }
+
+  // Dar baixa (Fase 2) — não existia nenhuma ação de baixa aqui, só editar/
+  // excluir o caso. Escreve na MESMA contas_receber que Contas a Receber/
+  // Clientes leem, com o mesmo par status+data_recebimento (statusEfetivo)
+  // e o mesmo evento AR_RECEIVED do confirmarRecebimento de lá — por isso
+  // atualiza sozinho em todo o Axioma, sem tela nenhuma pra confirmar valor
+  // (baixa integral, um clique, igual excluirCaso acima já fazia).
+  async function darBaixaTitulo(c: ContaRow) {
+    const valorTotal = Number(c.valor) || 0
+    const hojeStr = new Date().toISOString().split('T')[0]
+    const status = statusEfetivo(null, valorTotal, valorTotal, c.data_vencimento, 'recebido')
+    const { data, error } = await supabase.from('contas_receber').update({
+      valor_recebido: valorTotal, status, data_recebimento: hojeStr,
+    }).eq('id', c.id).select('id')
+    if (error || !data || data.length === 0) {
+      showToast(L('Não foi possível dar baixa. Tente novamente.', 'Could not settle the invoice. Try again.', 'No se pudo saldar. Intente de nuevo.'), 'erro')
+      reportarFalhaEscrita('contas_receber', 'update baixa', error?.message || '0 linhas afetadas (RLS?)')
+      return
+    }
+    publicarEventoNaoBloqueante(c.empresa_id ?? empresaId, 'AR_RECEIVED',
+      { conta_id: c.id, valor_recebido: valorTotal, valor_incremento: valorTotal - (Number(c.valor_recebido) || 0), data_recebimento: hojeStr, forma_recebimento: null },
+      { modulo: 'inadimplencia', tabela: 'contas_receber', id: c.id })
+    setContas(contas.map((x) => x.id === c.id ? { ...x, valor_recebido: valorTotal, status, data_recebimento: hojeStr } : x))
+    showToast(L('Baixa registrada — dívida quitada.', 'Settled — debt cleared.', 'Saldado — deuda liquidada.'), 'ok')
   }
 
   // ========== KPIs (15, drill honesto — sem dado vira "sem dados suficientes") ==========
@@ -1110,6 +1137,7 @@ export default function Inadimplencia() {
                           <p className="text-[10px]" style={{ color: CINZA }}>{fBRL(Math.max(0, (Number(c.valor) || 0) - (Number(c.valor_recebido) || 0)))} · {L('venceu em', 'due', 'venció el')} {new Date(c.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={() => darBaixaTitulo(c)} title={L('Dar baixa (marcar como pago)', 'Settle (mark as paid)', 'Saldar (marcar como pagado)')}><CheckCircle2 size={13} style={{ color: VERDE }} /></button>
                           <button onClick={() => abrirEdicaoCaso(c)} title={L('Editar', 'Edit', 'Editar')}><Pencil size={13} style={{ color: AZUL }} /></button>
                           <button onClick={() => excluirCaso(c.id)} title={L('Excluir', 'Delete', 'Eliminar')}><Trash2 size={13} style={{ color: VERMELHO }} /></button>
                         </div>
@@ -1381,7 +1409,7 @@ export default function Inadimplencia() {
       />
 
       {toast && (
-        <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
+        <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
