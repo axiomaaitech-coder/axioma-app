@@ -644,6 +644,7 @@ export default function Metas() {
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo} labelBotao={txt.novo}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 

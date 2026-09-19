@@ -336,7 +336,9 @@ export default function Simulacoes() {
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
-    <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} botaoExtra={<ThemeToggle />}>
+    <ModuloLayout titulo={txt.titulo} subtitulo={txt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : "rgba(52,211,153,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
@@ -346,7 +348,7 @@ export default function Simulacoes() {
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.indigo)} lang={lang} />
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.indigo)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={{ background: PAINEL_BORDA, border: "1px solid rgba(99,102,241,0.4)", color: "#a5b4fc" }}>
