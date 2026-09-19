@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { ArrowLeft, Save, Lock, AlertTriangle } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../../lib/empresaHelpers'
 import {
@@ -19,13 +21,18 @@ const supabase = createBrowserClient(
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZULC = '#6ab0ff'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AMARELO = '#fbbf24'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
+const PALETA = {
+  dark: {
+    AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#fbbf24', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)', FORM_BORDA: 'rgba(106,176,255,0.16)',
+  },
+  xms: {
+    AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
+    PAINEL_BG: '#f6f7c4', CAMPO_BG: '#ffffff', BTN_BG: 'rgba(16,27,61,0.08)', NESTED_BG: 'rgba(255,255,255,0.5)', FORM_BORDA: 'rgba(46,204,155,0.35)',
+  },
+} as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']
 
@@ -41,6 +48,10 @@ export default function FiscalConfigPage() {
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
@@ -114,15 +125,20 @@ export default function FiscalConfigPage() {
     : null
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Atividade Fiscal', 'Tax Activity', 'Actividad Fiscal')}
       subtitulo={L('Define a atividade e a alíquota de ISS da empresa — liga o cálculo correto de Lucro Presumido.', "Sets the company's activity and ISS rate — enables the correct Presumed Profit calculation.", 'Define la actividad y la alícuota de ISS de la empresa — activa el cálculo correcto de Lucro Presumido.')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
-        <button onClick={() => router.push('/fiscal')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          <ArrowLeft size={15} />{L('Voltar ao Fiscal', 'Back to Tax', 'Volver a Fiscal')}
-        </button>
+        <>
+          <button onClick={() => router.push('/fiscal')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            <ArrowLeft size={15} />{L('Voltar ao Fiscal', 'Back to Tax', 'Volver a Fiscal')}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {loading ? (
@@ -145,7 +161,7 @@ export default function FiscalConfigPage() {
             </div>
           )}
 
-          <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(106,176,255,0.16)' }}>
+          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
             <h3 className="text-sm font-bold mb-1" style={{ color: TITULO }}>{L('Regime e CNAE', 'Regime and CNAE', 'Régimen y CNAE')}</h3>
             <p className="text-xs mb-4" style={{ color: CINZA }}>
               {L('Só leitura aqui — edite em Empresa.', 'Read-only here — edit under Company.', 'Solo lectura aquí — edite en Empresa.')}
@@ -162,14 +178,14 @@ export default function FiscalConfigPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(106,176,255,0.16)' }}>
+          <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
             <h3 className="text-sm font-bold mb-4" style={{ color: TITULO }}>{L('Atividade Fiscal', 'Tax Activity', 'Actividad Fiscal')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
               {ATIVIDADES.map((a) => (
                 <button key={a.key} disabled={!podeEditar} onClick={() => setAtividade(a.key)}
                   className="px-3 py-2.5 rounded-xl text-xs font-bold disabled:opacity-50"
                   style={{
-                    background: atividade === a.key ? `${AZULC}25` : 'rgba(255,255,255,0.06)',
+                    background: atividade === a.key ? `${AZULC}25` : BTN_BG,
                     color: atividade === a.key ? AZULC : TEXTO,
                     border: `1px solid ${atividade === a.key ? AZULC : 'transparent'}40`,
                   }}>
@@ -186,7 +202,7 @@ export default function FiscalConfigPage() {
                 <input type="text" inputMode="decimal" disabled={!podeEditar} value={aliquotaIss}
                   onChange={(e) => setAliquotaIss(e.target.value)} placeholder="5"
                   className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none disabled:opacity-50"
-                  style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                  style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 <p className="text-[10px] mt-1" style={{ color: CINZA }}>
                   {L('Varia por município (2% a 5%). Deixe em branco pra usar 5% (default).', 'Varies by municipality (2% to 5%). Leave blank to use 5% (default).', 'Varía por municipio (2% a 5%). Deje en blanco para usar 5% (por defecto).')}
                 </p>
@@ -195,7 +211,7 @@ export default function FiscalConfigPage() {
 
             {regimeUsaAtividade && impostoComDefault != null && impostoComAtividade != null && (
               <div className="grid grid-cols-2 gap-3 mt-4 mb-2">
-                <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                <div className="rounded-lg p-3" style={{ background: NESTED_BG }}>
                   <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{L('Sem atividade definida (default)', 'Without activity defined (default)', 'Sin actividad definida (por defecto)')}</p>
                   <p className="text-lg font-black" style={{ color: CINZA }}>R$ {impostoComDefault.toFixed(2)}</p>
                 </div>
@@ -216,7 +232,7 @@ export default function FiscalConfigPage() {
             {podeEditar && (
               <button onClick={salvar} disabled={salvando || !atividade}
                 className="flex items-center gap-2 mt-4 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
                 <Save size={16} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
               </button>
             )}
@@ -231,5 +247,6 @@ export default function FiscalConfigPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }

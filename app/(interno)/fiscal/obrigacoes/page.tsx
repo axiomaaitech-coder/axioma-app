@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { CheckCircle2, XCircle, Pencil, ArrowLeft } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, atualizarObrigacao } from '../../../../lib/empresaHelpers'
 import { obterObrigacoesProximas, corRiscoObrigacao, type ObrigacaoProxima } from '../../../../lib/fiscalHelpers'
@@ -16,15 +18,19 @@ const supabase = createBrowserClient(
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const VERMELHO = '#f87171'
-const LARANJA = '#fb923c'
-const AMARELO = '#fbbf24'
-const VERDE = '#34d399'
-const AZULC = '#6ab0ff'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
+const PALETA = {
+  dark: {
+    VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', CINZA: '#5a7a9a', TEXTO: '#c8d8f0',
+    BTN_BG: 'rgba(255,255,255,0.06)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', THEAD_BG: 'rgba(255,255,255,0.03)', EMPTY_BG: 'rgba(10,20,36,0.5)',
+  },
+  xms: {
+    VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d',
+    BTN_BG: 'rgba(16,27,61,0.08)', BORDA: 'rgba(16,27,61,0.12)', BORDA_SUAVE: 'rgba(16,27,61,0.08)', THEAD_BG: 'rgba(16,27,61,0.05)', EMPTY_BG: 'rgba(255,255,255,0.5)',
+  },
+} as const
 
-const COR_RISCO: Record<string, string> = { atrasada: VERMELHO, urgente: LARANJA, atencao: AMARELO, folga: VERDE }
 const EMOJI_RISCO: Record<string, string> = { atrasada: '🔴', urgente: '🟠', atencao: '🟡', folga: '🟢' }
 
 const JANELAS = [7, 30, 60] as const
@@ -35,6 +41,11 @@ export default function FiscalObrigacoesPage() {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const { VERMELHO, LARANJA, AMARELO, VERDE, AZULC, CINZA, TEXTO, BTN_BG, BORDA, BORDA_SUAVE, THEAD_BG, EMPTY_BG } = PALETA[tema]
+  const COR_RISCO: Record<string, string> = { atrasada: VERMELHO, urgente: LARANJA, atencao: AMARELO, folga: VERDE }
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
@@ -80,15 +91,20 @@ export default function FiscalObrigacoesPage() {
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Calendário de Obrigações', 'Obligation Calendar', 'Calendario de Obligaciones')}
       subtitulo={L('DAS, DASN, DEFIS, DCTF, EFD, ECF, ECD e as demais obrigações já geradas pro seu regime — vencimento, status e o que falta.', 'DAS, DASN, DEFIS, DCTF, EFD, ECF, ECD and the other obligations already generated for your regime — due date, status, and what is left.', 'DAS, DASN, DEFIS, DCTF, EFD, ECF, ECD y las demás obligaciones ya generadas para su régimen — vencimiento, estado y lo que falta.')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
-        <button onClick={() => router.push('/fiscal')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          <ArrowLeft size={15} />{L('Voltar ao Fiscal', 'Back to Tax', 'Volver a Fiscal')}
-        </button>
+        <>
+          <button onClick={() => router.push('/fiscal')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            <ArrowLeft size={15} />{L('Voltar ao Fiscal', 'Back to Tax', 'Volver a Fiscal')}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {loading ? (
@@ -108,21 +124,21 @@ export default function FiscalObrigacoesPage() {
             {JANELAS.map((j) => (
               <button key={j} onClick={() => setJanela(j)}
                 className="px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{ background: janela === j ? `${AZULC}25` : 'rgba(255,255,255,0.06)', color: janela === j ? AZULC : CINZA, border: `1px solid ${janela === j ? AZULC : 'transparent'}40` }}>
+                style={{ background: janela === j ? `${AZULC}25` : BTN_BG, color: janela === j ? AZULC : CINZA, border: `1px solid ${janela === j ? AZULC : 'transparent'}40` }}>
                 {j} {L('dias', 'days', 'días')}
               </button>
             ))}
           </div>
 
           {obrigacoes.length === 0 ? (
-            <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(10,20,36,0.5)', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="rounded-xl p-6 text-center" style={{ background: EMPTY_BG, border: `1px solid ${BORDA_SUAVE}` }}>
               <p className="text-sm" style={{ color: CINZA }}>{L(`Nenhuma obrigação em aberto vencendo nos próximos ${janela} dias.`, `No open obligation due in the next ${janela} days.`, `Ninguna obligación abierta vence en los próximos ${janela} días.`)}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className="overflow-x-auto rounded-xl" style={{ border: `1px solid ${BORDA}` }}>
               <table className="w-full text-xs" style={{ minWidth: 620 }}>
                 <thead>
-                  <tr style={{ color: CINZA, background: 'rgba(255,255,255,0.03)' }}>
+                  <tr style={{ color: CINZA, background: THEAD_BG }}>
                     <th className="text-left py-2 px-3 font-semibold whitespace-nowrap"></th>
                     <th className="text-left py-2 px-3 font-semibold">{L('Obrigação', 'Obligation', 'Obligación')}</th>
                     <th className="text-left py-2 px-3 font-semibold whitespace-nowrap hidden sm:table-cell">{L('Vencimento', 'Due Date', 'Vencimiento')}</th>
@@ -136,7 +152,7 @@ export default function FiscalObrigacoesPage() {
                     const risco = corRiscoObrigacao(o)
                     const resolvida = o.status === 'paga' || o.status === 'dispensada'
                     return (
-                      <tr key={o.id} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <tr key={o.id} style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
                         <td className="py-2.5 px-3">{EMOJI_RISCO[risco]}</td>
                         <td className="py-2.5 px-3" style={{ color: TEXTO }}>
                           <p className="font-semibold">{o.nome}</p>
@@ -164,12 +180,12 @@ export default function FiscalObrigacoesPage() {
                               </button>
                               <button onClick={() => marcarStatus(o, 'dispensada')} disabled={processando === o.id}
                                 title={L('Marcar como dispensada', 'Mark as waived', 'Marcar como dispensada')}
-                                className="p-1.5 rounded-lg disabled:opacity-50" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                                className="p-1.5 rounded-lg disabled:opacity-50" style={{ background: BTN_BG, color: CINZA }}>
                                 <XCircle size={14} />
                               </button>
                               <button onClick={() => router.push('/empresa')}
                                 title={L('Editar valor/dados na aba Compliance', 'Edit amount/details in the Compliance tab', 'Editar valor/datos en la pestaña Compliance')}
-                                className="p-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: AZULC }}>
+                                className="p-1.5 rounded-lg" style={{ background: BTN_BG, color: AZULC }}>
                                 <Pencil size={14} />
                               </button>
                             </div>
@@ -189,5 +205,6 @@ export default function FiscalObrigacoesPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
