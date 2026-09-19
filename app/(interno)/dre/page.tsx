@@ -451,14 +451,14 @@ export default function DREPage() {
     { label: cx.dreDespesasFinanceiras, valor: -dreAtual.despesasFinanceiras.valor, tipo: "variacao" },
     { label: cx.dreLucroLiquido, valor: dreAtual.lucroLiquido.valor, tipo: "subtotal" },
   ];
-  const optWaterfall = optCascata(itensCascata, ct(CORES.verde), ct(CORES.vermelho), ct(CORES.teal), temaClaro);
+  const optWaterfall = optCascata(itensCascata, ct(CORES.verde), ct(CORES.vermelho), ct(temaClaro ? CORES.azul : CORES.teal), temaClaro);
 
   const kpisCFO = [
     { l: cx.dreLucroLiquido, v: fBRL(dreAtual.lucroLiquido.valor), c: dreAtual.lucroLiquido.valor >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "💰" },
-    { l: cx.dreEbitda, v: fBRL(dreAtual.ebitda.valor), c: dreAtual.ebitda.valor >= 0 ? ct(CORES.teal) : ct(CORES.vermelho), i: "📈" },
+    { l: cx.dreEbitda, v: fBRL(dreAtual.ebitda.valor), c: dreAtual.ebitda.valor >= 0 ? ct(temaClaro ? CORES.azul : CORES.teal) : ct(CORES.vermelho), i: "📈" },
     { l: cx.dreMargemLiquida, v: fPct(dreAtual.margemLiquidaPct), c: dreAtual.margemLiquidaPct >= 10 ? ct(CORES.verde) : dreAtual.margemLiquidaPct >= 0 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯" },
     { l: cx.dreMargemContribuicao, v: fPct(dreAtual.margemContribuicaoPct), c: ct(CORES.cyan), i: "📊" },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.azul : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
     { l: cx.runwayTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "—", c: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), i: "⏳" },
   ];
 
@@ -501,12 +501,12 @@ export default function DREPage() {
           <div className="flex gap-2">
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setHistoricoAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: "rgba(20,184,166,0.15)", border: "1px solid rgba(20,184,166,0.4)", color: ct("#5eead4") }}>
+              style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(20,184,166,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(20,184,166,0.4)"}`, color: temaClaro ? ct(CORES.verde) : "#5eead4" }}>
               <History size={16} /> {cx.verHistorico}
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-              style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
+              style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct(temaClaro ? CORES.verde : CORES.roxoC) }}>
               <Share2 size={16} /> {cx.compartilhar}
             </motion.button>
           </div>
@@ -516,7 +516,7 @@ export default function DREPage() {
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
             { label: cx.dreReceitaBruta, value: fBRL(dreAtual.receitaBruta.valor), cor: ct(CORES.verde) },
-            { label: cx.dreLucroLiquido, value: fBRL(dreAtual.lucroLiquido.valor), cor: dreAtual.lucroLiquido.valor >= 0 ? ct(CORES.teal) : ct(CORES.vermelho) },
+            { label: cx.dreLucroLiquido, value: fBRL(dreAtual.lucroLiquido.valor), cor: dreAtual.lucroLiquido.valor >= 0 ? ct(temaClaro ? CORES.verde : CORES.teal) : ct(CORES.vermelho) },
             { label: cx.dreMargemLiquida, value: fPct(dreAtual.margemLiquidaPct), cor: ct(CORES.verde) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
@@ -605,7 +605,7 @@ export default function DREPage() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#10b981,#14b8a6)", boxShadow: "0 0 12px #10b981" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "linear-gradient(180deg,#10b981,#2ecc9b)" : "linear-gradient(180deg,#10b981,#14b8a6)", boxShadow: "0 0 12px #10b981" }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.cascataDRE}</p>
                     <p className="text-xs font-medium" style={{ color: TEXTO_SEC }}>{cx.analiseVertical} · {cx.analiseHorizontal}</p>
@@ -656,16 +656,16 @@ export default function DREPage() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(212,175,55,0.2)" }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(212,175,55,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} style={{ color: ct(CORES.ouro) }} />
+                <Zap size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.conselhoCfoTitulo}</p>
               </div>
               {conselhos.length > 0 ? (
                 <div className="space-y-2">
                   {conselhos.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.2)"}` }}>
-                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(212,175,55,0.2)"}` }}>
+                      <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
@@ -700,10 +700,10 @@ export default function DREPage() {
         {historicoAberto && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 flex items-start justify-center z-50 p-4 pt-16 overflow-y-auto" style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }}>
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22 }} className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-              <CanvasBox cor={ct(CORES.teal)} {...cartaoTema}>
+              <CanvasBox cor={ct(temaClaro ? CORES.verde : CORES.teal)} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#5eead4") }}>AXIOMA AI.TECH</p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? ct(CORES.verde) : "#5eead4" }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{cx.historicoTitulo}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => { setHistoricoAberto(false); setSnapshotSelecionado(null); }} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
@@ -720,7 +720,7 @@ export default function DREPage() {
                             <CorSemaforo cor={h.semaforo_cor} />
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{h.periodo_label} — {new Date(h.periodo_fim + "T00:00:00").toLocaleDateString(lang === "en" ? "en-US" : lang === "es" ? "es-ES" : "pt-BR", { month: "short", year: "numeric" })}</p>
-                              <p className="text-xs" style={{ color: h.periodo_fim < isoHoje() ? TEXTO_SEC : ct("#5eead4") }}>{h.periodo_fim < isoHoje() ? cx.periodoFechado : cx.periodoAberto}</p>
+                              <p className="text-xs" style={{ color: h.periodo_fim < isoHoje() ? TEXTO_SEC : (temaClaro ? ct(CORES.verde) : "#5eead4") }}>{h.periodo_fim < isoHoje() ? cx.periodoFechado : cx.periodoAberto}</p>
                             </div>
                           </div>
                           <p className="text-sm font-black flex-shrink-0" style={{ color: h.lucro_liquido >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) }}>{fBRL(h.lucro_liquido)}</p>
@@ -730,7 +730,7 @@ export default function DREPage() {
                   )
                 ) : (
                   <div className="space-y-3">
-                    <button onClick={() => setSnapshotSelecionado(null)} className="text-xs font-bold" style={{ color: ct("#5eead4") }}>← {cx.verHistorico}</button>
+                    <button onClick={() => setSnapshotSelecionado(null)} className="text-xs font-bold" style={{ color: temaClaro ? ct(CORES.verde) : "#5eead4" }}>← {cx.verHistorico}</button>
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         { l: cx.dreReceitaBruta, v: fBRL(snapshotSelecionado.receita_bruta) },
@@ -748,7 +748,7 @@ export default function DREPage() {
                     </div>
                     {snapshotSelecionado.resultado_completo?.gatilhosConselho?.length > 0 && (
                       <div className="space-y-1.5">
-                        <p className="text-xs font-black" style={{ color: ct(CORES.ouro) }}>{cx.conselhoCfoTitulo}</p>
+                        <p className="text-xs font-black" style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }}>{cx.conselhoCfoTitulo}</p>
                         {snapshotSelecionado.resultado_completo.gatilhosConselho.map((g: any, i: number) => (
                           <p key={i} className="text-xs" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{montarConselhoCFO(lang, g)}</p>
                         ))}

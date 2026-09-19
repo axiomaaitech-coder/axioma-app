@@ -45,6 +45,12 @@ const CAT_COR: Record<string, string> = {
   "Marketing": CORES.laranja, "Logística": CORES.cyan, "Matéria-prima": CORES.roxo,
   "Comissões": CORES.amarelo, "Embalagens": CORES.teal, "Outros": CORES.rosa,
 };
+// Claro: paleta de composição padronizada (só verde/azul/cyan/cinza, nunca
+// dourado/laranja/roxo) — Escuro inalterado (mantém CAT_COR acima intacto).
+const CAT_COR_CLARO: Record<string, string> = {
+  [CORES.laranja]: "#94a3b8", [CORES.roxo]: CORES.azul, [CORES.amarelo]: CORES.verde,
+  [CORES.teal]: CORES.azulC, [CORES.rosa]: CORES.verde,
+};
 
 type CustoVariavel = {
   id: string; descricao: string; valor: number; data: string; categoria: string;
@@ -306,15 +312,15 @@ export default function CustosVariaveis() {
   ].join("\n");
 
   // ═══════════════════════ GRÁFICOS ═══════════════════════
-  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, ct(v)]));
+  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, temaClaro ? (CAT_COR_CLARO[v] ?? ct(v)) : v]));
   const composicao = porCategoria(custosNoPeriodo, categorias, catCorAtual);
-  const optCat = optRosca(composicao, ct(CORES.verde), cx.custoVariavelMes.toUpperCase(), temaClaro);
+  const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.laranja), cx.custoVariavelMes.toUpperCase(), temaClaro);
 
   const topCustos = [...custosNoPeriodo].sort((a, b) => (Number(b.valor) || 0) - (Number(a.valor) || 0)).slice(0, 8) as (Lancamento & { descricao: string })[];
   const optTop = optBarrasV(
     topCustos.map(c => Number(c.valor) || 0),
     topCustos.map(c => (c.descricao || "").length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao),
-    ct(CORES.azul), CORES.azulC, undefined, temaClaro
+    ct(temaClaro ? CORES.azul : CORES.amarelo), temaClaro ? CORES.azulC : CORES.amareloC, undefined, temaClaro
   );
 
   const labelsHist = serieCVHist.map(b => b.label);
@@ -322,10 +328,10 @@ export default function CustosVariaveis() {
   const optMargem = optLinhaMulti(
     [
       { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRolling(receitas, 12, periodo.fim).map(b => b.value), cor: ct(CORES.verde), area: true },
-      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(CORES.azul) },
-      { nome: cx.pontoEquilibrio, dados: peSerie, cor: ct(CORES.rosa), tipo: "dashed" as const },
+      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(temaClaro ? CORES.azul : CORES.laranja) },
+      { nome: cx.pontoEquilibrio, dados: peSerie, cor: ct(temaClaro ? CORES.azul : CORES.rosa), tipo: "dashed" as const },
     ],
-    labelsHist, ct(CORES.azul), temaClaro
+    labelsHist, ct(temaClaro ? CORES.azul : CORES.laranja), temaClaro
   );
 
   const labelsProj = ["+1", "+2", "+3"];
@@ -333,16 +339,16 @@ export default function CustosVariaveis() {
     [...serieCVHist.slice(-6).map(b => b.value), ...Array(3).fill(null)],
     previsaoCV,
     [...serieCVHist.slice(-6).map(b => b.label), ...labelsProj],
-    cx.realizado, cx.projetado, ct(CORES.azul), CORES.azulC, temaClaro
+    cx.realizado, cx.projetado, ct(temaClaro ? CORES.azul : CORES.laranja), temaClaro ? CORES.azulC : CORES.laranjaC, temaClaro
   );
 
   const kpisCFO = [
-    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: ct(CORES.laranja), i: "📉", delta: comparativoCV, polaridadeInvertida: true },
+    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: ct(temaClaro ? CORES.azul : CORES.laranja), i: "📉", delta: comparativoCV, polaridadeInvertida: true },
     { l: cx.margemContribuicao, v: fPct(mc.pct), c: ct(CORES.verde), i: "📊", delta: null as ComparativoPeriodo | null, polaridadeInvertida: false },
     { l: cx.pontoEquilibrio, v: pe !== null ? fBRL(pe) : cx.semBreakeven, c: ct(CORES.cyan), i: "⚖️", delta: null, polaridadeInvertida: false },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️", delta: null, polaridadeInvertida: false },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.azul : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️", delta: null, polaridadeInvertida: false },
     { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? ct(CORES.vermelho) : volatilidade > 15 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🌊", delta: null, polaridadeInvertida: false },
-    { l: cx.pesoReceita, v: fPct(pesoReceita), c: ct(CORES.roxo), i: "⚡", delta: null, polaridadeInvertida: false },
+    { l: cx.pesoReceita, v: fPct(pesoReceita), c: ct(temaClaro ? CORES.azul : CORES.roxo), i: "⚡", delta: null, polaridadeInvertida: false },
   ];
 
   const marquee = [
@@ -392,11 +398,11 @@ export default function CustosVariaveis() {
           <SeletorPeriodo
             preset={presetPeriodo} onChangePreset={setPresetPeriodo}
             personalizado={personalizado} onChangePersonalizado={setPersonalizado}
-            cor={ct(CORES.laranja)} lang={lang}
+            cor={ct(temaClaro ? CORES.azul : CORES.laranja)} lang={lang}
           />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
+            style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct(temaClaro ? CORES.verde : CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -450,7 +456,7 @@ export default function CustosVariaveis() {
             {(narrativaVariacao || narrativaMargem) && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(249,115,22,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <MessageSquareText size={16} style={{ color: ct(CORES.laranja) }} />
+                  <MessageSquareText size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: ct("#e2e8f0") }}>
@@ -471,13 +477,13 @@ export default function CustosVariaveis() {
                 </div>
 
                 <div className="mb-4">
-                  <SubChart titulo={cx.analiseMargem} cor={ct(CORES.azul)} option={optMargem} altura={280} />
+                  <SubChart titulo={cx.analiseMargem} cor={ct(temaClaro ? CORES.azul : CORES.laranja)} option={optMargem} altura={280} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <SubChart titulo={t.geral.categoria} cor={ct(CORES.verde)} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.azul)} option={optTop} altura={260} />
-                  <SubChart titulo={cx.previsao} cor={ct(CORES.azul)} option={optProjecao} altura={260} />
+                  <SubChart titulo={t.geral.categoria} cor={ct(temaClaro ? CORES.verde : CORES.laranja)} option={optCat} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.azul : CORES.amarelo)} option={optTop} altura={260} />
+                  <SubChart titulo={cx.previsao} cor={ct(temaClaro ? CORES.azul : CORES.roxo)} option={optProjecao} altura={260} />
                 </div>
               </div>
             </div>
@@ -509,13 +515,13 @@ export default function CustosVariaveis() {
             {sugestoes.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Zap size={16} style={{ color: ct(CORES.ouro) }} />
+                  <Zap size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.sugestoesTitulo}</p>
                 </div>
                 <div className="space-y-2">
                   {sugestoes.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.2)"}` }}>
-                      <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
+                    <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: temaClaro ? "rgba(22,169,125,0.08)" : "rgba(212,175,55,0.08)", border: `1px solid ${temaClaro ? "rgba(22,169,125,0.3)" : "rgba(212,175,55,0.2)"}` }}>
+                      <Sparkles size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro), flexShrink: 0 }} />
                       <p className="text-xs font-medium" style={{ color: temaClaro ? "#374151" : ct("#f0d878") }}>{s}</p>
                     </div>
                   ))}
@@ -527,7 +533,7 @@ export default function CustosVariaveis() {
             {insights.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                  <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">

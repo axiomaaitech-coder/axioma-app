@@ -43,6 +43,11 @@ const CAT_COR: Record<string, string> = {
   "Vendas de produtos": CORES.ouro, "Prestação de serviços": CORES.roxo,
   "Recorrentes": CORES.cyan, "Eventuais": CORES.laranja, "Outras": CORES.teal,
 };
+// Claro: paleta de composição padronizada (só verde/azul/cyan/cinza, nunca
+// dourado/laranja/roxo) — Escuro inalterado (mantém CAT_COR acima intacto).
+const CAT_COR_CLARO: Record<string, string> = {
+  [CORES.ouro]: CORES.verde, [CORES.roxo]: CORES.azul, [CORES.laranja]: "#94a3b8", [CORES.teal]: CORES.azulC,
+};
 
 type Receita = { id: string; descricao: string; valor: number; data: string; categoria: string; status: string; cliente_id: string | null; centro_custo_id?: string | null; };
 type ClienteOpcao = { id: string; nome: string };
@@ -192,7 +197,7 @@ export default function Receitas() {
   const tkt = ticketMedio(lancamentos);
   const recPct = percentualRecorrente(lancamentos, CATEGORIAS_RECORRENTES);
   const conc = concentracao(lancamentos, 0.2);
-  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, ct(v)]));
+  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, temaClaro ? (CAT_COR_CLARO[v] ?? ct(v)) : v]));
   const composicao = porCategoria(lancamentos, categorias, catCorAtual);
   const previsao = preverProximosMeses(serie12, mesAtual, 3);
   const temMesAnterior = mesAtual > 0 && serie12[mesAtual - 1] > 0;
@@ -248,8 +253,8 @@ export default function Receitas() {
   ].join("\n");
 
   // ═══════════ GRÁFICOS (options do alicerce) ═══════════
-  const optEvol = optBarrasV(serie12, meses, ct(CORES.roxo), CORES.roxoC, undefined, temaClaro);
-  const optCat = optRosca(composicao, ct(CORES.verde), (t.receitas.totalReceitas || cx.total).toUpperCase(), temaClaro);
+  const optEvol = optBarrasV(serie12, meses, ct(temaClaro ? CORES.azul : CORES.roxo), temaClaro ? CORES.azulC : CORES.roxoC, undefined, temaClaro);
+  const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.ouro), (t.receitas.totalReceitas || cx.total).toUpperCase(), temaClaro);
   const histInicio = Math.max(0, mesAtual - 2);
   const optPrev = optLinhaPrevisao(
     [...serie12.slice(histInicio, mesAtual + 1), null, null, null],
@@ -260,10 +265,10 @@ export default function Receitas() {
 
   const kpisCFO = [
     { l: cx.mrr, v: fBRL(mrr), c: ct(CORES.cyan), i: "🔄" },
-    { l: cx.arr, v: fBRL(arr), c: ct(CORES.roxo), i: "📅" },
+    { l: cx.arr, v: fBRL(arr), c: ct(temaClaro ? CORES.azul : CORES.roxo), i: "📅" },
     { l: cx.crescimentoMoM, v: `${cresc >= 0 ? "▲" : "▼"} ${Math.abs(cresc).toFixed(1)}%`, c: cresc >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "📈" },
-    { l: cx.ticketMedio, v: fBRL(tkt), c: ct(CORES.ouro), i: "🎫" },
-    { l: cx.recorrenciaPct, v: `${recPct.toFixed(0)}%`, c: CORES.teal, i: "♻️" },
+    { l: cx.ticketMedio, v: fBRL(tkt), c: ct(temaClaro ? CORES.verde : CORES.ouro), i: "🎫" },
+    { l: cx.recorrenciaPct, v: `${recPct.toFixed(0)}%`, c: temaClaro ? ct(CORES.verde) : CORES.teal, i: "♻️" },
     { l: cx.concentracao, v: `${conc.toFixed(0)}%`, c: conc > 70 ? CORES.laranja : CORES.verde, i: "🎯" },
   ];
 
@@ -299,7 +304,7 @@ export default function Receitas() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
+            style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct(temaClaro ? CORES.verde : CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -355,9 +360,9 @@ export default function Receitas() {
                     <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.subAnalise}</p>
                   </div>
                 </div>
-                <div className="mb-4"><SubChart titulo={cx.evolucao} cor={ct(CORES.roxo)} option={optEvol} altura={260} /></div>
+                <div className="mb-4"><SubChart titulo={cx.evolucao} cor={ct(temaClaro ? CORES.azul : CORES.roxo)} option={optEvol} altura={260} /></div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={ct(CORES.verde)} option={optCat} altura={240} />
+                  <SubChart titulo={cx.composicao} cor={ct(temaClaro ? CORES.verde : CORES.ouro)} option={optCat} altura={240} />
                   <SubChart titulo={cx.previsao} cor={ct(CORES.cyan)} option={optPrev} altura={240} />
                 </div>
               </div>
@@ -366,7 +371,7 @@ export default function Receitas() {
             {insights.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                  <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">

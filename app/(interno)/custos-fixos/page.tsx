@@ -41,6 +41,12 @@ const CAT_COR: Record<string, string> = {
   "Aluguel/Imóvel": CORES.roxo, "Folha de pagamento": CORES.azul, "Serviços essenciais": CORES.cyan,
   "Sistemas e assinaturas": CORES.laranja, "Seguros": CORES.teal, "Contabilidade": CORES.rosa, "Outros": CORES.amarelo,
 };
+// Claro: paleta de composição padronizada (só verde/azul/cyan/cinza, nunca
+// dourado/laranja/roxo) — Escuro inalterado (mantém CAT_COR acima intacto).
+const CAT_COR_CLARO: Record<string, string> = {
+  [CORES.roxo]: CORES.verde, [CORES.laranja]: "#94a3b8", [CORES.teal]: CORES.azulC,
+  [CORES.rosa]: CORES.azul, [CORES.amarelo]: CORES.verde,
+};
 
 type CustoFixo = {
   id: string; descricao: string; valor_mensal: number;
@@ -169,7 +175,7 @@ export default function CustosFixos() {
   // ═══════════ INTELIGÊNCIA CFO (alicerce) ═══════════
   const itensDespesa: ItemDespesa[] = custos.map(c => ({ descricao: c.descricao, valor: c.valor_mensal, categoria: c.categoria }));
   const itensRenov: ItemRenovavel[] = custos.map(c => ({ descricao: c.descricao, valor: c.valor_mensal, data_renovacao: c.data_renovacao, categoria: c.categoria }));
-  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, ct(v)]));
+  const catCorAtual: Record<string, string> = Object.fromEntries(Object.entries(CAT_COR).map(([k, v]) => [k, temaClaro ? (CAT_COR_CLARO[v] ?? ct(v)) : v]));
   const composicao = porCategoria(custos.map(c => ({ valor: c.valor_mensal, data: "", categoria: c.categoria })), categorias, catCorAtual);
   const renovacoes = radarRenovacoes(itensRenov, 60);
   const { alertas: alertasDup, economiaPotencial } = detectarDesperdicio(itensDespesa);
@@ -234,16 +240,16 @@ export default function CustosFixos() {
   ].join("\n");
 
   // ═══════════ GRÁFICOS ═══════════
-  const optCat = optRosca(composicao, ct(CORES.verde), cx.totalMensal.toUpperCase(), temaClaro);
+  const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.vermelho), cx.totalMensal.toUpperCase(), temaClaro);
   const topCustos = [...custos].sort((a, b) => b.valor_mensal - a.valor_mensal).slice(0, 8);
-  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(CORES.azul), CORES.azulC, undefined, temaClaro);
+  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(temaClaro ? CORES.azul : CORES.laranja), temaClaro ? CORES.azulC : CORES.laranjaC, undefined, temaClaro);
 
   const kpisCFO = [
     { l: cx.totalMensal, v: fBRL(totalMensal), c: ct(CORES.vermelho), i: "📉" },
-    { l: cx.totalAnual, v: fBRL(totalAnual), c: ct(CORES.amarelo), i: "📅" },
+    { l: cx.totalAnual, v: fBRL(totalAnual), c: ct(temaClaro ? CORES.azul : CORES.amarelo), i: "📅" },
     { l: t.custosFixos.itens, v: `${custos.length}`, c: ct(CORES.azul), i: "📋" },
     { l: cx.economiaPotencial, v: fBRL(economiaPotencial), c: ct(CORES.verde), i: "💸" },
-    { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? ct(CORES.laranja) : ct(CORES.teal), i: "🔔" },
+    { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? ct(temaClaro ? CORES.azul : CORES.laranja) : ct(temaClaro ? CORES.verde : CORES.teal), i: "🔔" },
   ];
 
   const marquee = [
@@ -284,7 +290,7 @@ export default function CustosFixos() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
+            style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct(temaClaro ? CORES.verde : CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -337,7 +343,7 @@ export default function CustosFixos() {
             {renovacoes.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: renovFundo, border: "1px solid rgba(249,115,22,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Bell size={16} style={{ color: ct(CORES.laranja) }} />
+                  <Bell size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.radarRenovacoes}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -368,8 +374,8 @@ export default function CustosFixos() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <SubChart titulo={cx.composicao} cor={ct(CORES.verde)} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(CORES.azul)} option={optTop} altura={260} />
+                  <SubChart titulo={cx.composicao} cor={ct(temaClaro ? CORES.verde : CORES.vermelho)} option={optCat} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.azul : CORES.laranja)} option={optTop} altura={260} />
                 </div>
               </div>
             </div>
@@ -378,7 +384,7 @@ export default function CustosFixos() {
             {insights.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                  <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">

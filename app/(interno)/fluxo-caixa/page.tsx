@@ -445,7 +445,7 @@ export default function FluxoCaixa() {
           <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.cyan)} lang={lang} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", color: ct("#c4b5fd") }}>
+            style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(139,92,246,0.15)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.4)" : "rgba(139,92,246,0.4)"}`, color: ct(temaClaro ? CORES.verde : CORES.roxoC) }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -542,8 +542,8 @@ export default function FluxoCaixa() {
                   {[
                     { l: cx.origemContasReceber, v: entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0), c: ct(CORES.verde) },
                     { l: cx.origemContasPagar, v: saidasAutoContasPagar.reduce((a, e) => a + e.valor, 0), c: ct(CORES.vermelho) },
-                    { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(CORES.laranja) },
-                    { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: ct(CORES.rosa) },
+                    { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.azul : CORES.laranja) },
+                    { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.cyan : CORES.rosa) },
                   ].map((o) => (
                     <div key={o.l} className="rounded-xl px-3 py-2.5" style={{ background: temaClaro ? NESTED_BG : `${o.c}0c`, border: `1px solid ${temaClaro ? NESTED_BORDA : o.c + "25"}` }}>
                       <p className="text-xs uppercase tracking-wider font-bold" style={{ color: TEXTO_SEC }}>{o.l}</p>
@@ -589,7 +589,7 @@ export default function FluxoCaixa() {
             {insights.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                  <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
