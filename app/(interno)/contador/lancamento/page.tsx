@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, Save, Lock, Undo2, ChevronDown, ChevronUp } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../../lib/empresaHelpers'
 import {
@@ -14,13 +16,20 @@ import { fBRL2 } from '../../../../lib/cfoCore'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZULC = '#6ab0ff'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AMARELO = '#fbbf24'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
+const PALETA = {
+  dark: {
+    AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#fbbf24', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', SELECT_BG: 'rgba(10,22,40,0.9)', NESTED_BG: 'rgba(0,0,0,0.2)',
+    ITEM_BG: 'rgba(10,20,36,0.6)', ITEM_BG2: 'rgba(10,20,36,0.5)', BTN_BG: 'rgba(255,255,255,0.06)', BORDA: 'rgba(255,255,255,0.08)', FORM_BORDA: 'rgba(106,176,255,0.16)',
+  },
+  xms: {
+    AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
+    PAINEL_BG: '#f6f7c4', CAMPO_BG: '#ffffff', SELECT_BG: '#ffffff', NESTED_BG: 'rgba(255,255,255,0.5)',
+    ITEM_BG: 'rgba(255,255,255,0.5)', ITEM_BG2: 'rgba(255,255,255,0.5)', BTN_BG: 'rgba(16,27,61,0.08)', BORDA: 'rgba(16,27,61,0.12)', FORM_BORDA: 'rgba(46,204,155,0.35)',
+  },
+} as const
 
 const PAPEIS_EDICAO = ['dono', 'admin']
 
@@ -35,6 +44,10 @@ export default function LancamentoManualPage() {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, SELECT_BG, NESTED_BG, ITEM_BG, ITEM_BG2, BTN_BG, BORDA, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [podeEditar, setPodeEditar] = useState(false)
@@ -133,15 +146,20 @@ export default function LancamentoManualPage() {
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Lançamento Manual', 'Manual Journal Entry', 'Asiento Manual')}
       subtitulo={L('Ajustes, provisões e correções contábeis — partida dobrada de verdade, nunca edita um lançamento existente (sempre estorna e relança).', 'Adjustments, accruals and accounting corrections — real double-entry, never edits an existing entry (always reverses and re-posts).', 'Ajustes, provisiones y correcciones contables — partida doble real, nunca edita un asiento existente (siempre revierte y vuelve a asentar).')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
-        <button onClick={() => router.push('/contador')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          <ArrowLeft size={15} />{L('Voltar ao Contador', 'Back to Accountant', 'Volver a Contador')}
-        </button>
+        <>
+          <button onClick={() => router.push('/contador')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            <ArrowLeft size={15} />{L('Voltar ao Contador', 'Back to Accountant', 'Volver a Contador')}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {loading ? (
@@ -165,19 +183,19 @@ export default function LancamentoManualPage() {
           )}
 
           {podeEditar && (
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(106,176,255,0.16)' }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
               <h3 className="text-sm font-bold mb-4" style={{ color: TITULO }}>{L('Novo Lançamento', 'New Entry', 'Nuevo Asiento')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                 <div>
                   <label className="text-xs font-semibold block mb-1" style={{ color: CINZA }}>{L('Data', 'Date', 'Fecha')}</label>
                   <input type="date" value={data} onChange={(e) => setData(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-xs font-semibold block mb-1" style={{ color: CINZA }}>{L('Descrição', 'Description', 'Descripción')}</label>
                   <input value={descricao} onChange={(e) => setDescricao(e.target.value)}
                     placeholder={L('Ex.: Provisão de depreciação de outubro', 'E.g.: October depreciation accrual', 'Ej.: Provisión de depreciación de octubre')}
-                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                    className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 </div>
               </div>
 
@@ -185,7 +203,7 @@ export default function LancamentoManualPage() {
                 {linhas.map((linha, i) => (
                   <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
                     <select value={linha.contaId} onChange={(e) => atualizarLinha(i, 'contaId', e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: 'rgba(10,22,40,0.9)', border: `1px solid ${AZULC}30`, color: TEXTO }}>
+                      className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: SELECT_BG, border: `1px solid ${AZULC}30`, color: TEXTO }}>
                       <option value="">{L('Selecione a conta', 'Select the account', 'Seleccione la cuenta')}</option>
                       {contas.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nome}</option>)}
                     </select>
@@ -199,9 +217,9 @@ export default function LancamentoManualPage() {
                       ))}
                     </div>
                     <input type="text" inputMode="decimal" value={linha.valor} onChange={(e) => atualizarLinha(i, 'valor', e.target.value)}
-                      placeholder="0,00" className="w-28 px-3 py-2.5 rounded-xl text-sm text-right focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                      placeholder="0,00" className="w-28 px-3 py-2.5 rounded-xl text-sm text-right focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     <button type="button" onClick={() => removerLinha(i)} disabled={linhas.length <= 2}
-                      className="p-2.5 rounded-xl disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.06)', color: VERMELHO }}>
+                      className="p-2.5 rounded-xl disabled:opacity-30" style={{ background: BTN_BG, color: VERMELHO }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -223,7 +241,7 @@ export default function LancamentoManualPage() {
 
               <button onClick={salvar} disabled={!podeSalvar || salvando}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff' }}>
                 <Save size={16} />{salvando ? L('Gravando...', 'Posting...', 'Grabando...') : L('Gravar lançamento', 'Post entry', 'Grabar asiento')}
               </button>
             </div>
@@ -232,7 +250,7 @@ export default function LancamentoManualPage() {
           <div>
             <h3 className="text-sm font-bold mb-2" style={{ color: TITULO }}>{L('Últimos Lançamentos Manuais', 'Recent Manual Entries', 'Últimos Asientos Manuales')}</h3>
             {manuais.length === 0 ? (
-              <div className="rounded-xl p-6 text-center" style={{ background: 'rgba(10,20,36,0.5)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="rounded-xl p-6 text-center" style={{ background: ITEM_BG2, border: `1px solid ${BORDA}` }}>
                 <p className="text-sm" style={{ color: CINZA }}>{L('Nenhum lançamento manual ainda.', 'No manual entries yet.', 'Ningún asiento manual aún.')}</p>
               </div>
             ) : (
@@ -242,7 +260,7 @@ export default function LancamentoManualPage() {
                   const estornado = !!m.estornado_por_id
                   const isExpandido = expandido === m.id
                   return (
-                    <div key={m.id} className="rounded-xl overflow-hidden" style={{ background: 'rgba(10,20,36,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div key={m.id} className={`rounded-xl overflow-hidden${classePremium3d}`} style={{ background: ITEM_BG, border: `1px solid ${BORDA}` }}>
                       <button onClick={() => setExpandido(isExpandido ? null : m.id)} className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold truncate" style={{ color: estornado ? CINZA : TEXTO, textDecoration: estornado ? 'line-through' : 'none' }}>{m.descricao}</p>
@@ -255,7 +273,7 @@ export default function LancamentoManualPage() {
                       </button>
                       {isExpandido && (
                         <div className="px-4 pb-3">
-                          <div className="rounded-lg p-2.5 mb-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                          <div className="rounded-lg p-2.5 mb-2" style={{ background: NESTED_BG }}>
                             {partidas.map((p) => {
                               const conta = contaPorId.get(p.conta_id)
                               return (
@@ -276,12 +294,12 @@ export default function LancamentoManualPage() {
                                   className="text-[11px] font-bold px-2.5 py-1 rounded-lg disabled:opacity-60" style={{ background: `${VERMELHO}20`, color: VERMELHO }}>
                                   {estornando === m.id ? L('Estornando...', 'Reversing...', 'Revirtiendo...') : L('Sim, estornar', 'Yes, reverse', 'Sí, revertir')}
                                 </button>
-                                <button onClick={() => setConfirmandoEstorno(null)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                                <button onClick={() => setConfirmandoEstorno(null)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg" style={{ background: BTN_BG, color: CINZA }}>
                                   {L('Cancelar', 'Cancel', 'Cancelar')}
                                 </button>
                               </div>
                             ) : (
-                              <button onClick={() => setConfirmandoEstorno(m.id)} className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: AMARELO }}>
+                              <button onClick={() => setConfirmandoEstorno(m.id)} className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg" style={{ background: BTN_BG, color: AMARELO }}>
                                 <Undo2 size={12} />{L('Estornar', 'Reverse', 'Revertir')}
                               </button>
                             )
@@ -297,5 +315,6 @@ export default function LancamentoManualPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }

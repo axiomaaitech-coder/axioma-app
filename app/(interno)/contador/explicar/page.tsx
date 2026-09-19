@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../../lib/empresaHelpers'
 import { explicarMinhaEmpresa, type ExplicacaoEmpresa, type Descoberta } from '../../../../lib/contadorHelpers'
@@ -9,17 +11,19 @@ import { fBRL2 } from '../../../../lib/cfoCore'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZULC = '#6ab0ff'
-const VERDE = '#34d399'
-const VERMELHO = '#f87171'
-const AMARELO = '#fbbf24'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx.
+const PALETA = {
+  dark: { AZULC: '#6ab0ff', VERDE: '#34d399', VERMELHO: '#f87171', AMARELO: '#fbbf24', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)' },
+  xms: { AZULC: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AMARELO: '#f5a623', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4' },
+} as const
 
 function Secao({ titulo, cor, children }: { titulo: string; cor: string; children: React.ReactNode }) {
+  const { tema } = useThemeAxioma()
+  const classePremium3d = tema === 'xms' ? ' axi-card-premium3d' : ''
+  const { TITULO, PAINEL_BG } = PALETA[tema]
   return (
-    <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${cor}25` }}>
+    <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${cor}25` }}>
       <h3 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: TITULO }}>
         <span className="w-1 h-4 rounded-full" style={{ background: cor }} />
         {titulo}
@@ -30,6 +34,8 @@ function Secao({ titulo, cor, children }: { titulo: string; cor: string; childre
 }
 
 function Ranking({ linhas }: { linhas: ExplicacaoEmpresa['comoGanha'] }) {
+  const { tema } = useThemeAxioma()
+  const { TEXTO, CINZA } = PALETA[tema]
   return (
     <div className="space-y-1.5">
       {linhas.map((l) => (
@@ -43,8 +49,10 @@ function Ranking({ linhas }: { linhas: ExplicacaoEmpresa['comoGanha'] }) {
 }
 
 function LinhaDescoberta({ d }: { d: Descoberta }) {
+  const { tema } = useThemeAxioma()
+  const { TEXTO } = PALETA[tema]
   return (
-    <div className="text-xs py-1.5" style={{ color: TEXTO, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+    <div className="text-xs py-1.5" style={{ color: TEXTO, borderTop: tema === 'xms' ? '1px solid rgba(16,27,61,0.1)' : '1px solid rgba(255,255,255,0.06)' }}>
       {d.titulo}
     </div>
   )
@@ -55,6 +63,9 @@ export default function ContadorExplicarPage() {
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const { AZULC, VERDE, VERMELHO, AMARELO, CINZA, TEXTO } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -78,14 +89,19 @@ export default function ContadorExplicarPage() {
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Explique Minha Empresa', 'Explain My Company', 'Explique Mi Empresa')}
       subtitulo={L('Como sua empresa realmente funciona, direto do seu ledger — nada inventado, tudo calculado do que já foi lançado.', 'How your company really works, straight from your ledger — nothing invented, all calculated from what was already recorded.', 'Cómo funciona realmente su empresa, directo de su libro mayor — nada inventado, todo calculado de lo que ya fue registrado.')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
-        <button onClick={() => router.push('/contador')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          {L('Voltar ao Contador', 'Back to Accountant', 'Volver al Contador')}
-        </button>
+        <>
+          <button onClick={() => router.push('/contador')} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            {L('Voltar ao Contador', 'Back to Accountant', 'Volver al Contador')}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {loading ? (
@@ -143,5 +159,6 @@ export default function ContadorExplicarPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
