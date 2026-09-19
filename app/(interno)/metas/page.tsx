@@ -217,11 +217,16 @@ export default function Metas() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+  // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app
+  // (antes esses painéis "camada CFO" caíam no branco puro, nunca
+  // atualizados quando o creme virou o padrão oficial do Claro).
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
   const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
-  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)";
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const ROXO_CHIP_BG = temaClaro ? "rgba(124,58,237,0.12)" : "rgba(139,92,246,0.12)";
   const ROXO_CHIP_BG_ATIVO = temaClaro ? "rgba(124,58,237,0.2)" : "rgba(139,92,246,0.2)";
   const ROXO_CHIP_BORDA = temaClaro ? "rgba(124,58,237,0.4)" : "rgba(139,92,246,0.4)";
@@ -639,7 +644,9 @@ export default function Metas() {
         <div className="flex flex-wrap items-center justify-end gap-3">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: ROXO_CHIP_BG_ATIVO, border: `1px solid ${ROXO_CHIP_BORDA}`, color: ct("#c4b5fd") }}>
+            style={temaClaro
+              ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
+              : { background: ROXO_CHIP_BG_ATIVO, border: `1px solid ${ROXO_CHIP_BORDA}`, color: ct("#c4b5fd") }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -652,7 +659,7 @@ export default function Metas() {
             { label: cx.metaKpiValorEmJogo, value: fBRL(valorEmJogo), cor: ct(CORES.ouro) },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor}>
+              <CanvasBox cor={card.cor} {...cartaoTema}>
                 <p className="text-xs font-semibold tracking-wider uppercase mb-3" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
                 <p className="text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
               </CanvasBox>
@@ -661,7 +668,7 @@ export default function Metas() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={ct(CORES.roxo)}>
+          <CanvasBox cor={ct(CORES.roxo)} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <Target size={48} style={{ color: ct(CORES.roxo), opacity: 0.5 }} className="mb-4" />
               <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{txt.semMetas}</p>
@@ -673,7 +680,7 @@ export default function Metas() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className="rounded-2xl p-3 md:p-4"
+                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
                   style={{ background: PAINEL_FUNDO, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
@@ -683,11 +690,11 @@ export default function Metas() {
             </div>
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "#f3f0fc" : "linear-gradient(90deg, rgba(139,92,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(124,58,237,0.3)" : "rgba(139,92,246,0.24)"}` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(139,92,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(124,58,237,0.3)" : "rgba(139,92,246,0.24)"}` }}>
               <div className="marquee-meta py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#c4b5fd") : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.roxo) }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#c4b5fd" : "#ffffff") : (i === 0 ? ct("#c4b5fd") : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#c4b5fd" : ct(CORES.roxo) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -695,7 +702,7 @@ export default function Metas() {
             </div>
 
             {/* ÁRVORE DE DEPENDÊNCIA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ROXO_CHIP_BORDA}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ROXO_CHIP_BORDA}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <GitBranch size={16} style={{ color: ct(CORES.roxo) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.metaArvoreTitulo}</p>
@@ -715,7 +722,7 @@ export default function Metas() {
             </div>
 
             {/* MODAL ÚNICO — Progresso, Status, Evolução */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: PAINEL_FUNDO_B, border: `1px solid ${PAINEL_BORDA}`, boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: PAINEL_FUNDO_B, border: `1px solid ${PAINEL_BORDA}`, boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#8b5cf6,#d4af37)", boxShadow: "0 0 12px #8b5cf6" }} />
@@ -739,7 +746,7 @@ export default function Metas() {
             </div>
 
             {/* CONSELHO CFO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.metaConselhoTitulo}</p>
@@ -767,7 +774,7 @@ export default function Metas() {
         )}
 
         {/* Busca */}
-        <CanvasBox cor={ct("#3b6fd4")}>
+        <CanvasBox cor={ct("#3b6fd4")} {...cartaoTema}>
           <div className="flex items-center gap-2 py-1">
             <Target size={16} style={{ color: ct("#5a7a9a") }} />
             <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={txt.buscar}
@@ -781,7 +788,7 @@ export default function Metas() {
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : metasFiltradas.length === 0 ? (
-          <CanvasBox cor={ct(CORES.roxo)}>
+          <CanvasBox cor={ct(CORES.roxo)} {...cartaoTema}>
             <div className="text-center py-8"><p style={{ color: ct("#5a7a9a") }}>{txt.semMetas}</p></div>
           </CanvasBox>
         ) : (
@@ -793,7 +800,7 @@ export default function Metas() {
               const corSemaforo = ct(c ? (c.semaforo === "verde" ? CORES.verde : c.semaforo === "amarelo" ? CORES.amarelo : CORES.vermelho) : "#6ab0ff");
               return (
                 <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={concluida ? ct(CORES.ouro) : corSemaforo}>
+                  <CanvasBox cor={concluida ? ct(CORES.ouro) : corSemaforo} {...cartaoTema}>
                     <div style={{ opacity: arquivada ? 0.6 : 1 }}>
                       <div className="flex justify-between items-start mb-3">
                         <div className="min-w-0 mr-2">
@@ -901,7 +908,7 @@ export default function Metas() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md overflow-y-auto rounded-2xl" style={{ maxHeight: "calc(100vh - 112px)" }}>
-              <CanvasBox cor={ct(CORES.roxo)}>
+              <CanvasBox cor={ct(CORES.roxo)} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(CORES.roxoC) }}>AXIOMA AI.TECH</p>
