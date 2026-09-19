@@ -27,7 +27,11 @@ import { ThemeToggle } from "../../../components/ThemeToggle";
 
 const PAINEL_ESCURO_FUNDO = "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
 const PAINEL_ESCURO_FUNDO_B = "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-const PAINEL_CLARO_FUNDO = "linear-gradient(160deg, #f7f8fc, #eef1f8)";
+// Creme #f6f7c4 — valor final aprovado no rollout do Painel MEI, nunca
+// escurecer/saturar mais (ver memória do rollout Claro).
+const PAINEL_CLARO_FUNDO = "#f6f7c4";
+// Alerta de ruptura de caixa é risco real (regra 4, exceção de alerta) —
+// mantém o tingimento vermelho de aviso, nunca vira creme neutro.
 const RUPTURA_PAINEL_ESCURO = "linear-gradient(160deg, rgba(60,10,10,0.7), rgba(10,8,32,0.95))";
 const RUPTURA_PAINEL_CLARO = "linear-gradient(160deg, #fdecec, #f7f8fc)";
 
@@ -88,9 +92,18 @@ export default function FluxoCaixa() {
   const painelFundo = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO;
   const painelFundoB = temaClaro ? PAINEL_CLARO_FUNDO : PAINEL_ESCURO_FUNDO_B;
   const rupturaFundo = temaClaro ? RUPTURA_PAINEL_CLARO : RUPTURA_PAINEL_ESCURO;
-  const campoFundo = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
+  const campoFundo = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const cx = cfoT(lang);
+  const cartaoTema = temaClaro ? { fundo: PAINEL_CLARO_FUNDO, premium3d: true } : {};
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
+  const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
+  const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(6,182,212,0.14), rgba(59,130,246,0.10))";
+  const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(6,182,212,0.24)";
+  const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
+  const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#67e8f9");
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -351,7 +364,7 @@ export default function FluxoCaixa() {
   };
 
   const SubChart = ({ titulo, cor, option, altura }: { titulo: string; cor: string; option: any; altura: number }) => (
-    <div className="rounded-xl p-3 md:p-4" style={{ background: temaClaro ? "#f7f8fc" : "rgba(8,6,24,0.5)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : cor + "20"}` }}>
       <div className="flex items-center gap-2 mb-2">
         <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
         <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{titulo}</p>
@@ -413,6 +426,9 @@ export default function FluxoCaixa() {
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditando(null); setNovo({ descricao: "", tipo: "entrada", valor: "", data: "", status: "previsto" }); setModalAberto(true); }}
       labelBotao={t.fluxoCaixa.novoLancamento}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
@@ -442,9 +458,9 @@ export default function FluxoCaixa() {
             { label: t.fluxoCaixa.saldoAtual, value: `R$ ${saldoAtual.toLocaleString("pt-BR")}`, cor: saldoAtual >= 0 ? ct("#34d399") : ct("#f87171"), Icon: saldoAtual >= 0 ? TrendingUp : AlertTriangle },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-              <CanvasBox cor={card.cor} destaque>
+              <CanvasBox cor={card.cor} destaque {...cartaoTema}>
                 <div className="flex justify-between items-start mb-3">
-                  <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{card.label}</p>
+                  <p className="text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{card.label}</p>
                   <card.Icon size={16} style={{ color: card.cor }} />
                 </div>
                 <p className="text-2xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.value} /></p>
@@ -473,22 +489,22 @@ export default function FluxoCaixa() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpisCFO.map((k, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-                  className="rounded-2xl p-3 md:p-4"
+                  className={`rounded-2xl p-3 md:p-4${classePremium3d}`}
                   style={{ background: painelFundo, border: `1px solid ${k.c}25`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}>
                   <div className="flex items-center justify-between mb-1.5"><span className="text-base">{k.i}</span></div>
                   <p className="text-sm md:text-lg font-black tracking-tight" style={{ color: k.c, ...FONTE_EXEC }}>{k.v}</p>
-                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: ct("#64748b") }}>{k.l}</p>
+                  <p className="text-xs uppercase tracking-wider font-bold mt-0.5" style={{ color: TEXTO_SEC }}>{k.l}</p>
                   {k.delta && <div className="mt-1"><DeltaBadge comp={k.delta} invertido={k.invertido} /></div>}
                 </motion.div>
               ))}
             </div>
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(6,182,212,0.14), rgba(59,130,246,0.10))", border: "1px solid rgba(6,182,212,0.24)" }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: LETREIRO_BG, border: `1px solid ${LETREIRO_BORDA}` }}>
               <div className="marquee-fc py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-sm font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? ct("#67e8f9") : ct("#e2e8f0") }}>{m}<span style={{ color: ct("#06b6d4") }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? LETREIRO_DESTAQUE : LETREIRO_TEXTO }}>{m}<span style={{ color: LETREIRO_DESTAQUE }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -497,7 +513,7 @@ export default function FluxoCaixa() {
 
             {/* NARRATIVA */}
             {narrativaSaldo && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(6,182,212,0.2)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(6,182,212,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquareText size={16} style={{ color: ct(CORES.cyan) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
@@ -508,17 +524,20 @@ export default function FluxoCaixa() {
 
             {/* PREVISTOS AUTOMÁTICOS — cross-módulo */}
             {(totalAutoEntradas > 0 || totalAutoSaidas > 0) && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(6,182,212,0.2)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(6,182,212,0.2)" }}>
                 <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                   <div>
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.previstosAutomaticos}</p>
-                    <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.subPrevistosAutomaticos}</p>
+                    <p className="text-xs font-medium" style={{ color: TEXTO_SEC }}>{cx.subPrevistosAutomaticos}</p>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold" style={{ color: previstosAutoAtivo ? ct(CORES.cyan) : "var(--axi-text-secondary)" }}>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold" style={{ color: previstosAutoAtivo ? ct(CORES.cyan) : TEXTO_SEC }}>
                     <input type="checkbox" checked={previstosAutoAtivo} onChange={(e) => setPrevistosAutoAtivo(e.target.checked)} className="accent-cyan-500" />
                     {cx.incluirPrevistosAuto}
                   </label>
                 </div>
+                {/* Decomposição por origem — grid de valores, sempre bege
+                    neutro (regra 4), nunca tingido pela cor da categoria;
+                    só o número mantém a cor de identificação. */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {[
                     { l: cx.origemContasReceber, v: entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0), c: ct(CORES.verde) },
@@ -526,18 +545,18 @@ export default function FluxoCaixa() {
                     { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(CORES.laranja) },
                     { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: ct(CORES.rosa) },
                   ].map((o) => (
-                    <div key={o.l} className="rounded-xl px-3 py-2.5" style={{ background: `${o.c}0c`, border: `1px solid ${o.c}25` }}>
-                      <p className="text-xs uppercase tracking-wider font-bold" style={{ color: ct("#64748b") }}>{o.l}</p>
+                    <div key={o.l} className="rounded-xl px-3 py-2.5" style={{ background: temaClaro ? NESTED_BG : `${o.c}0c`, border: `1px solid ${temaClaro ? NESTED_BORDA : o.c + "25"}` }}>
+                      <p className="text-xs uppercase tracking-wider font-bold" style={{ color: TEXTO_SEC }}>{o.l}</p>
                       <p className="text-sm font-black" style={{ color: o.c }}>{fBRL(o.v)}</p>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs mt-3" style={{ color: ct("#64748b") }}>{cx.avisoDuplicidade}</p>
+                <p className="text-xs mt-3" style={{ color: TEXTO_SEC }}>{cx.avisoDuplicidade}</p>
               </div>
             )}
 
             {/* MODAL ÚNICO */}
-            <div className="rounded-2xl overflow-hidden" style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+            <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: painelFundoB, border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <div className="flex items-center gap-2">
@@ -547,11 +566,11 @@ export default function FluxoCaixa() {
                       <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.cenarioOtimista} · {cx.cenarioPrevisto} · {cx.cenarioPessimista}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1 rounded-xl p-1" style={{ background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.8)", border: "1px solid rgba(6,182,212,0.2)" }}>
+                  <div className="flex gap-1 rounded-xl p-1" style={{ background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.8)", border: "1px solid rgba(6,182,212,0.2)" }}>
                     {[{ v: true, l: cx.visaoSemanal }, { v: false, l: cx.visaoMensal }].map((opt) => (
                       <button key={opt.l} onClick={() => setVisaoSemanal(opt.v)}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        style={{ background: visaoSemanal === opt.v ? "rgba(6,182,212,0.3)" : "transparent", color: visaoSemanal === opt.v ? ct(CORES.cyan) : "var(--axi-text-secondary)" }}>
+                        style={{ background: visaoSemanal === opt.v ? "rgba(6,182,212,0.3)" : "transparent", color: visaoSemanal === opt.v ? ct(CORES.cyan) : TEXTO_SEC }}>
                         {opt.l}
                       </button>
                     ))}
@@ -568,7 +587,7 @@ export default function FluxoCaixa() {
 
             {/* Insights */}
             {insights.length > 0 && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
@@ -588,7 +607,7 @@ export default function FluxoCaixa() {
         )}
 
         {/* Tabela lançamentos */}
-        <CanvasBox cor={ct("#a78bfa")}>
+        <CanvasBox cor={ct("#a78bfa")} {...cartaoTema}>
           <div className="mb-4">
             <h3 className="text-sm font-semibold" style={{ color: "var(--axi-text-primary)" }}>{t.fluxoCaixa.lancamentos}</h3>
           </div>
@@ -597,29 +616,29 @@ export default function FluxoCaixa() {
               <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : lancamentos.length === 0 ? (
-            <div className="text-center py-12"><p style={{ color: "var(--axi-text-secondary)" }}>{t.fluxoCaixa.semLancamentos}</p></div>
+            <div className="text-center py-12"><p style={{ color: TEXTO_SEC }}>{t.fluxoCaixa.semLancamentos}</p></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid rgba(59,111,212,0.15)" }}>
+                  <tr style={{ borderBottom: temaClaro ? `1px solid ${NESTED_BORDA}` : "1px solid rgba(59,111,212,0.15)" }}>
                     {[t.geral.descricao, "Tipo", t.geral.data, t.geral.status, t.geral.valor, t.geral.acoes].map((h, i) => (
-                      <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: "var(--axi-text-secondary)" }}>{h}</th>
+                      <th key={i} className="text-left px-4 md:px-6 py-4 text-xs font-semibold tracking-wider uppercase" style={{ color: TEXTO_SEC }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {lancamentos.map((l, i) => (
                     <motion.tr key={l.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}
-                      whileHover={{ backgroundColor: "rgba(167,139,250,0.02)" }}
-                      style={{ borderBottom: i < lancamentos.length - 1 ? "1px solid rgba(59,111,212,0.08)" : "none" }}>
+                      whileHover={{ backgroundColor: temaClaro ? "rgba(16,27,61,0.03)" : "rgba(167,139,250,0.02)" }}
+                      style={{ borderBottom: i < lancamentos.length - 1 ? `1px solid ${temaClaro ? NESTED_BORDA : "rgba(59,111,212,0.08)"}` : "none" }}>
                       <td className="px-4 md:px-6 py-4 text-sm" style={{ color: "var(--axi-text-primary)" }}>{l.descricao}</td>
                       <td className="px-4 md:px-6 py-4">
                         <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.tipo === "entrada" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)", color: l.tipo === "entrada" ? ct("#34d399") : ct("#f87171") }}>
                           {l.tipo === "entrada" ? t.fluxoCaixa.entrada : t.fluxoCaixa.saida}
                         </span>
                       </td>
-                      <td className="px-4 md:px-6 py-4 text-sm" style={{ color: "var(--axi-text-secondary)" }}>{new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
+                      <td className="px-4 md:px-6 py-4 text-sm" style={{ color: TEXTO_SEC }}>{new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
                       <td className="px-4 md:px-6 py-4">
                         <span className="text-xs px-3 py-1 rounded-full" style={{ background: l.status === "realizado" ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)", color: l.status === "realizado" ? ct("#34d399") : ct("#fbbf24") }}>
                           {l.status === "realizado" ? t.fluxoCaixa.realizado : t.fluxoCaixa.previsto}
@@ -652,13 +671,13 @@ export default function FluxoCaixa() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor={ct("#34d399")}>
+              <CanvasBox cor={ct("#34d399")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
                     <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#34d399") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? "Editar Lançamento" : t.fluxoCaixa.novoLancamento}</h3>
                   </div>
-                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: "var(--axi-text-secondary)" }}><X size={20} /></motion.button>
+                  <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -673,7 +692,7 @@ export default function FluxoCaixa() {
                       {["entrada", "saida"].map((tipo) => (
                         <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, tipo })}
                           className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.tipo === tipo ? (tipo === "entrada" ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)") : "rgba(59,111,212,0.05)", color: novo.tipo === tipo ? (tipo === "entrada" ? ct("#34d399") : ct("#f87171")) : "var(--axi-text-secondary)", border: `1px solid ${novo.tipo === tipo ? (tipo === "entrada" ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)") : "rgba(59,111,212,0.1)"}` }}>
+                          style={{ background: novo.tipo === tipo ? (tipo === "entrada" ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)") : "rgba(59,111,212,0.05)", color: novo.tipo === tipo ? (tipo === "entrada" ? ct("#34d399") : ct("#f87171")) : TEXTO_SEC, border: `1px solid ${novo.tipo === tipo ? (tipo === "entrada" ? "rgba(52,211,153,0.4)" : "rgba(248,113,113,0.4)") : "rgba(59,111,212,0.1)"}` }}>
                           {tipo === "entrada" ? t.fluxoCaixa.entrada : t.fluxoCaixa.saida}
                         </motion.button>
                       ))}
@@ -696,7 +715,7 @@ export default function FluxoCaixa() {
                       {["previsto", "realizado"].map((s) => (
                         <motion.button key={s} whileTap={{ scale: 0.97 }} onClick={() => setNovo({ ...novo, status: s })}
                           className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                          style={{ background: novo.status === s ? "rgba(106,176,255,0.2)" : "rgba(59,111,212,0.05)", color: novo.status === s ? ct("#6ab0ff") : "var(--axi-text-secondary)", border: `1px solid ${novo.status === s ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.1)"}` }}>
+                          style={{ background: novo.status === s ? "rgba(106,176,255,0.2)" : "rgba(59,111,212,0.05)", color: novo.status === s ? ct("#6ab0ff") : TEXTO_SEC, border: `1px solid ${novo.status === s ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.1)"}` }}>
                           {s === "previsto" ? t.fluxoCaixa.previsto : t.fluxoCaixa.realizado}
                         </motion.button>
                       ))}
