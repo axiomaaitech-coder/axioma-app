@@ -60,7 +60,6 @@ const ATENCAO = "#f59e0b";
 
 const inputCls = "w-full px-3 py-2.5 rounded-xl focus:outline-none text-sm";
 const labelCls = "text-xs font-semibold mb-1 block";
-const labelStyle = { color: BRONZE };
 
 // Hook compartilhado pelos subcomponentes de formulário abaixo (module-level,
 // fora do componente principal) — cada um chama isso pra ganhar ct()/estilos
@@ -71,14 +70,15 @@ function useEstoqueTema() {
   const ct = (hex: string) => corTema(hex, temaClaro);
   const inputStyle = { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
   const selectStyle = { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
-  return { temaClaro, ct, inputStyle, selectStyle };
+  const labelStyleTema = { color: ct(BRONZE) };
+  return { temaClaro, ct, inputStyle, selectStyle, labelStyle: labelStyleTema };
 }
 
 function Campo({ label, value, onChange, tipo = "text", placeholder, onKeyDown, onBlur, onFocus, readOnly, lista, dica }: {
   label: string; value: string; onChange?: (v: string) => void; tipo?: string; placeholder?: string;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; onBlur?: () => void; onFocus?: () => void; readOnly?: boolean; lista?: string[]; dica?: string;
 }) {
-  const { ct, inputStyle } = useEstoqueTema();
+  const { ct, inputStyle, labelStyle } = useEstoqueTema();
   const listId = lista ? `dl-${label.replace(/\s/g, "")}` : undefined;
   return (
     <div>
@@ -114,7 +114,7 @@ function parseMoeda(texto: string): number | null {
 function CampoMoeda({ label, valor, onChange, dica }: {
   label: string; valor: number | null | undefined; onChange: (v: number | null) => void; dica?: string;
 }) {
-  const { ct, inputStyle } = useEstoqueTema();
+  const { ct, inputStyle, labelStyle } = useEstoqueTema();
   const [texto, setTexto] = useState(valor != null ? valor.toFixed(2).replace(".", ",") : "");
   const [focado, setFocado] = useState(false);
   useEffect(() => {
@@ -141,7 +141,7 @@ function CampoMoeda({ label, valor, onChange, dica }: {
 function CampoSelect({ label, value, onChange, opcoes, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; opcoes: { value: string; label: string }[]; placeholder?: string;
 }) {
-  const { selectStyle } = useEstoqueTema();
+  const { selectStyle, labelStyle } = useEstoqueTema();
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
@@ -153,7 +153,7 @@ function CampoSelect({ label, value, onChange, opcoes, placeholder }: {
   );
 }
 function CampoTextarea({ label, value, onChange, linhas = 2 }: { label: string; value: string; onChange: (v: string) => void; linhas?: number }) {
-  const { inputStyle } = useEstoqueTema();
+  const { inputStyle, labelStyle } = useEstoqueTema();
   return (
     <div>
       <label className={labelCls} style={labelStyle}>{label}</label>
@@ -162,15 +162,17 @@ function CampoTextarea({ label, value, onChange, linhas = 2 }: { label: string; 
   );
 }
 function SecaoTitulo({ children }: { children: React.ReactNode }) {
-  return <h4 className="text-xs font-black uppercase tracking-wider mt-5 mb-2 first:mt-0" style={{ color: JADE }}>{children}</h4>;
+  const { ct } = useEstoqueTema();
+  return <h4 className="text-xs font-black uppercase tracking-wider mt-5 mb-2 first:mt-0" style={{ color: ct(JADE) }}>{children}</h4>;
 }
 
 function SecaoColapsavel({ titulo, aberta, onToggle, children }: { titulo: string; aberta: boolean; onToggle: () => void; children: React.ReactNode }) {
+  const { ct } = useEstoqueTema();
   return (
     <div>
       <button type="button" onClick={onToggle} className="w-full flex items-center gap-1.5 mt-5 mb-2 first:mt-0">
-        <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: JADE }}>{titulo}</h4>
-        {aberta ? <ChevronUp size={14} style={{ color: JADE }} /> : <ChevronDown size={14} style={{ color: JADE }} />}
+        <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: ct(JADE) }}>{titulo}</h4>
+        {aberta ? <ChevronUp size={14} style={{ color: ct(JADE) }} /> : <ChevronDown size={14} style={{ color: ct(JADE) }} />}
       </button>
       {aberta && children}
     </div>
@@ -180,7 +182,8 @@ function SecaoColapsavel({ titulo, aberta, onToggle, children }: { titulo: strin
 function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
   aberto: boolean; onFechar: () => void; titulo: string; children: React.ReactNode; largo?: boolean;
 }) {
-  const { ct } = useEstoqueTema();
+  const { ct, temaClaro } = useEstoqueTema();
+  const cartaoTemaModal = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   return (
     <AnimatePresence>
       {aberto && (
@@ -190,10 +193,10 @@ function ModalPremium({ aberto, onFechar, titulo, children, largo }: {
           <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
             className={largo ? "w-full max-w-2xl" : "w-full max-w-md"}>
-            <CanvasBox cor={JADE}>
+            <CanvasBox {...cartaoTemaModal} cor={ct(JADE)}>
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: BRONZE }}>AXIOMA AI.TECH</p>
+                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(BRONZE) }}>AXIOMA AI.TECH</p>
                   <h3 className="text-lg font-bold" style={{ color: ct(ct("#c8d8f0")) }}>{titulo}</h3>
                 </div>
                 <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: ct(ct("#5a7a9a")) }}><X size={20} /></motion.button>
@@ -232,6 +235,9 @@ export default function EstoquePage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
+  const labelStyle = { color: ct(BRONZE) };
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const POSITIVO_CT = ct(POSITIVO);
   const NEGATIVO_CT = ct(NEGATIVO);
   const NEUTRO_CT = ct(NEUTRO);
@@ -239,7 +245,7 @@ export default function EstoquePage() {
   const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
   const inputStyle = { background: CAMPO_BG, border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
   const selectStyle = { background: temaClaro ? "#eef2f7" : "rgba(10,22,40,0.95)", border: `1px solid rgba(4,120,87,0.25)`, color: ct("#c8d8f0") };
-  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
   const PILL_INATIVO = temaClaro ? "#eef2f7" : "rgba(10,22,40,0.6)";
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -515,7 +521,7 @@ export default function EstoquePage() {
     return (
       <tr key={chave} className="cursor-pointer select-none" onClick={() => toggleGrupo(chave)}
         style={{ background: nivel === 1 ? "rgba(4,120,87,0.12)" : CAMPO_BG3 }}>
-        <td colSpan={9} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? BRONZE : ct("#94a3b8"), paddingLeft: nivel === 1 ? 12 : 30 }}>
+        <td colSpan={9} className={`py-${nivel === 1 ? "2" : "1.5"} px-3 font-bold text-xs`} style={{ color: nivel === 1 ? ct(BRONZE) : ct("#94a3b8"), paddingLeft: nivel === 1 ? 12 : 30 }}>
           <span className="inline-flex items-center gap-1.5 uppercase tracking-wide">
             {gruposFechados.has(chave) ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
             {texto}
@@ -953,6 +959,9 @@ export default function EstoquePage() {
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={aba === "produtos" ? () => abrirModalProduto() : aba === "movimentacoes" ? () => abrirModalMovimentacao() : undefined}
       labelBotao={aba === "produtos" ? et.novoProduto : et.novaMovimentacao}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
       botaoExtra={
         <>
           {(aba === "produtos" || aba === "movimentacoes" || aba === "avisos") && (
@@ -960,7 +969,7 @@ export default function EstoquePage() {
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}
               onClick={() => setShareAberto(true)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-              style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+              style={{ background: `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`, color: "#fff" }}>
               <Share2 size={16} /> {et.compartilhar}
             </motion.button>
           )}
@@ -988,9 +997,9 @@ export default function EstoquePage() {
           <button key={a.key} onClick={() => setAba(a.key as any)}
             className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
             style={{
-              background: aba === a.key ? `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})` : PILL_INATIVO,
-              color: aba === a.key ? "#fff" : JADE,
-              border: aba === a.key ? `1px solid ${JADE}` : "1px solid rgba(4,120,87,0.2)",
+              background: aba === a.key ? `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})` : PILL_INATIVO,
+              color: aba === a.key ? "#fff" : ct(JADE),
+              border: aba === a.key ? `1px solid ${ct(JADE)}` : "1px solid rgba(4,120,87,0.2)",
             }}>
             {a.label}
           </button>
@@ -998,7 +1007,7 @@ export default function EstoquePage() {
       </div>
 
       {!empresaId && (
-        <CanvasBox cor={NEGATIVO_CT}><p style={{ color: ct("#c8d8f0") }}>{et.empresaNaoEncontrada}</p></CanvasBox>
+        <CanvasBox {...cartaoTema} cor={NEGATIVO_CT}><p style={{ color: ct("#c8d8f0") }}>{et.empresaNaoEncontrada}</p></CanvasBox>
       )}
 
       {/* ================= PAINEL ================= */}
@@ -1006,16 +1015,16 @@ export default function EstoquePage() {
         <div className="space-y-5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: et.kpiValorTotal, valor: fBRL(kpis?.valor_total_estoque || 0), cor: JADE },
+              { label: et.kpiValorTotal, valor: fBRL(kpis?.valor_total_estoque || 0), cor: ct(JADE) },
               { label: et.kpiProdutosAtivos, valor: String(kpis?.produtos_ativos || 0), cor: NEUTRO_CT },
               { label: et.kpiProdutosInativos, valor: String(kpis?.produtos_inativos || 0), cor: ct("#5a7a9a") },
               { label: et.kpiRuptura, valor: String(kpis?.qtd_ruptura || 0), cor: NEGATIVO_CT },
               { label: et.kpiBaixoEstoque, valor: String(kpis?.qtd_baixo_estoque || 0), cor: ATENCAO_CT },
               { label: et.kpiProxValidade, valor: String(avisosValidadeResumo.filter((v) => v.severidade !== "vencido").length), cor: ATENCAO_CT },
               { label: et.kpiVencidos, valor: String(avisosValidadeResumo.filter((v) => v.severidade === "vencido").length), cor: NEGATIVO_CT },
-              { label: et.kpiCapitalParado, valor: String(kpis?.qtd_capital_parado || 0), cor: BRONZE },
+              { label: et.kpiCapitalParado, valor: String(kpis?.qtd_capital_parado || 0), cor: ct(BRONZE) },
             ].map((k) => (
-              <CanvasBox key={k.label} cor={k.cor}>
+              <CanvasBox {...cartaoTema} key={k.label} cor={k.cor}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{k.label}</p>
                 <p className="text-xl font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
               </CanvasBox>
@@ -1023,26 +1032,26 @@ export default function EstoquePage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <CanvasBox cor={JADE}>
+            <CanvasBox {...cartaoTema} cor={ct(JADE)}>
               <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoCategoria}</p>
               {composicaoCategoria.length > 0 ? (
                 <ReactECharts style={{ height: 260 }} option={optRosca(
-                  composicaoCategoria.map((c, i) => ({ name: c.chave, value: c.valor_total, color: [JADE, BRONZE, NEUTRO_CT, ATENCAO_CT, POSITIVO_CT, NEGATIVO_CT][i % 6] })),
-                  JADE, fBRL(kpis?.valor_total_estoque || 0), temaClaro
+                  composicaoCategoria.map((c, i) => ({ name: c.chave, value: c.valor_total, color: [ct(JADE), ct(BRONZE), NEUTRO_CT, ATENCAO_CT, POSITIVO_CT, NEGATIVO_CT][i % 6] })),
+                  ct(JADE), fBRL(kpis?.valor_total_estoque || 0), temaClaro
                 )} />
               ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosCategoria}</p>}
             </CanvasBox>
-            <CanvasBox cor={BRONZE}>
+            <CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
               <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoFornecedor}</p>
               {composicaoFornecedor.length > 0 ? (
                 <ReactECharts style={{ height: 260 }} option={optBarrasH(
-                  composicaoFornecedor.map((f) => f.valor_total), composicaoFornecedor.map((f) => f.chave), BRONZE, "#d4a017", undefined, temaClaro
+                  composicaoFornecedor.map((f) => f.valor_total), composicaoFornecedor.map((f) => f.chave), ct(BRONZE), "#d4a017", undefined, temaClaro
                 )} />
               ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosFornecedor}</p>}
             </CanvasBox>
           </div>
 
-          <CanvasBox cor={JADE}>
+          <CanvasBox {...cartaoTema} cor={ct(JADE)}>
             <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.graficoEvolucao}</p>
             {evolucao.length > 0 ? (
               <ReactECharts style={{ height: 260 }} option={optBarrasComparativo(
@@ -1053,7 +1062,7 @@ export default function EstoquePage() {
             ) : <p className="text-xs py-10 text-center" style={{ color: ct("#5a7a9a") }}>{et.semDadosEvolucao}</p>}
           </CanvasBox>
 
-          <CanvasBox cor={ct("#5a7a9a")}>
+          <CanvasBox {...cartaoTema} cor={ct("#5a7a9a")}>
             <p className="text-sm font-bold mb-2" style={{ color: ct("#c8d8f0") }}>{et.maisVendidosTitulo}</p>
             <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.maisVendidosTexto}</p>
           </CanvasBox>
@@ -1079,7 +1088,7 @@ export default function EstoquePage() {
               ]).map((s) => (
                 <button key={s.key} onClick={() => { setFiltroStatusProdutos(s.key); setPaginaProdutos(0); }}
                   className="px-3 py-2 rounded-xl text-xs font-semibold"
-                  style={{ background: filtroStatusProdutos === s.key ? JADE : PILL_INATIVO, color: filtroStatusProdutos === s.key ? "#fff" : ct("#94a3b8") }}>
+                  style={{ background: filtroStatusProdutos === s.key ? ct(JADE) : PILL_INATIVO, color: filtroStatusProdutos === s.key ? "#fff" : ct("#94a3b8") }}>
                   {s.label}
                 </button>
               ))}
@@ -1095,7 +1104,7 @@ export default function EstoquePage() {
                 <>
                   <button onClick={() => selecionarSegmento("todos")}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
-                    style={{ background: filtroSegmento === "todos" ? JADE : PILL_INATIVO, color: filtroSegmento === "todos" ? "#fff" : ct("#94a3b8") }}>
+                    style={{ background: filtroSegmento === "todos" ? ct(JADE) : PILL_INATIVO, color: filtroSegmento === "todos" ? "#fff" : ct("#94a3b8") }}>
                     {et.statusTodos} ({totalTodos})
                   </button>
                   {visiveis.map((c) => {
@@ -1103,7 +1112,7 @@ export default function EstoquePage() {
                     return (
                       <button key={c.segmento} onClick={() => selecionarSegmento(c.segmento)}
                         className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
-                        style={{ background: filtroSegmento === c.segmento ? JADE : PILL_INATIVO, color: filtroSegmento === c.segmento ? "#fff" : ct("#94a3b8") }}>
+                        style={{ background: filtroSegmento === c.segmento ? ct(JADE) : PILL_INATIVO, color: filtroSegmento === c.segmento ? "#fff" : ct("#94a3b8") }}>
                         {info ? info.label[idioma] : c.segmento} ({contarPara(c)})
                       </button>
                     );
@@ -1113,7 +1122,7 @@ export default function EstoquePage() {
             })()}
           </div>
 
-          <CanvasBox cor={BRONZE}>
+          <CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
             <div className="flex flex-wrap items-end gap-2">
               <div className="w-52">
                 <CampoSelect label={`${et.campoSegmento} (${et.secaoSegmento.toLowerCase()})`} value={empresaSegmentoPadrao || ""}
@@ -1129,7 +1138,7 @@ export default function EstoquePage() {
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <p className="text-xs font-bold mr-1" style={{ color: ct("#c8d8f0") }}>{et.automacoesTitulo}</p>
               {produtosSelecionados.size > 0 && (
-                <span className="text-[11px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(4,120,87,0.15)", color: JADE }}>
+                <span className="text-[11px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(4,120,87,0.15)", color: ct(JADE) }}>
                   {produtosSelecionados.size} {et.itensSelecionados}
                 </span>
               )}
@@ -1149,11 +1158,11 @@ export default function EstoquePage() {
             </div>
           </CanvasBox>
 
-          <CanvasBox cor={JADE}>
+          <CanvasBox {...cartaoTema} cor={ct(JADE)}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left" style={{ color: BRONZE }}>
+                  <tr className="text-left" style={{ color: ct(BRONZE) }}>
                     <th className="pb-2 px-3 font-semibold w-8">
                       <input type="checkbox" className="w-4 h-4 rounded" checked={produtos.length > 0 && produtosSelecionados.size === produtos.length} onChange={toggleSelecionarTodos} />
                     </th>
@@ -1203,7 +1212,7 @@ export default function EstoquePage() {
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
             <button onClick={() => { setFiltroTipoMov("todos"); setPaginaMovimentacoes(0); }}
               className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-              style={{ background: filtroTipoMov === "todos" ? JADE : PILL_INATIVO, color: filtroTipoMov === "todos" ? "#fff" : ct("#94a3b8") }}>{et.statusTodos}</button>
+              style={{ background: filtroTipoMov === "todos" ? ct(JADE) : PILL_INATIVO, color: filtroTipoMov === "todos" ? "#fff" : ct("#94a3b8") }}>{et.statusTodos}</button>
             {TIPOS_MOV.map((tp) => (
               <button key={tp.value} onClick={() => { setFiltroTipoMov(tp.value); setPaginaMovimentacoes(0); }}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
@@ -1211,11 +1220,11 @@ export default function EstoquePage() {
             ))}
           </div>
 
-          <CanvasBox cor={JADE}>
+          <CanvasBox {...cartaoTema} cor={ct(JADE)}>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left" style={{ color: BRONZE }}>
+                  <tr className="text-left" style={{ color: ct(BRONZE) }}>
                     <th className="pb-2 px-3 font-semibold">{et.colData}</th>
                     <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
                     <th className="pb-2 px-3 font-semibold">{et.colTipo}</th>
@@ -1265,7 +1274,7 @@ export default function EstoquePage() {
       {/* ================= AVISOS ================= */}
       {empresaId && aba === "avisos" && (
         <div className="space-y-5">
-          <CanvasBox cor={NEGATIVO_CT}>
+          <CanvasBox {...cartaoTema} cor={NEGATIVO_CT}>
             <p className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: ct("#c8d8f0") }}><AlertTriangle size={16} /> {et.avisosEstoqueTitulo}</p>
             {avisosEstoque.length === 0 ? (
               <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.avisosEstoqueVazio}</p>
@@ -1280,7 +1289,7 @@ export default function EstoquePage() {
                     <div className="flex gap-1.5 flex-wrap">
                       {a.ruptura && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(248,113,113,0.15)", color: NEGATIVO_CT }}>{et.avisoRuptura}</span>}
                       {a.baixo_estoque && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(245,158,11,0.15)", color: ATENCAO_CT }}>{et.avisoBaixoEstoque}</span>}
-                      {a.capital_parado && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(161,98,7,0.15)", color: BRONZE }}>{et.avisoCapitalParado}</span>}
+                      {a.capital_parado && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(161,98,7,0.15)", color: ct(BRONZE) }}>{et.avisoCapitalParado}</span>}
                       {a.custo_subindo && <span className="px-2 py-1 rounded-lg text-[10px] font-bold" style={{ background: "rgba(106,176,255,0.15)", color: NEUTRO_CT }}>{et.avisoCustoSubindo}</span>}
                     </div>
                   </div>
@@ -1289,7 +1298,7 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={ATENCAO_CT}>
+          <CanvasBox {...cartaoTema} cor={ATENCAO_CT}>
             <p className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: ct("#c8d8f0") }}>⏳ {et.avisosValidadeTitulo}</p>
             {avisosValidade.length === 0 ? (
               <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.avisosValidadeVazio}</p>
@@ -1317,20 +1326,20 @@ export default function EstoquePage() {
       {/* ================= INTELIGÊNCIA ================= */}
       {empresaId && aba === "inteligencia" && (
         <div className="space-y-5">
-          <CanvasBox cor={JADE}>
+          <CanvasBox {...cartaoTema} cor={ct(JADE)}>
             <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intCurvaAbcTitulo}</p>
             {curvaAbc.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <>
                 <ReactECharts style={{ height: 240 }} option={optBarrasH(
                   curvaAbc.slice(0, 10).map((c) => c.valor_saida_90d),
                   curvaAbc.slice(0, 10).map((c) => c.nome),
-                  JADE, ct("#34d399"),
+                  ct(JADE), ct("#34d399"),
                   curvaAbc.slice(0, 10).map((c) => c.classe_abc === "A" ? POSITIVO_CT : c.classe_abc === "B" ? ATENCAO_CT : NEGATIVO_CT),
                   temaClaro
                 )} />
                 <div className="overflow-x-auto mt-3">
                   <table className="w-full text-sm">
-                    <thead><tr className="text-left" style={{ color: BRONZE }}>
+                    <thead><tr className="text-left" style={{ color: ct(BRONZE) }}>
                       <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
                       <th className="pb-2 px-3 font-semibold text-right">{et.colValor}</th>
                       <th className="pb-2 px-3 font-semibold text-right">%</th>
@@ -1357,12 +1366,12 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={NEUTRO_CT}>
+          <CanvasBox {...cartaoTema} cor={NEUTRO_CT}>
             <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intGiroTitulo}</p>
             {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                  <thead><tr className="text-left" style={{ color: ct(BRONZE) }}>
                     <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.colSaldo}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.intColGiro}</th>
@@ -1383,12 +1392,12 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={BRONZE}>
+          <CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
             <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intCapitalTitulo}</p>
             {capitalImobilizado.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                  <thead><tr className="text-left" style={{ color: ct(BRONZE) }}>
                     <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.intColCapital}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.intColDiasParado}</th>
@@ -1409,13 +1418,13 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={ATENCAO_CT}>
+          <CanvasBox {...cartaoTema} cor={ATENCAO_CT}>
             <p className="text-sm font-bold mb-2" style={{ color: ct("#c8d8f0") }}>{et.intReposicaoTitulo}</p>
             {giroEstoque.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p>
               : alertasReposicao.length === 0 ? <p className="text-xs py-4" style={{ color: ct("#5a7a9a") }}>{et.intSemLeadTime}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                  <thead><tr className="text-left" style={{ color: ct(BRONZE) }}>
                     <th className="pb-2 px-3 font-semibold">{et.colProduto}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.colSaldo}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.intColPontoReposicao}</th>
@@ -1436,7 +1445,7 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={JADE}>
+          <CanvasBox {...cartaoTema} cor={ct(JADE)}>
             <p className="text-sm font-bold mb-1" style={{ color: ct("#c8d8f0") }}>{et.intRentabilidadeTitulo}</p>
             <p className="text-[11px] mb-3 italic" style={{ color: ct("#5a7a9a") }}>{et.intRentabilidadeAviso}</p>
             {rentabilidadeCategoria.length === 0 && rentabilidadeFornecedor.length === 0 && rentabilidadeMarca.length === 0 ? (
@@ -1449,7 +1458,7 @@ export default function EstoquePage() {
                   { titulo: et.campoMarca, itens: rentabilidadeMarca },
                 ].map((grupo) => (
                   <div key={grupo.titulo}>
-                    <p className="text-xs font-bold mb-2" style={{ color: BRONZE }}>{grupo.titulo}</p>
+                    <p className="text-xs font-bold mb-2" style={{ color: ct(BRONZE) }}>{grupo.titulo}</p>
                     {grupo.itens.map((it) => (
                       <div key={it.chave} className="flex justify-between text-xs py-1 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
                         <span style={{ color: ct("#c8d8f0") }}>{it.chave}</span>
@@ -1467,12 +1476,12 @@ export default function EstoquePage() {
             )}
           </CanvasBox>
 
-          <CanvasBox cor={NEUTRO_CT}>
+          <CanvasBox {...cartaoTema} cor={NEUTRO_CT}>
             <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.intComparativoFornecedorTitulo}</p>
             {comparativoFornecedores.length === 0 ? <p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead><tr className="text-left" style={{ color: BRONZE }}>
+                  <thead><tr className="text-left" style={{ color: ct(BRONZE) }}>
                     <th className="pb-2 px-3 font-semibold">{et.campoFornecedor}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.intColPrecoMedioCompra}</th>
                     <th className="pb-2 px-3 font-semibold text-right">{et.intColFrequencia}</th>
@@ -1499,10 +1508,10 @@ export default function EstoquePage() {
       {empresaId && aba === "copiloto" && (
         <div className="space-y-5">
           {capitalImobilizado.length === 0 && curvaAbc.length === 0 ? (
-            <CanvasBox cor={ct("#5a7a9a")}><p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.copilotoSemDados}</p></CanvasBox>
+            <CanvasBox {...cartaoTema} cor={ct("#5a7a9a")}><p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{et.copilotoSemDados}</p></CanvasBox>
           ) : (
             <>
-              <CanvasBox cor={NEGATIVO_CT}>
+              <CanvasBox {...cartaoTema} cor={NEGATIVO_CT}>
                 <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoParadoTitulo}</p>
                 {capitalImobilizado.slice().sort((a, b) => (b.dias_sem_movimento ?? 0) - (a.dias_sem_movimento ?? 0)).slice(0, 5).map((c) => (
                   <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
@@ -1512,17 +1521,17 @@ export default function EstoquePage() {
                 ))}
               </CanvasBox>
 
-              <CanvasBox cor={BRONZE}>
+              <CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
                 <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoDinheiroParadoTitulo}</p>
                 {capitalImobilizado.slice().sort((a, b) => b.capital_imobilizado - a.capital_imobilizado).slice(0, 5).map((c) => (
                   <div key={c.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
                     <span style={{ color: ct("#c8d8f0") }}>{c.nome}</span>
-                    <span style={{ color: BRONZE }}>{fBRL(c.capital_imobilizado)}</span>
+                    <span style={{ color: ct(BRONZE) }}>{fBRL(c.capital_imobilizado)}</span>
                   </div>
                 ))}
               </CanvasBox>
 
-              <CanvasBox cor={ATENCAO_CT}>
+              <CanvasBox {...cartaoTema} cor={ATENCAO_CT}>
                 <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoReporTitulo}</p>
                 {alertasReposicao.length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.intSemLeadTime}</p> : alertasReposicao.slice(0, 5).map((a) => (
                   <div key={a.produto_id} className="flex justify-between text-sm py-1.5 border-t" style={{ borderColor: "rgba(4,120,87,0.1)" }}>
@@ -1532,7 +1541,7 @@ export default function EstoquePage() {
                 ))}
               </CanvasBox>
 
-              <CanvasBox cor={NEUTRO_CT}>
+              <CanvasBox {...cartaoTema} cor={NEUTRO_CT}>
                 <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoPromoverTitulo}</p>
                 {(() => {
                   const idsParados = new Set(capitalImobilizado.filter((c) => (c.dias_sem_movimento ?? 0) > 30).map((c) => c.produto_id));
@@ -1546,7 +1555,7 @@ export default function EstoquePage() {
                 })()}
               </CanvasBox>
 
-              <CanvasBox cor={NEGATIVO_CT}>
+              <CanvasBox {...cartaoTema} cor={NEGATIVO_CT}>
                 <p className="text-sm font-bold mb-3" style={{ color: ct("#c8d8f0") }}>{et.copilotoRupturaTitulo}</p>
                 {alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{et.intSemDados}</p> : (
                   alertasReposicao.filter((a) => (a.diasRestantes ?? 99) <= 7).map((a) => (
@@ -1580,7 +1589,7 @@ export default function EstoquePage() {
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleConsultarEan(); } }} />
               </div>
               <button type="button" onClick={handleConsultarEan} disabled={consultandoEan || !formProduto.codigo_barras?.trim()}
-                title={et.botaoBuscarEan} className="p-2.5 rounded-xl shrink-0 disabled:opacity-40" style={{ background: "rgba(4,120,87,0.15)", color: JADE }}>
+                title={et.botaoBuscarEan} className="p-2.5 rounded-xl shrink-0 disabled:opacity-40" style={{ background: "rgba(4,120,87,0.15)", color: ct(JADE) }}>
                 <ScanBarcode size={17} className={consultandoEan ? "animate-pulse" : ""} />
               </button>
             </div>
@@ -1613,7 +1622,7 @@ export default function EstoquePage() {
               <span className="text-[10px] font-semibold" style={{ color: ct("#5a7a9a") }}>{et.localizacoesJaUsadas}</span>
               {combosLocalizacao.map((c, i) => (
                 <button key={i} type="button" onClick={() => aplicarComboLocalizacao(c)}
-                  className="px-2 py-1 rounded-lg text-[11px] font-semibold" style={{ background: "rgba(4,120,87,0.1)", color: JADE }}>
+                  className="px-2 py-1 rounded-lg text-[11px] font-semibold" style={{ background: "rgba(4,120,87,0.1)", color: ct(JADE) }}>
                   {[c.rua, c.prateleira, c.nivel, c.posicao].filter(Boolean).join(" / ") || "—"}
                 </button>
               ))}
@@ -1707,7 +1716,7 @@ export default function EstoquePage() {
           </div>
           {!mostrarNovoCampo ? (
             camposPersonalizados.length < MAX_CAMPOS_PERSONALIZADOS && (
-              <button onClick={() => setMostrarNovoCampo(true)} className="text-xs font-semibold" style={{ color: JADE }}>{et.adicionarCampoPersonalizado}</button>
+              <button onClick={() => setMostrarNovoCampo(true)} className="text-xs font-semibold" style={{ color: ct(JADE) }}>{et.adicionarCampoPersonalizado}</button>
             )
           ) : (
             <div className="grid grid-cols-3 gap-3 items-end p-3 rounded-xl" style={{ background: "rgba(4,120,87,0.06)" }}>
@@ -1722,7 +1731,7 @@ export default function EstoquePage() {
                 if (erro) { mostrarToast(erro === "SEM_PERMISSAO_ESCRITA" ? et.toastSemPermissaoEscrita : erro, "erro"); return; }
                 setCamposPersonalizados((c) => [...c, novo]);
                 setNovoCampoNome(""); setNovoCampoTipo("text"); setMostrarNovoCampo(false);
-              }} className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: JADE, color: "#fff" }}>{et.salvarCampo}</button>
+              }} className="py-2.5 rounded-xl text-sm font-semibold" style={{ background: ct(JADE), color: "#fff" }}>{et.salvarCampo}</button>
             </div>
           )}
 
@@ -1834,7 +1843,7 @@ export default function EstoquePage() {
 
           <div className="flex gap-2 pt-2">
             <button onClick={() => setModalProdutoAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
-            <button onClick={salvarProduto} disabled={salvandoProduto} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+            <button onClick={salvarProduto} disabled={salvandoProduto} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`, color: "#fff" }}>
               {salvandoProduto ? et.salvando : et.salvar}
             </button>
           </div>
@@ -1862,7 +1871,7 @@ export default function EstoquePage() {
           </div>
           <div className="flex gap-2 pt-2">
             <button onClick={() => setModalLoteAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
-            <button onClick={salvarLote} disabled={salvandoLote} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+            <button onClick={salvarLote} disabled={salvandoLote} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`, color: "#fff" }}>
               {salvandoLote ? et.salvando : et.aplicarEmLote}
             </button>
           </div>
@@ -1936,7 +1945,7 @@ export default function EstoquePage() {
 
           <div className="flex gap-2 pt-2">
             <button onClick={() => setModalMovAberto(false)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "rgba(255,255,255,0.06)", color: ct("#94a3b8") }}>{et.cancelar}</button>
-            <button onClick={salvarMovimentacao} disabled={salvandoMov} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${JADE_ESCURO}, ${JADE})`, color: "#fff" }}>
+            <button onClick={salvarMovimentacao} disabled={salvandoMov} className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60" style={{ background: `linear-gradient(135deg, ${ct(JADE_ESCURO)}, ${ct(JADE)})`, color: "#fff" }}>
               {salvandoMov ? et.salvando : et.salvar}
             </button>
           </div>
@@ -1951,7 +1960,7 @@ export default function EstoquePage() {
         textoDetalhado={argsShare ? textoDetalhadoPdf(argsShare) : undefined}
         assunto={`${et.titulo} — Axioma`}
         onExportarPDF={argsShare ? () => gerarPdfTabela(argsShare, (msg) => mostrarToast(msg, "erro"), lang) : undefined}
-        cor={JADE}
+        cor={ct(JADE)}
       />
     </ModuloLayout>
     </div>
