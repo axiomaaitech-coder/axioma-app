@@ -11,6 +11,8 @@ import ModuloLayout from '../../../components/ModuloLayout'
 import { CanvasBox } from '../../../components/CanvasBox'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserPlus, Pencil, Trash2, X, CheckCircle, AlertCircle, Users, Copy } from 'lucide-react'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -111,6 +113,17 @@ export default function EquipePage() {
   const { idioma } = useLanguage()
   const lang = (idioma as Idioma) || 'pt'
   const t = textos[lang] || textos.pt
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  // Paleta Claro segue tema-tokens.md, mesmo padrão já usado nos demais
+  // módulos com modal/CRUD (ex.: Metas) - card creme, texto azul-marinho,
+  // cinza #374151, campo branco, modal creme.
+  const TEXTO = temaClaro ? '#101b3d' : '#c8d8f0'
+  const MUTED = temaClaro ? '#374151' : '#5a7a9a'
+  const CAMPO_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.7)'
+  const LINHA_BG = temaClaro ? '#ffffff' : 'rgba(2,8,16,0.5)'
+  const MODAL_BG = temaClaro ? '#f6f7c4' : 'rgba(10,22,40,0.98)'
+  const CAMPO_BORDA = temaClaro ? '1px solid rgba(16,27,61,0.15)' : '1px solid rgba(106,176,255,0.2)'
 
   const [carregando, setCarregando] = useState(true)
   const [empresaId, setEmpresaId] = useState<string | null>(null)
@@ -231,30 +244,35 @@ export default function EquipePage() {
 
   if (carregando) {
     return (
-      <ModuloLayout titulo={t.titulo} subtitulo={t.sub}>
+      <div data-theme={tema}>
+      <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: `${JADE} transparent transparent transparent` }} />
         </div>
       </ModuloLayout>
+      </div>
     )
   }
 
   if (meuPapel !== 'dono') {
     return (
-      <ModuloLayout titulo={t.titulo} subtitulo={t.sub}>
-        <CanvasBox cor={AZUL}>
+      <div data-theme={tema}>
+      <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
+        <CanvasBox cor={AZUL} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
           <div className="text-center py-10">
             <Users size={32} className="mx-auto mb-3" style={{ color: AZUL }} />
-            <p className="text-sm font-semibold" style={{ color: '#c8d8f0' }}>{t.somenteProprietario}</p>
+            <p className="text-sm font-semibold" style={{ color: TEXTO }}>{t.somenteProprietario}</p>
             <a href="/dashboard" className="inline-block mt-4 text-xs font-semibold underline" style={{ color: AZUL }}>{t.voltarDashboard}</a>
           </div>
         </CanvasBox>
       </ModuloLayout>
+      </div>
     )
   }
 
   return (
-    <ModuloLayout titulo={t.titulo} subtitulo={t.sub}>
+    <div data-theme={tema}>
+    <ModuloLayout titulo={t.titulo} subtitulo={t.sub} botaoExtra={<ThemeToggle />}>
       <div className="space-y-4">
 
         <AnimatePresence>
@@ -268,15 +286,15 @@ export default function EquipePage() {
           )}
         </AnimatePresence>
 
-        <CanvasBox cor={JADE}>
+        <CanvasBox cor={JADE} fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-xl" style={{ background: 'rgba(4,120,87,0.12)' }}>
                 <Users size={26} style={{ color: JADE }} />
               </div>
               <div>
-                <p className="text-lg font-black" style={{ ...FONTE_EXEC, color: '#c8d8f0' }}>{membros.length}</p>
-                <p className="text-xs" style={{ color: '#5a7a9a' }}>{t.titulo}</p>
+                <p className="text-lg font-black" style={{ ...FONTE_EXEC, color: TEXTO }}>{membros.length}</p>
+                <p className="text-xs" style={{ color: MUTED }}>{t.titulo}</p>
               </div>
             </div>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
@@ -288,12 +306,12 @@ export default function EquipePage() {
           </div>
         </CanvasBox>
 
-        <CanvasBox cor="#a78bfa">
+        <CanvasBox cor="#a78bfa" fundo={temaClaro ? '#f6f7c4' : undefined} premium3d={temaClaro}>
           {membros.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-4xl mb-3">🧑‍🤝‍🧑</p>
-              <p className="text-sm font-semibold" style={{ color: '#c8d8f0' }}>{t.semEquipe}</p>
-              <p className="text-xs mt-1" style={{ color: '#5a7a9a' }}>{t.semEquipeSub}</p>
+              <p className="text-sm font-semibold" style={{ color: TEXTO }}>{t.semEquipe}</p>
+              <p className="text-xs mt-1" style={{ color: MUTED }}>{t.semEquipeSub}</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -302,12 +320,12 @@ export default function EquipePage() {
                 const ehVoce = m.origem === 'ativo' && m.user_id === userId
                 return (
                   <div key={`${m.origem}-${m.id}`} className="rounded-xl p-3 flex items-center justify-between gap-3 flex-wrap"
-                    style={{ background: 'rgba(2,8,16,0.5)', border: '1px solid rgba(167,139,250,0.15)' }}>
+                    style={{ background: LINHA_BG, border: '1px solid rgba(167,139,250,0.15)' }}>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate" style={{ color: '#c8d8f0' }}>
-                        {m.nome || m.email} {ehVoce && <span className="font-normal" style={{ color: '#5a7a9a' }}>{t.voce}</span>}
+                      <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>
+                        {m.nome || m.email} {ehVoce && <span className="font-normal" style={{ color: MUTED }}>{t.voce}</span>}
                       </p>
-                      <p className="text-xs truncate" style={{ color: '#5a7a9a' }}>
+                      <p className="text-xs truncate" style={{ color: MUTED }}>
                         {m.email} {m.cargo ? `• ${m.cargo}` : ''} • {labelPapel(m.papel)}
                       </p>
                       <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -330,10 +348,10 @@ export default function EquipePage() {
                             value={m.papel}
                             onChange={(e) => trocarPapel(m, e.target.value)}
                             className="px-2 py-2 rounded-lg text-xs"
-                            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(106,176,255,0.25)', color: '#c8d8f0' }}
+                            style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}
                           >
                             {PAPEIS_ATRIBUIVEIS.map((p) => (
-                              <option key={p} value={p} style={{ background: '#020810' }}>{labelPapel(p)}</option>
+                              <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
                             ))}
                           </select>
                         ) : (
@@ -350,7 +368,7 @@ export default function EquipePage() {
                               {t.confirmar}
                             </button>
                             <button onClick={() => setConfirmandoId(null)}
-                              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', color: '#5a7a9a' }}>
+                              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: temaClaro ? 'rgba(16,27,61,0.06)' : 'rgba(255,255,255,0.05)', color: MUTED }}>
                               {t.cancelar}
                             </button>
                           </div>
@@ -378,34 +396,34 @@ export default function EquipePage() {
             style={{ background: 'rgba(2,8,16,0.85)', backdropFilter: 'blur(4px)' }}
             onClick={() => setModalAberto(false)}>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-              className="w-full max-w-md rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-              style={{ background: 'rgba(10,22,40,0.98)', border: `1px solid ${JADE}50` }}>
+              className={`w-full max-w-md rounded-2xl p-5${temaClaro ? ' axi-card-premium3d' : ''}`} onClick={(e) => e.stopPropagation()}
+              style={{ background: MODAL_BG, border: `1px solid ${JADE}50` }}>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-bold" style={{ ...FONTE_EXEC, color: '#c8d8f0' }}>{t.novoConvite}</p>
-                <button onClick={() => setModalAberto(false)} style={{ color: '#5a7a9a' }}><X size={20} /></button>
+                <p className="text-sm font-bold" style={{ ...FONTE_EXEC, color: TEXTO }}>{t.novoConvite}</p>
+                <button onClick={() => setModalAberto(false)} style={{ color: MUTED }}><X size={20} /></button>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: '#5a7a9a' }}>{t.emailLabel}</label>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.emailLabel}</label>
                   <input type="email" value={form.email_convidado} onChange={(e) => setForm({ ...form, email_convidado: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: 'rgba(2,8,16,0.7)', border: '1px solid rgba(106,176,255,0.2)', color: '#c8d8f0' }} />
+                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: '#5a7a9a' }}>{t.nomeLabel}</label>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.nomeLabel}</label>
                   <input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: 'rgba(2,8,16,0.7)', border: '1px solid rgba(106,176,255,0.2)', color: '#c8d8f0' }} />
+                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: '#5a7a9a' }}>{t.cargoLabel}</label>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.cargoLabel}</label>
                   <input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: 'rgba(2,8,16,0.7)', border: '1px solid rgba(106,176,255,0.2)', color: '#c8d8f0' }} />
+                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }} />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: '#5a7a9a' }}>{t.papelLabel}</label>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: MUTED }}>{t.papelLabel}</label>
                   <select value={form.papel} onChange={(e) => setForm({ ...form, papel: e.target.value })}
-                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: 'rgba(2,8,16,0.7)', border: '1px solid rgba(106,176,255,0.2)', color: '#c8d8f0' }}>
+                    className="w-full mt-1 px-3 py-2.5 rounded-lg text-sm" style={{ background: CAMPO_BG, border: CAMPO_BORDA, color: TEXTO }}>
                     {PAPEIS_ATRIBUIVEIS.map((p) => (
-                      <option key={p} value={p} style={{ background: '#020810' }}>{labelPapel(p)}</option>
+                      <option key={p} value={p} style={{ background: temaClaro ? '#ffffff' : '#020810' }}>{labelPapel(p)}</option>
                     ))}
                   </select>
                 </div>
@@ -424,5 +442,6 @@ export default function EquipePage() {
         )}
       </AnimatePresence>
     </ModuloLayout>
+    </div>
   )
 }
