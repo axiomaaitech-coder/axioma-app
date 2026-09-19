@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Save, Pencil, Trash2, RotateCcw, AlertTriangle, CheckCircle2, X } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../../components/ThemeToggle'
+import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { obterEmpresaAtiva, obterMeuPapel } from '../../../../lib/empresaHelpers'
 import { fBRL2 } from '../../../../lib/cfoCore'
@@ -15,14 +17,19 @@ import {
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZULC = '#6ab0ff'
-const ROXO = '#a78bfa'
-const VERDE = '#34d399'
-const AMARELO = '#fbbf24'
-const VERMELHO = '#f87171'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// Tela interna (fora do menu principal) — precisa optar no tema local
+// (data-theme aqui, nunca em <html>), ver lib/ThemeContext.tsx. ROXO não
+// é cor da nossa paleta padrão — no Claro vira verde-menta.
+const PALETA = {
+  dark: {
+    AZULC: '#6ab0ff', ROXO: '#a78bfa', VERDE: '#34d399', AMARELO: '#fbbf24', VERMELHO: '#f87171', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    PAINEL_BG: 'rgba(10,20,36,0.7)', CAMPO_BG: 'rgba(0,0,0,0.25)', BTN_BG: 'rgba(255,255,255,0.06)', NESTED_BG: 'rgba(255,255,255,0.03)', BORDA: 'rgba(255,255,255,0.08)', BORDA_SUAVE: 'rgba(255,255,255,0.06)', FORM_BORDA: 'rgba(106,176,255,0.16)',
+  },
+  xms: {
+    AZULC: '#2ecc9b', ROXO: '#2ecc9b', VERDE: '#16a97d', AMARELO: '#f5a623', VERMELHO: '#ff5a6b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
+    PAINEL_BG: '#f6f7c4', CAMPO_BG: '#ffffff', BTN_BG: 'rgba(16,27,61,0.08)', NESTED_BG: 'rgba(255,255,255,0.5)', BORDA: 'rgba(16,27,61,0.12)', BORDA_SUAVE: 'rgba(16,27,61,0.08)', FORM_BORDA: 'rgba(46,204,155,0.35)',
+  },
+} as const
 
 const PAPEIS_CONFIG = ['dono', 'admin']
 
@@ -33,6 +40,10 @@ export default function TesourariaSimuladorPage() {
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const router = useRouter()
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const { AZULC, ROXO, VERDE, AMARELO, VERMELHO, CINZA, TEXTO, TITULO, PAINEL_BG, CAMPO_BG, BTN_BG, NESTED_BG, BORDA, BORDA_SUAVE, FORM_BORDA } = PALETA[tema]
 
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [podeSalvar, setPodeSalvar] = useState(false)
@@ -140,15 +151,20 @@ export default function TesourariaSimuladorPage() {
   ]
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Simulador de Estresse', 'Stress Simulator', 'Simulador de Estrés')}
       subtitulo={L('Ajuste as variáveis e veja o impacto no caixa, ao vivo — sempre em cima do fluxo projetado real', 'Adjust the variables and see the cash impact live — always on top of the real projected cash flow', 'Ajuste las variables y vea el impacto en la caja, en vivo — siempre sobre el flujo proyectado real')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
       botaoExtra={
-        <button onClick={() => router.push('/tesouraria')}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-          style={{ background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
-          {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
-        </button>
+        <>
+          <button onClick={() => router.push('/tesouraria')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
+            style={temaClaro ? { background: 'rgba(46,204,155,0.14)', color: '#2ecc9b', border: '1px solid rgba(46,204,155,0.4)' } : { background: 'rgba(59,111,212,0.14)', color: AZULC, border: `1px solid ${AZULC}40` }}>
+            {L('Voltar ao Command Center', 'Back to Command Center', 'Volver al Command Center')}
+          </button>
+          <ThemeToggle />
+        </>
       }
     >
       {loading ? (
@@ -160,7 +176,7 @@ export default function TesourariaSimuladorPage() {
 
           {/* CONTROLES */}
           <div className="space-y-5">
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: '1px solid rgba(106,176,255,0.16)' }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${FORM_BORDA}` }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold" style={{ color: TITULO }}>{L('Variáveis', 'Variables', 'Variables')}</h3>
                 <button onClick={resetar} className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: CINZA }}>
@@ -183,20 +199,20 @@ export default function TesourariaSimuladorPage() {
                   </div>
                 ))}
 
-                <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <div className="pt-2" style={{ borderTop: `1px solid ${BORDA}` }}>
                   <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>{L('Nova Dívida', 'New Debt', 'Nueva Deuda')}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px]" style={{ color: CINZA }}>{L('Valor (entra hoje)', 'Amount (in today)', 'Valor (entra hoy)')}</label>
                       <input type="text" inputMode="decimal" value={vars.novaDividaValor || ''} placeholder="0"
                         onChange={(e) => setVar('novaDividaValor', Number(e.target.value.replace(',', '.')) || 0)}
-                        className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                        className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     </div>
                     <div>
                       <label className="text-[10px]" style={{ color: CINZA }}>{L('Parcela mensal', 'Monthly installment', 'Cuota mensual')}</label>
                       <input type="text" inputMode="decimal" value={vars.novaDividaParcelaMensal || ''} placeholder="0"
                         onChange={(e) => setVar('novaDividaParcelaMensal', Number(e.target.value.replace(',', '.')) || 0)}
-                        className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                        className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                     </div>
                   </div>
                 </div>
@@ -206,28 +222,28 @@ export default function TesourariaSimuladorPage() {
                   <label className="text-[10px]" style={{ color: CINZA }}>{L('Custo mensal', 'Monthly cost', 'Costo mensual')}</label>
                   <input type="text" inputMode="decimal" value={vars.novaContratacaoCustoMensal || ''} placeholder="0"
                     onChange={(e) => setVar('novaContratacaoCustoMensal', Number(e.target.value.replace(',', '.')) || 0)}
-                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${AZULC}30`, color: TEXTO }} />
+                    className="w-full px-2 py-2 rounded-lg text-xs focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${AZULC}30`, color: TEXTO }} />
                 </div>
               </div>
             </div>
 
             {/* SALVAR / EDITAR CENÁRIO */}
             {podeSalvar && (
-              <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${ROXO}30` }}>
+              <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${ROXO}30` }}>
                 <h3 className="text-sm font-bold mb-3" style={{ color: TITULO }}>
                   {editandoId ? L('Editar Cenário', 'Edit Scenario', 'Editar Escenario') : L('Salvar Cenário', 'Save Scenario', 'Guardar Escenario')}
                 </h3>
                 <div className="flex gap-2">
                   <input type="text" value={nomeCenario} onChange={(e) => setNomeCenario(e.target.value)}
                     placeholder={L('Nome do cenário', 'Scenario name', 'Nombre del escenario')}
-                    className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${ROXO}30`, color: TEXTO }} />
+                    className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={{ background: CAMPO_BG, border: `1px solid ${ROXO}30`, color: TEXTO }} />
                   <button onClick={handleSalvar} disabled={salvando}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-60"
-                    style={{ background: 'rgba(167,139,250,0.2)', color: ROXO, border: `1px solid ${ROXO}50` }}>
+                    style={{ background: temaClaro ? 'rgba(46,204,155,0.2)' : 'rgba(167,139,250,0.2)', color: ROXO, border: `1px solid ${ROXO}50` }}>
                     <Save size={14} />{salvando ? L('Salvando...', 'Saving...', 'Guardando...') : L('Salvar', 'Save', 'Guardar')}
                   </button>
                   {editandoId && (
-                    <button onClick={resetar} className="px-3 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', color: CINZA }}>
+                    <button onClick={resetar} className="px-3 py-2.5 rounded-xl" style={{ background: BTN_BG, color: CINZA }}>
                       <X size={14} />
                     </button>
                   )}
@@ -236,7 +252,7 @@ export default function TesourariaSimuladorPage() {
                 {cenarios.length > 0 && (
                   <div className="mt-4 space-y-2">
                     {cenarios.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div key={c.id} className="flex items-center justify-between gap-2 rounded-xl p-2.5" style={{ background: NESTED_BG, border: `1px solid ${BORDA}` }}>
                         <span className="text-xs font-semibold truncate" style={{ color: TEXTO }}>{c.nome}</span>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <button onClick={() => carregarCenarioNosControles(c)} className="p-1.5 rounded-lg" style={{ color: AZULC }} title={L('Editar', 'Edit', 'Editar')}>
@@ -280,12 +296,12 @@ export default function TesourariaSimuladorPage() {
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl p-3 md:p-4" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${AZULC}25` }}>
+              <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Caixa Disponível', 'Available Cash', 'Caja Disponible')}</p>
                 <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: AZULC }}>R$ {fBRL2(simulacao.caixaDisponivelSimulado)}</p>
                 <p className="text-[10px]" style={{ color: CINZA }}>{L('era', 'was', 'era')} R$ {fBRL2(posicao.totalDisponivel)}</p>
               </div>
-              <div className="rounded-2xl p-3 md:p-4" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${simulacao.liquidityScoreSimulado.cor === 'verde' ? VERDE : simulacao.liquidityScoreSimulado.cor === 'azul' ? AZULC : simulacao.liquidityScoreSimulado.cor === 'amarelo' ? AMARELO : VERMELHO}25` }}>
+              <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${simulacao.liquidityScoreSimulado.cor === 'verde' ? VERDE : simulacao.liquidityScoreSimulado.cor === 'azul' ? AZULC : simulacao.liquidityScoreSimulado.cor === 'amarelo' ? AMARELO : VERMELHO}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</p>
                 <p className="text-sm md:text-lg font-bold" style={{ color: simulacao.liquidityScoreSimulado.cor === 'verde' ? VERDE : simulacao.liquidityScoreSimulado.cor === 'azul' ? AZULC : simulacao.liquidityScoreSimulado.cor === 'amarelo' ? AMARELO : VERMELHO }}>
                   {simulacao.liquidityScoreSimulado.total}
@@ -295,10 +311,10 @@ export default function TesourariaSimuladorPage() {
 
             <div>
               <h3 className="text-sm font-bold mb-2" style={{ color: TITULO }}>{L('Impacto no Saldo Projetado', 'Impact on Projected Balance', 'Impacto en el Saldo Proyectado')}</h3>
-              <div className="overflow-x-auto rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="overflow-x-auto rounded-2xl" style={{ border: `1px solid ${BORDA}` }}>
                 <table className="w-full text-xs" style={{ minWidth: 420 }}>
                   <thead>
-                    <tr style={{ color: CINZA, background: 'rgba(255,255,255,0.03)' }}>
+                    <tr style={{ color: CINZA, background: NESTED_BG }}>
                       <th className="text-left py-2 px-3 font-semibold">{L('Horizonte', 'Horizon', 'Horizonte')}</th>
                       <th className="text-right py-2 px-3 font-semibold">{L('Antes', 'Before', 'Antes')}</th>
                       <th className="text-right py-2 px-3 font-semibold">{L('Simulado', 'Simulated', 'Simulado')}</th>
@@ -306,7 +322,7 @@ export default function TesourariaSimuladorPage() {
                   </thead>
                   <tbody>
                     {simulacao.pontos.map((p) => (
-                      <tr key={p.horizonteDias} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                      <tr key={p.horizonteDias} style={{ borderTop: `1px solid ${BORDA_SUAVE}` }}>
                         <td className="py-2 px-3 font-semibold whitespace-nowrap" style={{ color: TEXTO }}>{p.horizonteDias} {L('dias', 'days', 'días')}</td>
                         <td className="text-right py-2 px-3 whitespace-nowrap" style={{ color: CINZA }}>R$ {fBRL2(p.saldoProjetadoBase)}</td>
                         <td className="text-right py-2 px-3 whitespace-nowrap font-bold" style={{ color: p.abaixoDaReserva ? VERMELHO : (p.delta >= 0 ? VERDE : AMARELO) }}>
@@ -340,5 +356,6 @@ export default function TesourariaSimuladorPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   )
 }
