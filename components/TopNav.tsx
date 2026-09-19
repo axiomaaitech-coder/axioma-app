@@ -286,40 +286,63 @@ export default function TopNav() {
     </motion.button>
   );
 
+  // Tabuleiro de xadrez — 2 cores padrão (verde-menta/azul, as mesmas de
+  // sempre no tema Escuro) alternando por posição na grade 7x2, em vez do
+  // arco-íris de 1 cor por grupo que existia antes. (linha+coluna) par =
+  // verde-menta, ímpar = azul — alternância real tipo tabuleiro (cada
+  // vizinho, inclusive vertical, sempre cai na cor oposta).
+  const CHESS_VERDE = "#34d399";
+  const CHESS_AZUL = "#6ab0ff";
+  function corCasa(indice: number) {
+    const linha = Math.floor(indice / 7);
+    const coluna = indice % 7;
+    return (linha + coluna) % 2 === 0 ? CHESS_VERDE : CHESS_AZUL;
+  }
+
+  // Card uniforme — mesmo tamanho/formato pra qualquer um dos 14 (módulo,
+  // utilidade ou logout), só a cor alterna pelo tabuleiro.
+  function CardNav({ indice, ativo, onClick, title, children }: {
+    indice: number; ativo: boolean; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; title?: string; children: React.ReactNode;
+  }) {
+    const cor = corCasa(indice);
+    return (
+      <motion.button
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={onClick}
+        title={title}
+        className="relative flex items-center justify-center gap-1.5 rounded-xl text-xs font-semibold h-11 w-full px-2 transition-all"
+        style={{
+          background: ativo ? `${cor}28` : `${cor}12`,
+          border: `1px solid ${cor}${ativo ? "90" : "45"}`,
+          boxShadow: ativo ? `0 0 16px ${cor}45, inset 0 0 10px ${cor}15` : `0 0 8px ${cor}18`,
+          color: ativo ? cor : "#c8d8f0",
+        }}
+      >
+        {children}
+      </motion.button>
+    );
+  }
+
   // Extraído do map original — cada grupo do menu superior (dropdown com
-  // seta), usado nas 2 linhas em que o menu desktop agora é distribuído.
-  function renderGrupoDesktop(grupo: (typeof grupos)[number]) {
+  // seta), agora como 1 card entre os 14 do tabuleiro.
+  function renderGrupoDesktop(grupo: (typeof grupos)[number], indice: number) {
     const ativo = grupoAtivo(grupo.itens);
     const aberto = dropdown === grupo.label.pt;
     const ehMei = (grupo as any).destaque === true;
-    const grupoEl = (
-      <div key={grupo.label.pt} className="relative">
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={(e) => {
-            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            setDropdownPos({ top: r.bottom, left: r.left });
-            setDropdown(aberto ? null : grupo.label.pt);
-          }}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
-          style={{
-            background: ativo || aberto ? grupo.corBg : ehMei ? "rgba(212,175,55,0.06)" : "transparent",
-            color: ativo || aberto ? grupo.cor : ehMei ? "#d4af37" : "#5a7a9a",
-            border: ativo || aberto ? `1px solid ${grupo.cor}40` : ehMei ? "1px solid rgba(212,175,55,0.3)" : "1px solid transparent",
-            boxShadow: ehMei ? "0 0 12px rgba(212,175,55,0.15)" : "none",
-          }}
-        >
-          <span className="text-xs">{grupo.label[lang]}</span>
-          {ehMei && <BadgeDestaque lang={lang} />}
-          <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown size={13} />
-          </motion.div>
-        </motion.button>
-      </div>
+    return (
+      <CardNav key={grupo.label.pt} indice={indice} ativo={ativo || aberto} onClick={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setDropdownPos({ top: r.bottom, left: r.left });
+        setDropdown(aberto ? null : grupo.label.pt);
+      }}>
+        <span className="truncate">{grupo.label[lang]}</span>
+        {ehMei && <BadgeDestaque lang={lang} />}
+        <motion.div animate={{ rotate: aberto ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown size={12} />
+        </motion.div>
+      </CardNav>
     );
-    if (!ehMei) return grupoEl;
-    return [grupoEl, pdvBotaoDesktop];
   }
 
   return (
@@ -330,7 +353,7 @@ export default function TopNav() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 py-2 h-24"
+        className="hidden md:flex fixed top-0 left-0 right-0 z-50 items-center gap-1 px-4 py-2.5 h-[108px]"
         style={{
           background: "linear-gradient(90deg, #060f1e 0%, #0a1628 60%, #060f1e 100%)",
           borderBottom: "1px solid rgba(59,111,212,0.25)",
@@ -358,58 +381,66 @@ export default function TopNav() {
           </div>
         </motion.div>
 
-        {/* Módulos — duas fileiras (cascata) em vez de 1 fileira com scroll
-            escondido: o scroll existia mas não tinha nenhuma pista visual de
-            que dava pra rolar, então IA Premium/Config pareciam ter sumido
-            de vez. Distribuindo em 2 linhas, tudo fica visível de cara, sem
-            precisar rolar nada. */}
-        <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-        <div className="flex items-center gap-1 flex-wrap">
+        {/* Tabuleiro de xadrez — 14 cards (7 em cima, 7 embaixo), todos do
+            mesmo tamanho, alternando verde-menta/azul por posição. Substitui
+            o scroll horizontal escondido de antes (ninguém sabia que dava
+            pra rolar) e o arco-íris de 1 cor por módulo. */}
+        <div className="grid grid-cols-7 gap-1.5 min-w-0 flex-1">
 
-        {/* Dashboard — fora do alcance do operador (é o financeiro do dono) */}
+        {/* 0 — Dashboard (fora do alcance do operador) */}
         {!isOperador && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => navegar("/dashboard")}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
-            style={{
-              background: pathname === "/dashboard" ? "rgba(59,111,212,0.2)" : "transparent",
-              color: pathname === "/dashboard" ? "#6ab0ff" : "#5a7a9a",
-              border: pathname === "/dashboard" ? "1px solid rgba(106,176,255,0.3)" : "1px solid transparent",
-            }}
-          >
+          <CardNav indice={0} ativo={pathname === "/dashboard"} onClick={() => navegar("/dashboard")}>
             <span>🏠</span>
-            <span>{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
-          </motion.button>
+            <span className="truncate">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
+          </CardNav>
         )}
 
-        {/* Nexus — item próprio, fora de qualquer grupo, fácil de achar */}
-        {!isOperador && nexusBotaoDesktop}
+        {/* 1 — Nexus */}
+        {!isOperador && (
+          <CardNav indice={1} ativo={nexusAtivo} onClick={() => navegar(nexusModulo.path)}>
+            <span className="truncate">{nexusModulo.label[lang]}</span>
+          </CardNav>
+        )}
 
-        {/* Linha 1 — MEI/PDV + os 2 grupos mais usados no dia a dia */}
-        {!isOperador && gruposVisiveis.slice(0, 3).map((grupo) => renderGrupoDesktop(grupo))}
+        {/* 2 — MEI, 3 — PDV, 4..10 — os outros 7 grupos */}
+        {!isOperador && gruposVisiveis.map((grupo, gi) => renderGrupoDesktop(grupo, gi === 0 ? 2 : gi + 3))}
+        {!isOperador && (
+          <CardNav indice={3} ativo={pdvAtivo} onClick={() => navegar(pdvModulo.path)} title={pdvTooltip}>
+            <span className="truncate">{pdvModulo.label[lang]}</span>
+            <BadgeDestaque lang={lang} />
+          </CardNav>
+        )}
 
-        {/* Operador: PDV é a única coisa que sobra no menu (o mapa acima nem roda) */}
+        {/* Operador: PDV é a única coisa que sobra no menu */}
         {isOperador && pdvBotaoDesktop}
 
-        </div>
-        {/* Linha 2 — demais grupos, mesma fileira de sempre, só que embaixo */}
+        {/* 11 — Conectar Banco, 12 — Idioma, 13 — Sair. Mesmo tamanho/cor
+            de tabuleiro dos outros 11 - antes eram um bloco à parte "que
+            nunca encolhe", empurrando os grupos da direita pra fora. */}
         {!isOperador && (
-          <div className="flex items-center gap-1 flex-wrap">
-            {gruposVisiveis.slice(3).map((grupo) => renderGrupoDesktop(grupo))}
-          </div>
+          <CardNav indice={11} ativo={ofAtivo} onClick={() => navegar("/open-finance")} title={conectarLabel}>
+            <Landmark size={13} />
+            <span className="truncate">{conectarLabelCurto}</span>
+          </CardNav>
         )}
+        <div className="h-11 rounded-xl flex items-center justify-center" style={{ background: `${corCasa(12)}12`, border: `1px solid ${corCasa(12)}45`, boxShadow: `0 0 8px ${corCasa(12)}18` }}>
+          <SeletorIdioma />
+        </div>
+        <CardNav indice={13} ativo={false} onClick={handleLogout} title={lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}>
+          <LogOut size={13} />
+          <span className="truncate">{lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}</span>
+        </CardNav>
+
         </div>
 
-        {/* Painel do dropdown de grupo — em portal pro body: a linha de módulos
-            acima agora tem scroll próprio (overflow-x-auto), e um painel
-            absolute dentro dela seria cortado verticalmente (overflow-x != visible
-            força overflow-y a virar auto). Fixed + portal escapa desse corte. */}
+        {/* Painel do dropdown de grupo — em portal pro body (mesmo motivo de
+            sempre: escapar do corte vertical do grid acima). */}
         {typeof document !== "undefined" && dropdown && dropdownPos && createPortal(
           (() => {
             const grupoAberto = gruposVisiveis.find((g) => g.label.pt === dropdown);
             if (!grupoAberto) return null;
+            const giAberto = gruposVisiveis.indexOf(grupoAberto);
+            const corAberto = corCasa(giAberto === 0 ? 2 : giAberto + 3);
             return (
               <div ref={dropdownPortalRef} style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 60 }}>
                 <AnimatePresence>
@@ -421,8 +452,8 @@ export default function TopNav() {
                     className="mt-2 min-w-[220px] rounded-2xl overflow-hidden"
                     style={{
                       background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
-                      border: `1px solid ${grupoAberto.cor}35`,
-                      boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${grupoAberto.cor}15`,
+                      border: `1px solid ${corAberto}35`,
+                      boxShadow: `0 20px 60px rgba(0,0,0,0.6), 0 0 40px ${corAberto}15`,
                     }}
                   >
                     <div className="p-2 space-y-0.5">
@@ -439,9 +470,9 @@ export default function TopNav() {
                             onClick={() => navegar(item.path)}
                             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left transition-all"
                             style={{
-                              background: itemAtivo ? `linear-gradient(135deg, ${grupoAberto.cor}25, ${grupoAberto.cor}10)` : "transparent",
-                              color: itemAtivo ? grupoAberto.cor : "#7a9aba",
-                              border: itemAtivo ? `1px solid ${grupoAberto.cor}35` : "1px solid transparent",
+                              background: itemAtivo ? `linear-gradient(135deg, ${corAberto}25, ${corAberto}10)` : "transparent",
+                              color: itemAtivo ? corAberto : "#7a9aba",
+                              border: itemAtivo ? `1px solid ${corAberto}35` : "1px solid transparent",
                             }}
                           >
                             <span className="text-base">{item.emoji}</span>
@@ -453,7 +484,7 @@ export default function TopNav() {
                               </span>
                             )}
                             {itemAtivo && (
-                              <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: grupoAberto.cor }} />
+                              <motion.div className="ml-auto w-2 h-2 rounded-full" style={{ background: corAberto }} />
                             )}
                           </motion.button>
                         );
@@ -467,56 +498,6 @@ export default function TopNav() {
           document.body
         )}
 
-        {/* Lado direito — nunca encolhe/some, mesmo com muitos módulos à esquerda */}
-        <div className="ml-auto flex items-center gap-3 shrink-0">
-          {/* ✨ BOTÃO CONECTAR BANCO — verde neon, exposto (fora do alcance do operador) */}
-          {!isOperador && (
-            <motion.button
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.95 }}
-              animate={{ boxShadow: [
-                "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
-                "0 0 26px rgba(52,211,153,0.85), inset 0 0 16px rgba(52,211,153,0.22)",
-                "0 0 14px rgba(52,211,153,0.45), inset 0 0 12px rgba(52,211,153,0.12)",
-              ] }}
-              transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-              onClick={() => navegar("/open-finance")}
-              title={conectarLabel}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide"
-              style={{
-                background: ofAtivo
-                  ? "linear-gradient(135deg, rgba(16,185,129,0.4), rgba(52,211,153,0.5))"
-                  : "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(52,211,153,0.3))",
-                border: "1px solid rgba(52,211,153,0.7)",
-                color: "#7CFFC4",
-                textShadow: "0 0 8px rgba(52,211,153,0.6)",
-              }}
-            >
-              <Landmark size={13} />
-              <span>{conectarLabelCurto}</span>
-              <span className="px-1 py-0.5 rounded-full font-black"
-                style={{ background: "rgba(52,211,153,0.35)", color: "#7CFFC4", fontSize: 7, border: "1px solid rgba(52,211,153,0.6)" }}>
-                NOVO
-              </span>
-            </motion.button>
-          )}
-
-          <SeletorIdioma />
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all"
-            style={{
-              background: "rgba(248,113,113,0.08)",
-              border: "1px solid rgba(248,113,113,0.25)",
-              color: "#f87171",
-            }}
-          >
-            <LogOut size={14} />
-            <span>{lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}</span>
-          </motion.button>
-        </div>
       </motion.nav>
 
       {/* MOBILE */}
@@ -666,7 +647,7 @@ export default function TopNav() {
         )}
       </AnimatePresence>
 
-      <div className="h-16 md:h-24" />
+      <div className="h-16 md:h-[108px]" />
 
       {cadastroIncompleto && (
         <div
