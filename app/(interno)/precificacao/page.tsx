@@ -77,8 +77,12 @@ export default function Precificacao() {
   // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
   // (tema-tokens.md §1.1). Escuro mantém o dourado original.
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
-  const COR_PRC = ct(CORES.amarelo);
-  const COR_PRC_C = ct(CORES.amareloC);
+  // Amarelo é a identidade do módulo no Escuro, mas não é cor da nossa
+  // paleta padrão do Claro - amarelo/laranja só aparecem em alerta real
+  // ou gráfico com muita série, nunca como cor de marca. No Claro vira
+  // verde-menta em tudo que é decorativo (ícones, bordas, cards).
+  const COR_PRC = temaClaro ? "#2ecc9b" : ct(CORES.amarelo);
+  const COR_PRC_C = temaClaro ? "#2ecc9b" : ct(CORES.amareloC);
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
   const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
@@ -568,11 +572,11 @@ export default function Precificacao() {
         ) : (
           <>
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${COR_PRC}20, ${corOuro}15)`, border: `1px solid ${COR_PRC}40` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : `linear-gradient(90deg, ${COR_PRC}20, ${corOuro}15)`, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : `${COR_PRC}40`}` }}>
               <div className="marquee-prc py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? COR_PRC_C : ct("#e2e8f0") }}>{m}<span style={{ color: COR_PRC }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? COR_PRC_C : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : COR_PRC }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
