@@ -177,7 +177,7 @@ export default function ContadorPage() {
             <BookOpenText size={15} />{L('Explique minha empresa', 'Explain my company', 'Explique mi empresa')}
           </button>
           <button onClick={() => router.push('/contador/projecao')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `${ROXO}18`, color: ROXO, border: `1px solid ${ROXO}40` }}>
+            style={temaClaro ? { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' } : { background: `${ROXO}18`, color: ROXO, border: `1px solid ${ROXO}40` }}>
             <TrendingDown size={15} />{L('Se eu fizer nada', 'If I do nothing', 'Si no hago nada')}
           </button>
           <button onClick={() => router.push('/contador/fechamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
@@ -185,7 +185,7 @@ export default function ContadorPage() {
             <ClipboardCheck size={15} />{L('Fechamento', 'Close', 'Cierre')}
           </button>
           <button onClick={() => router.push('/contador/lancamento')} className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: 'rgba(251,191,36,0.14)', color: AMARELO, border: `1px solid ${AMARELO}40` }}>
+            style={temaClaro ? { background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' } : { background: 'rgba(251,191,36,0.14)', color: AMARELO, border: `1px solid ${AMARELO}40` }}>
             <BookText size={15} />{L('Lançamento Manual', 'Manual Entry', 'Asiento Manual')}
           </button>
           <button onClick={rodarAgora} disabled={rodando || !empresaId}
