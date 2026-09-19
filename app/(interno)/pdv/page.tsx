@@ -433,17 +433,12 @@ function BotoesHeader({ lang, nichoSel, categoriaSel, subNichoSel }: {
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto, opacity: 0.88 }}>
         {t("importarNfe", lang)}
       </Link>
-      {/* Fundo transparente por cima da BARRA (sempre navy) — nunca usar
-          tokens.cardTexto aqui (é a cor de texto pra ir em cima do CARD, não
-          da barra; no Claro os dois são navy, texto sumia em cima da barra
-          navy). tokens.acento (verde) sempre contrasta com a barra nos dois
-          temas, e destaca igual aos outros botões de ação. */}
       <Link href="/pdv/venda" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-        style={{ background: "transparent", color: tokens.acento, border: `1px solid ${tokens.acento}` }}>
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {t("frenteDeCaixa", lang)}
       </Link>
       <Link href="/pdv/produtos" className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold"
-        style={{ background: "transparent", color: tokens.acento, border: `1px solid ${tokens.acento}` }}>
+        style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {t("produtosCadastrados", lang)}
       </Link>
     </>

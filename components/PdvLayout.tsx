@@ -169,8 +169,8 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
   return (
     <TemaContext.Provider value={{ tema, tokens, setTema }}>
       <div
-        className={telaCheia ? "flex flex-col p-3 md:p-4 overflow-hidden" : "min-h-screen p-4 md:p-8"}
-        style={{ background: tokens.fundo, ...(telaCheia ? { height: "calc(100vh - 64px)" } : {}) }}
+        className={telaCheia ? "flex flex-col h-full p-3 md:p-4 overflow-hidden" : "min-h-screen p-4 md:p-8"}
+        style={{ background: tokens.fundo }}
       >
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}
           className={telaCheia ? "shrink-0 mb-3 rounded-2xl p-3 md:p-4" : "mb-6 md:mb-8 rounded-2xl p-4 md:p-6"} style={{ background: tokens.barraBg }}>

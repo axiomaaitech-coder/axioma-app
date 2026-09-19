@@ -1190,11 +1190,11 @@ function QuadroValor({ label, valor, corValor, grande, tamanho }: {
   label: string; valor: string; corValor?: string; grande?: boolean; tamanho?: string;
 }) {
   const { tokens } = useTemaPdv();
-  const tamanhoFinal = tamanho ?? (grande ? "text-2xl md:text-3xl" : "text-lg md:text-xl");
+  const tamanhoFinal = tamanho ?? (grande ? "text-4xl md:text-5xl" : "text-xl md:text-2xl");
   return (
-    <div className={(grande ? "shrink-0 rounded-xl px-3 py-2" : "shrink-0 rounded-xl px-2.5 py-1.5") + " axi-card-premium3d"}
+    <div className={(grande ? "shrink-0 rounded-xl px-4 py-3" : "shrink-0 rounded-xl px-3 py-2") + " axi-card-premium3d"}
       style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
-      <p className={grande ? "text-[10px] font-bold uppercase tracking-wide mb-1 truncate" : "text-[9px] font-bold uppercase tracking-wide leading-none truncate"}
+      <p className={grande ? "text-xs font-bold uppercase tracking-wide mb-1 truncate" : "text-[10px] font-bold uppercase tracking-wide leading-none truncate"}
         style={{ color: tokens.cardTexto, opacity: 0.72 }}>{label}</p>
       <p className={`${tamanhoFinal} font-black truncate leading-tight`} style={{ color: corValor || tokens.cardTexto }}>{valor}</p>
     </div>
@@ -1284,7 +1284,7 @@ function TotalDoItemBox({ lang, item, grande }: { lang: Idioma; item: ItemCarrin
 
 function CodigoBox({ lang, item, grande }: { lang: Idioma; item: ItemCarrinho | null; grande?: boolean }) {
   const codigo = item ? item.produto.codigo_barras || item.produto.sku || "—" : "—";
-  return <QuadroValor label={t("labelCodigoItem", lang)} valor={codigo} grande={grande} tamanho={grande ? "text-xl md:text-2xl" : "text-lg md:text-xl"} />;
+  return <QuadroValor label={t("labelCodigoItem", lang)} valor={codigo} grande={grande} tamanho={grande ? "text-3xl md:text-4xl" : "text-xl md:text-2xl"} />;
 }
 
 // Grid, não <table> — de propósito: preciso do cabeçalho de colunas FORA
@@ -1313,7 +1313,7 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
         <button onClick={onLimpar} disabled={carrinho.length === 0} className={`font-semibold disabled:opacity-40 ${grande ? "text-xs" : "text-[11px]"}`} style={{ color: tokens.textoMuted }}>{t("limparCarrinho", lang)}</button>
       </div>
 
-      <div className={`shrink-0 grid items-center uppercase tracking-wide ${grande ? "px-3 py-1.5 text-[11px]" : "px-3 py-1 text-[10px]"}`}
+      <div className={`shrink-0 grid items-center uppercase tracking-wide ${grande ? "px-3 py-2 text-sm" : "px-3 py-1 text-[10px]"}`}
         style={{ gridTemplateColumns: COLUNAS_GRID, color: tokens.cardTexto, opacity: 0.65, borderBottom: `1px solid ${tokens.cardBorda}` }}>
         <span>{t("colNumero", lang)}</span>
         <span>{t("colCodigo", lang)}</span>
@@ -1336,20 +1336,20 @@ function TabelaItensVenda({ lang, carrinho, destaqueId, onAlterarQuantidade, onR
             const precoUnit = produto.preco_venda ?? produto.preco_sugerido ?? 0;
             const emDestaque = produto.id === destaqueId;
             return (
-              <div key={produto.id} className={`grid items-center ${grande ? "px-3 py-1.5 text-sm md:text-base" : "px-3 py-1 text-xs md:text-sm"}`}
+              <div key={produto.id} className={`grid items-center ${grande ? "px-3 py-2.5 text-lg md:text-xl" : "px-3 py-1 text-xs md:text-sm"}`}
                 style={{ gridTemplateColumns: COLUNAS_GRID, background: emDestaque ? tokens.acentoSuaveBg : "transparent", borderBottom: `1px solid ${tokens.cardBorda}`, color: tokens.cardTexto }}>
                 <span style={{ opacity: 0.7 }}>{idx + 1}</span>
                 <span className="truncate pr-2" style={{ opacity: 0.7 }}>{produto.codigo_barras || produto.sku || "—"}</span>
                 <span className="font-semibold truncate pr-2">{produto.nome}</span>
-                <div className={`flex items-center justify-center ${grande ? "gap-2" : "gap-1"}`}>
-                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className={grande ? "p-1.5 rounded-md" : "p-0.5 rounded-md"} style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={grande ? 15 : 11} /></button>
-                  <span className={grande ? "w-6 text-center font-bold" : "w-4 text-center font-bold"}>{quantidade}</span>
-                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className={grande ? "p-1.5 rounded-md" : "p-0.5 rounded-md"} style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={grande ? 15 : 11} /></button>
+                <div className={`flex items-center justify-center ${grande ? "gap-2.5" : "gap-1"}`}>
+                  <button onClick={() => onAlterarQuantidade(produto.id, -1)} className={grande ? "p-2 rounded-md" : "p-0.5 rounded-md"} style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Minus size={grande ? 18 : 11} /></button>
+                  <span className={grande ? "w-8 text-center font-bold" : "w-4 text-center font-bold"}>{quantidade}</span>
+                  <button onClick={() => onAlterarQuantidade(produto.id, 1)} className={grande ? "p-2 rounded-md" : "p-0.5 rounded-md"} style={{ background: tokens.inputBg, color: tokens.inputTexto }}><Plus size={grande ? 18 : 11} /></button>
                 </div>
                 <span className="text-right whitespace-nowrap">{moeda(precoUnit)}</span>
-                <div className={`flex items-center justify-end whitespace-nowrap ${grande ? "gap-2" : "gap-1.5"}`}>
+                <div className={`flex items-center justify-end whitespace-nowrap ${grande ? "gap-2.5" : "gap-1.5"}`}>
                   <span className="font-bold">{moeda(precoUnit * quantidade)}</span>
-                  <button onClick={() => onRemover(produto.id)} className={grande ? "p-1.5 rounded-md shrink-0" : "p-0.5 rounded-md shrink-0"} style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={grande ? 15 : 11} /></button>
+                  <button onClick={() => onRemover(produto.id)} className={grande ? "p-2 rounded-md shrink-0" : "p-0.5 rounded-md shrink-0"} style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}><Trash2 size={grande ? 18 : 11} /></button>
                 </div>
               </div>
             );
@@ -1370,31 +1370,31 @@ function RodapeTotais({
 }) {
   const { tokens } = useTemaPdv();
   return (
-    <div className={`shrink-0 rounded-xl axi-card-premium3d ${grande ? "p-3" : "p-2 md:p-2.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
+    <div className={`shrink-0 rounded-xl axi-card-premium3d ${grande ? "p-4" : "p-2 md:p-2.5"}`} style={{ background: tokens.cardBg, border: `1px solid ${tokens.cardBorda}` }}>
       {/* SUBTOTAL */}
-      <div className={`flex items-center justify-between ${grande ? "mb-1.5" : "mb-1"}`}>
-        <span className={grande ? "text-sm font-semibold" : "text-xs font-semibold"} style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
-        <span className={grande ? "text-xl font-black" : "text-base font-black"} style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
+      <div className={`flex items-center justify-between ${grande ? "mb-2" : "mb-1"}`}>
+        <span className={grande ? "text-base font-semibold" : "text-xs font-semibold"} style={{ color: tokens.cardTexto, opacity: 0.75 }}>{t("subtotal", lang)}</span>
+        <span className={grande ? "text-2xl font-black" : "text-base font-black"} style={{ color: tokens.cardTexto }}>{moeda(subtotal)}</span>
       </div>
       {desconto > 0 && (
-        <div className={`flex items-center justify-between ${grande ? "mb-1.5 text-sm" : "mb-1 text-xs"}`} style={{ color: tokens.cardTexto }}>
+        <div className={`flex items-center justify-between ${grande ? "mb-2 text-base" : "mb-1 text-xs"}`} style={{ color: tokens.cardTexto }}>
           <span style={{ opacity: 0.75 }}>{t("desconto", lang)}</span>
           <span className="font-semibold">- {moeda(desconto)}</span>
         </div>
       )}
 
-      <div className={`flex items-center justify-between gap-4 pt-1 ${grande ? "pt-1.5 mb-1.5" : "mb-1"}`} style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
-        <span className={grande ? "text-sm font-bold" : "text-xs md:text-sm font-bold"} style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
+      <div className={`flex items-center justify-between gap-4 pt-1 ${grande ? "pt-2 mb-2" : "mb-1"}`} style={{ borderTop: `1px solid ${tokens.acentoSuaveBorda}` }}>
+        <span className={grande ? "text-base font-bold" : "text-xs md:text-sm font-bold"} style={{ color: tokens.texto }}>{t("totalAPagar", lang)}</span>
         {/* cardTexto, não acento: tokens.acento em cima de tokens.cardBg não
             garante 4.5:1 em todos os temas (no intermediário os dois são
             azuis escuros próximos — quase some). O destaque fica no
             tamanho/peso da fonte, que já é o maior deste bloco. */}
-        <span className={grande ? "text-3xl font-black" : "text-xl md:text-2xl font-black"} style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
+        <span className={grande ? "text-5xl font-black" : "text-xl md:text-2xl font-black"} style={{ color: tokens.cardTexto }}>{moeda(totalAPagar)}</span>
       </div>
 
       {/* Tributo aproximado (Lei 12.741) — linha própria, legível, junto do
           Subtotal/Total a pagar (não mais espremida perto do rodapé). */}
-      <div className={`flex items-center justify-between gap-3 font-semibold ${grande ? "mb-2 text-xs" : "mb-1.5 text-[11px]"}`} style={{ color: tokens.cardTexto }}>
+      <div className={`flex items-center justify-between gap-3 font-semibold ${grande ? "mb-3 text-sm" : "mb-1.5 text-[11px]"}`} style={{ color: tokens.cardTexto }}>
         <span className="truncate">{t("tributosAproximados", lang)}</span>
         <span className="shrink-0">{moeda(tributoAproximado)}</span>
       </div>
@@ -1402,29 +1402,29 @@ function RodapeTotais({
       {/* TOTAL RECEBIDO e TROCO — lado a lado, curtos/compactos (cara de
           visor de PDV: pouca altura, número grande). Só de exibição:
           calculadora de troco pro operador, nunca vai pro finalizar_venda. */}
-      <div className={`grid grid-cols-2 ${grande ? "gap-2 mb-2" : "gap-2 mb-1.5"}`}>
-        <div className={grande ? "rounded-lg px-2.5 py-1.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className={`font-bold uppercase tracking-wide leading-none flex items-center gap-1 ${grande ? "text-[10px] mb-1" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>
-            <Banknote size={grande ? 11 : 10} />{t("totalRecebido", lang)}
+      <div className={`grid grid-cols-2 ${grande ? "gap-3 mb-3" : "gap-2 mb-1.5"}`}>
+        <div className={grande ? "rounded-lg px-3 py-2.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className={`font-bold uppercase tracking-wide leading-none flex items-center gap-1 ${grande ? "text-xs mb-1.5" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>
+            <Banknote size={grande ? 13 : 10} />{t("totalRecebido", lang)}
           </p>
           <input
             value={valorRecebidoInput} onChange={(e) => onValorRecebidoInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); onConfirmarRecebido(); } }}
             inputMode="decimal" placeholder="0,00"
-            className={`w-full bg-transparent outline-none font-black ${grande ? "text-xl" : "text-base md:text-lg"}`}
+            className={`w-full bg-transparent outline-none font-black ${grande ? "text-3xl" : "text-base md:text-lg"}`}
             style={{ color: tokens.cardTexto }}
           />
         </div>
-        <div className={grande ? "rounded-lg px-2.5 py-1.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
-          <p className={`font-bold uppercase tracking-wide leading-none ${grande ? "text-[10px] mb-1" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
-          <p className={`font-black truncate ${grande ? "text-xl" : "text-base md:text-lg"}`} style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
+        <div className={grande ? "rounded-lg px-3 py-2.5" : "rounded-lg px-2 py-1"} style={{ background: tokens.acentoSuaveBg, border: `1px solid ${tokens.acentoSuaveBorda}` }}>
+          <p className={`font-bold uppercase tracking-wide leading-none ${grande ? "text-xs mb-1.5" : "text-[9px] mb-0.5"}`} style={{ color: tokens.cardTexto, opacity: 0.7 }}>{t("troco", lang)}</p>
+          <p className={`font-black truncate ${grande ? "text-3xl" : "text-base md:text-lg"}`} style={{ color: troco < 0 ? "#f87171" : tokens.acento }}>
             {troco < 0 ? t("faltam", lang, { valor: moeda(Math.abs(troco)) }) : moeda(troco)}
           </p>
         </div>
       </div>
 
       <button onClick={onFinalizar} disabled={carrinhoVazio}
-        className={`w-full rounded-lg font-black disabled:opacity-40 ${grande ? "py-2 text-base" : "py-1.5 text-sm"}`}
+        className={`w-full rounded-lg font-black disabled:opacity-40 ${grande ? "py-3 text-xl" : "py-1.5 text-sm"}`}
         style={{ background: tokens.acaoBg, color: tokens.acaoTexto }}>
         {t("finalizarVenda", lang)}
       </button>
@@ -1630,7 +1630,7 @@ function CampoBusca({ lang, busca, onBusca, onKeyDown, inputRef, grande }: {
       <input
         ref={inputRef} autoFocus value={busca} onChange={(e) => onBusca(e.target.value)} onKeyDown={onKeyDown}
         placeholder={t("buscarPlaceholder", lang)}
-        className={`w-full font-semibold outline-none rounded-xl ${grande ? "pl-10 pr-3 py-2.5 text-base md:text-lg" : "pl-9 pr-3 py-2 text-sm md:text-base"}`}
+        className={`w-full font-semibold outline-none rounded-xl ${grande ? "pl-10 pr-3 py-3 text-xl md:text-2xl" : "pl-9 pr-3 py-2 text-base md:text-lg"}`}
         style={{ background: tokens.inputBg, color: tokens.inputTexto, border: `2px solid ${tokens.inputBorda}` }}
       />
     </div>
