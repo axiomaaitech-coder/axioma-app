@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import ModuloLayout from '../../../components/ModuloLayout'
 import { AnimatedNumber } from '../../../components/AnimatedNumber'
+import { SOMBRA_3D, BORDA_3D } from '../../../components/CanvasBox'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { fBRL, fBRL2, optBarrasV, optVelocimetro, optRosca, optLinhaMulti, resolverPeriodo, type PeriodoPreset, type Periodo } from '../../../lib/cfoCore'
@@ -59,7 +60,11 @@ const supabase = createBrowserClient(
 // ============================================================================
 const PALETA = {
   dark: { ESMERALDA: '#059669', TEAL: '#0d9488', OURO: '#d4af37', VERDE: '#34d399', VERMELHO: '#f87171', AZUL: '#6ab0ff', AMBAR: '#f59e0b', CINZA: '#5a7a9a', BG_CARD: 'rgba(10,22,40,0.8)', TITULO: '#e2ecf7', TEXTO: '#c8d8f0', PAINEL_BG: 'rgba(255,255,255,0.03)', CAMPO_BG: 'rgba(255,255,255,0.04)', SELECT_BG: 'rgba(10,22,40,0.9)', BOTAO_BG: 'rgba(255,255,255,0.05)' },
-  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#a16207', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#b45309', CINZA: '#6b7280', BG_CARD: '#eef2f7', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: '#eef2f7', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(46,204,155,0.08)' },
+  // OURO no Escuro é "champagne" decorativo (borda premium/ícone Elite) - no
+  // Claro vira verde-menta oficial, igual toda outra identidade decorativa
+  // (tema-tokens.md §1.1); AMBAR é semântico ("atenção") e usa o âmbar
+  // aprovado (#f5a623), não o marrom "amenizado" que já causou problema antes.
+  xms: { ESMERALDA: '#047857', TEAL: '#0f766e', OURO: '#2ecc9b', VERDE: '#16a97d', VERMELHO: '#ff5a6b', AZUL: '#2ecc9b', AMBAR: '#f5a623', CINZA: '#6b7280', BG_CARD: '#f6f7c4', TITULO: '#101b3d', TEXTO: '#101b3d', PAINEL_BG: 'rgba(255,255,255,0.5)', CAMPO_BG: '#eef2f7', SELECT_BG: '#eef2f7', BOTAO_BG: 'rgba(46,204,155,0.08)' },
 } as const
 
 type CentroCusto = { id: string; nome: string }
@@ -121,6 +126,7 @@ export default function ContasReceber() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const { ESMERALDA, TEAL, OURO, VERDE, VERMELHO, AZUL, AMBAR, CINZA, BG_CARD, TITULO, TEXTO, PAINEL_BG, CAMPO_BG, SELECT_BG, BOTAO_BG } = PALETA[tema]
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
 
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
   function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
@@ -794,7 +800,13 @@ export default function ContasReceber() {
   const gruposCidade = useMemo(() => agruparCarteiraPorCampo(carteira, lang, 'cidade'), [carteira, lang])
   const concentracaoTop = useMemo(() => concentracaoTopClientes(carteira), [carteira])
 
-  const PALETA_GRUPOS = [ESMERALDA, OURO, AZUL, VERDE, AMBAR, temaClaro ? '#7c3aed' : '#a78bfa', VERMELHO, TEAL]
+  // Claro: sequência oficial (tema-tokens.md §1.4) + semânticos permitidos -
+  // OURO/AZUL/ESMERALDA colapsam todos pra verde-menta agora, então usar eles
+  // juntos aqui juntaria fatias diferentes na mesma cor num gráfico de várias
+  // categorias. Escuro inalterado.
+  const PALETA_GRUPOS = temaClaro
+    ? ['#2ecc9b', '#101b3d', '#34d399', '#6b7280', '#122b54', '#f5a623', '#ff5a6b', '#374151']
+    : [ESMERALDA, OURO, AZUL, VERDE, AMBAR, '#a78bfa', VERMELHO, TEAL]
   const donutGrupos = (grupos: { chave: string; valor: number }[]) => grupos.length > 0 ? optRosca(
     grupos.slice(0, 8).map((g, i) => ({ name: g.chave, value: g.valor, color: PALETA_GRUPOS[i % PALETA_GRUPOS.length] })),
     ESMERALDA, L('Total', 'Total', 'Total'), temaClaro,
@@ -836,11 +848,14 @@ export default function ContasReceber() {
       subtitulo={L('Central de Inteligência Financeira de Recebimentos', 'Receivables Financial Intelligence Center', 'Centro de Inteligencia Financiera de Cobros')}
       onExportarPDF={exportarPDF} exportando={exportando} onNovo={abrirNovo}
       labelBotao={L('Nova Conta', 'New Account', 'Nueva Cuenta')}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
+      corNovo={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
       botaoExtra={
         <>
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-            style={{ background: `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${ESMERALDA}, ${TEAL})`, color: '#fff' }}>
             <Share2 size={16} /> {L('Compartilhar', 'Share', 'Compartir')}
           </motion.button>
           <ThemeToggle />
@@ -885,8 +900,8 @@ export default function ContasReceber() {
             <motion.button key={k.key} whileHover={k.drillable ? { scale: 1.02 } : undefined}
               onClick={() => k.drillable && setDrillKpi(k.key)}
               disabled={!k.drillable}
-              className="text-left rounded-2xl p-4 relative overflow-hidden"
-              style={{ background: BG_CARD, border: `1px solid ${k.cor}30`, cursor: k.drillable ? 'pointer' : 'default' }}>
+              className={`text-left rounded-2xl p-4 relative overflow-hidden${classePremium3d}`}
+              style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${k.cor}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined, cursor: k.drillable ? 'pointer' : 'default' }}>
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${k.cor}80, transparent)` }} />
               <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: CINZA }}>{k.label}</p>
               {k.vazio ? (
@@ -900,7 +915,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : TEAL}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : TEAL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: alertasCriticos > 0 ? VERMELHO : TEAL }}>
               <Bell size={14} /> {L('Alertas Inteligentes', 'Smart Alerts', 'Alertas Inteligentes')}
@@ -935,7 +950,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= AGING ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}25`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: VERMELHO }}>
             {L('Envelhecimento da Carteira (Aging)', 'Portfolio Aging', 'Envejecimiento de Cartera')}
           </p>
@@ -960,13 +975,13 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= SCORE AXIOMA DO CLIENTE ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${OURO}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${OURO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: OURO }}>
             <Crown size={14} /> {L('Score Axioma do Cliente', 'Axioma Client Score', 'Score Axioma del Cliente')}
           </p>
           {ranking.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10">
-              <Users size={36} style={{ color: '#1a3a5a' }} className="mb-2" />
+              <Users size={36} style={{ color: temaClaro ? '#a8b0bc' : '#1a3a5a' }} className="mb-2" />
               <p className="text-sm" style={{ color: CINZA }}>{L('Sem clientes com cobranças ainda.', 'No clients with billing yet.', 'Sin clientes con cobros aún.')}</p>
             </div>
           ) : (
@@ -999,7 +1014,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= IA FINANCEIRA EXPLICATIVA ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${TEAL}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${TEAL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: TEAL }}>
             <Brain size={14} /> {L('Análise Explicativa Axioma', 'Axioma Explanatory Analysis', 'Análisis Explicativo Axioma')}
           </p>
@@ -1024,7 +1039,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= FILA DE COBRANÇA PRIORIZADA ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${VERMELHO}25` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}25`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: VERMELHO }}>
             <ListChecks size={14} /> {L('Fila de Cobrança Priorizada', 'Prioritized Collection Queue', 'Cola de Cobro Priorizada')}
           </p>
@@ -1059,7 +1074,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= RÉGUA DE COBRANÇA CONFIGURÁVEL ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${OURO}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${OURO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
             <p className="text-xs font-bold tracking-[0.2em] uppercase flex items-center gap-2" style={{ color: OURO }}>
               <MessageSquare size={14} /> {L('Régua de Cobrança', 'Collection Ladder', 'Regla de Cobro')}
@@ -1103,7 +1118,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= PREVISÃO DE CAIXA MULTI-HORIZONTE ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${TEAL}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${TEAL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: TEAL }}>
             <TrendingUp size={14} /> {L('Previsão de Caixa', 'Cash Forecast', 'Previsión de Caja')}
           </p>
@@ -1144,7 +1159,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= SIMULADOR EXECUTIVO ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${OURO}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${OURO}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-1 flex items-center gap-2" style={{ color: OURO }}>
             <Landmark size={14} /> {L('Simulador Executivo', 'Executive Simulator', 'Simulador Ejecutivo')}
           </p>
@@ -1230,7 +1245,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= PAINÉIS ANALÍTICOS ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${TEAL}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${TEAL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2" style={{ color: TEAL }}>
             <Layers size={14} /> {L('Painéis Analíticos', 'Analytics', 'Paneles Analíticos')}
           </p>
@@ -1308,7 +1323,7 @@ export default function ContasReceber() {
         </div>
 
         {/* ================= CENTRAL DE RECEBIMENTOS ================= */}
-        <div className="rounded-2xl p-4 md:p-5" style={{ background: BG_CARD, border: `1px solid ${ESMERALDA}30` }}>
+        <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${ESMERALDA}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
           <p className="text-xs font-bold tracking-[0.2em] uppercase mb-4" style={{ color: ESMERALDA }}>
             {L('Central de Recebimentos', 'Receivables Center', 'Centro de Cobros')}
           </p>
@@ -1330,7 +1345,7 @@ export default function ContasReceber() {
 
           {contasFiltradas.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <Inbox size={48} style={{ color: '#1a3a5a' }} className="mb-4" />
+              <Inbox size={48} style={{ color: temaClaro ? '#a8b0bc' : '#1a3a5a' }} className="mb-4" />
               <p className="text-sm" style={{ color: CINZA }}>{L('Nenhuma conta encontrada para o período/filtro atual.', 'No accounts found for the current period/filter.', 'Ninguna cuenta encontrada para el período/filtro actual.')}</p>
             </div>
           ) : (
@@ -1423,7 +1438,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35`, boxShadow: `0 20px 60px rgba(0,0,0,0.5)` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${OURO}35`, boxShadow: temaClaro ? SOMBRA_3D : `0 20px 60px rgba(0,0,0,0.5)` }}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>AXIOMA AI.TECH</p>
@@ -1568,7 +1583,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERDE}35` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${VERDE}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Registrar Recebimento', 'Register Payment', 'Registrar Cobro')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setModalReceber(false)} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1604,7 +1619,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERMELHO}35` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Estornar recebimento?', 'Reverse payment?', '¿Revertir cobro?')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharEstornar} disabled={estornando} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1644,7 +1659,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-sm">
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${VERMELHO}35` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${VERMELHO}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Excluir conta?', 'Delete bill?', '¿Eliminar cuenta?')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharConfirmarExclusao} disabled={processandoExclusao} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1678,7 +1693,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${kpiAtivo.cor}40` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${kpiAtivo.cor}40`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-[10px] font-bold tracking-wider uppercase" style={{ color: CINZA }}>{kpiAtivo.label}</p>
@@ -1713,7 +1728,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${nivelScoreCor(scoreDrill.score.nivel)}40` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${nivelScoreCor(scoreDrill.score.nivel)}40`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
                       {scoreDrill.score.nivel === 'elite' && <Crown size={16} style={{ color: OURO }} />}
@@ -1754,7 +1769,7 @@ export default function ContasReceber() {
                 <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                   className="w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-                  <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35` }}>
+                  <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${OURO}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <p className="text-[10px] font-black tracking-[0.3em] uppercase mb-1" style={{ color: OURO }}>{L('Central de Cobrança', 'Collection Center', 'Centro de Cobranza')}</p>
@@ -1817,7 +1832,7 @@ export default function ContasReceber() {
                       </div>
                       <div className="flex gap-2">
                         <input value={novoCompromisso.condicoes} onChange={(e) => setNovoCompromisso({ ...novoCompromisso, condicoes: e.target.value })} placeholder={L('Condições (opcional)', 'Conditions (optional)', 'Condiciones (opcional)')} className="flex-1 px-3 py-2 rounded-lg text-xs focus:outline-none" style={inputStyle} />
-                        <button onClick={salvarCompromisso} disabled={salvandoCobranca || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: OURO, color: '#1a1400' }}>{L('Salvar', 'Save', 'Guardar')}</button>
+                        <button onClick={salvarCompromisso} disabled={salvandoCobranca || !novoCompromisso.valor_compromissado || !novoCompromisso.data_compromissada} className="px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-50" style={{ background: OURO, color: temaClaro ? '#fff' : '#1a1400' }}>{L('Salvar', 'Save', 'Guardar')}</button>
                       </div>
                       <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">
                         {compsConta.length === 0 ? (
@@ -1857,7 +1872,7 @@ export default function ContasReceber() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: 'easeOut' }}
                 className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-                <div className="rounded-2xl p-6" style={{ background: '#0a1628', border: `1px solid ${OURO}35` }}>
+                <div className={`rounded-2xl p-6${classePremium3d}`} style={{ background: temaClaro ? "#f6f7c4" : "#0a1628", border: temaClaro ? BORDA_3D : `1px solid ${OURO}35`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold" style={{ color: TITULO }}>{L('Etapa da Régua', 'Ladder Step', 'Etapa de la Regla')}</h3>
                     <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={() => setEditandoEtapa(null)} style={{ color: CINZA }}><X size={20} /></motion.button>
@@ -1886,7 +1901,7 @@ export default function ContasReceber() {
                     <button onClick={() => setEditandoEtapa(null)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: BOTAO_BG, color: CINZA }}>{L('Cancelar', 'Cancel', 'Cancelar')}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarEtapa}
                       className="flex-1 py-3 rounded-xl text-sm font-bold"
-                      style={{ background: `linear-gradient(135deg, ${OURO}, #b8942c)`, color: '#1a1400' }}>
+                      style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : `linear-gradient(135deg, ${OURO}, #b8942c)`, color: temaClaro ? '#fff' : '#1a1400' }}>
                       {L('Salvar Etapa', 'Save Step', 'Guardar Etapa')}
                     </motion.button>
                   </div>
