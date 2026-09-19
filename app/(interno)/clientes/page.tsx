@@ -390,13 +390,15 @@ export default function ClientesPage() {
   const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   const NIVEL_COR: Record<string, string> = { critico: ct(CORES.vermelho), atencao: ct(CORES.amarelo), bom: ct(CORES.verde), excelente: ct(CORES.verde) };
   const SEVERIDADE_COR: Record<string, string> = { risco: ct(CORES.vermelho), atencao: ct(CORES.amarelo), positivo: ct(CORES.verde) };
-  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
-  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
+  const CAMPO_BG3 = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilo();
   const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
   const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
 
   const [aba, setAba] = useState<"carteira" | "cliente" | "cobrancas">("carteira");
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
@@ -723,7 +725,7 @@ export default function ClientesPage() {
   function getStatusCor(status: string | null | undefined, vencimento: string) {
     if (status === "recebido") return { cor: ct("#34d399"), bg: "rgba(52,211,153,0.1)", label: cl.recebido };
     if (vencimento < hoje) return { cor: ct("#f87171"), bg: "rgba(248,113,113,0.1)", label: cl.vencido };
-    return { cor: "#fbbf24", bg: "rgba(251,191,36,0.1)", label: cl.pendente };
+    return { cor: ct("#fbbf24"), bg: "rgba(251,191,36,0.1)", label: cl.pendente };
   }
 
   function diasAtrasoConta(conta: ContaRow): number {
@@ -829,7 +831,7 @@ export default function ClientesPage() {
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
       onClick={() => setModalConta(true)}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399"), border: "1px solid rgba(52,211,153,0.3)" }}>
+      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
       + {cl.novaCobranca}
     </motion.button>
   );
@@ -838,7 +840,7 @@ export default function ClientesPage() {
     <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}
       onClick={() => setShareAberto(true)}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={{ background: "rgba(106,176,255,0.15)", color: ct("#6ab0ff"), border: `1px solid ${ct(CORES.cyan)}30` }}>
+      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(106,176,255,0.15)", color: "#6ab0ff", border: `1px solid ${CORES.cyan}30` }}>
       <Share2 size={16} /> {tt.compartilhar}
     </motion.button>
   );
@@ -853,7 +855,10 @@ export default function ClientesPage() {
     <ModuloLayout titulo={`👥 ${cl.titulo}`} subtitulo={cl.subtitulo}
       onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditandoCliente(null); setForm(FORM_VAZIO); setEtapaCadastro(0); setModalCliente(true); }}
-      labelBotao={cl.novoCliente} botaoExtra={<div className="flex gap-2 flex-wrap items-center">{botaoCobranca}{botaoCompartilhar}<ThemeToggle /></div>}>
+      labelBotao={cl.novoCliente} botaoExtra={<div className="flex gap-2 flex-wrap items-center">{botaoCobranca}{botaoCompartilhar}<ThemeToggle /></div>}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}>
       {toast && (
         <div className="fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
@@ -871,7 +876,7 @@ export default function ClientesPage() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => { setAba(a.key as typeof aba); setBuscaCarteira(""); setBuscaContas(""); }}
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? "rgba(106,176,255,0.2)" : PAINEL_FUNDO, color: aba === a.key ? ct("#6ab0ff") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? "rgba(106,176,255,0.4)" : "rgba(59,111,212,0.15)"}` }}>
+              style={{ background: aba === a.key ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.2)") : PAINEL_FUNDO, color: aba === a.key ? ct("#6ab0ff") : ct("#5a7a9a"), border: `1px solid ${aba === a.key ? (temaClaro ? "rgba(46,204,155,0.4)" : "rgba(106,176,255,0.4)") : (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,111,212,0.15)")}` }}>
               {a.label}
             </motion.button>
           ))}
@@ -890,13 +895,13 @@ export default function ClientesPage() {
                   {[
                     { label: cl.totalClientes, valor: clientes.length.toString(), cor: ct("#6ab0ff") },
                     { label: tt.valorCarteira, valor: fmt(snapshotCarteira.valorTotalCarteira), cor: ct("#34d399") },
-                    { label: tt.ticketMedioCarteira, valor: fmt(snapshotCarteira.ticketMedioCarteira), cor: "#fbbf24" },
+                    { label: tt.ticketMedioCarteira, valor: fmt(snapshotCarteira.ticketMedioCarteira), cor: ct("#fbbf24") },
                     { label: tt.inadimplenciaCarteira, valor: `${fmtN(inadimplenciaCarteiraPct)}%`, cor: inadimplenciaCarteiraPct > 15 ? ct("#f87171") : ct("#34d399") },
                   ].map((card, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                      <CanvasBox cor={card.cor}>
+                      <CanvasBox {...cartaoTema} cor={card.cor}>
                         <p className="text-xs mb-1" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
-                        <p className="text-xl font-black" style={{ color: card.cor }}>{card.valor}</p>
+                        <p className="text-xl font-black" style={{ color: card.cor }}><AnimatedNumber value={card.valor} /></p>
                       </CanvasBox>
                     </motion.div>
                   ))}
@@ -904,13 +909,13 @@ export default function ClientesPage() {
 
                 {/* Letreiro */}
                 {marquee.length > 0 && (
-                  <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(106,176,255,0.12), rgba(52,211,153,0.10))", border: "1px solid rgba(106,176,255,0.22)" }}>
+                  <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(106,176,255,0.12), rgba(52,211,153,0.10))", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.22)" }}>
                     <div className="marquee-cli py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                       <span className="text-[13px] font-bold tracking-wide">
-                        {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#93c5fd" : ct("#e2e8f0") }}>{m}<span style={{ color: ct("#6ab0ff") }}>{"  •  "}</span></span>))}
+                        {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? "#93c5fd" : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct("#6ab0ff") }}>{"  •  "}</span></span>))}
                       </span>
                       <span className="text-[13px] font-bold tracking-wide" aria-hidden>
-                        {marquee.map((m, i) => (<span key={`b${i}`} style={{ color: i === 0 ? "#93c5fd" : ct("#e2e8f0") }}>{m}<span style={{ color: ct("#6ab0ff") }}>{"  •  "}</span></span>))}
+                        {marquee.map((m, i) => (<span key={`b${i}`} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? "#93c5fd" : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct("#6ab0ff") }}>{"  •  "}</span></span>))}
                       </span>
                     </div>
                     <style>{`
@@ -922,7 +927,7 @@ export default function ClientesPage() {
                 )}
 
                 {/* Dashboard Executivo */}
-                <CanvasBox cor={ct("#6ab0ff")}>
+                <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                   <p className="text-sm font-black mb-1" style={{ color: ct("#f1f5f9") }}>{tt.dashExecTitulo}</p>
                   <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{tt.dashExecSub}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -930,22 +935,22 @@ export default function ClientesPage() {
                       { label: tt.kpiAtivos, valor: `${snapshotCarteira.qtdClientesAtivos}`, cor: ct("#34d399") },
                       { label: tt.kpiNovosMes, valor: `${kpisCarteira.clientesNovosMes}`, cor: ct("#6ab0ff") },
                       { label: tt.kpiInativos, valor: `${kpisCarteira.clientesInativos}`, cor: ct("#94a3b8") },
-                      { label: tt.kpiTempoRelac, valor: `${Math.round(kpisCarteira.tempoMedioRelacionamentoDias / 30)} ${tt.meses}`, cor: "#fbbf24" },
+                      { label: tt.kpiTempoRelac, valor: `${Math.round(kpisCarteira.tempoMedioRelacionamentoDias / 30)} ${tt.meses}`, cor: ct("#fbbf24") },
                       { label: tt.kpiPremium, valor: `${kpisCarteira.qtdPremium}`, cor: corOuro },
-                      { label: tt.kpiEstrategico, valor: `${kpisCarteira.qtdEstrategico}`, cor: "#8b5cf6" },
+                      { label: tt.kpiEstrategico, valor: `${kpisCarteira.qtdEstrategico}`, cor: ct("#8b5cf6") },
                       { label: tt.kpiEmRisco, valor: `${kpisCarteira.qtdEmRisco}`, cor: ct("#f87171") },
-                      { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: "#f97316" },
+                      { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: ct("#f97316") },
                     ].map((k) => (
                       <div key={k.label} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
-                        <p className="text-base font-black" style={{ color: k.cor }}>{k.valor}</p>
+                        <p className="text-base font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
                       </div>
                     ))}
                   </div>
                 </CanvasBox>
 
                 {/* Motor de Inteligência — recebimentos, dependência, expansão/queda, recorrência, health/risco */}
-                <CanvasBox cor="#06b6d4">
+                <CanvasBox {...cartaoTema} cor={ct("#06b6d4")}>
                   <div className="flex items-center gap-2 mb-1">
                     <Activity size={16} style={{ color: ct(CORES.cyan) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.dashExecTitulo} — {lang === "en" ? "Cash & Trends" : lang === "es" ? "Caja y Tendencias" : "Caixa & Tendências"}</p>
@@ -963,7 +968,7 @@ export default function ClientesPage() {
                     ].map((k) => (
                       <div key={k.label} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
                         <p className="text-[9px] uppercase tracking-wider mb-1" style={{ color: ct("#64748b") }}>{k.label}</p>
-                        <p className="text-base font-black" style={{ color: k.cor }}>{k.valor}</p>
+                        <p className="text-base font-black" style={{ color: k.cor }}><AnimatedNumber value={k.valor} /></p>
                       </div>
                     ))}
                   </div>
@@ -988,9 +993,9 @@ export default function ClientesPage() {
                 </CanvasBox>
 
                 {/* Radar Executivo */}
-                <CanvasBox cor="#f97316">
+                <CanvasBox {...cartaoTema} cor={ct("#f97316")}>
                   <div className="flex items-center gap-2 mb-1">
-                    <IconRadar size={16} style={{ color: "#f97316" }} />
+                    <IconRadar size={16} style={{ color: ct("#f97316") }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.radarExecTitulo}</p>
                   </div>
                   <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{tt.radarExecSub}</p>
@@ -1016,7 +1021,7 @@ export default function ClientesPage() {
                   )}
                 </CanvasBox>
 
-                <CanvasBox cor={corOuro}>
+                <CanvasBox {...cartaoTema} cor={corOuro}>
                   <div className="flex items-center gap-2 mb-1">
                     <Layers size={16} style={{ color: corOuro }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.distribuicaoIvca}</p>
@@ -1044,7 +1049,7 @@ export default function ClientesPage() {
                     { titulo: tt.topValorTitulo, lista: top5PorValor, valor: (i: typeof top5Ivca[0]) => fmt(i.s.valorTotalCobrado) },
                     { titulo: tt.topCrescimentoTitulo, lista: top5Crescimento, valor: (i: typeof top5Ivca[0]) => `${Math.round(i.ivca.subscores.find((x) => x.chave === "tendencia")?.valor || 0)}/100` },
                   ].map((bloco) => (
-                    <CanvasBox key={bloco.titulo} cor={ct("#6ab0ff")}>
+                    <CanvasBox {...cartaoTema} key={bloco.titulo} cor={ct("#6ab0ff")}>
                       <p className="text-xs font-black mb-2" style={{ color: ct("#f1f5f9") }}>{bloco.titulo}</p>
                       <div className="space-y-1.5">
                         {bloco.lista.map((i, idx) => (
@@ -1067,7 +1072,7 @@ export default function ClientesPage() {
                       { titulo: tt.receitaCidadeTitulo, opt: optCidade, temDado: grupoCidade.some((g) => g.chave !== "Não informado" && g.chave !== "Not informed" && g.chave !== "No informado") },
                       { titulo: tt.receitaEstadoTitulo, opt: optEstado, temDado: grupoEstado.some((g) => g.chave !== "Não informado" && g.chave !== "Not informed" && g.chave !== "No informado") },
                     ].map((bloco) => (
-                      <CanvasBox key={bloco.titulo} cor="#8b5cf6">
+                      <CanvasBox {...cartaoTema} key={bloco.titulo} cor={ct("#8b5cf6")}>
                         <p className="text-xs font-black mb-2" style={{ color: ct("#f1f5f9") }}>{bloco.titulo}</p>
                         {bloco.temDado ? (
                           <ReactECharts option={bloco.opt} style={{ height: 180, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
@@ -1079,7 +1084,7 @@ export default function ClientesPage() {
                   </div>
                 )}
 
-                <CanvasBox cor={ct("#6ab0ff")}>
+                <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                   <div className="flex items-center gap-2 mb-1">
                     <Award size={16} style={{ color: ct("#6ab0ff") }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.mapaValor}</p>
@@ -1093,7 +1098,7 @@ export default function ClientesPage() {
                   )}
                 </CanvasBox>
 
-                <CanvasBox cor={ct("#3b6fd4")}>
+                <CanvasBox {...cartaoTema} cor={ct("#3b6fd4")}>
                   <input value={buscaCarteira} onChange={(e) => setBuscaCarteira(e.target.value)}
                     placeholder={cl.buscar}
                     className="w-full text-sm focus:outline-none bg-transparent py-1"
@@ -1101,18 +1106,18 @@ export default function ClientesPage() {
                 </CanvasBox>
 
                 {intelFiltrado.length === 0 ? (
-                  <CanvasBox cor={ct("#6ab0ff")}><div className="p-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{cl.semClientes}</p></div></CanvasBox>
+                  <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}><div className="p-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{cl.semClientes}</p></div></CanvasBox>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {intelFiltrado.map(({ s, ivca, sinais }, i) => {
                       const piorSinal = ordenarSinaisPorSeveridade(sinais)[0];
                       return (
                         <motion.div key={s.cliente.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                          <CanvasBox cor={NIVEL_COR[ivca.nivel]}>
+                          <CanvasBox {...cartaoTema} cor={NIVEL_COR[ivca.nivel]}>
                             <button onClick={() => abrirDigitalTwin(s.cliente.id)} className="w-full text-left">
                               <div className="flex items-center gap-3 mb-2">
                                 <div className="w-11 h-11 rounded-full flex-shrink-0 flex items-center justify-center text-base font-black"
-                                  style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                                   {s.cliente.nome.charAt(0).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -1145,7 +1150,7 @@ export default function ClientesPage() {
             {/* ═══════════════════════ ABA CLIENTE (DIGITAL TWIN) ═══════════════════════ */}
             {aba === "cliente" && (
               !clienteAtual ? (
-                <CanvasBox cor={ct("#6ab0ff")}>
+                <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                   <div className="p-8 text-center">
                     <p style={{ color: ct("#5a7a9a") }}>{tt.selecioneCliente}</p>
                     <motion.button whileHover={{ scale: 1.02 }} onClick={() => setAba("carteira")}
@@ -1158,11 +1163,11 @@ export default function ClientesPage() {
               ) : (
                 <div className="space-y-4">
                   {/* Header */}
-                  <CanvasBox cor={ct("#6ab0ff")}>
+                  <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                     <div className="flex items-center gap-3 flex-wrap">
                       <button onClick={() => setAba("carteira")} style={{ color: ct("#5a7a9a") }}><ChevronLeft size={20} /></button>
                       <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black"
-                        style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                         {clienteAtual.s.cliente.nome.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1183,7 +1188,7 @@ export default function ClientesPage() {
                   </CanvasBox>
 
                   {/* IVCA */}
-                  <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.cyan)}30` }}>
+                  <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.cyan)}30` }}>
                     <div className="flex items-center gap-2 mb-1">
                       <Award size={16} style={{ color: ct("#6ab0ff") }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.ivcaTitulo}</p>
@@ -1201,14 +1206,14 @@ export default function ClientesPage() {
                       {clienteAtual.ivca.subscores.map((sub) => (
                         <div key={sub.chave} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
                           <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{nomeSubscoreIVCA(lang, sub.chave)}</p>
-                          <p className="text-sm font-black" style={{ color: "#93c5fd" }}>{Math.round(sub.valor)}</p>
+                          <p className="text-sm font-black" style={{ color: ct("#93c5fd") }}>{Math.round(sub.valor)}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* Saúde */}
-                  <CanvasBox cor={ct("#34d399")}>
+                  <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
                     <div className="flex items-center gap-2 mb-3">
                       <HeartPulse size={16} style={{ color: ct("#34d399") }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.saudeTitulo}</p>
@@ -1236,9 +1241,9 @@ export default function ClientesPage() {
 
                   {/* Resumo de Compras */}
                   {compras && (
-                    <CanvasBox cor="#fbbf24">
+                    <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
                       <div className="flex items-center gap-2 mb-3">
-                        <ShoppingBag size={16} style={{ color: "#fbbf24" }} />
+                        <ShoppingBag size={16} style={{ color: ct("#fbbf24") }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.comprasTitulo}</p>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
@@ -1259,9 +1264,9 @@ export default function ClientesPage() {
                   )}
 
                   {/* Radar de Sinais */}
-                  <CanvasBox cor="#f97316">
+                  <CanvasBox {...cartaoTema} cor={ct("#f97316")}>
                     <div className="flex items-center gap-2 mb-1">
-                      <AlertTriangle size={16} style={{ color: "#f97316" }} />
+                      <AlertTriangle size={16} style={{ color: ct("#f97316") }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.radarTitulo}</p>
                     </div>
                     <p className="text-xs mb-3" style={{ color: ct("#64748b") }}>{tt.radarSub}</p>
@@ -1284,14 +1289,14 @@ export default function ClientesPage() {
 
                   {/* Parecer Executivo */}
                   {parecer && (
-                    <CanvasBox cor="#a78bfa">
+                    <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
                       <div className="flex items-center gap-2 mb-1">
-                        <ClipboardList size={16} style={{ color: "#a78bfa" }} />
+                        <ClipboardList size={16} style={{ color: ct("#a78bfa") }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.parecerTitulo}</p>
                       </div>
                       <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{tt.parecerSub}</p>
                       <div className="mb-3">
-                        <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: "#a78bfa" }}>{tt.parecerResumo}</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider mb-1" style={{ color: ct("#a78bfa") }}>{tt.parecerResumo}</p>
                         <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.resumo}</p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -1322,7 +1327,7 @@ export default function ClientesPage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div className="px-3 py-2.5 rounded-xl" style={{ background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)" }}>
-                          <p className="text-[9px] font-black uppercase mb-1" style={{ color: "#a78bfa" }}>{tt.parecerSugestao}</p>
+                          <p className="text-[9px] font-black uppercase mb-1" style={{ color: ct("#a78bfa") }}>{tt.parecerSugestao}</p>
                           <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.sugestao}</p>
                         </div>
                         <div className="px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
@@ -1335,7 +1340,7 @@ export default function ClientesPage() {
 
                   {/* Conselho Executivo */}
                   {especialistas && (
-                    <CanvasBox cor={corOuro}>
+                    <CanvasBox {...cartaoTema} cor={corOuro}>
                       <div className="flex items-center gap-2 mb-1">
                         <Users size={16} style={{ color: corOuro }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.conselhoTitulo}</p>
@@ -1365,7 +1370,7 @@ export default function ClientesPage() {
                   )}
 
                   {/* ZIA */}
-                  <CanvasBox cor="#8b5cf6">
+                  <CanvasBox {...cartaoTema} cor={ct("#8b5cf6")}>
                     <div className="flex items-center gap-2 mb-1">
                       <MessageCircle size={16} style={{ color: ct(CORES.roxo) }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.ziaTitulo}</p>
@@ -1398,7 +1403,7 @@ export default function ClientesPage() {
                   </CanvasBox>
 
                   {/* Linha do Tempo */}
-                  <CanvasBox cor={ct("#6ab0ff")}>
+                  <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                     <div className="flex items-center gap-2 mb-3">
                       <Clock size={16} style={{ color: ct("#6ab0ff") }} />
                       <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.timelineTitulo}</p>
@@ -1418,7 +1423,7 @@ export default function ClientesPage() {
                   </CanvasBox>
 
                   {/* Dados cadastrais + contas */}
-                  <CanvasBox cor={ct("#6ab0ff")}>
+                  <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                     <p className="text-sm font-black mb-3" style={{ color: ct("#f1f5f9") }}>{tt.dadosCadastrais}</p>
                     <div className="space-y-1.5 mb-4">
                       {clienteAtual.s.cliente.razao_social && <div className="flex items-center gap-2"><Briefcase size={11} style={{ color: ct("#5a7a9a") }} /><p className="text-xs" style={{ color: ct("#5a7a9a") }}>{clienteAtual.s.cliente.razao_social}</p></div>}
@@ -1435,7 +1440,7 @@ export default function ClientesPage() {
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                       onClick={() => setAba("cobrancas")}
                       className="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-                      style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                      style={temaClaro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff", border: "none" } : { background: "rgba(251,191,36,0.12)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
                       {tt.verTodasCobrancas} <ChevronRight size={14} />
                     </motion.button>
                   </CanvasBox>
@@ -1448,7 +1453,7 @@ export default function ClientesPage() {
               <div className="space-y-3">
                 <div className="flex flex-col md:flex-row gap-3 items-start">
                   <div className="flex-1">
-                    <CanvasBox cor={ct("#3b6fd4")}>
+                    <CanvasBox {...cartaoTema} cor={ct("#3b6fd4")}>
                       <input value={buscaContas} onChange={(e) => { setBuscaContas(e.target.value); }}
                         placeholder={idioma === "pt" ? "Buscar por descrição ou cliente..." : "Search..."}
                         className="w-full text-sm focus:outline-none bg-transparent py-1"
@@ -1460,7 +1465,7 @@ export default function ClientesPage() {
                       className="flex items-center gap-2 px-4 py-3 rounded-2xl flex-shrink-0"
                       style={{ background: "rgba(106,176,255,0.1)", border: `1px solid ${ct(CORES.cyan)}30` }}>
                       <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
-                        style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                         {(clientes.find(c => c.id === clienteSelecionadoId)?.nome || "?").charAt(0).toUpperCase()}
                       </div>
                       <span className="text-sm font-bold" style={{ color: ct("#6ab0ff") }}>{clientes.find(c => c.id === clienteSelecionadoId)?.nome}</span>
@@ -1469,7 +1474,7 @@ export default function ClientesPage() {
                   )}
                 </div>
                 {contasFiltradas.length === 0 ? (
-                  <CanvasBox cor={ct("#34d399")}>
+                  <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
                     <div className="p-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{cl.semContas}</p></div>
                   </CanvasBox>
                 ) : contasFiltradas.map((conta, i) => {
@@ -1481,7 +1486,7 @@ export default function ClientesPage() {
                   const temDetalhe = !!(conta.parcelas || conta.taxa_juros || conta.taxa_multa || conta.forma_recebimento || conta.observacoes || sugestao);
                   return (
                     <motion.div key={conta.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                      <CanvasBox cor={statusInfo.cor}>
+                      <CanvasBox {...cartaoTema} cor={statusInfo.cor}>
                         <div className="flex items-start justify-between gap-3 flex-wrap">
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm" style={{ color: ct("#c8d8f0") }}>{conta.descricao}</p>
@@ -1519,7 +1524,7 @@ export default function ClientesPage() {
                             {conta.observacoes && <div className="col-span-2 md:col-span-4"><p className="text-[9px] uppercase" style={{ color: ct("#64748b") }}>{tt.observacoesLbl}</p><p className="text-xs" style={{ color: ct("#c8d8f0") }}>{conta.observacoes}</p></div>}
                             {sugestao && (
                               <div className="col-span-2 md:col-span-4 mt-1 px-3 py-2 rounded-lg" style={{ background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.2)" }}>
-                                <p className="text-[9px] uppercase font-black mb-0.5" style={{ color: "#f97316" }}>{tt.sugestaoAcaoLbl}</p>
+                                <p className="text-[9px] uppercase font-black mb-0.5" style={{ color: ct("#f97316") }}>{tt.sugestaoAcaoLbl}</p>
                                 <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{sugestao}</p>
                               </div>
                             )}
@@ -1545,7 +1550,7 @@ export default function ClientesPage() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
                 className="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
-                <CanvasBox cor={ct("#6ab0ff")}>
+                <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
                   <div className="flex justify-between items-center mb-4">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#6ab0ff") }}>AXIOMA AI.TECH</p>
@@ -1632,7 +1637,7 @@ export default function ClientesPage() {
                     )}
                     {ETAPAS_CADASTRO[etapaCadastro] === "cobrancas" && (
                       <div>
-                        <p className="text-xs font-black mb-2" style={{ color: "#fbbf24" }}>{tt.cobrancasEtapaTitulo}</p>
+                        <p className="text-xs font-black mb-2" style={{ color: ct("#fbbf24") }}>{tt.cobrancasEtapaTitulo}</p>
                         {contasDoClienteEditando.length === 0 ? (
                           <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semDadosNovoCliente}</p>
                         ) : (
@@ -1640,7 +1645,7 @@ export default function ClientesPage() {
                             {contasDoClienteEditando.slice(0, 15).map((c) => (
                               <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ background: CAMPO_BG3 }}>
                                 <span className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{c.descricao}</span>
-                                <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: c.status === "recebido" ? ct("#34d399") : "#fbbf24" }}>{fmt(c.valor)}</span>
+                                <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: c.status === "recebido" ? ct("#34d399") : ct("#fbbf24") }}>{fmt(c.valor)}</span>
                               </div>
                             ))}
                           </div>
@@ -1667,13 +1672,13 @@ export default function ClientesPage() {
                     )}
                     {ETAPAS_CADASTRO[etapaCadastro] === "ia" && (
                       <div>
-                        <p className="text-xs font-black mb-2" style={{ color: "#a78bfa" }}>{tt.iaEtapaTitulo}</p>
+                        <p className="text-xs font-black mb-2" style={{ color: ct("#a78bfa") }}>{tt.iaEtapaTitulo}</p>
                         {!parecerDoClienteEditando ? (
                           <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semDadosNovoCliente}</p>
                         ) : (
                           <div className="space-y-2">
                             <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecerDoClienteEditando.resumo}</p>
-                            <p className="text-xs" style={{ color: "#a78bfa" }}>→ {parecerDoClienteEditando.sugestao}</p>
+                            <p className="text-xs" style={{ color: ct("#a78bfa") }}>→ {parecerDoClienteEditando.sugestao}</p>
                           </div>
                         )}
                       </div>
@@ -1691,10 +1696,10 @@ export default function ClientesPage() {
                     )}
                     {etapaCadastro < ETAPAS_CADASTRO.length - 1 ? (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setEtapaCadastro(etapaCadastro + 1)}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{tt.proximo}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{tt.proximo}</motion.button>
                     ) : (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCliente} disabled={salvandoCliente}
-                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
+                        className="flex-1 py-3 rounded-xl text-sm font-bold" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{salvandoCliente ? "..." : tt.finalizarCadastro}</motion.button>
                     )}
                   </div>
                 </CanvasBox>
@@ -1715,7 +1720,7 @@ export default function ClientesPage() {
               <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
                 className="w-full max-w-2xl max-h-[calc(100vh-8rem)] overflow-y-auto">
-                <CanvasBox cor={ct("#34d399")}>
+                <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
                   <div className="flex justify-between items-center mb-5">
                     <div>
                       <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct("#34d399") }}>AXIOMA AI.TECH</p>
@@ -1813,7 +1818,7 @@ export default function ClientesPage() {
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={salvarConta} disabled={salvandoConta}
                         className="flex-1 py-3 rounded-xl text-sm font-bold"
-                        style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
+                        style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
                         {salvandoConta ? "..." : cl.salvarCobranca}
                       </motion.button>
                     </div>
