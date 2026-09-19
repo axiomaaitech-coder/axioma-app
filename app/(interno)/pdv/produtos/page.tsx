@@ -73,6 +73,7 @@ function t(chave: keyof typeof txt, lang: Idioma, vars?: Record<string, string |
 const SEM_CATEGORIA = "__sem_categoria__";
 
 export default function PdvProdutosCadastrados() {
+  const { tokens } = useTemaPdv();
   const { idioma } = useLanguage();
   const lang: Idioma = (["pt", "en", "es"].includes(idioma) ? idioma : "pt") as Idioma;
   const router = useRouter();
@@ -265,7 +266,7 @@ export default function PdvProdutosCadastrados() {
             semCategoriaLabel={t("semCategoria", lang)} semCategoriaValor={SEM_CATEGORIA}
             onVoltar={voltarPara}
           />
-          <p className="text-xs mb-3" style={{ opacity: 0.7 }}>{t("totalProdutos", lang, { n: produtos.length })}</p>
+          <p className="text-xs mb-3" style={{ color: tokens.texto, opacity: 0.7 }}>{t("totalProdutos", lang, { n: produtos.length })}</p>
 
           {nivel === "nicho" && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
