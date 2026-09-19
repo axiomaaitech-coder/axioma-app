@@ -189,8 +189,11 @@ function serieHistoricaMetrica(tipo: TipoMeta, ctx: CtxMeta, ate: string, mesesJ
 // ═══════════════════════ GRÁFICO LOCAL — barras agrupadas (Real × Esperado) ═══════════════════════
 function optProgressoMetas(labels: string[], real: number[], esperado: number[], labelReal: string, labelEsperado: string, temaClaro?: boolean) {
   const eixoCor = temaClaro ? "#6b7280" : "#cbd5e1";
-  const corReal = temaClaro ? "#7c3aed" : CORES.roxo;
-  const corEsperado = temaClaro ? "#2ecc9b" : CORES.ouro;
+  // 2 séries no mesmo gráfico precisam de 2 cores pra ficar legível - verde-menta
+  // (principal) pro Real, azul-marinho (2ª cor padrão da paleta, tema-tokens.md
+  // chart-2) pro Esperado. Nunca roxo/dourado - não são cor da nossa paleta.
+  const corReal = temaClaro ? "#2ecc9b" : CORES.roxo;
+  const corEsperado = temaClaro ? "#101b3d" : CORES.ouro;
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 44, right: 16, top: 34, bottom: 44, containLabel: false },
@@ -222,15 +225,15 @@ export default function Metas() {
   // atualizados quando o creme virou o padrão oficial do Claro).
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
   const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-  const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
+  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(99,102,241,0.15)";
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,111,212,0.2)";
   const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
-  const ROXO_CHIP_BG = temaClaro ? "rgba(124,58,237,0.12)" : "rgba(139,92,246,0.12)";
-  const ROXO_CHIP_BG_ATIVO = temaClaro ? "rgba(124,58,237,0.2)" : "rgba(139,92,246,0.2)";
-  const ROXO_CHIP_BORDA = temaClaro ? "rgba(124,58,237,0.4)" : "rgba(139,92,246,0.4)";
-  const ROXO_CHIP_BORDA_FRACA = temaClaro ? "rgba(124,58,237,0.15)" : "rgba(59,111,212,0.1)";
+  const ROXO_CHIP_BG = temaClaro ? "rgba(46,204,155,0.12)" : "rgba(139,92,246,0.12)";
+  const ROXO_CHIP_BG_ATIVO = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(139,92,246,0.2)";
+  const ROXO_CHIP_BORDA = temaClaro ? "rgba(46,204,155,0.4)" : "rgba(139,92,246,0.4)";
+  const ROXO_CHIP_BORDA_FRACA = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,111,212,0.1)";
   const AMARELO_CHIP_BG = temaClaro ? "rgba(245,166,35,0.12)" : "rgba(234,179,8,0.12)";
   const AMARELO_CHIP_BORDA = temaClaro ? "rgba(245,166,35,0.25)" : "rgba(234,179,8,0.25)";
   // Dourado não é cor da nossa paleta padrão (tema-tokens.md) - no Claro
@@ -699,11 +702,11 @@ export default function Metas() {
             </div>
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(139,92,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(124,58,237,0.3)" : "rgba(139,92,246,0.24)"}` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(139,92,246,0.14), rgba(212,175,55,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(139,92,246,0.24)"}` }}>
               <div className="marquee-meta py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map(rep => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#c4b5fd" : "#ffffff") : (i === 0 ? ct("#c4b5fd") : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#c4b5fd" : ct(CORES.roxo) }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? ct("#c4b5fd") : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct(CORES.roxo) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -734,7 +737,7 @@ export default function Metas() {
             <div className={`rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: PAINEL_FUNDO_B, border: `1px solid ${PAINEL_BORDA}`, boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
               <div className="p-4 md:p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#8b5cf6,#d4af37)", boxShadow: "0 0 12px #8b5cf6" }} />
+                  <span className="w-1.5 h-6 rounded-full" style={{ background: temaClaro ? "#2ecc9b" : "linear-gradient(180deg,#8b5cf6,#d4af37)", boxShadow: `0 0 12px ${temaClaro ? "#2ecc9b" : "#8b5cf6"}` }} />
                   <div>
                     <p className="text-sm md:text-base font-black" style={{ color: ct("#f1f5f9") }}>{cx.metaModalAnaliseTitulo}</p>
                     <p className="text-[10px] font-medium" style={{ color: ct("#64748b") }}>{cx.metaModalAnaliseSub}</p>
@@ -1017,7 +1020,7 @@ export default function Metas() {
         textoDetalhado={textoDetalhado}
         assunto={`${txt.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#8b5cf6"
+        cor={temaClaro ? "#2ecc9b" : "#8b5cf6"}
       />
 
       {toast && (
