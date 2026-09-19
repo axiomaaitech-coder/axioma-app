@@ -1765,27 +1765,27 @@ export default function ContasPagarPage() {
       {/* Abas */}
       <div className="flex gap-2 mb-5">
         <button onClick={() => setAba("central")} className="px-4 py-2 rounded-xl text-sm font-bold"
-          style={aba === "central" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "central" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(245,158,11,0.2)", color: AMBAR, border: `1px solid ${AMBAR}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           {L("Command Center", "Command Center", "Command Center")}
         </button>
         <button onClick={() => setAba("inteligencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "inteligencia" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "inteligencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(167,139,250,0.2)", color: ROXO, border: `1px solid ${ROXO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <Gauge size={14} />{L("Inteligência", "Intelligence", "Inteligencia")}
         </button>
         <button onClick={() => setAba("aprovacoes")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "aprovacoes" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "aprovacoes" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(52,211,153,0.2)", color: VERDE, border: `1px solid ${VERDE}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <CheckCircle2 size={14} />{L("Aprovações Pendentes", "Pending Approvals", "Aprobaciones Pendientes")}
         </button>
         <button onClick={() => setAba("pedidos")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "pedidos" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "pedidos" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <ClipboardList size={14} />{L("Pedidos de Compra", "Purchase Orders", "Órdenes de Compra")}
         </button>
         <button onClick={() => setAba("conferencia")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "conferencia" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "conferencia" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(248,113,113,0.2)", color: VERMELHO, border: `1px solid ${VERMELHO}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <ListChecks size={14} />{L("Conferência de Notas", "Invoice Matching", "Conciliación de Facturas")}
         </button>
         <button onClick={() => setAba("historico")} className="px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5"
-          style={aba === "historico" ? (temaClaro ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
+          style={aba === "historico" ? (temaClaro ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "rgba(106,176,255,0.2)", color: AZUL, border: `1px solid ${AZUL}50` }) : (temaClaro ? { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" } : { background: "rgba(255,255,255,0.04)", color: CINZA, border: "1px solid rgba(255,255,255,0.08)" })}>
           <History size={14} />{L("Histórico", "History", "Historial")}
         </button>
         {podeConfigurarAp && (
@@ -1820,7 +1820,7 @@ export default function ContasPagarPage() {
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={L("Buscar...", "Search...", "Buscar...")}
                 className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm" style={{ background: (temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)"), color: TEXTO }} />
             </div>
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroStatus !== "todos" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="todos">{L("Todos os status", "All statuses", "Todos los estados")}</option>
               <option value="pendente">{statusLabel("pendente")}</option>
               <option value="parcial">{statusLabel("parcial")}</option>
@@ -1828,11 +1828,11 @@ export default function ContasPagarPage() {
               <option value="pago">{statusLabel("pago")}</option>
               <option value="aguardando_aprovacao">{statusLabel("aguardando_aprovacao")}</option>
             </select>
-            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroFornecedor !== "" ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
+            <select value={filtroFornecedor} onChange={(e) => setFiltroFornecedor(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroFornecedor !== "" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="">{L("Todos os fornecedores", "All suppliers", "Todos los proveedores")}</option>
               {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
-            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroCategoria !== "" ? { background: "rgba(46,204,155,0.15)", color: "#2ecc9b", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
+            <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="px-3 py-2.5 rounded-xl text-sm" style={temaClaro ? (filtroCategoria !== "" ? { background: "#16a97d", color: "#ffffff", border: "1px solid #16a97d" } : { background: "#101b3d", color: "#ffffff", border: "1px solid #101b3d" }) : { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>
               <option value="">{L("Todas as categorias", "All categories", "Todas las categorías")}</option>
               {CATEGORIAS_DESPESA.map((c) => <option key={c} value={c}>{cat(c)}</option>)}
             </select>
