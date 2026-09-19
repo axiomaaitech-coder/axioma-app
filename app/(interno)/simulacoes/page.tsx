@@ -73,7 +73,7 @@ export default function Simulacoes() {
   // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
   const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
   const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
-  const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
+  const PAINEL_BORDA = temaClaro ? "rgba(46,204,155,0.18)" : "rgba(99,102,241,0.15)";
   const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
   const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
@@ -281,7 +281,7 @@ export default function Simulacoes() {
   const optCenarios = resultado ? optBarrasV(
     resultado.cenarios.map((c) => c.lucroLiquidoMensal),
     resultado.cenarios.map((c) => NOME_CENARIO[c.nome] || c.nome),
-    ct(CORES.indigo), "#a5b4fc", undefined, temaClaro,
+    ct(CORES.indigo), temaClaro ? "#16a97d" : "#a5b4fc", undefined, temaClaro,
   ) : null;
 
   const marquee = [
@@ -352,7 +352,9 @@ export default function Simulacoes() {
           <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.indigo)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: PAINEL_BORDA, border: "1px solid rgba(99,102,241,0.4)", color: "#a5b4fc" }}>
+            style={temaClaro
+              ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
+              : { background: PAINEL_BORDA, border: "1px solid rgba(99,102,241,0.4)", color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -407,7 +409,7 @@ export default function Simulacoes() {
                   ].map((m, i) => (
                     <div key={i} className="rounded-xl px-3 py-2" style={{ background: CAMPO_BG3 }}>
                       <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{m.l}</p>
-                      <p className="text-sm font-black" style={{ color: "#a5b4fc" }}>{m.v}</p>
+                      <p className="text-sm font-black" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{m.v}</p>
                     </div>
                   ))}
                 </div>
@@ -415,11 +417,11 @@ export default function Simulacoes() {
             )}
 
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: "linear-gradient(90deg, rgba(99,102,241,0.16), rgba(148,163,184,0.10))", border: "1px solid rgba(99,102,241,0.28)" }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(99,102,241,0.16), rgba(148,163,184,0.10))", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(99,102,241,0.28)"}` }}>
               <div className="marquee-sim py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
-                    {marquee.map((m, i) => (<span key={i} style={{ color: i === 0 ? "#a5b4fc" : ct("#e2e8f0") }}>{m}<span style={{ color: ct(CORES.indigo) }}>{"  •  "}</span></span>))}
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? "#a5b4fc" : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct(CORES.indigo) }}>{"  •  "}</span></span>))}
                   </span>
                 ))}
               </div>
@@ -436,27 +438,27 @@ export default function Simulacoes() {
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("dobrarFaturamento")}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: "#a5b4fc" }}>
+                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
                   {cx.simObjDobrarFaturamento}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={aplicarPresetTriplicarLucro}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: "#a5b4fc" }}>
+                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
                   {cx.simObjTriplicarLucro}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => aplicarPreset("melhorarFluxoCaixa")}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold"
-                  style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: "#a5b4fc" }}>
+                  style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40`, color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>
                   {cx.simObjMelhorarFluxoCaixa}
                 </motion.button>
-                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
-                  <button onClick={() => aplicarPreset("reduzirCustos")} className="text-xs font-bold" style={{ color: "#a5b4fc" }}>{cx.simObjReduzirCustos}</button>
+                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
+                  <button onClick={() => aplicarPreset("reduzirCustos")} className="text-xs font-bold" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{cx.simObjReduzirCustos}</button>
                   <input type="number" value={reduzirCustosPct} onChange={(e) => setReduzirCustosPct(e.target.value)}
                     className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
                   <span className="text-[10px]" style={{ color: ct("#64748b") }}>%</span>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
-                  <button onClick={() => aplicarPreset("reduzirDivida")} className="text-xs font-bold" style={{ color: "#a5b4fc" }}>{cx.simObjReduzirDivida}</button>
+                <div className="flex items-center gap-1.5 rounded-xl pl-3 pr-1.5 py-1" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(99,102,241,0.12)", border: `1px solid ${ct(CORES.indigo)}40` }}>
+                  <button onClick={() => aplicarPreset("reduzirDivida")} className="text-xs font-bold" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{cx.simObjReduzirDivida}</button>
                   <input type="number" value={reduzirJurosPontos} onChange={(e) => setReduzirJurosPontos(e.target.value)}
                     className="w-12 px-1.5 py-1 rounded-lg text-xs text-center focus:outline-none" style={{ background: CAMPO_BG, color: ct("#c8d8f0") }} />
                   <span className="text-[10px]" style={{ color: ct("#64748b") }}>pts</span>
@@ -518,7 +520,7 @@ export default function Simulacoes() {
 
               <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={rodarSimulacao}
                 className="w-full py-3 rounded-xl text-sm font-bold"
-                style={{ background: `linear-gradient(135deg, #312e81, ${ct(CORES.indigo)})`, color: "#fff" }}>
+                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : `linear-gradient(135deg, #312e81, ${ct(CORES.indigo)})`, color: "#fff" }}>
                 {cx.simSimular}
               </motion.button>
             </div>
@@ -563,10 +565,10 @@ export default function Simulacoes() {
                       <div key={s.driver} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
                         <div className="flex items-center justify-between mb-1.5">
                           <p className="text-xs font-bold" style={{ color: ct("#e2e8f0") }}>{nomeDriverSensibilidade(lang, s.driver as DriverSensibilidade)}</p>
-                          <p className="text-[10px] font-black" style={{ color: "#a5b4fc" }}>{fPct(s.pesoPct)} {cx.simPeso}</p>
+                          <p className="text-[10px] font-black" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{fPct(s.pesoPct)} {cx.simPeso}</p>
                         </div>
                         <div className="w-full h-1.5 rounded-full overflow-hidden mb-2" style={{ background: CAMPO_BORDA2 }}>
-                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.pesoPct)}%`, background: `linear-gradient(90deg, ${ct(CORES.indigo)}, #a5b4fc)` }} />
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.pesoPct)}%`, background: `linear-gradient(90deg, ${ct(CORES.indigo)}, ${temaClaro ? "#16a97d" : "#a5b4fc"})` }} />
                         </div>
                         <div className="flex items-center justify-between text-[11px]">
                           <span style={{ color: ct(CORES.vermelhoC) }}>{cx.simDesfavoravel}: {fBRL(s.impactoDesfavoravelRS)}</span>
@@ -671,7 +673,7 @@ export default function Simulacoes() {
                     </>
                   )}
 
-                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: "#a5b4fc" }}>{cx.simPremissasLabel}</p>
+                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{cx.simPremissasLabel}</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                     {[
                       { l: cx.simPremissaReceita, v: fBRL(receitaMensalMedia) },
@@ -687,7 +689,7 @@ export default function Simulacoes() {
                   </div>
 
                   <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-                    <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: "#a5b4fc" }}>{cx.simNivelConfiancaLabel}</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider" style={{ color: temaClaro ? "#2ecc9b" : "#a5b4fc" }}>{cx.simNivelConfiancaLabel}</p>
                     <span className="text-xs font-black px-3 py-1 rounded-full" style={{ background: `${NIVEL_COR[nivelConfianca]}18`, color: NIVEL_COR[nivelConfianca] }}>{NIVEL_LABEL[nivelConfianca]}</span>
                   </div>
 
