@@ -281,7 +281,7 @@ export default function FiscalPage() {
                 <p className="text-xs" style={{ color: CINZA }}>{L('Nenhuma obrigação vencendo nos próximos 30 dias.', 'No obligation due in the next 30 days.', 'Ninguna obligación vence en los próximos 30 días.')}</p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid var(--axi-border)' }}>
+              <div className={`overflow-x-auto rounded-xl${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid var(--axi-border)' }}>
                 <table className="w-full text-xs" style={{ minWidth: 480 }}>
                   <tbody>
                     {obrigacoesProximas.slice(0, 5).map((o) => {

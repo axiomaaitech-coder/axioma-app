@@ -244,10 +244,10 @@ export default function ContadorPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid var(--axi-border)' }}>
+              <div className={`overflow-x-auto rounded-xl${classePremium3d}`} style={{ background: PAINEL_BG, border: '1px solid var(--axi-border)' }}>
                 <table className="w-full text-xs" style={{ minWidth: 640 }}>
                   <thead>
-                    <tr style={{ color: CINZA, background: 'var(--axi-surface)' }}>
+                    <tr style={{ color: CINZA }}>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap">{L('Prioridade', 'Priority', 'Prioridad')}</th>
                       <th className="text-left py-2 px-3 font-semibold">{L('Descoberta', 'Finding', 'Hallazgo')}</th>
                       <th className="text-left py-2 px-3 font-semibold whitespace-nowrap hidden sm:table-cell">{L('Tipo', 'Type', 'Tipo')}</th>
