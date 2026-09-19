@@ -311,7 +311,7 @@ export default function TopNav() {
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
         title={title}
-        className="relative flex items-center justify-center gap-1.5 rounded-xl text-xs font-semibold h-11 w-full px-2 transition-all"
+        className="relative flex items-center justify-center gap-1.5 rounded-xl text-sm font-semibold h-12 w-full px-2 transition-all"
         style={{
           background: ativo ? `${cor}28` : `${cor}12`,
           border: `1px solid ${cor}${ativo ? "90" : "45"}`,
@@ -325,7 +325,9 @@ export default function TopNav() {
   }
 
   // Extraído do map original — cada grupo do menu superior (dropdown com
-  // seta), agora como 1 card entre os 14 do tabuleiro.
+  // seta), agora como 1 card entre os 14 do tabuleiro. `indice` chega já
+  // calculado pela posição real no array de 14 (ver `cartasDesktop` abaixo)
+  // — nunca mais um número hardcoded que pode destoar da posição de verdade.
   function renderGrupoDesktop(grupo: (typeof grupos)[number], indice: number) {
     const ativo = grupoAtivo(grupo.itens);
     const aberto = dropdown === grupo.label.pt;
@@ -343,6 +345,54 @@ export default function TopNav() {
         </motion.div>
       </CardNav>
     );
+  }
+
+  // Lista única, na ORDEM VISUAL exata do tabuleiro (7 colunas x 2 linhas).
+  // Cada função recebe a posição real (0..13) e devolve o card - garante
+  // que a cor (corCasa) sempre bate com a casa onde o card realmente cai,
+  // mesmo quando um item (PDV) precisa entrar no meio da lista de grupos.
+  const construtoresCartas: ((indice: number) => React.ReactNode)[] = [];
+  if (!isOperador) {
+    construtoresCartas.push((i) => (
+      <CardNav key="dashboard" indice={i} ativo={pathname === "/dashboard"} onClick={() => navegar("/dashboard")}>
+        <span>🏠</span>
+        <span className="truncate">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
+      </CardNav>
+    ));
+    construtoresCartas.push((i) => (
+      <CardNav key="nexus" indice={i} ativo={nexusAtivo} onClick={() => navegar(nexusModulo.path)}>
+        <span className="truncate">{nexusModulo.label[lang]}</span>
+      </CardNav>
+    ));
+    gruposVisiveis.forEach((grupo) => {
+      const ehMei = (grupo as any).destaque === true;
+      construtoresCartas.push((i) => renderGrupoDesktop(grupo, i));
+      if (ehMei) {
+        construtoresCartas.push((i) => (
+          <CardNav key="pdv" indice={i} ativo={pdvAtivo} onClick={() => navegar(pdvModulo.path)} title={pdvTooltip}>
+            <span className="truncate">{pdvModulo.label[lang]}</span>
+            <BadgeDestaque lang={lang} />
+          </CardNav>
+        ));
+      }
+    });
+    construtoresCartas.push((i) => (
+      <CardNav key="banco" indice={i} ativo={ofAtivo} onClick={() => navegar("/open-finance")} title={conectarLabel}>
+        <Landmark size={13} />
+        <span className="truncate">{conectarLabelCurto}</span>
+      </CardNav>
+    ));
+    construtoresCartas.push((i) => (
+      <div key="idioma" className="h-12 rounded-xl flex items-center justify-center" style={{ background: `${corCasa(i)}12`, border: `1px solid ${corCasa(i)}45`, boxShadow: `0 0 8px ${corCasa(i)}18` }}>
+        <SeletorIdioma />
+      </div>
+    ));
+    construtoresCartas.push((i) => (
+      <CardNav key="sair" indice={i} ativo={false} onClick={handleLogout} title={lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}>
+        <LogOut size={13} />
+        <span className="truncate">{lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}</span>
+      </CardNav>
+    ));
   }
 
   return (
@@ -387,49 +437,10 @@ export default function TopNav() {
             pra rolar) e o arco-íris de 1 cor por módulo. */}
         <div className="grid grid-cols-7 gap-1.5 min-w-0 flex-1">
 
-        {/* 0 — Dashboard (fora do alcance do operador) */}
-        {!isOperador && (
-          <CardNav indice={0} ativo={pathname === "/dashboard"} onClick={() => navegar("/dashboard")}>
-            <span>🏠</span>
-            <span className="truncate">{lang === "pt" ? "Dashboard" : lang === "en" ? "Dashboard" : "Panel"}</span>
-          </CardNav>
-        )}
-
-        {/* 1 — Nexus */}
-        {!isOperador && (
-          <CardNav indice={1} ativo={nexusAtivo} onClick={() => navegar(nexusModulo.path)}>
-            <span className="truncate">{nexusModulo.label[lang]}</span>
-          </CardNav>
-        )}
-
-        {/* 2 — MEI, 3 — PDV, 4..10 — os outros 7 grupos */}
-        {!isOperador && gruposVisiveis.map((grupo, gi) => renderGrupoDesktop(grupo, gi === 0 ? 2 : gi + 3))}
-        {!isOperador && (
-          <CardNav indice={3} ativo={pdvAtivo} onClick={() => navegar(pdvModulo.path)} title={pdvTooltip}>
-            <span className="truncate">{pdvModulo.label[lang]}</span>
-            <BadgeDestaque lang={lang} />
-          </CardNav>
-        )}
+        {construtoresCartas.map((construir, i) => construir(i))}
 
         {/* Operador: PDV é a única coisa que sobra no menu */}
         {isOperador && pdvBotaoDesktop}
-
-        {/* 11 — Conectar Banco, 12 — Idioma, 13 — Sair. Mesmo tamanho/cor
-            de tabuleiro dos outros 11 - antes eram um bloco à parte "que
-            nunca encolhe", empurrando os grupos da direita pra fora. */}
-        {!isOperador && (
-          <CardNav indice={11} ativo={ofAtivo} onClick={() => navegar("/open-finance")} title={conectarLabel}>
-            <Landmark size={13} />
-            <span className="truncate">{conectarLabelCurto}</span>
-          </CardNav>
-        )}
-        <div className="h-11 rounded-xl flex items-center justify-center" style={{ background: `${corCasa(12)}12`, border: `1px solid ${corCasa(12)}45`, boxShadow: `0 0 8px ${corCasa(12)}18` }}>
-          <SeletorIdioma />
-        </div>
-        <CardNav indice={13} ativo={false} onClick={handleLogout} title={lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}>
-          <LogOut size={13} />
-          <span className="truncate">{lang === "pt" ? "Sair" : lang === "en" ? "Logout" : "Salir"}</span>
-        </CardNav>
 
         </div>
 
