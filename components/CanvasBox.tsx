@@ -67,13 +67,21 @@ export function CanvasBox({
 
   const boxShadow = premium3d ? SOMBRA_3D : "0 1px 2px rgba(0,0,0,0.3)";
 
+  // Borda padrão do card premium (creme) é SEMPRE verde-menta a 45% de
+  // opacidade — valor exato da referência (color-mix(in oklab, var(--primary)
+  // 45%, transparent)), nunca a cor do módulo. A cor do módulo (`cor`) segue
+  // usada no traço fino do topo e no glow do hover de cards normais - só a
+  // borda do premium3d é travada em verde-menta (o hover já usava essa cor
+  // certinho via CSS; só a borda padrão, antes do hover, estava errada).
+  const borda = premium3d ? "1px solid rgba(46,204,155,0.45)" : `1px solid ${cor}26`;
+
   if (motionIndex === undefined && !glow) {
     return (
       <div
         className={`relative rounded-2xl overflow-hidden${classeDestaque}${classePremium3d}`}
         style={{
           background: fundo,
-          border: `1px solid ${cor}26`,
+          border: borda,
           boxShadow,
         }}
       >
@@ -91,7 +99,7 @@ export function CanvasBox({
       className={`relative rounded-2xl overflow-hidden${glow ? " axi-card-hoverglow" : ""}${classeDestaque}${classePremium3d}`}
       style={{
         background: fundo,
-        border: `1px solid ${cor}26`,
+        border: borda,
         boxShadow,
       }}
     >
