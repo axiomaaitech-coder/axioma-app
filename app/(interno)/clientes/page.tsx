@@ -385,6 +385,9 @@ export default function ClientesPage() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
+  // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
+  // (tema-tokens.md §1.1). Escuro mantém o dourado original.
+  const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   const NIVEL_COR: Record<string, string> = { critico: ct(CORES.vermelho), atencao: ct(CORES.amarelo), bom: ct(CORES.verde), excelente: ct(CORES.verde) };
   const SEVERIDADE_COR: Record<string, string> = { risco: ct(CORES.vermelho), atencao: ct(CORES.amarelo), positivo: ct(CORES.verde) };
   const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
@@ -392,8 +395,8 @@ export default function ClientesPage() {
   const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
   const { inputStyle, selectStyle, labelStyle } = useCampoEstilo();
-  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
 
   const [aba, setAba] = useState<"carteira" | "cliente" | "cobrancas">("carteira");
   const [clientes, setClientes] = useState<ClienteRow[]>([]);
@@ -928,7 +931,7 @@ export default function ClientesPage() {
                       { label: tt.kpiNovosMes, valor: `${kpisCarteira.clientesNovosMes}`, cor: ct("#6ab0ff") },
                       { label: tt.kpiInativos, valor: `${kpisCarteira.clientesInativos}`, cor: ct("#94a3b8") },
                       { label: tt.kpiTempoRelac, valor: `${Math.round(kpisCarteira.tempoMedioRelacionamentoDias / 30)} ${tt.meses}`, cor: "#fbbf24" },
-                      { label: tt.kpiPremium, valor: `${kpisCarteira.qtdPremium}`, cor: ct(CORES.ouro) },
+                      { label: tt.kpiPremium, valor: `${kpisCarteira.qtdPremium}`, cor: corOuro },
                       { label: tt.kpiEstrategico, valor: `${kpisCarteira.qtdEstrategico}`, cor: "#8b5cf6" },
                       { label: tt.kpiEmRisco, valor: `${kpisCarteira.qtdEmRisco}`, cor: ct("#f87171") },
                       { label: tt.kpiNegligenciado, valor: `${kpisCarteira.qtdNegligenciado}`, cor: "#f97316" },
@@ -1013,9 +1016,9 @@ export default function ClientesPage() {
                   )}
                 </CanvasBox>
 
-                <CanvasBox cor="#d4af37">
+                <CanvasBox cor={corOuro}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Layers size={16} style={{ color: ct(CORES.ouro) }} />
+                    <Layers size={16} style={{ color: corOuro }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.distribuicaoIvca}</p>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
@@ -1167,7 +1170,7 @@ export default function ClientesPage() {
                         <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.tempoDeCasa} {Math.max(0, Math.round(clienteAtual.s.tempoComoClienteDias / 30))} {tt.meses}</p>
                       </div>
                       {clienteAtual.s.cliente.classificacao && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(212,175,55,0.12)", color: ct(CORES.ouro) }}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(212,175,55,0.12)", color: corOuro }}>
                           {nomeClassificacao(lang, clienteAtual.s.cliente.classificacao)}
                         </span>
                       )}
@@ -1323,7 +1326,7 @@ export default function ClientesPage() {
                           <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.sugestao}</p>
                         </div>
                         <div className="px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
-                          <p className="text-[9px] font-black uppercase mb-1" style={{ color: ct(CORES.ouro) }}>{tt.parecerProximoPasso}</p>
+                          <p className="text-[9px] font-black uppercase mb-1" style={{ color: corOuro }}>{tt.parecerProximoPasso}</p>
                           <p className="text-xs" style={{ color: ct("#e2e8f0") }}>{parecer.proximoPasso}</p>
                         </div>
                       </div>
@@ -1332,23 +1335,23 @@ export default function ClientesPage() {
 
                   {/* Conselho Executivo */}
                   {especialistas && (
-                    <CanvasBox cor="#d4af37">
+                    <CanvasBox cor={corOuro}>
                       <div className="flex items-center gap-2 mb-1">
-                        <Users size={16} style={{ color: ct(CORES.ouro) }} />
+                        <Users size={16} style={{ color: corOuro }} />
                         <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{tt.conselhoTitulo}</p>
                       </div>
                       <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{tt.conselhoSub}</p>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                         {especialistas.cards.map((e, i) => (
                           <div key={i} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
-                            <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{e.papel}</p>
+                            <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.papel}</p>
                             <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.texto}</p>
                           </div>
                         ))}
                       </div>
                       {especialistas.recomendacoes.length > 0 && (
                         <>
-                          <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{tt.recomendacaoConsolidada}</p>
+                          <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{tt.recomendacaoConsolidada}</p>
                           <div className="space-y-1.5">
                             {especialistas.recomendacoes.map((sinal, i) => (
                               <div key={i} className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>

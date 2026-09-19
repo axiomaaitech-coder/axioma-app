@@ -67,16 +67,22 @@ export default function Simulacoes() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
-  const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
-  const PAINEL_FUNDO_B = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
+  // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
+  // (tema-tokens.md §1.1). Escuro mantém o dourado original.
+  const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
+  // Creme #f6f7c4 + premium3d - mesmo padrão já usado no resto do app.
+  const PAINEL_FUNDO = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
+  const PAINEL_FUNDO_B = temaClaro ? "#f6f7c4" : "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))";
   const PAINEL_BORDA = temaClaro ? "rgba(124,58,237,0.18)" : "rgba(99,102,241,0.15)";
-  const CAMPO_BG = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)";
-  const CAMPO_BG2 = temaClaro ? "#f8fafc" : "rgba(255,255,255,0.02)";
-  const CAMPO_BG3 = temaClaro ? "#eef2f7" : "rgba(255,255,255,0.03)";
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const CAMPO_BG = temaClaro ? "#ffffff" : "rgba(255,255,255,0.04)";
+  const CAMPO_BG2 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.02)";
+  const CAMPO_BG3 = temaClaro ? "#ffffff" : "rgba(255,255,255,0.03)";
   const CAMPO_BORDA = temaClaro ? "rgba(46,204,155,0.2)" : "rgba(59,130,246,0.2)";
   const CAMPO_BORDA2 = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(59,130,246,0.1)";
-  const OURO_BADGE_BG = temaClaro ? "rgba(161,98,7,0.08)" : "rgba(212,175,55,0.08)";
-  const OURO_BADGE_BORDA = temaClaro ? "rgba(161,98,7,0.3)" : "rgba(212,175,55,0.3)";
+  const OURO_BADGE_BG = temaClaro ? "rgba(46,204,155,0.1)" : "rgba(212,175,55,0.08)";
+  const OURO_BADGE_BORDA = temaClaro ? "rgba(46,204,155,0.3)" : "rgba(212,175,55,0.3)";
 
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
@@ -349,7 +355,7 @@ export default function Simulacoes() {
         </div>
 
         {!temDadosSimulacao ? (
-          <CanvasBox cor={ct(CORES.indigo)}>
+          <CanvasBox cor={ct(CORES.indigo)} {...cartaoTema}>
             <div className="flex flex-col items-center justify-center py-16">
               <Sliders size={48} style={{ color: "#2e2a5a" }} className="mb-4" />
               <p className="text-sm text-center" style={{ color: ct("#5a7a9a") }}>{cx.simSemDados}</p>
@@ -358,7 +364,7 @@ export default function Simulacoes() {
         ) : (
           <>
             {/* PONTO DE PARTIDA */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}35` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}35` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Landmark size={16} style={{ color: ct(CORES.indigo) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simPontoPartidaTitulo}</p>
@@ -383,7 +389,7 @@ export default function Simulacoes() {
 
             {/* INDICADORES DE MERCADO */}
             {macro && (
-              <div className="rounded-2xl p-3 md:p-4" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+              <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                 <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
                   <div className="flex items-center gap-2">
                     <Percent size={14} style={{ color: ct(CORES.indigo) }} />
@@ -418,7 +424,7 @@ export default function Simulacoes() {
             </div>
 
             {/* OBJETIVOS RÁPIDOS */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Target size={16} style={{ color: ct(CORES.indigo) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simObjetivosTitulo}</p>
@@ -468,7 +474,7 @@ export default function Simulacoes() {
             </div>
 
             {/* CHOQUES / MOTOR DE SIMULAÇÃO */}
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
               <div className="flex items-center gap-2 mb-1">
                 <Sliders size={16} style={{ color: ct(CORES.indigo) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.invSimuladorTitulo}</p>
@@ -517,7 +523,7 @@ export default function Simulacoes() {
             {resultado && cenarioBase && (
               <>
                 {/* CENÁRIOS */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <TrendingUp size={16} style={{ color: ct(CORES.indigo) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simCenariosTitulo}</p>
@@ -543,7 +549,7 @@ export default function Simulacoes() {
                 </div>
 
                 {/* ANÁLISE DE SENSIBILIDADE */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <AlertTriangle size={16} style={{ color: ct(CORES.indigo) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simSensibilidadeTitulo}</p>
@@ -569,7 +575,7 @@ export default function Simulacoes() {
                 </div>
 
                 {/* MONTE CARLO */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Dices size={16} style={{ color: ct(CORES.indigo) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simMonteCarloTitulo}</p>
@@ -598,7 +604,7 @@ export default function Simulacoes() {
                 </div>
 
                 {/* TRIBUTÁRIO */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${ct(CORES.indigo)}30` }}>
                   <div className="flex items-center gap-2 mb-1">
                     <Landmark size={16} style={{ color: ct(CORES.indigo) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simTributarioTitulo}</p>
@@ -611,7 +617,7 @@ export default function Simulacoes() {
                         <div key={t.regime} className="rounded-xl p-3" style={{ background: isMelhor ? OURO_BADGE_BG : CAMPO_BG3, border: `1px solid ${isMelhor ? OURO_BADGE_BORDA : "var(--axi-border)"}` }}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-black" style={{ color: ct("#e2e8f0") }}>{NOME_REGIME[t.regime]}</p>
-                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(212,175,55,0.15)", color: ct(CORES.ouro) }}>{cx.simRegimeMelhorTag}</span>}
+                            {isMelhor && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(212,175,55,0.15)", color: corOuro }}>{cx.simRegimeMelhorTag}</span>}
                           </div>
                           <p className="text-[9px] uppercase tracking-wider" style={{ color: ct("#64748b") }}>{cx.simImpostoMensalLabel}</p>
                           <p className="text-xs font-black mb-1.5" style={{ color: ct(PRATAC) }}>{fBRL(t.impostoMensal)}</p>
@@ -624,14 +630,14 @@ export default function Simulacoes() {
                 </div>
 
                 {/* CONSELHO EXECUTIVO */}
-                <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
+                <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles size={16} style={{ color: ct(CORES.ouro) }} />
+                    <Sparkles size={16} style={{ color: corOuro }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.simConselhoTitulo}</p>
                   </div>
                   <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{cx.simConselhoSub}</p>
 
-                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{cx.simResumoLabel}</p>
+                  <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.simResumoLabel}</p>
                   <p className="text-xs md:text-[13px] font-medium mb-4" style={{ color: ct("#e2e8f0") }}>{montarNarrativaMonteCarlo(lang, resultado.monteCarlo)}</p>
 
                   {riscos.length > 0 && (
@@ -684,12 +690,12 @@ export default function Simulacoes() {
 
                   {planoAcao.length > 0 && (
                     <>
-                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{cx.simPlanoAcaoLabel}</p>
+                      <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.simPlanoAcaoLabel}</p>
                       <div className="space-y-1.5 mb-4">
                         {planoAcao.map((a, i) => (
                           <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
-                            <ShieldCheck size={15} style={{ color: ct(CORES.ouro), flexShrink: 0 }} />
-                            <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{a}</p>
+                            <ShieldCheck size={15} style={{ color: corOuro, flexShrink: 0 }} />
+                            <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#f0d878" }}>{a}</p>
                           </div>
                         ))}
                       </div>

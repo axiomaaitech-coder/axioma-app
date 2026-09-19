@@ -74,6 +74,9 @@ export default function Precificacao() {
   const { tema } = useThemeAxioma();
   const temaClaro = tema === "xms";
   const ct = (hex: string) => corTema(hex, temaClaro);
+  // Dourado não é cor da paleta padrão - no Claro vira verde-menta oficial
+  // (tema-tokens.md §1.1). Escuro mantém o dourado original.
+  const corOuro = temaClaro ? "#2ecc9b" : ct(CORES.ouro);
   const COR_PRC = ct(CORES.amarelo);
   const COR_PRC_C = ct(CORES.amareloC);
   const PAINEL_FUNDO = temaClaro ? "#ffffff" : "linear-gradient(160deg, rgba(20,15,55,0.9), rgba(10,8,32,0.95))";
@@ -451,7 +454,7 @@ export default function Precificacao() {
   const menorPreco = produtos.length > 0 ? Math.min(...produtos.map((p) => p.preco_sugerido || 0)) : 0;
   const maiorPreco = produtos.length > 0 ? Math.max(...produtos.map((p) => p.preco_sugerido || 0)) : 0;
 
-  const composicaoReceita = comDadosDeVenda.map((d, i) => ({ name: d.produto.produto_servico, value: d.receitaMensal, color: [ct(CORES.amarelo), ct(CORES.ouro), ct(CORES.azul), ct(CORES.verde), ct(CORES.rosa), ct(CORES.roxo)][i % 6] }));
+  const composicaoReceita = comDadosDeVenda.map((d, i) => ({ name: d.produto.produto_servico, value: d.receitaMensal, color: [ct(CORES.amarelo), corOuro, ct(CORES.azul), ct(CORES.verde), ct(CORES.rosa), ct(CORES.roxo)][i % 6] }));
   const optComposicaoReceita = optRosca(composicaoReceita, COR_PRC, cx.total, temaClaro);
 
   const marquee = [
@@ -556,7 +559,7 @@ export default function Precificacao() {
         ) : (
           <>
             {/* Letreiro */}
-            <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${COR_PRC}20, ${ct(CORES.ouro)}15)`, border: `1px solid ${COR_PRC}40` }}>
+            <div className="relative rounded-xl overflow-hidden" style={{ background: `linear-gradient(90deg, ${COR_PRC}20, ${corOuro}15)`, border: `1px solid ${COR_PRC}40` }}>
               <div className="marquee-prc py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
                 {[0, 1].map((rep) => (
                   <span key={rep} className="text-[13px] font-bold tracking-wide" style={{}} aria-hidden={rep === 1}>
@@ -775,7 +778,7 @@ export default function Precificacao() {
             {/* PAINEL DE ESPECIALISTAS */}
             <div className="rounded-2xl p-4 md:p-5" style={{ background: PAINEL_FUNDO, border: `1px solid ${OURO_BADGE_BORDA}` }}>
               <div className="flex items-center gap-2 mb-1">
-                <Users size={16} style={{ color: ct(CORES.ouro) }} />
+                <Users size={16} style={{ color: corOuro }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9") }}>{cx.prcPainelEspecialistasTitulo}</p>
               </div>
               <p className="text-[11px] mb-4" style={{ color: ct("#64748b") }}>{cx.prcPainelEspecialistasSub}</p>
@@ -788,16 +791,16 @@ export default function Precificacao() {
                   { l: cx.prcEspecialistaAnalista, t: elasticidade.temDadosSuficientes ? montarNarrativaElasticidade(lang, elasticidade) : cx.prcElasticidadeDadosInsuficientes },
                 ].map((e, i) => (
                   <div key={i} className="rounded-xl p-3" style={{ background: CAMPO_BG3 }}>
-                    <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{e.l}</p>
+                    <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{e.l}</p>
                     <p className="text-xs font-medium" style={{ color: ct("#e2e8f0") }}>{e.t}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: ct(CORES.ouro) }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
+              <p className="text-[10px] font-black uppercase tracking-wider mb-1.5" style={{ color: corOuro }}>{cx.prcRecomendacaoConsolidadaTitulo}</p>
               <div className="space-y-1.5 mb-3">
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: OURO_BADGE_BG, border: `1px solid ${OURO_BADGE_BORDA}` }}>
-                  <Sparkles size={15} style={{ color: ct(CORES.ouro), flexShrink: 0, marginTop: 2 }} />
-                  <p className="text-xs md:text-[13px] font-medium" style={{ color: "#f0d878" }}>{montarNarrativaIPPA(lang, ippa)}</p>
+                  <Sparkles size={15} style={{ color: corOuro, flexShrink: 0, marginTop: 2 }} />
+                  <p className="text-xs md:text-[13px] font-medium" style={{ color: temaClaro ? "#374151" : "#f0d878" }}>{montarNarrativaIPPA(lang, ippa)}</p>
                 </div>
                 {piorOportunidade && (
                   <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
