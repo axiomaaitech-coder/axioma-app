@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import ReactECharts from 'echarts-for-react'
 import { TrendingUp, Building2, Landmark, Wallet } from 'lucide-react'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
@@ -172,7 +173,7 @@ export default function TesourariaGemeoPage() {
             ].map((k) => (
               <div key={k.label} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${k.cor}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{k.label}</p>
-                <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}>{(k as any).semReais ? k.valor : `R$ ${fBRL2(k.valor)}`}</p>
+                <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: k.cor }}><AnimatedNumber value={(k as any).semReais ? String(k.valor) : `R$ ${fBRL2(k.valor)}`} /></p>
               </div>
             ))}
           </div>

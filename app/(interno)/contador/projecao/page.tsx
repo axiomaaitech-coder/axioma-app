@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ModuloLayout from '../../../../components/ModuloLayout'
+import { AnimatedNumber } from '../../../../components/AnimatedNumber'
 import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { useLanguage } from '../../../../lib/LanguageContext'
@@ -78,7 +79,7 @@ export default function ContadorProjecaoPage() {
             {dados.pontos.map((p) => (
               <div key={p.horizonteDias} className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${p.abaixoDaReserva ? VERMELHO : AZULC}25` }}>
                 <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{p.horizonteDias} {L('dias', 'days', 'días')}</p>
-                <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: p.abaixoDaReserva ? VERMELHO : AZULC }}>R$ {fBRL2(p.saldoProjetadoBase)}</p>
+                <p className="text-sm md:text-lg font-bold whitespace-nowrap" style={{ color: p.abaixoDaReserva ? VERMELHO : AZULC }}><AnimatedNumber value={`R$ ${fBRL2(p.saldoProjetadoBase)}`} /></p>
                 {p.abaixoDaReserva && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{L('abaixo da reserva', 'below reserve', 'debajo de la reserva')}</p>}
               </div>
             ))}
@@ -87,15 +88,15 @@ export default function ContadorProjecaoPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${dados.capitalDeGiro.capitalDeGiro >= 0 ? VERDE : VERMELHO}25` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Capital de Giro', 'Working Capital', 'Capital de Trabajo')}</p>
-              <p className="text-sm md:text-lg font-bold" style={{ color: dados.capitalDeGiro.capitalDeGiro >= 0 ? VERDE : VERMELHO }}>R$ {fBRL2(dados.capitalDeGiro.capitalDeGiro)}</p>
+              <p className="text-sm md:text-lg font-bold" style={{ color: dados.capitalDeGiro.capitalDeGiro >= 0 ? VERDE : VERMELHO }}><AnimatedNumber value={`R$ ${fBRL2(dados.capitalDeGiro.capitalDeGiro)}`} /></p>
             </div>
             <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AMARELO}25` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Dívida Pendente', 'Outstanding Debt', 'Deuda Pendiente')}</p>
-              <p className="text-sm md:text-lg font-bold" style={{ color: AMARELO }}>R$ {fBRL2(dados.dividaPendente)}</p>
+              <p className="text-sm md:text-lg font-bold" style={{ color: AMARELO }}><AnimatedNumber value={`R$ ${fBRL2(dados.dividaPendente)}`} /></p>
             </div>
             <div className={`rounded-2xl p-3 md:p-4${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${AZULC}25` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: CINZA }}>{L('Liquidity Score', 'Liquidity Score', 'Liquidity Score')}</p>
-              <p className="text-sm md:text-lg font-bold" style={{ color: AZULC }}>{dados.liquidityScoreAtual.total}</p>
+              <p className="text-sm md:text-lg font-bold" style={{ color: AZULC }}><AnimatedNumber value={String(dados.liquidityScoreAtual.total)} /></p>
             </div>
           </div>
         </div>
