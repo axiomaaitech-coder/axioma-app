@@ -357,7 +357,7 @@ export default function Endividamento() {
   const escadaLabels = escada.map(b => b.label);
   const escadaValores = escada.map(b => b.valor);
   const escadaCores = escada.map(b => b.muro ? ct(CORES.vermelho) : null);
-  const optEscada = optBarrasV(escadaValores, escadaLabels, ct(temaClaro ? CORES.azul : CORES.rosa), temaClaro ? CORES.azulC : CORES.rosaC, escadaCores, temaClaro);
+  const optEscada = optBarrasV(escadaValores, escadaLabels, ct(temaClaro ? CORES.verde : CORES.rosa), temaClaro ? CORES.verde : CORES.rosaC, escadaCores, temaClaro);
 
   const maxMesesQuit = Math.max(projMinimo.length, projAvalanche.length);
   const labelsQuit = Array.from({ length: maxMesesQuit }, (_, i) => `M${i}`);
@@ -365,10 +365,10 @@ export default function Endividamento() {
   const serieAva = Array.from({ length: maxMesesQuit }, (_, i) => projAvalanche[i]?.saldoDevedor ?? 0);
   const optQuitacao = optLinhaMulti(
     [
-      { nome: cx.cenarioMinimoLabel, dados: serieMin, cor: ct(temaClaro ? CORES.azul : CORES.rosa), area: true },
+      { nome: cx.cenarioMinimoLabel, dados: serieMin, cor: ct(temaClaro ? CORES.verde : CORES.rosa), area: true },
       { nome: cx.cenarioAvalancheLabel, dados: serieAva, cor: ct(CORES.verde) },
     ],
-    labelsQuit, ct(temaClaro ? CORES.azul : CORES.rosa), temaClaro
+    labelsQuit, ct(temaClaro ? CORES.verde : CORES.rosa), temaClaro
   );
 
   const kpisCFO = [
@@ -418,7 +418,7 @@ export default function Endividamento() {
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(temaClaro ? CORES.azul : CORES.rosa)} lang={lang} />
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
@@ -443,7 +443,7 @@ export default function Endividamento() {
         </div>
 
         {!temDados ? (
-          <CanvasBox cor={ct(temaClaro ? CORES.azul : CORES.rosa)} {...cartaoTema}>
+          <CanvasBox cor={ct(temaClaro ? CORES.verde : CORES.rosa)} {...cartaoTema}>
             <p className="text-sm text-center py-8" style={{ color: TEXTO_SEC }}>{cx.semDividaTitulo}</p>
           </CanvasBox>
         ) : (
@@ -451,7 +451,7 @@ export default function Endividamento() {
             {/* SEMÁFORO DE SOLVÊNCIA */}
             <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${corSolvencia === "verde" ? "rgba(16,185,129,0.3)" : corSolvencia === "amarelo" ? "rgba(234,179,8,0.3)" : "rgba(239,68,68,0.3)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.rosa) }} />
+                <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.indicadoresSolvenciaTitulo}</p>
                 <span className="inline-block rounded-full flex-shrink-0" style={{ width: 14, height: 14, background: corSolvencia === "verde" ? ct(CORES.verde) : corSolvencia === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho), boxShadow: `0 0 10px ${corSolvencia === "verde" ? ct(CORES.verde) : corSolvencia === "amarelo" ? ct(CORES.amarelo) : ct(CORES.vermelho)}` }} />
               </div>
@@ -491,29 +491,29 @@ export default function Endividamento() {
             </div>
 
             {/* ESCADA DE VENCIMENTOS */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : (temaClaro ? "rgba(59,130,246,0.2)" : "rgba(236,72,153,0.2)")}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${proximoMuro ? "rgba(239,68,68,0.3)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)")}` }}>
               <div className="flex items-center gap-2 mb-2">
-                {proximoMuro ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.rosa) }} />}
+                {proximoMuro ? <AlertTriangle size={16} style={{ color: ct(CORES.vermelho) }} /> : <ShieldCheck size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />}
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.escadaVencimentosTitulo}</p>
               </div>
               <p className="text-sm leading-relaxed mb-3" style={{ color: proximoMuro ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaMuro}</p>
-              <SubChart titulo={cx.escadaVencimentosTitulo} cor={ct(temaClaro ? CORES.azul : CORES.rosa)} option={optEscada} altura={240} />
+              <SubChart titulo={cx.escadaVencimentosTitulo} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} option={optEscada} altura={240} />
             </div>
 
             {/* MÉTODO AVALANCHE */}
-            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(59,130,246,0.2)" : "rgba(236,72,153,0.2)"}` }}>
+            <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}` }}>
               <div className="flex items-center gap-2 mb-3">
-                <Zap size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.rosa) }} />
+                <Zap size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
                 <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.avalancheTitulo}</p>
               </div>
               <div className="space-y-2">
                 {avalanche.map((a, i) => (
                   <div key={i} className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl" style={{ background: a.cara ? "rgba(239,68,68,0.08)" : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)"), border: `1px solid ${a.cara ? "rgba(239,68,68,0.25)" : (temaClaro ? NESTED_BORDA : "rgba(255,255,255,0.06)")}` }}>
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(temaClaro ? CORES.azul : CORES.rosa) : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.08)"), color: a.ordem === 1 ? "#fff" : (temaClaro ? "#374151" : ct("#94a3b8")) }}>{a.ordem}</span>
+                      <span className="text-xs font-black flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: a.ordem === 1 ? ct(temaClaro ? CORES.verde : CORES.rosa) : (temaClaro ? NESTED_BG : "rgba(255,255,255,0.08)"), color: a.ordem === 1 ? "#fff" : (temaClaro ? "#374151" : ct("#94a3b8")) }}>{a.ordem}</span>
                       <p className="text-sm font-bold truncate" style={{ color: ct("#e2e8f0") }}>{a.descricao}</p>
                       {a.cara && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: "rgba(239,68,68,0.15)", color: ct(CORES.vermelho) }}>{cx.dividaCaraTag}</span>}
-                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: temaClaro ? "rgba(59,130,246,0.15)" : "rgba(236,72,153,0.15)", color: ct(temaClaro ? CORES.azul : CORES.rosa) }}>{cx.quitarPrimeiroLabel}</span>}
+                      {a.ordem === 1 && <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: temaClaro ? "rgba(16,185,129,0.15)" : "rgba(236,72,153,0.15)", color: ct(temaClaro ? CORES.verde : CORES.rosa) }}>{cx.quitarPrimeiroLabel}</span>}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-black" style={{ color: a.cara ? ct(CORES.vermelho) : ct("#e2e8f0") }}>{fPct(a.taxaJurosAM)}/m</p>
@@ -536,19 +536,19 @@ export default function Endividamento() {
                 </div>
 
                 <div className="mb-5">
-                  <SubChart titulo={cx.projecaoQuitacaoTitulo} cor={ct(temaClaro ? CORES.azul : CORES.rosa)} option={optQuitacao} altura={280} />
+                  <SubChart titulo={cx.projecaoQuitacaoTitulo} cor={ct(temaClaro ? CORES.verde : CORES.rosa)} option={optQuitacao} altura={280} />
                 </div>
 
                 {/* Simulador de Refinanciamento */}
                 <div className="rounded-xl p-3 md:p-4" style={{ background: NESTED_BG, border: `1px solid ${temaClaro ? NESTED_BORDA : ct(CORES.rosa) + "20"}` }}>
                   <div className="flex items-center gap-2 mb-3">
-                    <Sliders size={15} style={{ color: ct(temaClaro ? CORES.azul : CORES.rosa) }} />
+                    <Sliders size={15} style={{ color: ct(temaClaro ? CORES.verde : CORES.rosa) }} />
                     <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.simuladorTitulo}</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
                     <select value={simDividaId} onChange={(e) => setSimDividaId(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: campoFundo3, border: `1px solid ${temaClaro ? "rgba(59,130,246,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }}>
+                      style={{ background: campoFundo3, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }}>
                       <option value="">{t.geral.descricao}...</option>
                       {dividas.filter(d => d.valor_total - d.valor_pago > 0).map(d => (
                         <option key={d.id} value={d.id}>{d.descricao} ({fPct(d.taxa_juros)}/m)</option>
@@ -556,17 +556,17 @@ export default function Endividamento() {
                     </select>
                     <input type="number" placeholder={cx.novaTaxaLabel} value={simNovaTaxa} onChange={(e) => setSimNovaTaxa(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(59,130,246,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }} />
+                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }} />
                     <input type="number" placeholder={cx.novoPrazoLabel} value={simNovoPrazo} onChange={(e) => setSimNovoPrazo(e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none"
-                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(59,130,246,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }} />
+                      style={{ background: campoFundo, border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)"}`, color: "var(--axi-text-primary)" }} />
                   </div>
                   {resultadoSim && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {[
                         { l: cx.economiaJurosLabel, v: fBRL(resultadoSim.economiaJurosMensal), c: resultadoSim.economiaJurosMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                         { l: cx.liberacaoCaixaLabel, v: fBRL(resultadoSim.liberacaoCaixaMensal), c: resultadoSim.liberacaoCaixaMensal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
-                        { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: ct(temaClaro ? CORES.azul : CORES.rosa) },
+                        { l: "Nova Parcela", v: fBRL(resultadoSim.parcelaNova), c: ct(temaClaro ? CORES.verde : CORES.rosa) },
                         { l: "Economia Total", v: fBRL(resultadoSim.economiaJurosTotal), c: resultadoSim.economiaJurosTotal >= 0 ? ct(CORES.verde) : ct(CORES.vermelho) },
                       ].map((c, i) => (
                         <div key={i} className="rounded-xl px-3 py-2" style={{ background: temaClaro ? NESTED_BG : "rgba(255,255,255,0.03)" }}>
@@ -601,8 +601,8 @@ export default function Endividamento() {
             </div>
 
             {/* Regra de ouro + Runway */}
-            <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : (temaClaro ? "rgba(59,130,246,0.2)" : "rgba(236,72,153,0.2)")}` }}>
-              <Clock size={18} style={{ color: runwayMeses === null ? ct(CORES.vermelho) : ct(temaClaro ? CORES.azul : CORES.rosa), flexShrink: 0 }} />
+            <div className={`rounded-2xl p-4 md:p-5 flex items-center gap-3${classePremium3d}`} style={{ background: painelFundo, border: `1px solid ${runwayMeses === null ? "rgba(239,68,68,0.25)" : (temaClaro ? "rgba(16,185,129,0.2)" : "rgba(236,72,153,0.2)")}` }}>
+              <Clock size={18} style={{ color: runwayMeses === null ? ct(CORES.vermelho) : ct(temaClaro ? CORES.verde : CORES.rosa), flexShrink: 0 }} />
               <div>
                 <p className="text-sm" style={{ color: runwayMeses === null ? ct("#fca5a5") : ct("#e2e8f0") }}>{narrativaRunway}</p>
                 <p className="text-xs mt-1" style={{ color: TEXTO_SEC }}>{cx.regraOuroNegociar}</p>

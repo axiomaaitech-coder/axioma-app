@@ -100,7 +100,7 @@ export default function FluxoCaixa() {
   const TEXTO_SEC = temaClaro ? "#374151" : "var(--axi-text-secondary)";
   const NESTED_BG = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(8,6,24,0.5)";
   const NESTED_BORDA = temaClaro ? "rgba(16,27,61,0.12)" : undefined;
-  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(6,182,212,0.14), rgba(59,130,246,0.10))";
+  const LETREIRO_BG = temaClaro ? "#101b3d" : "linear-gradient(90deg, rgba(6,182,212,0.14), rgba(16,185,129,0.10))";
   const LETREIRO_BORDA = temaClaro ? "#101b3d" : "rgba(6,182,212,0.24)";
   const LETREIRO_TEXTO = temaClaro ? "#ffffff" : ct("#e2e8f0");
   const LETREIRO_DESTAQUE = temaClaro ? "#2ecc9b" : ct("#67e8f9");
@@ -442,7 +442,7 @@ export default function FluxoCaixa() {
       <div className="space-y-4">
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.cyan)} lang={lang} />
+          <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(CORES.cyan)} lang={lang} temaClaro={temaClaro} />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
             style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "rgba(139,92,246,0.15)", border: temaClaro ? "none" : "1px solid rgba(139,92,246,0.4)", color: temaClaro ? "#fff" : ct(CORES.roxoC) }}>
@@ -542,7 +542,7 @@ export default function FluxoCaixa() {
                   {[
                     { l: cx.origemContasReceber, v: entradasAutoContasReceber.reduce((a, e) => a + e.valor, 0), c: ct(CORES.verde) },
                     { l: cx.origemContasPagar, v: saidasAutoContasPagar.reduce((a, e) => a + e.valor, 0), c: ct(CORES.vermelho) },
-                    { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.azul : CORES.laranja) },
+                    { l: cx.origemCustosFixos, v: saidasAutoCustosFixos.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.verde : CORES.laranja) },
                     { l: cx.origemDividas, v: saidasAutoDividas.reduce((a, e) => a + e.valor, 0), c: ct(temaClaro ? CORES.cyan : CORES.rosa) },
                   ].map((o) => (
                     <div key={o.l} className="rounded-xl px-3 py-2.5" style={{ background: temaClaro ? NESTED_BG : `${o.c}0c`, border: `1px solid ${temaClaro ? NESTED_BORDA : o.c + "25"}` }}>
@@ -566,11 +566,11 @@ export default function FluxoCaixa() {
                       <p className="text-xs font-medium" style={{ color: ct("#64748b") }}>{cx.cenarioOtimista} · {cx.cenarioPrevisto} · {cx.cenarioPessimista}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1 rounded-xl p-1" style={{ background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.8)", border: "1px solid rgba(6,182,212,0.2)" }}>
+                  <div className="flex gap-1 rounded-xl p-1" style={{ background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.8)", border: `1px solid ${temaClaro ? "rgba(16,185,129,0.2)" : "rgba(6,182,212,0.2)"}` }}>
                     {[{ v: true, l: cx.visaoSemanal }, { v: false, l: cx.visaoMensal }].map((opt) => (
                       <button key={opt.l} onClick={() => setVisaoSemanal(opt.v)}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        style={{ background: visaoSemanal === opt.v ? "rgba(6,182,212,0.3)" : "transparent", color: visaoSemanal === opt.v ? ct(CORES.cyan) : TEXTO_SEC }}>
+                        style={{ background: visaoSemanal === opt.v ? (temaClaro ? "rgba(16,185,129,0.3)" : "rgba(6,182,212,0.3)") : "transparent", color: visaoSemanal === opt.v ? ct(temaClaro ? CORES.verde : CORES.cyan) : TEXTO_SEC }}>
                         {opt.l}
                       </button>
                     ))}
@@ -590,7 +590,7 @@ export default function FluxoCaixa() {
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
-                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
+                  <p className="text-sm font-black" style={{ color: ct(temaClaro ? CORES.verde : "#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (

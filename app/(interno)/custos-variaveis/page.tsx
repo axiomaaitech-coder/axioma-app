@@ -45,11 +45,13 @@ const CAT_COR: Record<string, string> = {
   "Marketing": CORES.laranja, "Logística": CORES.cyan, "Matéria-prima": CORES.roxo,
   "Comissões": CORES.amarelo, "Embalagens": CORES.teal, "Outros": CORES.rosa,
 };
-// Claro: paleta de composição padronizada (só verde/azul/cyan/cinza, nunca
-// dourado/laranja/roxo) — Escuro inalterado (mantém CAT_COR acima intacto).
+// Claro: sequência OFICIAL de cores pra gráficos (tema-tokens.md §1.4),
+// aplicada em ordem às categorias (6 categorias, repete na última) —
+// Escuro inalterado. chart-1 #2ecc9b · chart-2 #101b3d · chart-3 #34d399 ·
+// chart-4 #6b7280 · chart-5 #122b54
 const CAT_COR_CLARO: Record<string, string> = {
-  [CORES.laranja]: "#94a3b8", [CORES.roxo]: CORES.azul, [CORES.amarelo]: CORES.verde,
-  [CORES.teal]: CORES.azulC, [CORES.rosa]: CORES.verde,
+  [CORES.laranja]: "#2ecc9b", [CORES.cyan]: "#101b3d", [CORES.roxo]: "#34d399",
+  [CORES.amarelo]: "#6b7280", [CORES.teal]: "#122b54", [CORES.rosa]: "#2ecc9b",
 };
 
 type CustoVariavel = {
@@ -320,7 +322,7 @@ export default function CustosVariaveis() {
   const optTop = optBarrasV(
     topCustos.map(c => Number(c.valor) || 0),
     topCustos.map(c => (c.descricao || "").length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao),
-    ct(temaClaro ? CORES.azul : CORES.amarelo), temaClaro ? CORES.azulC : CORES.amareloC, undefined, temaClaro
+    ct(temaClaro ? CORES.verde : CORES.amarelo), temaClaro ? CORES.verde : CORES.amareloC, undefined, temaClaro
   );
 
   const labelsHist = serieCVHist.map(b => b.label);
@@ -328,10 +330,10 @@ export default function CustosVariaveis() {
   const optMargem = optLinhaMulti(
     [
       { nome: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", dados: serieRolling(receitas, 12, periodo.fim).map(b => b.value), cor: ct(CORES.verde), area: true },
-      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(temaClaro ? CORES.azul : CORES.laranja) },
-      { nome: cx.pontoEquilibrio, dados: peSerie, cor: ct(temaClaro ? CORES.azul : CORES.rosa), tipo: "dashed" as const },
+      { nome: t.custosVariaveis.titulo, dados: serieCVHist.map(b => b.value), cor: ct(temaClaro ? CORES.verde : CORES.laranja) },
+      { nome: cx.pontoEquilibrio, dados: peSerie, cor: ct(temaClaro ? CORES.verde : CORES.rosa), tipo: "dashed" as const },
     ],
-    labelsHist, ct(temaClaro ? CORES.azul : CORES.laranja), temaClaro
+    labelsHist, ct(temaClaro ? CORES.verde : CORES.laranja), temaClaro
   );
 
   const labelsProj = ["+1", "+2", "+3"];
@@ -339,16 +341,16 @@ export default function CustosVariaveis() {
     [...serieCVHist.slice(-6).map(b => b.value), ...Array(3).fill(null)],
     previsaoCV,
     [...serieCVHist.slice(-6).map(b => b.label), ...labelsProj],
-    cx.realizado, cx.projetado, ct(temaClaro ? CORES.azul : CORES.laranja), temaClaro ? CORES.azulC : CORES.laranjaC, temaClaro
+    cx.realizado, cx.projetado, ct(temaClaro ? CORES.verde : CORES.laranja), temaClaro ? CORES.verde : CORES.laranjaC, temaClaro
   );
 
   const kpisCFO = [
-    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: ct(temaClaro ? CORES.azul : CORES.laranja), i: "📉", delta: comparativoCV, polaridadeInvertida: true },
+    { l: cx.custoVariavelMes, v: fBRL(comparativoCV.atual), c: ct(temaClaro ? CORES.verde : CORES.laranja), i: "📉", delta: comparativoCV, polaridadeInvertida: true },
     { l: cx.margemContribuicao, v: fPct(mc.pct), c: ct(CORES.verde), i: "📊", delta: null as ComparativoPeriodo | null, polaridadeInvertida: false },
     { l: cx.pontoEquilibrio, v: pe !== null ? fBRL(pe) : cx.semBreakeven, c: ct(CORES.cyan), i: "⚖️", delta: null, polaridadeInvertida: false },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.azul : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️", delta: null, polaridadeInvertida: false },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.verde : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️", delta: null, polaridadeInvertida: false },
     { l: cx.volatilidade, v: fPct(volatilidade), c: volatilidade > 25 ? ct(CORES.vermelho) : volatilidade > 15 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🌊", delta: null, polaridadeInvertida: false },
-    { l: cx.pesoReceita, v: fPct(pesoReceita), c: ct(temaClaro ? CORES.azul : CORES.roxo), i: "⚡", delta: null, polaridadeInvertida: false },
+    { l: cx.pesoReceita, v: fPct(pesoReceita), c: ct(temaClaro ? CORES.verde : CORES.roxo), i: "⚡", delta: null, polaridadeInvertida: false },
   ];
 
   const marquee = [
@@ -398,7 +400,7 @@ export default function CustosVariaveis() {
           <SeletorPeriodo
             preset={presetPeriodo} onChangePreset={setPresetPeriodo}
             personalizado={personalizado} onChangePersonalizado={setPersonalizado}
-            cor={ct(temaClaro ? CORES.azul : CORES.laranja)} lang={lang}
+            cor={ct(temaClaro ? CORES.verde : CORES.laranja)} lang={lang} temaClaro={temaClaro}
           />
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
@@ -410,9 +412,9 @@ export default function CustosVariaveis() {
         {/* Cards originais */}
         <div className="grid grid-cols-3 gap-3 md:gap-4">
           {[
-            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.azul : "#f97316") },
+            { label: t.custosVariaveis.totalMes, value: fBRL(totalMes), cor: ct(temaClaro ? CORES.verde : "#f97316") },
             { label: t.custosVariaveis.lancamentos, value: `${custos.length}`, cor: ct("#6ab0ff") },
-            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.azul : "#fbbf24") },
+            { label: t.custosVariaveis.maiorCusto, value: fBRL(maiorCusto), cor: ct(temaClaro ? CORES.verde : "#fbbf24") },
           ].map((card, i) => (
             <motion.div key={card.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
               <CanvasBox cor={card.cor} destaque {...cartaoTema}>
@@ -456,7 +458,7 @@ export default function CustosVariaveis() {
             {(narrativaVariacao || narrativaMargem) && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(249,115,22,0.2)" }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <MessageSquareText size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.laranja) }} />
+                  <MessageSquareText size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.narrativaTitulo}</p>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: ct("#e2e8f0") }}>
@@ -477,13 +479,13 @@ export default function CustosVariaveis() {
                 </div>
 
                 <div className="mb-4">
-                  <SubChart titulo={cx.analiseMargem} cor={ct(temaClaro ? CORES.azul : CORES.laranja)} option={optMargem} altura={280} />
+                  <SubChart titulo={cx.analiseMargem} cor={ct(temaClaro ? CORES.verde : CORES.laranja)} option={optMargem} altura={280} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <SubChart titulo={t.geral.categoria} cor={ct(temaClaro ? CORES.verde : CORES.laranja)} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.azul : CORES.amarelo)} option={optTop} altura={260} />
-                  <SubChart titulo={cx.previsao} cor={ct(temaClaro ? CORES.azul : CORES.roxo)} option={optProjecao} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.verde : CORES.amarelo)} option={optTop} altura={260} />
+                  <SubChart titulo={cx.previsao} cor={ct(temaClaro ? CORES.verde : CORES.roxo)} option={optProjecao} altura={260} />
                 </div>
               </div>
             </div>
@@ -534,7 +536,7 @@ export default function CustosVariaveis() {
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
-                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
+                  <p className="text-sm font-black" style={{ color: ct(temaClaro ? CORES.verde : "#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (
@@ -560,7 +562,7 @@ export default function CustosVariaveis() {
         </CanvasBox>
 
         {/* Tabela */}
-        <CanvasBox cor={ct(temaClaro ? CORES.azul : "#f97316")} {...cartaoTema}>
+        <CanvasBox cor={ct(temaClaro ? CORES.verde : "#f97316")} {...cartaoTema}>
           <div className="overflow-x-auto">
             {carregando ? (
               <div className="flex items-center justify-center py-16">
@@ -585,11 +587,11 @@ export default function CustosVariaveis() {
                       <td className="px-4 md:px-6 py-3 text-sm" style={{ color: "var(--axi-text-primary)" }}>{c.descricao}</td>
                       <td className="px-4 md:px-6 py-3"><span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ background: `${catCorAtual[c.categoria] || ct("#6ab0ff")}18`, color: catCorAtual[c.categoria] || ct("#6ab0ff") }}>{c.categoria}</span></td>
                       <td className="px-4 md:px-6 py-3 text-sm whitespace-nowrap" style={{ color: TEXTO_SEC }}>{new Date(c.data + "T00:00:00").toLocaleDateString("pt-BR")}</td>
-                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.azul : "#f97316") }}>{fBRL(c.valor)}</td>
+                      <td className="px-4 md:px-6 py-3 text-sm font-black whitespace-nowrap" style={{ color: ct(temaClaro ? CORES.verde : "#f97316") }}>{fBRL(c.valor)}</td>
                       <td className="px-4 md:px-6 py-3">
                         <div className="flex items-center gap-3">
                           <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicao(c)} style={{ color: ct("#6ab0ff") }}><Pencil size={16} /></motion.button>
-                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct(temaClaro ? CORES.azul : "#f97316") }}><Trash2 size={16} /></motion.button>
+                          <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluir(c.id)} style={{ color: ct(temaClaro ? CORES.verde : "#f97316") }}><Trash2 size={16} /></motion.button>
                         </div>
                       </td>
                     </motion.tr>
@@ -610,10 +612,10 @@ export default function CustosVariaveis() {
             <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
               className="w-full max-w-md">
-              <CanvasBox cor={ct(temaClaro ? CORES.azul : "#f97316")} {...cartaoTema}>
+              <CanvasBox cor={ct(temaClaro ? CORES.verde : "#f97316")} {...cartaoTema}>
                 <div className="flex justify-between items-center mb-5">
                   <div>
-                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? CORES.azul : "#f97316") }}>AXIOMA AI.TECH</p>
+                    <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: ct(temaClaro ? CORES.verde : "#f97316") }}>AXIOMA AI.TECH</p>
                     <h3 className="text-lg font-bold" style={{ color: "var(--axi-text-primary)" }}>{editando ? (lang === "en" ? "Edit Variable Cost" : lang === "es" ? "Editar Costo Variable" : "Editar Custo Variável") : t.custosVariaveis.novoCusto}</h3>
                   </div>
                   <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={fecharModal} style={{ color: TEXTO_SEC }}><X size={20} /></motion.button>

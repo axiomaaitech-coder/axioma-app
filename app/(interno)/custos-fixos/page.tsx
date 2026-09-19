@@ -41,11 +41,13 @@ const CAT_COR: Record<string, string> = {
   "Aluguel/Imóvel": CORES.roxo, "Folha de pagamento": CORES.azul, "Serviços essenciais": CORES.cyan,
   "Sistemas e assinaturas": CORES.laranja, "Seguros": CORES.teal, "Contabilidade": CORES.rosa, "Outros": CORES.amarelo,
 };
-// Claro: paleta de composição padronizada (só verde/azul/cyan/cinza, nunca
-// dourado/laranja/roxo) — Escuro inalterado (mantém CAT_COR acima intacto).
+// Claro: sequência OFICIAL de cores pra gráficos (tema-tokens.md §1.4),
+// aplicada em ordem às categorias (7 categorias, repete a partir da 6ª) —
+// Escuro inalterado. chart-1 #2ecc9b · chart-2 #101b3d · chart-3 #34d399 ·
+// chart-4 #6b7280 · chart-5 #122b54
 const CAT_COR_CLARO: Record<string, string> = {
-  [CORES.roxo]: CORES.verde, [CORES.laranja]: "#94a3b8", [CORES.teal]: CORES.azulC,
-  [CORES.rosa]: CORES.azul, [CORES.amarelo]: CORES.verde,
+  [CORES.roxo]: "#2ecc9b", [CORES.cyan]: "#34d399", [CORES.laranja]: "#6b7280",
+  [CORES.teal]: "#122b54", [CORES.rosa]: "#2ecc9b", [CORES.amarelo]: "#101b3d",
 };
 
 type CustoFixo = {
@@ -242,14 +244,14 @@ export default function CustosFixos() {
   // ═══════════ GRÁFICOS ═══════════
   const optCat = optRosca(composicao, ct(temaClaro ? CORES.verde : CORES.vermelho), cx.totalMensal.toUpperCase(), temaClaro);
   const topCustos = [...custos].sort((a, b) => b.valor_mensal - a.valor_mensal).slice(0, 8);
-  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(temaClaro ? CORES.azul : CORES.laranja), temaClaro ? CORES.azulC : CORES.laranjaC, undefined, temaClaro);
+  const optTop = optBarrasV(topCustos.map(c => c.valor_mensal), topCustos.map(c => c.descricao.length > 8 ? c.descricao.slice(0, 7) + "…" : c.descricao), ct(temaClaro ? CORES.verde : CORES.laranja), temaClaro ? CORES.verde : CORES.laranjaC, undefined, temaClaro);
 
   const kpisCFO = [
     { l: cx.totalMensal, v: fBRL(totalMensal), c: ct(CORES.vermelho), i: "📉" },
-    { l: cx.totalAnual, v: fBRL(totalAnual), c: ct(temaClaro ? CORES.azul : CORES.amarelo), i: "📅" },
+    { l: cx.totalAnual, v: fBRL(totalAnual), c: ct(temaClaro ? CORES.verde : CORES.amarelo), i: "📅" },
     { l: t.custosFixos.itens, v: `${custos.length}`, c: ct(CORES.azul), i: "📋" },
     { l: cx.economiaPotencial, v: fBRL(economiaPotencial), c: ct(CORES.verde), i: "💸" },
-    { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? ct(temaClaro ? CORES.azul : CORES.laranja) : ct(temaClaro ? CORES.verde : CORES.teal), i: "🔔" },
+    { l: cx.radarRenovacoes, v: `${renovacoes.length}`, c: renovacoes.length > 0 ? ct(temaClaro ? CORES.verde : CORES.laranja) : ct(temaClaro ? CORES.verde : CORES.teal), i: "🔔" },
   ];
 
   const marquee = [
@@ -343,7 +345,7 @@ export default function CustosFixos() {
             {renovacoes.length > 0 && (
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: renovFundo, border: "1px solid rgba(249,115,22,0.25)" }}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Bell size={16} style={{ color: ct(temaClaro ? CORES.azul : CORES.laranja) }} />
+                  <Bell size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.laranja) }} />
                   <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.radarRenovacoes}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -375,7 +377,7 @@ export default function CustosFixos() {
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <SubChart titulo={cx.composicao} cor={ct(temaClaro ? CORES.verde : CORES.vermelho)} option={optCat} altura={260} />
-                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.azul : CORES.laranja)} option={optTop} altura={260} />
+                  <SubChart titulo={lang === "en" ? "Top Costs" : lang === "es" ? "Mayores Costos" : "Maiores Custos"} cor={ct(temaClaro ? CORES.verde : CORES.laranja)} option={optTop} altura={260} />
                 </div>
               </div>
             </div>
@@ -385,7 +387,7 @@ export default function CustosFixos() {
               <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: painelFundo, border: "1px solid rgba(99,102,241,0.15)" }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={16} style={{ color: ct(temaClaro ? CORES.verde : CORES.ouro) }} />
-                  <p className="text-sm font-black" style={{ color: ct("#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
+                  <p className="text-sm font-black" style={{ color: ct(temaClaro ? CORES.verde : "#f1f5f9"), ...FONTE_EXEC }}>{cx.insights}</p>
                 </div>
                 <div className="space-y-2">
                   {insights.map((ins, i) => (

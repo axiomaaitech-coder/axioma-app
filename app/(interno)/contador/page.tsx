@@ -32,7 +32,10 @@ type Idioma3 = 'pt' | 'en' | 'es'
 // PAINEL_BG/MODAL_BG.
 const PALETA = {
   dark: { VERMELHO: '#f87171', LARANJA: '#fb923c', AMARELO: '#fbbf24', VERDE: '#34d399', AZULC: '#6ab0ff', ROXO: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7', PAINEL_BG: 'rgba(10,20,36,0.7)', PAINEL_BG2: 'rgba(10,20,36,0.5)', MODAL_BG: '#0a1628' },
-  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#7c3aed', CINZA: '#6b7280', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#eef2f7', PAINEL_BG2: '#eef2f7', MODAL_BG: '#ffffff' },
+  // Creme #f6f7c4, cinza #374151 e modal creme (igual ao CanvasBox dos
+  // demais módulos) — valores finais do rollout Claro. PAINEL_BG2 é a
+  // caixinha ANINHADA dentro do modal creme, por isso fica bege translúcido.
+  xms: { VERMELHO: '#ff5a6b', LARANJA: '#ea580c', AMARELO: '#f5a623', VERDE: '#16a97d', AZULC: '#2ecc9b', ROXO: '#7c3aed', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d', PAINEL_BG: '#f6f7c4', PAINEL_BG2: 'rgba(255,255,255,0.5)', MODAL_BG: '#f6f7c4' },
 } as const
 
 const LABEL_TIPO: Record<TipoDescoberta, Record<Idioma3, string>> = {

@@ -451,14 +451,14 @@ export default function DREPage() {
     { label: cx.dreDespesasFinanceiras, valor: -dreAtual.despesasFinanceiras.valor, tipo: "variacao" },
     { label: cx.dreLucroLiquido, valor: dreAtual.lucroLiquido.valor, tipo: "subtotal" },
   ];
-  const optWaterfall = optCascata(itensCascata, ct(CORES.verde), ct(CORES.vermelho), ct(temaClaro ? CORES.azul : CORES.teal), temaClaro);
+  const optWaterfall = optCascata(itensCascata, ct(CORES.verde), ct(CORES.vermelho), ct(temaClaro ? CORES.verde : CORES.teal), temaClaro);
 
   const kpisCFO = [
     { l: cx.dreLucroLiquido, v: fBRL(dreAtual.lucroLiquido.valor), c: dreAtual.lucroLiquido.valor >= 0 ? ct(CORES.verde) : ct(CORES.vermelho), i: "💰" },
-    { l: cx.dreEbitda, v: fBRL(dreAtual.ebitda.valor), c: dreAtual.ebitda.valor >= 0 ? ct(temaClaro ? CORES.azul : CORES.teal) : ct(CORES.vermelho), i: "📈" },
+    { l: cx.dreEbitda, v: fBRL(dreAtual.ebitda.valor), c: dreAtual.ebitda.valor >= 0 ? ct(temaClaro ? CORES.verde : CORES.teal) : ct(CORES.vermelho), i: "📈" },
     { l: cx.dreMargemLiquida, v: fPct(dreAtual.margemLiquidaPct), c: dreAtual.margemLiquidaPct >= 10 ? ct(CORES.verde) : dreAtual.margemLiquidaPct >= 0 ? ct(CORES.amarelo) : ct(CORES.vermelho), i: "🎯" },
     { l: cx.dreMargemContribuicao, v: fPct(dreAtual.margemContribuicaoPct), c: ct(CORES.cyan), i: "📊" },
-    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.azul : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
+    { l: cx.margemSeguranca, v: ms !== null ? fPct(ms) : "—", c: ms === null ? ct(temaClaro ? CORES.verde : CORES.rosa) : ms < 15 ? ct(CORES.vermelho) : ms < 30 ? ct(CORES.amarelo) : ct(CORES.verde), i: "🛡️" },
     { l: cx.runwayTitulo, v: runwayMeses !== null ? `${runwayMeses}m` : "—", c: runwayMeses !== null ? ct(CORES.vermelho) : ct(CORES.verde), i: "⏳" },
   ];
 
@@ -496,7 +496,7 @@ export default function DREPage() {
           <SeletorPeriodo
             preset={presetPeriodo} onChangePreset={setPresetPeriodo}
             personalizado={personalizado} onChangePersonalizado={setPersonalizado}
-            cor={ct(CORES.verde)} lang={lang}
+            cor={ct(CORES.verde)} lang={lang} temaClaro={temaClaro}
           />
           <div className="flex gap-2">
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setHistoricoAberto(true)}
