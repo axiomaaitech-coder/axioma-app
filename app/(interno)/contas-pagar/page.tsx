@@ -215,6 +215,14 @@ export default function ContasPagarPage() {
     return CINZA;
   }
 
+  const marquee = [
+    `🚀 AXIOMA AI.TECH`,
+    `📤 ${L("Total em Aberto", "Total Outstanding", "Total Abierto")}: ${fmt(kpis.totalEmAberto)}`,
+    kpis.vencendoEm7 > 0 ? `⏰ ${L("Vencendo em 7 dias", "Due in 7 days", "Vence en 7 días")}: ${fmt(kpis.vencendoEm7)}` : "",
+    kpis.vencidas > 0 ? `⚠️ ${L("Vencidas", "Overdue", "Vencidas")}: ${fmt(kpis.vencidas)}` : "",
+    kpis.pagasNoMes > 0 ? `✅ ${L("Pagas no Mês", "Paid this Month", "Pagadas este Mes")}: ${fmt(kpis.pagasNoMes)}` : "",
+  ].filter(Boolean);
+
   // ========== COMPARTILHAR — reaproveita 100% CentroCompartilhamento ==========
   const [shareAberto, setShareAberto] = useState(false);
   const textoResumo = L(
@@ -1812,6 +1820,20 @@ export default function ContasPagarPage() {
               </CanvasBox>
             ))}
           </div>
+
+          {/* Letreiro */}
+          {marquee.length > 0 && (
+            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : "linear-gradient(90deg, rgba(245,158,11,0.12), rgba(167,139,250,0.10))", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(245,158,11,0.4)" }}>
+              <div className="marquee-ap py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
+                {[0, 1].map((rep) => (
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? AMBAR : "#e2e8f0") }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>{"  •  "}</span></span>))}
+                  </span>
+                ))}
+              </div>
+              <style>{`.marquee-ap{animation:marqueeAp 32s linear infinite}@keyframes marqueeAp{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-ap:hover{animation-play-state:paused}`}</style>
+            </div>
+          )}
 
           {/* Filtros */}
           <div className="flex flex-wrap gap-2 mb-4">

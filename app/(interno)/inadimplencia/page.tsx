@@ -631,6 +631,15 @@ export default function Inadimplencia() {
   const inputStyle = { background: temaClaro ? '#eef2f7' : 'rgba(255,255,255,0.04)', border: `1px solid ${INDIGO}30`, color: ct('#c8d8f0') }
   const selectStyle = { background: BG_CARD, border: `1px solid ${INDIGO}30`, color: ct('#c8d8f0') }
 
+  const marquee = [
+    `🚀 AXIOMA AI.TECH`,
+    `📉 ${L('Valor Total Inadimplente', 'Total Delinquent', 'Total Moroso')}: ${fBRL(kpis.valorTotalInadimplente)}`,
+    kpis.pctInadimplencia != null ? `⚠️ ${L('% de Inadimplência', 'Delinquency Rate', '% de Morosidad')}: ${fPct(kpis.pctInadimplencia)}` : '',
+    kpis.valorRecuperadoAno > 0 ? `✅ ${L('Recuperado no Ano', 'Recovered this Year', 'Recuperado este Año')}: ${fBRL(kpis.valorRecuperadoAno)}` : '',
+    kpis.qtdClientesInadimplentes > 0 ? `👥 ${L('Clientes Inadimplentes', 'Delinquent Clients', 'Clientes Morosos')}: ${kpis.qtdClientesInadimplentes}` : '',
+    kpis.perdaProvavel != null ? `💸 ${L('Perda Provável', 'Probable Loss', 'Pérdida Probable')}: ${fBRL(kpis.perdaProvavel)}` : '',
+  ].filter(Boolean)
+
   if (loading) return (
     <div data-theme={tema} className="min-h-screen flex items-center justify-center" style={{ background: 'var(--axi-bg)' }}>
       <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: INDIGO, borderTopColor: 'transparent' }} />
@@ -696,6 +705,20 @@ export default function Inadimplencia() {
             </div>
           ))}
         </div>
+
+        {/* Letreiro */}
+        {marquee.length > 0 && (
+          <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : `linear-gradient(90deg, ${VERMELHO}20, ${AMBAR}15)`, border: temaClaro ? '1px solid rgba(46,204,155,0.3)' : `1px solid ${VERMELHO}40` }}>
+            <div className="marquee-inad py-2.5 whitespace-nowrap" style={{ display: 'inline-block' }}>
+              {[0, 1].map((rep) => (
+                <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                  {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? '#2ecc9b' : '#ffffff') : (i === 0 ? VERMELHO : ct('#e2e8f0')) }}>{m}<span style={{ color: temaClaro ? '#2ecc9b' : VERMELHO }}>{'  •  '}</span></span>))}
+                </span>
+              ))}
+            </div>
+            <style>{`.marquee-inad{animation:marqueeInad 32s linear infinite}@keyframes marqueeInad{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-inad:hover{animation-play-state:paused}`}</style>
+          </div>
+        )}
 
         {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : VERDE}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>

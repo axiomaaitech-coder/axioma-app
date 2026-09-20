@@ -820,11 +820,11 @@ export default function ClientesPage() {
 
   const marquee = [
     `🚀 AXIOMA AI.TECH`,
-    `${tt.valorCarteira}: ${fmt(snapshotCarteira.valorTotalCarteira)}`,
-    `${tt.ticketMedioCarteira}: ${fmt(snapshotCarteira.ticketMedioCarteira)}`,
-    kpisCarteira.qtdPremium > 0 ? `${kpisCarteira.qtdPremium} ${tt.nomeSinalPlural.premium}` : "",
-    kpisCarteira.qtdEmRisco > 0 ? `${kpisCarteira.qtdEmRisco} ${tt.nomeSinalPlural.emRisco}` : "",
-    top5Ivca[0] ? `IVCA: ${top5Ivca[0].s.cliente.nome} (${top5Ivca[0].ivca.total})` : "",
+    `💰 ${tt.valorCarteira}: ${fmt(snapshotCarteira.valorTotalCarteira)}`,
+    `🎟️ ${tt.ticketMedioCarteira}: ${fmt(snapshotCarteira.ticketMedioCarteira)}`,
+    kpisCarteira.qtdPremium > 0 ? `🏆 ${kpisCarteira.qtdPremium} ${tt.nomeSinalPlural.premium}` : "",
+    kpisCarteira.qtdEmRisco > 0 ? `⚠️ ${kpisCarteira.qtdEmRisco} ${tt.nomeSinalPlural.emRisco}` : "",
+    top5Ivca[0] ? `📈 IVCA: ${top5Ivca[0].s.cliente.nome} (${top5Ivca[0].ivca.total})` : "",
   ].filter(Boolean);
 
   const botaoCobranca = (

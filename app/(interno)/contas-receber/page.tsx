@@ -840,6 +840,15 @@ export default function ContasReceber() {
   const inputStyle = { background: CAMPO_BG, border: `1px solid ${TEAL}40`, color: TEXTO }
   const selectStyle = { background: SELECT_BG, border: `1px solid ${TEAL}40`, color: TEXTO }
 
+  const marquee = [
+    `🚀 AXIOMA AI.TECH`,
+    `📊 ${L('Total a Receber', 'Total Receivable', 'Total por Cobrar')}: ${fBRL(kpis.valorTotalAReceber)}`,
+    kpis.valorVencido > 0 ? `⚠️ ${L('Vencido', 'Overdue', 'Vencido')}: ${fBRL(kpis.valorVencido)}` : '',
+    kpis.indiceInadimplencia != null ? `📉 ${L('Inadimplência', 'Default Rate', 'Morosidad')}: ${kpis.indiceInadimplencia}%` : '',
+    kpis.clientesEmAtraso > 0 ? `⏰ ${L('Clientes em Atraso', 'Overdue Clients', 'Clientes en Atraso')}: ${kpis.clientesEmAtraso}` : '',
+    kpis.dso != null ? `📅 DSO: ${kpis.dso} ${L('dias', 'days', 'días')}` : '',
+  ].filter(Boolean)
+
   if (loading) return (
     <div data-theme={tema} className="min-h-screen flex items-center justify-center" style={{ background: 'var(--axi-bg)' }}>
       <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: ESMERALDA, borderTopColor: 'transparent' }} />
@@ -918,6 +927,20 @@ export default function ContasReceber() {
             </motion.button>
           ))}
         </div>
+
+        {/* Letreiro */}
+        {marquee.length > 0 && (
+          <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : `linear-gradient(90deg, ${ESMERALDA}20, ${TEAL}15)`, border: temaClaro ? '1px solid rgba(46,204,155,0.3)' : `1px solid ${ESMERALDA}40` }}>
+            <div className="marquee-cr py-2.5 whitespace-nowrap" style={{ display: 'inline-block' }}>
+              {[0, 1].map((rep) => (
+                <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                  {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? '#2ecc9b' : '#ffffff') : (i === 0 ? ESMERALDA : '#e2e8f0') }}>{m}<span style={{ color: temaClaro ? '#2ecc9b' : ESMERALDA }}>{'  •  '}</span></span>))}
+                </span>
+              ))}
+            </div>
+            <style>{`.marquee-cr{animation:marqueeCr 32s linear infinite}@keyframes marqueeCr{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-cr:hover{animation-play-state:paused}`}</style>
+          </div>
+        )}
 
         {/* ================= PAINEL DE ALERTAS INTELIGENTES ================= */}
         <div className={`rounded-2xl p-4 md:p-5${classePremium3d}`} style={{ background: BG_CARD, border: temaClaro ? BORDA_3D : `1px solid ${alertasCriticos > 0 ? VERMELHO : alertasAtencao > 0 ? AMBAR : TEAL}30`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>

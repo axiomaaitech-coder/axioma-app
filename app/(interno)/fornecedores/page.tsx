@@ -1570,10 +1570,19 @@ export default function Fornecedores() {
     { key: "leadTime", label: tt.kpiLeadTime, valor: "—", cor: ct("#5a7a9a"), vazio: true, mensagemVazio: tt.semInfraestrutura },
     { key: "pontualidade", label: tt.kpiPontualidade, valor: pontualidade.amostraSuficiente ? `${pontualidade.percentual}%` : "—", cor: !pontualidade.amostraSuficiente ? ct("#5a7a9a") : pontualidade.percentual >= 80 ? ct("#34d399") : pontualidade.percentual >= 50 ? AMBAR : ct("#f87171"), vazio: !pontualidade.amostraSuficiente, mensagemVazio: tt.semPagamentos },
     { key: "qualidade", label: tt.kpiQualidade, valor: rotuloQualidadeTxt, cor: !qualidadeCarteira.amostraSuficiente ? ct("#5a7a9a") : qualidadeCarteira.media >= 3 ? ct("#34d399") : qualidadeCarteira.media >= 2 ? AMBAR : ct("#f87171"), vazio: !qualidadeCarteira.amostraSuficiente, mensagemVazio: tt.semClassificacao },
-    { key: "estabilidade", label: tt.kpiEstabilidade, valor: fornecedores.length > 0 ? `${Math.round(tempoRelacionamentoDias / 30)} ${tt.unidadeMeses}` : "—", cor: (temaClaro ? "#7c3aed" : "#a78bfa"), vazio: fornecedores.length === 0, mensagemVazio: tt.semDados },
+    { key: "estabilidade", label: tt.kpiEstabilidade, valor: fornecedores.length > 0 ? `${Math.round(tempoRelacionamentoDias / 30)} ${tt.unidadeMeses}` : "—", cor: ct("#a78bfa"), vazio: fornecedores.length === 0, mensagemVazio: tt.semDados },
     { key: "scoreMedio", label: tt.kpiScoreMedio, valor: scoreCarteira.amostraSuficiente ? `${scoreCarteira.media}` : "—", cor: !scoreCarteira.amostraSuficiente ? ct("#5a7a9a") : scoreCarteira.media > 700 ? ct("#34d399") : scoreCarteira.media > 400 ? AMBAR : ct("#f87171"), vazio: !scoreCarteira.amostraSuficiente, mensagemVazio: tt.semScore },
   ];
   const kpiAtivo = kpis.find(k => k.key === drillDown) || null;
+
+  const marquee = [
+    `🚀 AXIOMA AI.TECH`,
+    `🏭 ${tt.kpiTotal}: ${fornecedores.length}`,
+    todosContratos.length > 0 ? `💰 ${tt.kpiValorContratado}: ${fmt(valorTotalContratado)}` : "",
+    concentracao.amostraSuficiente && concentracao.percentualMaior > 50 ? `⚠️ ${tt.kpiDependenciaFinanceira}: ${concentracao.percentualMaior}% (${concentracao.nomeMaior})` : "",
+    pontualidade.amostraSuficiente ? `${pontualidade.percentual >= 80 ? "✅" : "⏱️"} ${tt.kpiPontualidade}: ${pontualidade.percentual}%` : "",
+    scoreCarteira.amostraSuficiente ? `🏆 ${tt.kpiScoreMedio}: ${scoreCarteira.media}` : "",
+  ].filter(Boolean);
 
   // ========== INTELIGÊNCIA DE COMPRAS (Fase 4) ==========
   const fornecedoresComHistorico = fornecedores.filter(f => contas.some(c => c.fornecedor_id === f.id));
@@ -1812,6 +1821,20 @@ export default function Fornecedores() {
               </button>
             ))}
           </div>
+
+          {/* Letreiro */}
+          {marquee.length > 0 && (
+            <div className="relative rounded-xl overflow-hidden mb-4" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : `linear-gradient(90deg, ${AMBAR}20, ${BRONZE}15)`, border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : `1px solid ${AMBAR}40` }}>
+              <div className="marquee-forn py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
+                {[0, 1].map((rep) => (
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? AMBAR : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : AMBAR }}>{"  •  "}</span></span>))}
+                  </span>
+                ))}
+              </div>
+              <style>{`.marquee-forn{animation:marqueeForn 32s linear infinite}@keyframes marqueeForn{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-forn:hover{animation-play-state:paused}`}</style>
+            </div>
+          )}
 
           {/* Curva ABC + Distribuição Geográfica */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">

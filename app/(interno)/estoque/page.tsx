@@ -957,6 +957,15 @@ export default function EstoquePage() {
   const opcoesFornecedor = fornecedoresDrop.map((f) => ({ value: f.id, label: f.nome }));
   const argsShare = montarArgsPdfAtual();
 
+  const marquee = [
+    `🚀 AXIOMA AI.TECH`,
+    `📦 ${et.kpiValorTotal}: ${fBRL(kpis?.valor_total_estoque || 0)}`,
+    (kpis?.qtd_ruptura || 0) > 0 ? `⚠️ ${et.kpiRuptura}: ${kpis?.qtd_ruptura}` : "",
+    (kpis?.qtd_baixo_estoque || 0) > 0 ? `📉 ${et.kpiBaixoEstoque}: ${kpis?.qtd_baixo_estoque}` : "",
+    avisosValidadeResumo.filter((v) => v.severidade === "vencido").length > 0 ? `⏳ ${et.kpiVencidos}: ${avisosValidadeResumo.filter((v) => v.severidade === "vencido").length}` : "",
+    (kpis?.qtd_capital_parado || 0) > 0 ? `💤 ${et.kpiCapitalParado}: ${kpis?.qtd_capital_parado}` : "",
+  ].filter(Boolean);
+
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
@@ -1035,6 +1044,20 @@ export default function EstoquePage() {
               </CanvasBox>
             ))}
           </div>
+
+          {/* Letreiro */}
+          {marquee.length > 0 && (
+            <div className="relative rounded-xl overflow-hidden" style={{ background: temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : `linear-gradient(90deg, ${ct(JADE)}20, ${ct(BRONZE)}15)`, border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : `1px solid ${ct(JADE)}40` }}>
+              <div className="marquee-est py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
+                {[0, 1].map((rep) => (
+                  <span key={rep} className="text-[13px] font-bold tracking-wide" aria-hidden={rep === 1}>
+                    {marquee.map((m, i) => (<span key={i} style={{ color: temaClaro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? ct(JADE) : ct("#e2e8f0")) }}>{m}<span style={{ color: temaClaro ? "#2ecc9b" : ct(JADE) }}>{"  •  "}</span></span>))}
+                  </span>
+                ))}
+              </div>
+              <style>{`.marquee-est{animation:marqueeEst 32s linear infinite}@keyframes marqueeEst{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}.marquee-est:hover{animation-play-state:paused}`}</style>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             <CanvasBox {...cartaoTema} cor={ct(JADE)}>
