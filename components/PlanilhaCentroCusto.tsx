@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 // 🦅 AXIOMA AI.TECH - Planilha Inteligente do Centro de Custos (Fase 3)
 // Grade própria (sem lib de terceiros) — sticky nativo via CSS, virtualização simples
 // por janela de scroll, fórmula escopada (lib/formulaHelpers.ts) que grava valor
@@ -15,8 +15,10 @@ import ReactECharts from "echarts-for-react";
 import * as XLSX from "xlsx";
 import { Pencil, Lock, ChevronDown, ChevronRight, Filter, ArrowUp, ArrowDown, Download, FileSpreadsheet, X, Split } from "lucide-react";
 import { gerarPdfTabela } from "../lib/gerarPdfTabela";
-import { optBarrasH, optBarrasComparativo } from "../lib/cfoCore";
+import { optBarrasH, optBarrasComparativo, corTema } from "../lib/cfoCore";
 import { avaliarFormula, pareceFormula } from "../lib/formulaHelpers";
+import { useThemeAxioma } from "../lib/ThemeContext";
+import { SOMBRA_3D, BORDA_3D } from "./CanvasBox";
 import { LABEL_ORIGEM, type OrigemTabela, type CampoEditavel, atualizarCampoOrigem, type OrcamentoRow, orcamentoDoPeriodo } from "../lib/centroCustoHelpers";
 
 export type LinhaPlanilha = {
@@ -106,6 +108,10 @@ const COLUNAS: { id: ColunaId; letra: string; editavel: boolean; largura: number
   { id: "pctTotal", letra: "I", editavel: false, largura: 90 },
 ];
 
+// Cores fixas do Escuro (fundação intocada) — o Claro deriva tudo via ct()
+// dentro do componente, sem inventar novo tom (ver corTema/MAPA_CORES_CLARO
+// em lib/cfoCore.ts). VINHO/BORDO/COBRE eram a identidade "bordô" do módulo;
+// no Claro colapsam pra verde-menta/navy igual ao resto de Centros de Custo.
 const VINHO = "#9f1239", BORDO = "#881337", COBRE = "#b87333";
 const VERMELHO = "#f87171", AMBAR = "#f59e0b", VERDE = "#34d399";
 
@@ -129,6 +135,31 @@ export type PlanilhaCentroCustoProps = {
 
 export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, fornecedores, categoriasPorTabela, userId, empresaId, idioma, onSalvo, onEditarRateio, onAvisoAuditoria }: PlanilhaCentroCustoProps) {
   const t = T[idioma];
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  // Identidade do módulo (verde-menta) e apoio (navy) no Claro — Escuro
+  // mantém o bordô/cobre original, intocado.
+  const PRIMARIA = temaClaro ? "#2ecc9b" : VINHO;
+  const ENFASE = temaClaro ? "#101b3d" : BORDO;
+  const SECUNDARIA = temaClaro ? "#16a97d" : COBRE;
+  const FUNDO_PAINEL = temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.8)";
+  const FUNDO_HEADER = temaClaro ? "#101b3d" : "#0a1628";
+  const TEXTO_HEADER = temaClaro ? "#ffffff" : ct(BORDO);
+  const FUNDO_LINHA = temaClaro ? "#ffffff" : "#0d1a2e";
+  const FUNDO_LINHA_SEL = temaClaro ? "rgba(46,204,155,0.12)" : "rgba(159,18,57,0.15)";
+  const FUNDO_LINHA_SEL_STICKY = temaClaro ? "#e3f7ef" : "#241220";
+  const FUNDO_GRUPO = temaClaro ? "rgba(46,204,155,0.08)" : "rgba(159,18,57,0.08)";
+  const FUNDO_GRUPO_STICKY = temaClaro ? "#eef8f2" : "#12233f";
+  const FUNDO_SUBTOTAL = temaClaro ? "rgba(22,169,125,0.06)" : "rgba(184,115,51,0.07)";
+  const FUNDO_SUBTOTAL_STICKY = temaClaro ? "#f2f8f5" : "#0f1c30";
+  const FUNDO_TOTAL = temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.18)";
+  const FUNDO_TOTAL_STICKY = temaClaro ? "#e3f7ef" : "#1a0e17";
+  const FUNDO_INPUT = temaClaro ? "#ffffff" : "#0f1f38";
+  const FUNDO_POPOVER = temaClaro ? "#ffffff" : "#0f1f38";
+  const TEXTO_PRIMARIO = ct("#c8d8f0");
+  const TEXTO_SECUNDARIO = ct("#5a7a9a");
+  const TEXTO_NUMERO_LINHA = temaClaro ? "#94a3b8" : "#3d4d63";
 
   const [busca, setBusca] = useState("");
   const [filtroTabela, setFiltroTabela] = useState<Set<OrigemTabela> | null>(null);
@@ -409,8 +440,8 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
 
   const optRanking = useMemo(() => {
     const top = totalPorCentro.slice(0, 8);
-    return optBarrasH(top.map(c => c.valor), top.map(c => c.nome), VINHO, COBRE);
-  }, [totalPorCentro]);
+    return optBarrasH(top.map(c => c.valor), top.map(c => c.nome), PRIMARIA, SECUNDARIA, undefined, temaClaro);
+  }, [totalPorCentro, temaClaro]);
 
   const desvios = useMemo(() => {
     return centros.map(c => {
@@ -419,7 +450,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       return { nome: c.nome, desvio: orcado > 0 ? custo - orcado : 0, orcado };
     }).filter(d => d.orcado > 0).sort((a, b) => Math.abs(b.desvio) - Math.abs(a.desvio)).slice(0, 8);
   }, [totalPorCentro, centros, orcamentos]);
-  const optDesvios = useMemo(() => optBarrasH(desvios.map(d => d.desvio), desvios.map(d => d.nome), VERMELHO, AMBAR, desvios.map(d => d.desvio >= 0 ? VERMELHO : VERDE)), [desvios]);
+  const optDesvios = useMemo(() => optBarrasH(desvios.map(d => d.desvio), desvios.map(d => d.nome), ct(VERMELHO), ct(AMBAR), desvios.map(d => d.desvio >= 0 ? ct(VERMELHO) : ct(VERDE)), temaClaro), [desvios, temaClaro]);
 
   const curvaABC = useMemo(() => {
     const total = totalPorCentro.reduce((s, c) => s + c.valor, 0);
@@ -430,17 +461,21 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       return { ...c, classe: pct <= 80 ? "A" : pct <= 95 ? "B" : "C" };
     });
   }, [totalPorCentro]);
+  // Curva ABC precisa de 3 tons DISTINTOS (classes A/B/C) — no Claro usa a
+  // sequência oficial (chart-1/chart-2/chart-4) em vez de colapsar tudo na
+  // mesma cor, senão as 3 classes ficam indistinguíveis no gráfico.
   const optCurvaABC = useMemo(() => optBarrasH(
-    curvaABC.map(c => c.valor), curvaABC.map(c => `${c.nome} (${c.classe})`), VINHO, COBRE,
-    curvaABC.map(c => c.classe === "A" ? VINHO : c.classe === "B" ? COBRE : "#64748b"),
-  ), [curvaABC]);
+    curvaABC.map(c => c.valor), curvaABC.map(c => `${c.nome} (${c.classe})`), PRIMARIA, SECUNDARIA,
+    curvaABC.map(c => c.classe === "A" ? (temaClaro ? "#2ecc9b" : VINHO) : c.classe === "B" ? (temaClaro ? "#101b3d" : COBRE) : (temaClaro ? "#6b7280" : "#64748b")),
+    temaClaro,
+  ), [curvaABC, temaClaro]);
 
   const evolucaoMensal = useMemo(() => {
     const m = new Map<string, number>();
     linhasFiltradas.forEach(l => { if (l.data) m.set(l.data.slice(0, 7), (m.get(l.data.slice(0, 7)) || 0) + l.valor); });
     return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-12);
   }, [linhasFiltradas]);
-  const optEvolucao = useMemo(() => optBarrasH(evolucaoMensal.map(([, v]) => v), evolucaoMensal.map(([k]) => k), VINHO, COBRE), [evolucaoMensal]);
+  const optEvolucao = useMemo(() => optBarrasH(evolucaoMensal.map(([, v]) => v), evolucaoMensal.map(([k]) => k), PRIMARIA, SECUNDARIA, undefined, temaClaro), [evolucaoMensal, temaClaro]);
 
   const orcadoRealizadoMensal = useMemo(() => {
     const meses = evolucaoMensal.map(([k]) => k);
@@ -448,8 +483,8 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
     return { meses, orcado: meses.map(() => orcadoTotal) };
   }, [evolucaoMensal, centros]);
   const optOrcadoRealizado = useMemo(() => optBarrasComparativo(
-    orcadoRealizadoMensal.orcado, evolucaoMensal.map(([, v]) => v), orcadoRealizadoMensal.meses, COBRE, VINHO, t.orcadoS, t.realizadoS,
-  ), [orcadoRealizadoMensal, evolucaoMensal, t]);
+    orcadoRealizadoMensal.orcado, evolucaoMensal.map(([, v]) => v), orcadoRealizadoMensal.meses, SECUNDARIA, PRIMARIA, t.orcadoS, t.realizadoS, temaClaro,
+  ), [orcadoRealizadoMensal, evolucaoMensal, t, temaClaro]);
 
   // ---------- FILTRO POPOVER (funil por coluna) ----------
   function valoresDistintos(coluna: ColunaId): { valor: string; label: string }[] {
@@ -478,7 +513,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
     setBusca(""); setFiltroTabela(null); setFiltroCategoria(null); setFiltroCentro(null); setFiltroGraficoCentro(null);
   }
 
-  const corStatus = (status?: string) => status === "pago" ? VERDE : status === "vencido" ? VERMELHO : status === "parcial" ? AMBAR : "#5a7a9a";
+  const corStatus = (status?: string) => status === "pago" ? ct(VERDE) : status === "vencido" ? ct(VERMELHO) : status === "parcial" ? ct(AMBAR) : TEXTO_SECUNDARIO;
   const labelHeader = (c: ColunaId) => (t as any)[c === "tabela" ? "origem" : c === "centro" ? "centro" : c === "fornecedor" ? "fornecedor" : c === "pctTotal" ? "pctTotal" : c];
 
   return (
@@ -487,26 +522,36 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
       <div className="flex flex-wrap items-center gap-2">
         <input value={busca} onChange={e => setBusca(e.target.value)} placeholder={t.buscar}
           className="px-3 py-2 rounded-lg text-xs focus:outline-none flex-1 min-w-[160px]"
-          style={{ background: "rgba(255,255,255,0.04)", border: `1px solid ${VINHO}30`, color: "#c8d8f0" }} />
+          style={{ background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: `1px solid ${PRIMARIA}30`, color: TEXTO_PRIMARIO }} />
         <select value={agrupador} onChange={e => setAgrupador(e.target.value as Agrupador)}
-          className="px-3 py-2 rounded-lg text-xs focus:outline-none" style={{ background: "rgba(10,22,40,0.95)", border: `1px solid ${VINHO}30`, color: "#c8d8f0" }}>
+          className="px-3 py-2 rounded-lg text-xs focus:outline-none" style={{ background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)", border: `1px solid ${PRIMARIA}30`, color: TEXTO_PRIMARIO }}>
           <option value="nenhum">{t.semAgrupamento}</option>
           <option value="centro">{t.agruparPor}: {t.porCentro}</option>
           <option value="categoria">{t.agruparPor}: {t.porCategoria}</option>
           <option value="periodo">{t.agruparPor}: {t.porPeriodo}</option>
         </select>
         {(busca || filtroTabela || filtroCategoria || filtroCentro) && (
-          <button onClick={limparFiltros} className="text-xs px-2 py-1.5 rounded-lg" style={{ color: VERMELHO }}>{t.limparFiltros}</button>
+          <button onClick={limparFiltros} className="text-xs px-2 py-1.5 rounded-lg" style={{ color: ct(VERMELHO) }}>{t.limparFiltros}</button>
         )}
         <div className="flex gap-1.5 ml-auto">
-          <button onClick={exportarCSV} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: `${VINHO}18`, color: VINHO }}><FileSpreadsheet size={13} />{t.exportarCSV}</button>
-          <button onClick={exportarXLSX} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: `${VINHO}18`, color: VINHO }}><FileSpreadsheet size={13} />{t.exportarXLSX}</button>
-          <button onClick={exportarPDF} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "#ff5a6b18", color: "#ff5a6b" }}><Download size={13} />{t.exportarPDF}</button>
+          {temaClaro ? (
+            <>
+              <button onClick={exportarCSV} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}><FileSpreadsheet size={13} />{t.exportarCSV}</button>
+              <button onClick={exportarXLSX} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}><FileSpreadsheet size={13} />{t.exportarXLSX}</button>
+              <button onClick={exportarPDF} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" }}><Download size={13} />{t.exportarPDF}</button>
+            </>
+          ) : (
+            <>
+              <button onClick={exportarCSV} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: `${VINHO}18`, color: VINHO }}><FileSpreadsheet size={13} />{t.exportarCSV}</button>
+              <button onClick={exportarXLSX} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: `${VINHO}18`, color: VINHO }}><FileSpreadsheet size={13} />{t.exportarXLSX}</button>
+              <button onClick={exportarPDF} className="text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5" style={{ background: "#ff5a6b18", color: "#ff5a6b" }}><Download size={13} />{t.exportarPDF}</button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Grade */}
-      <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${VINHO}25`, background: "rgba(10,22,40,0.8)" }}>
+      <div className={`rounded-2xl overflow-hidden${temaClaro ? " axi-card-premium3d" : ""}`} style={{ border: temaClaro ? BORDA_3D : `1px solid ${VINHO}25`, background: FUNDO_PAINEL, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
         <div ref={scrollRef} onScroll={e => setScrollTop(e.currentTarget.scrollTop)} style={{ maxHeight: ALTURA_VISIVEL, overflow: "auto", position: "relative" }}>
           <table style={{ borderCollapse: "collapse", width: "100%", tableLayout: "fixed" }}>
             <colgroup>{COLUNAS.map(c => <col key={c.id} style={{ width: c.largura }} />)}</colgroup>
@@ -515,26 +560,26 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                 {COLUNAS.map((c, i) => (
                   <th key={c.id} style={{
                     position: "sticky", top: 0, left: i === 0 ? 0 : undefined, zIndex: i === 0 ? 3 : 2,
-                    background: "#0a1628", borderBottom: `1px solid ${VINHO}40`, borderRight: "1px solid rgba(255,255,255,0.05)",
+                    background: FUNDO_HEADER, borderBottom: `1px solid ${PRIMARIA}40`, borderRight: temaClaro ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
                     padding: "8px 10px", textAlign: "left",
                   }}>
                     <div className="flex items-center justify-between gap-1">
                       <button onClick={() => setOrdenacao(prev => ({ coluna: c.id, dir: prev?.coluna === c.id && prev.dir === "asc" ? "desc" : "asc" }))}
-                        className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: BORDO }}>
+                        className="text-[10px] font-black uppercase tracking-wider flex items-center gap-1" style={{ color: TEXTO_HEADER }}>
                         {c.letra} · {labelHeader(c.id)}
                         {ordenacao?.coluna === c.id && (ordenacao.dir === "asc" ? <ArrowUp size={10} /> : <ArrowDown size={10} />)}
                       </button>
                       {["tabela", "categoria", "centro"].includes(c.id) && (
                         <button onClick={() => setColunaFiltroAberta(colunaFiltroAberta === c.id ? null : c.id)}>
-                          <Filter size={11} style={{ color: filtroAtivo(c.id) ? VINHO : "#5a7a9a" }} />
+                          <Filter size={11} style={{ color: filtroAtivo(c.id) ? PRIMARIA : (temaClaro ? "rgba(255,255,255,0.5)" : "#5a7a9a") }} />
                         </button>
                       )}
                     </div>
                     {colunaFiltroAberta === c.id && (
-                      <div className="absolute mt-2 z-20 rounded-xl p-2 max-h-56 overflow-y-auto" style={{ background: "#0f1f38", border: `1px solid ${VINHO}40`, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
+                      <div className="absolute mt-2 z-20 rounded-xl p-2 max-h-56 overflow-y-auto" style={{ background: FUNDO_POPOVER, border: `1px solid ${PRIMARIA}40`, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.5)" }}>
                         <div className="flex justify-between items-center mb-1.5">
-                          <span className="text-[10px]" style={{ color: "#5a7a9a" }}>{t.filtrar}</span>
-                          <button onClick={() => setColunaFiltroAberta(null)}><X size={12} style={{ color: "#5a7a9a" }} /></button>
+                          <span className="text-[10px]" style={{ color: TEXTO_SECUNDARIO }}>{t.filtrar}</span>
+                          <button onClick={() => setColunaFiltroAberta(null)}><X size={12} style={{ color: TEXTO_SECUNDARIO }} /></button>
                         </div>
                         {valoresDistintos(c.id).map(v => {
                           const ativo = filtroAtivo(c.id);
@@ -542,7 +587,7 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                           return (
                             <label key={v.valor} className="flex items-center gap-2 py-0.5 cursor-pointer">
                               <input type="checkbox" checked={marcado} onChange={() => alternarFiltro(c.id, v.valor)} />
-                              <span className="text-xs truncate" style={{ color: "#c8d8f0" }}>{v.label}</span>
+                              <span className="text-xs truncate" style={{ color: TEXTO_PRIMARIO }}>{v.label}</span>
                             </label>
                           );
                         })}
@@ -555,22 +600,22 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
             <tbody>
               <tr style={{ height: primeiroIdx * ALTURA_LINHA }}><td colSpan={COLUNAS.length} /></tr>
               {janelaRender.length === 0 && (
-                <tr><td colSpan={COLUNAS.length} className="text-center py-10 text-xs" style={{ color: "#5a7a9a" }}>{t.nenhumResultado}</td></tr>
+                <tr><td colSpan={COLUNAS.length} className="text-center py-10 text-xs" style={{ color: TEXTO_SECUNDARIO }}>{t.nenhumResultado}</td></tr>
               )}
               {janelaRender.map((r, idx) => {
                 if (r.tipo === "grupo") {
                   const colapsado = gruposColapsados.has(r.chave);
-                  const corOrc = r.orcado > 0 ? (r.subtotal > r.orcado ? VERMELHO : r.subtotal > r.orcado * 0.85 ? AMBAR : VERDE) : "#5a7a9a";
+                  const corOrc = r.orcado > 0 ? (r.subtotal > r.orcado ? ct(VERMELHO) : r.subtotal > r.orcado * 0.85 ? ct(AMBAR) : ct(VERDE)) : TEXTO_SECUNDARIO;
                   return (
-                    <tr key={`g-${r.chave}-${idx}`} style={{ height: ALTURA_LINHA, background: "rgba(159,18,57,0.08)", cursor: "pointer" }}
+                    <tr key={`g-${r.chave}-${idx}`} style={{ height: ALTURA_LINHA, background: FUNDO_GRUPO, cursor: "pointer" }}
                       onClick={() => setGruposColapsados(prev => { const n = new Set(prev); n.has(r.chave) ? n.delete(r.chave) : n.add(r.chave); return n; })}>
-                      <td colSpan={3} style={{ position: "sticky", left: 0, background: "#12233f", padding: "6px 10px", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
-                        <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: VINHO }}>
-                          {colapsado ? <ChevronRight size={13} /> : <ChevronDown size={13} />} {r.nome || "-"} <span style={{ color: "#5a7a9a", fontWeight: 400 }}>({r.qtd})</span>
+                      <td colSpan={3} style={{ position: "sticky", left: 0, background: FUNDO_GRUPO_STICKY, padding: "6px 10px", borderRight: temaClaro ? "1px solid rgba(16,27,61,0.08)" : "1px solid rgba(255,255,255,0.05)" }}>
+                        <span className="flex items-center gap-1.5 text-xs font-bold" style={{ color: PRIMARIA }}>
+                          {colapsado ? <ChevronRight size={13} /> : <ChevronDown size={13} />} {r.nome || "-"} <span style={{ color: TEXTO_SECUNDARIO, fontWeight: 400 }}>({r.qtd})</span>
                         </span>
                       </td>
-                      <td style={{ padding: "6px 10px", fontWeight: 800, color: VINHO }}>{fmt(r.subtotal)}</td>
-                      <td colSpan={r.orcado > 0 ? 1 : 5} style={{ padding: "6px 10px", fontSize: 11, color: "#5a7a9a" }}>
+                      <td style={{ padding: "6px 10px", fontWeight: 800, color: PRIMARIA }}>{fmt(r.subtotal)}</td>
+                      <td colSpan={r.orcado > 0 ? 1 : 5} style={{ padding: "6px 10px", fontSize: 11, color: TEXTO_SECUNDARIO }}>
                         {r.orcado > 0 ? <span style={{ color: corOrc, fontWeight: 700 }}>{r.subtotal > r.orcado ? t.estourouOrcamento : t.dentroOrcamento}</span> : t.semOrcamento}
                       </td>
                       {r.orcado > 0 && <td colSpan={4} />}
@@ -578,13 +623,13 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                   );
                 }
                 if (r.tipo === "subtotal") {
-                  const corOrc = r.orcado > 0 ? (r.subtotal > r.orcado ? VERMELHO : r.subtotal > r.orcado * 0.85 ? AMBAR : VERDE) : "#5a7a9a";
+                  const corOrc = r.orcado > 0 ? (r.subtotal > r.orcado ? ct(VERMELHO) : r.subtotal > r.orcado * 0.85 ? ct(AMBAR) : ct(VERDE)) : TEXTO_SECUNDARIO;
                   return (
-                    <tr key={`st-${idx}`} style={{ height: ALTURA_LINHA, background: "rgba(184,115,51,0.07)", borderTop: `1px solid ${COBRE}30` }}>
-                      <td colSpan={3} style={{ position: "sticky", left: 0, background: "#0f1c30", padding: "6px 10px" }}>
-                        <span className="text-xs font-bold" style={{ color: COBRE }}>{t.subtotal} — {r.nome}</span>
+                    <tr key={`st-${idx}`} style={{ height: ALTURA_LINHA, background: FUNDO_SUBTOTAL, borderTop: `1px solid ${SECUNDARIA}30` }}>
+                      <td colSpan={3} style={{ position: "sticky", left: 0, background: FUNDO_SUBTOTAL_STICKY, padding: "6px 10px" }}>
+                        <span className="text-xs font-bold" style={{ color: SECUNDARIA }}>{t.subtotal} — {r.nome}</span>
                       </td>
-                      <td style={{ padding: "6px 10px", fontWeight: 800, color: COBRE }}>{fmt(r.subtotal)}</td>
+                      <td style={{ padding: "6px 10px", fontWeight: 800, color: SECUNDARIA }}>{fmt(r.subtotal)}</td>
                       <td colSpan={5} style={{ padding: "6px 10px", fontSize: 11, color: corOrc, fontWeight: r.orcado > 0 ? 700 : 400 }}>
                         {r.orcado > 0 ? `${fmt(r.orcado)} ${t.orcadoS.toLowerCase()}` : ""}
                       </td>
@@ -593,11 +638,11 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                 }
                 if (r.tipo === "total") {
                   return (
-                    <tr key="total" style={{ height: ALTURA_LINHA + 4, background: "rgba(159,18,57,0.18)", borderTop: `2px solid ${VINHO}` }}>
-                      <td colSpan={3} style={{ position: "sticky", left: 0, background: "#1a0e17", padding: "8px 10px" }}>
-                        <span className="text-sm font-black" style={{ color: BORDO }}>{t.totalGeral}</span>
+                    <tr key="total" style={{ height: ALTURA_LINHA + 4, background: FUNDO_TOTAL, borderTop: `2px solid ${PRIMARIA}` }}>
+                      <td colSpan={3} style={{ position: "sticky", left: 0, background: FUNDO_TOTAL_STICKY, padding: "8px 10px" }}>
+                        <span className="text-sm font-black" style={{ color: ENFASE }}>{t.totalGeral}</span>
                       </td>
-                      <td style={{ padding: "8px 10px", fontWeight: 900, fontSize: 13, color: BORDO }}>{fmt(totalGeral)}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: 900, fontSize: 13, color: ENFASE }}>{fmt(totalGeral)}</td>
                       <td colSpan={5} />
                     </tr>
                   );
@@ -607,41 +652,45 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                 const pctTotal = totalGeral > 0 ? (l.valor / totalGeral) * 100 : 0;
                 return (
                   <tr key={l.id} onClick={(e) => clicarLinha(l.id, e)}
-                    style={{ height: ALTURA_LINHA, background: selecionada ? "rgba(159,18,57,0.15)" : "transparent", cursor: "pointer" }}>
+                    style={{ height: ALTURA_LINHA, background: selecionada ? FUNDO_LINHA_SEL : "transparent", cursor: "pointer" }}>
                     {/* A - Origem (com o número de linha usado no endereçamento de fórmula, ex: D3) */}
-                    <td style={{ position: "sticky", left: 0, background: selecionada ? "#241220" : "#0d1a2e", padding: "4px 10px", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
+                    <td style={{ position: "sticky", left: 0, background: selecionada ? FUNDO_LINHA_SEL_STICKY : FUNDO_LINHA, padding: "4px 10px", borderRight: temaClaro ? "1px solid rgba(16,27,61,0.08)" : "1px solid rgba(255,255,255,0.05)" }}>
                       <span className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-mono" style={{ color: "#3d4d63" }}>{r.numeroFormula}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${VINHO}18`, color: VINHO }}>{LABEL_ORIGEM[l.tabela][idioma]}</span>
+                        <span className="text-[9px] font-mono" style={{ color: TEXTO_NUMERO_LINHA }}>{r.numeroFormula}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${PRIMARIA}18`, color: PRIMARIA }}>{LABEL_ORIGEM[l.tabela][idioma]}</span>
                       </span>
                     </td>
                     {/* B - Descrição */}
                     <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "descricao"} valor={l.descricao} display={l.descricao}
                       onAbrir={() => abrirEdicao(l, "descricao")} onConfirmar={() => confirmarEdicao(l)}
-                      valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id} tipo="texto" />
+                      valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id} tipo="texto"
+                      corAcento={PRIMARIA} textoPrimario={TEXTO_PRIMARIO} textoIcone={TEXTO_NUMERO_LINHA} fundoInput={FUNDO_INPUT} />
                     {/* C - Categoria */}
                     <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "categoria"} valor={l.categoria} display={l.categoria || "-"}
                       onAbrir={() => abrirEdicao(l, "categoria")} onConfirmar={() => confirmarEdicao(l)}
                       valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
-                      tipo="select" opcoes={(categoriasPorTabela[l.tabela] || []).map(c => ({ value: c, label: c }))} />
+                      tipo="select" opcoes={(categoriasPorTabela[l.tabela] || []).map(c => ({ value: c, label: c }))}
+                      corAcento={PRIMARIA} textoPrimario={TEXTO_PRIMARIO} textoIcone={TEXTO_NUMERO_LINHA} fundoInput={FUNDO_INPUT} />
                     {/* D - Valor */}
                     <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "valor"} valor={String(l.valor)} display={fmt(l.valor)}
                       onAbrir={() => abrirEdicao(l, "valor")} onConfirmar={() => confirmarEdicao(l)}
                       valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
                       tipo="valor" tooltipFormula={t.formulaTooltip}
-                      erro={editando?.id === l.id && editando.coluna === "valor" ? erroEdicao : null} />
+                      erro={editando?.id === l.id && editando.coluna === "valor" ? erroEdicao : null}
+                      corAcento={PRIMARIA} textoPrimario={TEXTO_PRIMARIO} textoIcone={TEXTO_NUMERO_LINHA} fundoInput={FUNDO_INPUT} />
                     {/* E - Data */}
                     <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "data"}
                       valor={l.tabela === "custos_fixos" ? String(l.diaVencimento || "") : l.data}
                       display={l.tabela === "custos_fixos" ? `Dia ${l.diaVencimento || "-"}` : (l.data ? new Date(l.data + "T00:00:00").toLocaleDateString("pt-BR") : "-")}
                       onAbrir={() => abrirEdicao(l, "data")} onConfirmar={() => confirmarEdicao(l)}
                       valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
-                      tipo={l.tabela === "custos_fixos" ? "numero" : "data"} />
+                      tipo={l.tabela === "custos_fixos" ? "numero" : "data"}
+                      corAcento={PRIMARIA} textoPrimario={TEXTO_PRIMARIO} textoIcone={TEXTO_NUMERO_LINHA} fundoInput={FUNDO_INPUT} />
                     {/* F - Centro (ou, se rateado, a distribuição entre centros — não editável direto aqui, mexe em "Ratear Custo") */}
                     {l.rateios && l.rateios.length > 0 ? (
                       <td style={{ padding: "4px 10px" }} title={l.rateios.map(r => `${r.centroNome}: ${r.percentual}%`).join(" · ")}>
                         <button onClick={(e) => { e.stopPropagation(); onEditarRateio(l.tabela, l.id); }}
-                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                          className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold w-fit" style={{ background: `${ct("#a78bfa")}20`, color: ct("#a78bfa") }}>
                           <Split size={9} /> {l.rateios.map(r => `${r.centroNome} ${r.percentual}%`).join(" / ")} <Pencil size={8} />
                         </button>
                       </td>
@@ -649,15 +698,17 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                       <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "centro"} valor={l.centroId || ""} display={l.centroNome}
                         onAbrir={() => abrirEdicao(l, "centro")} onConfirmar={() => confirmarEdicao(l)}
                         valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
-                        tipo="select" opcoes={centros.map(c => ({ value: c.id, label: c.nome }))} />
+                        tipo="select" opcoes={centros.map(c => ({ value: c.id, label: c.nome }))}
+                        corAcento={PRIMARIA} textoPrimario={TEXTO_PRIMARIO} textoIcone={TEXTO_NUMERO_LINHA} fundoInput={FUNDO_INPUT} />
                     )}
                     {/* G - Fornecedor */}
                     {l.tabela === "contas_pagar" ? (
                       <CelulaEditavel ativo={editando?.id === l.id && editando.coluna === "fornecedor"} valor={l.fornecedorId || ""} display={l.fornecedorNome || "-"}
                         onAbrir={() => abrirEdicao(l, "fornecedor")} onConfirmar={() => confirmarEdicao(l)}
                         valorEdicao={valorEdicao} setValorEdicao={setValorEdicao} onKeyDown={(e) => onKeyDownEdicao(e, l)} salvando={salvandoId === l.id}
-                        tipo="select" opcoes={fornecedores.map(f => ({ value: f.id, label: f.nome }))} />
-                    ) : <td style={{ padding: "4px 10px", color: "#3d4d63" }}>—</td>}
+                        tipo="select" opcoes={fornecedores.map(f => ({ value: f.id, label: f.nome }))}
+                        corAcento={PRIMARIA} textoPrimario={TEXTO_PRIMARIO} textoIcone={TEXTO_NUMERO_LINHA} fundoInput={FUNDO_INPUT} />
+                    ) : <td style={{ padding: "4px 10px", color: TEXTO_NUMERO_LINHA }}>—</td>}
                     {/* H - Status (somente leitura) */}
                     {l.tabela === "contas_pagar" ? (
                       <td title={t.somenteLeitura} style={{ padding: "4px 10px" }}>
@@ -665,9 +716,9 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
                           <Lock size={9} /> {l.status || "-"}
                         </span>
                       </td>
-                    ) : <td style={{ padding: "4px 10px", color: "#3d4d63" }}>—</td>}
+                    ) : <td style={{ padding: "4px 10px", color: TEXTO_NUMERO_LINHA }}>—</td>}
                     {/* I - % do Total (viva) */}
-                    <td style={{ padding: "4px 10px", fontSize: 11, color: "#5a7a9a" }}>{pctTotal.toFixed(1)}%</td>
+                    <td style={{ padding: "4px 10px", fontSize: 11, color: TEXTO_SECUNDARIO }}>{pctTotal.toFixed(1)}%</td>
                   </tr>
                 );
               })}
@@ -677,15 +728,15 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
         </div>
 
         {/* Barra de status estilo Excel */}
-        <div className="flex items-center justify-end gap-4 px-4 py-2 text-xs" style={{ borderTop: `1px solid ${VINHO}25`, background: "#0a1628", color: "#5a7a9a" }}>
+        <div className="flex items-center justify-end gap-4 px-4 py-2 text-xs" style={{ borderTop: `1px solid ${PRIMARIA}25`, background: FUNDO_HEADER, color: temaClaro ? "rgba(255,255,255,0.7)" : "#5a7a9a" }}>
           {estatisticasSelecao.qtd > 0 ? (
             <>
               <span>{estatisticasSelecao.qtd} {estatisticasSelecao.qtd === 1 ? t.linhaSelecionada : t.linhasSelecionadas}</span>
-              <span>{t.soma}: <b style={{ color: "#c8d8f0" }}>{fmt(estatisticasSelecao.soma)}</b></span>
-              <span>{t.media}: <b style={{ color: "#c8d8f0" }}>{fmt(estatisticasSelecao.media)}</b></span>
-              <span>{t.contagem}: <b style={{ color: "#c8d8f0" }}>{estatisticasSelecao.qtd}</b></span>
+              <span>{t.soma}: <b style={{ color: "#ffffff" }}>{fmt(estatisticasSelecao.soma)}</b></span>
+              <span>{t.media}: <b style={{ color: "#ffffff" }}>{fmt(estatisticasSelecao.media)}</b></span>
+              <span>{t.contagem}: <b style={{ color: "#ffffff" }}>{estatisticasSelecao.qtd}</b></span>
             </>
-          ) : <span>{linhasOrdenadas.length} · {t.totalGeral}: <b style={{ color: "#c8d8f0" }}>{fmt(totalGeral)}</b></span>}
+          ) : <span>{linhasOrdenadas.length} · {t.totalGeral}: <b style={{ color: "#ffffff" }}>{fmt(totalGeral)}</b></span>}
         </div>
       </div>
 
@@ -697,23 +748,23 @@ export default function PlanilhaCentroCusto({ linhas, centros, orcamentos, forne
           { titulo: t.curvaABC, opt: optCurvaABC, vazio: curvaABC.length === 0 },
           { titulo: t.evolucaoMensal, opt: optEvolucao, vazio: evolucaoMensal.length === 0 },
         ].map((g, i) => (
-          <div key={i} className="rounded-2xl p-3" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${VINHO}20` }}>
-            <p className="text-xs font-black mb-2" style={{ color: BORDO }}>{g.titulo}</p>
-            {g.vazio ? <p className="text-xs py-10 text-center" style={{ color: "#5a7a9a" }}>{t.semDados}</p> : (
+          <div key={i} className={`rounded-2xl p-3${temaClaro ? " axi-card-premium3d" : ""}`} style={{ background: FUNDO_PAINEL, border: temaClaro ? BORDA_3D : `1px solid ${VINHO}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+            <p className="text-xs font-black mb-2" style={{ color: ENFASE }}>{g.titulo}</p>
+            {g.vazio ? <p className="text-xs py-10 text-center" style={{ color: TEXTO_SECUNDARIO }}>{t.semDados}</p> : (
               <ReactECharts option={g.opt} style={{ height: 240 }} notMerge lazyUpdate
                 onEvents={g.onClick ? { click: (p: any) => g.onClick!(p.name) } : undefined} />
             )}
           </div>
         ))}
-        <div className="rounded-2xl p-3 lg:col-span-2" style={{ background: "rgba(10,22,40,0.8)", border: `1px solid ${VINHO}20` }}>
-          <p className="text-xs font-black mb-2" style={{ color: BORDO }}>{t.orcadoRealizado}</p>
-          {evolucaoMensal.length === 0 ? <p className="text-xs py-10 text-center" style={{ color: "#5a7a9a" }}>{t.semDados}</p> : (
+        <div className={`rounded-2xl p-3 lg:col-span-2${temaClaro ? " axi-card-premium3d" : ""}`} style={{ background: FUNDO_PAINEL, border: temaClaro ? BORDA_3D : `1px solid ${VINHO}20`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
+          <p className="text-xs font-black mb-2" style={{ color: ENFASE }}>{t.orcadoRealizado}</p>
+          {evolucaoMensal.length === 0 ? <p className="text-xs py-10 text-center" style={{ color: TEXTO_SECUNDARIO }}>{t.semDados}</p> : (
             <ReactECharts option={optOrcadoRealizado} style={{ height: 260 }} notMerge lazyUpdate />
           )}
         </div>
       </div>
       {filtroGraficoCentro && (
-        <button onClick={() => setFiltroGraficoCentro(null)} className="text-xs underline" style={{ color: VINHO }}>
+        <button onClick={() => setFiltroGraficoCentro(null)} className="text-xs underline" style={{ color: PRIMARIA }}>
           {idioma === "pt" ? "Limpar filtro do gráfico" : idioma === "es" ? "Limpiar filtro del gráfico" : "Clear chart filter"}
         </button>
       )}
@@ -728,16 +779,17 @@ function CelulaEditavel(props: {
   valorEdicao: string; setValorEdicao: (v: string) => void; onKeyDown: (e: React.KeyboardEvent) => void;
   salvando: boolean; tipo: "texto" | "numero" | "data" | "select" | "valor";
   opcoes?: { value: string; label: string }[]; tooltipFormula?: string; erro?: string | null;
+  corAcento: string; textoPrimario: string; textoIcone: string; fundoInput: string;
 }) {
-  const { ativo, display, onAbrir, onConfirmar, valorEdicao, setValorEdicao, onKeyDown, salvando, tipo, opcoes, tooltipFormula, erro } = props;
+  const { ativo, display, onAbrir, onConfirmar, valorEdicao, setValorEdicao, onKeyDown, salvando, tipo, opcoes, tooltipFormula, erro, corAcento, textoPrimario, textoIcone, fundoInput } = props;
   if (!ativo) {
     return (
       <td onClick={(e) => { e.stopPropagation(); onAbrir(); }}
-        style={{ padding: "4px 10px", color: "#c8d8f0", fontSize: 12, cursor: "pointer", opacity: salvando ? 0.5 : 1 }}
+        style={{ padding: "4px 10px", color: textoPrimario, fontSize: 12, cursor: "pointer", opacity: salvando ? 0.5 : 1 }}
         title={tipo === "valor" ? tooltipFormula : undefined}>
         <span className="flex items-center gap-1">
           {display}
-          <Pencil size={9} style={{ color: "#3d4d63", flexShrink: 0 }} />
+          <Pencil size={9} style={{ color: textoIcone, flexShrink: 0 }} />
         </span>
       </td>
     );
@@ -746,14 +798,14 @@ function CelulaEditavel(props: {
     <td style={{ padding: "2px 4px" }}>
       {tipo === "select" ? (
         <select autoFocus value={valorEdicao} onChange={e => setValorEdicao(e.target.value)} onBlur={onConfirmar} onKeyDown={onKeyDown}
-          className="w-full px-2 py-1 rounded text-xs focus:outline-none" style={{ background: "#0f1f38", border: `1px solid ${VINHO}`, color: "#c8d8f0" }}>
+          className="w-full px-2 py-1 rounded text-xs focus:outline-none" style={{ background: fundoInput, border: `1px solid ${corAcento}`, color: textoPrimario }}>
           <option value="">-</option>
           {opcoes?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : (
         <input autoFocus value={valorEdicao} onChange={e => setValorEdicao(e.target.value)} onBlur={onConfirmar} onKeyDown={onKeyDown}
           type={tipo === "data" ? "date" : tipo === "numero" ? "number" : "text"}
-          className="w-full px-2 py-1 rounded text-xs focus:outline-none" style={{ background: "#0f1f38", border: `1px solid ${VINHO}`, color: "#c8d8f0" }} />
+          className="w-full px-2 py-1 rounded text-xs focus:outline-none" style={{ background: fundoInput, border: `1px solid ${corAcento}`, color: textoPrimario }} />
       )}
       {erro && <p className="text-[9px] mt-0.5" style={{ color: "#f87171" }}>{erro}</p>}
     </td>
