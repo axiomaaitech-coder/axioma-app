@@ -5,13 +5,14 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { Pencil, Trash2, X, Split } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { consultarCEP, validarCPF, formatarCPF, formatarCEP } from "../../../lib/enderecoHelpers";
 import { validarCNPJ, formatarCNPJ, obterEmpresaAtiva } from "../../../lib/empresaHelpers";
-import { optCascata } from "../../../lib/cfoCore";
+import { optCascata, corTema } from "../../../lib/cfoCore";
 import ReactECharts from "echarts-for-react";
 import {
   type OrigemTabela, LABEL_ORIGEM, type LancamentoOrigem, carregarTodosLancamentosOrigem,
@@ -32,6 +33,9 @@ import {
 } from "../../../lib/fornecedorHelpers";
 import { CATEGORIAS_DESPESA } from "../../../lib/categoriasDespesa";
 import PlanilhaCentroCusto, { type LinhaPlanilha } from "../../../components/PlanilhaCentroCusto";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+import { SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 
 const CATEGORIAS_CUSTOS_FIXOS = ["Aluguel/Imóvel", "Folha de pagamento", "Serviços essenciais", "Sistemas e assinaturas", "Seguros", "Contabilidade", "Outros"];
 const CATEGORIAS_CUSTOS_VARIAVEIS = ["Marketing", "Logística", "Matéria-prima", "Comissões", "Embalagens", "Outros"];
@@ -57,15 +61,20 @@ type Lancamento = {
   user_id: string; created_at: string;
 };
 
+// Escuro inalterado. Claro: sequência oficial (tema-tokens.md §1.4) - com
+// 7 centros a distinguir, estende com os 2 semânticos permitidos (âmbar/
+// vermelho) em vez de deixar vazar roxo/laranja/ciano crus do Escuro.
 const CORES_CENTRO = ["#9f1239", "#34d399", "#f87171", "#fbbf24", "#a78bfa", "#fb923c", "#22d3ee"];
-const getCor = (index: number) => CORES_CENTRO[index % CORES_CENTRO.length];
-
-const inputStyle = { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(159,18,57,0.2)", color: "#c8d8f0" };
-const selectStyle = { background: "rgba(10,22,40,0.95)", border: "1px solid rgba(159,18,57,0.2)", color: "#c8d8f0" };
+const CORES_CENTRO_CLARO = ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54", "#f5a623", "#ff5a6b"];
+const getCor = (index: number, temaClaro?: boolean) => (temaClaro ? CORES_CENTRO_CLARO : CORES_CENTRO)[index % CORES_CENTRO.length];
 
 function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
   aberto: boolean; onFechar: () => void; titulo: string; cor?: string; children: React.ReactNode;
 }) {
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTemaModal = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
   return (
     <AnimatePresence>
       {aberto && (
@@ -75,13 +84,13 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
           <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}
             className="w-full max-w-md">
-            <CanvasBox cor={cor}>
+            <CanvasBox {...cartaoTemaModal} cor={temaClaro ? "#2ecc9b" : cor}>
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: "#881337" }}>AXIOMA AI.TECH</p>
-                  <h3 className="text-lg font-bold" style={{ color: "#c8d8f0" }}>{titulo}</h3>
+                  <p className="text-xs font-black tracking-[0.3em] uppercase mb-1" style={{ color: temaClaro ? "#2ecc9b" : "#881337" }}>AXIOMA AI.TECH</p>
+                  <h3 className="text-lg font-bold" style={{ color: ct("#c8d8f0") }}>{titulo}</h3>
                 </div>
-                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: "#5a7a9a" }}><X size={20} /></motion.button>
+                <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }} onClick={onFechar} style={{ color: ct("#5a7a9a") }}><X size={20} /></motion.button>
               </div>
               {children}
             </CanvasBox>
@@ -96,6 +105,19 @@ export default function CentrosCustoPage() {
   const { t, idioma } = useLanguage();
   const cc = t.centrosCusto;
   const Lt = (pt: string, en: string, es: string) => (idioma === "en" ? en : idioma === "es" ? es : pt);
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const classePremium3d = temaClaro ? " axi-card-premium3d" : "";
+  // Padrão de aba/pill: azul-marinho+branco em repouso, verde-menta forte
+  // (#16a97d, par "Sucesso" oficial)+branco quando ativa/clicada - mesmo
+  // padrão pedido pelo Elias em Contas a Pagar/Estoque/Contas a Receber.
+  const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(255,255,255,0.04)";
+  const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#94a3b8";
+  const PILL_ATIVA = temaClaro ? "#16a97d" : "#9f1239";
+  const inputStyle = { background: temaClaro ? "#eef2f7" : "rgba(255,255,255,0.04)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(159,18,57,0.2)", color: ct("#c8d8f0") };
+  const selectStyle = { background: temaClaro ? "#ffffff" : "rgba(10,22,40,0.95)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(159,18,57,0.2)", color: ct("#c8d8f0") };
   const [toast, setToast] = useState<{ msg: string; tipo: "erro" | "ok" } | null>(null);
   function showToast(msg: string, tipo: "erro" | "ok" = "erro") {
     setToast({ msg, tipo });
@@ -700,7 +722,7 @@ export default function CentrosCustoPage() {
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
       onClick={abrirNovoLancamento}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+      style={{ background: temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)", color: ct("#34d399"), border: temaClaro ? "1px solid rgba(22,169,125,0.3)" : "1px solid rgba(52,211,153,0.3)" }}>
       + {cc.novoLancamento}
     </motion.button>
   );
@@ -709,26 +731,30 @@ export default function CentrosCustoPage() {
     <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
       onClick={abrirRateio}
       className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm"
-      style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
+      style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(167,139,250,0.15)", color: ct("#a78bfa"), border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(167,139,250,0.3)" }}>
       <Split size={15} /> {L.rateio}
     </motion.button>
   );
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center" style={{ background: "#020810", minHeight: "100vh" }}>
+    <div data-theme={tema} className="flex-1 flex items-center justify-center" style={{ background: temaClaro ? "#f7f8fa" : "#020810", minHeight: "100vh" }}>
       <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={cc.titulo} subtitulo={cc.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
       onNovo={() => { setEditandoCentro(null); fecharModalCentro(); setModalCentro(true); }}
-      labelBotao={cc.novoCentro} botaoExtra={<div className="flex gap-2 flex-wrap">{botaoLancamento}{botaoRateio}</div>}>
+      labelBotao={cc.novoCentro} botaoExtra={<div className="flex gap-2 flex-wrap items-center">{botaoLancamento}{botaoRateio}<ThemeToggle /></div>}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      corNovo={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}>
       <div className="space-y-4">
 
         {/* Seletor de período */}
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{L.periodo}:</span>
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{L.periodo}:</span>
           <input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)}
             className="px-3 py-2 rounded-xl text-sm focus:outline-none" style={inputStyle} />
         </div>
@@ -736,35 +762,35 @@ export default function CentrosCustoPage() {
         {/* Cards resumo */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: cc.totalCentros, valor: centros.length.toString(), cor: "#9f1239" },
-            { label: L.orcado, valor: fmt(totalOrcado), cor: "#a78bfa" },
-            { label: L.realizado + " (custo)", valor: fmt(totalCustos), cor: "#f87171" },
-            { label: L.resultado, valor: fmt(resultadoGeral), cor: resultadoGeral >= 0 ? "#34d399" : "#f87171" },
+            { label: cc.totalCentros, valor: centros.length.toString(), cor: ct("#9f1239") },
+            { label: L.orcado, valor: fmt(totalOrcado), cor: ct("#a78bfa") },
+            { label: L.realizado + " (custo)", valor: fmt(totalCustos), cor: ct("#f87171") },
+            { label: L.resultado, valor: fmt(resultadoGeral), cor: resultadoGeral >= 0 ? ct("#34d399") : ct("#f87171") },
           ].map((card, i) => (
-            <CanvasBox key={i} cor={card.cor}>
-              <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{card.label}</p>
-              <p className="text-lg md:text-xl font-bold" style={{ color: card.cor }}>{card.valor}</p>
+            <CanvasBox {...cartaoTema} key={i} cor={card.cor}>
+              <p className="text-xs mb-1 uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
+              <p className="text-lg md:text-xl font-bold" style={{ color: card.cor }}><AnimatedNumber value={card.valor} /></p>
             </CanvasBox>
           ))}
         </div>
 
         {/* Score do módulo (Fase 2) — sempre explicável, cada dimensão mostra o número que a gerou */}
-        <CanvasBox cor={scoreModulo.cor}>
+        <CanvasBox {...cartaoTema} cor={ct(scoreModulo.cor)}>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="text-2xl md:text-3xl font-black" style={{ color: scoreModulo.cor }}>{scoreModulo.total}<span className="text-sm" style={{ color: "#5a7a9a" }}>/100</span></div>
+              <div className="text-2xl md:text-3xl font-black" style={{ color: ct(scoreModulo.cor) }}>{scoreModulo.total}<span className="text-sm" style={{ color: ct("#5a7a9a") }}>/100</span></div>
               <div>
-                <p className="text-sm font-bold capitalize" style={{ color: "#c8d8f0" }}>{idioma === "pt" ? "Score do Módulo" : idioma === "es" ? "Score del Módulo" : "Module Score"} — {
+                <p className="text-sm font-bold capitalize" style={{ color: ct("#c8d8f0") }}>{idioma === "pt" ? "Score do Módulo" : idioma === "es" ? "Score del Módulo" : "Module Score"} — {
                   { excelente: { pt: "excelente", en: "excellent", es: "excelente" }, bom: { pt: "bom", en: "good", es: "bueno" }, atencao: { pt: "atenção", en: "needs attention", es: "atención" }, critico: { pt: "crítico", en: "critical", es: "crítico" } }[scoreModulo.nivel][idioma === "en" ? "en" : idioma === "es" ? "es" : "pt"]
                 }</p>
-                <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Disciplina orçamentária, anomalias, oportunidades capturadas e cobertura de atribuição." : idioma === "es" ? "Disciplina presupuestaria, anomalías, oportunidades capturadas y cobertura de asignación." : "Budget discipline, anomalies, captured opportunities and tagging coverage."}</p>
+                <p className="text-[11px]" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Disciplina orçamentária, anomalias, oportunidades capturadas e cobertura de atribuição." : idioma === "es" ? "Disciplina presupuestaria, anomalías, oportunidades capturadas y cobertura de asignación." : "Budget discipline, anomalies, captured opportunities and tagging coverage."}</p>
               </div>
             </div>
             <div className="flex gap-3 flex-wrap">
               {scoreModulo.dimensoes.map(d => (
                 <div key={d.nome} className="text-center px-2">
-                  <p className="text-sm font-black" style={{ color: d.cor }}>{d.score}</p>
-                  <p className="text-[9px] max-w-[90px]" style={{ color: "#5a7a9a" }} title={d.detalhe}>{d.nome}</p>
+                  <p className="text-sm font-black" style={{ color: ct(d.cor) }}>{d.score}</p>
+                  <p className="text-[9px] max-w-[90px]" style={{ color: ct("#5a7a9a") }} title={d.detalhe}>{d.nome}</p>
                 </div>
               ))}
             </div>
@@ -788,7 +814,9 @@ export default function CentrosCustoPage() {
             <motion.button key={a.key} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => setAba(a.key as typeof aba)}
               className="px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: aba === a.key ? "rgba(159,18,57,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#9f1239" : "#5a7a9a", border: `1px solid ${aba === a.key ? "rgba(159,18,57,0.5)" : "rgba(159,18,57,0.1)"}` }}>
+              style={temaClaro
+                ? (aba === a.key ? { background: PILL_ATIVA, color: "#ffffff", border: `1px solid ${PILL_ATIVA}` } : { background: PILL_INATIVO, color: PILL_INATIVO_TEXTO, border: `1px solid ${PILL_INATIVO}` })
+                : { background: aba === a.key ? "rgba(159,18,57,0.25)" : "rgba(10,22,40,0.8)", color: aba === a.key ? "#9f1239" : "#5a7a9a", border: `1px solid ${aba === a.key ? "rgba(159,18,57,0.5)" : "rgba(159,18,57,0.1)"}` }}>
               {a.label}
             </motion.button>
           ))}
@@ -798,7 +826,7 @@ export default function CentrosCustoPage() {
         {aba === "visao" && (
           <div className="space-y-4">
             {centros.length === 0 ? (
-              <CanvasBox cor="#9f1239"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{cc.semCentros}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
               const custos = getCustos(centro.id);
               const receitas = getReceitas(centro.id);
@@ -811,26 +839,26 @@ export default function CentrosCustoPage() {
               const meta = centro.meta_receita || 0;
               const usoMeta = meta > 0 ? (receitas / meta) * 100 : 0;
               const corMeta = usoMeta >= 100 ? "#34d399" : usoMeta >= 70 ? "#6ab0ff" : "#fbbf24";
-              const cor = getCor(i);
+              const cor = getCor(i, temaClaro);
               const corOrc = usoOrc > 100 ? "#f87171" : usoOrc > 85 ? "#fbbf24" : "#34d399";
               return (
                 <motion.div key={centro.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={cor}>
+                  <CanvasBox {...cartaoTema} cor={cor}>
                     <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <div className="w-3 h-3 rounded-full" style={{ background: cor }} />
-                        <span className="font-bold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</span>
-                        {centro.codigo && <span className="text-xs font-semibold" style={{ color: "#b87333" }}>{centro.codigo}</span>}
+                        <span className="font-bold text-sm" style={{ color: ct("#c8d8f0") }}>{centro.nome}</span>
+                        {centro.codigo && <span className="text-xs font-semibold" style={{ color: ct("#b87333") }}>{centro.codigo}</span>}
                         <span className="text-xs px-2 py-0.5 rounded-full capitalize" style={{ background: `${cor}20`, color: cor }}>{centro.tipo}</span>
-                        {centro.responsavel && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "rgba(159,18,57,0.1)", color: "#9f1239" }}>👤 {centro.responsavel}</span>}
+                        {centro.responsavel && <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: temaClaro ? "rgba(46,204,155,0.12)" : "rgba(159,18,57,0.1)", color: ct("#9f1239") }}>👤 {centro.responsavel}</span>}
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
                         <span className="text-sm font-black" style={{ color: resultado >= 0 ? "#34d399" : "#f87171" }}>{fmt(resultado)}</span>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
-                          <Pencil size={15} style={{ color: "#9f1239" }} />
+                          <Pencil size={15} style={{ color: ct("#9f1239") }} />
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
-                          <Trash2 size={15} style={{ color: "#f87171" }} />
+                          <Trash2 size={15} style={{ color: ct("#f87171") }} />
                         </motion.button>
                       </div>
                     </div>
@@ -852,29 +880,29 @@ export default function CentrosCustoPage() {
                                 return;
                               }
                               setOrcamentoEditId(null); carregarDados();
-                            }} className="text-xs font-bold px-2 py-1.5 rounded-lg" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>
+                            }} className="text-xs font-bold px-2 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)", color: ct("#34d399") }}>
                             {idioma === "pt" ? "Salvar" : idioma === "es" ? "Guardar" : "Save"}
                           </button>
-                          <button onClick={() => setOrcamentoEditId(null)} className="text-xs px-2 py-1.5 rounded-lg" style={{ color: "#5a7a9a" }}>✕</button>
+                          <button onClick={() => setOrcamentoEditId(null)} className="text-xs px-2 py-1.5 rounded-lg" style={{ color: ct("#5a7a9a") }}>✕</button>
                         </div>
                       ) : orcado > 0 ? (
                         <div className="flex justify-between text-xs mb-1">
-                          <span style={{ color: "#5a7a9a" }}>
+                          <span style={{ color: ct("#5a7a9a") }}>
                             {L.orcado}: {fmt(orcado)} · {L.realizado}: {fmt(custos)}
-                            <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(String(orcado)); }} className="ml-1.5 underline" style={{ color: "#9f1239" }}>
+                            <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(String(orcado)); }} className="ml-1.5 underline" style={{ color: ct("#9f1239") }}>
                               {idioma === "pt" ? "editar" : idioma === "es" ? "editar" : "edit"}
                             </button>
                           </span>
                           <span style={{ color: corOrc, fontWeight: 700 }}>{usoOrc.toFixed(0)}%</span>
                         </div>
                       ) : (
-                        <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(""); }} className="text-xs underline mb-1" style={{ color: "#9f1239" }}>
+                        <button onClick={() => { setOrcamentoEditId(centro.id); setOrcamentoEditValor(""); }} className="text-xs underline mb-1" style={{ color: ct("#9f1239") }}>
                           + {idioma === "pt" ? "Definir orçamento deste mês" : idioma === "es" ? "Definir presupuesto de este mes" : "Set budget this month"}
                         </button>
                       )}
                       {orcado > 0 && orcamentoEditId !== centro.id && (
                         <>
-                          <div className="rounded-full h-2" style={{ background: "rgba(159,18,57,0.1)" }}>
+                          <div className="rounded-full h-2" style={{ background: temaClaro ? "rgba(16,27,61,0.1)" : "rgba(159,18,57,0.1)" }}>
                             <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(usoOrc, 100)}%` }}
                               transition={{ duration: 0.8, ease: "easeOut" }}
                               className="h-2 rounded-full" style={{ background: corOrc }} />
@@ -890,12 +918,12 @@ export default function CentrosCustoPage() {
                     {meta > 0 && (
                       <div className="mb-3">
                         <div className="flex justify-between text-xs mb-1">
-                          <span style={{ color: "#5a7a9a" }}>
+                          <span style={{ color: ct("#5a7a9a") }}>
                             {idioma === "pt" ? "Meta Receita" : idioma === "es" ? "Meta de Ingresos" : "Revenue Target"}: {fmt(meta)} · {L.realizado}: {fmt(receitas)}
                           </span>
                           <span style={{ color: corMeta, fontWeight: 700 }}>{usoMeta.toFixed(0)}%</span>
                         </div>
-                        <div className="rounded-full h-2" style={{ background: "rgba(159,18,57,0.1)" }}>
+                        <div className="rounded-full h-2" style={{ background: temaClaro ? "rgba(16,27,61,0.1)" : "rgba(159,18,57,0.1)" }}>
                           <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(usoMeta, 100)}%` }}
                             transition={{ duration: 0.8, ease: "easeOut" }}
                             className="h-2 rounded-full" style={{ background: corMeta }} />
@@ -909,15 +937,15 @@ export default function CentrosCustoPage() {
                     )}
 
                     {/* Resultado / Margem / Participação */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2" style={{ borderTop: "1px solid rgba(159,18,57,0.1)" }}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2" style={{ borderTop: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(159,18,57,0.1)" }}>
                       {[
-                        { label: cc.receita, val: fmt(receitas), cor: "#34d399" },
-                        { label: cc.custo, val: fmt(custos), cor: "#f87171" },
-                        { label: L.margem, val: `${margem.toFixed(1)}%`, cor: margem >= 0 ? "#34d399" : "#f87171" },
-                        { label: L.participacao, val: `${participacao.toFixed(1)}%`, cor: "#a78bfa" },
+                        { label: cc.receita, val: fmt(receitas), cor: ct("#34d399") },
+                        { label: cc.custo, val: fmt(custos), cor: ct("#f87171") },
+                        { label: L.margem, val: `${margem.toFixed(1)}%`, cor: margem >= 0 ? ct("#34d399") : ct("#f87171") },
+                        { label: L.participacao, val: `${participacao.toFixed(1)}%`, cor: ct("#a78bfa") },
                       ].map((s) => (
                         <div key={s.label}>
-                          <p className="text-xs mb-0.5" style={{ color: "#5a7a9a" }}>{s.label}</p>
+                          <p className="text-xs mb-0.5" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                           <p className="text-sm font-bold" style={{ color: s.cor }}>{s.val}</p>
                         </div>
                       ))}
@@ -933,21 +961,21 @@ export default function CentrosCustoPage() {
         {aba === "centros" && (
           <div className="space-y-3">
             {centros.length === 0 ? (
-              <CanvasBox cor="#9f1239"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{cc.semCentros}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p></div></CanvasBox>
             ) : centros.map((centro, i) => {
-              const cor = getCor(i);
+              const cor = getCor(i, temaClaro);
               return (
                 <motion.div key={centro.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <CanvasBox cor={cor}>
+                  <CanvasBox {...cartaoTema} cor={cor}>
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-4 h-4 rounded-full" style={{ background: cor }} />
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-sm" style={{ color: "#c8d8f0" }}>{centro.nome}</p>
-                            {centro.codigo && <span className="text-xs font-semibold" style={{ color: "#b87333" }}>{centro.codigo}</span>}
+                            <p className="font-semibold text-sm" style={{ color: ct("#c8d8f0") }}>{centro.nome}</p>
+                            {centro.codigo && <span className="text-xs font-semibold" style={{ color: ct("#b87333") }}>{centro.codigo}</span>}
                           </div>
-                          <p className="text-xs mt-0.5 capitalize" style={{ color: "#5a7a9a" }}>
+                          <p className="text-xs mt-0.5 capitalize" style={{ color: ct("#5a7a9a") }}>
                             {centro.tipo}{centro.responsavel ? ` · 👤 ${centro.responsavel}` : ""}
                             {centro.orcamento_mensal ? ` · ${idioma === "pt" ? "Orçamento" : idioma === "es" ? "Presupuesto" : "Budget"}: ${fmt(centro.orcamento_mensal)}` : ""}
                             {centro.cidade ? ` · ${centro.cidade}${centro.uf ? "/" + centro.uf : ""}` : ""}
@@ -956,10 +984,10 @@ export default function CentrosCustoPage() {
                       </div>
                       <div className="flex gap-2">
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarCentro(centro)}>
-                          <Pencil size={15} style={{ color: "#9f1239" }} />
+                          <Pencil size={15} style={{ color: ct("#9f1239") }} />
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirCentro(centro.id)}>
-                          <Trash2 size={15} style={{ color: "#f87171" }} />
+                          <Trash2 size={15} style={{ color: ct("#f87171") }} />
                         </motion.button>
                       </div>
                     </div>
@@ -973,25 +1001,25 @@ export default function CentrosCustoPage() {
         {/* ===== LANÇAMENTOS ===== */}
         {aba === "lancamentos" && (
           <div className="space-y-3">
-            <CanvasBox cor="#3b6fd4">
+            <CanvasBox {...cartaoTema} cor={ct("#3b6fd4")}>
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={cc.buscar}
-                className="w-full text-sm focus:outline-none bg-transparent" style={{ color: "#c8d8f0" }} />
+                className="w-full text-sm focus:outline-none bg-transparent" style={{ color: ct("#c8d8f0") }} />
             </CanvasBox>
             {lancFiltrados.length === 0 ? (
-              <CanvasBox cor="#9f1239"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{cc.semLancamentos}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{cc.semLancamentos}</p></div></CanvasBox>
             ) : lancFiltrados.map((lanc, i) => {
               const centro = centros.find(c => c.id === lanc.centro_custo_id);
               const idxCentro = centros.findIndex(c => c.id === lanc.centro_custo_id);
-              const cor = idxCentro >= 0 ? getCor(idxCentro) : "#9f1239";
+              const cor = idxCentro >= 0 ? getCor(idxCentro, temaClaro) : (temaClaro ? "#2ecc9b" : "#9f1239");
               return (
                 <motion.div key={lanc.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-                  <CanvasBox cor={lanc.tipo === "receita" ? "#34d399" : "#f87171"}>
+                  <CanvasBox {...cartaoTema} cor={lanc.tipo === "receita" ? ct("#34d399") : ct("#f87171")}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: cor }} />
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate" style={{ color: "#c8d8f0" }}>{lanc.descricao}</p>
-                          <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{centro?.nome || (idioma === "pt" ? "Sem centro" : idioma === "es" ? "Sin centro" : "No center")} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}{lanc.categoria ? ` · ${lanc.categoria}` : ""}</p>
+                          <p className="text-sm font-semibold truncate" style={{ color: ct("#c8d8f0") }}>{lanc.descricao}</p>
+                          <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{centro?.nome || (idioma === "pt" ? "Sem centro" : idioma === "es" ? "Sin centro" : "No center")} · {new Date(lanc.data + "T00:00:00").toLocaleDateString("pt-BR")}{lanc.categoria ? ` · ${lanc.categoria}` : ""}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0">
@@ -999,10 +1027,10 @@ export default function CentrosCustoPage() {
                           {lanc.tipo === "receita" ? "+" : "-"}{fmt(lanc.valor)}
                         </span>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEditarLancamento(lanc)}>
-                          <Pencil size={15} style={{ color: "#9f1239" }} />
+                          <Pencil size={15} style={{ color: ct("#9f1239") }} />
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => excluirLancamento(lanc.id)}>
-                          <Trash2 size={15} style={{ color: "#f87171" }} />
+                          <Trash2 size={15} style={{ color: ct("#f87171") }} />
                         </motion.button>
                       </div>
                     </div>
@@ -1016,23 +1044,23 @@ export default function CentrosCustoPage() {
         {/* ===== INSIGHTS (Escopo F — Central de Insights) ===== */}
         {aba === "insights" && (
           <div className="space-y-4">
-            <CanvasBox cor="#34d399">
-              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Economia Potencial Total" : idioma === "es" ? "Ahorro Potencial Total" : "Total Potential Savings"}</p>
-              <p className="text-2xl font-black" style={{ color: "#34d399" }}>{fmt(insights.economiaPotencialTotal)}</p>
+            <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Economia Potencial Total" : idioma === "es" ? "Ahorro Potencial Total" : "Total Potential Savings"}</p>
+              <p className="text-2xl font-black" style={{ color: ct("#34d399") }}>{fmt(insights.economiaPotencialTotal)}</p>
             </CanvasBox>
             {[
-              { titulo: idioma === "pt" ? "5 Maiores Riscos" : idioma === "es" ? "5 Mayores Riesgos" : "Top 5 Risks", cor: "#f87171", itens: insights.maioresRiscos.map(i => ({ id: i.id, titulo: i.titulo, sub: `${i.urgencia} · ${fmt(i.impacto)}` })) },
-              { titulo: idioma === "pt" ? "5 Maiores Oportunidades" : idioma === "es" ? "5 Mayores Oportunidades" : "Top 5 Opportunities", cor: "#34d399", itens: insights.maioresOportunidades.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
-              { titulo: idioma === "pt" ? "5 Maiores Desperdícios" : idioma === "es" ? "5 Mayores Desperdicios" : "Top 5 Waste", cor: "#fbbf24", itens: insights.maioresDesperdicios.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
-              { titulo: idioma === "pt" ? "5 Melhores Resultados" : idioma === "es" ? "5 Mejores Resultados" : "Top 5 Results", cor: "#6ab0ff", itens: insights.melhoresResultados.map(r => ({ id: r.centroId, titulo: r.centroNome, sub: fmt(r.resultado) })) },
+              { titulo: idioma === "pt" ? "5 Maiores Riscos" : idioma === "es" ? "5 Mayores Riesgos" : "Top 5 Risks", cor: ct("#f87171"), itens: insights.maioresRiscos.map(i => ({ id: i.id, titulo: i.titulo, sub: `${i.urgencia} · ${fmt(i.impacto)}` })) },
+              { titulo: idioma === "pt" ? "5 Maiores Oportunidades" : idioma === "es" ? "5 Mayores Oportunidades" : "Top 5 Opportunities", cor: ct("#34d399"), itens: insights.maioresOportunidades.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
+              { titulo: idioma === "pt" ? "5 Maiores Desperdícios" : idioma === "es" ? "5 Mayores Desperdicios" : "Top 5 Waste", cor: ct("#fbbf24"), itens: insights.maioresDesperdicios.map(o => ({ id: o.id, titulo: o.titulo, sub: fmt(o.economiaEstimada) })) },
+              { titulo: idioma === "pt" ? "5 Melhores Resultados" : idioma === "es" ? "5 Mejores Resultados" : "Top 5 Results", cor: ct("#6ab0ff"), itens: insights.melhoresResultados.map(r => ({ id: r.centroId, titulo: r.centroNome, sub: fmt(r.resultado) })) },
             ].map(bloco => (
-              <CanvasBox key={bloco.titulo} cor={bloco.cor}>
+              <CanvasBox {...cartaoTema} key={bloco.titulo} cor={bloco.cor}>
                 <p className="text-sm font-bold mb-2" style={{ color: bloco.cor }}>{bloco.titulo}</p>
-                {bloco.itens.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nada encontrado nos dados atuais." : idioma === "es" ? "No se encontró nada en los datos actuales." : "Nothing found in the current data."}</p> : (
+                {bloco.itens.length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nada encontrado nos dados atuais." : idioma === "es" ? "No se encontró nada en los datos actuales." : "Nothing found in the current data."}</p> : (
                   <div className="space-y-1.5">
                     {bloco.itens.map((it, i) => (
                       <div key={it.id + i} className="flex justify-between text-xs gap-2">
-                        <span className="truncate" style={{ color: "#c8d8f0" }}>{it.titulo}</span>
+                        <span className="truncate" style={{ color: ct("#c8d8f0") }}>{it.titulo}</span>
                         <span className="flex-shrink-0" style={{ color: bloco.cor }}>{it.sub}</span>
                       </div>
                     ))}
@@ -1045,11 +1073,11 @@ export default function CentrosCustoPage() {
                 { titulo: idioma === "pt" ? "Prioridades da Semana" : idioma === "es" ? "Prioridades de la Semana" : "This Week", itens: insights.prioridadesSemana },
                 { titulo: idioma === "pt" ? "Prioridades do Mês" : idioma === "es" ? "Prioridades del Mes" : "This Month", itens: insights.prioridadesMes },
               ].map(bloco => (
-                <CanvasBox key={bloco.titulo} cor="#a78bfa">
-                  <p className="text-sm font-bold mb-2" style={{ color: "#a78bfa" }}>{bloco.titulo}</p>
-                  {bloco.itens.length === 0 ? <p className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhuma prioridade urgente agora." : idioma === "es" ? "Ninguna prioridad urgente por ahora." : "No urgent priority now."}</p> : (
+                <CanvasBox {...cartaoTema} key={bloco.titulo} cor={ct("#a78bfa")}>
+                  <p className="text-sm font-bold mb-2" style={{ color: ct("#a78bfa") }}>{bloco.titulo}</p>
+                  {bloco.itens.length === 0 ? <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma prioridade urgente agora." : idioma === "es" ? "Ninguna prioridad urgente por ahora." : "No urgent priority now."}</p> : (
                     <div className="space-y-1.5">
-                      {bloco.itens.map((it, i) => <p key={it.id + i} className="text-xs truncate" style={{ color: "#c8d8f0" }}>• {it.titulo}</p>)}
+                      {bloco.itens.map((it, i) => <p key={it.id + i} className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>• {it.titulo}</p>)}
                     </div>
                   )}
                 </CanvasBox>
@@ -1062,22 +1090,22 @@ export default function CentrosCustoPage() {
         {aba === "causaRaiz" && (
           <div className="space-y-3">
             {causaRaiz.length === 0 ? (
-              <CanvasBox cor="#9f1239"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhum aumento fora do padrão detectado nos dados atuais." : idioma === "es" ? "No se detectó ningún aumento fuera de lo normal en los datos actuales." : "No out-of-pattern increase detected."}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum aumento fora do padrão detectado nos dados atuais." : idioma === "es" ? "No se detectó ningún aumento fuera de lo normal en los datos actuales." : "No out-of-pattern increase detected."}</p></div></CanvasBox>
             ) : causaRaiz.map((c) => (
-              <CanvasBox key={c.id} cor="#f87171">
+              <CanvasBox {...cartaoTema} key={c.id} cor={ct("#f87171")}>
                 <div className="flex justify-between items-start gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{c.tipo === "acima_media" ? (idioma === "pt" ? "Acima da média" : idioma === "es" ? "Por encima del promedio" : "Above average") : (idioma === "pt" ? "Aumento recorrente" : idioma === "es" ? "Aumento recurrente" : "Recurring increase")}</span>
-                      <span className="text-xs" style={{ color: "#5a7a9a" }}>{c.centroNome}{c.fornecedorNome ? ` · ${c.fornecedorNome}` : ""}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.15)", color: ct("#f87171") }}>{c.tipo === "acima_media" ? (idioma === "pt" ? "Acima da média" : idioma === "es" ? "Por encima del promedio" : "Above average") : (idioma === "pt" ? "Aumento recorrente" : idioma === "es" ? "Aumento recurrente" : "Recurring increase")}</span>
+                      <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{c.centroNome}{c.fornecedorNome ? ` · ${c.fornecedorNome}` : ""}</span>
                     </div>
-                    <p className="text-sm" style={{ color: "#c8d8f0" }}>{c.explicacao}</p>
-                    <p className="text-[11px] mt-1" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Quando" : idioma === "es" ? "Cuándo" : "When"}: {c.quando ? new Date(c.quando + "T00:00:00").toLocaleDateString("pt-BR") : "-"} · {c.autor}</p>
+                    <p className="text-sm" style={{ color: ct("#c8d8f0") }}>{c.explicacao}</p>
+                    <p className="text-[11px] mt-1" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Quando" : idioma === "es" ? "Cuándo" : "When"}: {c.quando ? new Date(c.quando + "T00:00:00").toLocaleDateString("pt-BR") : "-"} · {c.autor}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <span className="text-sm font-black" style={{ color: "#f87171" }}>{fmt(c.impacto)}</span>
+                    <span className="text-sm font-black" style={{ color: ct("#f87171") }}>{fmt(c.impacto)}</span>
                     <button onClick={() => abrirPlanoDeAcao("causa_raiz", c.id, c.centroId, `Investigar: ${c.descricao}`, c.impacto, c.explicacao)}
-                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(167,139,250,0.15)", color: ct("#a78bfa") }}>
                       {idioma === "pt" ? "Gerar plano de ação" : idioma === "es" ? "Generar plan de acción" : "Create action plan"}
                     </button>
                   </div>
@@ -1091,34 +1119,34 @@ export default function CentrosCustoPage() {
         {aba === "oportunidades" && (
           <div className="space-y-3">
             {reforecast.length > 0 && (
-              <CanvasBox cor="#fbbf24">
-                <p className="text-sm font-bold mb-2" style={{ color: "#fbbf24" }}>{idioma === "pt" ? "Orçamento Vivo — Projeção de Fechamento" : idioma === "es" ? "Presupuesto Vivo — Proyección de Cierre" : "Live Budget — Closing Projection"}</p>
+              <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
+                <p className="text-sm font-bold mb-2" style={{ color: ct("#fbbf24") }}>{idioma === "pt" ? "Orçamento Vivo — Projeção de Fechamento" : idioma === "es" ? "Presupuesto Vivo — Proyección de Cierre" : "Live Budget — Closing Projection"}</p>
                 <div className="space-y-1.5">
                   {reforecast.map(r => (
                     <div key={r.centroId} className="flex justify-between text-xs gap-2">
-                      <span style={{ color: "#c8d8f0" }}>{r.centroNome}</span>
+                      <span style={{ color: ct("#c8d8f0") }}>{r.centroNome}</span>
                       <span style={{ color: r.status === "estouro" ? "#f87171" : r.status === "atencao" ? "#fbbf24" : "#34d399" }}>
                         {idioma === "pt" ? "projeta" : idioma === "es" ? "proyecta" : "projects"} {fmt(r.projecaoFechamento)} {idioma === "pt" ? "vs orçado" : idioma === "es" ? "vs presupuestado" : "vs budget"} {fmt(r.orcado)} ({r.desvioPct >= 0 ? "+" : ""}{r.desvioPct.toFixed(0)}%)
                       </span>
                     </div>
                   ))}
                 </div>
-                {!periodoEhMesAtual && <p className="text-[10px] mt-2" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Período selecionado não é o mês corrente — mostrando o realizado do mês, não uma projeção." : idioma === "es" ? "El período seleccionado no es el mes actual — mostrando lo realizado, no una proyección." : "Selected period isn't the current month — showing the actual, not a projection."}</p>}
+                {!periodoEhMesAtual && <p className="text-[10px] mt-2" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Período selecionado não é o mês corrente — mostrando o realizado do mês, não uma projeção." : idioma === "es" ? "El período seleccionado no es el mes actual — mostrando lo realizado, no una proyección." : "Selected period isn't the current month — showing the actual, not a projection."}</p>}
               </CanvasBox>
             )}
             {oportunidades.length === 0 ? (
-              <CanvasBox cor="#9f1239"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhuma oportunidade identificada nos dados atuais." : idioma === "es" ? "Ninguna oportunidad identificada en los datos actuales." : "No opportunity identified."}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhuma oportunidade identificada nos dados atuais." : idioma === "es" ? "Ninguna oportunidad identificada en los datos actuales." : "No opportunity identified."}</p></div></CanvasBox>
             ) : oportunidades.map((o) => (
-              <CanvasBox key={o.id} cor="#34d399">
+              <CanvasBox {...cartaoTema} key={o.id} cor={ct("#34d399")}>
                 <div className="flex justify-between items-start gap-3 flex-wrap">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{o.titulo}</p>
-                    <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{o.descricao}</p>
+                    <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{o.titulo}</p>
+                    <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{o.descricao}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    {o.economiaEstimada > 0 && <span className="text-sm font-black" style={{ color: "#34d399" }}>{fmt(o.economiaEstimada)}</span>}
+                    {o.economiaEstimada > 0 && <span className="text-sm font-black" style={{ color: ct("#34d399") }}>{fmt(o.economiaEstimada)}</span>}
                     <button onClick={() => abrirPlanoDeAcao("oportunidade", o.id, o.centroId, o.titulo, o.economiaEstimada, o.descricao)}
-                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                      className="text-xs font-semibold px-2.5 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(167,139,250,0.15)", color: ct("#a78bfa") }}>
                       {idioma === "pt" ? "Gerar plano de ação" : idioma === "es" ? "Generar plan de acción" : "Create action plan"}
                     </button>
                   </div>
@@ -1131,10 +1159,10 @@ export default function CentrosCustoPage() {
         {/* ===== SIMULADOR (Escopo D — cenários com efeito cascata + Mapa de Impacto) ===== */}
         {aba === "simulador" && (
           <div className="space-y-4">
-            <CanvasBox cor="#a78bfa">
+            <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
-                  <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Cenário" : idioma === "es" ? "Escenario" : "Scenario"}</label>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Cenário" : idioma === "es" ? "Escenario" : "Scenario"}</label>
                   <select value={simTipo} onChange={(e) => setSimTipo(e.target.value as TipoCenarioExecutivo)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={selectStyle}>
                     <option value="reduzir_custos">{idioma === "pt" ? "Reduzir custos" : idioma === "es" ? "Reducir costos" : "Reduce costs"}</option>
                     <option value="expandir_equipe">{idioma === "pt" ? "Expandir equipe" : idioma === "es" ? "Expandir equipo" : "Expand team"}</option>
@@ -1149,7 +1177,7 @@ export default function CentrosCustoPage() {
                 </div>
                 {simTipo === "encerrar_centro" ? (
                   <div>
-                    <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Centro" : idioma === "es" ? "Centro" : "Center"}</label>
+                    <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Centro" : idioma === "es" ? "Centro" : "Center"}</label>
                     <select value={simCentroId} onChange={(e) => setSimCentroId(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={selectStyle}>
                       <option value="">-- {idioma === "pt" ? "Selecione" : idioma === "es" ? "Seleccione" : "Select"} --</option>
                       {centros.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
@@ -1157,23 +1185,23 @@ export default function CentrosCustoPage() {
                   </div>
                 ) : (
                   <div>
-                    <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Percentual (%)" : idioma === "es" ? "Porcentaje (%)" : "Percent (%)"}</label>
+                    <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Percentual (%)" : idioma === "es" ? "Porcentaje (%)" : "Percent (%)"}</label>
                     <input type="number" value={simValorPct} onChange={(e) => setSimValorPct(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                   </div>
                 )}
                 <div>
-                  <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Horizonte (meses)" : idioma === "es" ? "Horizonte (meses)" : "Horizon (months)"}</label>
+                  <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Horizonte (meses)" : idioma === "es" ? "Horizonte (meses)" : "Horizon (months)"}</label>
                   <input type="number" value={simHorizonte} onChange={(e) => setSimHorizonte(e.target.value)} className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none" style={inputStyle} />
                 </div>
                 <div className="flex items-end">
-                  <p className="text-[10px]" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Recalcula automaticamente com base nos dados reais de Receitas, Custos Fixos e Custos Variáveis do período." : idioma === "es" ? "Recalcula automáticamente con base en los datos reales de Ingresos, Costos Fijos y Costos Variables del período." : "Recalculates automatically from real Revenue, Fixed and Variable Costs of the period."}</p>
+                  <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Recalcula automaticamente com base nos dados reais de Receitas, Custos Fixos e Custos Variáveis do período." : idioma === "es" ? "Recalcula automáticamente con base en los datos reales de Ingresos, Costos Fijos y Costos Variables del período." : "Recalculates automatically from real Revenue, Fixed and Variable Costs of the period."}</p>
                 </div>
               </div>
             </CanvasBox>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {resultadosSim.map(r => (
-                <CanvasBox key={r.nome} cor={r.nome === "base" ? "#a78bfa" : r.nome === "otimista" ? "#34d399" : r.nome === "adverso" ? "#f87171" : "#6ab0ff"}>
+                <CanvasBox {...cartaoTema} key={r.nome} cor={r.nome === "base" ? ct("#a78bfa") : r.nome === "otimista" ? ct("#34d399") : r.nome === "adverso" ? ct("#f87171") : ct("#6ab0ff")}>
                   <p className="text-xs font-black uppercase tracking-wider mb-2 capitalize" style={{ color: r.nome === "base" ? "#a78bfa" : r.nome === "otimista" ? "#34d399" : r.nome === "adverso" ? "#f87171" : "#6ab0ff" }}>{r.nome}</p>
                   {[
                     { l: idioma === "pt" ? "Receita" : idioma === "es" ? "Ingreso" : "Revenue", v: fmt(r.receitaMensal) },
@@ -1184,16 +1212,16 @@ export default function CentrosCustoPage() {
                     { l: idioma === "pt" ? "Caixa Projetado" : idioma === "es" ? "Caja Proyectada" : "Projected Cash", v: fmt(r.saldoCaixaProjetado) },
                   ].map(m => (
                     <div key={m.l} className="flex justify-between text-xs mb-1">
-                      <span style={{ color: "#5a7a9a" }}>{m.l}</span>
-                      <span style={{ color: "#c8d8f0" }}>{m.v}</span>
+                      <span style={{ color: ct("#5a7a9a") }}>{m.l}</span>
+                      <span style={{ color: ct("#c8d8f0") }}>{m.v}</span>
                     </div>
                   ))}
                 </CanvasBox>
               ))}
             </div>
 
-            <CanvasBox cor="#9f1239">
-              <p className="text-sm font-bold mb-2" style={{ color: "#9f1239" }}>{idioma === "pt" ? "Mapa de Impacto (cenário base)" : idioma === "es" ? "Mapa de Impacto (escenario base)" : "Impact Map (base scenario)"}</p>
+            <CanvasBox {...cartaoTema} cor={ct("#9f1239")}>
+              <p className="text-sm font-bold mb-2" style={{ color: ct("#9f1239") }}>{idioma === "pt" ? "Mapa de Impacto (cenário base)" : idioma === "es" ? "Mapa de Impacto (escenario base)" : "Impact Map (base scenario)"}</p>
               <ReactECharts option={optMapaImpacto} style={{ height: 280, width: "100%" }} notMerge lazyUpdate />
             </CanvasBox>
           </div>
@@ -1201,16 +1229,16 @@ export default function CentrosCustoPage() {
 
         {/* ===== COPILOTO (Escopo G) ===== */}
         {aba === "copiloto" && (
-          <CanvasBox cor="#a78bfa">
+          <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
             <div className="space-y-3 mb-4 max-h-[420px] overflow-y-auto">
               {chatMensagens.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm" style={{ background: m.role === "user" ? "rgba(159,18,57,0.15)" : "rgba(167,139,250,0.1)", color: "#c8d8f0" }}>
+                  <div className="max-w-[80%] px-3.5 py-2.5 rounded-xl text-sm" style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(159,18,57,0.15)") : "rgba(167,139,250,0.1)", color: ct("#c8d8f0") }}>
                     {m.texto}
                   </div>
                 </div>
               ))}
-              {chatCarregando && <p className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Pensando..." : idioma === "es" ? "Pensando..." : "Thinking..."}</p>}
+              {chatCarregando && <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Pensando..." : idioma === "es" ? "Pensando..." : "Thinking..."}</p>}
             </div>
             <div className="flex gap-2">
               <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
@@ -1229,31 +1257,31 @@ export default function CentrosCustoPage() {
         {aba === "acoes" && (
           <div className="space-y-3">
             <div className="flex justify-end">
-              <button onClick={() => abrirPlanoDeAcao("manual")} className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>
+              <button onClick={() => abrirPlanoDeAcao("manual")} className="text-xs font-semibold px-3 py-2 rounded-lg" style={{ background: temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.15)", color: ct("#34d399") }}>
                 + {idioma === "pt" ? "Novo Plano" : idioma === "es" ? "Nuevo Plan" : "New Plan"}
               </button>
             </div>
             {planosAcao.length === 0 ? (
-              <CanvasBox cor="#9f1239"><div className="py-12 text-center"><p style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Nenhum plano de ação criado ainda." : idioma === "es" ? "Ningún plan de acción creado todavía." : "No action plan yet."}</p></div></CanvasBox>
+              <CanvasBox {...cartaoTema} cor={ct("#9f1239")}><div className="py-12 text-center"><p style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Nenhum plano de ação criado ainda." : idioma === "es" ? "Ningún plan de acción creado todavía." : "No action plan yet."}</p></div></CanvasBox>
             ) : planosAcao.map(p => {
-              const corStatus = p.status === "concluido" ? "#34d399" : p.status === "cancelado" ? "#5a7a9a" : p.status === "em_andamento" ? "#9f1239" : "#fbbf24";
+              const corStatus = p.status === "concluido" ? ct("#34d399") : p.status === "cancelado" ? ct("#5a7a9a") : p.status === "em_andamento" ? ct("#9f1239") : ct("#fbbf24");
               return (
-                <CanvasBox key={p.id} cor={corStatus}>
+                <CanvasBox {...cartaoTema} key={p.id} cor={corStatus}>
                   <div className="flex justify-between items-start gap-3 flex-wrap">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="text-xs px-2 py-0.5 rounded-full font-bold capitalize" style={{ background: `${corStatus}20`, color: corStatus }}>
                           {{ pendente: { pt: "Pendente", en: "Pending", es: "Pendiente" }, em_andamento: { pt: "Em andamento", en: "In progress", es: "En curso" }, concluido: { pt: "Concluído", en: "Done", es: "Concluido" }, cancelado: { pt: "Cancelado", en: "Cancelled", es: "Cancelado" } }[p.status][idioma === "en" ? "en" : idioma === "es" ? "es" : "pt"]}
                         </span>
-                        <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{p.titulo}</p>
+                        <p className="text-sm font-semibold" style={{ color: ct("#c8d8f0") }}>{p.titulo}</p>
                       </div>
-                      {p.objetivo && <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{p.objetivo}</p>}
+                      {p.objetivo && <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{p.objetivo}</p>}
                       {p.tarefas && p.tarefas.length > 0 && (
-                        <ul className="text-xs mt-1 list-disc list-inside" style={{ color: "#5a7a9a" }}>
+                        <ul className="text-xs mt-1 list-disc list-inside" style={{ color: ct("#5a7a9a") }}>
                           {p.tarefas.map((tf, i) => <li key={i}>{tf}</li>)}
                         </ul>
                       )}
-                      <p className="text-[11px] mt-1" style={{ color: "#5a7a9a" }}>
+                      <p className="text-[11px] mt-1" style={{ color: ct("#5a7a9a") }}>
                         {p.responsavel ? `${idioma === "pt" ? "Responsável" : idioma === "es" ? "Responsable" : "Owner"}: ${p.responsavel} · ` : ""}
                         {p.prazo ? `${idioma === "pt" ? "Prazo" : idioma === "es" ? "Plazo" : "Due"}: ${new Date(p.prazo + "T00:00:00").toLocaleDateString("pt-BR")} · ` : ""}
                         {p.economia_estimada ? `${idioma === "pt" ? "Economia" : idioma === "es" ? "Ahorro" : "Savings"}: ${fmt(p.economia_estimada)}` : ""}
@@ -1266,8 +1294,8 @@ export default function CentrosCustoPage() {
                         <option value="concluido">{idioma === "pt" ? "Concluído" : idioma === "es" ? "Concluido" : "Done"}</option>
                         <option value="cancelado">{idioma === "pt" ? "Cancelado" : idioma === "es" ? "Cancelado" : "Cancelled"}</option>
                       </select>
-                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoPlano(p)}><Pencil size={15} style={{ color: "#9f1239" }} /></motion.button>
-                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerPlano(p.id)}><Trash2 size={15} style={{ color: "#f87171" }} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => abrirEdicaoPlano(p)}><Pencil size={15} style={{ color: ct("#9f1239") }} /></motion.button>
+                      <motion.button whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.9 }} onClick={() => removerPlano(p.id)}><Trash2 size={15} style={{ color: ct("#f87171") }} /></motion.button>
                     </div>
                   </div>
                 </CanvasBox>
@@ -1291,26 +1319,28 @@ export default function CentrosCustoPage() {
       <ModalPremium aberto={modalCentro} onFechar={fecharModalCentro} titulo={editandoCentro ? cc.editarCentro : cc.novoCentro} cor="#9f1239">
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.nomeCentro}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{cc.nomeCentro}</label>
             <input value={nomeCentro} onChange={(e) => setNomeCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Código" : idioma === "es" ? "Código" : "Code"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Código" : idioma === "es" ? "Código" : "Code"}</label>
               <input value={codigoCentro} onChange={(e) => setCodigoCentro(e.target.value)} placeholder="CC-001" className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
             </div>
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{L.responsavel}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{L.responsavel}</label>
               <input value={responsavelCentro} onChange={(e) => setResponsavelCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Tipo</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>Tipo</label>
             <div className="grid grid-cols-2 gap-2">
               {["operacional", "administrativo", "comercial", "financeiro"].map(tp => (
                 <motion.button key={tp} whileTap={{ scale: 0.97 }} onClick={() => setTipoCentro(tp)}
                   className="py-2 rounded-xl text-xs font-semibold capitalize"
-                  style={{ background: tipoCentro === tp ? "rgba(159,18,57,0.2)" : "rgba(159,18,57,0.05)", color: tipoCentro === tp ? "#9f1239" : "#5a7a9a", border: `1px solid ${tipoCentro === tp ? "rgba(159,18,57,0.4)" : "rgba(159,18,57,0.1)"}` }}>
+                  style={temaClaro
+                    ? (tipoCentro === tp ? { background: "rgba(46,204,155,0.15)", color: "#16a97d", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#eef2f7", color: "#374151", border: "1px solid #e2e8f0" })
+                    : { background: tipoCentro === tp ? "rgba(159,18,57,0.2)" : "rgba(159,18,57,0.05)", color: tipoCentro === tp ? "#9f1239" : "#5a7a9a", border: `1px solid ${tipoCentro === tp ? "rgba(159,18,57,0.4)" : "rgba(159,18,57,0.1)"}` }}>
                   {tp}
                 </motion.button>
               ))}
@@ -1318,50 +1348,52 @@ export default function CentrosCustoPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Orçamento Mensal (R$)" : idioma === "es" ? "Presupuesto Mensual (R$)" : "Monthly Budget (R$)"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Orçamento Mensal (R$)" : idioma === "es" ? "Presupuesto Mensual (R$)" : "Monthly Budget (R$)"}</label>
               <input type="number" value={orcamentoCentro} onChange={(e) => setOrcamentoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
             </div>
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Meta Receita (R$)" : idioma === "es" ? "Meta de Ingresos (R$)" : "Revenue Target (R$)"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Meta Receita (R$)" : idioma === "es" ? "Meta de Ingresos (R$)" : "Revenue Target (R$)"}</label>
               <input type="number" value={metaCentro} onChange={(e) => setMetaCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.descricaoCentro}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{cc.descricaoCentro}</label>
             <input value={descricaoCentro} onChange={(e) => setDescricaoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
 
-          <div className="pt-2" style={{ borderTop: "1px solid rgba(159,18,57,0.1)" }}>
-            <p className="text-xs font-black uppercase tracking-wider mb-3 mt-3" style={{ color: "#5a7a9a" }}>
+          <div className="pt-2" style={{ borderTop: temaClaro ? "1px solid rgba(16,27,61,0.12)" : "1px solid rgba(159,18,57,0.1)" }}>
+            <p className="text-xs font-black uppercase tracking-wider mb-3 mt-3" style={{ color: ct("#5a7a9a") }}>
               {idioma === "pt" ? "Cadastro (opcional)" : idioma === "es" ? "Registro (opcional)" : "Registration (optional)"}
             </p>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Tipo" : idioma === "es" ? "Tipo" : "Type"}</label>
+                <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Tipo" : idioma === "es" ? "Tipo" : "Type"}</label>
                 <div className="flex gap-2">
                   {["PJ", "PF"].map(tp => (
                     <button key={tp} onClick={() => setTipoPessoaCentro(tp)} className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
-                      style={{ background: tipoPessoaCentro === tp ? "rgba(159,18,57,0.2)" : "rgba(159,18,57,0.05)", color: tipoPessoaCentro === tp ? "#9f1239" : "#5a7a9a", border: `1px solid ${tipoPessoaCentro === tp ? "rgba(159,18,57,0.4)" : "rgba(159,18,57,0.1)"}` }}>
+                      style={temaClaro
+                        ? (tipoPessoaCentro === tp ? { background: "rgba(46,204,155,0.15)", color: "#16a97d", border: "1px solid rgba(46,204,155,0.4)" } : { background: "#eef2f7", color: "#374151", border: "1px solid #e2e8f0" })
+                        : { background: tipoPessoaCentro === tp ? "rgba(159,18,57,0.2)" : "rgba(159,18,57,0.05)", color: tipoPessoaCentro === tp ? "#9f1239" : "#5a7a9a", border: `1px solid ${tipoPessoaCentro === tp ? "rgba(159,18,57,0.4)" : "rgba(159,18,57,0.1)"}` }}>
                       {tp === "PJ" ? (idioma === "pt" ? "Jurídica" : idioma === "es" ? "Jurídica" : "Company") : (idioma === "pt" ? "Física" : idioma === "es" ? "Física" : "Individual")}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{tipoPessoaCentro === "PF" ? "CPF" : "CNPJ"}</label>
+                <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{tipoPessoaCentro === "PF" ? "CPF" : "CNPJ"}</label>
                 <input value={documentoCentro} onChange={(e) => setDocumentoCentro(tipoPessoaCentro === "PF" ? formatarCPF(e.target.value) : formatarCNPJ(e.target.value))}
                   className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
-                {erroDocCentro && <p className="text-xs mt-1" style={{ color: "#f87171" }}>{erroDocCentro}</p>}
+                {erroDocCentro && <p className="text-xs mt-1" style={{ color: ct("#f87171") }}>{erroDocCentro}</p>}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 mb-3">
               <div>
-                <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>CEP</label>
+                <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>CEP</label>
                 <input value={cepCentro} onChange={(e) => buscarCepCentro(formatarCEP(e.target.value))}
                   className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} placeholder={buscandoCep ? "..." : ""} />
               </div>
               <div className="col-span-2">
-                <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Endereço" : idioma === "es" ? "Dirección" : "Address"}</label>
+                <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Endereço" : idioma === "es" ? "Dirección" : "Address"}</label>
                 <input value={enderecoCentro} onChange={(e) => setEnderecoCentro(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
               </div>
             </div>
@@ -1380,13 +1412,13 @@ export default function CentrosCustoPage() {
                 <input type="number" value={areaCentro} onChange={(e) => setAreaCentro(e.target.value)} placeholder={idioma === "pt" ? "Área (m²)" : idioma === "es" ? "Área (m²)" : "Area (m²)"} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
               </div>
             </div>
-            <p className="text-[10px] mt-2" style={{ color: "#5a7a9a" }}>
+            <p className="text-[10px] mt-2" style={{ color: ct("#5a7a9a") }}>
               {idioma === "pt" ? "Headcount e área servem de base para o rateio automático (\"Ratear Custo\")." : idioma === "es" ? "Headcount y área sirven de base para el reparto automático (\"Distribuir Costo\")." : "Headcount and area feed the automatic cost allocation (\"Allocate Cost\")."}
             </p>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(159,18,57,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <button onClick={fecharModalCentro} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarCentro} disabled={salvandoCentro}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
@@ -1400,41 +1432,41 @@ export default function CentrosCustoPage() {
       <ModalPremium aberto={modalLancamento} onFechar={fecharModalLancamento} titulo={editandoLanc ? (idioma === "pt" ? "Editar Lançamento" : idioma === "es" ? "Editar Movimiento" : "Edit Entry") : cc.novoLancamento} cor="#34d399">
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.descricao}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.descricao}</label>
             <input value={descricaoLanc} onChange={(e) => setDescricaoLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.valor}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.valor}</label>
             <input type="number" value={valorLanc} onChange={(e) => setValorLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.tipo}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{cc.tipo}</label>
             <div className="flex gap-2">
               {["custo", "receita"].map((tipo) => (
                 <motion.button key={tipo} whileTap={{ scale: 0.97 }} onClick={() => setTipoLanc(tipo)} className="flex-1 py-2 rounded-xl text-sm font-semibold"
-                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.2)" : "rgba(52,211,153,0.2)") : "rgba(159,18,57,0.05)", color: tipoLanc === tipo ? (tipo === "custo" ? "#f87171" : "#34d399") : "#5a7a9a", border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? "rgba(248,113,113,0.3)" : "rgba(52,211,153,0.3)") : "rgba(159,18,57,0.1)"}` }}>
+                  style={{ background: tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.15)" : "rgba(248,113,113,0.2)") : (temaClaro ? "rgba(22,169,125,0.15)" : "rgba(52,211,153,0.2)")) : (temaClaro ? "#eef2f7" : "rgba(159,18,57,0.05)"), color: tipoLanc === tipo ? ct(tipo === "custo" ? "#f87171" : "#34d399") : (temaClaro ? "#374151" : "#5a7a9a"), border: `1px solid ${tipoLanc === tipo ? (tipo === "custo" ? (temaClaro ? "rgba(255,90,107,0.3)" : "rgba(248,113,113,0.3)") : (temaClaro ? "rgba(22,169,125,0.3)" : "rgba(52,211,153,0.3)")) : (temaClaro ? "#e2e8f0" : "rgba(159,18,57,0.1)")}` }}>
                   {tipo === "custo" ? cc.custo : cc.receita}
                 </motion.button>
               ))}
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{t.geral.data}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{t.geral.data}</label>
             <input type="date" value={dataLanc} onChange={(e) => setDataLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{cc.centroCusto} <span style={{ color: "#5a7a9a" }}>(opcional)</span></label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{cc.centroCusto} <span style={{ color: ct("#5a7a9a") }}>(opcional)</span></label>
             <select value={centroLanc} onChange={(e) => setCentroLanc(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={selectStyle}>
               <option value="">-- {idioma === "pt" ? "Sem centro" : idioma === "es" ? "Sin centro" : "No center"} --</option>
               {centros.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>Categoria <span style={{ color: "#5a7a9a" }}>(opcional)</span></label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>Categoria <span style={{ color: ct("#5a7a9a") }}>(opcional)</span></label>
             <input value={categoriaLanc} onChange={(e) => setCategoriaLanc(e.target.value)} placeholder="Ex: Marketing, RH, TI..." className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={fecharModalLancamento} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(159,18,57,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <button onClick={fecharModalLancamento} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarLancamento} disabled={salvandoLanc}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #064e3b, #059669)", color: "#fff" }}>
@@ -1447,18 +1479,18 @@ export default function CentrosCustoPage() {
       {/* Modal Rateio */}
       <ModalPremium aberto={modalRateio} onFechar={() => setModalRateio(false)} titulo={L.rateio} cor="#a78bfa">
         <div className="space-y-4">
-          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+          <p className="text-xs" style={{ color: ct("#5a7a9a") }}>
             {idioma === "pt" ? "Escolha um lançamento já existente (ex: aluguel em Custos Fixos) e divida o mesmo valor entre vários centros por % — não cria um custo novo, só reparte o que já existe." : idioma === "es" ? "Elija un movimiento ya existente (ej: alquiler en Costos Fijos) y divida el mismo valor entre varios centros por % — no crea un costo nuevo, solo reparte lo que ya existe." : "Pick an existing entry and split its value across centers by % — doesn't create a new cost, only reallocates the existing one."}
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Onde está o lançamento" : idioma === "es" ? "Dónde está el movimiento" : "Source"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Onde está o lançamento" : idioma === "es" ? "Dónde está el movimiento" : "Source"}</label>
               <select value={rateioTabela} onChange={(e) => { setRateioTabela(e.target.value as OrigemTabela); setRateioOrigemId(""); setRateioPercentuais({}); }} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={selectStyle}>
                 {(Object.keys(LABEL_ORIGEM) as OrigemTabela[]).map(k => <option key={k} value={k}>{LABEL_ORIGEM[k][langF2]}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Lançamento" : idioma === "es" ? "Movimiento" : "Entry"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Lançamento" : idioma === "es" ? "Movimiento" : "Entry"}</label>
               <select value={rateioOrigemId} onChange={(e) => selecionarOrigemRateio(rateioTabela, e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={selectStyle}>
                 <option value="">-- {idioma === "pt" ? "Selecione" : idioma === "es" ? "Seleccione" : "Select"} --</option>
                 {opcoesRateio.map(o => <option key={o.id} value={o.id}>{o.descricao} — {fmt(o.valor)}</option>)}
@@ -1467,51 +1499,51 @@ export default function CentrosCustoPage() {
           </div>
           {rateioExistente.length > 0 && (
             <div className="rounded-xl px-3 py-2" style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)" }}>
-              <p className="text-xs mb-1" style={{ color: "#fbbf24" }}>{idioma === "pt" ? "Já rateado:" : idioma === "es" ? "Ya distribuido:" : "Already allocated:"} {rateioExistente.map(r => `${centros.find(c => c.id === r.centro_custo_id)?.nome || "?"} (${r.percentual}%)`).join(", ")}</p>
-              <button onClick={excluirRateioAtual} className="text-xs underline" style={{ color: "#f87171" }}>{idioma === "pt" ? "Remover rateio atual" : idioma === "es" ? "Eliminar distribución actual" : "Remove current allocation"}</button>
+              <p className="text-xs mb-1" style={{ color: ct("#fbbf24") }}>{idioma === "pt" ? "Já rateado:" : idioma === "es" ? "Ya distribuido:" : "Already allocated:"} {rateioExistente.map(r => `${centros.find(c => c.id === r.centro_custo_id)?.nome || "?"} (${r.percentual}%)`).join(", ")}</p>
+              <button onClick={excluirRateioAtual} className="text-xs underline" style={{ color: ct("#f87171") }}>{idioma === "pt" ? "Remover rateio atual" : idioma === "es" ? "Eliminar distribución actual" : "Remove current allocation"}</button>
             </div>
           )}
           {origemSelecionada && (
             <div>
               <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-                <label className="text-xs font-semibold block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Distribuição (%)" : idioma === "es" ? "Distribución (%)" : "Distribution (%)"}</label>
+                <label className="text-xs font-semibold block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Distribuição (%)" : idioma === "es" ? "Distribución (%)" : "Distribution (%)"}</label>
                 <div className="flex gap-1.5 flex-wrap">
                   <button onClick={distribuirIgualmente} className="text-xs font-semibold px-2 py-1 rounded-lg"
-                    style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
+                    style={{ background: `${ct("#a78bfa")}25`, color: ct("#a78bfa"), border: `1px solid ${ct("#a78bfa")}50` }}>
                     {idioma === "pt" ? "Igualmente" : idioma === "es" ? "Equitativamente" : "Equally"}
                   </button>
                   <button onClick={() => distribuirPorBase("headcount")} className="text-xs font-semibold px-2 py-1 rounded-lg"
-                    style={{ background: "rgba(159,18,57,0.15)", color: "#9f1239", border: "1px solid rgba(159,18,57,0.3)" }}>
+                    style={{ background: `${ct("#9f1239")}25`, color: ct("#9f1239"), border: `1px solid ${ct("#9f1239")}50` }}>
                     {idioma === "pt" ? "Por headcount" : idioma === "es" ? "Por headcount" : "By headcount"}
                   </button>
                   <button onClick={() => distribuirPorBase("area")} className="text-xs font-semibold px-2 py-1 rounded-lg"
-                    style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+                    style={{ background: `${ct("#34d399")}25`, color: ct("#34d399"), border: `1px solid ${ct("#34d399")}50` }}>
                     {idioma === "pt" ? "Por área (m²)" : idioma === "es" ? "Por área (m²)" : "By area (m²)"}
                   </button>
                 </div>
               </div>
-              {avisoRateioBase && <p className="text-xs mb-2" style={{ color: "#fbbf24" }}>{avisoRateioBase}</p>}
+              {avisoRateioBase && <p className="text-xs mb-2" style={{ color: ct("#fbbf24") }}>{avisoRateioBase}</p>}
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {centros.length === 0 ? (
-                  <p className="text-xs" style={{ color: "#5a7a9a" }}>{cc.semCentros}</p>
+                  <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{cc.semCentros}</p>
                 ) : centros.map((c, i) => {
                   const pctStr = rateioPercentuais[c.id] || "";
                   const pct = parseFloat(pctStr || "0");
                   const valorCentro = (origemSelecionada.valor * pct) / 100;
                   return (
                     <div key={c.id} className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getCor(i) }} />
-                      <span className="text-xs flex-1 truncate" style={{ color: "#c8d8f0" }}>{c.nome}</span>
-                      {pct > 0 && <span className="text-xs" style={{ color: "#34d399" }}>{fmt(valorCentro)}</span>}
+                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: getCor(i, temaClaro) }} />
+                      <span className="text-xs flex-1 truncate" style={{ color: ct("#c8d8f0") }}>{c.nome}</span>
+                      {pct > 0 && <span className="text-xs" style={{ color: ct("#34d399") }}>{fmt(valorCentro)}</span>}
                       <input type="number" value={pctStr} onChange={(e) => setRateioPercentuais({ ...rateioPercentuais, [c.id]: e.target.value })}
                         placeholder="0" className="w-16 px-2 py-1.5 rounded-lg text-xs text-right focus:outline-none" style={inputStyle} />
-                      <span className="text-xs" style={{ color: "#5a7a9a" }}>%</span>
+                      <span className="text-xs" style={{ color: ct("#5a7a9a") }}>%</span>
                     </div>
                   );
                 })}
               </div>
               <div className="flex justify-between items-center px-3 py-2 rounded-xl mt-2" style={{ background: Math.abs(restanteRateio) < 0.5 ? "rgba(52,211,153,0.1)" : "rgba(251,191,36,0.1)" }}>
-                <span className="text-xs" style={{ color: "#5a7a9a" }}>{idioma === "pt" ? "Total distribuído" : idioma === "es" ? "Total distribuido" : "Distributed"}: {somaPercentuais.toFixed(1)}%</span>
+                <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{idioma === "pt" ? "Total distribuído" : idioma === "es" ? "Total distribuido" : "Distributed"}: {somaPercentuais.toFixed(1)}%</span>
                 <span className="text-xs font-bold" style={{ color: Math.abs(restanteRateio) < 0.5 ? "#34d399" : "#fbbf24" }}>
                   {idioma === "pt" ? "Restante" : idioma === "es" ? "Restante" : "Remaining"}: {restanteRateio.toFixed(1)}%
                 </span>
@@ -1519,7 +1551,7 @@ export default function CentrosCustoPage() {
             </div>
           )}
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalRateio(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(159,18,57,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <button onClick={() => setModalRateio(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmarRateio}
               disabled={processandoRateio || !origemSelecionada || Math.abs(restanteRateio) > 0.5}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
@@ -1534,37 +1566,37 @@ export default function CentrosCustoPage() {
       <ModalPremium aberto={modalPlano} onFechar={() => setModalPlano(false)} titulo={editandoPlanoId ? (idioma === "pt" ? "Editar Plano de Ação" : idioma === "es" ? "Editar Plan de Acción" : "Edit Action Plan") : (idioma === "pt" ? "Novo Plano de Ação" : idioma === "es" ? "Nuevo Plan de Acción" : "New Action Plan")} cor="#a78bfa">
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Título / Objetivo" : idioma === "es" ? "Título / Objetivo" : "Title / Goal"}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Título / Objetivo" : idioma === "es" ? "Título / Objetivo" : "Title / Goal"}</label>
             <input value={planoTitulo} onChange={(e) => setPlanoTitulo(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Objetivo detalhado" : idioma === "es" ? "Objetivo detallado" : "Detailed goal"}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Objetivo detalhado" : idioma === "es" ? "Objetivo detallado" : "Detailed goal"}</label>
             <textarea value={planoObjetivo} onChange={(e) => setPlanoObjetivo(e.target.value)} rows={2} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Tarefas (uma por linha)" : idioma === "es" ? "Tareas (una por línea)" : "Tasks (one per line)"}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Tarefas (uma por linha)" : idioma === "es" ? "Tareas (una por línea)" : "Tasks (one per line)"}</label>
             <textarea value={planoTarefas} onChange={(e) => setPlanoTarefas(e.target.value)} rows={3} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Responsável" : idioma === "es" ? "Responsable" : "Owner"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Responsável" : idioma === "es" ? "Responsable" : "Owner"}</label>
               <input value={planoResponsavel} onChange={(e) => setPlanoResponsavel(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
             </div>
             <div>
-              <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Prazo" : idioma === "es" ? "Fecha límite" : "Due date"}</label>
+              <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Prazo" : idioma === "es" ? "Fecha límite" : "Due date"}</label>
               <input type="date" value={planoPrazo} onChange={(e) => setPlanoPrazo(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
             </div>
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Impacto esperado" : idioma === "es" ? "Impacto esperado" : "Expected impact"}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Impacto esperado" : idioma === "es" ? "Impacto esperado" : "Expected impact"}</label>
             <input value={planoImpacto} onChange={(e) => setPlanoImpacto(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div>
-            <label className="text-xs font-semibold mb-2 block" style={{ color: "#5a8fd4" }}>{idioma === "pt" ? "Economia estimada (R$)" : idioma === "es" ? "Ahorro estimado (R$)" : "Estimated savings (R$)"}</label>
+            <label className="text-xs font-semibold mb-2 block" style={{ color: ct("#5a8fd4") }}>{idioma === "pt" ? "Economia estimada (R$)" : idioma === "es" ? "Ahorro estimado (R$)" : "Estimated savings (R$)"}</label>
             <input type="number" value={planoEconomia} onChange={(e) => setPlanoEconomia(e.target.value)} className="w-full px-4 py-3 rounded-xl focus:outline-none text-sm" style={inputStyle} />
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setModalPlano(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: "rgba(159,18,57,0.1)", color: "#5a7a9a" }}>{t.geral.cancelar}</button>
+            <button onClick={() => setModalPlano(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold" style={{ background: temaClaro ? "#eef2f7" : "rgba(159,18,57,0.1)", color: ct("#5a7a9a") }}>{t.geral.cancelar}</button>
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={salvarPlano} disabled={salvandoPlano || !planoTitulo.trim()}
               className="flex-1 py-3 rounded-xl text-sm font-bold disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #5b21b6, #8b5cf6)", color: "#fff" }}>
@@ -1581,6 +1613,7 @@ export default function CentrosCustoPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   );
 
   // ---------- PDF ----------
