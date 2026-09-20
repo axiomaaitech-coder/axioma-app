@@ -5,8 +5,10 @@ import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
-import { CanvasBox } from "../../../components/CanvasBox";
+import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { corTema } from "../../../lib/cfoCore";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
   parseArquivo,
@@ -433,7 +435,7 @@ const T = {
 // Destinos disponíveis com cor e ícone (idioma-neutros — o rótulo em texto
 // vem sempre de tt.destinoLabels/tt.statusLabels, nunca fixo aqui, pra não
 // vazar português/inglês dentro de outro idioma).
-const DESTINOS: Array<{ key: DestinoTabela; icon: string; cor: string }> = [
+const DESTINOS_BASE: Array<{ key: DestinoTabela; icon: string; cor: string }> = [
   { key: "fluxo_caixa", icon: "💸", cor: "#6ab0ff" },
   { key: "receitas", icon: "💰", cor: "#34d399" },
   { key: "custos_fixos", icon: "📌", cor: "#fbbf24" },
@@ -444,7 +446,7 @@ const DESTINOS: Array<{ key: DestinoTabela; icon: string; cor: string }> = [
   { key: "dividas", icon: "📋", cor: "#ef4444" },
 ];
 
-const STATUS_INFO: Record<string, { cor: string }> = {
+const STATUS_INFO_BASE: Record<string, { cor: string }> = {
   aguardando_revisao: { cor: "#fbbf24" },
   concluido: { cor: "#34d399" },
   parcialmente: { cor: "#6ab0ff" },
@@ -453,6 +455,17 @@ const STATUS_INFO: Record<string, { cor: string }> = {
   processado: { cor: "#34d399" },
   falhou: { cor: "#f87171" },
 };
+
+// #10b981 e #3a5a8a não fazem parte do MAPA_CORES_CLARO compartilhado (são
+// específicas deste módulo) — mapeamento local pro Claro: #10b981 é só mais
+// um "verde" (colapsa no Sucesso oficial), #3a5a8a é o status "revertido"
+// (precisa de um tom neutro cinza pra não colidir com nenhum outro status).
+function corDestinoClaro(hex: string, temaClaro: boolean): string {
+  if (!temaClaro) return hex;
+  if (hex === "#10b981") return "#16a97d";
+  if (hex === "#3a5a8a") return "#6b7280";
+  return corTema(hex, temaClaro);
+}
 
 function destinoLabel(tt: any, key: string): string {
   return tt?.destinoLabels?.[key] || key;
@@ -505,6 +518,17 @@ export default function ImportarDocumentosPage() {
   const langAtual = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[langAtual];
   const inputRef = useRef<HTMLInputElement>(null);
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const PILL_INATIVO = temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)";
+  const PILL_INATIVO_TEXTO = temaClaro ? "#ffffff" : "#6ab0ff";
+  const PILL_ATIVA = temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)";
+  const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)";
+  const fundoCaixaAninhadaForte = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(2,8,16,0.5)";
+  const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
+  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
 
   // Estados base
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -1418,7 +1442,7 @@ export default function ImportarDocumentosPage() {
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)",
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)",
             color: "#020810", fontWeight: 600, fontSize: 13,
           }}>
           {toast.msg}
@@ -1436,9 +1460,9 @@ export default function ImportarDocumentosPage() {
             onClick={() => setAba(a.key as any)}
             className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
             style={{
-              background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
-              color: aba === a.key ? "#fff" : "#6ab0ff",
-              border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+              background: aba === a.key ? PILL_ATIVA : PILL_INATIVO,
+              color: aba === a.key ? "#fff" : PILL_INATIVO_TEXTO,
+              border: temaClaro ? "none" : aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
             }}
           >
             {a.label}
@@ -1449,8 +1473,8 @@ export default function ImportarDocumentosPage() {
       {aba === "visao" && (
         <div className="space-y-5">
           {/* DASHBOARD CFO */}
-          <CanvasBox cor="#6ab0ff">
-            <p className="text-xs font-semibold mb-4 tracking-wider uppercase" style={{ color: "#5a7a9a" }}>
+          <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : "#6ab0ff"}>
+            <p className="text-xs font-semibold mb-4 tracking-wider uppercase" style={{ color: ct("#5a7a9a") }}>
               📊 {tt.dashboard}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -1461,42 +1485,45 @@ export default function ImportarDocumentosPage() {
                 { label: tt.duplicadasEvitadas, valor: String(stats.duplicadas_evitadas), cor: "#fbbf24", icon: "🛡️" },
                 { label: tt.tempoMedio, valor: `${stats.tempo_medio_seg}s`, cor: "#fb923c", icon: "⏱️" },
                 { label: tt.horasEconomizadas, valor: `${stats.horas_economizadas}h`, cor: "#10b981", icon: "⚡" },
-              ].map((card, i) => (
-                <div key={i} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.6)", border: `1px solid ${card.cor}30` }}>
-                  <div className="flex items-start justify-between mb-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#5a7a9a" }}>{card.label}</span>
-                    <span className="text-base">{card.icon}</span>
+              ].map((card, i) => {
+                const cor = corDestinoClaro(card.cor, temaClaro);
+                return (
+                  <div key={i} className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: `1px solid ${cor}30` }}>
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: ct("#5a7a9a") }}>{card.label}</span>
+                      <span className="text-base">{card.icon}</span>
+                    </div>
+                    <p className="text-base md:text-lg font-bold truncate" style={{ color: cor }}><AnimatedNumber value={String(card.valor)} /></p>
                   </div>
-                  <p className="text-base md:text-lg font-bold truncate" style={{ color: card.cor }}><AnimatedNumber value={String(card.valor)} /></p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CanvasBox>
 
           {/* DUPLICATA GLOBAL DETECTADA */}
           {duplicataGlobal && (
-            <CanvasBox cor="#fbbf24">
+            <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <span className="text-3xl">⚠️</span>
                   <div className="flex-1">
-                    <p className="font-bold text-base mb-1" style={{ color: "#fbbf24" }}>{tt.duplicataGlobal}</p>
-                    <p className="text-sm" style={{ color: "#c8d8f0" }}>
+                    <p className="font-bold text-base mb-1" style={{ color: ct("#fbbf24") }}>{tt.duplicataGlobal}</p>
+                    <p className="text-sm" style={{ color: ct("#c8d8f0") }}>
                       {tt.duplicataGlobalMsg} <strong>{formatDataHora(duplicataGlobal.created_at)}</strong>
                       {duplicataGlobal.linhas_importadas > 0 && ` (${duplicataGlobal.linhas_importadas} ${tt.importadas})`}
                     </p>
-                    <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{duplicataGlobal.nome_arquivo}</p>
+                    <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{duplicataGlobal.nome_arquivo}</p>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <button onClick={cancelarUpload}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                    style={{ background: temaClaro ? "#101b3d" : "rgba(106,176,255,0.1)", color: temaClaro ? "#ffffff" : "#6ab0ff" }}>
                     {tt.cancelar}
                   </button>
                   <button onClick={continuarMesmoComDuplicata}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>
+                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #fbbf24)" : "linear-gradient(135deg, #b45309, #f5a623)", color: temaClaro ? "#2b1900" : "#fff" }}>
                     {tt.importarAssim}
                   </button>
                 </div>
@@ -1506,7 +1533,7 @@ export default function ImportarDocumentosPage() {
 
           {/* DROP ZONE */}
           {!arquivoSelecionado && !sucesso && !duplicataGlobal && (
-            <CanvasBox cor={arrastando ? "#6ab0ff" : "#3b6fd4"}>
+            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : arrastando ? "#6ab0ff" : "#3b6fd4"}>
               <div
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
@@ -1514,14 +1541,14 @@ export default function ImportarDocumentosPage() {
                 onClick={() => inputRef.current?.click()}
                 className="text-center cursor-pointer py-8 sm:py-12 rounded-xl transition-all"
                 style={{
-                  background: arrastando ? "rgba(106,176,255,0.08)" : "transparent",
-                  border: `2px dashed ${arrastando ? "#6ab0ff" : "rgba(106,176,255,0.25)"}`,
+                  background: arrastando ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)") : "transparent",
+                  border: `2px dashed ${arrastando ? (temaClaro ? "#2ecc9b" : "#6ab0ff") : (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.25)")}`,
                 }}
               >
                 <div className="text-5xl sm:text-6xl mb-4">📥</div>
-                <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: "#c8d8f0" }}>{tt.arrasteAqui}</p>
-                <p className="text-xs sm:text-sm mb-4" style={{ color: "#5a7a9a" }}>{tt.ouClique}</p>
-                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: "rgba(59,111,212,0.15)", color: "#6ab0ff" }}>
+                <p className="text-base sm:text-lg font-semibold mb-1" style={{ color: ct("#c8d8f0") }}>{tt.arrasteAqui}</p>
+                <p className="text-xs sm:text-sm mb-4" style={{ color: ct("#5a7a9a") }}>{tt.ouClique}</p>
+                <span className="inline-block px-3 py-1.5 rounded-full text-[11px]" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(59,111,212,0.15)", color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
                   {tt.formatosSuportados}
                 </span>
                 <input
@@ -1537,17 +1564,17 @@ export default function ImportarDocumentosPage() {
 
           {/* PROCESSANDO */}
           {etapa && !duplicataGlobal && (
-            <CanvasBox cor="#6ab0ff">
+            <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : "#6ab0ff"}>
               <div className="text-center py-6">
                 <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="font-semibold text-sm" style={{ color: "#6ab0ff" }}>
+                <p className="font-semibold text-sm" style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>
                   {etapa === "hash" && tt.calcHash}
                   {etapa === "parse" && tt.parseando}
                   {etapa === "upload" && tt.uploadStorage}
                   {etapa === "dedup" && tt.dedup}
                 </p>
                 {arquivoSelecionado && (
-                  <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{arquivoSelecionado.name}</p>
+                  <p className="text-xs mt-1" style={{ color: ct("#5a7a9a") }}>{arquivoSelecionado.name}</p>
                 )}
               </div>
             </CanvasBox>
@@ -1599,10 +1626,10 @@ export default function ImportarDocumentosPage() {
 
           {/* SUCESSO */}
           {sucesso && (
-            <CanvasBox cor="#34d399">
+            <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
               <div className="text-center py-6 space-y-4">
                 <div className="text-5xl">✅</div>
-                <p className="text-lg font-bold" style={{ color: "#34d399" }}>{tt.sucessoImport}</p>
+                <p className="text-lg font-bold" style={{ color: ct("#34d399") }}>{tt.sucessoImport}</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto">
                   {[
                     { label: tt.importadas, valor: sucesso.importadas, cor: "#34d399" },
@@ -1610,20 +1637,20 @@ export default function ImportarDocumentosPage() {
                     { label: tt.ignoradas, valor: sucesso.ignoradas, cor: "#5a7a9a" },
                     { label: tt.erros, valor: sucesso.erro, cor: "#f87171" },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.6)", border: `1px solid ${s.cor}30` }}>
-                      <p className="text-xl font-bold" style={{ color: s.cor }}><AnimatedNumber value={String(s.valor)} /></p>
-                      <p className="text-xs" style={{ color: "#5a7a9a" }}>{s.label}</p>
+                    <div key={i} className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: `1px solid ${ct(s.cor)}30` }}>
+                      <p className="text-xl font-bold" style={{ color: ct(s.cor) }}><AnimatedNumber value={String(s.valor)} /></p>
+                      <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                     </div>
                   ))}
                 </div>
                 {sucesso.valor_total > 0 && (
-                  <p className="text-sm" style={{ color: "#c8d8f0" }}>
-                    {tt.valorTotal}: <strong style={{ color: "#34d399" }}>{formatBRL(sucesso.valor_total)}</strong>
+                  <p className="text-sm" style={{ color: ct("#c8d8f0") }}>
+                    {tt.valorTotal}: <strong style={{ color: ct("#34d399") }}>{formatBRL(sucesso.valor_total)}</strong>
                   </p>
                 )}
                 <button onClick={cancelarUpload}
                   className="mt-2 px-6 py-2.5 rounded-xl text-sm font-semibold"
-                  style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                   {tt.novoImporte}
                 </button>
               </div>
@@ -1669,67 +1696,67 @@ export default function ImportarDocumentosPage() {
           onClick={fecharEdicao}
         >
           <div
-            className="w-full max-w-md rounded-2xl p-5"
-            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}
+            className={`w-full max-w-md rounded-2xl p-5${temaClaro ? " axi-card-premium3d" : ""}`}
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>✏️ Editar Lançamento</p>
-                <p className="text-sm font-bold mt-0.5" style={{ color: "#c8d8f0" }}>Linha #{linhaEditando.linha_numero}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>✏️ Editar Lançamento</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: ct("#c8d8f0") }}>Linha #{linhaEditando.linha_numero}</p>
               </div>
-              <button onClick={fecharEdicao} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+              <button onClick={fecharEdicao} className="text-xl" style={{ color: ct("#5a7a9a") }}>✕</button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Data</label>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Data</label>
                 <input
                   type="date"
                   value={formEdicao.data}
                   onChange={(e) => setFormEdicao({ ...formEdicao, data: e.target.value })}
                   className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-                  style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+                  style={{ background: fundoInput, color: ct("#c8d8f0"), border: bordaInput }}
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Valor (R$)</label>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Valor (R$)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formEdicao.valor}
                   onChange={(e) => setFormEdicao({ ...formEdicao, valor: e.target.value })}
                   className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-                  style={{ background: "rgba(2,8,16,0.7)", color: "#34d399", border: "1px solid rgba(106,176,255,0.2)" }}
+                  style={{ background: fundoInput, color: ct("#34d399"), border: bordaInput }}
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Descrição</label>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Descrição</label>
                 <input
                   type="text"
                   value={formEdicao.descricao}
                   onChange={(e) => setFormEdicao({ ...formEdicao, descricao: e.target.value })}
                   className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-                  style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+                  style={{ background: fundoInput, color: ct("#c8d8f0"), border: bordaInput }}
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>Categoria</label>
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>Categoria</label>
                 <input
                   type="text"
                   value={formEdicao.categoria}
                   onChange={(e) => setFormEdicao({ ...formEdicao, categoria: e.target.value })}
                   placeholder="Ex: Vendas, Aluguel, Salário..."
                   className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-                  style={{ background: "rgba(2,8,16,0.7)", color: "#a78bfa", border: "1px solid rgba(106,176,255,0.2)" }}
+                  style={{ background: fundoInput, color: ct("#a78bfa"), border: bordaInput }}
                 />
               </div>
 
-              <div className="rounded-lg p-2 text-[11px]" style={{ background: "rgba(106,176,255,0.05)", color: "#5a7a9a" }}>
-                ℹ️ A alteração será aplicada em <strong style={{ color: "#6ab0ff" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
+              <div className="rounded-lg p-2 text-[11px]" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
+                ℹ️ A alteração será aplicada em <strong style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>{linhaEditando.destino_tabela}</strong> e registrada no histórico de auditoria.
               </div>
             </div>
 
@@ -1738,7 +1765,7 @@ export default function ImportarDocumentosPage() {
                 onClick={fecharEdicao}
                 disabled={salvandoEdicao}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}
+                style={{ background: temaClaro ? "#101b3d" : "rgba(106,176,255,0.1)", color: temaClaro ? "#ffffff" : "#6ab0ff" }}
               >
                 Cancelar
               </button>
@@ -1746,7 +1773,7 @@ export default function ImportarDocumentosPage() {
                 onClick={salvarEdicao}
                 disabled={salvandoEdicao}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}
+                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}
               >
                 {salvandoEdicao ? "Salvando..." : "✓ Salvar"}
               </button>
@@ -1763,34 +1790,34 @@ export default function ImportarDocumentosPage() {
           onClick={fecharShareModal}
         >
           <div
-            className="w-full max-w-lg rounded-2xl p-5"
-            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}
+            className={`w-full max-w-lg rounded-2xl p-5${temaClaro ? " axi-card-premium3d" : ""}`}
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="min-w-0 flex-1">
-                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📤 Centro de Compartilhamento</p>
-                <p className="text-sm font-bold mt-0.5 truncate" style={{ color: "#c8d8f0" }}>{shareModal.nome_arquivo}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>📤 Centro de Compartilhamento</p>
+                <p className="text-sm font-bold mt-0.5 truncate" style={{ color: ct("#c8d8f0") }}>{shareModal.nome_arquivo}</p>
               </div>
-              <button onClick={fecharShareModal} className="text-xl ml-2" style={{ color: "#5a7a9a" }}>✕</button>
+              <button onClick={fecharShareModal} className="text-xl ml-2" style={{ color: ct("#5a7a9a") }}>✕</button>
             </div>
 
             {/* Mini-preview do resumo */}
-            <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
-              <p style={{ color: "#5a7a9a" }}>
+            <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)" }}>
+              <p style={{ color: ct("#5a7a9a") }}>
                 📅 {formatDataHora(shareModal.created_at)} •
-                🎯 <span style={{ color: "#6ab0ff" }}>{destinoLabel(tt, shareModal.destino)}</span>
+                🎯 <span style={{ color: temaClaro ? "#101b3d" : "#6ab0ff" }}>{destinoLabel(tt, shareModal.destino)}</span>
               </p>
               <p>
-                <span style={{ color: "#34d399" }}>✅ {shareModal.linhas_importadas || 0}</span> •
-                <span style={{ color: "#fbbf24" }}> ⚠️ {shareModal.linhas_duplicadas || 0}</span> •
-                <span style={{ color: "#f87171" }}> ❌ {shareModal.linhas_erro || 0}</span> •
-                <span style={{ color: "#c8d8f0" }}> 💰 {formatBRL(Number(shareModal.valor_total_importado) || 0)}</span>
+                <span style={{ color: ct("#34d399") }}>✅ {shareModal.linhas_importadas || 0}</span> •
+                <span style={{ color: ct("#fbbf24") }}> ⚠️ {shareModal.linhas_duplicadas || 0}</span> •
+                <span style={{ color: ct("#f87171") }}> ❌ {shareModal.linhas_erro || 0}</span> •
+                <span style={{ color: ct("#c8d8f0") }}> 💰 {formatBRL(Number(shareModal.valor_total_importado) || 0)}</span>
               </p>
             </div>
 
             {/* Grid de canais */}
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>Compartilhar via</p>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>Compartilhar via</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
               <button onClick={shareWhatsApp}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
@@ -1818,14 +1845,14 @@ export default function ImportarDocumentosPage() {
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ct("#a78bfa") }}>
                 <span className="text-xl">📋</span>
                 Copiar Resumo
               </button>
               {shareModal.storage_path && (
                 <button onClick={shareCopiarLinkArquivo}
                   className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold transition hover:opacity-90"
-                  style={{ background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.35)", color: "#fb923c" }}>
+                  style={{ background: "rgba(251,146,60,0.12)", border: "1px solid rgba(251,146,60,0.35)", color: ct("#fb923c") }}>
                   <span className="text-xl">🔗</span>
                   Link Seguro 24h
                 </button>
@@ -1838,13 +1865,13 @@ export default function ImportarDocumentosPage() {
               </button>
             </div>
 
-            <div className="rounded-lg p-2 text-[11px] mb-3" style={{ background: "rgba(106,176,255,0.05)", color: "#5a7a9a" }}>
-              ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: "#fb923c" }}>Link Seguro</strong> expira em 24h.
+            <div className="rounded-lg p-2 text-[11px] mb-3" style={{ background: fundoCaixaAninhada, color: ct("#5a7a9a") }}>
+              ℹ️ Use <strong style={{ color: "#ea4335" }}>Gmail</strong> ou <strong style={{ color: "#0078d4" }}>Outlook</strong> para enviar por email diretamente do navegador. O <strong style={{ color: ct("#fb923c") }}>Link Seguro</strong> expira em 24h.
             </div>
 
             <button onClick={fecharShareModal}
               className="w-full py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+              style={{ background: temaClaro ? "#101b3d" : "rgba(106,176,255,0.1)", color: temaClaro ? "#ffffff" : "#6ab0ff" }}>
               Fechar
             </button>
           </div>
@@ -1872,6 +1899,17 @@ function PreviewBlock(props: any) {
     nomeNovoTemplate, setNomeNovoTemplate, salvarComoTemplate,
   } = props;
 
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
+  const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
+  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
+  const corOpcao = temaClaro ? "#ffffff" : "#020810";
+  const fundoHeaderTabela = temaClaro ? "#101b3d" : "rgba(10,22,40,0.95)";
+  const DESTINOS = DESTINOS_BASE.map((d) => ({ ...d, cor: corDestinoClaro(d.cor, temaClaro) }));
+
   const destinoResumo = destinoPredominante(destinos);
   const destInfo = DESTINOS.find((d) => d.key === destinoResumo) || DESTINOS[0];
   const multiplosDestinos = new Set(destinos).size > 1;
@@ -1887,20 +1925,20 @@ function PreviewBlock(props: any) {
   ];
 
   return (
-    <CanvasBox cor={destInfo.cor}>
+    <CanvasBox {...cartaoTema} cor={destInfo.cor}>
       <div className="space-y-4">
         {/* Header do preview */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b" style={{ borderColor: "rgba(106,176,255,0.15)" }}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b" style={{ borderColor: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)") }}>
           <div>
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.preview}</p>
-            <p className="text-base font-bold" style={{ color: "#c8d8f0" }}>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.preview}</p>
+            <p className="text-base font-bold" style={{ color: ct("#c8d8f0") }}>
               <span className="mr-2">{destInfo.icon}</span>
               {resultado.linhas.length} {tt.linhasDetectadas}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>
+            <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>
               {tt.tipoDetectado}: <strong style={{ color: destInfo.cor }}>{resultado.formato.toUpperCase()}</strong>
               {multiplosDestinos && (
-                <span className="ml-2" style={{ color: "#fbbf24" }}>· {tt.destinoDiferentesPorLinha}</span>
+                <span className="ml-2" style={{ color: ct("#fbbf24") }}>· {tt.destinoDiferentesPorLinha}</span>
               )}
             </p>
           </div>
@@ -1908,18 +1946,18 @@ function PreviewBlock(props: any) {
           {/* Aplicar destino a TODAS as linhas de uma vez — cada linha ainda
               pode ser trocada individualmente na tabela abaixo. */}
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.destino} {tt.destinoTodasLinhas}</label>
+            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.destino} {tt.destinoTodasLinhas}</label>
             <select
               value={multiplosDestinos ? "" : destinoResumo}
               onChange={(e) => aplicarDestinoEmMassa(e.target.value as DestinoTabela, false)}
               className="px-3 py-2 rounded-lg text-sm focus:outline-none"
-              style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}
             >
               {multiplosDestinos && (
-                <option value="" disabled style={{ background: "#020810" }}>{tt.destinoMultiplos}</option>
+                <option value="" disabled style={{ background: corOpcao }}>{tt.destinoMultiplos}</option>
               )}
               {DESTINOS.map((d) => (
-                <option key={d.key} value={d.key} style={{ background: "#020810" }}>
+                <option key={d.key} value={d.key} style={{ background: corOpcao }}>
                   {d.icon} {destinoLabel(tt, d.key)}
                 </option>
               ))}
@@ -1930,12 +1968,12 @@ function PreviewBlock(props: any) {
         {/* Templates */}
         {templates.length > 0 && (
           <div>
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.templatesDisponiveis}</p>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>{tt.templatesDisponiveis}</p>
             <div className="flex flex-wrap gap-2">
               {templates.map((tpl: any) => (
                 <button key={tpl.id} onClick={() => aplicarTemplate(tpl)}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ background: "rgba(167,139,250,0.12)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.25)" }}>
+                  style={{ background: "rgba(167,139,250,0.12)", color: ct("#a78bfa"), border: "1px solid rgba(167,139,250,0.25)" }}>
                   📋 {tpl.nome}
                 </button>
               ))}
@@ -1949,23 +1987,23 @@ function PreviewBlock(props: any) {
             <div className="flex items-start gap-2 mb-3">
               <span className="text-lg">🗺️</span>
               <div>
-                <p className="text-sm font-bold" style={{ color: "#fbbf24" }}>{tt.mapeamentoColunas}</p>
-                <p className="text-xs mt-0.5" style={{ color: "#5a7a9a" }}>{tt.mapeamentoNecessario}</p>
+                <p className="text-sm font-bold" style={{ color: ct("#fbbf24") }}>{tt.mapeamentoColunas}</p>
+                <p className="text-xs mt-0.5" style={{ color: ct("#5a7a9a") }}>{tt.mapeamentoNecessario}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {camposMap.map((c) => (
                 <div key={c.key}>
-                  <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</label>
+                  <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</label>
                   <select
                     value={(mapeamento[c.key] as string) || ""}
                     onChange={(e) => aplicarMapeamento({ ...mapeamento, [c.key]: e.target.value || undefined })}
                     className="w-full px-2 py-1.5 rounded-lg text-xs"
-                    style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+                    style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}
                   >
-                    <option value="" style={{ background: "#020810" }}>{tt.naoMapeado}</option>
+                    <option value="" style={{ background: corOpcao }}>{tt.naoMapeado}</option>
                     {(resultado.colunas || []).map((col: string) => (
-                      <option key={col} value={col} style={{ background: "#020810" }}>{col}</option>
+                      <option key={col} value={col} style={{ background: corOpcao }}>{col}</option>
                     ))}
                   </select>
                 </div>
@@ -1977,7 +2015,7 @@ function PreviewBlock(props: any) {
               {!mostrarSalvarTemplate ? (
                 <button onClick={() => setMostrarSalvarTemplate(true)}
                   className="text-xs font-semibold"
-                  style={{ color: "#fbbf24" }}>
+                  style={{ color: ct("#fbbf24") }}>
                   💾 {tt.salvarTemplate}
                 </button>
               ) : (
@@ -1987,16 +2025,16 @@ function PreviewBlock(props: any) {
                     onChange={(e) => setNomeNovoTemplate(e.target.value)}
                     placeholder={tt.nomeTemplate}
                     className="flex-1 px-3 py-1.5 rounded-lg text-xs"
-                    style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(251,191,36,0.3)" }}
+                    style={{ background: fundoInput, color: ct("#c8d8f0"), border: "1px solid rgba(251,191,36,0.3)" }}
                   />
                   <button onClick={salvarComoTemplate}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>
+                    style={{ background: temaClaro ? "linear-gradient(135deg, #f5a623, #fbbf24)" : "linear-gradient(135deg, #b45309, #f5a623)", color: temaClaro ? "#2b1900" : "#fff" }}>
                     💾 OK
                   </button>
                   <button onClick={() => { setMostrarSalvarTemplate(false); setNomeNovoTemplate(""); }}
                     className="px-3 py-1.5 rounded-lg text-xs"
-                    style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
                     ✕
                   </button>
                 </div>
@@ -2008,51 +2046,51 @@ function PreviewBlock(props: any) {
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <button onClick={() => selecionarTodas(true)}
-            className="px-2.5 py-1 rounded-lg" style={{ background: "rgba(52,211,153,0.1)", color: "#34d399" }}>
+            className="px-2.5 py-1 rounded-lg" style={{ background: "rgba(52,211,153,0.1)", color: ct("#34d399") }}>
             ✓ {tt.selecionarTodos}
           </button>
           <button onClick={() => selecionarTodas(false)}
-            className="px-2.5 py-1 rounded-lg" style={{ background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
+            className="px-2.5 py-1 rounded-lg" style={{ background: "rgba(248,113,113,0.1)", color: ct("#f87171") }}>
             ✕ {tt.desselecionar}
           </button>
-          <span className="ml-auto text-[11px]" style={{ color: "#5a7a9a" }}>
-            <strong style={{ color: "#34d399" }}>{totalSelecionadas}</strong> {tt.linhasSelecionadas}
-            {totalDuplicadas > 0 && <> · <strong style={{ color: "#fbbf24" }}>{totalDuplicadas}</strong> {tt.duplicadasMarcadas}</>}
+          <span className="ml-auto text-[11px]" style={{ color: ct("#5a7a9a") }}>
+            <strong style={{ color: ct("#34d399") }}>{totalSelecionadas}</strong> {tt.linhasSelecionadas}
+            {totalDuplicadas > 0 && <> · <strong style={{ color: ct("#fbbf24") }}>{totalDuplicadas}</strong> {tt.duplicadasMarcadas}</>}
           </span>
         </div>
 
         {/* Aplicar destino em massa às linhas marcadas (mesmo padrão da
             confirmação de duplicata: seleção + ação em massa) */}
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span style={{ color: "#5a7a9a" }}>{tt.destinoSelecionadas}</span>
+          <span style={{ color: ct("#5a7a9a") }}>{tt.destinoSelecionadas}</span>
           <select
             value={destinoMassa}
             onChange={(e) => setDestinoMassa(e.target.value as DestinoTabela)}
             className="px-2 py-1 rounded-lg text-[11px]"
-            style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}
+            style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}
           >
             {DESTINOS.map((d) => (
-              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
+              <option key={d.key} value={d.key} style={{ background: corOpcao }}>{d.icon} {destinoLabel(tt, d.key)}</option>
             ))}
           </select>
           <button onClick={() => aplicarDestinoEmMassa(destinoMassa, true)}
-            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>
+            className="px-2.5 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>
             {tt.aplicar}
           </button>
         </div>
 
         {/* Tabela DESKTOP */}
-        <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)" }}>
+        <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
           <div className="max-h-96 overflow-auto">
             <table className="w-full text-xs">
-              <thead style={{ background: "rgba(10,22,40,0.95)", position: "sticky", top: 0 }}>
+              <thead style={{ background: fundoHeaderTabela, position: "sticky", top: 0 }}>
                 <tr>
-                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a", width: 40 }}></th>
-                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.data}</th>
-                  <th className="px-2 py-2 text-right" style={{ color: "#5a7a9a" }}>{tt.valor}</th>
-                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.descricao}</th>
-                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.categoria}</th>
-                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>{tt.destino}</th>
+                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a"), width: 40 }}></th>
+                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>{tt.data}</th>
+                  <th className="px-2 py-2 text-right" style={{ color: ct("#5a7a9a") }}>{tt.valor}</th>
+                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>{tt.descricao}</th>
+                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>{tt.categoria}</th>
+                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>{tt.destino}</th>
                 </tr>
               </thead>
               <tbody>
@@ -2063,8 +2101,8 @@ function PreviewBlock(props: any) {
                   const confereDestino = l.confiancaDestino === "baixa";
                   return (
                     <tr key={i} className="border-t" style={{
-                      borderColor: "rgba(106,176,255,0.08)",
-                      background: !isSel ? "rgba(2,8,16,0.7)" : isDup ? "rgba(251,191,36,0.05)" : "transparent",
+                      borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)"),
+                      background: !isSel ? fundoInput : isDup ? "rgba(251,191,36,0.05)" : "transparent",
                       opacity: !isSel ? 0.5 : 1,
                     }}>
                       <td className="px-2 py-1.5">
@@ -2077,7 +2115,7 @@ function PreviewBlock(props: any) {
                           value={l.data || ""}
                           onChange={(e) => editarLinha(i, "data", e.target.value)}
                           className="bg-transparent text-xs w-28 focus:outline-none"
-                          style={{ color: linhaInvalida && !l.data ? "#f87171" : "#c8d8f0" }}
+                          style={{ color: linhaInvalida && !l.data ? ct("#f87171") : ct("#c8d8f0") }}
                         />
                       </td>
                       <td className="px-2 py-1.5 text-right">
@@ -2087,7 +2125,7 @@ function PreviewBlock(props: any) {
                           value={l.valor ?? ""}
                           onChange={(e) => editarLinha(i, "valor", e.target.value)}
                           className="bg-transparent text-xs w-24 text-right focus:outline-none"
-                          style={{ color: linhaInvalida && l.valor === undefined ? "#f87171" : "#34d399" }}
+                          style={{ color: linhaInvalida && l.valor === undefined ? ct("#f87171") : ct("#34d399") }}
                         />
                       </td>
                       <td className="px-2 py-1.5">
@@ -2096,7 +2134,7 @@ function PreviewBlock(props: any) {
                           value={l.descricao || ""}
                           onChange={(e) => editarLinha(i, "descricao", e.target.value)}
                           className="bg-transparent text-xs w-full focus:outline-none"
-                          style={{ color: "#c8d8f0" }}
+                          style={{ color: ct("#c8d8f0") }}
                         />
                       </td>
                       <td className="px-2 py-1.5">
@@ -2107,7 +2145,7 @@ function PreviewBlock(props: any) {
                             onChange={(e) => editarLinha(i, "categoria", e.target.value)}
                             placeholder="—"
                             className="bg-transparent text-xs w-full focus:outline-none"
-                            style={{ color: "#a78bfa" }}
+                            style={{ color: ct("#a78bfa") }}
                           />
                           {!l.categoria && sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria && (
                             <button
@@ -2115,14 +2153,14 @@ function PreviewBlock(props: any) {
                               title={`${tt.motivo}: ${sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}`}
                               onClick={() => editarLinha(i, "categoria", sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria || "")}
                               className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap flex-shrink-0"
-                              style={{ background: "rgba(212,175,55,0.15)", color: "#d4af37" }}
+                              style={{ background: "rgba(212,175,55,0.15)", color: ct("#d4af37") }}
                             >
                               💡 {sugestoes.get(normalizarPadraoChave(l.descricao || ""))?.categoria}
                             </button>
                           )}
                           {isDup && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap"
-                              style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
+                              style={{ background: "rgba(251,191,36,0.15)", color: ct("#fbbf24") }}>
                               DUP
                             </span>
                           )}
@@ -2135,20 +2173,20 @@ function PreviewBlock(props: any) {
                             onChange={(e) => mudarDestinoLinha(i, e.target.value as DestinoTabela)}
                             className="text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
                             style={{
-                              background: "rgba(2,8,16,0.7)",
-                              color: confereDestino ? "#fbbf24" : "#c8d8f0",
-                              border: `1px solid ${confereDestino ? "rgba(251,191,36,0.4)" : "rgba(106,176,255,0.2)"}`,
+                              background: fundoInput,
+                              color: confereDestino ? ct("#fbbf24") : ct("#c8d8f0"),
+                              border: `1px solid ${confereDestino ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)")}`,
                             }}
                           >
                             {DESTINOS.map((d) => (
-                              <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
+                              <option key={d.key} value={d.key} style={{ background: corOpcao }}>{d.icon} {destinoLabel(tt, d.key)}</option>
                             ))}
                           </select>
                           {confereDestino && (
                             <span
                               title={l.motivoDestino || tt.confiraDestino}
                               className="text-[10px] cursor-help"
-                              style={{ color: "#fbbf24" }}
+                              style={{ color: ct("#fbbf24") }}
                             >
                               ⚠️
                             </span>
@@ -2162,7 +2200,7 @@ function PreviewBlock(props: any) {
             </table>
           </div>
           {linhas.length > 200 && (
-            <p className="text-[10px] text-center py-2" style={{ color: "#5a7a9a" }}>
+            <p className="text-[10px] text-center py-2" style={{ color: ct("#5a7a9a") }}>
               Mostrando primeiras 200 de {linhas.length} linhas (todas serão importadas se selecionadas)
             </p>
           )}
@@ -2175,25 +2213,25 @@ function PreviewBlock(props: any) {
             const isSel = selecionadas[i];
             return (
               <div key={i} className="rounded-lg p-2.5" style={{
-                background: !isSel ? "rgba(2,8,16,0.7)" : isDup ? "rgba(251,191,36,0.06)" : "rgba(2,8,16,0.5)",
-                border: "1px solid rgba(106,176,255,0.1)",
+                background: !isSel ? fundoInput : isDup ? "rgba(251,191,36,0.06)" : fundoCaixaAninhada,
+                border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)"),
                 opacity: !isSel ? 0.55 : 1,
               }}>
                 <div className="flex items-start gap-2">
                   <input type="checkbox" checked={isSel} onChange={() => toggleLinha(i)} className="mt-1" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-xs" style={{ color: "#5a7a9a" }}>{l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "—"}</span>
-                      <span className="text-sm font-bold" style={{ color: "#34d399" }}>{formatBRL(l.valor || 0)}</span>
+                      <span className="text-xs" style={{ color: ct("#5a7a9a") }}>{l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "—"}</span>
+                      <span className="text-sm font-bold" style={{ color: ct("#34d399") }}>{formatBRL(l.valor || 0)}</span>
                     </div>
-                    <p className="text-xs truncate" style={{ color: "#c8d8f0" }}>{l.descricao || "—"}</p>
+                    <p className="text-xs truncate" style={{ color: ct("#c8d8f0") }}>{l.descricao || "—"}</p>
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {l.categoria && (
-                        <span className="text-[10px]" style={{ color: "#a78bfa" }}>{l.categoria}</span>
+                        <span className="text-[10px]" style={{ color: ct("#a78bfa") }}>{l.categoria}</span>
                       )}
                       {isDup && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
+                          style={{ background: "rgba(251,191,36,0.15)", color: ct("#fbbf24") }}>
                           DUPLICADA
                         </span>
                       )}
@@ -2204,17 +2242,17 @@ function PreviewBlock(props: any) {
                         onChange={(e) => mudarDestinoLinha(i, e.target.value as DestinoTabela)}
                         className="flex-1 text-[11px] px-1.5 py-1 rounded-lg focus:outline-none"
                         style={{
-                          background: "rgba(2,8,16,0.7)",
-                          color: l.confiancaDestino === "baixa" ? "#fbbf24" : "#c8d8f0",
-                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(251,191,36,0.4)" : "rgba(106,176,255,0.2)"}`,
+                          background: fundoInput,
+                          color: l.confiancaDestino === "baixa" ? ct("#fbbf24") : ct("#c8d8f0"),
+                          border: `1px solid ${l.confiancaDestino === "baixa" ? "rgba(251,191,36,0.4)" : (temaClaro ? "rgba(46,204,155,0.2)" : "rgba(106,176,255,0.2)")}`,
                         }}
                       >
                         {DESTINOS.map((d) => (
-                          <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
+                          <option key={d.key} value={d.key} style={{ background: corOpcao }}>{d.icon} {destinoLabel(tt, d.key)}</option>
                         ))}
                       </select>
                       {l.confiancaDestino === "baixa" && (
-                        <span title={l.motivoDestino || tt.confiraDestino} className="text-[10px]" style={{ color: "#fbbf24" }}>⚠️</span>
+                        <span title={l.motivoDestino || tt.confiraDestino} className="text-[10px]" style={{ color: ct("#fbbf24") }}>⚠️</span>
                       )}
                     </div>
                   </div>
@@ -2223,7 +2261,7 @@ function PreviewBlock(props: any) {
             );
           })}
           {linhas.length > 50 && (
-            <p className="text-[10px] text-center py-2" style={{ color: "#5a7a9a" }}>
+            <p className="text-[10px] text-center py-2" style={{ color: ct("#5a7a9a") }}>
               Mostrando 50 de {linhas.length}
             </p>
           )}
@@ -2234,21 +2272,21 @@ function PreviewBlock(props: any) {
             usuário decidir. */}
         {verificandoDuplicatas && (
           <div className="rounded-xl p-3 text-center" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.2)" }}>
-            <p className="text-xs" style={{ color: "#fbbf24" }}>⏳ {tt.verificandoDuplicatas}</p>
+            <p className="text-xs" style={{ color: ct("#fbbf24") }}>⏳ {tt.verificandoDuplicatas}</p>
           </div>
         )}
         {possiveisDuplicatas.some((p: any) => p) && (
           <div className="rounded-xl p-3" style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.3)" }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#fbbf24" }}>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: ct("#fbbf24") }}>
                 ⚠️ {tt.possivelDuplicata} {pendentesDuplicata > 0 ? `(${pendentesDuplicata})` : ""}
               </p>
               {pendentesDuplicata > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[10px] self-center" style={{ color: "#5a7a9a" }}>{tt.aplicarATodasPendentes}:</span>
-                  <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>{tt.importarMesmoAssim}</button>
-                  <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: "#cbd5e1" }}>{tt.pular}</button>
-                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>{tt.somar}</button>
+                  <span className="text-[10px] self-center" style={{ color: ct("#5a7a9a") }}>{tt.aplicarATodasPendentes}:</span>
+                  <button onClick={() => resolverDuplicataEmMassa("importar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}>{tt.importarMesmoAssim}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("pular")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: "rgba(148,163,184,0.15)", color: ct("#cbd5e1") }}>{tt.pular}</button>
+                  <button onClick={() => resolverDuplicataEmMassa("somar")} className="text-[10px] px-2 py-1 rounded-lg font-semibold" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>{tt.somar}</button>
                 </div>
               )}
             </div>
@@ -2259,29 +2297,29 @@ function PreviewBlock(props: any) {
                 const decisao = decisoesDuplicata[i];
                 const labelTabela = destinoLabel(tt, pd.candidato.tabela);
                 return (
-                  <div key={i} className="rounded-lg p-2.5" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(251,191,36,0.15)" }}>
-                    <p className="text-xs font-semibold" style={{ color: "#c8d8f0" }}>
+                  <div key={i} className="rounded-lg p-2.5" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(251,191,36,0.15)" }}>
+                    <p className="text-xs font-semibold" style={{ color: ct("#c8d8f0") }}>
                       Linha {i + 1}: {linha.descricao || "—"} · {formatBRL(linha.valor || 0)} · {linha.data ? formatData(linha.data) : "—"}
                     </p>
-                    <p className="text-[11px] mt-1" style={{ color: "#fbbf24" }}>
+                    <p className="text-[11px] mt-1" style={{ color: ct("#fbbf24") }}>
                       {tt.pareceIgualA}: {pd.candidato.descricao || "—"} · {formatBRL(pd.candidato.valor)} · {formatData(pd.candidato.data)} · {labelTabela}
-                      {pd.horaComparada && <span style={{ color: "#f87171" }}> — {tt.horaConfere}</span>}
+                      {pd.horaComparada && <span style={{ color: ct("#f87171") }}> — {tt.horaConfere}</span>}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: "#5a7a9a" }}>{pd.motivo}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{pd.motivo}</p>
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <button onClick={() => resolverDuplicata(i, "importar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                        style={{ background: decisao === "importar" ? "rgba(52,211,153,0.3)" : "rgba(52,211,153,0.12)", color: "#34d399", border: decisao === "importar" ? "1px solid #34d399" : "none" }}>
+                        style={{ background: decisao === "importar" ? "rgba(52,211,153,0.3)" : "rgba(52,211,153,0.12)", color: ct("#34d399"), border: decisao === "importar" ? `1px solid ${ct("#34d399")}` : "none" }}>
                         {tt.importarMesmoAssim}
                       </button>
                       <button onClick={() => resolverDuplicata(i, "pular")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                        style={{ background: decisao === "pular" ? "rgba(148,163,184,0.3)" : "rgba(148,163,184,0.12)", color: "#cbd5e1", border: decisao === "pular" ? "1px solid #cbd5e1" : "none" }}>
+                        style={{ background: decisao === "pular" ? "rgba(148,163,184,0.3)" : "rgba(148,163,184,0.12)", color: ct("#cbd5e1"), border: decisao === "pular" ? `1px solid ${ct("#cbd5e1")}` : "none" }}>
                         {tt.pular}
                       </button>
                       <button onClick={() => resolverDuplicata(i, "somar")}
                         className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                        style={{ background: decisao === "somar" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.12)", color: "#6ab0ff", border: decisao === "somar" ? "1px solid #6ab0ff" : "none" }}>
+                        style={{ background: decisao === "somar" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)") : (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: temaClaro ? "#101b3d" : ct("#6ab0ff"), border: decisao === "somar" ? `1px solid ${temaClaro ? "#101b3d" : ct("#6ab0ff")}` : "none" }}>
                         {tt.somar}
                       </button>
                     </div>
@@ -2294,18 +2332,18 @@ function PreviewBlock(props: any) {
 
         {/* Simulador — mesmo caminho da importação real, nada é gravado */}
         {simulacao && (
-          <div className="rounded-xl p-3" style={{ background: "rgba(106,176,255,0.06)", border: "1px solid rgba(106,176,255,0.25)" }}>
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#6ab0ff" }}>🔍 {tt.resultadoSimulacao}</p>
+          <div className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(46,204,155,0.06)" : "rgba(106,176,255,0.06)"), border: (temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.25)") }}>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#6ab0ff") }}>🔍 {tt.resultadoSimulacao}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { label: tt.importadas, valor: simulacao.importadas, cor: "#34d399" },
-                { label: tt.duplicadas, valor: simulacao.duplicadas, cor: "#fbbf24" },
-                { label: tt.ignoradas, valor: simulacao.ignoradas, cor: "#5a7a9a" },
-                { label: tt.erros, valor: simulacao.erro, cor: "#f87171" },
+                { label: tt.importadas, valor: simulacao.importadas, cor: ct("#34d399") },
+                { label: tt.duplicadas, valor: simulacao.duplicadas, cor: ct("#fbbf24") },
+                { label: tt.ignoradas, valor: simulacao.ignoradas, cor: ct("#5a7a9a") },
+                { label: tt.erros, valor: simulacao.erro, cor: ct("#f87171") },
               ].map((s: any, i: number) => (
-                <div key={i} className="rounded-lg p-2 text-center" style={{ background: "rgba(2,8,16,0.5)" }}>
+                <div key={i} className="rounded-lg p-2 text-center" style={{ background: fundoCaixaAninhada }}>
                   <p className="text-lg font-bold" style={{ color: s.cor }}><AnimatedNumber value={String(s.valor)} /></p>
-                  <p className="text-[10px]" style={{ color: "#5a7a9a" }}>{s.label}</p>
+                  <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                 </div>
               ))}
             </div>
@@ -2316,25 +2354,25 @@ function PreviewBlock(props: any) {
         <div className="rounded-xl p-3" style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.25)" }}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.valorTotal}</p>
-              <p className="text-xl font-bold" style={{ color: "#34d399" }}><AnimatedNumber value={formatBRL(valorTotalPreview)} /></p>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.valorTotal}</p>
+              <p className="text-xl font-bold" style={{ color: ct("#34d399") }}><AnimatedNumber value={formatBRL(valorTotalPreview)} /></p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button onClick={cancelarUpload}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
                 {tt.cancelar}
               </button>
               <button onClick={simularImportacao} disabled={simulando || totalSelecionadas === 0 || pendentesDuplicata > 0}
                 title={pendentesDuplicata > 0 ? tt.duplicataPendente : undefined}
                 className="px-4 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: "rgba(106,176,255,0.12)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
+                style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: ct("#6ab0ff"), border: (temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)") }}>
                 {simulando ? `⏳ ${tt.simulando}` : `🔍 ${tt.simular}`}
               </button>
               <button onClick={confirmarImportacao} disabled={confirmando || totalSelecionadas === 0 || pendentesDuplicata > 0}
                 title={pendentesDuplicata > 0 ? tt.duplicataPendente : undefined}
                 className="px-6 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-                style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+                style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
                 {confirmando ? `⏳ ${tt.importando}` : `✓ ${tt.confirmarImport} (${totalSelecionadas})`}
               </button>
             </div>
@@ -2359,30 +2397,43 @@ function HistoricoBlock(props: any) {
     excecoesPorImportacao, timelinePorImportacao, resolverExcecaoUI, resolvendoExcecao,
   } = props;
 
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const fundoCaixaAninhada = temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)";
+  const fundoCaixaAninhadaForte = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(2,8,16,0.6)";
+  const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
+  const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
+  const corOpcao = temaClaro ? "#ffffff" : "#020810";
+  const fundoHeaderTabela = temaClaro ? "#101b3d" : "rgba(10,22,40,0.95)";
+  const DESTINOS = DESTINOS_BASE.map((d) => ({ ...d, cor: corDestinoClaro(d.cor, temaClaro) }));
+  const STATUS_INFO = Object.fromEntries(Object.entries(STATUS_INFO_BASE).map(([k, v]) => [k, { cor: corDestinoClaro(v.cor, temaClaro) }]));
+
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <CanvasBox cor="#6ab0ff">
+      <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : ct("#6ab0ff")}>
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.filtroStatus}</label>
+            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroStatus}</label>
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-              style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}>
-              <option value="todos" style={{ background: "#020810" }}>{tt.todos}</option>
+              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}>
+              <option value="todos" style={{ background: corOpcao }}>{tt.todos}</option>
               {Object.keys(STATUS_INFO).map((k) => (
-                <option key={k} value={k} style={{ background: "#020810" }}>{statusLabel(tt, k)}</option>
+                <option key={k} value={k} style={{ background: corOpcao }}>{statusLabel(tt, k)}</option>
               ))}
             </select>
           </div>
           <div className="flex-1">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.filtroDestino}</label>
+            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.filtroDestino}</label>
             <select value={filtroDestino} onChange={(e) => setFiltroDestino(e.target.value)}
               className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
-              style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}>
-              <option value="todos" style={{ background: "#020810" }}>{tt.todos}</option>
+              style={{ background: fundoInput, color: ct("#c8d8f0"), border: (temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)") }}>
+              <option value="todos" style={{ background: corOpcao }}>{tt.todos}</option>
               {DESTINOS.map((d) => (
-                <option key={d.key} value={d.key} style={{ background: "#020810" }}>{d.icon} {destinoLabel(tt, d.key)}</option>
+                <option key={d.key} value={d.key} style={{ background: corOpcao }}>{d.icon} {destinoLabel(tt, d.key)}</option>
               ))}
             </select>
           </div>
@@ -2390,32 +2441,32 @@ function HistoricoBlock(props: any) {
       </CanvasBox>
 
       {loadingHistorico ? (
-        <CanvasBox cor="#6ab0ff">
+        <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
           <div className="py-8 text-center">
             <div className="w-8 h-8 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         </CanvasBox>
       ) : historico.length === 0 ? (
-        <CanvasBox cor="#6ab0ff">
-          <div className="py-8 text-center"><p style={{ color: "#5a7a9a" }}>{tt.semImportacoes}</p></div>
+        <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
+          <div className="py-8 text-center"><p style={{ color: ct("#5a7a9a") }}>{tt.semImportacoes}</p></div>
         </CanvasBox>
       ) : (
         historico.map((item: any) => {
           const destInfo = DESTINOS.find((d) => d.key === item.destino) || DESTINOS[0];
-          const stInfo = STATUS_INFO[item.status] || { cor: "#6ab0ff" };
+          const stInfo = STATUS_INFO[item.status] || { cor: ct("#6ab0ff") };
           const isExp = expandida === item.id;
           const podeDesfazer = item.status === "concluido" || item.status === "parcialmente";
           const podeExcluirRegistro = item.status === "erro" || item.status === "revertido" || item.status === "falhou";
           return (
-            <CanvasBox key={item.id} cor={destInfo.cor}>
+            <CanvasBox key={item.id} {...cartaoTema} cor={destInfo.cor}>
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <span className="text-2xl flex-shrink-0">{destInfo.icon}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{item.nome_arquivo}</p>
+                      <p className="text-sm font-bold truncate" style={{ color: ct("#c8d8f0") }}>{item.nome_arquivo}</p>
                       <p className="text-xs mt-0.5" style={{ color: destInfo.cor }}>→ {destinoLabel(tt, item.destino)}</p>
-                      <p className="text-[11px] mt-0.5" style={{ color: "#5a7a9a" }}>{formatDataHora(item.created_at)}</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: ct("#5a7a9a") }}>{formatDataHora(item.created_at)}</p>
                     </div>
                   </div>
                   <span className="px-2 py-1 rounded-lg text-[11px] font-semibold flex-shrink-0"
@@ -2427,13 +2478,13 @@ function HistoricoBlock(props: any) {
                 {/* Stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
-                    { label: tt.importadas, valor: item.linhas_importadas || 0, cor: "#34d399" },
-                    { label: tt.duplicadas, valor: item.linhas_duplicadas || 0, cor: "#fbbf24" },
-                    { label: tt.erros, valor: item.linhas_erro || 0, cor: "#f87171" },
-                    { label: tt.valorTotal, valor: formatBRL(Number(item.valor_total_importado) || 0), cor: "#6ab0ff" },
+                    { label: tt.importadas, valor: item.linhas_importadas || 0, cor: ct("#34d399") },
+                    { label: tt.duplicadas, valor: item.linhas_duplicadas || 0, cor: ct("#fbbf24") },
+                    { label: tt.erros, valor: item.linhas_erro || 0, cor: ct("#f87171") },
+                    { label: tt.valorTotal, valor: formatBRL(Number(item.valor_total_importado) || 0), cor: ct("#6ab0ff") },
                   ].map((s, i) => (
-                    <div key={i} className="rounded-lg p-2" style={{ background: "rgba(2,8,16,0.5)" }}>
-                      <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{s.label}</p>
+                    <div key={i} className="rounded-lg p-2" style={{ background: fundoCaixaAninhada }}>
+                      <p className="text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>{s.label}</p>
                       <p className="text-sm font-bold" style={{ color: s.cor }}>{s.valor}</p>
                     </div>
                   ))}
@@ -2443,32 +2494,32 @@ function HistoricoBlock(props: any) {
                 {isExp && (
                   <div className="space-y-3">
                     {/* Metadados */}
-                    <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
-                      <p style={{ color: "#5a7a9a" }}>
-                        Hash: <span style={{ color: "#c8d8f0", fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
+                    <div className="rounded-lg p-3 text-xs space-y-1" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
+                      <p style={{ color: ct("#5a7a9a") }}>
+                        Hash: <span style={{ color: ct("#c8d8f0"), fontFamily: "monospace", fontSize: 10 }}>{(item.hash_arquivo || "").slice(0, 32)}...</span>
                       </p>
-                      {item.tipo_arquivo && <p style={{ color: "#5a7a9a" }}>Formato: <span style={{ color: "#c8d8f0" }}>{item.tipo_arquivo.toUpperCase()}</span></p>}
-                      {item.tamanho_bytes > 0 && <p style={{ color: "#5a7a9a" }}>Tamanho: <span style={{ color: "#c8d8f0" }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}
-                      {item.tempo_processamento_ms > 0 && <p style={{ color: "#5a7a9a" }}>Tempo: <span style={{ color: "#c8d8f0" }}>{(item.tempo_processamento_ms / 1000).toFixed(1)}s</span></p>}
-                      {item.mensagem_erro && <p style={{ color: "#f87171" }}>⚠️ {item.mensagem_erro}</p>}
-                      {item.revertido_em && <p style={{ color: "#fbbf24" }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
+                      {item.tipo_arquivo && <p style={{ color: ct("#5a7a9a") }}>Formato: <span style={{ color: ct("#c8d8f0") }}>{item.tipo_arquivo.toUpperCase()}</span></p>}
+                      {item.tamanho_bytes > 0 && <p style={{ color: ct("#5a7a9a") }}>Tamanho: <span style={{ color: ct("#c8d8f0") }}>{(item.tamanho_bytes / 1024).toFixed(1)} KB</span></p>}
+                      {item.tempo_processamento_ms > 0 && <p style={{ color: ct("#5a7a9a") }}>Tempo: <span style={{ color: ct("#c8d8f0") }}>{(item.tempo_processamento_ms / 1000).toFixed(1)}s</span></p>}
+                      {item.mensagem_erro && <p style={{ color: ct("#f87171") }}>⚠️ {item.mensagem_erro}</p>}
+                      {item.revertido_em && <p style={{ color: ct("#fbbf24") }}>↩️ Desfeito em {formatDataHora(item.revertido_em)}</p>}
                     </div>
 
                     {/* Fila de Exceções — o que o sistema não decidiu sozinho */}
-                    <div className="rounded-lg p-3" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(248,113,113,0.15)" }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#f87171" }}>⚠️ {tt.excecoes}</p>
+                    <div className="rounded-lg p-3" style={{ background: fundoCaixaAninhada, border: "1px solid rgba(248,113,113,0.15)" }}>
+                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#f87171") }}>⚠️ {tt.excecoes}</p>
                       {(excecoesPorImportacao[item.id] || []).length === 0 ? (
-                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semExcecoes}</p>
+                        <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semExcecoes}</p>
                       ) : (
                         <div className="space-y-2">
                           {excecoesPorImportacao[item.id].map((exc: any) => (
                             <div key={exc.id} className="flex items-start justify-between gap-2 rounded-lg p-2" style={{ background: "rgba(248,113,113,0.06)" }}>
                               <div className="min-w-0 flex-1">
-                                <p className="text-xs font-semibold" style={{ color: "#f87171" }}>
+                                <p className="text-xs font-semibold" style={{ color: ct("#f87171") }}>
                                   {exc.tipo} {exc.linha_numero ? `— linha ${exc.linha_numero}` : ""}
                                 </p>
-                                <p className="text-[11px] mt-0.5" style={{ color: "#c8d8f0" }}>{tt.motivo}: {exc.motivo}</p>
-                                <p className="text-[10px] mt-0.5" style={{ color: exc.status === "pendente" ? "#fbbf24" : "#34d399" }}>
+                                <p className="text-[11px] mt-0.5" style={{ color: ct("#c8d8f0") }}>{tt.motivo}: {exc.motivo}</p>
+                                <p className="text-[10px] mt-0.5" style={{ color: exc.status === "pendente" ? ct("#fbbf24") : ct("#34d399") }}>
                                   {exc.status === "pendente" ? tt.excecaoPendente : tt.excecaoResolvida}
                                 </p>
                               </div>
@@ -2477,7 +2528,7 @@ function HistoricoBlock(props: any) {
                                   onClick={() => resolverExcecaoUI(exc.id, item.id)}
                                   disabled={resolvendoExcecao === exc.id}
                                   className="px-2 py-1 rounded-lg text-[10px] font-semibold flex-shrink-0 disabled:opacity-50"
-                                  style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}
+                                  style={{ background: "rgba(52,211,153,0.15)", color: ct("#34d399") }}
                                 >
                                   {resolvendoExcecao === exc.id ? tt.resolvendo : tt.resolver}
                                 </button>
@@ -2489,17 +2540,17 @@ function HistoricoBlock(props: any) {
                     </div>
 
                     {/* Linha do Tempo */}
-                    <div className="rounded-lg p-3" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>🕒 {tt.timeline}</p>
+                    <div className="rounded-lg p-3" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
+                      <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>🕒 {tt.timeline}</p>
                       {(timelinePorImportacao[item.id] || []).length === 0 ? (
-                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.semTimeline}</p>
+                        <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.semTimeline}</p>
                       ) : (
                         <div className="space-y-1.5">
                           {timelinePorImportacao[item.id].map((ev: any) => (
                             <div key={ev.id} className="flex items-start gap-2 text-xs">
-                              <span style={{ color: "#5a7a9a" }} className="flex-shrink-0">{formatDataHora(ev.created_at)}</span>
-                              <span style={{ color: "#c8d8f0" }}>
-                                <strong style={{ color: "#6ab0ff" }}>{ev.evento}</strong>{ev.descricao ? ` — ${ev.descricao}` : ""}
+                              <span style={{ color: ct("#5a7a9a") }} className="flex-shrink-0">{formatDataHora(ev.created_at)}</span>
+                              <span style={{ color: ct("#c8d8f0") }}>
+                                <strong style={{ color: ct("#6ab0ff") }}>{ev.evento}</strong>{ev.descricao ? ` — ${ev.descricao}` : ""}
                               </span>
                             </div>
                           ))}
@@ -2511,27 +2562,27 @@ function HistoricoBlock(props: any) {
                     {carregandoLinhas === item.id ? (
                       <div className="text-center py-4">
                         <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto" />
-                        <p className="text-xs mt-2" style={{ color: "#5a7a9a" }}>Carregando linhas...</p>
+                        <p className="text-xs mt-2" style={{ color: ct("#5a7a9a") }}>Carregando linhas...</p>
                       </div>
                     ) : linhasPorImportacao[item.id] ? (
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>
+                        <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>
                           📋 Lançamentos desta Importação ({linhasPorImportacao[item.id].length})
                         </p>
 
                         {/* Tabela DESKTOP */}
-                        <div className="hidden md:block rounded-lg overflow-hidden" style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.1)" }}>
+                        <div className="hidden md:block rounded-lg overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
                           <div className="max-h-80 overflow-auto">
                             <table className="w-full text-xs">
-                              <thead style={{ background: "rgba(10,22,40,0.95)", position: "sticky", top: 0 }}>
+                              <thead style={{ background: fundoHeaderTabela, position: "sticky", top: 0 }}>
                                 <tr>
-                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>#</th>
-                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>Data</th>
-                                  <th className="px-2 py-2 text-right" style={{ color: "#5a7a9a" }}>Valor</th>
-                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>Descrição</th>
-                                  <th className="px-2 py-2 text-left" style={{ color: "#5a7a9a" }}>Categoria</th>
-                                  <th className="px-2 py-2 text-center" style={{ color: "#5a7a9a" }}>Status</th>
-                                  <th className="px-2 py-2 text-right" style={{ color: "#5a7a9a" }}>Ações</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>#</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>Data</th>
+                                  <th className="px-2 py-2 text-right" style={{ color: ct("#5a7a9a") }}>Valor</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>Descrição</th>
+                                  <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>Categoria</th>
+                                  <th className="px-2 py-2 text-center" style={{ color: ct("#5a7a9a") }}>Status</th>
+                                  <th className="px-2 py-2 text-right" style={{ color: ct("#5a7a9a") }}>Ações</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -2539,26 +2590,26 @@ function HistoricoBlock(props: any) {
                                   const editavel = ln.status === "importada";
                                   return (
                                     <tr key={ln.id} className="border-t" style={{
-                                      borderColor: "rgba(106,176,255,0.08)",
+                                      borderColor: (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)"),
                                       opacity: editavel ? 1 : 0.55,
                                     }}>
-                                      <td className="px-2 py-1.5" style={{ color: "#5a7a9a" }}>{ln.linha_numero}</td>
-                                      <td className="px-2 py-1.5" style={{ color: "#c8d8f0" }}>{ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</td>
-                                      <td className="px-2 py-1.5 text-right font-semibold" style={{ color: "#34d399" }}>{formatBRL(Number(ln.valor) || 0)}</td>
-                                      <td className="px-2 py-1.5" style={{ color: "#c8d8f0", maxWidth: 200 }}>
+                                      <td className="px-2 py-1.5" style={{ color: ct("#5a7a9a") }}>{ln.linha_numero}</td>
+                                      <td className="px-2 py-1.5" style={{ color: ct("#c8d8f0") }}>{ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</td>
+                                      <td className="px-2 py-1.5 text-right font-semibold" style={{ color: ct("#34d399") }}>{formatBRL(Number(ln.valor) || 0)}</td>
+                                      <td className="px-2 py-1.5" style={{ color: ct("#c8d8f0"), maxWidth: 200 }}>
                                         <div className="truncate">{ln.descricao || "—"}</div>
                                       </td>
-                                      <td className="px-2 py-1.5" style={{ color: "#a78bfa" }}>{ln.categoria || "—"}</td>
+                                      <td className="px-2 py-1.5" style={{ color: ct("#a78bfa") }}>{ln.categoria || "—"}</td>
                                       <td className="px-2 py-1.5 text-center">
                                         <span className="px-1.5 py-0.5 rounded text-[10px]" style={{
                                           background: ln.status === "importada" ? "rgba(52,211,153,0.15)" :
                                                        ln.status === "duplicada" ? "rgba(251,191,36,0.15)" :
                                                        ln.status === "revertida" ? "rgba(58,90,138,0.2)" :
-                                                       ln.status === "erro" ? "rgba(248,113,113,0.15)" : "rgba(106,176,255,0.1)",
-                                          color: ln.status === "importada" ? "#34d399" :
-                                                 ln.status === "duplicada" ? "#fbbf24" :
-                                                 ln.status === "revertida" ? "#5a7a9a" :
-                                                 ln.status === "erro" ? "#f87171" : "#6ab0ff",
+                                                       ln.status === "erro" ? "rgba(248,113,113,0.15)" : (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"),
+                                          color: ln.status === "importada" ? ct("#34d399") :
+                                                 ln.status === "duplicada" ? ct("#fbbf24") :
+                                                 ln.status === "revertida" ? ct("#5a7a9a") :
+                                                 ln.status === "erro" ? ct("#f87171") : ct("#6ab0ff"),
                                         }}>
                                           {ln.status}
                                         </span>
@@ -2569,13 +2620,13 @@ function HistoricoBlock(props: any) {
                                             <button onClick={() => abrirEdicao(ln)}
                                               title="Editar"
                                               className="px-1.5 py-1 rounded hover:opacity-80"
-                                              style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>
+                                              style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>
                                               ✏️
                                             </button>
                                             <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
                                               title="Excluir"
                                               className="px-1.5 py-1 rounded hover:opacity-80 disabled:opacity-30"
-                                              style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                                              style={{ background: "rgba(248,113,113,0.15)", color: ct("#f87171") }}>
                                               {deletandoLinha === ln.id ? "⏳" : "🗑️"}
                                             </button>
                                           </div>
@@ -2595,27 +2646,27 @@ function HistoricoBlock(props: any) {
                             const editavel = ln.status === "importada";
                             return (
                               <div key={ln.id} className="rounded-lg p-2.5" style={{
-                                background: "rgba(2,8,16,0.5)",
-                                border: "1px solid rgba(106,176,255,0.1)",
+                                background: fundoCaixaAninhada,
+                                border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)"),
                                 opacity: editavel ? 1 : 0.55,
                               }}>
                                 <div className="flex items-start justify-between gap-2 mb-1">
-                                  <span className="text-[10px]" style={{ color: "#5a7a9a" }}>#{ln.linha_numero} · {ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</span>
-                                  <span className="text-sm font-bold" style={{ color: "#34d399" }}>{formatBRL(Number(ln.valor) || 0)}</span>
+                                  <span className="text-[10px]" style={{ color: ct("#5a7a9a") }}>#{ln.linha_numero} · {ln.data_lancamento ? new Date(ln.data_lancamento).toLocaleDateString("pt-BR") : "—"}</span>
+                                  <span className="text-sm font-bold" style={{ color: ct("#34d399") }}>{formatBRL(Number(ln.valor) || 0)}</span>
                                 </div>
-                                <p className="text-xs truncate mb-1" style={{ color: "#c8d8f0" }}>{ln.descricao || "—"}</p>
+                                <p className="text-xs truncate mb-1" style={{ color: ct("#c8d8f0") }}>{ln.descricao || "—"}</p>
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[10px]" style={{ color: "#a78bfa" }}>{ln.categoria || "—"}</span>
+                                  <span className="text-[10px]" style={{ color: ct("#a78bfa") }}>{ln.categoria || "—"}</span>
                                   {editavel && (
                                     <div className="flex gap-1">
                                       <button onClick={() => abrirEdicao(ln)}
                                         className="px-2 py-1 rounded text-xs"
-                                        style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>
+                                        style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: ct("#6ab0ff") }}>
                                         ✏️ Editar
                                       </button>
                                       <button onClick={() => deletarLinha(ln)} disabled={deletandoLinha === ln.id}
                                         className="px-2 py-1 rounded text-xs disabled:opacity-30"
-                                        style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>
+                                        style={{ background: "rgba(248,113,113,0.15)", color: ct("#f87171") }}>
                                         {deletandoLinha === ln.id ? "⏳" : "🗑️"}
                                       </button>
                                     </div>
@@ -2634,32 +2685,32 @@ function HistoricoBlock(props: any) {
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => expandirImportacao(item.id)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+                    style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: ct("#6ab0ff") }}>
                     {isExp ? "▲" : "▼"} {tt.detalhes}
                   </button>
                   {item.storage_path && (
                     <button onClick={() => baixarOriginal(item)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa" }}>
+                      style={{ background: "rgba(167,139,250,0.1)", color: ct("#a78bfa") }}>
                       ⬇️ {tt.baixarOriginal}
                     </button>
                   )}
                   <button onClick={() => compartilharImportacao(item)}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "rgba(52,211,153,0.1)", color: "#34d399" }}>
+                    style={{ background: "rgba(52,211,153,0.1)", color: ct("#34d399") }}>
                     📤 {tt.compartilhar}
                   </button>
                   {podeDesfazer && (
                     <button onClick={() => desfazerImportacao(item.id)} disabled={revertendo === item.id}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 ml-auto"
-                      style={{ background: "rgba(248,113,113,0.1)", color: "#f87171" }}>
+                      style={{ background: "rgba(248,113,113,0.1)", color: ct("#f87171") }}>
                       {revertendo === item.id ? `⏳ ${tt.desfazendo}` : `↩️ ${tt.desfazer}`}
                     </button>
                   )}
                   {podeExcluirRegistro && (
                     <button onClick={() => excluirRegistro(item)} disabled={excluindoRegistro === item.id}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50 ml-auto"
-                      style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.4)", color: "#f87171" }}>
+                      style={{ background: "rgba(248,113,113,0.15)", border: "1px solid rgba(248,113,113,0.4)", color: ct("#f87171") }}>
                       {excluindoRegistro === item.id ? "⏳ Excluindo..." : "🗑️ Excluir registro"}
                     </button>
                   )}
