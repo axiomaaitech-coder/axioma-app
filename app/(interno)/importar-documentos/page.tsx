@@ -1432,6 +1432,7 @@ export default function ImportarDocumentosPage() {
   );
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
       titulo={`📄 ${imp?.titulo || "Importar Documentos"}`}
       subtitulo={imp?.subtitulo || "Central de importação inteligente — OFX, NF-e, CSV, XLSX"}
@@ -1472,33 +1473,27 @@ export default function ImportarDocumentosPage() {
 
       {aba === "visao" && (
         <div className="space-y-5">
-          {/* DASHBOARD CFO */}
-          <CanvasBox {...cartaoTema} cor={temaClaro ? "#2ecc9b" : "#6ab0ff"}>
-            <p className="text-xs font-semibold mb-4 tracking-wider uppercase" style={{ color: ct("#5a7a9a") }}>
-              📊 {tt.dashboard}
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[
-                { label: tt.totalImportado, valor: formatBRL(stats.total_importado), cor: "#34d399", icon: "💰" },
-                { label: tt.docsProcessados, valor: `${stats.docs_processados}/${stats.docs_total}`, cor: "#6ab0ff", icon: "📄" },
-                { label: tt.taxaSucesso, valor: `${stats.taxa_sucesso}%`, cor: "#a78bfa", icon: "🎯" },
-                { label: tt.duplicadasEvitadas, valor: String(stats.duplicadas_evitadas), cor: "#fbbf24", icon: "🛡️" },
-                { label: tt.tempoMedio, valor: `${stats.tempo_medio_seg}s`, cor: "#fb923c", icon: "⏱️" },
-                { label: tt.horasEconomizadas, valor: `${stats.horas_economizadas}h`, cor: "#10b981", icon: "⚡" },
-              ].map((card, i) => {
-                const cor = corDestinoClaro(card.cor, temaClaro);
-                return (
-                  <div key={i} className="rounded-xl p-3" style={{ background: fundoCaixaAninhada, border: `1px solid ${cor}30` }}>
-                    <div className="flex items-start justify-between mb-1">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: ct("#5a7a9a") }}>{card.label}</span>
-                      <span className="text-base">{card.icon}</span>
-                    </div>
-                    <p className="text-base md:text-lg font-bold truncate" style={{ color: cor }}><AnimatedNumber value={String(card.valor)} /></p>
-                  </div>
-                );
-              })}
-            </div>
-          </CanvasBox>
+          {/* DASHBOARD CFO — mesmo padrão de KPI usado em todos os módulos:
+              cada tile é seu próprio CanvasBox (premium3d no Claro), sem
+              card externo envolvendo o grid. */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { label: tt.totalImportado, valor: formatBRL(stats.total_importado), cor: "#34d399" },
+              { label: tt.docsProcessados, valor: `${stats.docs_processados}/${stats.docs_total}`, cor: "#6ab0ff" },
+              { label: tt.taxaSucesso, valor: `${stats.taxa_sucesso}%`, cor: "#a78bfa" },
+              { label: tt.duplicadasEvitadas, valor: String(stats.duplicadas_evitadas), cor: "#fbbf24" },
+              { label: tt.tempoMedio, valor: `${stats.tempo_medio_seg}s`, cor: "#fb923c" },
+              { label: tt.horasEconomizadas, valor: `${stats.horas_economizadas}h`, cor: "#10b981" },
+            ].map((card, i) => {
+              const cor = corDestinoClaro(card.cor, temaClaro);
+              return (
+                <CanvasBox {...cartaoTema} key={i} cor={cor}>
+                  <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: ct("#5a7a9a") }}>{card.label}</p>
+                  <p className="text-lg md:text-xl font-black" style={{ color: cor }}><AnimatedNumber value={String(card.valor)} /></p>
+                </CanvasBox>
+              );
+            })}
+          </div>
 
           {/* DUPLICATA GLOBAL DETECTADA */}
           {duplicataGlobal && (
@@ -1878,6 +1873,7 @@ export default function ImportarDocumentosPage() {
         </div>
       )}
     </ModuloLayout>
+    </div>
   );
 }
 
