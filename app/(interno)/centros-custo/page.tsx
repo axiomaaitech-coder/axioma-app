@@ -79,7 +79,7 @@ function ModalPremium({ aberto, onFechar, titulo, cor = "#9f1239", children }: {
     <AnimatePresence>
       {aberto && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}>
           <motion.div initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 16 }} transition={{ duration: 0.22, ease: "easeOut" }}

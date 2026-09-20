@@ -827,7 +827,7 @@ export default function Relatorios() {
       {/* MODAL DE COMPARTILHAMENTO ========================================== */}
       {shareModalAberto && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }}
           onClick={() => setShareModalAberto(false)}
         >

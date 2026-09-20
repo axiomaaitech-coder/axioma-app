@@ -1807,7 +1807,7 @@ export default function EmpresaPage() {
 
       {/* MODAL CNPJ */}
       {resultadoCNPJ && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setResultadoCNPJ(null)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
             style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(167,139,250,0.4)" }}>
@@ -1836,7 +1836,7 @@ export default function EmpresaPage() {
 
       {/* MODAL SCORE DETALHE */}
       {modalScoreDetalhe && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setModalScoreDetalhe(null)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
             style={{ background: "rgba(10,22,40,0.98)", border: `1px solid ${(modalScoreDetalhe === "health" ? healthScore : complianceScore).cor}40` }}>
@@ -1864,7 +1864,7 @@ export default function EmpresaPage() {
 
       {/* MODAL SHARE */}
       {shareModalAberto && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
           style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setShareModalAberto(false)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
             style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}>
@@ -1963,7 +1963,7 @@ function FieldLabel({ label, children, sugerido, sugeridoTexto, erro }: {
 
 function ModalGenerico({ titulo, fechar, children }: { titulo: string; fechar: () => void; children: any }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-20 pb-8 overflow-y-auto"
+    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
       style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={fechar}>
       <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
         style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
