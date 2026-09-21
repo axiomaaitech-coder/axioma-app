@@ -4,11 +4,14 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend, LineChart, Line } from "recharts";
 import ModuloLayout from "../../../components/ModuloLayout";
-import { CanvasBox } from "../../../components/CanvasBox";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { corTema } from "../../../lib/cfoCore";
 import {
   montarPeriodo,
   carregarDRE,
@@ -197,6 +200,10 @@ export default function Relatorios() {
   const { t, idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
 
   const hoje = new Date();
   const [ano, setAno] = useState<number>(hoje.getFullYear());
@@ -211,7 +218,7 @@ export default function Relatorios() {
   const [evolucao, setEvolucao] = useState<PontoEvolucao[]>([]);
   const [distribuicao, setDistribuicao] = useState<CategoriaCusto[]>([]);
   const [kpis, setKpis] = useState<KPI[]>([]);
-  const [scoreCFO, setScoreCFO] = useState<{ score: number; nivel: string; cor: string }>({ score: 0, nivel: "—", cor: "#5a7a9a" });
+  const [scoreCFO, setScoreCFO] = useState<{ score: number; nivel: string; cor: string }>({ score: 0, nivel: "—", cor: ct("#5a7a9a") });
   const [insights, setInsights] = useState<Insight[]>([]);
 
   // Share modal
@@ -451,17 +458,21 @@ export default function Relatorios() {
   const semDados = !carregando && dre && dre.receita_bruta === 0 && dre.custos_variaveis === 0 && dre.custos_fixos === 0;
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout
       titulo={`📊 ${t.relatorios?.titulo || "Relatórios"}`}
       subtitulo={t.relatorios?.subtitulo || "Análise gerencial profissional nível CFO"}
       onExportarPDF={exportarPDF}
       exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      botaoExtra={<ThemeToggle />}
     >
       {/* Toast */}
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)",
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)",
             color: "#020810", fontWeight: 600, fontSize: 13,
           }}>
           {toast.msg}
@@ -473,21 +484,21 @@ export default function Relatorios() {
         {/* Seletor de período + Share */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           <div className="flex gap-2 items-center">
-            <label className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.periodo}:</label>
+            <label className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.periodo}:</label>
             <select value={mes} onChange={(e) => setMes(Number(e.target.value))}
               className="px-3 py-2 rounded-lg text-sm"
-              style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}>
-              {MESES.map((m, i) => <option key={i} value={i + 1} style={{ background: "#020810" }}>{m}</option>)}
+              style={{ background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)" }}>
+              {MESES.map((m, i) => <option key={i} value={i + 1} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{m}</option>)}
             </select>
             <select value={ano} onChange={(e) => setAno(Number(e.target.value))}
               className="px-3 py-2 rounded-lg text-sm"
-              style={{ background: "rgba(2,8,16,0.7)", color: "#c8d8f0", border: "1px solid rgba(106,176,255,0.2)" }}>
-              {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y} style={{ background: "#020810" }}>{y}</option>)}
+              style={{ background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", color: ct("#c8d8f0"), border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)" }}>
+              {[2024, 2025, 2026, 2027].map((y) => <option key={y} value={y} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{y}</option>)}
             </select>
           </div>
           <button onClick={() => setShareModalAberto(true)}
             className="px-4 py-2 rounded-lg text-sm font-semibold sm:ml-auto"
-            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
             📤 {tt.compartilhar}
           </button>
         </div>
@@ -504,9 +515,9 @@ export default function Relatorios() {
             <button key={a.key} onClick={() => setAba(a.key as any)}
               className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
               style={{
-                background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
-                color: aba === a.key ? "#fff" : "#6ab0ff",
-                border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+                background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
+                color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : "#6ab0ff"),
+                border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
               }}>
               {a.label}
             </button>
@@ -516,21 +527,21 @@ export default function Relatorios() {
 
       {/* Carregando */}
       {carregando && (
-        <CanvasBox cor="#6ab0ff">
+        <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
           <div className="py-12 text-center">
             <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: "#6ab0ff" }}>Carregando dados...</p>
+            <p className="text-sm" style={{ color: ct("#6ab0ff") }}>Carregando dados...</p>
           </div>
         </CanvasBox>
       )}
 
       {/* Sem dados */}
       {!carregando && semDados && (
-        <CanvasBox cor="#fbbf24">
+        <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
           <div className="py-8 text-center">
             <p className="text-3xl mb-3">📭</p>
-            <p className="text-sm font-semibold mb-2" style={{ color: "#fbbf24" }}>{tt.semDadosPeriodo}</p>
-            <p className="text-xs" style={{ color: "#5a7a9a" }}>Receitas, Custos Fixos, Custos Variáveis ou Importar Documentos</p>
+            <p className="text-sm font-semibold mb-2" style={{ color: ct("#fbbf24") }}>{tt.semDadosPeriodo}</p>
+            <p className="text-xs" style={{ color: ct("#5a7a9a") }}>Receitas, Custos Fixos, Custos Variáveis ou Importar Documentos</p>
           </div>
         </CanvasBox>
       )}
@@ -539,27 +550,27 @@ export default function Relatorios() {
       {!carregando && !semDados && aba === "executivo" && dre && (
         <div className="space-y-4">
           {/* SCORE CFO */}
-          <CanvasBox cor={scoreCFO.cor}>
+          <CanvasBox {...cartaoTema} cor={ct(scoreCFO.cor)}>
             <div className="flex flex-col md:flex-row items-center gap-6">
               <div className="text-center md:text-left flex-1">
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>🎯 {tt.scoreCFO}</p>
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>🎯 {tt.scoreCFO}</p>
                 <div className="flex items-baseline gap-2 justify-center md:justify-start">
-                  <span className="text-5xl md:text-6xl font-black" style={{ color: scoreCFO.cor }}><AnimatedNumber value={String(scoreCFO.score)} /></span>
-                  <span className="text-xl" style={{ color: "#5a7a9a" }}>/ 100</span>
+                  <span className="text-5xl md:text-6xl font-black" style={{ color: ct(scoreCFO.cor) }}><AnimatedNumber value={String(scoreCFO.score)} /></span>
+                  <span className="text-xl" style={{ color: ct("#5a7a9a") }}>/ 100</span>
                 </div>
-                <p className="text-sm font-bold mt-1" style={{ color: scoreCFO.cor }}>{scoreCFO.nivel}</p>
+                <p className="text-sm font-bold mt-1" style={{ color: ct(scoreCFO.cor) }}>{scoreCFO.nivel}</p>
               </div>
 
               {/* Mini KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-[2]">
                 {[
-                  { label: tt.receitaBruta, valor: formatBRL(dre.receita_bruta), cor: "#34d399" },
-                  { label: tt.lucroLiquido, valor: formatBRL(dre.lucro_liquido), cor: dre.lucro_liquido >= 0 ? "#6ab0ff" : "#f87171" },
-                  { label: "Margem Líquida", valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: "#a78bfa" },
-                  { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: "#fbbf24" },
+                  { label: tt.receitaBruta, valor: formatBRL(dre.receita_bruta), cor: ct("#34d399") },
+                  { label: tt.lucroLiquido, valor: formatBRL(dre.lucro_liquido), cor: dre.lucro_liquido >= 0 ? ct("#6ab0ff") : ct("#f87171") },
+                  { label: "Margem Líquida", valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: ct("#a78bfa") },
+                  { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#fbbf24") },
                 ].map((c, i) => (
-                  <div key={i} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.6)", border: `1px solid ${c.cor}30` }}>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</p>
+                  <div key={i} className="rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)", border: `1px solid ${c.cor}30` }}>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                     <p className="text-base font-bold mt-1 truncate" style={{ color: c.cor }}>{c.valor}</p>
                   </div>
                 ))}
@@ -569,11 +580,11 @@ export default function Relatorios() {
 
           {/* INSIGHTS */}
           {insights.length > 0 && (
-            <CanvasBox cor="#a78bfa">
-              <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>💡 {tt.insightsAutomaticos}</p>
+            <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
+              <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>💡 {tt.insightsAutomaticos}</p>
               <div className="space-y-2">
                 {insights.map((ins, i) => {
-                  const cor = ins.tipo === "positivo" ? "#34d399" : ins.tipo === "alerta" ? "#f87171" : ins.tipo === "atencao" ? "#fbbf24" : "#6ab0ff";
+                  const cor = ins.tipo === "positivo" ? ct("#34d399") : ins.tipo === "alerta" ? ct("#f87171") : ins.tipo === "atencao" ? ct("#fbbf24") : ct("#6ab0ff");
                   const icon = ins.tipo === "positivo" ? "✅" : ins.tipo === "alerta" ? "🚨" : ins.tipo === "atencao" ? "⚠️" : "ℹ️";
                   return (
                     <div key={i} className="rounded-xl p-3 flex items-start gap-3"
@@ -581,7 +592,7 @@ export default function Relatorios() {
                       <span className="text-lg flex-shrink-0">{icon}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold" style={{ color: cor }}>{ins.titulo}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "#c8d8f0" }}>{ins.texto}</p>
+                        <p className="text-xs mt-0.5" style={{ color: ct("#c8d8f0") }}>{ins.texto}</p>
                       </div>
                       {ins.metrica && (
                         <span className="text-sm font-bold flex-shrink-0" style={{ color: cor }}>{ins.metrica}</span>
@@ -595,21 +606,21 @@ export default function Relatorios() {
 
           {/* GRÁFICO MINI EVOLUÇÃO 6M */}
           {evolucao.length > 0 && (
-            <CanvasBox cor="#6ab0ff">
-              <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>📈 Tendência Últimos 6 Meses</p>
+            <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
+              <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>📈 Tendência Últimos 6 Meses</p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={evolucao.slice(-6)}>
                   <defs>
                     <linearGradient id="gExec1" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#34d399" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                      <stop offset="5%" stopColor={ct("#34d399")} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={ct("#34d399")} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
-                  <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                  <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
+                  <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
-                  <Area type="monotone" dataKey="lucro" stroke="#34d399" fill="url(#gExec1)" strokeWidth={2} name={tt.lucro} />
+                  <Area type="monotone" dataKey="lucro" stroke={ct("#34d399")} fill="url(#gExec1)" strokeWidth={2} name={tt.lucro} />
                 </AreaChart>
               </ResponsiveContainer>
             </CanvasBox>
@@ -619,41 +630,41 @@ export default function Relatorios() {
 
       {/* ABA: DRE ============================================================ */}
       {!carregando && !semDados && aba === "dre" && dre && (
-        <CanvasBox cor="#6ab0ff">
+        <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
           <div className="mb-4">
-            <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.abaDre}</p>
-            <h3 className="font-bold text-base" style={{ color: "#c8d8f0" }}>
+            <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.abaDre}</p>
+            <h3 className="font-bold text-base" style={{ color: ct("#c8d8f0") }}>
               {MESES[mes - 1]} / {ano}
             </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr style={{ borderBottom: "1px solid rgba(106,176,255,0.2)" }}>
-                  <th className="text-left py-2 px-2 text-[10px] uppercase" style={{ color: "#5a7a9a" }}></th>
-                  <th className="text-right py-2 px-2 text-[10px] uppercase" style={{ color: "#5a7a9a" }}>Valor</th>
-                  <th className="text-right py-2 px-2 text-[10px] uppercase hidden sm:table-cell" style={{ color: "#5a7a9a" }}>{tt.pctReceita}</th>
+                <tr style={{ borderBottom: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)" }}>
+                  <th className="text-left py-2 px-2 text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}></th>
+                  <th className="text-right py-2 px-2 text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>Valor</th>
+                  <th className="text-right py-2 px-2 text-[10px] uppercase hidden sm:table-cell" style={{ color: ct("#5a7a9a") }}>{tt.pctReceita}</th>
                 </tr>
               </thead>
               <tbody>
                 {dreLinhas.map((item, i) => (
                   <tr key={i} style={{
-                    background: item.tipo === "subtotal" || item.tipo === "lucro" ? "rgba(106,176,255,0.05)" : "transparent",
+                    background: item.tipo === "subtotal" || item.tipo === "lucro" ? (temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.05)") : "transparent",
                   }}>
                     <td className="py-2.5 px-2" style={{
-                      color: item.tipo === "subtotal" || item.tipo === "lucro" ? "#c8d8f0" : "#a8b8d0",
+                      color: item.tipo === "subtotal" || item.tipo === "lucro" ? ct("#c8d8f0") : (temaClaro ? "#374151" : "#a8b8d0"),
                       fontWeight: item.tipo === "subtotal" || item.tipo === "lucro" ? 700 : 400,
                       paddingLeft: item.tipo === "custo" || item.tipo === "deducao" ? "20px" : "8px",
                     }}>
                       {item.label}
                     </td>
                     <td className="py-2.5 px-2 text-right font-bold" style={{
-                      color: item.valor >= 0 ? "#34d399" : "#f87171",
+                      color: item.valor >= 0 ? ct("#34d399") : ct("#f87171"),
                       fontSize: item.tipo === "lucro" ? "16px" : "14px",
                     }}>
                       {formatBRL(item.valor)}
                     </td>
-                    <td className="py-2.5 px-2 text-right hidden sm:table-cell" style={{ color: "#5a7a9a" }}>
+                    <td className="py-2.5 px-2 text-right hidden sm:table-cell" style={{ color: ct("#5a7a9a") }}>
                       {item.pct.toFixed(1)}%
                     </td>
                   </tr>
@@ -663,9 +674,9 @@ export default function Relatorios() {
           </div>
 
           {/* Comentário automático */}
-          <div className="mt-4 rounded-xl p-3" style={{ background: "rgba(106,176,255,0.05)", border: "1px solid rgba(106,176,255,0.15)" }}>
-            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>💡 Análise</p>
-            <p className="text-xs" style={{ color: "#c8d8f0" }}>
+          <div className="mt-4 rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(106,176,255,0.05)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)" }}>
+            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>💡 Análise</p>
+            <p className="text-xs" style={{ color: ct("#c8d8f0") }}>
               {dre.lucro_liquido >= 0
                 ? `Você fechou o mês com lucro líquido de ${formatBRL(dre.lucro_liquido)} (${dre.pct_lucro_liquido.toFixed(1)}% sobre receita).`
                 : `Atenção: prejuízo líquido de ${formatBRL(Math.abs(dre.lucro_liquido))} no período. Revise custos e precificação.`}
@@ -680,47 +691,47 @@ export default function Relatorios() {
       {/* ABA: EVOLUÇÃO ======================================================= */}
       {!carregando && !semDados && aba === "evolucao" && evolucao.length > 0 && (
         <div className="space-y-4">
-          <CanvasBox cor="#6ab0ff">
-            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.abaEvolucao}</p>
-            <h3 className="font-bold mb-4" style={{ color: "#c8d8f0" }}>Receita × Custos × Lucro</h3>
+          <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
+            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.abaEvolucao}</p>
+            <h3 className="font-bold mb-4" style={{ color: ct("#c8d8f0") }}>Receita × Custos × Lucro</h3>
             <ResponsiveContainer width="100%" height={320}>
               <AreaChart data={evolucao}>
                 <defs>
                   <linearGradient id="gEvR" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6ab0ff" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#6ab0ff" stopOpacity={0} />
+                    <stop offset="5%" stopColor={ct("#6ab0ff")} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={ct("#6ab0ff")} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gEvL" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#34d399" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
+                    <stop offset="5%" stopColor={ct("#34d399")} stopOpacity={0.4} />
+                    <stop offset="95%" stopColor={ct("#34d399")} stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gEvC" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f87171" stopOpacity={0} />
+                    <stop offset="5%" stopColor={ct("#f87171")} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={ct("#f87171")} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
-                <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
+                <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="receita" stroke="#6ab0ff" fill="url(#gEvR)" strokeWidth={2} name={tt.receita} />
-                <Area type="monotone" dataKey="custos" stroke="#f87171" fill="url(#gEvC)" strokeWidth={2} name={tt.custos} />
-                <Area type="monotone" dataKey="lucro" stroke="#34d399" fill="url(#gEvL)" strokeWidth={2} name={tt.lucro} />
+                <Area type="monotone" dataKey="receita" stroke={ct("#6ab0ff")} fill="url(#gEvR)" strokeWidth={2} name={tt.receita} />
+                <Area type="monotone" dataKey="custos" stroke={ct("#f87171")} fill="url(#gEvC)" strokeWidth={2} name={tt.custos} />
+                <Area type="monotone" dataKey="lucro" stroke={ct("#34d399")} fill="url(#gEvL)" strokeWidth={2} name={tt.lucro} />
               </AreaChart>
             </ResponsiveContainer>
           </CanvasBox>
 
           {/* Margem */}
-          <CanvasBox cor="#a78bfa">
-            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.margem} Líquida (%)</p>
+          <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
+            <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.margem} Líquida (%)</p>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={evolucao}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
-                <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} unit="%" />
+                <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
+                <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} unit="%" />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => `${v}%`} />
-                <Line type="monotone" dataKey="margem" stroke="#a78bfa" strokeWidth={2.5} dot={{ fill: "#a78bfa", r: 4 }} />
+                <Line type="monotone" dataKey="margem" stroke={ct("#a78bfa")} strokeWidth={2.5} dot={{ fill: ct("#a78bfa"), r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </CanvasBox>
@@ -732,21 +743,21 @@ export default function Relatorios() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {distribuicao.length === 0 ? (
             <div className="md:col-span-2">
-              <CanvasBox cor="#fbbf24">
+              <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
                 <div className="py-8 text-center">
-                  <p style={{ color: "#5a7a9a" }}>Sem custos cadastrados neste período</p>
+                  <p style={{ color: ct("#5a7a9a") }}>Sem custos cadastrados neste período</p>
                 </div>
               </CanvasBox>
             </div>
           ) : (
             <>
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>Distribuição por Categoria</p>
+              <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>Distribuição por Categoria</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
                     <Pie data={distribuicao} cx="50%" cy="50%" outerRadius={100} dataKey="value"
                       label={(entry: any) => `${entry.pct}%`} labelLine={false}>
-                      {distribuicao.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      {distribuicao.map((entry, i) => <Cell key={i} fill={ct(entry.color)} />)}
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                   </PieChart>
@@ -754,23 +765,23 @@ export default function Relatorios() {
                 <div className="grid grid-cols-2 gap-1 mt-2 text-[11px]">
                   {distribuicao.map((d, i) => (
                     <div key={i} className="flex items-center gap-1.5 truncate">
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }}></span>
-                      <span className="truncate" style={{ color: "#c8d8f0" }}>{d.name}</span>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: ct(d.color) }}></span>
+                      <span className="truncate" style={{ color: ct("#c8d8f0") }}>{d.name}</span>
                     </div>
                   ))}
                 </div>
               </CanvasBox>
 
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>Ranking de Categorias</p>
+              <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>Ranking de Categorias</p>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={distribuicao} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
-                    <XAxis type="number" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                    <YAxis dataKey="name" type="category" stroke="#5a7a9a" tick={{ fontSize: 10 }} width={100} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                    <XAxis type="number" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="name" type="category" stroke={ct("#5a7a9a")} tick={{ fontSize: 10 }} width={100} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
                     <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                      {distribuicao.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      {distribuicao.map((entry, i) => <Cell key={i} fill={ct(entry.color)} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -784,18 +795,18 @@ export default function Relatorios() {
       {!carregando && !semDados && aba === "kpis" && (
         <div className="space-y-4">
           {/* Score destacado */}
-          <CanvasBox cor={scoreCFO.cor}>
+          <CanvasBox {...cartaoTema} cor={ct(scoreCFO.cor)}>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🎯 {tt.scoreCFO}</p>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>🎯 {tt.scoreCFO}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-black" style={{ color: scoreCFO.cor }}><AnimatedNumber value={String(scoreCFO.score)} /></span>
-                  <span style={{ color: "#5a7a9a" }}>/ 100</span>
-                  <span className="text-sm font-bold ml-2" style={{ color: scoreCFO.cor }}>{scoreCFO.nivel}</span>
+                  <span className="text-4xl font-black" style={{ color: ct(scoreCFO.cor) }}><AnimatedNumber value={String(scoreCFO.score)} /></span>
+                  <span style={{ color: ct("#5a7a9a") }}>/ 100</span>
+                  <span className="text-sm font-bold ml-2" style={{ color: ct(scoreCFO.cor) }}>{scoreCFO.nivel}</span>
                 </div>
               </div>
-              <div className="text-xs text-right" style={{ color: "#5a7a9a" }}>
-                <p>Atingidos: <strong style={{ color: "#34d399" }}>{kpis.filter((k) => k.atingido).length}</strong> de {kpis.length}</p>
+              <div className="text-xs text-right" style={{ color: ct("#5a7a9a") }}>
+                <p>Atingidos: <strong style={{ color: ct("#34d399") }}>{kpis.filter((k) => k.atingido).length}</strong> de {kpis.length}</p>
               </div>
             </div>
           </CanvasBox>
@@ -803,21 +814,21 @@ export default function Relatorios() {
           {/* Grid KPIs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {kpis.map((k, i) => (
-              <CanvasBox key={i} cor={k.atingido ? "#34d399" : "#f87171"}>
+              <CanvasBox {...cartaoTema} key={i} cor={k.atingido ? ct("#34d399") : ct("#f87171")}>
                 <div className="flex items-start justify-between mb-2">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{k.nome}</p>
+                  <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{k.nome}</p>
                   <span className="text-[10px] px-1.5 py-0.5 rounded" style={{
                     background: k.atingido ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)",
-                    color: k.atingido ? "#34d399" : "#f87171",
+                    color: k.atingido ? ct("#34d399") : ct("#f87171"),
                   }}>
                     {k.atingido ? "✓" : "✗"}
                   </span>
                 </div>
-                <p className="text-2xl font-black mb-1" style={{ color: k.atingido ? "#34d399" : "#f87171" }}><AnimatedNumber value={String(k.valor)} /></p>
-                <p className="text-[10px]" style={{ color: "#5a7a9a" }}>
+                <p className="text-2xl font-black mb-1" style={{ color: k.atingido ? ct("#34d399") : ct("#f87171") }}><AnimatedNumber value={String(k.valor)} /></p>
+                <p className="text-[10px]" style={{ color: ct("#5a7a9a") }}>
                   {tt.metaProp}: <strong>{k.meta}</strong>
                 </p>
-                <p className="text-[10px] mt-2" style={{ color: "#a8b8d0" }}>{k.descricao}</p>
+                <p className="text-[10px] mt-2" style={{ color: (temaClaro ? "#374151" : "#a8b8d0") }}>{k.descricao}</p>
               </CanvasBox>
             ))}
           </div>
@@ -833,65 +844,65 @@ export default function Relatorios() {
         >
           <div
             className="w-full max-w-lg rounded-2xl p-5"
-            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>📤 {tt.centroCompart}</p>
-                <p className="text-sm font-bold mt-0.5" style={{ color: "#c8d8f0" }}>Relatório CFO {MESES[mes - 1]}/{ano}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>📤 {tt.centroCompart}</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: ct("#c8d8f0") }}>Relatório CFO {MESES[mes - 1]}/{ano}</p>
               </div>
-              <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+              <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: ct("#5a7a9a") }}>✕</button>
             </div>
 
             {/* Mini-preview */}
             {dre && (
-              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
-                <p style={{ color: "#c8d8f0" }}>
-                  💰 Receita: <strong style={{ color: "#34d399" }}>{formatBRL(dre.receita_bruta)}</strong> •
-                  ✅ Lucro: <strong style={{ color: dre.lucro_liquido >= 0 ? "#6ab0ff" : "#f87171" }}>{formatBRL(dre.lucro_liquido)}</strong>
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)" }}>
+                <p style={{ color: ct("#c8d8f0") }}>
+                  💰 Receita: <strong style={{ color: ct("#34d399") }}>{formatBRL(dre.receita_bruta)}</strong> •
+                  ✅ Lucro: <strong style={{ color: dre.lucro_liquido >= 0 ? ct("#6ab0ff") : ct("#f87171") }}>{formatBRL(dre.lucro_liquido)}</strong>
                 </p>
-                <p style={{ color: "#c8d8f0" }}>
-                  🎯 Score CFO: <strong style={{ color: scoreCFO.cor }}>{scoreCFO.score}/100 ({scoreCFO.nivel})</strong>
+                <p style={{ color: ct("#c8d8f0") }}>
+                  🎯 Score CFO: <strong style={{ color: ct(scoreCFO.cor) }}>{scoreCFO.score}/100 ({scoreCFO.nivel})</strong>
                 </p>
               </div>
             )}
 
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.compartilharVia}</p>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: ct("#5a7a9a") }}>{tt.compartilharVia}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
               <button onClick={shareWhatsApp}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}>
+                style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: ct("#25d366") }}>
                 <span className="text-xl">📱</span>WhatsApp
               </button>
               <button onClick={shareTelegram}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: "#229ed9" }}>
+                style={{ background: "rgba(34,158,217,0.12)", border: "1px solid rgba(34,158,217,0.35)", color: ct("#229ed9") }}>
                 <span className="text-xl">✈️</span>Telegram
               </button>
               <button onClick={shareGmail}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: "#ea4335" }}>
+                style={{ background: "rgba(234,67,53,0.12)", border: "1px solid rgba(234,67,53,0.35)", color: ct("#ea4335") }}>
                 <span className="text-xl">📨</span>Gmail
               </button>
               <button onClick={shareOutlook}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: "#0078d4" }}>
+                style={{ background: "rgba(0,120,212,0.12)", border: "1px solid rgba(0,120,212,0.35)", color: ct("#0078d4") }}>
                 <span className="text-xl">📩</span>Outlook
               </button>
               <button onClick={shareCopiarTexto}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ct("#a78bfa") }}>
                 <span className="text-xl">📋</span>Copiar Resumo
               </button>
               <button onClick={shareCopiarDetalhado}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ct("#a78bfa") }}>
                 <span className="text-xl">📋</span>Copiar Detalhado
               </button>
               <button onClick={sharePdf} disabled={exportando}
                 className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50 sm:col-span-3"
-                style={{ background: "rgba(255,90,107,0.12)", border: "1px solid rgba(255,90,107,0.35)", color: "#ff5a6b" }}>
+                style={{ background: "rgba(255,90,107,0.12)", border: "1px solid rgba(255,90,107,0.35)", color: ct("#ff5a6b") }}>
                 <span className="text-xl">{exportando ? "⏳" : "📄"}</span>
                 {exportando ? "Gerando..." : "Baixar PDF Profissional"}
               </button>
@@ -899,12 +910,13 @@ export default function Relatorios() {
 
             <button onClick={() => setShareModalAberto(false)}
               className="w-full py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>
+              style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", color: ct("#6ab0ff") }}>
               {tt.fechar}
             </button>
           </div>
         </div>
       )}
     </ModuloLayout>
+    </div>
   );
 }
