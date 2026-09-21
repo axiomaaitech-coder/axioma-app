@@ -5,7 +5,9 @@ import * as Sentry from '@sentry/nextjs'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterEmpresaAtiva } from '../../../lib/empresaHelpers'
 import ModuloLayout from '../../../components/ModuloLayout'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 import { CanvasBox } from '../../../components/CanvasBox'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { LetreiroExecutivo, type ItemLetreiro } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento } from '../../../components/CentroCompartilhamento'
 import SeletorPeriodo from '../../../components/SeletorPeriodo'
@@ -15,7 +17,7 @@ import {
   ArrowRight, X, FlaskConical, Landmark, Share2,
 } from 'lucide-react'
 import {
-  fBRL, fBRL2, fPct, normalizarTexto, resolverPeriodo, FONTE_EXEC,
+  fBRL, fBRL2, fPct, normalizarTexto, resolverPeriodo, FONTE_EXEC, corTema,
   type Periodo, type PeriodoPreset,
 } from '../../../lib/cfoCore'
 import { cfoT } from '../../../lib/cfoTextos'
@@ -206,6 +208,10 @@ export default function OpenFinancePage() {
   const t = textos[lang] || textos.pt
   const cx = cfoT(lang)
   const fmt = (v: number) => fBRL(v)
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const ct = (hex: string) => corTema(hex, temaClaro)
+  const cartaoTema = temaClaro ? { fundo: ct('#f6f7c4'), premium3d: true } : {}
 
   const [toast, setToast] = useState<{ msg: string; tipo: 'erro' | 'ok' } | null>(null)
   function showToast(msg: string, tipo: 'erro' | 'ok' = 'erro') {
@@ -463,11 +469,11 @@ export default function OpenFinancePage() {
   const temBanco = conexoes.length > 0
   const temTransacoes = transacoesPeriodo.length > 0
   const divergenciaRelevante = temBanco && Math.abs(kpis.divergencia) >= 1
-  const corDivergencia = !temBanco ? AZUL : divergenciaRelevante ? VERMELHO : VERDE
-  const corPctConciliado = kpis.percentualConciliado === null ? AZUL
-    : kpis.percentualConciliado >= 90 ? VERDE : kpis.percentualConciliado >= 60 ? AMBAR : VERMELHO
-  const corNaoExplicado = !temTransacoes ? AZUL : kpis.dinheiroNaoExplicado > 0 ? AMBAR : VERDE
-  const corSaldoBanco = temBanco ? JADE : AZUL
+  const corDivergencia = !temBanco ? ct(AZUL) : divergenciaRelevante ? ct(VERMELHO) : ct(VERDE)
+  const corPctConciliado = kpis.percentualConciliado === null ? ct(AZUL)
+    : kpis.percentualConciliado >= 90 ? ct(VERDE) : kpis.percentualConciliado >= 60 ? ct(AMBAR) : ct(VERMELHO)
+  const corNaoExplicado = !temTransacoes ? ct(AZUL) : kpis.dinheiroNaoExplicado > 0 ? ct(AMBAR) : ct(VERDE)
+  const corSaldoBanco = temBanco ? ct(JADE) : ct(AZUL)
 
   const NAO_DISPONIVEL = '—'
   const fmtOuTraco = (v: number, disponivel: boolean) => disponivel ? fmt(v) : NAO_DISPONIVEL
@@ -485,35 +491,35 @@ export default function OpenFinancePage() {
     if (divergenciaRelevante) {
       itens.push({
         texto: `${t.kpiDivergencia}: ${fmt(kpis.divergencia)} — ${resultado.pendentes.length + resultado.atipicas.length} ${t.divergenciaConvite}`,
-        cor: VERMELHO, destaque: true, onClick: () => irParaAba('pendente'),
+        cor: ct(VERMELHO), destaque: true, onClick: () => irParaAba('pendente'),
       })
     }
     if (resultado.atipicas.length > 0) {
       itens.push({
         texto: `${resultado.atipicas.length} ${t.letreiroAtipicos}`,
-        cor: VERMELHO, destaque: true, onClick: () => irParaAba('atipico'),
+        cor: ct(VERMELHO), destaque: true, onClick: () => irParaAba('atipico'),
       })
     }
     if (kpis.dinheiroNaoExplicado > 0) {
       itens.push({
         texto: `${t.kpiNaoExplicado}: ${fmt(kpis.dinheiroNaoExplicado)}`,
-        cor: AMBAR, destaque: true, onClick: () => irParaAba('pendente'),
+        cor: ct(AMBAR), destaque: true, onClick: () => irParaAba('pendente'),
       })
     }
     if (resultado.pendentes.length > 0) {
       itens.push({
         texto: `${resultado.pendentes.length} ${t.abaPendente.toLowerCase()}`,
-        cor: AZUL, destaque: true, onClick: () => irParaAba('pendente'),
+        cor: ct(AZUL), destaque: true, onClick: () => irParaAba('pendente'),
       })
     }
     if (itens.length === 0) {
-      itens.push({ texto: t.divergenciaOk, cor: VERDE, destaque: true })
+      itens.push({ texto: t.divergenciaOk, cor: ct(VERDE), destaque: true })
     }
     return itens.slice(0, 4)
   }, [temBanco, divergenciaRelevante, resultado, kpis, lang])
 
-  const corLetreiro = itensLetreiro.some((i) => i.cor === VERMELHO) ? VERMELHO
-    : itensLetreiro.some((i) => i.cor === AMBAR || i.cor === AZUL) ? AZUL : VERDE
+  const corLetreiro = itensLetreiro.some((i) => i.cor === ct(VERMELHO)) ? ct(VERMELHO)
+    : itensLetreiro.some((i) => i.cor === ct(AMBAR) || i.cor === ct(AZUL)) ? ct(AZUL) : ct(VERDE)
 
   // ---- Bancos: busca + prioridade + separação sandbox ----
   const bancosBase = conectores.length > 0 ? conectores : BANCOS_FALLBACK
@@ -581,13 +587,17 @@ export default function OpenFinancePage() {
     motivo === 'duplicidade' ? t.motivoDuplicidade : motivo === 'fora_padrao' ? t.motivoForaPadrao : motivo === 'debito_novo' ? t.motivoDebitoNovo : ''
 
   const listaAtiva = abaAtiva === 'conciliado' ? resultado.conciliadas : abaAtiva === 'pendente' ? resultado.pendentes : resultado.atipicas
-  const corAba = (aba: BaldeConciliacao) => aba === 'conciliado' ? VERDE : aba === 'pendente' ? AZUL : VERMELHO
+  const corAba = (aba: BaldeConciliacao) => aba === 'conciliado' ? ct(VERDE) : aba === 'pendente' ? ct(AZUL) : ct(VERMELHO)
 
   return (
-    <ModuloLayout titulo={t.titulo} subtitulo={t.sub} onExportarPDF={exportarPDF} exportando={exportando}>
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
+    <ModuloLayout titulo={t.titulo} subtitulo={t.sub} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: '#020810', fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === 'erro' ? 'rgba(248,113,113,0.95)' : 'rgba(52,211,153,0.95)', color: ct('#020810'), fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
@@ -598,7 +608,7 @@ export default function OpenFinancePage() {
         <div className="flex justify-end">
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} onClick={() => setShareAberto(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
-            style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.4)', color: '#c4b5fd' }}>
+            style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'rgba(139,92,246,0.15)', border: temaClaro ? 'none' : '1px solid rgba(139,92,246,0.4)', color: temaClaro ? '#fff' : ct('#c4b5fd') }}>
             <Share2 size={16} /> {cx.compartilhar}
           </motion.button>
         </div>
@@ -608,29 +618,29 @@ export default function OpenFinancePage() {
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="flex items-center gap-3 px-4 py-3 rounded-xl"
               style={{ background: tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.15)' : 'rgba(255,90,107,0.15)', border: `1px solid ${tipoMsg === 'sucesso' ? 'rgba(5,150,105,0.4)' : 'rgba(255,90,107,0.4)'}` }}>
-              {tipoMsg === 'sucesso' ? <CheckCircle size={18} color={VERDE} /> : <AlertCircle size={18} color={VERMELHO} />}
-              <p className="text-sm font-semibold" style={{ color: tipoMsg === 'sucesso' ? VERDE : VERMELHO }}>{mensagem}</p>
+              {tipoMsg === 'sucesso' ? <CheckCircle size={18} color={ct(VERDE)} /> : <AlertCircle size={18} color={ct(VERMELHO)} />}
+              <p className="text-sm font-semibold" style={{ color: tipoMsg === 'sucesso' ? ct(VERDE) : ct(VERMELHO) }}>{mensagem}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* ---- KPIs executivos: Saldo do Banco vs Sistema vs Divergência ---- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <CanvasBox cor={corSaldoBanco}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiSaldoBanco}</p>
+          <CanvasBox {...cartaoTema} cor={corSaldoBanco}>
+            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoBanco}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corSaldoBanco }}>{fmtOuTraco(saldoBanco, temBanco)}</p>
-            {!temBanco && <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semComparacaoBanco}</p>}
+            {!temBanco && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>}
           </CanvasBox>
-          <CanvasBox cor={BRONZE}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiSaldoSistema}</p>
-            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: BRONZE }}>{fmt(saldoSistema)}</p>
-            <p className="text-[10px] leading-snug" style={{ color: '#3a5a8a' }}>{t.saldoSistemaExplicacao}</p>
+          <CanvasBox {...cartaoTema} cor={ct(BRONZE)}>
+            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiSaldoSistema}</p>
+            <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: ct(BRONZE) }}>{fmt(saldoSistema)}</p>
+            <p className="text-[10px] leading-snug" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.saldoSistemaExplicacao}</p>
           </CanvasBox>
-          <CanvasBox cor={corDivergencia}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiDivergencia}</p>
+          <CanvasBox {...cartaoTema} cor={corDivergencia}>
+            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiDivergencia}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corDivergencia }}>{fmtOuTraco(kpis.divergencia, temBanco)}</p>
             {!temBanco ? (
-              <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semComparacaoBanco}</p>
+              <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semComparacaoBanco}</p>
             ) : divergenciaRelevante ? (
               (resultado.pendentes.length + resultado.atipicas.length) > 0 && (
                 <button onClick={() => irParaAba('pendente')} className="text-[11px] font-semibold underline text-left" style={{ color: corDivergencia }}>
@@ -638,37 +648,37 @@ export default function OpenFinancePage() {
                 </button>
               )
             ) : (
-              <p className="text-[11px] font-semibold" style={{ color: VERDE }}>{t.divergenciaOk}</p>
+              <p className="text-[11px] font-semibold" style={{ color: ct(VERDE) }}>{t.divergenciaOk}</p>
             )}
           </CanvasBox>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <CanvasBox cor={corNaoExplicado}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiNaoExplicado}</p>
+          <CanvasBox {...cartaoTema} cor={corNaoExplicado}>
+            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiNaoExplicado}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corNaoExplicado }}>{fmtOuTraco(kpis.dinheiroNaoExplicado, temTransacoes)}</p>
-            {!temTransacoes && <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semTransacaoImportada}</p>}
+            {!temTransacoes && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
           </CanvasBox>
-          <CanvasBox cor={corPctConciliado}>
-            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: '#5a7a9a' }}>{t.kpiPctConciliado}</p>
+          <CanvasBox {...cartaoTema} cor={corPctConciliado}>
+            <p className="text-[10px] font-semibold tracking-wider uppercase mb-2" style={{ color: ct('#5a7a9a') }}>{t.kpiPctConciliado}</p>
             <p className="text-lg md:text-2xl font-black mb-1" style={{ ...FONTE_EXEC, color: corPctConciliado }}>{fPctOuTraco(kpis.percentualConciliado)}</p>
-            {kpis.percentualConciliado === null && <p className="text-[11px] font-semibold" style={{ color: AZUL }}>{t.semTransacaoImportada}</p>}
+            {kpis.percentualConciliado === null && <p className="text-[11px] font-semibold" style={{ color: ct(AZUL) }}>{t.semTransacaoImportada}</p>}
           </CanvasBox>
         </div>
 
         {/* ---- Período ---- */}
-        <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={AZUL} lang={lang} />
+        <SeletorPeriodo preset={presetPeriodo} onChangePreset={setPresetPeriodo} personalizado={personalizado} onChangePersonalizado={setPersonalizado} cor={ct(AZUL)} lang={lang} />
 
         {/* ---- Ação: sincronizar / conectar ---- */}
-        <CanvasBox cor={AZUL}>
+        <CanvasBox {...cartaoTema} cor={ct(AZUL)}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl" style={{ background: 'rgba(106,176,255,0.1)' }}>
-                <Building2 size={28} style={{ color: AZUL }} />
+                <Building2 size={28} style={{ color: ct(AZUL) }} />
               </div>
               <div>
-                <h3 className="font-black text-lg" style={{ color: '#c8d8f0' }}>{temBanco ? t.conectado : t.semConexao}</h3>
-                <p className="text-sm" style={{ color: '#3a6090' }}>{t.conecteSeu}</p>
+                <h3 className="font-black text-lg" style={{ color: ct('#c8d8f0') }}>{temBanco ? t.conectado : t.semConexao}</h3>
+                <p className="text-sm" style={{ color: (temaClaro ? '#374151' : '#3a6090') }}>{t.conecteSeu}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -676,7 +686,7 @@ export default function OpenFinancePage() {
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => sincronizar()} disabled={sincronizando}
                   className="px-4 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
-                  style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.4)', color: VERDE, opacity: sincronizando ? 0.7 : 1 }}>
+                  style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.4)', color: ct(VERDE), opacity: sincronizando ? 0.7 : 1 }}>
                   <RefreshCw size={16} className={sincronizando ? 'animate-spin' : ''} />
                   {sincronizando ? t.sincronizando : t.sincronizar}
                 </motion.button>
@@ -693,42 +703,42 @@ export default function OpenFinancePage() {
         </CanvasBox>
 
         {/* ---- Bancos: busca + prioridade + separação sandbox ---- */}
-        <CanvasBox cor="#a78bfa">
+        <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: '#a78bfa' }}>{t.bancos}</p>
-            <p className="text-xs" style={{ color: '#3a5a8a' }}>{t.cliqueBanco}</p>
+            <p className="text-xs font-bold tracking-widest uppercase" style={{ color: ct('#a78bfa') }}>{t.bancos}</p>
+            <p className="text-xs" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.cliqueBanco}</p>
           </div>
           <div className="relative mb-4">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#3a5a8a' }} />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }} />
             <input
               value={buscaBanco} onChange={(e) => setBuscaBanco(e.target.value)} placeholder={t.buscarBanco}
               className="w-full pl-10 pr-4 py-3 rounded-xl text-sm focus:outline-none"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(167,139,250,0.25)', color: '#e2ecf7' }}
+              style={{ background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.04)', border: temaClaro ? '1px solid rgba(46,204,155,0.25)' : '1px solid rgba(167,139,250,0.25)', color: ct('#e2ecf7') }}
             />
           </div>
 
           {bancosFiltrados.length === 0 ? (
-            <p className="text-sm text-center py-6" style={{ color: '#3a5a8a' }}>{t.semResultadoBusca}</p>
+            <p className="text-sm text-center py-6" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.semResultadoBusca}</p>
           ) : (
             <>
               {bancosReais.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-2">
                   {bancosReais.map((banco, i) => (
-                    <CartaoBanco key={`${banco.name}-${i}`} banco={banco} i={i} conectando={conectando} conectandoId={conectandoId} carregando={t.carregando} onClick={abrirWidget} />
+                    <CartaoBanco key={`${banco.name}-${i}`} banco={banco} i={i} conectando={conectando} conectandoId={conectandoId} carregando={t.carregando} onClick={abrirWidget} temaClaro={temaClaro} />
                   ))}
                 </div>
               )}
 
               {bancosSandbox.length > 0 && (
-                <div className="mt-5 pt-4" style={{ borderTop: '1px dashed rgba(167,139,250,0.25)' }}>
+                <div className="mt-5 pt-4" style={{ borderTop: temaClaro ? '1px dashed rgba(46,204,155,0.25)' : '1px dashed rgba(167,139,250,0.25)' }}>
                   <div className="flex items-center gap-2 mb-3">
-                    <FlaskConical size={14} style={{ color: '#94a3b8' }} />
-                    <p className="text-xs font-bold tracking-widest uppercase" style={{ color: '#94a3b8' }}>{t.ambienteTeste}</p>
-                    <span className="text-[11px]" style={{ color: '#5a7a9a' }}>— {t.ambienteTesteDesc}</span>
+                    <FlaskConical size={14} style={{ color: ct('#94a3b8') }} />
+                    <p className="text-xs font-bold tracking-widest uppercase" style={{ color: ct('#94a3b8') }}>{t.ambienteTeste}</p>
+                    <span className="text-[11px]" style={{ color: ct('#5a7a9a') }}>— {t.ambienteTesteDesc}</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 opacity-70">
                     {bancosSandbox.map((banco, i) => (
-                      <CartaoBanco key={`${banco.name}-sb-${i}`} banco={banco} i={i} conectando={conectando} conectandoId={conectandoId} carregando={t.carregando} onClick={abrirWidget} />
+                      <CartaoBanco key={`${banco.name}-sb-${i}`} banco={banco} i={i} conectando={conectando} conectandoId={conectandoId} carregando={t.carregando} onClick={abrirWidget} temaClaro={temaClaro} />
                     ))}
                   </div>
                 </div>
@@ -739,29 +749,29 @@ export default function OpenFinancePage() {
 
         {/* ---- Conexões ativas — lápis/lixeira ---- */}
         {temBanco && (
-          <CanvasBox cor={VERDE}>
-            <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: VERDE }}>{t.conexoesAtivas} ({conexoes.length})</p>
+          <CanvasBox {...cartaoTema} cor={ct(VERDE)}>
+            <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: ct(VERDE) }}>{t.conexoesAtivas} ({conexoes.length})</p>
             <div className="space-y-3">
               {conexoes.map((c, i) => (
                 <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
                   className="flex items-center justify-between gap-3 p-3 rounded-xl flex-wrap"
                   style={{ background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.15)' }}>
                   <div className="flex items-center gap-3 min-w-0">
-                    <Landmark size={20} style={{ color: VERDE }} />
+                    <Landmark size={20} style={{ color: ct(VERDE) }} />
                     <div className="min-w-0">
-                      <p className="font-bold text-sm truncate" style={{ color: '#c8d8f0' }}>{c.conector_nome || 'Banco'}</p>
-                      <p className="text-xs" style={{ color: '#3a6090' }}>{fmt(Number(c.saldo_atual) || 0)}</p>
+                      <p className="font-bold text-sm truncate" style={{ color: ct('#c8d8f0') }}>{c.conector_nome || 'Banco'}</p>
+                      <p className="text-xs" style={{ color: (temaClaro ? '#374151' : '#3a6090') }}>{fmt(Number(c.saldo_atual) || 0)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: VERDE, border: '1px solid rgba(52,211,153,0.3)' }}>{c.status}</span>
+                    <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(52,211,153,0.1)', color: ct(VERDE), border: '1px solid rgba(52,211,153,0.3)' }}>{c.status}</span>
                     {confirmandoRemocaoId === c.item_id ? (
                       <>
-                        <button onClick={() => desconectarBanco(c.item_id)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: VERMELHO, border: `1px solid ${VERMELHO}50` }}>{t.confirmarDesconectar}</button>
-                        <button onClick={() => setConfirmandoRemocaoId(null)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)', color: '#5a7a9a' }}>{t.cancelar}</button>
+                        <button onClick={() => desconectarBanco(c.item_id)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.2)', color: ct(VERMELHO), border: `1px solid ${ct(VERMELHO)}50` }}>{t.confirmarDesconectar}</button>
+                        <button onClick={() => setConfirmandoRemocaoId(null)} className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: temaClaro ? 'rgba(16,27,61,0.06)' : 'rgba(255,255,255,0.05)', color: ct('#5a7a9a') }}>{t.cancelar}</button>
                       </>
                     ) : (
-                      <button onClick={() => setConfirmandoRemocaoId(c.item_id)} title={t.desconectar} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: VERMELHO }}>
+                      <button onClick={() => setConfirmandoRemocaoId(c.item_id)} title={t.desconectar} className="p-2 rounded-lg" style={{ background: 'rgba(248,113,113,0.08)', color: ct(VERMELHO) }}>
                         <Trash2 size={15} />
                       </button>
                     )}
@@ -774,7 +784,7 @@ export default function OpenFinancePage() {
 
         {/* ---- Abas de conciliação ---- */}
         <div ref={abasRef} className="scroll-mt-20">
-          <CanvasBox cor={corAba(abaAtiva)}>
+          <CanvasBox {...cartaoTema} cor={corAba(abaAtiva)}>
             <div className="flex items-center gap-2 mb-4 overflow-x-auto">
               {(['pendente', 'conciliado', 'atipico'] as BaldeConciliacao[]).map((aba) => {
                 const cor = corAba(aba)
@@ -784,7 +794,7 @@ export default function OpenFinancePage() {
                 return (
                   <button key={aba} onClick={() => setAbaAtiva(aba)}
                     className="px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap flex-shrink-0"
-                    style={{ background: ativa ? `${cor}22` : 'transparent', border: `1px solid ${ativa ? cor : 'transparent'}`, color: ativa ? cor : '#5a7a9a' }}>
+                    style={{ background: ativa ? `${cor}22` : 'transparent', border: `1px solid ${ativa ? cor : 'transparent'}`, color: ativa ? cor : ct('#5a7a9a') }}>
                     {label} ({contagem})
                   </button>
                 )
@@ -793,18 +803,18 @@ export default function OpenFinancePage() {
 
             {carregando ? (
               <div className="flex items-center justify-center py-16">
-                <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: `${AZUL} transparent transparent transparent` }} />
+                <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: `${ct(AZUL)} transparent transparent transparent` }} />
               </div>
             ) : !temBanco ? (
               <div className="text-center py-10">
                 <p className="text-4xl mb-3">🏦</p>
-                <p className="text-sm font-semibold" style={{ color: '#3a5a8a' }}>{t.semConexao}</p>
-                <p className="text-xs mt-1" style={{ color: '#3a5a8a' }}>{t.conecteSeu}</p>
+                <p className="text-sm font-semibold" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.semConexao}</p>
+                <p className="text-xs mt-1" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>{t.conecteSeu}</p>
               </div>
             ) : listaAtiva.length === 0 ? (
               <div className="text-center py-10">
                 <p className="text-4xl mb-3">{abaAtiva === 'conciliado' ? '🔗' : abaAtiva === 'pendente' ? '📭' : '✅'}</p>
-                <p className="text-sm font-semibold" style={{ color: '#3a5a8a' }}>
+                <p className="text-sm font-semibold" style={{ color: (temaClaro ? '#374151' : '#3a5a8a') }}>
                   {abaAtiva === 'conciliado' ? t.semTransacoesConciliadas : abaAtiva === 'pendente' ? t.semTransacoesPendentes : t.semTransacoesAtipicas}
                 </p>
               </div>
@@ -817,7 +827,7 @@ export default function OpenFinancePage() {
                     categoriaEscolhida={categoriaEscolhida} setCategoriaEscolhida={setCategoriaEscolhida}
                     expandidoCandidatosId={expandidoCandidatosId} setExpandidoCandidatosId={setExpandidoCandidatosId}
                     onCriarLancamento={criarLancamento} onEscolherCandidato={escolherCandidato}
-                    motivoLabel={motivoLabel}
+                    motivoLabel={motivoLabel} temaClaro={temaClaro}
                   />
                 ))}
               </div>
@@ -835,16 +845,17 @@ export default function OpenFinancePage() {
         textoDetalhado={textoDetalhado}
         assunto={`${t.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor={JADE}
+        cor={ct(JADE)}
       />
     </ModuloLayout>
+    </div>
   )
 }
 
-function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick }: {
-  banco: any; i: number; conectando: boolean; conectandoId: number | null; carregando: string; onClick: (id?: number) => void
+function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick, temaClaro }: {
+  banco: any; i: number; conectando: boolean; conectandoId: number | null; carregando: string; onClick: (id?: number) => void; temaClaro: boolean
 }) {
-  const cor = banco.primaryColor || '#6ab0ff'
+  const cor = banco.primaryColor || (temaClaro ? '#2ecc9b' : '#6ab0ff')
   const clicavel = banco.id > 0
   const carregandoEste = conectandoId === banco.id && banco.id > 0
   return (
@@ -853,7 +864,7 @@ function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick }
       whileHover={clicavel ? { scale: 1.04, y: -2 } : {}} whileTap={clicavel ? { scale: 0.97 } : {}}
       onClick={() => clicavel && onClick(banco.id)} disabled={conectando || !clicavel}
       className="relative flex items-center gap-3 p-3 rounded-2xl text-left overflow-hidden"
-      style={{ background: `linear-gradient(135deg, ${cor}18, rgba(4,10,22,0.6))`, border: `1px solid ${cor}45`, cursor: clicavel ? 'pointer' : 'default', opacity: conectando && !carregandoEste ? 0.6 : 1 }}
+      style={{ background: temaClaro ? `linear-gradient(135deg, ${cor}18, rgba(255,255,255,0.6))` : `linear-gradient(135deg, ${cor}18, rgba(4,10,22,0.6))`, border: `1px solid ${cor}45`, cursor: clicavel ? 'pointer' : 'default', opacity: conectando && !carregandoEste ? 0.6 : 1 }}
     >
       <div className="flex items-center justify-center rounded-xl shrink-0 overflow-hidden" style={{ width: 40, height: 40, background: '#fff' }}>
         {banco.imageUrl
@@ -861,7 +872,7 @@ function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick }
           : <span className="font-black text-lg" style={{ color: cor }}>{(banco.name || '?').charAt(0)}</span>}
       </div>
       <div className="min-w-0">
-        <p className="font-bold text-sm truncate" style={{ color: '#e2ecf7' }}>{banco.name}</p>
+        <p className="font-bold text-sm truncate" style={{ color: temaClaro ? '#101b3d' : '#e2ecf7' }}>{banco.name}</p>
         {carregandoEste && <span className="text-xs flex items-center gap-1" style={{ color: cor }}><RefreshCw size={11} className="animate-spin" /> {carregando}</span>}
       </div>
       <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: cor }} />
@@ -872,7 +883,7 @@ function CartaoBanco({ banco, i, conectando, conectandoId, carregando, onClick }
 function LinhaTransacao({
   tx, t, fmt, criandoId, editandoCategoriaId, setEditandoCategoriaId,
   categoriaEscolhida, setCategoriaEscolhida, expandidoCandidatosId, setExpandidoCandidatosId,
-  onCriarLancamento, onEscolherCandidato, motivoLabel,
+  onCriarLancamento, onEscolherCandidato, motivoLabel, temaClaro,
 }: {
   tx: TransacaoClassificada; t: typeof textos.pt; fmt: (v: number) => string
   criandoId: string | null
@@ -882,8 +893,10 @@ function LinhaTransacao({
   onCriarLancamento: (tx: TransacaoClassificada) => void
   onEscolherCandidato: (tx: TransacaoClassificada, c: CandidatoLancamento) => void
   motivoLabel: (m: string | null | undefined) => string
+  temaClaro: boolean
 }) {
-  const corValor = tx.tipo === 'entrada' ? VERDE : VERMELHO
+  const ct = (hex: string) => corTema(hex, temaClaro)
+  const corValor = tx.tipo === 'entrada' ? ct(VERDE) : ct(VERMELHO)
   const categorias = tx.tipo === 'entrada' ? CATEGORIAS_RECEITA : CATEGORIAS_CUSTO
   const categoriaAtual = categoriaEscolhida[tx.id] || tx.categoriaSugerida || categorias[0]
   const editando = editandoCategoriaId === tx.id
@@ -891,11 +904,11 @@ function LinhaTransacao({
 
   return (
     <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-      className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(106,176,255,0.08)' }}>
+      className="p-3 rounded-xl" style={{ background: temaClaro ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.02)', border: temaClaro ? '1px solid rgba(46,204,155,0.15)' : '1px solid rgba(106,176,255,0.08)' }}>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold truncate" style={{ color: '#c8d8f0' }}>{tx.descricao}</p>
-          <p className="text-xs" style={{ color: '#5a7a9a' }}>
+          <p className="text-sm font-semibold truncate" style={{ color: ct('#c8d8f0') }}>{tx.descricao}</p>
+          <p className="text-xs" style={{ color: ct('#5a7a9a') }}>
             {tx.data ? new Date(tx.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'} · {tx.tipo === 'entrada' ? t.entrada : t.saida}
           </p>
         </div>
@@ -903,32 +916,32 @@ function LinhaTransacao({
       </div>
 
       {tx.balde === 'conciliado' && tx.lancamentoCasado && (
-        <p className="text-xs mt-2" style={{ color: VERDE }}>
+        <p className="text-xs mt-2" style={{ color: ct(VERDE) }}>
           {t.casadoCom}: {tx.lancamentoCasado.descricao} ({new Date(tx.lancamentoCasado.data + 'T00:00:00').toLocaleDateString('pt-BR')})
         </p>
       )}
 
       {tx.balde === 'atipico' && (
-        <p className="text-xs mt-2 font-semibold" style={{ color: VERMELHO }}>⚠️ {motivoLabel(tx.motivoAtipico)}</p>
+        <p className="text-xs mt-2 font-semibold" style={{ color: ct(VERMELHO) }}>⚠️ {motivoLabel(tx.motivoAtipico)}</p>
       )}
 
       {tx.balde === 'pendente' && tx.candidatos && tx.candidatos.length > 0 && (
         <div className="mt-2">
-          <p className="text-xs font-semibold mb-2" style={{ color: AMBAR }}>⚠️ {tx.candidatos.length > 1 ? t.multiplosCandidatos : t.candidatoContestado}</p>
+          <p className="text-xs font-semibold mb-2" style={{ color: ct(AMBAR) }}>⚠️ {tx.candidatos.length > 1 ? t.multiplosCandidatos : t.candidatoContestado}</p>
           {expandidoCandidatosId === tx.id ? (
             <div className="space-y-1.5">
               {tx.candidatos.map((c) => (
                 <button key={c.id} onClick={() => onEscolherCandidato(tx, c)} disabled={criando}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-xs"
-                  style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: '#c8d8f0' }}>
+                  style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', color: ct('#c8d8f0') }}>
                   <span className="truncate">{c.descricao} — {new Date(c.data + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
-                  <span className="font-bold flex-shrink-0" style={{ color: AMBAR }}>{t.confirmarEscolha}</span>
+                  <span className="font-bold flex-shrink-0" style={{ color: ct(AMBAR) }}>{t.confirmarEscolha}</span>
                 </button>
               ))}
             </div>
           ) : (
             <button onClick={() => setExpandidoCandidatosId(tx.id)}
-              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: AMBAR }}>
+              className="text-xs font-bold px-3 py-2 rounded-lg" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: ct(AMBAR) }}>
               {t.escolherLancamento}
             </button>
           )}
@@ -943,23 +956,23 @@ function LinhaTransacao({
                 value={categoriaAtual}
                 onChange={(e) => setCategoriaEscolhida((prev: Record<string, string>) => ({ ...prev, [tx.id]: e.target.value }))}
                 className="px-2 py-1.5 rounded-lg text-xs focus:outline-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(106,176,255,0.25)', color: '#c8d8f0' }}
+                style={{ background: temaClaro ? '#ffffff' : 'rgba(255,255,255,0.05)', border: temaClaro ? '1px solid rgba(46,204,155,0.25)' : '1px solid rgba(106,176,255,0.25)', color: ct('#c8d8f0') }}
               >
                 {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <button onClick={() => setEditandoCategoriaId(null)} className="p-1.5 rounded-lg" style={{ color: '#5a7a9a' }}><X size={14} /></button>
+              <button onClick={() => setEditandoCategoriaId(null)} className="p-1.5 rounded-lg" style={{ color: ct('#5a7a9a') }}><X size={14} /></button>
             </>
           ) : (
             <button onClick={() => setEditandoCategoriaId(tx.id)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-              style={{ background: 'rgba(106,176,255,0.08)', border: '1px solid rgba(106,176,255,0.2)', color: AZUL }}>
+              style={{ background: temaClaro ? 'rgba(46,204,155,0.08)' : 'rgba(106,176,255,0.08)', border: temaClaro ? '1px solid rgba(46,204,155,0.2)' : '1px solid rgba(106,176,255,0.2)', color: ct(AZUL) }}>
               <Pencil size={11} /> {tx.categoriaSugerida ? `${t.categoriaSugerida}: ${categoriaAtual}` : t.semSugestao}
             </button>
           )}
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => onCriarLancamento(tx)} disabled={criando}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold"
-            style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.35)', color: VERDE, opacity: criando ? 0.7 : 1 }}>
+            style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.35)', color: ct(VERDE), opacity: criando ? 0.7 : 1 }}>
             {criando ? <RefreshCw size={12} className="animate-spin" /> : <ArrowRight size={12} />}
             {criando ? t.criando : t.criarLancamento}
           </motion.button>
