@@ -3,7 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import { CanvasBox } from "../../../components/CanvasBox";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { corTema } from "../../../lib/cfoCore";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
@@ -257,6 +260,10 @@ export default function IAFinanceiraPage() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
   const chatRef = useRef<HTMLDivElement>(null);
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
 
   const [userId, setUserId] = useState<string | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
@@ -465,7 +472,7 @@ export default function IAFinanceiraPage() {
     setExportando(false);
   }
 
-  const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)", color: ct("#c8d8f0") };
   const dimNome = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
   const dimSugestao = (d: any) => lang === "en" ? d.sugestao_en : lang === "es" ? d.sugestao_es : d.sugestao;
   const anomTitulo = (a: Anomalia) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
@@ -474,19 +481,22 @@ export default function IAFinanceiraPage() {
   const acaoDesc = (a: AcaoSugerida) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
 
   return (
-    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
-          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
+          style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>
           {toast.msg}
         </div>
       )}
 
       {carregando && (
-        <CanvasBox cor="#a78bfa">
+        <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
           <div className="py-12 text-center">
             <div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: "#a78bfa" }}>{tt.carregando}</p>
+            <p className="text-sm" style={{ color: ct("#a78bfa") }}>{tt.carregando}</p>
           </div>
         </CanvasBox>
       )}
@@ -495,21 +505,21 @@ export default function IAFinanceiraPage() {
         <div className="space-y-4">
           {/* HEADER: Score 360 + Resumo rápido */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <CanvasBox cor={score360.cor}>
-              <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>🏆 Score 360°</p>
+            <CanvasBox {...cartaoTema} cor={ct(score360.cor)}>
+              <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>🏆 Score 360°</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black" style={{ color: score360.cor }}><AnimatedNumber value={String(score360.total)} /></span>
-                <span style={{ color: "#5a7a9a" }}>/100</span>
+                <span className="text-4xl font-black" style={{ color: ct(score360.cor) }}><AnimatedNumber value={String(score360.total)} /></span>
+                <span style={{ color: ct("#5a7a9a") }}>/100</span>
               </div>
-              <p className="text-xs font-bold" style={{ color: score360.cor }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
+              <p className="text-xs font-bold" style={{ color: ct(score360.cor) }}>{lang === "en" ? score360.nivel_en : lang === "es" ? score360.nivel_es : score360.nivel}</p>
             </CanvasBox>
             {[
-              { label: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", valor: formatBRL(snap.receita_bruta), cor: "#34d399" },
-              { label: lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro Líquido", valor: formatBRL(snap.lucro_liquido), cor: snap.lucro_liquido >= 0 ? "#6ab0ff" : "#f87171" },
-              { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen" : "Margem", valor: `${snap.margem_liquida.toFixed(1)}%`, cor: "#a78bfa" },
+              { label: lang === "en" ? "Revenue" : lang === "es" ? "Ingresos" : "Receita", valor: formatBRL(snap.receita_bruta), cor: ct("#34d399") },
+              { label: lang === "en" ? "Net Profit" : lang === "es" ? "Beneficio" : "Lucro Líquido", valor: formatBRL(snap.lucro_liquido), cor: snap.lucro_liquido >= 0 ? ct("#6ab0ff") : ct("#f87171") },
+              { label: lang === "en" ? "Net Margin" : lang === "es" ? "Margen" : "Margem", valor: `${snap.margem_liquida.toFixed(1)}%`, cor: ct("#a78bfa") },
             ].map((c, i) => (
-              <CanvasBox key={i} cor={c.cor}>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{c.label}</p>
+              <CanvasBox {...cartaoTema} key={i} cor={c.cor}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                 <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
               </CanvasBox>
             ))}
@@ -518,7 +528,7 @@ export default function IAFinanceiraPage() {
           {/* Botão share + Abas */}
           <button onClick={() => setShareAberto(true)}
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
             {tt.compartilhar}
           </button>
 
@@ -536,9 +546,9 @@ export default function IAFinanceiraPage() {
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
                 style={{
-                  background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
-                  color: aba === a.key ? "#fff" : "#6ab0ff",
-                  border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+                  background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
+                  color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : "#6ab0ff"),
+                  border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
                 }}>{a.label}</button>
             ))}
           </div>
@@ -547,29 +557,29 @@ export default function IAFinanceiraPage() {
           {aba === "score" && (
             <div className="space-y-4">
               {/* Radar Chart */}
-              <CanvasBox cor={score360.cor}>
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.scoreEmpresarial}</p>
+              <CanvasBox {...cartaoTema} cor={ct(score360.cor)}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>{tt.scoreEmpresarial}</p>
                 <ResponsiveContainer width="100%" height={320}>
                   <RadarChart data={score360.dimensoes.map(d => ({ subject: dimNome(d), score: d.score, benchmark: 70, fullMark: 100 }))}>
                     <defs>
                       <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor={score360.cor} stopOpacity={0.6} />
-                        <stop offset="100%" stopColor={score360.cor} stopOpacity={0.05} />
+                        <stop offset="0%" stopColor={ct(score360.cor)} stopOpacity={0.6} />
+                        <stop offset="100%" stopColor={ct(score360.cor)} stopOpacity={0.05} />
                       </radialGradient>
                     </defs>
-                    <PolarGrid stroke="rgba(106,176,255,0.12)" gridType="polygon" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#c8d8f0", fontSize: 12, fontWeight: 600 }} />
-                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#5a7a9a", fontSize: 10 }} axisLine={false} />
-                    <Radar name="Benchmark" dataKey="benchmark" stroke="#fbbf24" strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
-                    <Radar name="Score" dataKey="score" stroke={score360.cor} fill="url(#radarGrad)" strokeWidth={2.5}
+                    <PolarGrid stroke={temaClaro ? "rgba(46,204,155,0.18)" : "rgba(106,176,255,0.12)"} gridType="polygon" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: ct("#c8d8f0"), fontSize: 12, fontWeight: 600 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: ct("#5a7a9a"), fontSize: 10 }} axisLine={false} />
+                    <Radar name="Benchmark" dataKey="benchmark" stroke={ct("#fbbf24")} strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
+                    <Radar name="Score" dataKey="score" stroke={ct(score360.cor)} fill="url(#radarGrad)" strokeWidth={2.5}
                       dot={(props: any) => {
                         const dim = score360.dimensoes[props.index];
-                        if (!dim) return <circle key={props.index} cx={props.cx} cy={props.cy} r={6} fill={score360.cor} stroke="#020810" strokeWidth={2} />;
+                        if (!dim) return <circle key={props.index} cx={props.cx} cy={props.cy} r={6} fill={ct(score360.cor)} stroke={temaClaro ? "#f6f7c4" : "#020810"} strokeWidth={2} />;
                         return (
                           <g key={props.index}>
-                            <circle cx={props.cx} cy={props.cy} r={10} fill={dim.cor} fillOpacity={0.2} />
-                            <circle cx={props.cx} cy={props.cy} r={6} fill={dim.cor} stroke="#020810" strokeWidth={2} />
-                            <text x={props.cx} y={props.cy - 14} textAnchor="middle" fill={dim.cor} fontSize={11} fontWeight={700}>{dim.score}</text>
+                            <circle cx={props.cx} cy={props.cy} r={10} fill={ct(dim.cor)} fillOpacity={0.2} />
+                            <circle cx={props.cx} cy={props.cy} r={6} fill={ct(dim.cor)} stroke={temaClaro ? "#f6f7c4" : "#020810"} strokeWidth={2} />
+                            <text x={props.cx} y={props.cy - 14} textAnchor="middle" fill={ct(dim.cor)} fontSize={11} fontWeight={700}>{dim.score}</text>
                           </g>
                         );
                       }}
@@ -578,35 +588,35 @@ export default function IAFinanceiraPage() {
                   </RadarChart>
                 </ResponsiveContainer>
                 <div className="flex items-center justify-center gap-4 mt-2 text-[10px] flex-wrap">
-                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: score360.cor }}></span> <span style={{ color: "#5a7a9a" }}>Score</span></span>
-                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: "#fbbf24", borderTop: "1px dashed #fbbf24" }}></span> <span style={{ color: "#5a7a9a" }}>Benchmark (70)</span></span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: ct(score360.cor) }}></span> <span style={{ color: ct("#5a7a9a") }}>Score</span></span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: ct("#fbbf24"), borderTop: "1px dashed #fbbf24" }}></span> <span style={{ color: ct("#5a7a9a") }}>Benchmark (70)</span></span>
                 </div>
               </CanvasBox>
 
               {/* Cards por dimensão */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {score360.dimensoes.map((d, i) => (
-                  <CanvasBox key={i} cor={d.cor}>
+                  <CanvasBox {...cartaoTema} key={i} cor={ct(d.cor)}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-bold" style={{ color: d.cor }}>{dimNome(d)}</p>
-                      <span className="text-lg font-black" style={{ color: d.cor }}><AnimatedNumber value={String(d.score)} /></span>
+                      <p className="text-xs font-bold" style={{ color: ct(d.cor) }}>{dimNome(d)}</p>
+                      <span className="text-lg font-black" style={{ color: ct(d.cor) }}><AnimatedNumber value={String(d.score)} /></span>
                     </div>
                     <div className="space-y-1 mb-3">
                       {d.indicadores.map((ind, j) => (
                         <div key={j} className="flex items-center justify-between text-xs">
-                          <span style={{ color: "#c8d8f0" }}>{ind.nome}</span>
+                          <span style={{ color: ct("#c8d8f0") }}>{ind.nome}</span>
                           <div className="flex items-center gap-2">
-                            <span style={{ color: ind.status === "bom" ? "#34d399" : ind.status === "atencao" ? "#fbbf24" : "#f87171" }}>{ind.valor}</span>
+                            <span style={{ color: ind.status === "bom" ? ct("#34d399") : ind.status === "atencao" ? ct("#fbbf24") : ct("#f87171") }}>{ind.valor}</span>
                             {ind.status !== "bom" && (
-                              <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>✏️</a>
+                              <a href="/empresa" className="text-[10px] px-1 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", color: ct("#6ab0ff") }}>✏️</a>
                             )}
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="rounded-lg p-2" style={{ background: `${d.cor}10`, border: `1px solid ${d.cor}20` }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: "#5a7a9a" }}>💡 {tt.sugestao}</p>
-                      <p className="text-[11px]" style={{ color: "#c8d8f0" }}>{dimSugestao(d)}</p>
+                    <div className="rounded-lg p-2" style={{ background: `${ct(d.cor)}10`, border: `1px solid ${ct(d.cor)}20` }}>
+                      <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: ct("#5a7a9a") }}>💡 {tt.sugestao}</p>
+                      <p className="text-[11px]" style={{ color: ct("#c8d8f0") }}>{dimSugestao(d)}</p>
                     </div>
                   </CanvasBox>
                 ))}
@@ -616,23 +626,23 @@ export default function IAFinanceiraPage() {
 
           {/* ABA CHAT */}
           {aba === "chat" && (
-            <CanvasBox cor="#6ab0ff">
+            <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-bold" style={{ color: "#c8d8f0" }}>{tt.chatTitulo}</p>
-                <button onClick={onLimparHistorico} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>{tt.chatLimpar}</button>
+                <p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{tt.chatTitulo}</p>
+                <button onClick={onLimparHistorico} className="text-[10px] px-2 py-1 rounded" style={{ background: "rgba(248,113,113,0.15)", color: ct("#f87171") }}>{tt.chatLimpar}</button>
               </div>
               <div ref={chatRef} className="space-y-3 min-h-48 max-h-96 overflow-y-auto mb-4 pr-1">
                 {mensagens.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
-                      style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : "rgba(10,22,40,0.8)", border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.1)"}`, color: "#c8d8f0" }}>
+                      style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)") : (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)"), border: `1px solid ${temaClaro ? (m.role === "user" ? "rgba(46,204,155,0.3)" : "rgba(46,204,155,0.1)") : (m.role === "user" ? "rgba(106,176,255,0.3)" : "rgba(106,176,255,0.1)")}`, color: ct("#c8d8f0") }}>
                       {m.texto}
                     </div>
                   </div>
                 ))}
                 {chatCarregando && (
                   <div className="flex justify-start">
-                    <div className="px-4 py-3 rounded-2xl text-sm" style={{ background: "rgba(10,22,40,0.8)", border: "1px solid rgba(106,176,255,0.1)", color: "#5a7a9a" }}>
+                    <div className="px-4 py-3 rounded-2xl text-sm" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(10,22,40,0.8)", border: temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)", color: ct("#5a7a9a") }}>
                       {tt.chatAnalisando} <span className="animate-pulse">●●●</span>
                     </div>
                   </div>
@@ -641,7 +651,7 @@ export default function IAFinanceiraPage() {
               <div className="flex gap-2 mb-3 flex-wrap">
                 {tt.chatSugestoes.map((s, i) => (
                   <button key={i} onClick={() => enviarMensagem(s)}
-                    className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: "rgba(106,176,255,0.08)", border: "1px solid rgba(106,176,255,0.2)", color: "#6ab0ff" }}>
+                    className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)", color: ct("#6ab0ff") }}>
                     {s}
                   </button>
                 ))}
@@ -652,7 +662,7 @@ export default function IAFinanceiraPage() {
                   placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={inputStyle} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
                   className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                  style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
                   ➤
                 </button>
               </div>
@@ -662,17 +672,17 @@ export default function IAFinanceiraPage() {
           {/* ABA ANOMALIAS */}
           {aba === "anomalias" && (
             <div className="space-y-3">
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.anomaliasTitulo}</p>
+              <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.anomaliasTitulo}</p>
               </CanvasBox>
               {anomalias.length === 0 ? (
-                <CanvasBox cor="#34d399"><p className="text-xs py-6 text-center" style={{ color: "#34d399" }}>{tt.anomaliasVazio}</p></CanvasBox>
+                <CanvasBox {...cartaoTema} cor={ct("#34d399")}><p className="text-xs py-6 text-center" style={{ color: ct("#34d399") }}>{tt.anomaliasVazio}</p></CanvasBox>
               ) : (
                 anomalias.map((a, i) => {
-                  const cor = a.severidade === "alerta" ? "#f87171" : a.severidade === "atencao" ? "#fbbf24" : "#34d399";
+                  const cor = a.severidade === "alerta" ? ct("#f87171") : a.severidade === "atencao" ? ct("#fbbf24") : ct("#34d399");
                   const icon = a.severidade === "alerta" ? "🚨" : a.severidade === "atencao" ? "⚠️" : "ℹ️";
                   return (
-                    <CanvasBox key={i} cor={cor}>
+                    <CanvasBox {...cartaoTema} key={i} cor={cor}>
                       <div className="flex items-start gap-3">
                         <span className="text-xl flex-shrink-0">{icon}</span>
                         <div className="flex-1 min-w-0">
@@ -680,7 +690,7 @@ export default function IAFinanceiraPage() {
                             <p className="text-sm font-bold" style={{ color: cor }}>{anomTitulo(a)}</p>
                             {a.metrica && <span className="text-xs font-bold px-2 py-0.5 rounded" style={{ background: `${cor}20`, color: cor }}>{a.metrica}</span>}
                           </div>
-                          <p className="text-xs" style={{ color: "#c8d8f0" }}>{anomDesc(a)}</p>
+                          <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{anomDesc(a)}</p>
                         </div>
                       </div>
                     </CanvasBox>
@@ -692,25 +702,25 @@ export default function IAFinanceiraPage() {
 
           {/* ABA PROJEÇÕES */}
           {aba === "projecoes" && (
-            <CanvasBox cor="#a78bfa">
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.projecoesTitulo}</p>
+            <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.projecoesTitulo}</p>
               {projecoes.length === 0 ? (
-                <p className="text-xs py-8 text-center" style={{ color: "#5a7a9a" }}>{tt.projecoesVazio}</p>
+                <p className="text-xs py-8 text-center" style={{ color: ct("#5a7a9a") }}>{tt.projecoesVazio}</p>
               ) : (
                 <ResponsiveContainer width="100%" height={320}>
                   <AreaChart data={projecoes}>
                     <defs>
-                      <linearGradient id="gOt" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.3}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient>
-                      <linearGradient id="gRe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6ab0ff" stopOpacity={0.3}/><stop offset="95%" stopColor="#6ab0ff" stopOpacity={0}/></linearGradient>
-                      <linearGradient id="gPe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f87171" stopOpacity={0.3}/><stop offset="95%" stopColor="#f87171" stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gOt" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={ct("#34d399")} stopOpacity={0.3}/><stop offset="95%" stopColor={ct("#34d399")} stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gRe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={ct("#6ab0ff")} stopOpacity={0.3}/><stop offset="95%" stopColor={ct("#6ab0ff")} stopOpacity={0}/></linearGradient>
+                      <linearGradient id="gPe" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={ct("#f87171")} stopOpacity={0.3}/><stop offset="95%" stopColor={ct("#f87171")} stopOpacity={0}/></linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(106,176,255,0.08)" />
-                    <XAxis dataKey="mes" stroke="#5a7a9a" tick={{ fontSize: 11 }} />
-                    <YAxis stroke="#5a7a9a" tick={{ fontSize: 11 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.08)"} />
+                    <XAxis dataKey="mes" stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
+                    <YAxis stroke={ct("#5a7a9a")} tick={{ fontSize: 11 }} />
                     <Tooltip contentStyle={tooltipStyle} formatter={(v: any) => formatBRL(Number(v) || 0)} />
-                    <Area type="monotone" dataKey="otimista" stroke="#34d399" fill="url(#gOt)" strokeWidth={2} name={tt.otimista} />
-                    <Area type="monotone" dataKey="realista" stroke="#6ab0ff" fill="url(#gRe)" strokeWidth={2} name={tt.realista} />
-                    <Area type="monotone" dataKey="pessimista" stroke="#f87171" fill="url(#gPe)" strokeWidth={2} name={tt.pessimista} />
+                    <Area type="monotone" dataKey="otimista" stroke={ct("#34d399")} fill="url(#gOt)" strokeWidth={2} name={tt.otimista} />
+                    <Area type="monotone" dataKey="realista" stroke={ct("#6ab0ff")} fill="url(#gRe)" strokeWidth={2} name={tt.realista} />
+                    <Area type="monotone" dataKey="pessimista" stroke={ct("#f87171")} fill="url(#gPe)" strokeWidth={2} name={tt.pessimista} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -720,21 +730,21 @@ export default function IAFinanceiraPage() {
           {/* ABA WHAT-IF */}
           {aba === "whatif" && (
             <div className="space-y-4">
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.whatIfTitulo}</p>
-                <p className="text-xs mb-4" style={{ color: "#c8d8f0" }}>{tt.whatIfDescricao}</p>
+              <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}>
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.whatIfTitulo}</p>
+                <p className="text-xs mb-4" style={{ color: ct("#c8d8f0") }}>{tt.whatIfDescricao}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <select value={whatIfTipo} onChange={(e) => setWhatIfTipo(e.target.value)}
                     className="px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                    <option value="receita_pct" style={{ background: "#020810" }}>{tt.cenarioReceita}</option>
-                    <option value="custos_fixos_pct" style={{ background: "#020810" }}>{tt.cenarioCustosFix}</option>
-                    <option value="custos_var_pct" style={{ background: "#020810" }}>{tt.cenarioCustosVar}</option>
-                    <option value="preco_pct" style={{ background: "#020810" }}>{tt.cenarioPreco}</option>
+                    <option value="receita_pct" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.cenarioReceita}</option>
+                    <option value="custos_fixos_pct" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.cenarioCustosFix}</option>
+                    <option value="custos_var_pct" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.cenarioCustosVar}</option>
+                    <option value="preco_pct" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.cenarioPreco}</option>
                   </select>
                   <div className="flex items-center gap-2">
                     <input type="range" min={-50} max={50} value={whatIfValor} onChange={(e) => setWhatIfValor(Number(e.target.value))}
                       className="flex-1" />
-                    <span className="text-sm font-bold min-w-12 text-center" style={{ color: whatIfValor >= 0 ? "#34d399" : "#f87171" }}>
+                    <span className="text-sm font-bold min-w-12 text-center" style={{ color: whatIfValor >= 0 ? ct("#34d399") : ct("#f87171") }}>
                       {whatIfValor >= 0 ? "+" : ""}{whatIfValor}%
                     </span>
                   </div>
@@ -747,14 +757,14 @@ export default function IAFinanceiraPage() {
                 {whatIfResultado && (
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     {[
-                      { label: tt.lucroAntes, valor: formatBRL(whatIfResultado.lucro_antes), cor: "#6ab0ff" },
-                      { label: tt.lucroDepois, valor: formatBRL(whatIfResultado.lucro_depois), cor: whatIfResultado.lucro_depois >= 0 ? "#34d399" : "#f87171" },
-                      { label: tt.diferenca, valor: `${whatIfResultado.diferenca >= 0 ? "+" : ""}${formatBRL(whatIfResultado.diferenca)}`, cor: whatIfResultado.diferenca >= 0 ? "#34d399" : "#f87171" },
-                      { label: tt.margemAntes, valor: `${whatIfResultado.margem_antes.toFixed(1)}%`, cor: "#a78bfa" },
-                      { label: tt.margemDepois, valor: `${whatIfResultado.margem_depois.toFixed(1)}%`, cor: whatIfResultado.margem_depois > whatIfResultado.margem_antes ? "#34d399" : "#f87171" },
+                      { label: tt.lucroAntes, valor: formatBRL(whatIfResultado.lucro_antes), cor: ct("#6ab0ff") },
+                      { label: tt.lucroDepois, valor: formatBRL(whatIfResultado.lucro_depois), cor: whatIfResultado.lucro_depois >= 0 ? ct("#34d399") : ct("#f87171") },
+                      { label: tt.diferenca, valor: `${whatIfResultado.diferenca >= 0 ? "+" : ""}${formatBRL(whatIfResultado.diferenca)}`, cor: whatIfResultado.diferenca >= 0 ? ct("#34d399") : ct("#f87171") },
+                      { label: tt.margemAntes, valor: `${whatIfResultado.margem_antes.toFixed(1)}%`, cor: ct("#a78bfa") },
+                      { label: tt.margemDepois, valor: `${whatIfResultado.margem_depois.toFixed(1)}%`, cor: whatIfResultado.margem_depois > whatIfResultado.margem_antes ? ct("#34d399") : ct("#f87171") },
                     ].map((c, i) => (
-                      <div key={i} className="rounded-xl p-3 text-center" style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${c.cor}30` }}>
-                        <p className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{c.label}</p>
+                      <div key={i} className="rounded-xl p-3 text-center" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: `1px solid ${c.cor}30` }}>
+                        <p className="text-[10px] uppercase" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                         <p className="text-base font-bold mt-1" style={{ color: c.cor }}>{c.valor}</p>
                       </div>
                     ))}
@@ -767,25 +777,25 @@ export default function IAFinanceiraPage() {
           {/* ABA PLANO DE AÇÃO */}
           {aba === "plano" && (
             <div className="space-y-3">
-              <CanvasBox cor="#34d399">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.planoTitulo}</p>
-                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.planoDescricao}</p>
+              <CanvasBox {...cartaoTema} cor={ct("#34d399")}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{tt.planoTitulo}</p>
+                <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{tt.planoDescricao}</p>
               </CanvasBox>
               {acoes.length === 0 ? (
-                <CanvasBox cor="#fbbf24"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.planoVazio}</p></CanvasBox>
+                <CanvasBox {...cartaoTema} cor={ct("#fbbf24")}><p className="text-xs py-6 text-center" style={{ color: ct("#5a7a9a") }}>{tt.planoVazio}</p></CanvasBox>
               ) : (
                 acoes.map((a, i) => {
-                  const corCat = a.categoria === "custo" ? "#f87171" : a.categoria === "receita" ? "#34d399" : a.categoria === "cobranca" ? "#fbbf24" : a.categoria === "fiscal" ? "#a78bfa" : "#6ab0ff";
+                  const corCat = a.categoria === "custo" ? ct("#f87171") : a.categoria === "receita" ? ct("#34d399") : a.categoria === "cobranca" ? ct("#fbbf24") : a.categoria === "fiscal" ? ct("#a78bfa") : ct("#6ab0ff");
                   return (
-                    <CanvasBox key={i} cor={corCat}>
+                    <CanvasBox {...cartaoTema} key={i} cor={corCat}>
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black flex-shrink-0"
                           style={{ background: `${corCat}20`, color: corCat }}>
                           {a.prioridade}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{acaoTitulo(a)}</p>
-                          <p className="text-xs mt-1" style={{ color: "#a8b8d0" }}>{acaoDesc(a)}</p>
+                          <p className="text-sm font-bold" style={{ color: ct("#c8d8f0") }}>{acaoTitulo(a)}</p>
+                          <p className="text-xs mt-1" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{acaoDesc(a)}</p>
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: `${corCat}15`, color: corCat }}>{tt.impacto}: {a.impacto_estimado}</span>
                           </div>
@@ -800,11 +810,11 @@ export default function IAFinanceiraPage() {
 
           {/* ABA RESUMO EXECUTIVO */}
           {aba === "resumo" && (
-            <CanvasBox cor="#6ab0ff">
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.resumoTitulo}</p>
-              <p className="text-xs mb-3" style={{ color: "#5a7a9a" }}>{tt.resumoDescricao}</p>
+            <CanvasBox {...cartaoTema} cor={ct("#6ab0ff")}>
+              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.resumoTitulo}</p>
+              <p className="text-xs mb-3" style={{ color: ct("#5a7a9a") }}>{tt.resumoDescricao}</p>
               <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)", color: "#c8d8f0" }}>
+                style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)", color: ct("#c8d8f0") }}>
                 {resumo}
               </div>
             </CanvasBox>
@@ -813,10 +823,10 @@ export default function IAFinanceiraPage() {
           {/* ABA BENCHMARK */}
           {aba === "benchmark" && bench && (
             <div className="space-y-3">
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#5a7a9a" }}>{tt.benchmarkTitulo}</p>
-                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.benchmarkDescricao}</p>
-                <p className="text-xs mt-1" style={{ color: "#a78bfa" }}>
+              <CanvasBox {...cartaoTema} cor={ct("#a78bfa")}>
+                <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: ct("#5a7a9a") }}>{tt.benchmarkTitulo}</p>
+                <p className="text-xs" style={{ color: ct("#c8d8f0") }}>{tt.benchmarkDescricao}</p>
+                <p className="text-xs mt-1" style={{ color: ct("#a78bfa") }}>
                   {lang === "en" ? "Industry" : lang === "es" ? "Sector" : "Setor"}: <strong>{bench.setor}</strong>
                 </p>
               </CanvasBox>
@@ -830,15 +840,15 @@ export default function IAFinanceiraPage() {
                   ? b.valor <= b.max
                   : b.valor >= b.min;
                 return (
-                  <CanvasBox key={i} cor={dentro ? "#34d399" : "#f87171"}>
+                  <CanvasBox {...cartaoTema} key={i} cor={dentro ? ct("#34d399") : ct("#f87171")}>
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div>
-                        <p className="text-xs font-bold" style={{ color: "#c8d8f0" }}>{b.label}</p>
-                        <p className="text-xs" style={{ color: "#5a7a9a" }}>{tt.faixaSetor}: {b.min.toFixed(0)}-{b.max.toFixed(0)}{b.unit}</p>
+                        <p className="text-xs font-bold" style={{ color: ct("#c8d8f0") }}>{b.label}</p>
+                        <p className="text-xs" style={{ color: ct("#5a7a9a") }}>{tt.faixaSetor}: {b.min.toFixed(0)}-{b.max.toFixed(0)}{b.unit}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xl font-black" style={{ color: dentro ? "#34d399" : "#f87171" }}>{b.valor.toFixed(1)}{b.unit}</p>
-                        <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: dentro ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: dentro ? "#34d399" : "#f87171" }}>
+                        <p className="text-xl font-black" style={{ color: dentro ? ct("#34d399") : ct("#f87171") }}>{b.valor.toFixed(1)}{b.unit}</p>
+                        <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: dentro ? "rgba(52,211,153,0.15)" : "rgba(248,113,113,0.15)", color: dentro ? ct("#34d399") : ct("#f87171") }}>
                           {dentro ? "✓" : "✗"} {tt.seuValor}
                         </span>
                       </div>
@@ -859,7 +869,7 @@ export default function IAFinanceiraPage() {
         textoDetalhado={montarTextoDetalhado()}
         assunto={`${tt.titulo} — Axioma`}
         onExportarPDF={exportarPDF}
-        cor="#6ab0ff"
+        cor={ct("#6ab0ff")}
       />
     </ModuloLayout>
   );
