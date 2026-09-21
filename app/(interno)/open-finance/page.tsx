@@ -694,7 +694,7 @@ export default function OpenFinancePage() {
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={() => abrirWidget()} disabled={conectando}
                 className="px-6 py-3 rounded-xl font-black text-sm tracking-widest uppercase flex items-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
+                style={{ background: temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : 'linear-gradient(135deg, #1a3a8f, #2a5fd4)', color: '#fff', opacity: conectando ? 0.7 : 1 }}>
                 {conectando && !conectandoId ? <RefreshCw size={16} className="animate-spin" /> : <Building2 size={16} />}
                 {conectando && !conectandoId ? t.carregando : t.conectar}
               </motion.button>
