@@ -4,6 +4,7 @@ import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import * as Sentry from "@sentry/nextjs";
 import ModuloLayout from "../../../components/ModuloLayout";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
 import { CanvasBox, SOMBRA_3D, BORDA_3D } from "../../../components/CanvasBox";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
@@ -1438,6 +1439,9 @@ export default function ImportarDocumentosPage() {
       subtitulo={imp?.subtitulo || "Central de importação inteligente — OFX, NF-e, CSV, XLSX"}
       onExportarPDF={exportarPDF}
       exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      botaoExtra={<ThemeToggle />}
     >
       {/* Toast */}
       {toast && (
@@ -1903,7 +1907,8 @@ function PreviewBlock(props: any) {
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
   const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
   const corOpcao = temaClaro ? "#ffffff" : "#020810";
-  const fundoHeaderTabela = temaClaro ? "#101b3d" : "rgba(10,22,40,0.95)";
+  const fundoHeaderTabela = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.95)";
+  const bordaHeaderTabela = temaClaro ? "1px solid rgba(46,204,155,0.2)" : "none";
   const DESTINOS = DESTINOS_BASE.map((d) => ({ ...d, cor: corDestinoClaro(d.cor, temaClaro) }));
 
   const destinoResumo = destinoPredominante(destinos);
@@ -2079,7 +2084,7 @@ function PreviewBlock(props: any) {
         <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)") }}>
           <div className="max-h-96 overflow-auto">
             <table className="w-full text-xs">
-              <thead style={{ background: fundoHeaderTabela, position: "sticky", top: 0 }}>
+              <thead style={{ background: fundoHeaderTabela, borderBottom: bordaHeaderTabela, position: "sticky", top: 0 }}>
                 <tr>
                   <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a"), width: 40 }}></th>
                   <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>{tt.data}</th>
@@ -2402,7 +2407,8 @@ function HistoricoBlock(props: any) {
   const fundoInput = temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)";
   const bordaInput = temaClaro ? "1px solid rgba(46,204,155,0.25)" : "1px solid rgba(106,176,255,0.2)";
   const corOpcao = temaClaro ? "#ffffff" : "#020810";
-  const fundoHeaderTabela = temaClaro ? "#101b3d" : "rgba(10,22,40,0.95)";
+  const fundoHeaderTabela = temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.95)";
+  const bordaHeaderTabela = temaClaro ? "1px solid rgba(46,204,155,0.2)" : "none";
   const DESTINOS = DESTINOS_BASE.map((d) => ({ ...d, cor: corDestinoClaro(d.cor, temaClaro) }));
   const STATUS_INFO = Object.fromEntries(Object.entries(STATUS_INFO_BASE).map(([k, v]) => [k, { cor: corDestinoClaro(v.cor, temaClaro) }]));
 
@@ -2570,7 +2576,7 @@ function HistoricoBlock(props: any) {
                         <div className="hidden md:block rounded-lg overflow-hidden" style={{ background: fundoCaixaAninhada, border: (temaClaro ? "1px solid rgba(46,204,155,0.1)" : "1px solid rgba(106,176,255,0.1)") }}>
                           <div className="max-h-80 overflow-auto">
                             <table className="w-full text-xs">
-                              <thead style={{ background: fundoHeaderTabela, position: "sticky", top: 0 }}>
+                              <thead style={{ background: fundoHeaderTabela, borderBottom: bordaHeaderTabela, position: "sticky", top: 0 }}>
                                 <tr>
                                   <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>#</th>
                                   <th className="px-2 py-2 text-left" style={{ color: ct("#5a7a9a") }}>Data</th>
