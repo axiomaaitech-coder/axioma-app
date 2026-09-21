@@ -342,8 +342,11 @@ export default function IATributariaPage() {
 
   return (
     <div data-theme={tema}>
-    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando} botaoExtra={<ThemeToggle />}>
-      {toast && (<div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>{toast.msg}</div>)}
+    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      botaoExtra={<ThemeToggle />}>
+      {toast && (<div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)", color: "#020810", fontWeight: 600, fontSize: 13 }}>{toast.msg}</div>)}
 
       {carregando && (<CanvasBox cor={ROXO} {...cartaoTema}><div className="py-12 text-center"><div className="w-10 h-10 border-2 border-purple-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" /><p className="text-sm" style={{ color: ROXO }}>{tt.carregando}</p></div></CanvasBox>)}
 
@@ -376,13 +379,13 @@ export default function IATributariaPage() {
             <span className="text-xs" style={{ color: CINZA }}>
               {lang === "en" ? "Current regime" : lang === "es" ? "Régimen actual" : "Regime atual"}: <strong style={{ color: AZULC }}>{dados.regime_atual || (lang === "en" ? "Not defined" : lang === "es" ? "No definido" : "Não definido")}</strong>
             </span>
-            <a href="/empresa" className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(106,176,255,0.1)", color: AZULC }}>
+            <a href="/empresa" className="text-xs px-2 py-1 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", color: AZULC }}>
               ✏️ {lang === "en" ? "Edit in Company" : lang === "es" ? "Editar en Empresa" : "Editar na Empresa"}
             </a>
           </div>
 
           <button onClick={() => setShareAberto(true)} className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.compartilhar}</button>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.compartilhar}</button>
 
           {/* ABAS */}
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -394,7 +397,7 @@ export default function IATributariaPage() {
             ].map((a) => (
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all"
-                style={{ background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : (temaClaro ? "rgba(16,27,61,0.06)" : "rgba(10,22,40,0.6)"), color: aba === a.key ? "#fff" : AZULC, border: aba === a.key ? "1px solid #6ab0ff" : `1px solid ${temaClaro ? "rgba(16,27,61,0.18)" : "rgba(106,176,255,0.2)"}` }}>{a.label}</button>
+                style={{ background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"), color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC), border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)") }}>{a.label}</button>
             ))}
           </div>
 
@@ -413,7 +416,7 @@ export default function IATributariaPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold" style={{ color: it.ok ? VERDE : CINZA }}>+{it.pontos}pts</span>
                       {!it.ok && (
-                        <a href="/empresa" className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(106,176,255,0.1)", color: AZULC }}>
+                        <a href="/empresa" className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", color: AZULC }}>
                           ✏️
                         </a>
                       )}
@@ -435,19 +438,19 @@ export default function IATributariaPage() {
                 {mensagens.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div className="max-w-[85%] px-4 py-3 rounded-2xl text-sm whitespace-pre-wrap"
-                      style={{ background: m.role === "user" ? "rgba(106,176,255,0.15)" : (temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)"), border: `1px solid ${m.role === "user" ? "rgba(106,176,255,0.3)" : (temaClaro ? "rgba(16,27,61,0.12)" : "rgba(106,176,255,0.1)")}`, color: TEXTO }}>{m.texto}</div>
+                      style={{ background: m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)") : (temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)"), border: `1px solid ${m.role === "user" ? (temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)") : (temaClaro ? "rgba(16,27,61,0.12)" : "rgba(106,176,255,0.1)")}`, color: TEXTO }}>{m.texto}</div>
                   </div>
                 ))}
                 {chatCarregando && (<div className="flex justify-start"><div className="px-4 py-3 rounded-2xl text-sm" style={{ background: temaClaro ? "rgba(255,255,255,0.6)" : "rgba(10,22,40,0.8)", color: CINZA }}>{tt.chatAnalisando} <span className="animate-pulse">●●●</span></div></div>)}
               </div>
               <div className="flex gap-2 mb-3 flex-wrap">
-                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: "rgba(106,176,255,0.08)", border: "1px solid rgba(106,176,255,0.2)", color: AZULC }}>{s}</button>))}
+                {tt.chatSugestoes.map((s, i) => (<button key={i} onClick={() => enviarMensagem(s)} className="text-[11px] px-3 py-1.5 rounded-lg" style={{ background: temaClaro ? "rgba(46,204,155,0.08)" : "rgba(106,176,255,0.08)", border: temaClaro ? "1px solid rgba(46,204,155,0.2)" : "1px solid rgba(106,176,255,0.2)", color: AZULC }}>{s}</button>))}
               </div>
               <div className="flex gap-2">
                 <input value={inputChat} onChange={(e) => setInputChat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && enviarMensagem(inputChat)}
-                  placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: "1px solid rgba(106,176,255,0.2)", color: TEXTO }} />
+                  placeholder={tt.chatPlaceholder} className="flex-1 px-4 py-3 rounded-xl text-sm" style={{ background: CAMPO_BG, border: campoBorda, color: TEXTO }} />
                 <button onClick={() => enviarMensagem(inputChat)} disabled={chatCarregando || !inputChat.trim()}
-                  className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>➤</button>
+                  className="px-4 py-3 rounded-xl font-semibold disabled:opacity-50" style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>➤</button>
               </div>
             </CanvasBox>
           )}
@@ -472,7 +475,7 @@ export default function IATributariaPage() {
                       <div>
                         <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.regime_label}</p>
                         <div className="flex gap-2 mt-1">
-                          {isAtual && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(106,176,255,0.15)", color: AZULC }}>{tt.regimeAtual}</span>}
+                          {isAtual && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)", color: AZULC }}>{tt.regimeAtual}</span>}
                           {i === 0 && s.elegivel && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>{tt.recomendado}</span>}
                           {!s.elegivel && <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>{tt.inelegivel}</span>}
                         </div>
@@ -482,7 +485,7 @@ export default function IATributariaPage() {
                         <p className="text-xs" style={{ color: CINZA }}>{tt.aliquotaEfetiva}: {s.aliquota_efetiva}%</p>
                       </div>
                     </div>
-                    <p className="text-[11px] mb-1" style={{ color: "#a8b8d0" }}>{lang === "en" ? s.detalhamento_en : lang === "es" ? s.detalhamento_es : s.detalhamento}</p>
+                    <p className="text-[11px] mb-1" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{lang === "en" ? s.detalhamento_en : lang === "es" ? s.detalhamento_es : s.detalhamento}</p>
                     {s.economia_vs_atual > 0 && !isAtual && s.elegivel && (
                       <p className="text-xs font-bold mt-1" style={{ color: VERDE }}>💰 {tt.economiaPorAno}: {formatBRL(s.economia_vs_atual)}</p>
                     )}
@@ -549,7 +552,7 @@ export default function IATributariaPage() {
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.economiaAnual}</p>
                     <p className="text-2xl font-black" style={{ color: VERDE }}><AnimatedNumber value={formatBRL(economia.economia_anual)} /></p>
                   </div>
-                  <div className="rounded-xl p-3 text-center" style={{ background: "rgba(106,176,255,0.1)", border: "1px solid rgba(106,176,255,0.3)" }}>
+                  <div className="rounded-xl p-3 text-center" style={{ background: temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)", border: temaClaro ? "1px solid rgba(46,204,155,0.3)" : "1px solid rgba(106,176,255,0.3)" }}>
                     <p className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.regimeIdeal}</p>
                     <p className="text-lg font-bold" style={{ color: AZULC }}>{economia.regime_ideal}</p>
                   </div>
@@ -587,7 +590,7 @@ export default function IATributariaPage() {
                           <p className="text-sm font-bold" style={{ color: TEXTO }}>{reformaTit(a)}</p>
                           <span className="text-[10px] px-2 py-0.5 rounded" style={{ background: `${cor}15`, color: cor }}>{label} • {a.data}</span>
                         </div>
-                        <p className="text-xs" style={{ color: "#a8b8d0" }}>{reformaDesc(a)}</p>
+                        <p className="text-xs" style={{ color: temaClaro ? "#374151" : "#a8b8d0" }}>{reformaDesc(a)}</p>
                       </div>
                     </div>
                   </CanvasBox>
@@ -602,7 +605,7 @@ export default function IATributariaPage() {
               <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: CINZA }}>{tt.diagnosticoTitulo}</p>
               <p className="text-xs mb-3" style={{ color: CINZA }}>{tt.diagnosticoDesc}</p>
               <div className="rounded-xl p-4 whitespace-pre-wrap text-sm leading-relaxed"
-                style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>{diagnostico}</div>
+                style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)", border: temaClaro ? "1px solid rgba(46,204,155,0.15)" : "1px solid rgba(106,176,255,0.15)", color: TEXTO }}>{diagnostico}</div>
             </CanvasBox>
           )}
 
