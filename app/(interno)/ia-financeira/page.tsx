@@ -481,6 +481,7 @@ export default function IAFinanceiraPage() {
   const acaoDesc = (a: AcaoSugerida) => lang === "en" ? a.descricao_en : lang === "es" ? a.descricao_es : a.descricao;
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
@@ -872,5 +873,6 @@ export default function IAFinanceiraPage() {
         cor={ct("#6ab0ff")}
       />
     </ModuloLayout>
+    </div>
   );
 }
