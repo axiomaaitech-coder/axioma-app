@@ -1224,10 +1224,10 @@ export default function EmpresaPage() {
   const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: campoBorda, color: TEXTO };
   // No tema Escuro: secundário de propósito, nunca confundir com "Salvar"
   // (verde) nem "Exportar PDF" (vermelho) - âmbar de alerta suave, fundação
-  // intocada. No tema Claro, pedido explicito do Elias: verde-menta, mesmo
-  // padrão de chip já usado em Centros de Custo (rgba(46,204,155,.15) / #16a97d).
+  // intocada. No tema Claro, pedido explicito do Elias: verde-menta ESCURO
+  // solido, mesmo degrade usado em Salvar/Exportar - pill claro ficou fraco demais.
   const estiloLimparCampos = temaClaro
-    ? { background: "rgba(46,204,155,0.15)", border: "1px solid rgba(46,204,155,0.4)", color: "#16a97d" }
+    ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" }
     : { background: "rgba(251,191,36,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
 
   return (
