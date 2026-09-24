@@ -1228,6 +1228,7 @@ export default function EmpresaPage() {
   const estiloLimparCampos = { background: temaClaro ? "rgba(245,166,35,0.12)" : "rgba(251,191,36,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
 
   return (
+    <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
     <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
       headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
       corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
@@ -1956,6 +1957,7 @@ export default function EmpresaPage() {
         </ModalGenerico>
       )}
     </ModuloLayout>
+    </div>
   );
 }
 
