@@ -1,0 +1,165 @@
+-- ============================================================================
+-- AXIOMA NEXUS — COMITÊ 02, PARTE 1: CATÁLOGO DE SÉRIES (schema only)
+-- Só cria a tabela que diz QUAIS séries do BCB a ingestão diária deve puxar.
+-- NÃO cria a rota de ingestão, NÃO mexe em nexus_economic_series além do
+-- seed abaixo (que só referencia nexus_source, já existente) — isso é o
+-- Passo 2 (código), fora deste arquivo.
+--
+-- Rodar UMA VEZ no SQL Editor do Supabase, DEPOIS de revisão — este arquivo
+-- NÃO é aplicado automaticamente. Idempotente (IF NOT EXISTS / DROP POLICY
+-- IF EXISTS antes de recriar, ON CONFLICT no seed) — pode rodar mais de uma
+-- vez com segurança.
+--
+-- ORDEM DE EXECUÇÃO (transação única):
+--   PASSO 0   — leitura: confirma nexus_source existe e tem a linha 'BCB SGS'
+--               active=true; confirma nexus_series_catalog ainda NÃO existe
+--   PARTE 1   — nexus_series_catalog (pública, compartilhada)
+--   PARTE 2   — seed: 4 séries do BCB, códigos verificados ao vivo na API
+--               oficial nesta rodada (não chutados) — ver nota abaixo
+--   VERIFICAÇÃO (só leitura, roda depois do COMMIT)
+--   ROLLBACK (comentado, só referência)
+--
+-- DECISÃO DE DESENHO — PÚBLICA, sem empresa_id: catálogo de séries do BCB
+-- não pertence a uma empresa, é a mesma lista pra todos os tenants (mesmo
+-- padrão de nexus_source/nexus_economic_series no Push 01). RLS de leitura
+-- pra "authenticated" (USING (true)) e NENHUMA policy de escrita — só
+-- service_role grava (bypassa RLS por padrão no Supabase), então a rota de
+-- ingestão do Passo 2 (que roda com a service role key) é quem maném esse
+-- catálogo, nunca o cliente autenticado.
+--
+-- DECISÃO DE DESENHO — UNIQUE(source_id, serie_codigo): impede cadastrar o
+-- mesmo código de série duas vezes pra mesma fonte. É essa unicidade que a
+-- ingestão do Passo 2 vai percorrer (catálogo ativo da fonte BCB) pra saber
+-- quais séries buscar — sem duplicar chamada à API por engano.
+--
+-- DECISÃO DE DESENHO — "categoria"/"frequencia" são texto livre, sem CHECK
+-- constraint — mesmo raciocínio já registrado no Push 01 (nexus_source):
+-- taxonomia extensível, decisão de código, não de migração.
+--
+-- CÓDIGOS DO BCB SGS — CONFIRMADOS AO VIVO NA API OFICIAL NESTA RODADA
+-- (chamada real em https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/
+-- dados/ultimos/N?formato=json pra cada um, checando se o valor retornado
+-- bate com a grandeza econômica esperada), e cruzados com os mesmos 3
+-- códigos já usados e validados em produção em lib/bcbApi.ts:
+--   1   — Dólar americano (venda), diário. Confirmado: valores ~5.08–5.13,
+--         datas consecutivas de dia útil. Já usado em lib/bcbApi.ts.
+--   432 — Meta da taxa Selic definida pelo Copom (% a.a.). Confirmado:
+--         valor constante (14.00) entre reuniões do Copom, como esperado
+--         pra uma meta que só muda em decisão formal. Já usado em
+--         lib/bcbApi.ts.
+--   433 — IPCA, variação mensal (%). Confirmado: uma leitura por mês,
+--         valores pequenos e oscilando (ex: 0.26, -0.11, 0.48). Já usado
+--         em lib/bcbApi.ts (ali composto pra virar acumulado 12 meses).
+--   12  — CDI, taxa diária (% a.d.). Confirmado: valor diário ~0.0517%,
+--         compatível com a Selic de 14% a.a. do momento. Já usado em
+--         lib/bcbApi.ts (mesmo código, lido como último valor).
+-- Nenhum código novo sem uso prévio na base foi inventado — os 4 batem
+-- com o que o app já consome hoje, só que agora centralizados pra
+-- ingestão automática em vez de chamada ao vivo na tela.
+--
+-- FICOU DE FORA, por decisão consciente (fácil de somar depois, só um
+-- INSERT novo neste catálogo, sem mudar schema nem código da ingestão):
+--   - IGP-M (código 189, confirmado, mais volátil que IPCA) — nenhuma tela
+--     do Axioma usa hoje, não achei justificativa pra semear sem uso real.
+--   - Qualquer série do IBGE — Push 02 desta rodada é só BCB, por pedido
+--     explícito. IBGE fica pro próximo push.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma a base antes de mexer em qualquer coisa.
+-- Se a segunda consulta vier vazia ou active=false, PARE — avise o Elias.
+-- Se a terceira consulta já retornar linha, PARE — a tabela já existe.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name = 'nexus_source';
+
+SELECT source_id, source_name, active FROM public.nexus_source
+  WHERE source_name = 'BCB SGS';
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name = 'nexus_series_catalog';
+
+
+-- ============================================================================
+-- PARTE 1 — NEXUS_SERIES_CATALOG (público, compartilhado)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_series_catalog (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id     uuid NOT NULL REFERENCES public.nexus_source(source_id) ON DELETE RESTRICT,
+  serie_codigo  text NOT NULL,
+  serie_nome    text,
+  categoria     text, -- texto livre, extensível (exchange_rate/interest_rate/inflation/... )
+  country       text NOT NULL DEFAULT 'BR',
+  frequencia    text,
+  janela_dias   int NOT NULL DEFAULT 35,
+  active        boolean NOT NULL DEFAULT true,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (source_id, serie_codigo)
+);
+
+ALTER TABLE public.nexus_series_catalog ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_series_catalog_select ON public.nexus_series_catalog;
+CREATE POLICY nexus_series_catalog_select ON public.nexus_series_catalog
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_series_catalog_source_active
+  ON public.nexus_series_catalog (source_id, active);
+
+
+-- ============================================================================
+-- PARTE 2 — SEED: 4 séries do BCB (janela_dias fica no default 35 pras 4 —
+-- suficiente pra dólar/CDI diários, e pra Selic/IPCA que mudam bem mais
+-- devagar, uma janela maior só custaria chamada de API à toa)
+-- ============================================================================
+
+INSERT INTO public.nexus_series_catalog (source_id, serie_codigo, serie_nome, categoria, country, frequencia, active)
+SELECT source_id, '1', 'Dólar americano (venda)', 'exchange_rate', 'BR', 'diaria', true
+FROM public.nexus_source WHERE source_name = 'BCB SGS'
+ON CONFLICT (source_id, serie_codigo) DO NOTHING;
+
+INSERT INTO public.nexus_series_catalog (source_id, serie_codigo, serie_nome, categoria, country, frequencia, active)
+SELECT source_id, '432', 'Meta Selic definida pelo Copom (% a.a.)', 'interest_rate', 'BR', 'event_driven', true
+FROM public.nexus_source WHERE source_name = 'BCB SGS'
+ON CONFLICT (source_id, serie_codigo) DO NOTHING;
+
+INSERT INTO public.nexus_series_catalog (source_id, serie_codigo, serie_nome, categoria, country, frequencia, active)
+SELECT source_id, '433', 'IPCA — variação mensal (%)', 'inflation', 'BR', 'mensal', true
+FROM public.nexus_source WHERE source_name = 'BCB SGS'
+ON CONFLICT (source_id, serie_codigo) DO NOTHING;
+
+INSERT INTO public.nexus_series_catalog (source_id, serie_codigo, serie_nome, categoria, country, frequencia, active)
+SELECT source_id, '12', 'CDI — taxa diária (% a.d.)', 'interest_rate', 'BR', 'diaria', true
+FROM public.nexus_source WHERE source_name = 'BCB SGS'
+ON CONFLICT (source_id, serie_codigo) DO NOTHING;
+
+COMMIT;
+
+
+-- ============================================================================
+-- VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT c.serie_codigo, c.serie_nome, c.categoria, c.frequencia, c.janela_dias, c.active, s.source_name
+  FROM public.nexus_series_catalog c
+  JOIN public.nexus_source s ON s.source_id = c.source_id
+  ORDER BY c.serie_codigo;
+
+SELECT tablename, policyname, cmd FROM pg_policies
+  WHERE tablename = 'nexus_series_catalog' ORDER BY policyname;
+
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND tablename = 'nexus_series_catalog' ORDER BY indexname;
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- BEGIN;
+-- DROP TABLE IF EXISTS public.nexus_series_catalog;
+-- COMMIT;

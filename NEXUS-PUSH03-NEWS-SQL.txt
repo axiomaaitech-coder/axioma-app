@@ -1,0 +1,124 @@
+-- ============================================================================
+-- AXIOMA NEXUS — COMITÊ PUSH 03: NOTÍCIA REAL (Currents API) — schema only
+-- Adiciona a nexus_news o que falta pra guardar notícia real vinda da
+-- Currents API (grátis, uso comercial permitido) e semeia a fonte. NÃO cria
+-- tela, NÃO chama API nenhuma — isso é a rota /api/nexus/news, fora deste
+-- arquivo. Zero mudança destrutiva em tabela existente (só ADD COLUMN/INDEX).
+--
+-- Rodar UMA VEZ no SQL Editor do Supabase, DEPOIS de revisão do Elias — este
+-- arquivo NÃO é aplicado automaticamente.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0   — leitura: confirma nexus_news e nexus_source já existem
+--               (criadas no NEXUS-PUSH01-SQL.txt)
+--   PARTE 1   — nexus_news: + coluna imagem_url, + coluna canal
+--   PARTE 2   — índice único em canonical_url (upsert idempotente, sem
+--               duplicar a mesma notícia entre re-buscas)
+--   PARTE 3   — índice (canal, created_at) — a rota consulta "qual foi a
+--               última busca deste canal" a cada carregamento de tela
+--   PARTE 4   — seed nexus_source ('Currents', source_type 'news_source')
+--   VERIFICAÇÃO (só leitura, roda depois do COMMIT)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (ADD COLUMN IF NOT EXISTS, CREATE INDEX IF NOT EXISTS, ON
+-- CONFLICT no seed) — pode rodar mais de uma vez com segurança.
+--
+-- DECISÃO DE DESENHO — índice único SIMPLES (não parcial) em canonical_url:
+-- Postgres nunca trata dois NULLs como duplicata num índice único comum, e
+-- um índice parcial (WHERE canonical_url IS NOT NULL) exigiria repetir esse
+-- WHERE em todo ON CONFLICT da rota pra ser usado — supabase-js não permite
+-- isso. Índice simples cobre o mesmo caso sem essa armadilha.
+-- ============================================================================
+
+BEGIN;
+
+-- ----------------------------------------------------------------------------
+-- PASSO 0 — confirma que as tabelas-base já existem (aborta a transação toda
+-- se não existirem, em vez de criar uma nexus_news "nova" incompatível)
+-- ----------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'nexus_news') THEN
+    RAISE EXCEPTION 'nexus_news não existe — rodar NEXUS-PUSH01-SQL.txt antes deste arquivo';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'nexus_source') THEN
+    RAISE EXCEPTION 'nexus_source não existe — rodar NEXUS-PUSH01-SQL.txt antes deste arquivo';
+  END IF;
+END $$;
+
+-- ----------------------------------------------------------------------------
+-- PARTE 1 — NEXUS_NEWS: colunas novas
+-- ----------------------------------------------------------------------------
+-- imagem_url: Currents devolve "image" (string de URL, ou o literal "None"
+-- quando a notícia não tem imagem — tratado pela rota, não pelo banco).
+-- canal: qual canal da tela (economia-br/moedas/mundo/reforma-tributaria)
+-- essa notícia pertence — não existe no schema de notícia genérico do
+-- PUSH01 porque na época não havia tela de canal ainda.
+
+ALTER TABLE public.nexus_news ADD COLUMN IF NOT EXISTS imagem_url text;
+ALTER TABLE public.nexus_news ADD COLUMN IF NOT EXISTS canal text;
+
+-- ----------------------------------------------------------------------------
+-- PARTE 2 — índice único em canonical_url (upsert idempotente)
+-- ----------------------------------------------------------------------------
+-- A rota faz UPSERT (ON CONFLICT (canonical_url)) a cada re-busca — sem isso,
+-- a mesma notícia da Currents viraria uma linha nova a cada 4h.
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_nexus_news_canonical_url
+  ON public.nexus_news (canonical_url);
+
+-- ----------------------------------------------------------------------------
+-- PARTE 3 — índice (canal, created_at) — consulta de cache da rota
+-- ----------------------------------------------------------------------------
+-- "qual foi a última busca deste canal" = MAX(created_at) WHERE canal = X.
+-- Sem índice composto isso vira scan completo da tabela a cada carregamento
+-- de tela (a tabela cresce a cada 4h × 4 canais × N notícias por busca).
+
+CREATE INDEX IF NOT EXISTS idx_nexus_news_canal_created
+  ON public.nexus_news (canal, created_at DESC);
+
+-- ----------------------------------------------------------------------------
+-- PARTE 4 — SEED: fonte Currents (gratuita, uso comercial permitido)
+-- ----------------------------------------------------------------------------
+-- auth_type 'api_key' porque a Currents exige apiKey na query string — a
+-- chave em si mora só na env var CURRENTS_API_KEY do servidor, nunca no banco.
+
+INSERT INTO public.nexus_source (
+  source_name, source_type, provider, category, endpoint, license,
+  access_type, auth_type, update_frequency, active
+) VALUES (
+  'Currents', 'news_source', 'Currents API', 'news',
+  'https://api.currentsapi.services/v1/search',
+  'Currents API free tier (uso comercial permitido)', 'public', 'api_key', 'hourly', true
+)
+ON CONFLICT (source_name) DO NOTHING;
+
+COMMIT;
+
+
+-- ============================================================================
+-- VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT column_name, data_type FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'nexus_news'
+  ORDER BY ordinal_position;
+
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND tablename = 'nexus_news' ORDER BY indexname;
+
+SELECT source_name, source_type, provider, endpoint, active FROM public.nexus_source
+  WHERE source_name = 'Currents';
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- BEGIN;
+-- DROP INDEX IF EXISTS public.idx_nexus_news_canal_created;
+-- DROP INDEX IF EXISTS public.idx_nexus_news_canonical_url;
+-- ALTER TABLE public.nexus_news DROP COLUMN IF EXISTS canal;
+-- ALTER TABLE public.nexus_news DROP COLUMN IF EXISTS imagem_url;
+-- DELETE FROM public.nexus_source WHERE source_name = 'Currents';
+-- COMMIT;

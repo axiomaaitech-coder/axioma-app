@@ -1,0 +1,524 @@
+-- ============================================================================
+-- AXIOMA NEXUS — COMITÊ PUSH 01: DATA FOUNDATION (schema only)
+-- Fundação de dados da inteligência global do Nexus (observa economia/câmbio/
+-- eventos externos → gera inteligência pra empresa). A camada que INTERPRETA
+-- esses dados (JOSEPH, futuro) e a orquestradora (ZIA, já existente) não são
+-- tocadas aqui — este commit só cria onde os dados moram.
+--
+-- Rodar UMA VEZ no SQL Editor do Supabase, DEPOIS de revisão — este arquivo
+-- NÃO é aplicado automaticamente. NÃO cria tela, NÃO implementa motor de
+-- cenários, NÃO faz ingestão de API — isso é o Comitê 02/03, fora deste
+-- arquivo. Zero mudança em tabela existente.
+--
+-- ORDEM DE EXECUÇÃO (transação única — se qualquer parte falhar, nada fica
+-- pela metade):
+--   PASSO 0   — leitura: confirma empresas, empresas_do_usuario(), eventos_negocio
+--               existem; confirma que NENHUMA tabela nexus_* já existe;
+--               confirma disponibilidade de pgvector/timescaledb (informativo)
+--   PARTE 1   — nexus_source            (público, compartilhado)
+--   PARTE 2   — nexus_raw_ingestion     (público, compartilhado)
+--   PARTE 3   — nexus_economic_series   (público, compartilhado)
+--   PARTE 4   — nexus_global_event      (público, compartilhado)
+--   PARTE 5   — nexus_event_evidence    (público, compartilhado)
+--   PARTE 6   — nexus_news              (público, compartilhado)
+--   PARTE 7   — nexus_simulation        (interno, empresa_id + RLS)
+--   PARTE 8   — nexus_audit_log         (interno, empresa_id + RLS)
+--   PARTE 9   — nexus_entity            (gancho INERTE — Comitê 03 preenche)
+--   PARTE 10  — nexus_causal_relation   (gancho INERTE — Comitê 03 preenche)
+--   PARTE 11  — seed nexus_source (BCB SGS, IBGE — fontes gratuitas confirmadas)
+--   VERIFICAÇÃO (só leitura, roda depois do COMMIT)
+--   ROLLBACK (comentado, só referência)
+--
+-- Idempotente (IF NOT EXISTS / DROP POLICY IF EXISTS antes de recriar, ON
+-- CONFLICT no seed) — pode rodar mais de uma vez com segurança.
+--
+-- DECISÃO DE DESENHO — dado público SEM empresa_id (câmbio, PIB, eventos
+-- geopolíticos etc. não pertencem a uma empresa, são compartilhados entre
+-- todos os tenants) tem RLS de LEITURA pra "authenticated" (USING (true)) e
+-- NENHUMA policy de escrita — como só service_role grava (bypassa RLS por
+-- padrão no Supabase), isso já bloqueia insert/update/delete de qualquer
+-- usuário logado sem precisar de policy negativa explícita. É o Comitê 02
+-- (ingestão) quem grava aqui, usando a service role key no backend, nunca o
+-- cliente autenticado.
+--
+-- DECISÃO DE DESENHO — dado interno (nexus_simulation, nexus_audit_log) tem
+-- empresa_id + RLS via empresas_do_usuario(), mesmo padrão de toda tabela
+-- multi-tenant do projeto (MIGRACAO-MULTITENANT.sql, eventos_negocio).
+--
+-- DECISÃO DE DESENHO — "categoria"/"entity_type"/"relation_type" são texto
+-- livre, sem CHECK constraint. Mesmo padrão já usado em eventos_negocio.tipo
+-- e contas_pagar.status: taxonomia que vai crescer (categoria econômica nova,
+-- tipo de entidade novo) é decisão de código, nunca de migração. Onde o
+-- enunciado do Nexus fechou uma lista explícita (source_type, natureza,
+-- verification_status, classification, status de simulação etc.) o CHECK
+-- está presente — a diferença é lista fechada vs. taxonomia extensível.
+--
+-- DECISÃO DE DESENHO — "active bool" em nexus_source existe justamente pra a
+-- fonte ser DESATIVADA, não apagada. Por isso os FKs source_id → nexus_source
+-- usam ON DELETE RESTRICT: apagar uma fonte que já tem séries/eventos/notícias
+-- atribuídas quebraria a rastreabilidade (evidence-first). O caminho normal é
+-- active=false, nunca DELETE.
+--
+-- DECISÃO DE DESENHO — nexus_global_event.natureza é NOT NULL e tem CHECK
+-- fechado (fact/signal/forecast/scenario/rumor/allegation/proposal/
+-- official_decision/regulation/implemented_rule). É o campo que impede rumor
+-- de virar fato: nenhum evento entra na base sem essa classificação explícita.
+--
+-- DECISÃO DE DESENHO — nexus_audit_log.empresa_id é NULLABLE (ação de
+-- plataforma, sem empresa específica, também é logada) com ON DELETE SET
+-- NULL: o rastro de auditoria sobrevive mesmo se a empresa for removida
+-- depois. Só tem policy de SELECT pra authenticated (escopada por
+-- empresas_do_usuario()) — INSERT é feito por função/backend com
+-- service_role, igual aos dados públicos, pra ninguém conseguir forjar o
+-- próprio log de auditoria.
+--
+-- DECISÃO DE DESENHO — nexus_entity e nexus_causal_relation são o gancho pro
+-- Comitê 03 (grafo causal event→variable→industry→company). Este commit cria
+-- só a estrutura mínima, sem lógica nenhuma — nenhum código lê ou escreve
+-- nessas duas tabelas ainda. Ficam com a mesma RLS pública das demais
+-- (leitura authenticated, escrita service_role) porque são dado de
+-- conhecimento compartilhado (entidades/relações causais globais), não
+-- simulação de uma empresa — isso é o que nexus_simulation já cobre.
+--
+-- DECISÃO DE DESENHO — pgvector/timescaledb NÃO são usados neste commit.
+-- Schema inteiro é Postgres puro. O PASSO 0 só CONSULTA (não instala) se as
+-- extensões estão disponíveis no projeto Supabase, como informação pro
+-- Comitê 02/03 decidir depois se valem a pena — não é obrigatório nesta fase.
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- PASSO 0 — LEITURA: confirma as peças-base antes de mexer em qualquer coisa.
+-- Se "empresas" ou "empresas_do_usuario" vier vazio, PARE — avise o Elias.
+-- Se qualquer nexus_* já aparecer na segunda consulta, PARE — já existe algo,
+-- não é primeira aplicação.
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name IN ('empresas', 'eventos_negocio');
+
+SELECT routine_name FROM information_schema.routines
+  WHERE routine_schema = 'public' AND routine_name = 'empresas_do_usuario';
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name LIKE 'nexus_%';
+
+-- Informativo apenas — não bloqueia nem instala nada. Se "vector" ou
+-- "timescaledb" não aparecer aqui, a extensão não está disponível neste
+-- projeto Supabase (schema não depende disso, mas registra pra referência).
+SELECT name, default_version, installed_version
+  FROM pg_available_extensions WHERE name IN ('vector', 'timescaledb');
+
+
+-- ============================================================================
+-- PARTE 1 — NEXUS_SOURCE (público, compartilhado — registro de fontes)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_source (
+  source_id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_name         text NOT NULL UNIQUE,
+  source_type         text NOT NULL CHECK (source_type IN (
+                         'government_api','central_bank','statistics_api','international_org',
+                         'weather_api','market_data','commodity_data','trade_data','news_source',
+                         'regulatory_source','public_dataset','manual_verified'
+                       )),
+  provider             text,
+  country               text,
+  region                text,
+  language              text,
+  category              text,
+  endpoint              text,
+  license               text,
+  access_type           text,
+  auth_type             text,
+  update_frequency      text CHECK (update_frequency IN (
+                           'real_time','hourly','daily','weekly','monthly','quarterly','annual','event_driven'
+                         )),
+  reliability_score     numeric,
+  authority_score       numeric,
+  methodology_score     numeric,
+  freshness_score       numeric,
+  evidence_score        numeric,
+  active                boolean NOT NULL DEFAULT true,
+  last_success          timestamptz,
+  last_failure          timestamptz,
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  updated_at            timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nexus_source ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_source_select ON public.nexus_source;
+CREATE POLICY nexus_source_select ON public.nexus_source
+  FOR SELECT TO authenticated
+  USING (true);
+
+
+-- ============================================================================
+-- PARTE 2 — NEXUS_RAW_INGESTION (público, compartilhado — payload bruto auditável)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_raw_ingestion (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id          uuid NOT NULL REFERENCES public.nexus_source(source_id) ON DELETE RESTRICT,
+  request_ts         timestamptz,
+  response_ts        timestamptz,
+  endpoint           text,
+  http_status        int,
+  payload_hash       text,
+  checksum           text,
+  ingestion_status   text CHECK (ingestion_status IN ('success','partial','failed')),
+  error              text,
+  raw_payload        jsonb,
+  created_at         timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nexus_raw_ingestion ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_raw_ingestion_select ON public.nexus_raw_ingestion;
+CREATE POLICY nexus_raw_ingestion_select ON public.nexus_raw_ingestion
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_raw_ingestion_source_created
+  ON public.nexus_raw_ingestion (source_id, created_at);
+
+
+-- ============================================================================
+-- PARTE 3 — NEXUS_ECONOMIC_SERIES (público, compartilhado — séries canônicas)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_economic_series (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id          uuid NOT NULL REFERENCES public.nexus_source(source_id) ON DELETE RESTRICT,
+  serie_codigo       text NOT NULL,
+  serie_nome         text,
+  categoria          text, -- texto livre, extensível (gdp/cpi/inflation/... — ver nota de desenho no cabeçalho)
+  country            text,
+  region             text,
+  moeda              text,
+  unidade            text,
+  frequencia         text,
+  valor              numeric,
+  data_referencia    date NOT NULL,
+  observed_at        timestamptz,
+  published_at       timestamptz,
+  retrieved_at       timestamptz,
+  freshness_status   text CHECK (freshness_status IN ('live','fresh','recent','stale','expired','unknown')),
+  confidence         numeric,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (source_id, serie_codigo, data_referencia)
+);
+
+ALTER TABLE public.nexus_economic_series ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_economic_series_select ON public.nexus_economic_series;
+CREATE POLICY nexus_economic_series_select ON public.nexus_economic_series
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_economic_series_categoria_country_data
+  ON public.nexus_economic_series (categoria, country, data_referencia);
+
+
+-- ============================================================================
+-- PARTE 4 — NEXUS_GLOBAL_EVENT (público, compartilhado — eventos)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_global_event (
+  event_id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title              text NOT NULL,
+  description        text,
+  event_type         text,
+  category           text CHECK (category IN (
+                        'economic','financial','fiscal','tax','political','geopolitical','trade',
+                        'energy','commodity','climate','natural','health','technology',
+                        'supply_chain','regulatory','social'
+                      )),
+  subcategory        text,
+  country             text,
+  region              text,
+  source_id           uuid REFERENCES public.nexus_source(source_id) ON DELETE RESTRICT,
+  source_event_ref    text,
+  natureza            text NOT NULL CHECK (natureza IN (
+                         'fact','signal','forecast','scenario','rumor','allegation','proposal',
+                         'official_decision','regulation','implemented_rule'
+                       )), -- classificação obrigatória: impede rumor de virar fato automaticamente
+  published_at        timestamptz,
+  observed_at          timestamptz,
+  effective_at         timestamptz,
+  expires_at           timestamptz,
+  severity             numeric,
+  relevance            numeric,
+  confidence           numeric,
+  evidence_level       text,
+  status               text,
+  created_at           timestamptz NOT NULL DEFAULT now(),
+  updated_at           timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nexus_global_event ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_global_event_select ON public.nexus_global_event;
+CREATE POLICY nexus_global_event_select ON public.nexus_global_event
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_global_event_category_country_published
+  ON public.nexus_global_event (category, country, published_at);
+
+
+-- ============================================================================
+-- PARTE 5 — NEXUS_EVENT_EVIDENCE (público, compartilhado — evidência)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_event_evidence (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id             uuid NOT NULL REFERENCES public.nexus_global_event(event_id) ON DELETE CASCADE,
+  source_id            uuid REFERENCES public.nexus_source(source_id) ON DELETE RESTRICT,
+  evidence_type        text,
+  referencia           text,
+  excerpt              text, -- só trecho, nunca artigo/documento inteiro (direito autoral)
+  published_at         timestamptz,
+  retrieved_at         timestamptz,
+  confidence           numeric,
+  verification_status  text CHECK (verification_status IN ('unverified','corroborated','official','disputed')),
+  created_at           timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nexus_event_evidence ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_event_evidence_select ON public.nexus_event_evidence;
+CREATE POLICY nexus_event_evidence_select ON public.nexus_event_evidence
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_event_evidence_event
+  ON public.nexus_event_evidence (event_id);
+
+
+-- ============================================================================
+-- PARTE 6 — NEXUS_NEWS (público, compartilhado — metadados de notícia)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS public.nexus_news (
+  id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id            uuid REFERENCES public.nexus_source(source_id) ON DELETE RESTRICT,
+  title                text,
+  original_title       text,
+  original_language    text,
+  translated_summary   text, -- resumo, nunca o artigo inteiro (direito autoral)
+  author               text,
+  publication_date     timestamptz,
+  canonical_url        text,
+  entities             jsonb,
+  countries            jsonb,
+  topics               jsonb,
+  event_id             uuid REFERENCES public.nexus_global_event(event_id) ON DELETE SET NULL,
+  created_at           timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nexus_news ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_news_select ON public.nexus_news;
+CREATE POLICY nexus_news_select ON public.nexus_news
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_news_event
+  ON public.nexus_news (event_id);
+CREATE INDEX IF NOT EXISTS idx_nexus_news_publication_date
+  ON public.nexus_news (publication_date);
+
+
+-- ============================================================================
+-- PARTE 7 — NEXUS_SIMULATION (interno — empresa_id + RLS)
+-- ============================================================================
+-- Workspace de simulação do usuário. Soft-delete via status='deleted' (nunca
+-- apaga a linha) — editar/duplicar/arquivar/excluir-com-confirmação são
+-- operações da UI do Comitê 03, este commit só garante o schema por baixo.
+
+CREATE TABLE IF NOT EXISTS public.nexus_simulation (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id         uuid NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+  criado_por         uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  simulation_name    text NOT NULL,
+  description        text,
+  variables          jsonb,
+  assumptions        jsonb,
+  horizon            text,
+  result             jsonb,
+  status             text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','running','completed','archived','deleted')),
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  updated_at         timestamptz NOT NULL DEFAULT now(),
+  expires_at         timestamptz,
+  archived_at        timestamptz
+);
+
+ALTER TABLE public.nexus_simulation ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_simulation_multitenant ON public.nexus_simulation;
+CREATE POLICY nexus_simulation_multitenant ON public.nexus_simulation
+  FOR ALL TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()))
+  WITH CHECK (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_nexus_simulation_empresa_status
+  ON public.nexus_simulation (empresa_id, status);
+
+
+-- ============================================================================
+-- PARTE 8 — NEXUS_AUDIT_LOG (interno — empresa_id nullable + RLS)
+-- ============================================================================
+-- empresa_id nullable: ação de plataforma (sem empresa específica) também é
+-- logada aqui. Só SELECT pra authenticated — INSERT é feito por backend com
+-- service_role (ninguém escreve o próprio log de auditoria).
+
+CREATE TABLE IF NOT EXISTS public.nexus_audit_log (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id     uuid REFERENCES public.empresas(id) ON DELETE SET NULL,
+  ator           uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  acao           text NOT NULL,
+  entidade       text,
+  entidade_id    uuid,
+  parametros     jsonb,
+  resultado      jsonb,
+  versao_motor   text,
+  versao_dados   text,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.nexus_audit_log ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_audit_log_select ON public.nexus_audit_log;
+CREATE POLICY nexus_audit_log_select ON public.nexus_audit_log
+  FOR SELECT TO authenticated
+  USING (empresa_id IN (SELECT public.empresas_do_usuario()));
+
+CREATE INDEX IF NOT EXISTS idx_nexus_audit_log_empresa_acao_created
+  ON public.nexus_audit_log (empresa_id, acao, created_at);
+
+
+-- ============================================================================
+-- PARTE 9 — NEXUS_ENTITY (gancho INERTE — Comitê 03 preenche)
+-- ============================================================================
+-- Estrutura base mínima. Nenhum código lê ou escreve aqui ainda.
+
+CREATE TABLE IF NOT EXISTS public.nexus_entity (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_type    text, -- texto livre: country/company/commodity/currency/industry/... (extensível)
+  name           text NOT NULL,
+  external_ref   text,
+  attributes     jsonb,
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.nexus_entity IS
+  'INERTE — gancho pro Comitê 03 (grafo causal). Só a estrutura base existe; nenhuma lógica de preenchimento ou consumo foi implementada neste commit (Push 01).';
+
+ALTER TABLE public.nexus_entity ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_entity_select ON public.nexus_entity;
+CREATE POLICY nexus_entity_select ON public.nexus_entity
+  FOR SELECT TO authenticated
+  USING (true);
+
+
+-- ============================================================================
+-- PARTE 10 — NEXUS_CAUSAL_RELATION (gancho INERTE — Comitê 03 preenche)
+-- ============================================================================
+-- Estrutura base mínima. Nenhum código lê ou escreve aqui ainda.
+
+CREATE TABLE IF NOT EXISTS public.nexus_causal_relation (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_entity_id   uuid REFERENCES public.nexus_entity(id) ON DELETE CASCADE,
+  target_entity_id   uuid REFERENCES public.nexus_entity(id) ON DELETE CASCADE,
+  event_id           uuid REFERENCES public.nexus_global_event(event_id) ON DELETE SET NULL,
+  relation_type      text, -- texto livre: descreve o elo na cadeia event→variable→industry→company
+  classification     text CHECK (classification IN ('correlation','probable','evidence_supported','hypothesis')),
+  description        text,
+  confidence         numeric,
+  created_at         timestamptz NOT NULL DEFAULT now(),
+  updated_at         timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.nexus_causal_relation IS
+  'INERTE — gancho pro Comitê 03 (grafo causal). Só a estrutura base existe; nenhuma lógica de classificação ou consumo foi implementada neste commit (Push 01).';
+
+ALTER TABLE public.nexus_causal_relation ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_causal_relation_select ON public.nexus_causal_relation;
+CREATE POLICY nexus_causal_relation_select ON public.nexus_causal_relation
+  FOR SELECT TO authenticated
+  USING (true);
+
+
+-- ============================================================================
+-- PARTE 11 — SEED: fontes gratuitas confirmadas (prontas pro Comitê 02 consumir)
+-- ============================================================================
+-- BCB SGS (Sistema Gerenciador de Séries Temporais) e IBGE — gratuitas,
+-- confirmado no enunciado deste push. update_frequency é um ponto de partida
+-- razoável (varia por série específica) — o Comitê 02 pode ajustar por série
+-- quando a ingestão real existir.
+
+INSERT INTO public.nexus_source (
+  source_name, source_type, provider, country, category, endpoint, license,
+  access_type, auth_type, update_frequency, active
+) VALUES (
+  'BCB SGS', 'central_bank', 'Banco Central do Brasil (BCB)', 'BR',
+  'macroeconomic_series', 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json',
+  'ODbL', 'public', 'none', 'daily', true
+)
+ON CONFLICT (source_name) DO NOTHING;
+
+INSERT INTO public.nexus_source (
+  source_name, source_type, provider, country, category, endpoint, license,
+  access_type, auth_type, update_frequency, active
+) VALUES (
+  'IBGE Dados Abertos', 'statistics_api', 'Instituto Brasileiro de Geografia e Estatística (IBGE)', 'BR',
+  'official_statistics', 'https://servicodados.ibge.gov.br/api/docs/',
+  'dados abertos (IBGE)', 'public', 'none', 'monthly', true
+)
+ON CONFLICT (source_name) DO NOTHING;
+
+COMMIT;
+
+
+-- ============================================================================
+-- VERIFICAÇÃO (só leitura — rodar depois da transação acima)
+-- ============================================================================
+
+SELECT table_name FROM information_schema.tables
+  WHERE table_schema = 'public' AND table_name LIKE 'nexus_%'
+  ORDER BY table_name;
+
+SELECT tablename, policyname, cmd FROM pg_policies
+  WHERE tablename LIKE 'nexus_%' ORDER BY tablename, policyname;
+
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND tablename LIKE 'nexus_%' ORDER BY indexname;
+
+SELECT source_name, source_type, provider, endpoint, active FROM public.nexus_source
+  ORDER BY source_name;
+
+
+-- ============================================================================
+-- ROLLBACK (comentado — só referência, não faz parte da execução normal)
+-- ============================================================================
+-- Ordem inversa de dependência (FK) — DROP TABLE já remove policies e
+-- índices da própria tabela junto, não precisa DROP POLICY/DROP INDEX separado.
+--
+-- BEGIN;
+-- DROP TABLE IF EXISTS public.nexus_causal_relation;
+-- DROP TABLE IF EXISTS public.nexus_entity;
+-- DROP TABLE IF EXISTS public.nexus_audit_log;
+-- DROP TABLE IF EXISTS public.nexus_simulation;
+-- DROP TABLE IF EXISTS public.nexus_news;
+-- DROP TABLE IF EXISTS public.nexus_event_evidence;
+-- DROP TABLE IF EXISTS public.nexus_global_event;
+-- DROP TABLE IF EXISTS public.nexus_economic_series;
+-- DROP TABLE IF EXISTS public.nexus_raw_ingestion;
+-- DROP TABLE IF EXISTS public.nexus_source;
+-- COMMIT;
