@@ -5,7 +5,6 @@ import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
 import { ThemeToggle } from "../../../components/ThemeToggle";
 import { CanvasBox } from "../../../components/CanvasBox";
-import { SoundWaveCard } from "../../../components/SoundWaveCard";
 import { useThemeAxioma } from "../../../lib/ThemeContext";
 import { corTema } from "../../../lib/cfoCore";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
@@ -561,42 +560,35 @@ export default function IAFinanceiraPage() {
               {/* Radar Chart */}
               <CanvasBox {...cartaoTema} cor={ct(score360.cor)}>
                 <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: ct("#5a7a9a") }}>{tt.scoreEmpresarial}</p>
-                <SoundWaveCard className="mx-auto max-w-[480px]">
-                  <div
-                    className="rounded-2xl p-3 md:p-4"
-                    style={{ background: "rgba(2,8,16,0.4)", border: "1px solid rgba(147,197,253,0.25)" }}
-                  >
-                    <ResponsiveContainer width="100%" height={320}>
-                      <RadarChart data={score360.dimensoes.map(d => ({ subject: dimNome(d), score: d.score, benchmark: 70, fullMark: 100 }))}>
-                        <defs>
-                          <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stopColor={ct(score360.cor)} stopOpacity={0.6} />
-                            <stop offset="100%" stopColor={ct(score360.cor)} stopOpacity={0.05} />
-                          </radialGradient>
-                        </defs>
-                        <PolarGrid stroke="rgba(147,197,253,0.2)" gridType="polygon" />
-                        <PolarAngleAxis dataKey="subject" tick={{ fill: "#c8d8f0", fontSize: 12, fontWeight: 600 }} />
-                        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#7fa3c9", fontSize: 10 }} axisLine={false} />
-                        <Radar name="Benchmark" dataKey="benchmark" stroke={ct("#fbbf24")} strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
-                        <Radar name="Score" dataKey="score" stroke={ct(score360.cor)} fill="url(#radarGrad)" strokeWidth={2.5}
-                          dot={(props: any) => {
-                            const dim = score360.dimensoes[props.index];
-                            if (!dim) return <circle key={props.index} cx={props.cx} cy={props.cy} r={6} fill={ct(score360.cor)} stroke="#020810" strokeWidth={2} />;
-                            return (
-                              <g key={props.index}>
-                                <circle cx={props.cx} cy={props.cy} r={10} fill={ct(dim.cor)} fillOpacity={0.2} />
-                                <circle cx={props.cx} cy={props.cy} r={6} fill={ct(dim.cor)} stroke="#020810" strokeWidth={2} />
-                                <text x={props.cx} y={props.cy - 14} textAnchor="middle" fill={ct(dim.cor)} fontSize={11} fontWeight={700}>{dim.score}</text>
-                              </g>
-                            );
-                          }}
-                        />
-                        <Tooltip contentStyle={tooltipStyle} />
-                      </RadarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </SoundWaveCard>
-                <div className="flex items-center justify-center gap-4 mt-3 text-[10px] flex-wrap">
+                <ResponsiveContainer width="100%" height={320}>
+                  <RadarChart data={score360.dimensoes.map(d => ({ subject: dimNome(d), score: d.score, benchmark: 70, fullMark: 100 }))}>
+                    <defs>
+                      <radialGradient id="radarGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={ct(score360.cor)} stopOpacity={0.6} />
+                        <stop offset="100%" stopColor={ct(score360.cor)} stopOpacity={0.05} />
+                      </radialGradient>
+                    </defs>
+                    <PolarGrid stroke={temaClaro ? "rgba(46,204,155,0.18)" : "rgba(106,176,255,0.12)"} gridType="polygon" />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: ct("#c8d8f0"), fontSize: 12, fontWeight: 600 }} />
+                    <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: ct("#5a7a9a"), fontSize: 10 }} axisLine={false} />
+                    <Radar name="Benchmark" dataKey="benchmark" stroke={ct("#fbbf24")} strokeWidth={1} strokeDasharray="4 4" fill="transparent" dot={false} />
+                    <Radar name="Score" dataKey="score" stroke={ct(score360.cor)} fill="url(#radarGrad)" strokeWidth={2.5}
+                      dot={(props: any) => {
+                        const dim = score360.dimensoes[props.index];
+                        if (!dim) return <circle key={props.index} cx={props.cx} cy={props.cy} r={6} fill={ct(score360.cor)} stroke={temaClaro ? "#f6f7c4" : "#020810"} strokeWidth={2} />;
+                        return (
+                          <g key={props.index}>
+                            <circle cx={props.cx} cy={props.cy} r={10} fill={ct(dim.cor)} fillOpacity={0.2} />
+                            <circle cx={props.cx} cy={props.cy} r={6} fill={ct(dim.cor)} stroke={temaClaro ? "#f6f7c4" : "#020810"} strokeWidth={2} />
+                            <text x={props.cx} y={props.cy - 14} textAnchor="middle" fill={ct(dim.cor)} fontSize={11} fontWeight={700}>{dim.score}</text>
+                          </g>
+                        );
+                      }}
+                    />
+                    <Tooltip contentStyle={tooltipStyle} />
+                  </RadarChart>
+                </ResponsiveContainer>
+                <div className="flex items-center justify-center gap-4 mt-2 text-[10px] flex-wrap">
                   <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: ct(score360.cor) }}></span> <span style={{ color: ct("#5a7a9a") }}>Score</span></span>
                   <span className="flex items-center gap-1"><span className="w-3 h-0.5 inline-block" style={{ background: ct("#fbbf24"), borderTop: "1px dashed #fbbf24" }}></span> <span style={{ color: ct("#5a7a9a") }}>Benchmark (70)</span></span>
                 </div>
