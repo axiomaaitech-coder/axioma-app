@@ -1,84 +1,27 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { createBrowserClient } from '@supabase/ssr'
 import { Check, Zap, Crown, Building2, Rocket, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useThemeAxioma } from '../../../lib/ThemeContext'
-import { ThemeToggle } from '../../../components/ThemeToggle'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-function CanvasEpico() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = canvasRef.current; if (!canvas) return
-    const ctx = canvas.getContext('2d'); if (!ctx) return
-    let animId: number
-    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
-    resize(); window.addEventListener('resize', resize)
-    const particles = Array.from({ length: 70 }, () => ({
-      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
-      size: Math.random() * 2.5 + 0.5,
-      color: ['#6ab0ff', '#34d399', '#a78bfa', '#f59e0b', '#f472b6', '#fbbf24'][Math.floor(Math.random() * 6)],
-      opacity: Math.random() * 0.7 + 0.2,
-    }))
-    const chars = 'AXIOMA AI TECH R$ 47 97 197 297 % STARTER PRO BUSINESS ENTERPRISE 0 1 2 3 4 5 6 7 8 9'.split(' ').map(char => ({
-      char, x: Math.random() * 100, y: Math.random() * 100,
-      size: Math.random() * 32 + 16, opacity: Math.random() * 0.05 + 0.015,
-      speed: Math.random() * 0.2 + 0.06,
-      color: ['#6ab0ff', '#34d399', '#f59e0b', '#a78bfa', '#f472b6'][Math.floor(Math.random() * 5)],
-    }))
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      chars.forEach(f => {
-        ctx.save(); ctx.font = `900 ${f.size}px Arial`
-        ctx.fillStyle = f.color; ctx.globalAlpha = f.opacity
-        ctx.fillText(f.char, (f.x / 100) * canvas.width, (f.y / 100) * canvas.height)
-        ctx.restore(); f.y -= f.speed; if (f.y < -5) f.y = 105
-      })
-      particles.forEach((p, i) => {
-        particles.slice(i + 1).forEach(q => {
-          const dx = p.x - q.x, dy = p.y - q.y, dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 130) {
-            ctx.save(); ctx.globalAlpha = (1 - dist / 130) * 0.1
-            ctx.strokeStyle = p.color; ctx.lineWidth = 0.5
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore()
-          }
-        })
-        ctx.save(); ctx.globalAlpha = p.opacity; ctx.fillStyle = p.color
-        ctx.shadowColor = p.color; ctx.shadowBlur = 8
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore()
-        p.x += p.vx; p.y += p.vy
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
-      })
-      animId = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize) }
-  }, [])
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.9 }} />
-}
+// Página de assinatura — fora do dashboard interno (não usa o toggle de
+// tema Claro/Escuro dos módulos de trabalho). Só Escuro, sempre.
+const PAG_BG = '#020810'
+const CARD_BG = 'rgba(4,10,22,0.97)'
+const TEXTO_PRINC = '#c8d8f0'
+const TEXTO_MUTED = '#6a8bbd'
+const TEXTO_MUTED2 = '#5a7aaa'
 
 export default function Planos() {
   const router = useRouter()
   const { idioma } = useLanguage()
-  const { tema } = useThemeAxioma()
-  const temaClaro = tema === 'xms'
-  // Paleta Claro segue tema-tokens.md — card creme (#f6f7c4, padrão já usado
-  // em todo módulo "repintado"), texto azul-marinho, muted #374151 (mesmo
-  // ajuste de contraste já feito nos demais módulos sobre fundo creme).
-  const PAG_BG = temaClaro ? '#f7f8fa' : '#020810'
-  const CARD_BG = temaClaro ? '#f6f7c4' : 'rgba(4,10,22,0.97)'
-  const TEXTO_PRINC = temaClaro ? '#101b3d' : '#c8d8f0'
-  const TEXTO_MUTED = temaClaro ? '#374151' : '#6a8bbd'
-  const TEXTO_MUTED2 = temaClaro ? '#374151' : '#5a7aaa'
   const [hover, setHover] = useState<string | null>(null)
   const [loadingPlano, setLoadingPlano] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -205,33 +148,22 @@ export default function Planos() {
   }
 
   return (
-    <div data-theme={tema} className="relative min-h-screen overflow-auto" style={{ background: PAG_BG }}>
-      <CanvasEpico />
+    <div className="relative min-h-screen overflow-auto" style={{ background: PAG_BG }}>
       <div className="absolute inset-0 pointer-events-none" style={{
-        background: temaClaro
-          ? 'radial-gradient(ellipse at 50% 20%, rgba(46,204,155,0.08) 0%, transparent 60%)'
-          : 'radial-gradient(ellipse at 50% 20%, rgba(106,176,255,0.08) 0%, transparent 60%)',
+        background: 'radial-gradient(ellipse at 50% 20%, rgba(106,176,255,0.08) 0%, transparent 60%)',
       }} />
-
-      <div className="absolute top-5 right-5 z-20"><ThemeToggle /></div>
 
       <div className="relative z-10 px-4 py-12 md:py-16">
 
         {/* Header */}
         <div className="flex flex-col items-center mb-12 md:mb-16">
-          <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 rounded-full border-2 mb-6 opacity-60"
-            style={{ borderColor: '#6ab0ff', borderTopColor: '#34d399', borderRightColor: '#f59e0b' }} />
-
-          <motion.div animate={{ opacity: [0.7, 1, 0.7] }} transition={{ duration: 3, repeat: Infinity }}
-            className="text-xs font-black tracking-[0.4em] uppercase mb-3"
-            style={{ color: temaClaro ? '#101b3d' : '#6ab0ff', textShadow: temaClaro ? 'none' : '0 0 30px #6ab0ff' }}>
+          <div className="text-xs font-black tracking-[0.4em] uppercase mb-3" style={{ color: '#6ab0ff' }}>
             AXIOMA AI.TECH
-          </motion.div>
+          </div>
 
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
             className="text-4xl md:text-6xl font-black text-center mb-4"
-            style={{ color: TEXTO_PRINC, textShadow: temaClaro ? 'none' : '0 0 40px rgba(106,176,255,0.3)', lineHeight: 1.1 }}>
+            style={{ color: TEXTO_PRINC, lineHeight: 1.1 }}>
             {txt.titulo}
           </motion.h1>
 
@@ -245,7 +177,7 @@ export default function Planos() {
             {erro && (
               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="mt-4 px-6 py-3 rounded-xl text-sm font-semibold"
-                style={{ background: temaClaro ? 'rgba(255,90,107,0.1)' : 'rgba(248,113,113,0.1)', border: `1px solid ${temaClaro ? 'rgba(255,90,107,0.3)' : 'rgba(248,113,113,0.3)'}`, color: temaClaro ? '#ff5a6b' : '#f87171' }}>
+                style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}>
                 {erro}
               </motion.div>
             )}
@@ -259,55 +191,38 @@ export default function Planos() {
             const carregando = loadingPlano === plano.id
             return (
               <motion.div key={plano.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.12 }}
+                transition={{ delay: idx * 0.08, duration: 0.4, ease: 'easeOut' }}
                 onHoverStart={() => setHover(plano.id)} onHoverEnd={() => setHover(null)}
-                className={`relative rounded-3xl overflow-hidden flex flex-col${temaClaro ? ' axi-card-premium3d' : ''}`}
+                className="relative rounded-3xl overflow-hidden flex flex-col"
                 style={{
                   background: CARD_BG,
                   border: `1px solid ${plano.cor}${plano.destaque ? '70' : '30'}`,
                   boxShadow: isHover || plano.destaque ? `0 0 60px ${plano.cor}22, 0 0 30px ${plano.cor}10` : 'none',
+                  transition: 'box-shadow 200ms ease',
                 }}>
-                <CanvasEpico />
-
-                {[
-                  { pos: 'top-0 left-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
-                  { pos: 'top-0 left-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
-                  { pos: 'top-0 right-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
-                  { pos: 'top-0 right-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(180deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 left-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(90deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 left-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 right-0', w: 'w-20 h-[2.5px]', bg: `linear-gradient(270deg, ${plano.cor}, transparent)` },
-                  { pos: 'bottom-0 right-0', w: 'w-[2.5px] h-20', bg: `linear-gradient(0deg, ${plano.cor}, transparent)` },
-                ].map((b, i) => (
-                  <div key={i} className={`absolute ${b.pos} ${b.w} z-10`}
-                    style={{ background: b.bg, boxShadow: `0 0 16px ${plano.cor}`, borderRadius: '999px' }} />
-                ))}
 
                 {plano.badge && (
                   <div className="relative z-10 flex justify-center pt-4">
-                    <motion.span animate={{ opacity: [0.8, 1, 0.8] }} transition={{ duration: 2, repeat: Infinity }}
-                      className="text-xs font-black px-4 py-1.5 rounded-full"
-                      style={{ background: `${plano.cor}20`, color: plano.cor, border: `1px solid ${plano.cor}50`, boxShadow: `0 0 15px ${plano.cor}30` }}>
+                    <span className="text-xs font-black px-4 py-1.5 rounded-full"
+                      style={{ background: `${plano.cor}20`, color: plano.cor, border: `1px solid ${plano.cor}50` }}>
                       {plano.badge}
-                    </motion.span>
+                    </span>
                   </div>
                 )}
 
                 <div className="relative z-10 p-5 md:p-6 flex flex-col flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 4, repeat: Infinity, delay: idx * 0.5 }}
-                      className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
+                    <div className="p-2 rounded-xl" style={{ background: `${plano.cor}15` }}>
                       <plano.Icon size={22} style={{ color: plano.cor }} />
-                    </motion.div>
-                    <h2 className="text-2xl font-black" style={{ color: plano.cor, textShadow: `0 0 20px ${plano.cor}60` }}>{plano.nome}</h2>
+                    </div>
+                    <h2 className="text-2xl font-black" style={{ color: plano.cor }}>{plano.nome}</h2>
                   </div>
 
                   <p className="text-xs mb-5" style={{ color: TEXTO_MUTED }}>{plano.desc}</p>
 
                   <div className="mb-4">
                     <div className="flex items-end gap-2">
-                      <span className="text-4xl md:text-5xl font-black"
-                        style={{ color: TEXTO_PRINC, textShadow: temaClaro ? 'none' : `0 0 30px ${plano.cor}40` }}>
+                      <span className="text-4xl md:text-5xl font-black" style={{ color: TEXTO_PRINC }}>
                         R$ {plano.mensal}
                       </span>
                       <span className="text-sm mb-2" style={{ color: TEXTO_MUTED }}>{txt.mes}</span>
@@ -339,12 +254,12 @@ export default function Planos() {
 
                   {/* ✅ Botão com Stripe integrado */}
                   <motion.button
-                    whileHover={{ scale: carregando ? 1 : 1.03, boxShadow: carregando ? 'none' : `0 0 40px ${plano.cor}50` }}
-                    whileTap={{ scale: carregando ? 1 : 0.97 }}
+                    whileHover={{ scale: carregando ? 1 : 1.02 }}
+                    whileTap={{ scale: carregando ? 1 : 0.98 }}
                     onClick={() => assinar(plano.id)}
                     disabled={carregando || !!loadingPlano}
                     className="w-full py-3.5 rounded-2xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 disabled:opacity-70"
-                    style={{ background: plano.corGrad, color: '#fff', boxShadow: `0 4px 30px ${plano.cor}30` }}>
+                    style={{ background: plano.corGrad, color: '#fff' }}>
                     {carregando ? (
                       <>
                         <Loader2 size={18} className="animate-spin" />
@@ -359,17 +274,15 @@ export default function Planos() {
         </div>
 
         {/* Rodapé */}
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-          className="text-center text-xs mt-12" style={{ color: TEXTO_MUTED }}>
+        <p className="text-center text-xs mt-12" style={{ color: TEXTO_MUTED }}>
           {txt.cancelar}
-        </motion.p>
+        </p>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-          className="flex justify-center gap-6 mt-6 flex-wrap">
+        <div className="flex justify-center gap-6 mt-6 flex-wrap">
           {['🔒 SSL Seguro', '💳 Pagamento Seguro via Stripe', '⚡ Ativação Imediata', '🔄 Cancele Quando Quiser'].map((item, i) => (
             <span key={i} className="text-xs" style={{ color: TEXTO_MUTED2 }}>{item}</span>
           ))}
-        </motion.div>
+        </div>
       </div>
     </div>
   )
