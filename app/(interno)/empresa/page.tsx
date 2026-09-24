@@ -1222,10 +1222,13 @@ export default function EmpresaPage() {
   }
 
   const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: campoBorda, color: TEXTO };
-  // Secundário de propósito — nunca pode se confundir com "Salvar" (verde) nem
-  // com "Exportar PDF" (vermelho #ff5a6b, padrão do projeto). Âmbar de alerta
-  // suave, com contraste real no fundo escuro (não some como o cinza de antes).
-  const estiloLimparCampos = { background: temaClaro ? "rgba(245,166,35,0.12)" : "rgba(251,191,36,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
+  // No tema Escuro: secundário de propósito, nunca confundir com "Salvar"
+  // (verde) nem "Exportar PDF" (vermelho) - âmbar de alerta suave, fundação
+  // intocada. No tema Claro, pedido explicito do Elias: verde-menta, mesmo
+  // padrão de chip já usado em Centros de Custo (rgba(46,204,155,.15) / #16a97d).
+  const estiloLimparCampos = temaClaro
+    ? { background: "rgba(46,204,155,0.15)", border: "1px solid rgba(46,204,155,0.4)", color: "#16a97d" }
+    : { background: "rgba(251,191,36,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
 
   return (
     <div data-theme={tema} style={{ fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
@@ -1821,7 +1824,9 @@ export default function EmpresaPage() {
             </button>
             <button onClick={limparCampos}
               className="sm:w-auto w-full px-4 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: CINZA }}>
+              style={temaClaro
+                ? { background: "rgba(16,27,61,0.08)", border: "1px solid rgba(16,27,61,0.2)", color: "#374151" }
+                : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: CINZA }}>
               {tt.limparCamposConfirmar}
             </button>
           </div>
