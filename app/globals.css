@@ -132,3 +132,90 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .axi-card-premium3d, .axi-card-premium3d .axi-card-premium3d-bar { transition: none; }
 }
+
+/* Campo de energia "espaço" (RadarEnergyField) - card azul-marinho fixo (não
+   segue tema Claro/Escuro, igual ao restante dos cards "hero" decorativos)
+   com 3 camadas: linhas de fundo quase estáticas, feixes de luz correndo por
+   cima dessas linhas, e cometas cruzando o campo. Aprovado via protótipo
+   isolado em 2026-09-24 antes de entrar no código real - ver componente
+   RadarEnergyField. Tudo em transform/opacity, respeita reduced-motion. */
+.axi-energy-stars {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.2px 1.2px at 78% 12%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1.6px 1.6px at 88% 62%, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.1px 1.1px at 24% 82%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1.3px 1.3px at 60% 88%, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 40% 6%, rgba(255,255,255,.35), transparent),
+    radial-gradient(1.2px 1.2px at 10% 55%, rgba(255,255,255,.4), transparent),
+    radial-gradient(1px 1px at 92% 40%, rgba(255,255,255,.35), transparent);
+  opacity: .65;
+}
+.axi-energy-starfall { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.axi-falling-star {
+  position: absolute; top: -4%;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+  animation: axiStarfall linear infinite;
+}
+@keyframes axiStarfall {
+  0% { transform: translate(0,0); opacity: 0; }
+  10% { opacity: var(--peak, .9); }
+  88% { opacity: var(--peak, .9); }
+  100% { transform: translate(var(--dx, -18px), 360px); opacity: 0; }
+}
+.axi-energy-field {
+  position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;
+  -webkit-mask-image: radial-gradient(circle at 50% 52%, transparent 0%, transparent 41%, black 49%, black 100%);
+  mask-image: radial-gradient(circle at 50% 52%, transparent 0%, transparent 41%, black 49%, black 100%);
+}
+.axi-base-path {
+  fill: none; stroke: rgba(120,170,255,.16); stroke-width: 1; stroke-linecap: round;
+  transform-origin: center;
+  animation: axiDrift 20s ease-in-out infinite;
+}
+@keyframes axiDrift {
+  0%, 100% { transform: translateX(0) translateY(0); opacity: .5; }
+  50% { transform: translateX(6px) translateY(-4px); opacity: .85; }
+}
+.axi-beam-path {
+  fill: none; stroke-width: 2; stroke-linecap: round;
+  stroke-dasharray: 26 340;
+  animation: axiBeamrun linear infinite;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+@keyframes axiBeamrun {
+  from { stroke-dashoffset: 360; }
+  to { stroke-dashoffset: 0; }
+}
+.axi-meteor {
+  position: absolute; top: -12%;
+  opacity: 0;
+  animation: axiMeteorfall linear infinite;
+  transform: rotate(220deg);
+  filter: drop-shadow(0 0 6px var(--mc, rgba(200,225,255,.9)));
+}
+.axi-meteor .axi-meteor-tail {
+  width: var(--len, 130px); height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--mc, #eaf4ff), rgba(234,244,255,0));
+}
+.axi-meteor .axi-meteor-head {
+  position: absolute; right: -1.5px; top: 50%; transform: translateY(-50%);
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--mc, #eaf4ff);
+  box-shadow: 0 0 10px 2px var(--mc, #eaf4ff);
+}
+@keyframes axiMeteorfall {
+  0% { transform: translate(0,0) rotate(220deg); opacity: 0; }
+  8% { opacity: 1; }
+  75% { opacity: .9; }
+  100% { transform: translate(-360px, 340px) rotate(220deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .axi-base-path, .axi-beam-path, .axi-meteor, .axi-falling-star { animation: none !important; }
+  .axi-beam-path { stroke-dasharray: none; opacity: .5; }
+  .axi-meteor, .axi-falling-star { display: none; }
+}
