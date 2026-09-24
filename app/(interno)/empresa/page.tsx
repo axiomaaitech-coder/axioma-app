@@ -3,8 +3,11 @@ import { useState, useEffect, useRef } from "react";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
 import ModuloLayout from "../../../components/ModuloLayout";
-import { CanvasBox } from "../../../components/CanvasBox";
+import { CanvasBox, BORDA_3D, SOMBRA_3D } from "../../../components/CanvasBox";
 import { AnimatedNumber } from "../../../components/AnimatedNumber";
+import { ThemeToggle } from "../../../components/ThemeToggle";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { corTema } from "../../../lib/cfoCore";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
 import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import {
@@ -657,6 +660,14 @@ const T = {
   },
 };
 
+// Paleta por tema — "dark" é o padrão de sempre (inalterado). "xms" (Tema
+// Claro) segue os valores exatos de public/referencias/tema-tokens.md —
+// mesma paleta já usada em ia-tributaria/mei/relatorios.
+const PALETA = {
+  dark: { VERDE: "#34d399", VERMELHO: "#f87171", AMARELO: "#fbbf24", AZULC: "#6ab0ff", ROXO: "#a78bfa", CINZA: "#5a7a9a", TEXTO: "#c8d8f0", CAMPO_BG: "rgba(2,8,16,0.6)", TOOLTIP_BG: "rgba(2,8,16,0.97)" },
+  xms: { VERDE: "#16a97d", VERMELHO: "#ff5a6b", AMARELO: "#f5a623", AZULC: "#2ecc9b", ROXO: "#101b3d", CINZA: "#374151", TEXTO: "#101b3d", CAMPO_BG: "#ffffff", TOOLTIP_BG: "#ffffff" },
+} as const;
+
 const PORTES = ["MEI", "ME", "EPP", "Demais"];
 
 function formatBRL(n: number, idioma: string): string {
@@ -685,6 +696,14 @@ export default function EmpresaPage() {
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
   const inputLogoRef = useRef<HTMLInputElement>(null);
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const { VERDE, VERMELHO, AMARELO, AZULC, ROXO, CINZA, TEXTO, CAMPO_BG, TOOLTIP_BG } = PALETA[tema];
+  const ct = (hex: string) => corTema(hex, temaClaro);
+  // Card creme + efeito premium3d (borda verde-menta no hover), igual aos
+  // demais módulos já repintados — spread em todo <CanvasBox> de nível de seção.
+  const cartaoTema = temaClaro ? { fundo: "#f6f7c4", premium3d: true } : {};
+  const campoBorda = temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)";
 
   // Estados principais
   const [userId, setUserId] = useState<string | null>(null);
@@ -699,8 +718,8 @@ export default function EmpresaPage() {
   const [exportando, setExportando] = useState(false);
 
   // Scores
-  const [healthScore, setHealthScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: "#5a7a9a", itens: [] });
-  const [complianceScore, setComplianceScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: "#5a7a9a", itens: [] });
+  const [healthScore, setHealthScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: CINZA, itens: [] });
+  const [complianceScore, setComplianceScore] = useState<ScoreResultado>({ score: 0, nivel: "—", cor: CINZA, itens: [] });
 
   // Aba
   const [aba, setAba] = useState<"dados" | "socios" | "compliance" | "cofre" | "auditoria">("dados");
@@ -1202,27 +1221,30 @@ export default function EmpresaPage() {
     setEmpresaForm((prev: any) => ({ ...prev, [campo]: valor }));
   }
 
-  const inputStyle = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  const inputStyle = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: campoBorda, color: TEXTO };
   // Secundário de propósito — nunca pode se confundir com "Salvar" (verde) nem
   // com "Exportar PDF" (vermelho #ff5a6b, padrão do projeto). Âmbar de alerta
   // suave, com contraste real no fundo escuro (não some como o cinza de antes).
-  const estiloLimparCampos = { background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.5)", color: "#fbbf24" };
+  const estiloLimparCampos = { background: temaClaro ? "rgba(245,166,35,0.12)" : "rgba(251,191,36,0.1)", border: `1px solid ${AMARELO}80`, color: AMARELO };
 
   return (
-    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}>
+    <ModuloLayout titulo={tt.titulo} subtitulo={tt.subtitulo} onExportarPDF={exportarPDF} exportando={exportando}
+      headerFundo={temaClaro ? "linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)" : undefined}
+      corExportar={temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : undefined}
+      botaoExtra={<ThemeToggle />}>
       {toast && (
         <div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm"
           style={{
-            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : "rgba(106,176,255,0.95)",
+            background: toast.tipo === "erro" ? "rgba(248,113,113,0.95)" : toast.tipo === "ok" ? "rgba(52,211,153,0.95)" : temaClaro ? "rgba(46,204,155,0.95)" : "rgba(106,176,255,0.95)",
             color: "#020810", fontWeight: 600, fontSize: 13,
           }}>{toast.msg}</div>
       )}
 
       {carregando && (
-        <CanvasBox cor="#6ab0ff">
+        <CanvasBox cor={AZULC} {...cartaoTema}>
           <div className="py-12 text-center">
             <div className="w-10 h-10 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: "#6ab0ff" }}>{tt.carregandoEmpresa}</p>
+            <p className="text-sm" style={{ color: AZULC }}>{tt.carregandoEmpresa}</p>
           </div>
         </CanvasBox>
       )}
@@ -1231,14 +1253,14 @@ export default function EmpresaPage() {
           é encontrada. Antes, esse caso não tinha nenhuma tela própria: o
           carregamento podia terminar (ou travar) sem nenhum aviso. */}
       {!carregando && !empresa && (
-        <CanvasBox cor="#f87171">
+        <CanvasBox cor={VERMELHO} {...cartaoTema}>
           <div className="py-12 text-center">
             <p className="text-3xl mb-3">🏢</p>
-            <p className="text-sm font-semibold" style={{ color: "#c8d8f0" }}>{tt.empresaNaoEncontrada}</p>
-            <p className="text-xs mt-1" style={{ color: "#5a7a9a" }}>{tt.empresaNaoEncontradaSub}</p>
+            <p className="text-sm font-semibold" style={{ color: TEXTO }}>{tt.empresaNaoEncontrada}</p>
+            <p className="text-xs mt-1" style={{ color: CINZA }}>{tt.empresaNaoEncontradaSub}</p>
             <button onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(106,176,255,0.12)", color: "#6ab0ff", border: "1px solid rgba(106,176,255,0.3)" }}>
+              style={{ background: (temaClaro ? "rgba(46,204,155,0.12)" : "rgba(106,176,255,0.12)"), color: AZULC, border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)"}` }}>
               {tt.recarregarPagina}
             </button>
           </div>
@@ -1249,51 +1271,51 @@ export default function EmpresaPage() {
         <div className="space-y-4">
           {/* Header com 3 cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <CanvasBox cor="#6ab0ff">
+            <CanvasBox cor={AZULC} {...cartaoTema}>
               <div className="flex items-center gap-3">
                 {empresa.logo_url ? (
-                  <img src={empresa.logo_url} alt="logo" className="w-16 h-16 rounded-xl object-contain" style={{ background: "rgba(2,8,16,0.5)" }} />
+                  <img src={empresa.logo_url} alt="logo" className="w-16 h-16 rounded-xl object-contain" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)") }} />
                 ) : (
-                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black" style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-2xl font-black" style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>
                     {(empresa.razao_social || empresa.nome || "?")[0]}
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.empresa}</p>
-                  <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{empresa.nome_fantasia || empresa.razao_social || empresa.nome}</p>
-                  <p className="text-xs" style={{ color: "#6ab0ff" }}>{empresa.cnpj || tt.semCnpj}</p>
+                  <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.empresa}</p>
+                  <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>{empresa.nome_fantasia || empresa.razao_social || empresa.nome}</p>
+                  <p className="text-xs" style={{ color: AZULC }}>{empresa.cnpj || tt.semCnpj}</p>
                 </div>
               </div>
             </CanvasBox>
 
-            <CanvasBox cor={healthScore.cor}>
+            <CanvasBox cor={ct(healthScore.cor)} {...cartaoTema}>
               <button onClick={() => setModalScoreDetalhe("health")} className="w-full text-left">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.healthScore}</p>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.healthScore}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black" style={{ color: healthScore.cor }}><AnimatedNumber value={String(healthScore.score)} /></span>
-                  <span style={{ color: "#5a7a9a" }}>/100</span>
-                  <span className="text-xs font-bold" style={{ color: healthScore.cor }}>{healthScore.nivel}</span>
+                  <span className="text-3xl font-black" style={{ color: ct(healthScore.cor) }}><AnimatedNumber value={String(healthScore.score)} /></span>
+                  <span style={{ color: CINZA }}>/100</span>
+                  <span className="text-xs font-bold" style={{ color: ct(healthScore.cor) }}>{healthScore.nivel}</span>
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>{tt.cliquePraDetalhes}</p>
+                <p className="text-[10px] mt-1" style={{ color: CINZA }}>{tt.cliquePraDetalhes}</p>
               </button>
             </CanvasBox>
 
-            <CanvasBox cor={complianceScore.cor}>
+            <CanvasBox cor={ct(complianceScore.cor)} {...cartaoTema}>
               <button onClick={() => setModalScoreDetalhe("compliance")} className="w-full text-left">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.complianceScore}</p>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.complianceScore}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black" style={{ color: complianceScore.cor }}><AnimatedNumber value={String(complianceScore.score)} /></span>
-                  <span style={{ color: "#5a7a9a" }}>/100</span>
-                  <span className="text-xs font-bold" style={{ color: complianceScore.cor }}>{complianceScore.nivel}</span>
+                  <span className="text-3xl font-black" style={{ color: ct(complianceScore.cor) }}><AnimatedNumber value={String(complianceScore.score)} /></span>
+                  <span style={{ color: CINZA }}>/100</span>
+                  <span className="text-xs font-bold" style={{ color: ct(complianceScore.cor) }}>{complianceScore.nivel}</span>
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>{tt.cliquePraDetalhes}</p>
+                <p className="text-[10px] mt-1" style={{ color: CINZA }}>{tt.cliquePraDetalhes}</p>
               </button>
             </CanvasBox>
           </div>
 
           <button onClick={() => setShareModalAberto(true)}
             className="w-full sm:w-auto px-4 py-2 rounded-xl text-sm font-semibold"
-            style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+            style={{ background: temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
             {tt.compartilharCartao}
           </button>
 
@@ -1309,9 +1331,9 @@ export default function EmpresaPage() {
               <button key={a.key} onClick={() => setAba(a.key as any)}
                 className="px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all"
                 style={{
-                  background: aba === a.key ? "linear-gradient(135deg, #1a3a8f, #2a5fd4)" : "rgba(10,22,40,0.6)",
-                  color: aba === a.key ? "#fff" : "#6ab0ff",
-                  border: aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)",
+                  background: aba === a.key ? (temaClaro ? "#16a97d" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)") : (temaClaro ? "#101b3d" : "rgba(10,22,40,0.6)"),
+                  color: aba === a.key ? "#fff" : (temaClaro ? "#ffffff" : AZULC),
+                  border: temaClaro ? "none" : (aba === a.key ? "1px solid #6ab0ff" : "1px solid rgba(106,176,255,0.2)"),
                 }}>{a.label}</button>
             ))}
           </div>
@@ -1327,38 +1349,38 @@ export default function EmpresaPage() {
                 </button>
               </div>
 
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.autoCnpjTitulo}</p>
+              <CanvasBox cor={ROXO} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.autoCnpjTitulo}</p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <div className="flex-1">
                     <input value={empresaForm.cnpj || ""} onChange={(e) => onChangeCampo("cnpj", formatarCNPJ(e.target.value))}
                       onBlur={() => { if (empresaForm.cnpj && !validarCNPJ(limparCNPJ(empresaForm.cnpj))) setErrosCampo((p) => ({ ...p, cnpj: tt.erroCnpjInvalido })); }}
                       placeholder="00.000.000/0000-00" className="w-full px-3 py-2.5 rounded-lg text-sm" style={inputStyle} />
-                    {errosCampo.cnpj && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{errosCampo.cnpj}</p>}
+                    {errosCampo.cnpj && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{errosCampo.cnpj}</p>}
                   </div>
                   <button onClick={preencherPorCNPJ} disabled={consultandoCNPJ}
                     className="px-4 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50 shrink-0"
-                    style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>
+                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #6d28d9, #a78bfa)"), color: "#fff" }}>
                     {consultandoCNPJ ? tt.consultando : tt.preencherCnpj}
                   </button>
                 </div>
-                <p className="text-[10px] mt-2" style={{ color: "#5a7a9a" }}>{tt.autoCnpjInfo}</p>
+                <p className="text-[10px] mt-2" style={{ color: CINZA }}>{tt.autoCnpjInfo}</p>
               </CanvasBox>
 
-              <CanvasBox cor="#6ab0ff">
+              <CanvasBox cor={AZULC} {...cartaoTema}>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div className="md:col-span-1">
-                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.logo}</p>
+                    <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.logo}</p>
                     {empresaForm.logo_url ? (
-                      <img src={empresaForm.logo_url} alt="logo" className="w-24 h-24 rounded-xl object-contain" style={{ background: "rgba(2,8,16,0.5)" }} />
+                      <img src={empresaForm.logo_url} alt="logo" className="w-24 h-24 rounded-xl object-contain" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)") }} />
                     ) : (
-                      <div className="w-24 h-24 rounded-xl flex items-center justify-center text-3xl font-black" style={{ background: "rgba(2,8,16,0.5)", border: "1px dashed rgba(106,176,255,0.3)" }}>
-                        <span style={{ color: "#5a7a9a" }}>?</span>
+                      <div className="w-24 h-24 rounded-xl flex items-center justify-center text-3xl font-black" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px dashed ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)"}` }}>
+                        <span style={{ color: CINZA }}>?</span>
                       </div>
                     )}
                     <button onClick={() => inputLogoRef.current?.click()}
                       className="mt-2 text-xs px-3 py-1.5 rounded-lg"
-                      style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.uploadLogo}</button>
+                      style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.uploadLogo}</button>
                     <input ref={inputLogoRef} type="file" accept="image/*" className="hidden" onChange={onLogoChange} />
                   </div>
                   <div className="md:col-span-3 space-y-3">
@@ -1389,8 +1411,8 @@ export default function EmpresaPage() {
                             }
                           }}
                           className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                          <option value="" style={{ background: "#020810" }}>—</option>
-                          {PORTES.map((p) => <option key={p} value={p} style={{ background: "#020810" }}>{p}</option>)}
+                          <option value="" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>—</option>
+                          {PORTES.map((p) => <option key={p} value={p} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{p}</option>)}
                         </select>
                       </FieldLabel>
                     </div>
@@ -1398,14 +1420,14 @@ export default function EmpresaPage() {
                 </div>
               </CanvasBox>
 
-              <CanvasBox cor="#34d399">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.tributario}</p>
+              <CanvasBox cor={VERDE} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.tributario}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FieldLabel label={tt.regimeTributario} sugerido={camposSugeridos.has("regime_tributario")} sugeridoTexto={tt.sugeridoBadge}>
                     <select value={empresaForm.regime_tributario || ""} onChange={(e) => onChangeCampo("regime_tributario", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                      <option value="" style={{ background: "#020810" }}>—</option>
-                      {REGIMES_TRIBUTARIOS.map((r) => <option key={r.key} value={r.key} style={{ background: "#020810" }}>{r.label}</option>)}
+                      <option value="" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>—</option>
+                      {REGIMES_TRIBUTARIOS.map((r) => <option key={r.key} value={r.key} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{r.label}</option>)}
                     </select>
                   </FieldLabel>
                   <FieldLabel label={tt.cnaePrincipal} sugerido={camposSugeridos.has("cnae_principal")} sugeridoTexto={tt.sugeridoBadge}>
@@ -1439,18 +1461,18 @@ export default function EmpresaPage() {
                   <FieldLabel label={tt.situacaoCadastral} sugerido={camposSugeridos.has("situacao_cadastral")} sugeridoTexto={tt.sugeridoBadge}>
                     <select value={empresaForm.situacao_cadastral || ""} onChange={(e) => onChangeCampo("situacao_cadastral", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle}>
-                      <option value="" style={{ background: "#020810" }}>—</option>
-                      <option value="ativa" style={{ background: "#020810" }}>{tt.situacaoAtiva}</option>
-                      <option value="suspensa" style={{ background: "#020810" }}>{tt.situacaoSuspensa}</option>
-                      <option value="inapta" style={{ background: "#020810" }}>{tt.situacaoInapta}</option>
-                      <option value="baixada" style={{ background: "#020810" }}>{tt.situacaoBaixada}</option>
+                      <option value="" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>—</option>
+                      <option value="ativa" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.situacaoAtiva}</option>
+                      <option value="suspensa" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.situacaoSuspensa}</option>
+                      <option value="inapta" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.situacaoInapta}</option>
+                      <option value="baixada" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.situacaoBaixada}</option>
                     </select>
                   </FieldLabel>
                 </div>
               </CanvasBox>
 
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.endereco}</p>
+              <CanvasBox cor={AMARELO} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.endereco}</p>
                 <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                   <div className="md:col-span-2">
                     <div className="flex gap-2">
@@ -1463,9 +1485,9 @@ export default function EmpresaPage() {
                         placeholder="00000-000" className="flex-1 px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                       <button onClick={() => preencherPorCEP()} disabled={consultandoCEP}
                         className="px-3 py-2 rounded-lg text-xs font-semibold disabled:opacity-50"
-                        style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>{consultandoCEP ? "..." : "🔍"}</button>
+                        style={{ background: "rgba(251,191,36,0.15)", color: AMARELO }}>{consultandoCEP ? "..." : "🔍"}</button>
                     </div>
-                    {errosCampo.cep && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{errosCampo.cep}</p>}
+                    {errosCampo.cep && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{errosCampo.cep}</p>}
                   </div>
                   <div className="md:col-span-3"><input value={empresaForm.logradouro || ""} onChange={(e) => onChangeCampo("logradouro", e.target.value)} placeholder={tt.logradouro} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
                   <div className="md:col-span-1"><input value={empresaForm.numero || ""} onChange={(e) => onChangeCampo("numero", e.target.value)} placeholder={tt.numero} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></div>
@@ -1476,8 +1498,8 @@ export default function EmpresaPage() {
                 </div>
               </CanvasBox>
 
-              <CanvasBox cor="#6ab0ff">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.contato}</p>
+              <CanvasBox cor={AZULC} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.contato}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FieldLabel label={tt.telefonePrincipal} sugerido={camposSugeridos.has("telefone_principal")} sugeridoTexto={tt.sugeridoBadge}>
                     <input value={empresaForm.telefone_principal || ""} onChange={(e) => onChangeCampo("telefone_principal", formatarTelefone(e.target.value))} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
@@ -1513,8 +1535,8 @@ export default function EmpresaPage() {
                 </div>
               </CanvasBox>
 
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.bancario}</p>
+              <CanvasBox cor={ROXO} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.bancario}</p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <FieldLabel label={tt.banco}>
                     <div className="relative">
@@ -1528,13 +1550,13 @@ export default function EmpresaPage() {
                         const encontrados = bancos.filter((b) => !filtro || b.nome.toLowerCase().includes(filtro)).slice(0, 30);
                         return (
                           <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-lg shadow-lg"
-                            style={{ background: "#0a1628", border: "1px solid rgba(106,176,255,0.3)" }}>
+                            style={{ background: temaClaro ? "#ffffff" : "#0a1628", border: `1px solid ${temaClaro ? "rgba(46,204,155,0.3)" : "rgba(106,176,255,0.3)"}` }}>
                             {encontrados.length === 0 ? (
-                              <p className="px-3 py-2 text-xs" style={{ color: "#5a7a9a" }}>{tt.nenhumBancoEncontrado}</p>
+                              <p className="px-3 py-2 text-xs" style={{ color: CINZA }}>{tt.nenhumBancoEncontrado}</p>
                             ) : encontrados.map((b) => (
                               <button key={b.codigo} type="button" onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => { onChangeCampo("banco_principal", b.nome); setBancoDropdownAberto(false); }}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: "#c8d8f0" }}>
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-white/5" style={{ color: TEXTO }}>
                                 {b.codigo} - {b.nome}
                               </button>
                             ))}
@@ -1551,7 +1573,7 @@ export default function EmpresaPage() {
                       onBlur={(e) => onChangeCampo("chave_pix", formatarChavePix(e.target.value))}
                       className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} />
                     {empresaForm.chave_pix && detectarTipoChavePix(empresaForm.chave_pix) && (
-                      <p className="text-[10px] mt-1" style={{ color: "#5a7a9a" }}>
+                      <p className="text-[10px] mt-1" style={{ color: CINZA }}>
                         {tt.pixTipoDetectado}: {(tt as any)[`pixTipo_${detectarTipoChavePix(empresaForm.chave_pix)}`]}
                       </p>
                     )}
@@ -1559,8 +1581,8 @@ export default function EmpresaPage() {
                 </div>
               </CanvasBox>
 
-              <CanvasBox cor="#fbbf24">
-                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: "#5a7a9a" }}>{tt.contador}</p>
+              <CanvasBox cor={AMARELO} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider mb-3" style={{ color: CINZA }}>{tt.contador}</p>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="md:col-span-2"><FieldLabel label={tt.nome}><input value={empresaForm.contador_nome || ""} onChange={(e) => setCampo("contador_nome", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel></div>
                   <FieldLabel label={tt.crc}><input value={empresaForm.contador_crc || ""} onChange={(e) => setCampo("contador_crc", e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm" style={inputStyle} /></FieldLabel>
@@ -1577,7 +1599,7 @@ export default function EmpresaPage() {
                 </button>
                 <button onClick={salvarEmpresa} disabled={salvando}
                   className="flex-1 py-3 rounded-xl text-sm font-semibold disabled:opacity-50 order-1 sm:order-2"
-                  style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>
+                  style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)"), color: "#fff" }}>
                   {salvando ? tt.salvando : tt.salvarEmpresa}
                 </button>
               </div>
@@ -1587,32 +1609,32 @@ export default function EmpresaPage() {
           {/* ABA SÓCIOS */}
           {aba === "socios" && (
             <div className="space-y-4">
-              <CanvasBox cor="#6ab0ff">
+              <CanvasBox cor={AZULC} {...cartaoTema}>
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.quadroSocietario} ({socios.length})</p>
+                  <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.quadroSocietario} ({socios.length})</p>
                   <button onClick={() => setModalSocio("novo")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{tt.novoSocio}</button>
+                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>{tt.novoSocio}</button>
                 </div>
                 {socios.length === 0 ? (
-                  <p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.semSocios}</p>
+                  <p className="text-xs py-6 text-center" style={{ color: CINZA }}>{tt.semSocios}</p>
                 ) : (
                   <div className="space-y-2">
                     {socios.map((s: any) => (
                       <div key={s.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: "rgba(2,8,16,0.5)", border: "1px solid rgba(106,176,255,0.15)" }}>
+                        style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"}` }}>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{s.nome}</p>
-                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+                          <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.nome}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
                             {s.qualificacao || "—"} • {s.cpf_cnpj || "—"} • {s.tipo_pessoa}
-                            {s.participacao_pct > 0 && <span style={{ color: "#34d399" }}> • {s.participacao_pct}%</span>}
+                            {s.participacao_pct > 0 && <span style={{ color: VERDE }}> • {s.participacao_pct}%</span>}
                           </p>
                         </div>
                         <div className="flex gap-1">
                           <button onClick={() => setModalSocio(s)} title={tt.editar}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZULC }}>✏️</button>
                           <button onClick={() => removerSocio(s)} title={tt.remover}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>🗑️</button>
                         </div>
                       </div>
                     ))}
@@ -1625,45 +1647,45 @@ export default function EmpresaPage() {
           {/* ABA COMPLIANCE */}
           {aba === "compliance" && (
             <div className="space-y-4">
-              <CanvasBox cor={complianceScore.cor}>
+              <CanvasBox cor={ct(complianceScore.cor)} {...cartaoTema}>
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.calendarioFiscal} ({obrigacoes.length})</p>
-                    <p className="text-xs" style={{ color: "#c8d8f0" }}>
-                      {tt.regime}: <strong style={{ color: complianceScore.cor }}>{empresa.regime_tributario || tt.naoDefinido}</strong>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.calendarioFiscal} ({obrigacoes.length})</p>
+                    <p className="text-xs" style={{ color: TEXTO }}>
+                      {tt.regime}: <strong style={{ color: ct(complianceScore.cor) }}>{empresa.regime_tributario || tt.naoDefinido}</strong>
                     </p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
                     <button onClick={gerarCalendarioFiscal}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>{tt.gerarCalendario}</button>
+                      style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #6d28d9, #a78bfa)"), color: "#fff" }}>{tt.gerarCalendario}</button>
                     <button onClick={() => setModalObrigacao("novo")}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>{tt.novaObrigacao}</button>
+                      style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>{tt.novaObrigacao}</button>
                   </div>
                 </div>
               </CanvasBox>
 
               {obrigacoes.length === 0 ? (
-                <CanvasBox cor="#fbbf24"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.semObrigacoes}</p></CanvasBox>
+                <CanvasBox cor={AMARELO} {...cartaoTema}><p className="text-xs py-6 text-center" style={{ color: CINZA }}>{tt.semObrigacoes}</p></CanvasBox>
               ) : (
                 <div className="space-y-2">
                   {obrigacoes.map((o: any) => {
                     const hoje = new Date().toISOString().slice(0, 10);
                     const vencida = o.status === "pendente" && o.data_vencimento < hoje;
-                    const corStatus = o.status === "paga" ? "#34d399" : vencida ? "#f87171" : o.status === "dispensada" ? "#5a7a9a" : "#fbbf24";
+                    const corStatus = o.status === "paga" ? VERDE : vencida ? VERMELHO : o.status === "dispensada" ? CINZA : AMARELO;
                     const labelStatus = vencida ? tt.statusVencida :
                       o.status === "paga" ? tt.statusPaga.toUpperCase() :
                       o.status === "atrasada" ? tt.statusAtrasada.toUpperCase() :
                       o.status === "dispensada" ? tt.statusDispensada.toUpperCase() : tt.statusPendente.toUpperCase();
                     return (
                       <div key={o.id} className="rounded-lg p-3 flex items-center justify-between gap-2 flex-wrap"
-                        style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${corStatus}30` }}>
+                        style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${corStatus}30` }}>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{o.nome}</p>
-                          <p className="text-xs" style={{ color: "#5a7a9a" }}>
+                          <p className="text-sm font-bold" style={{ color: TEXTO }}>{o.nome}</p>
+                          <p className="text-xs" style={{ color: CINZA }}>
                             📅 {formatData(o.data_vencimento, lang)} • {o.tipo}
-                            {o.valor_estimado > 0 && <span style={{ color: "#fbbf24" }}> • {formatBRL(o.valor_estimado, lang)}</span>}
+                            {o.valor_estimado > 0 && <span style={{ color: AMARELO }}> • {formatBRL(o.valor_estimado, lang)}</span>}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1671,12 +1693,12 @@ export default function EmpresaPage() {
                             style={{ background: `${corStatus}20`, color: corStatus }}>{labelStatus}</span>
                           {o.status !== "paga" && (
                             <button onClick={() => marcarObrigacaoPaga(o)} title={tt.marcarPaga}
-                              className="px-2 py-1 rounded text-xs" style={{ background: "rgba(52,211,153,0.15)", color: "#34d399" }}>✓</button>
+                              className="px-2 py-1 rounded text-xs" style={{ background: "rgba(52,211,153,0.15)", color: VERDE }}>✓</button>
                           )}
                           <button onClick={() => setModalObrigacao(o)} title={tt.editar}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>✏️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZULC }}>✏️</button>
                           <button onClick={() => removerObrigacao(o)} title={tt.remover}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>🗑️</button>
                         </div>
                       </div>
                     );
@@ -1689,20 +1711,20 @@ export default function EmpresaPage() {
           {/* ABA COFRE */}
           {aba === "cofre" && (
             <div className="space-y-4">
-              <CanvasBox cor="#fbbf24">
+              <CanvasBox cor={AMARELO} {...cartaoTema}>
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.cofreDigital} ({documentos.length})</p>
-                    <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.cofreInfo}</p>
+                    <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.cofreDigital} ({documentos.length})</p>
+                    <p className="text-xs" style={{ color: TEXTO }}>{tt.cofreInfo}</p>
                   </div>
                   <button onClick={() => setModalDocumento("novo")}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>{tt.novoDocumento}</button>
+                    style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #f5a623)"), color: "#fff" }}>{tt.novoDocumento}</button>
                 </div>
               </CanvasBox>
 
               {documentos.length === 0 ? (
-                <CanvasBox cor="#6ab0ff"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.semDocumentos}</p></CanvasBox>
+                <CanvasBox cor={AZULC} {...cartaoTema}><p className="text-xs py-6 text-center" style={{ color: CINZA }}>{tt.semDocumentos}</p></CanvasBox>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {documentos.map((d: any) => {
@@ -1710,21 +1732,21 @@ export default function EmpresaPage() {
                     const hoje = new Date().toISOString().slice(0, 10);
                     const vencido = d.data_validade && d.data_validade < hoje;
                     return (
-                      <div key={d.id} className="rounded-xl p-3" style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${vencido ? "#f87171" : "#fbbf24"}30` }}>
+                      <div key={d.id} className="rounded-xl p-3" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${vencido ? VERMELHO : AMARELO}30` }}>
                         <div className="flex items-start justify-between mb-2">
                           <span className="text-2xl">{tipo.icon}</span>
-                          {vencido && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: "#f87171" }}>{tt.documentoVencido}</span>}
+                          {vencido && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "rgba(248,113,113,0.2)", color: VERMELHO }}>{tt.documentoVencido}</span>}
                         </div>
-                        <p className="text-sm font-bold truncate" style={{ color: "#c8d8f0" }}>{d.nome}</p>
-                        <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tipo.label}</p>
-                        {d.data_validade && <p className="text-[10px] mt-1" style={{ color: vencido ? "#f87171" : "#fbbf24" }}>{tt.validoAte}: {formatData(d.data_validade, lang)}</p>}
+                        <p className="text-sm font-bold truncate" style={{ color: TEXTO }}>{d.nome}</p>
+                        <p className="text-[11px]" style={{ color: CINZA }}>{tipo.label}</p>
+                        {d.data_validade && <p className="text-[10px] mt-1" style={{ color: vencido ? VERMELHO : AMARELO }}>{tt.validoAte}: {formatData(d.data_validade, lang)}</p>}
                         <div className="flex gap-1 mt-2">
                           {d.storage_path && (
                             <button onClick={() => baixarDocumento(d)}
-                              className="flex-1 px-2 py-1 rounded text-xs" style={{ background: "rgba(106,176,255,0.15)", color: "#6ab0ff" }}>{tt.baixar}</button>
+                              className="flex-1 px-2 py-1 rounded text-xs" style={{ background: (temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"), color: AZULC }}>{tt.baixar}</button>
                           )}
                           <button onClick={() => removerDocumento(d)}
-                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}>🗑️</button>
+                            className="px-2 py-1 rounded text-xs" style={{ background: "rgba(248,113,113,0.15)", color: VERMELHO }}>🗑️</button>
                         </div>
                       </div>
                     );
@@ -1737,40 +1759,40 @@ export default function EmpresaPage() {
           {/* ABA AUDITORIA */}
           {aba === "auditoria" && (
             <div className="space-y-2">
-              <CanvasBox cor="#a78bfa">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.historico} ({auditoria.length})</p>
-                <p className="text-xs" style={{ color: "#c8d8f0" }}>{tt.auditoriaInfo}</p>
+              <CanvasBox cor={ROXO} {...cartaoTema}>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{tt.historico} ({auditoria.length})</p>
+                <p className="text-xs" style={{ color: TEXTO }}>{tt.auditoriaInfo}</p>
               </CanvasBox>
               {auditoria.length === 0 ? (
-                <CanvasBox cor="#6ab0ff"><p className="text-xs py-6 text-center" style={{ color: "#5a7a9a" }}>{tt.semAuditoria}</p></CanvasBox>
+                <CanvasBox cor={AZULC} {...cartaoTema}><p className="text-xs py-6 text-center" style={{ color: CINZA }}>{tt.semAuditoria}</p></CanvasBox>
               ) : (
                 <div className="space-y-1">
                   {auditoria.map((a: any) => {
                     const icon = a.acao === "criar" ? "➕" : a.acao === "editar" ? "✏️" : "🗑️";
-                    const cor = a.acao === "criar" ? "#34d399" : a.acao === "editar" ? "#6ab0ff" : "#f87171";
+                    const cor = a.acao === "criar" ? VERDE : a.acao === "editar" ? AZULC : VERMELHO;
                     return (
                       <div key={a.id} className="rounded-lg p-3 flex items-start gap-3"
-                        style={{ background: "rgba(2,8,16,0.5)", border: `1px solid ${cor}20` }}>
+                        style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.5)"), border: `1px solid ${cor}20` }}>
                         <span className="text-lg flex-shrink-0">{icon}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm" style={{ color: "#c8d8f0" }}>{a.descricao || `${a.acao} → ${a.tabela}`}</p>
-                          {a.empresa_nome && <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tt.auditEmpresa}: <strong>{a.empresa_nome}</strong></p>}
+                          <p className="text-sm" style={{ color: TEXTO }}>{a.descricao || `${a.acao} → ${a.tabela}`}</p>
+                          {a.empresa_nome && <p className="text-[11px]" style={{ color: CINZA }}>{tt.auditEmpresa}: <strong>{a.empresa_nome}</strong></p>}
                           {(a.autor_nome || a.autor_email) && (
-                            <p className="text-[11px]" style={{ color: "#5a7a9a" }}>
+                            <p className="text-[11px]" style={{ color: CINZA }}>
                               {tt.auditPor}: <strong>{a.autor_nome || a.autor_email}</strong>{a.autor_nome && a.autor_email ? ` (${a.autor_email})` : ""}
                             </p>
                           )}
-                          {a.campo && <p className="text-[11px]" style={{ color: "#5a7a9a" }}>{tt.campo}: <strong>{a.campo}</strong></p>}
+                          {a.campo && <p className="text-[11px]" style={{ color: CINZA }}>{tt.campo}: <strong>{a.campo}</strong></p>}
                           {a.campo && (a.valor_antes !== undefined || a.valor_depois !== undefined) && (
                             a.valor_antes?.redigido || a.valor_depois?.redigido ? (
-                              <p className="text-[11px] italic" style={{ color: "#5a7a9a" }}>{tt.auditValorRedigido}</p>
+                              <p className="text-[11px] italic" style={{ color: CINZA }}>{tt.auditValorRedigido}</p>
                             ) : (
-                              <p className="text-[11px]" style={{ color: "#5a7a9a" }}>
+                              <p className="text-[11px]" style={{ color: CINZA }}>
                                 {tt.auditDe}: <strong>{String(a.valor_antes?.[a.campo] ?? "—")}</strong> → {tt.auditPara}: <strong>{String(a.valor_depois?.[a.campo] ?? "—")}</strong>
                               </p>
                             )
                           )}
-                          <p className="text-[10px] mt-0.5" style={{ color: "#5a7a9a" }}>{formatDataHora(a.created_at, lang)}</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: CINZA }}>{formatDataHora(a.created_at, lang)}</p>
                         </div>
                       </div>
                     );
@@ -1785,20 +1807,20 @@ export default function EmpresaPage() {
       {/* MODAL LIMPAR CAMPOS */}
       {modalLimparAberto && (
         <ModalGenerico titulo={tt.limparCamposModalTitulo} fechar={() => setModalLimparAberto(false)}>
-          <p className="text-sm mb-3" style={{ color: "#c8d8f0" }}>{tt.limparCamposModalTexto}</p>
-          <p className="text-xs mb-3" style={{ color: "#5a7a9a" }}>{tt.limparCamposModalNaoAfeta}</p>
-          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: "#fbbf24", background: "rgba(251,191,36,0.1)" }}>
+          <p className="text-sm mb-3" style={{ color: TEXTO }}>{tt.limparCamposModalTexto}</p>
+          <p className="text-xs mb-3" style={{ color: CINZA }}>{tt.limparCamposModalNaoAfeta}</p>
+          <p className="text-xs mb-4 px-3 py-2 rounded-lg" style={{ color: AMARELO, background: "rgba(251,191,36,0.1)" }}>
             {tt.limparCamposModalAviso}
           </p>
           <div className="flex flex-col sm:flex-row-reverse gap-2">
             <button onClick={() => setModalLimparAberto(false)}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "linear-gradient(135deg, #1a3a8f, #2a5fd4)", color: "#fff" }}>
+              style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #1a3a8f, #2a5fd4)"), color: "#fff" }}>
               {tt.cancelar}
             </button>
             <button onClick={limparCampos}
               className="sm:w-auto w-full px-4 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: "#5a7a9a" }}>
+              style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(90,122,154,0.35)", color: CINZA }}>
               {tt.limparCamposConfirmar}
             </button>
           </div>
@@ -1808,27 +1830,27 @@ export default function EmpresaPage() {
       {/* MODAL CNPJ */}
       {resultadoCNPJ && (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
-          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setResultadoCNPJ(null)}>
+          style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setResultadoCNPJ(null)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(167,139,250,0.4)" }}>
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(167,139,250,0.4)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#a78bfa" }}>{tt.cnpjResultadoTitulo}</p>
-              <button onClick={() => setResultadoCNPJ(null)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+              <p className="text-sm font-bold" style={{ color: ROXO }}>{tt.cnpjResultadoTitulo}</p>
+              <button onClick={() => setResultadoCNPJ(null)} className="text-xl" style={{ color: CINZA }}>✕</button>
             </div>
-            <div className="rounded-lg p-3 space-y-1 mb-3" style={{ background: "rgba(2,8,16,0.6)" }}>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjRazao}:</span> <strong style={{ color: "#c8d8f0" }}>{resultadoCNPJ.razao_social}</strong></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjFantasia}:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.nome_fantasia || "—"}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjSituacao}:</span> <span style={{ color: resultadoCNPJ.situacao_cadastral === "ativa" ? "#34d399" : "#fbbf24" }}>{resultadoCNPJ.situacao_cadastral}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjPorte}:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.porte}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjCnae}:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.cnae_principal} - {resultadoCNPJ.cnae_descricao}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjCidadeUf}:</span> <span style={{ color: "#c8d8f0" }}>{resultadoCNPJ.cidade}/{resultadoCNPJ.uf}</span></p>
-              <p className="text-xs"><span style={{ color: "#5a7a9a" }}>{tt.cnpjSociosEncontrados}:</span> <strong style={{ color: "#a78bfa" }}>{resultadoCNPJ.socios?.length || 0}</strong></p>
+            <div className="rounded-lg p-3 space-y-1 mb-3" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)") }}>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjRazao}:</span> <strong style={{ color: TEXTO }}>{resultadoCNPJ.razao_social}</strong></p>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjFantasia}:</span> <span style={{ color: TEXTO }}>{resultadoCNPJ.nome_fantasia || "—"}</span></p>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjSituacao}:</span> <span style={{ color: resultadoCNPJ.situacao_cadastral === "ativa" ? VERDE : AMARELO }}>{resultadoCNPJ.situacao_cadastral}</span></p>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjPorte}:</span> <span style={{ color: TEXTO }}>{resultadoCNPJ.porte}</span></p>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjCnae}:</span> <span style={{ color: TEXTO }}>{resultadoCNPJ.cnae_principal} - {resultadoCNPJ.cnae_descricao}</span></p>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjCidadeUf}:</span> <span style={{ color: TEXTO }}>{resultadoCNPJ.cidade}/{resultadoCNPJ.uf}</span></p>
+              <p className="text-xs"><span style={{ color: CINZA }}>{tt.cnpjSociosEncontrados}:</span> <strong style={{ color: ROXO }}>{resultadoCNPJ.socios?.length || 0}</strong></p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setResultadoCNPJ(null)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.cancelar}</button>
+                style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
               <button onClick={aplicarDadosCNPJ} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "linear-gradient(135deg, #6d28d9, #a78bfa)", color: "#fff" }}>{tt.cnpjAplicar}</button>
+                style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #6d28d9, #a78bfa)"), color: "#fff" }}>{tt.cnpjAplicar}</button>
             </div>
           </div>
         </div>
@@ -1837,24 +1859,24 @@ export default function EmpresaPage() {
       {/* MODAL SCORE DETALHE */}
       {modalScoreDetalhe && (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
-          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setModalScoreDetalhe(null)}>
+          style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setModalScoreDetalhe(null)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: "rgba(10,22,40,0.98)", border: `1px solid ${(modalScoreDetalhe === "health" ? healthScore : complianceScore).cor}40` }}>
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : `1px solid ${(modalScoreDetalhe === "health" ? healthScore : complianceScore).cor}40`, boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>
+              <p className="text-sm font-bold" style={{ color: TEXTO }}>
                 {modalScoreDetalhe === "health" ? tt.healthScore : tt.complianceScore}
               </p>
-              <button onClick={() => setModalScoreDetalhe(null)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+              <button onClick={() => setModalScoreDetalhe(null)} className="text-xl" style={{ color: CINZA }}>✕</button>
             </div>
             <div className="space-y-1">
               {(modalScoreDetalhe === "health" ? healthScore : complianceScore).itens.map((it, i) => (
                 <div key={i} className="flex items-center justify-between p-2 rounded"
                   style={{ background: it.ok ? "rgba(52,211,153,0.05)" : "rgba(248,113,113,0.05)" }}>
                   <span className="text-xs flex items-center gap-2">
-                    {it.ok ? <span style={{ color: "#34d399" }}>✓</span> : <span style={{ color: "#f87171" }}>✗</span>}
-                    <span style={{ color: "#c8d8f0" }}>{it.label}</span>
+                    {it.ok ? <span style={{ color: VERDE }}>✓</span> : <span style={{ color: VERMELHO }}>✗</span>}
+                    <span style={{ color: TEXTO }}>{it.label}</span>
                   </span>
-                  <span className="text-xs font-bold" style={{ color: it.ok ? "#34d399" : "#5a7a9a" }}>+{it.pontos}pts</span>
+                  <span className="text-xs font-bold" style={{ color: it.ok ? VERDE : CINZA }}>+{it.pontos}pts</span>
                 </div>
               ))}
             </div>
@@ -1865,25 +1887,25 @@ export default function EmpresaPage() {
       {/* MODAL SHARE */}
       {shareModalAberto && (
         <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
-          style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={() => setShareModalAberto(false)}>
+          style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={() => setShareModalAberto(false)}>
           <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-            style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)", boxShadow: "0 0 60px rgba(106,176,255,0.15)" }}>
+            style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : "0 0 60px rgba(106,176,255,0.15)" }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs uppercase tracking-wider" style={{ color: "#5a7a9a" }}>{tt.centroCompart}</p>
-                <p className="text-sm font-bold mt-0.5" style={{ color: "#c8d8f0" }}>{empresa?.nome_fantasia || empresa?.razao_social || empresa?.nome}</p>
+                <p className="text-xs uppercase tracking-wider" style={{ color: CINZA }}>{tt.centroCompart}</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: TEXTO }}>{empresa?.nome_fantasia || empresa?.razao_social || empresa?.nome}</p>
               </div>
-              <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+              <button onClick={() => setShareModalAberto(false)} className="text-xl" style={{ color: CINZA }}>✕</button>
             </div>
             {empresa && (
-              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: "rgba(2,8,16,0.6)", border: "1px solid rgba(106,176,255,0.15)" }}>
-                <p style={{ color: "#c8d8f0" }}>📄 <strong style={{ color: "#6ab0ff" }}>{empresa.cnpj || tt.semCnpj}</strong></p>
-                <p style={{ color: "#c8d8f0" }}>
-                  📊 Health: <strong style={{ color: healthScore.cor }}>{healthScore.score}/100</strong> • 🛡️ Compliance: <strong style={{ color: complianceScore.cor }}>{complianceScore.score}/100</strong>
+              <div className="rounded-xl p-3 mb-4 text-xs space-y-1" style={{ background: (temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)"), border: `1px solid ${temaClaro ? "rgba(46,204,155,0.15)" : "rgba(106,176,255,0.15)"}` }}>
+                <p style={{ color: TEXTO }}>📄 <strong style={{ color: AZULC }}>{empresa.cnpj || tt.semCnpj}</strong></p>
+                <p style={{ color: TEXTO }}>
+                  📊 Health: <strong style={{ color: ct(healthScore.cor) }}>{healthScore.score}/100</strong> • 🛡️ Compliance: <strong style={{ color: ct(complianceScore.cor) }}>{complianceScore.score}/100</strong>
                 </p>
               </div>
             )}
-            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: "#5a7a9a" }}>{tt.compartilharVia}</p>
+            <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: CINZA }}>{tt.compartilharVia}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
               <button onClick={shareWhatsApp} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
                 style={{ background: "rgba(37,211,102,0.12)", border: "1px solid rgba(37,211,102,0.35)", color: "#25d366" }}>
@@ -1902,7 +1924,7 @@ export default function EmpresaPage() {
                 <span className="text-xl">📩</span>Outlook
               </button>
               <button onClick={shareCopiarTexto} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90"
-                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: "#a78bfa" }}>
+                style={{ background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.35)", color: ROXO }}>
                 <span className="text-xl">📋</span>{tt.copiar}
               </button>
               <button onClick={exportarPDF} disabled={exportando} className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-xs font-semibold hover:opacity-90 disabled:opacity-50"
@@ -1912,7 +1934,7 @@ export default function EmpresaPage() {
               </button>
             </div>
             <button onClick={() => setShareModalAberto(false)} className="w-full py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.fechar}</button>
+              style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.fechar}</button>
           </div>
         </div>
       )}
@@ -1944,32 +1966,37 @@ export default function EmpresaPage() {
 function FieldLabel({ label, children, sugerido, sugeridoTexto, erro }: {
   label: string; children: any; sugerido?: boolean; sugeridoTexto?: string; erro?: string;
 }) {
+  const { tema } = useThemeAxioma();
+  const { CINZA, ROXO, VERMELHO } = PALETA[tema];
   return (
     <div>
-      <label className="text-[10px] uppercase tracking-wider flex items-center gap-1.5 flex-wrap" style={{ color: "#5a7a9a" }}>
+      <label className="text-[10px] uppercase tracking-wider flex items-center gap-1.5 flex-wrap" style={{ color: CINZA }}>
         {label}
         {sugerido && (
           <span className="text-[9px] normal-case font-semibold px-1.5 py-0.5 rounded-full"
-            style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.3)" }}>
+            style={{ background: "rgba(167,139,250,0.15)", color: ROXO, border: "1px solid rgba(167,139,250,0.3)" }}>
             ✨ {sugeridoTexto}
           </span>
         )}
       </label>
       {children}
-      {erro && <p className="text-[10px] mt-1" style={{ color: "#f87171" }}>{erro}</p>}
+      {erro && <p className="text-[10px] mt-1" style={{ color: VERMELHO }}>{erro}</p>}
     </div>
   );
 }
 
 function ModalGenerico({ titulo, fechar, children }: { titulo: string; fechar: () => void; children: any }) {
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const { CINZA, TEXTO } = PALETA[tema];
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-28 pb-8 overflow-y-auto"
-      style={{ background: "rgba(2,8,16,0.85)", backdropFilter: "blur(4px)" }} onClick={fechar}>
+      style={{ background: (temaClaro ? "rgba(16,27,61,0.5)" : "rgba(2,8,16,0.85)"), backdropFilter: "blur(4px)" }} onClick={fechar}>
       <div className="w-full max-w-lg rounded-2xl p-5" onClick={(e) => e.stopPropagation()}
-        style={{ background: "rgba(10,22,40,0.98)", border: "1px solid rgba(106,176,255,0.3)" }}>
+        style={{ background: temaClaro ? "#f6f7c4" : "rgba(10,22,40,0.98)", border: temaClaro ? BORDA_3D : "1px solid rgba(106,176,255,0.3)", boxShadow: temaClaro ? SOMBRA_3D : undefined }}>
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-bold" style={{ color: "#c8d8f0" }}>{titulo}</p>
-          <button onClick={fechar} className="text-xl" style={{ color: "#5a7a9a" }}>✕</button>
+          <p className="text-sm font-bold" style={{ color: TEXTO }}>{titulo}</p>
+          <button onClick={fechar} className="text-xl" style={{ color: CINZA }}>✕</button>
         </div>
         {children}
       </div>
@@ -1979,7 +2006,10 @@ function ModalGenerico({ titulo, fechar, children }: { titulo: string; fechar: (
 
 function FormSocio({ inicial, onSalvar, cancelar, tt, qualificacoes }: any) {
   const [form, setForm] = useState<any>(inicial || {});
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const { TEXTO, AZULC } = PALETA[tema];
+  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)", color: TEXTO };
   return (
     <div className="space-y-3">
       <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
@@ -1989,13 +2019,13 @@ function FormSocio({ inicial, onSalvar, cancelar, tt, qualificacoes }: any) {
       <div className="grid grid-cols-2 gap-2">
         <select value={form.tipo_pessoa || "PF"} onChange={(e) => setForm({ ...form, tipo_pessoa: e.target.value })}
           className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="PF" style={{ background: "#020810" }}>{tt.pessoaFisica}</option>
-          <option value="PJ" style={{ background: "#020810" }}>{tt.pessoaJuridica}</option>
+          <option value="PF" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.pessoaFisica}</option>
+          <option value="PJ" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.pessoaJuridica}</option>
         </select>
         <select value={form.qualificacao || ""} onChange={(e) => setForm({ ...form, qualificacao: e.target.value })}
           className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="" style={{ background: "#020810" }}>{tt.qualificacao}</option>
-          {qualificacoes.map((q: string) => <option key={q} value={q} style={{ background: "#020810" }}>{q}</option>)}
+          <option value="" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.qualificacao}</option>
+          {qualificacoes.map((q: string) => <option key={q} value={q} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{q}</option>)}
         </select>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -2010,10 +2040,10 @@ function FormSocio({ inicial, onSalvar, cancelar, tt, qualificacoes }: any) {
         placeholder={tt.telefone} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="flex gap-2">
         <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.cancelar}</button>
+          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form)} disabled={!form.nome}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.salvar}</button>
+          style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)"), color: "#fff" }}>{tt.salvar}</button>
       </div>
     </div>
   );
@@ -2022,12 +2052,15 @@ function FormSocio({ inicial, onSalvar, cancelar, tt, qualificacoes }: any) {
 function FormDocumento({ onSalvar, cancelar, tt }: any) {
   const [form, setForm] = useState<any>({ tipo: "outros" });
   const [file, setFile] = useState<File | null>(null);
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const { CINZA, TEXTO, AZULC } = PALETA[tema];
+  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)", color: TEXTO };
   return (
     <div className="space-y-3">
       <select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
         className="w-full px-3 py-2 rounded-lg text-sm" style={inp}>
-        {TIPOS_DOCUMENTOS.map((t) => <option key={t.key} value={t.key} style={{ background: "#020810" }}>{t.icon} {t.label}</option>)}
+        {TIPOS_DOCUMENTOS.map((t) => <option key={t.key} value={t.key} style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{t.icon} {t.label}</option>)}
       </select>
       <input value={form.nome || ""} onChange={(e) => setForm({ ...form, nome: e.target.value })}
         placeholder={tt.nomeDocumento} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
@@ -2035,12 +2068,12 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
         placeholder={tt.numeroDocumento} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.emissao}</label>
+          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.emissao}</label>
           <input type="date" value={form.data_emissao || ""} onChange={(e) => setForm({ ...form, data_emissao: e.target.value })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
         <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.validade}</label>
+          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.validade}</label>
           <input type="date" value={form.data_validade || ""} onChange={(e) => setForm({ ...form, data_validade: e.target.value })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
@@ -2051,10 +2084,10 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
         className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="flex gap-2">
         <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.cancelar}</button>
+          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form, file)} disabled={!form.nome}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #b45309, #f5a623)", color: "#fff" }}>{tt.salvar}</button>
+          style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #b45309, #f5a623)"), color: "#fff" }}>{tt.salvar}</button>
       </div>
     </div>
   );
@@ -2062,7 +2095,10 @@ function FormDocumento({ onSalvar, cancelar, tt }: any) {
 
 function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
   const [form, setForm] = useState<any>(inicial || { status: "pendente", recorrencia: "mensal" });
-  const inp = { background: "rgba(2,8,16,0.7)", border: "1px solid rgba(106,176,255,0.2)", color: "#c8d8f0" };
+  const { tema } = useThemeAxioma();
+  const temaClaro = tema === "xms";
+  const { CINZA, TEXTO, AZULC } = PALETA[tema];
+  const inp = { background: temaClaro ? "#ffffff" : "rgba(2,8,16,0.7)", border: temaClaro ? "1px solid rgba(16,27,61,0.18)" : "1px solid rgba(106,176,255,0.2)", color: TEXTO };
   return (
     <div className="space-y-3">
       <input value={form.tipo || ""} onChange={(e) => setForm({ ...form, tipo: e.target.value })}
@@ -2073,12 +2109,12 @@ function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
         placeholder={tt.descricao} className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.vencimento}</label>
+          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.vencimento}</label>
           <input type="date" value={form.data_vencimento || ""} onChange={(e) => setForm({ ...form, data_vencimento: e.target.value })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
         <div>
-          <label className="text-[10px] uppercase" style={{ color: "#5a7a9a" }}>{tt.valorEstimado}</label>
+          <label className="text-[10px] uppercase" style={{ color: CINZA }}>{tt.valorEstimado}</label>
           <input type="number" step="0.01" value={form.valor_estimado || ""} onChange={(e) => setForm({ ...form, valor_estimado: parseFloat(e.target.value) || 0 })}
             className="w-full px-3 py-2 rounded-lg text-sm" style={inp} />
         </div>
@@ -2086,25 +2122,25 @@ function FormObrigacao({ inicial, onSalvar, cancelar, tt }: any) {
       <div className="grid grid-cols-2 gap-2">
         <select value={form.status || "pendente"} onChange={(e) => setForm({ ...form, status: e.target.value })}
           className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="pendente" style={{ background: "#020810" }}>{tt.statusPendente}</option>
-          <option value="paga" style={{ background: "#020810" }}>{tt.statusPaga}</option>
-          <option value="atrasada" style={{ background: "#020810" }}>{tt.statusAtrasada}</option>
-          <option value="dispensada" style={{ background: "#020810" }}>{tt.statusDispensada}</option>
+          <option value="pendente" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.statusPendente}</option>
+          <option value="paga" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.statusPaga}</option>
+          <option value="atrasada" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.statusAtrasada}</option>
+          <option value="dispensada" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.statusDispensada}</option>
         </select>
         <select value={form.recorrencia || "mensal"} onChange={(e) => setForm({ ...form, recorrencia: e.target.value })}
           className="px-3 py-2 rounded-lg text-sm" style={inp}>
-          <option value="mensal" style={{ background: "#020810" }}>{tt.recorrenciaMensal}</option>
-          <option value="trimestral" style={{ background: "#020810" }}>{tt.recorrenciaTrimestral}</option>
-          <option value="anual" style={{ background: "#020810" }}>{tt.recorrenciaAnual}</option>
-          <option value="unica" style={{ background: "#020810" }}>{tt.recorrenciaUnica}</option>
+          <option value="mensal" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.recorrenciaMensal}</option>
+          <option value="trimestral" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.recorrenciaTrimestral}</option>
+          <option value="anual" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.recorrenciaAnual}</option>
+          <option value="unica" style={{ background: temaClaro ? "#ffffff" : "#020810" }}>{tt.recorrenciaUnica}</option>
         </select>
       </div>
       <div className="flex gap-2">
         <button onClick={cancelar} className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: "rgba(106,176,255,0.1)", color: "#6ab0ff" }}>{tt.cancelar}</button>
+          style={{ background: (temaClaro ? "rgba(46,204,155,0.1)" : "rgba(106,176,255,0.1)"), color: AZULC }}>{tt.cancelar}</button>
         <button onClick={() => onSalvar(form)} disabled={!form.tipo || !form.nome || !form.data_vencimento}
           className="flex-1 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #047857, #10b981)", color: "#fff" }}>{tt.salvar}</button>
+          style={{ background: (temaClaro ? "linear-gradient(135deg, #16a97d, #2ecc9b)" : "linear-gradient(135deg, #047857, #10b981)"), color: "#fff" }}>{tt.salvar}</button>
       </div>
     </div>
   );
