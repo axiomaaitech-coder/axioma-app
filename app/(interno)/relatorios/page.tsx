@@ -569,7 +569,12 @@ export default function Relatorios() {
                   { label: "Margem Líquida", valor: `${dre.pct_lucro_liquido.toFixed(1)}%`, cor: ct("#a78bfa") },
                   { label: "Custos Totais", valor: formatBRL(dre.custos_variaveis + dre.custos_fixos), cor: ct("#fbbf24") },
                 ].map((c, i) => (
-                  <div key={i} className="rounded-xl p-3" style={{ background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)", border: `1px solid ${c.cor}30` }}>
+                  <div key={i} className={`rounded-xl p-3${temaClaro ? " axi-card-premium3d" : ""}`}
+                    style={{
+                      background: temaClaro ? "rgba(255,255,255,0.5)" : "rgba(2,8,16,0.6)",
+                      border: temaClaro ? BORDA_3D : `1px solid ${c.cor}30`,
+                      boxShadow: temaClaro ? SOMBRA_3D : undefined,
+                    }}>
                     <p className="text-[10px] uppercase tracking-wider" style={{ color: ct("#5a7a9a") }}>{c.label}</p>
                     <p className="text-base font-bold mt-1 truncate" style={{ color: c.cor }}>{c.valor}</p>
                   </div>
