@@ -367,7 +367,7 @@ export default function IATributariaPage() {
               { label: lang === "en" ? "Tax/Month" : "Imposto/Mês", valor: formatBRL(carga?.imposto_mensal || 0), cor: VERMELHO },
               { label: lang === "en" ? "Savings" : "Economia", valor: economia?.economia_mensal > 0 ? formatBRL(economia.economia_mensal) + tt.porMes : "—", cor: VERDE },
             ].map((c, i) => (
-              <CanvasBox key={i} cor={c.cor}>
+              <CanvasBox key={i} cor={c.cor} {...cartaoTema}>
                 <p className="text-[10px] uppercase tracking-wider" style={{ color: CINZA }}>{c.label}</p>
                 <p className="text-xl font-black mt-1" style={{ color: c.cor }}><AnimatedNumber value={c.valor} /></p>
               </CanvasBox>
@@ -470,7 +470,7 @@ export default function IATributariaPage() {
                 const isAtual = s.regime === (dados.regime_atual || "").toLowerCase();
                 const cor = i === 0 && s.elegivel ? VERDE : s.elegivel ? AZULC : CINZA;
                 return (
-                  <CanvasBox key={i} cor={cor}>
+                  <CanvasBox key={i} cor={cor} {...cartaoTema}>
                     <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
                       <div>
                         <p className="text-sm font-bold" style={{ color: TEXTO }}>{s.regime_label}</p>
@@ -582,7 +582,7 @@ export default function IATributariaPage() {
                 const icon = a.impacto === "positivo" ? "✅" : a.impacto === "negativo" ? "⚠️" : "ℹ️";
                 const label = a.impacto === "positivo" ? tt.positivo : a.impacto === "negativo" ? tt.negativo : tt.neutro;
                 return (
-                  <CanvasBox key={i} cor={cor}>
+                  <CanvasBox key={i} cor={cor} {...cartaoTema}>
                     <div className="flex items-start gap-3">
                       <span className="text-xl flex-shrink-0">{icon}</span>
                       <div className="flex-1 min-w-0">
