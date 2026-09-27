@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
 import { FuncoesNexus } from './FuncoesNexus'
 import { JosephChat } from './JosephChat'
+import { PainelExecutivo } from './PainelExecutivo'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -395,6 +396,9 @@ export default function NexusPage() {
               )
             })}
           </div>
+
+          {/* PAINEL EXECUTIVO DO JOSÉ — Etapa 7: síntese diária logo abaixo dos indicadores. */}
+          <PainelExecutivo lang={lang} temaClaro={temaClaro} />
 
           {/* EVENTOS DETECTADOS — Etapa 3: o que mudou de verdade nas séries
               oficiais, com natureza (fato/sinal/decisão) e Trava da Verdade. */}

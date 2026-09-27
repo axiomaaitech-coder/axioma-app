@@ -9,6 +9,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Cinzel } from 'next/font/google'
 import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
@@ -17,6 +18,23 @@ import { textoEvento } from '../../../lib/nexusEventDetector'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 
 type Lang = 'pt' | 'en' | 'es'
+
+// Fonte de personagem, SÓ na apresentação do José (pedido do Elias): letra de
+// forma de inscrição antiga (Cinzel). O resto do Axioma continua em Geist.
+const cinzel = Cinzel({ subsets: ['latin'], weight: ['600', '700'], display: 'swap' })
+
+// "Grifado" animado: marca-texto verde-menta que corre por baixo do texto.
+function Grifo({ children, cor }: { children: React.ReactNode; cor: string }) {
+  return (
+    <motion.span
+      initial={{ backgroundSize: '0% 42%' }} animate={{ backgroundSize: '100% 42%' }}
+      transition={{ duration: 1.1, delay: 0.3, ease: 'easeOut' }}
+      style={{ backgroundImage: `linear-gradient(${cor}, ${cor})`, backgroundRepeat: 'no-repeat', backgroundPosition: '0 88%', padding: '0 2px' }}
+    >
+      {children}
+    </motion.span>
+  )
+}
 type Msg = { role: 'user' | 'assistant'; content: string }
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
@@ -121,8 +139,8 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
         {/* Identidade do José + o que ele sabe agora */}
         <aside className="p-5 flex flex-col items-center text-center lg:border-r" style={{ borderColor: temaClaro ? 'rgba(16,27,61,0.1)' : 'rgba(255,255,255,0.06)' }}>
           <JosephAvatar tamanho={104} estado={pensando ? 'pensando' : 'parado'} />
-          <h2 className="text-lg font-black mt-3" style={{ color: TITULO }}>{L('Converse com o José', 'Talk to José', 'Converse con José')}</h2>
-          <p className="text-xs mt-1 leading-relaxed" style={{ color: TEXTO, opacity: 0.85 }}>
+          <h2 className={`${cinzel.className} text-xl md:text-2xl font-bold mt-3 tracking-wide`} style={{ color: TITULO }}>{L('Converse com o José', 'Talk to José', 'Converse con José')}</h2>
+          <p className={`${cinzel.className} text-sm md:text-[15px] font-semibold mt-2 leading-relaxed tracking-wide`} style={{ color: TEXTO }}>
             {L('Como José no Egito: ler os sinais de hoje para se preparar para as vacas magras.', 'Like José in Egypt: read today’s signs to prepare for the lean years.', 'Como José en Egipto: leer las señales de hoy para prepararse para las vacas flacas.')}
           </p>
           <div className="w-full mt-4 text-left rounded-xl p-3" style={{ background: NESTED_BG, border: temaClaro ? '1px solid rgba(16,27,61,0.12)' : '1px solid rgba(255,255,255,0.06)' }}>
@@ -149,12 +167,20 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-1 max-h-[380px]" aria-live="polite">
             {mensagens.length === 0 && !pensando && (
-              <div className="flex items-start gap-2.5">
-                <JosephAvatar tamanho={32} />
-                <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%]" style={bolhaJoseph}>
-                  {L('Olá! Eu sou o José. Acompanho os indicadores oficiais e os acontecimentos da economia para dizer o que eles significam para a sua empresa. Pergunte o que quiser — ou escolha uma das sugestões abaixo.', "Hi! I'm José. I follow official indicators and economic events to tell you what they mean for your company. Ask anything — or pick a suggestion below.", '¡Hola! Soy José. Sigo los indicadores oficiales y los hechos de la economía para decirle qué significan para su empresa. Pregunte lo que quiera — o elija una sugerencia abajo.')}
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+                className="relative overflow-hidden rounded-2xl p-4 sm:p-5 flex items-start gap-3 axi-card-premium3d"
+                style={{ background: temaClaro ? 'rgba(255,255,255,0.75)' : 'rgba(10,22,40,0.85)', border: '1px solid rgba(46,204,155,0.45)' }}>
+                <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
+                <JosephAvatar tamanho={52} />
+                <div className={`${cinzel.className} min-w-0 tracking-wide`}>
+                  <p className="text-xl sm:text-2xl font-bold leading-snug mb-2" style={{ color: TITULO }}>
+                    <Grifo cor={temaClaro ? 'rgba(46,204,155,0.45)' : 'rgba(46,204,155,0.35)'}>{L('Olá! Eu sou o José.', "Hi! I'm José.", '¡Hola! Soy José.')}</Grifo>
+                  </p>
+                  <p className="text-sm sm:text-base font-semibold leading-relaxed" style={{ color: TEXTO }}>
+                    {L('Acompanho os indicadores oficiais e os acontecimentos da economia para dizer o que eles significam para a sua empresa. Pergunte o que quiser — ou escolha uma das sugestões abaixo.', 'I follow official indicators and economic events to tell you what they mean for your company. Ask anything — or pick a suggestion below.', 'Sigo los indicadores oficiales y los hechos de la economía para decirle qué significan para su empresa. Pregunte lo que quiera — o elija una sugerencia abajo.')}
+                  </p>
                 </div>
-              </div>
+              </motion.div>
             )}
             {mensagens.map((m, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
