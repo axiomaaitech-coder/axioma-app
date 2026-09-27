@@ -211,6 +211,9 @@ export default function NexusPage() {
   const [noticiasIsDemo, setNoticiasIsDemo] = useState(true)
   const [precisaAvisoDemo, setPrecisaAvisoDemo] = useState(false)
   const [carregandoNoticias, setCarregandoNoticias] = useState(true)
+  // Esqueleto só na 1ª carga: ao trocar idioma/canal a TV mantém a lista atual
+  // até a nova chegar — nada encolhe e cresce de novo (sem tremida na tela).
+  const semNoticiaAinda = carregandoNoticias && noticiasCanal.length === 0
   const [indiceAtivo, setIndiceAtivo] = useState(0)
 
   const [eventos, setEventos] = useState<EventoNexus[]>([])
@@ -504,7 +507,7 @@ export default function NexusPage() {
                 <p className="text-sm font-black tracking-wide" style={{ color: TITULO }}>{L('Central Nexus', 'Nexus Center', 'Central Nexus')}</p>
               </div>
               {/* só depois de carregar — senão o selo pisca em toda abertura, mesmo com notícia real */}
-              {noticiasIsDemo && !carregandoNoticias && (
+              {noticiasIsDemo && !semNoticiaAinda && (
                 <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
                   {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                 </span>
@@ -541,7 +544,7 @@ export default function NexusPage() {
 
             {/* PLAYER — 16:9, uma manchete em destaque por vez */}
             <div className="px-4">
-              {carregandoNoticias ? (
+              {semNoticiaAinda ? (
                 <div className="w-full aspect-video rounded-xl animate-pulse" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(255,255,255,0.05)' }} />
               ) : !noticiaAtual ? (
                 <div className="w-full aspect-video rounded-xl flex items-center justify-center text-xs font-semibold" style={avisoNeutro}>
@@ -646,7 +649,7 @@ export default function NexusPage() {
               canal reforma-tributaria a lista inline para em MAX_CARDS_INLINE
               — o resto mora no botão "Ver mais"
               abaixo, que abre a lista ampliada dentro do próprio Axioma. */}
-          {!carregandoNoticias && noticiasCanal.length > 1 && (() => {
+          {!semNoticiaAinda && noticiasCanal.length > 1 && (() => {
             const outras = noticiasCanal.filter((_, i) => i !== indiceAtivo)
             const cardsInline = outras.slice(0, MAX_CARDS_INLINE)
             return (
@@ -668,7 +671,7 @@ export default function NexusPage() {
               login, ex: gov.br/fazenda). Independente do gate acima: precisa
               aparecer mesmo com 0/1 notícia, pra sempre existir um jeito de
               tentar de novo e ver o estado vazio traduzido. */}
-          {!carregandoNoticias && canalAtivo === 'reforma-tributaria' && (
+          {!semNoticiaAinda && canalAtivo === 'reforma-tributaria' && (
             <div className="max-w-3xl mx-auto">
               <button
                 onClick={() => setListaAmpliadaAberta(true)}
