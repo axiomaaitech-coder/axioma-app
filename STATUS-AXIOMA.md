@@ -1269,6 +1269,11 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Regra nova de IA:** frequente/simples → OpenAI; complexo/raro → Anthropic.
 **Próximo:** Etapa 5 — Minhas Simulações + "E se...?" com os números reais da empresa.
 
+## 3-BG. Nexus Etapa 5 — Minhas Simulações + "E se...?" (2026-09-27)
+/nexus/simulacoes: ponto de partida real (12 meses, mesmas fórmulas do módulo Simulações), choques macro (dólar, Selic, inflação, petróleo, receita) traduzidos no MESMO motor (lib/nexusSimulacaoMotor.ts → simularCenariosExecutivos), exposição sempre informada pelo usuário, horizonte 1/3/5/10 anos, 4 cenários, "Por que alguma parte não mudou?", explicação curta via OpenAI (reserva por regra). Salvas em nexus_simulation (SQL NEXUS-ETAPA5 rodado): editar, duplicar, favoritar, arquivar, excluir com confirmação (soft delete), filtros, paginação, auto-arquivar 90 dias. Botão "Simular este evento na minha empresa" no modal do Joseph. **Testado no ar** (preset do evento, simular, salvar, favoritar, arquivar, excluir).
+**Pendente de dívida técnica:** módulo /simulacoes ainda calcula o ponto de partida dentro da própria página — dá pra trocar por carregarPontoPartida (lib/nexusSimulacaoHelpers.ts) numa rodada futura.
+**Próximo:** Etapa 6 — cards flutuantes de evento durante a navegação + painel executivo (Mundo, Brasil, Alertas, Riscos, Oportunidades, horizontes).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

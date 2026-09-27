@@ -202,6 +202,14 @@ export default function NexusSimulacoesPage() {
     const b = s.resultado?.cenarios.find((c) => c.nome === 'base')
     return b && s.resultado ? b.lucroLiquidoMensal - s.resultado.lucroAtualMensal : 0
   }
+  const avisosSemEfeito: string[] = !ponto ? [] : [
+    variaveis.selicPontos !== 0 && ponto.dividaTotal === 0 && L('Você não tem dívida cadastrada — a Selic não afeta seu resultado direto.', 'You have no registered debt — Selic does not affect your result directly.', 'No tiene deuda registrada — la Selic no afecta su resultado directo.'),
+    variaveis.selicPontos !== 0 && ponto.dividaTotal > 0 && variaveis.dividaPosFixadaPct === 0 && L('Nenhuma parte da dívida está marcada como pós-fixada — a Selic não muda os juros.', 'No debt is marked as floating-rate — Selic does not change interest.', 'Ninguna deuda está marcada como variable — la Selic no cambia los intereses.'),
+    variaveis.dolarPct !== 0 && variaveis.exposicaoCambialPct === 0 && L('Informe "Custo em dólar" para o dólar afetar seu custo.', 'Fill in "Cost in dollars" for the dollar to affect your cost.', 'Complete "Costo en dólares" para que el dólar afecte su costo.'),
+    variaveis.petroleoPct !== 0 && variaveis.pesoCombustivelPct === 0 && L('Informe "Combustível/frete no custo" para o petróleo afetar seu custo.', 'Fill in "Fuel/freight in cost" for oil to affect your cost.', 'Complete "Combustible/flete en el costo" para que el petróleo afecte su costo.'),
+    variaveis.receitaPct !== 0 && ponto.receitaMensal === 0 && L('Não há receita registrada nos últimos 12 meses — variar a receita não muda nada.', 'No revenue recorded in the last 12 months — changing revenue changes nothing.', 'No hay ingresos en los últimos 12 meses — variar los ingresos no cambia nada.'),
+  ].filter((a): a is string => !!a)
+
   const listaFiltrada = lista.filter((s) =>
     filtro === 'todas' ? true : filtro === 'favoritas' ? s.favorita : filtro === 'risco' ? deltaBase(s) < 0 : filtro === 'oportunidade' ? deltaBase(s) > 0 : s.horizonteMeses === filtro)
 
@@ -325,7 +333,9 @@ export default function NexusSimulacoesPage() {
                         <p className="text-xs font-bold mb-1" style={{ color: c.nome === 'base' ? (temaClaro ? '#16a97d' : CIANO) : CINZA }}>{L3(NOME_CENARIO[c.nome])}</p>
                         <p className="text-[11px]" style={{ color: CINZA }}>{L('Lucro por mês', 'Profit per month', 'Beneficio por mes')}</p>
                         <p className="text-lg font-black" style={{ color: TITULO }}>{fBRL(c.lucroLiquidoMensal)}</p>
-                        <p className="text-xs font-bold" style={{ color: delta >= 0 ? POS : NEG }}>{delta >= 0 ? '▲' : '▼'} {fBRL(Math.abs(delta))} {L('vs hoje', 'vs today', 'vs hoy')}</p>
+                        <p className="text-xs font-bold" style={{ color: Math.round(delta) === 0 ? CINZA : delta > 0 ? POS : NEG }}>
+                          {Math.round(delta) === 0 ? L('= sem mudança', '= no change', '= sin cambio') : `${delta > 0 ? '▲' : '▼'} ${fBRL(Math.abs(delta))} ${L('vs hoje', 'vs today', 'vs hoy')}`}
+                        </p>
                         <p className="text-[11px] mt-2" style={{ color: CINZA }}>{L('Caixa em', 'Cash in', 'Caja en')} {horizonte / 12} {horizonte === 12 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')}</p>
                         <p className="text-sm font-bold" style={{ color: c.saldoCaixaProjetado >= 0 ? TITULO : NEG }}>{fBRL(c.saldoCaixaProjetado)}</p>
                         {c.runwayMeses !== null && (
@@ -335,6 +345,12 @@ export default function NexusSimulacoesPage() {
                     )
                   })}
                 </div>
+                {avisosSemEfeito.length > 0 && (
+                  <div className="rounded-xl p-3 mb-3" style={{ ...aninhada, borderLeft: `3px solid ${temaClaro ? '#b45309' : '#fbbf24'}` }}>
+                    <p className="text-xs font-bold mb-1" style={{ color: TITULO }}>{L('Por que alguma parte não mudou?', 'Why did some part not change?', '¿Por qué alguna parte no cambió?')}</p>
+                    <ul className="list-disc pl-4 space-y-0.5">{avisosSemEfeito.map((a) => <li key={a} className="text-xs" style={{ color: TEXTO }}>{a}</li>)}</ul>
+                  </div>
+                )}
                 <div className="rounded-xl p-3" style={aninhada}>
                   <p className="text-xs font-bold mb-1" style={{ color: CINZA }}>{L('O Joseph explica', 'Joseph explains', 'Joseph explica')}</p>
                   <p className="text-sm leading-relaxed" style={{ color: TEXTO }}>
@@ -379,7 +395,9 @@ export default function NexusSimulacoesPage() {
                             <Star size={15} fill={s.favorita ? (temaClaro ? '#f5a623' : '#fbbf24') : 'none'} style={{ color: s.favorita ? (temaClaro ? '#f5a623' : '#fbbf24') : CINZA }} />
                           </button>
                         </div>
-                        <p className="text-xs font-bold" style={{ color: d >= 0 ? POS : NEG }}>{d >= 0 ? '▲' : '▼'} {fBRL(Math.abs(d))}/{L('mês no cenário base', 'mo in base case', 'mes en escenario base')}</p>
+                        <p className="text-xs font-bold" style={{ color: Math.round(d) === 0 ? CINZA : d > 0 ? POS : NEG }}>
+                          {Math.round(d) === 0 ? L('= sem mudança no cenário base', '= no change in base case', '= sin cambio en escenario base') : `${d > 0 ? '▲' : '▼'} ${fBRL(Math.abs(d))}/${L('mês no cenário base', 'mo in base case', 'mes en escenario base')}`}
+                        </p>
                         <p className="text-[11px] mt-1" style={{ color: CINZA }}>
                           {s.horizonteMeses / 12} {s.horizonteMeses === 12 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')} · {new Date(s.atualizadoEm).toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}
                         </p>
