@@ -256,8 +256,9 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ LETREIRO — DASHBOARD FINANCEIRO ══════ */}
-          <div className="relative rounded-2xl overflow-hidden mt-2"
+          <div className={"relative rounded-2xl overflow-hidden mt-2" + (claro ? " axi-card-premium3d" : "")}
             style={claro ? letreiroSecaoClaro : { background: "linear-gradient(120deg, rgba(139,92,246,0.16), rgba(10,8,32,0.6) 55%, rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.28)" }}>
+            {claro && <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />}
             <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: claro ? "#2ecc9b" : "linear-gradient(180deg, #8b5cf6, #06b6d4)", boxShadow: claro ? undefined : "0 0 18px #8b5cf6" }} />
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">💼</span>
@@ -276,8 +277,9 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ LETREIRO — DASHBOARD COMERCIAL ══════ */}
-          <div className="relative rounded-2xl overflow-hidden mt-4"
+          <div className={"relative rounded-2xl overflow-hidden mt-4" + (claro ? " axi-card-premium3d" : "")}
             style={claro ? letreiroSecaoClaro : { background: "linear-gradient(120deg, rgba(6,182,212,0.16), rgba(10,8,32,0.6) 55%, rgba(212,175,55,0.10))", border: "1px solid rgba(6,182,212,0.28)" }}>
+            {claro && <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />}
             <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: claro ? "#2ecc9b" : "linear-gradient(180deg, #06b6d4, #d4af37)", boxShadow: claro ? undefined : "0 0 18px #06b6d4" }} />
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">🚀</span>

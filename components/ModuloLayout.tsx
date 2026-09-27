@@ -2,6 +2,7 @@
 import { Download, Plus } from "lucide-react";
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
+import { BORDA_3D, SOMBRA_3D } from "./CanvasBox";
 
 interface ModuloLayoutProps {
   titulo: string;
@@ -64,9 +65,14 @@ export default function ModuloLayout({
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className={`mb-6 md:mb-8${headerFundo ? " rounded-2xl p-5 md:p-7" : ""}`}
-        style={headerFundo ? { background: headerFundo } : undefined}
+        className={`mb-6 md:mb-8${headerFundo ? " relative overflow-hidden rounded-2xl p-5 md:p-7 axi-card-premium3d" : ""}`}
+        style={headerFundo ? { background: headerFundo, border: BORDA_3D, boxShadow: SOMBRA_3D } : undefined}
       >
+        {/* Cabeçalho azul (tema Claro) com o mesmo efeito do card creme:
+            borda/glow verde-menta + faixa verde mais grossa no topo no hover. */}
+        {headerFundo && (
+          <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />
+        )}
         <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: headerFundo ? "#fff" : "var(--axi-text-heading)" }}>{titulo}</h2>
         <p className="text-sm" style={{ color: headerFundo ? "rgba(255,255,255,0.75)" : "var(--axi-text-secondary)" }}>{subtitulo}</p>
         <div className="flex gap-2 mt-4 flex-wrap">
