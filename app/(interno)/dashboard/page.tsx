@@ -13,6 +13,8 @@ import {
 } from "../../../lib/iaFinanceiraHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
+import { useThemeAxioma } from "../../../lib/ThemeContext";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -125,7 +127,13 @@ const COR = { roxo: "#8b5cf6", indigo: "#6366f1", azul: "#3b82f6", cyan: "#06b6d
 function fBRL2(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0); }
 
 // Glass Card — estilo referência com borda sutil e hover glow
-function GC({ children, cor = COR.roxo, onClick, className = "" }: { children: React.ReactNode; cor?: string; onClick?: () => void; className?: string }) {
+function GC({ children, cor = COR.roxo, onClick, className = "", claro = false }: { children: React.ReactNode; cor?: string; onClick?: () => void; className?: string; claro?: boolean }) {
+  if (claro) return (
+    <div onClick={onClick} className={`rounded-2xl overflow-hidden axi-card-premium3d ${onClick ? "cursor-pointer" : ""} ${className}`}
+      style={{ background: "#f6f7c4", border: "1px solid rgba(16,27,61,0.12)" }}>
+      {children}
+    </div>
+  );
   return (
     <div onClick={onClick}
       className={`rounded-2xl overflow-hidden transition-all duration-300 hover:translate-y-[-4px] ${onClick ? "cursor-pointer" : ""} ${className}`}
@@ -143,6 +151,11 @@ export default function DashboardPage() {
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
+  const { tema } = useThemeAxioma();
+  const claro = tema === "xms";
+  // Letreiro de seção no Claro: bloco SÓLIDO azul-marinho (cor de bloco
+  // estrutural da referência), título branco, subtítulo verde-menta.
+  const letreiroSecaoClaro = { background: "#101b3d", border: "1px solid #101b3d" };
 
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
@@ -204,10 +217,10 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen p-3 md:p-5 overflow-auto" style={{ background: "linear-gradient(180deg, #06031a 0%, #020810 50%)" }}>
+    <div data-theme={tema} className="min-h-screen p-3 md:p-5 overflow-auto" style={{ background: claro ? "#f7f8fa" : "linear-gradient(180deg, #06031a 0%, #020810 50%)", fontFamily: "var(--font-geist-sans), Arial, sans-serif" }}>
       {toast && (<div className="fixed top-28 right-4 z-50 px-4 py-3 rounded-xl shadow-lg max-w-sm" style={{ background: toast.tipo === "erro" ? "rgba(239,68,68,0.95)" : "rgba(99,102,241,0.95)", color: "#fff", fontWeight: 700, fontSize: 13 }}>{toast.msg}</div>)}
 
-      {carregando && (<div className="py-32 text-center"><div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-sm font-semibold" style={{ color: COR.roxo }}>{tt.carregando}</p></div>)}
+      {carregando && (<div className="py-32 text-center"><div className="w-12 h-12 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" /><p className="text-sm font-semibold" style={{ color: claro ? "#101b3d" : COR.roxo }}>{tt.carregando}</p></div>)}
 
       {!carregando && snap && score360 && (
         <div className="space-y-5 w-full">
@@ -232,26 +245,27 @@ export default function DashboardPage() {
                 {empresaNome && <p className="text-base mt-2 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
                 <p className="text-sm mt-3 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
               </div>
-              <div className="hidden md:flex gap-3">
-                <button onClick={() => setShareAberto(true)} className="px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
-                  style={{ background: "rgba(139,92,246,0.35)", border: "1px solid rgba(139,92,246,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
-                <button onClick={exportarPDF} disabled={exportando} className="px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
-                  style={{ background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
+              <div className="flex gap-3 items-center">
+                <button onClick={() => setShareAberto(true)} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold transition-all hover:scale-105"
+                  style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(139,92,246,0.35)", border: "1px solid rgba(139,92,246,0.6)", color: "#e2e8f0", backdropFilter: "blur(8px)" }}>{tt.compartilhar}</button>
+                <button onClick={exportarPDF} disabled={exportando} className="hidden md:block px-4 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-all hover:scale-105"
+                  style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", border: "none", color: "#fff" } : { background: "rgba(239,68,68,0.2)", border: "1px solid rgba(239,68,68,0.4)", color: "#fca5a5" }}>{exportando ? tt.gerando : "📄 PDF"}</button>
+                <ThemeToggle />
               </div>
             </div>
           </div>
 
           {/* ══════ LETREIRO — DASHBOARD FINANCEIRO ══════ */}
           <div className="relative rounded-2xl overflow-hidden mt-2"
-            style={{ background: "linear-gradient(120deg, rgba(139,92,246,0.16), rgba(10,8,32,0.6) 55%, rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.28)" }}>
-            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: "linear-gradient(180deg, #8b5cf6, #06b6d4)", boxShadow: "0 0 18px #8b5cf6" }} />
+            style={claro ? letreiroSecaoClaro : { background: "linear-gradient(120deg, rgba(139,92,246,0.16), rgba(10,8,32,0.6) 55%, rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.28)" }}>
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: claro ? "#2ecc9b" : "linear-gradient(180deg, #8b5cf6, #06b6d4)", boxShadow: claro ? undefined : "0 0 18px #8b5cf6" }} />
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">💼</span>
               <div>
                 <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dfTitulo}
                 </h2>
-                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#a5b4fc" }}>{tt.dfSub}</p>
+                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: claro ? "#2ecc9b" : "#a5b4fc" }}>{tt.dfSub}</p>
               </div>
             </div>
           </div>
@@ -263,15 +277,15 @@ export default function DashboardPage() {
 
           {/* ══════ LETREIRO — DASHBOARD COMERCIAL ══════ */}
           <div className="relative rounded-2xl overflow-hidden mt-4"
-            style={{ background: "linear-gradient(120deg, rgba(6,182,212,0.16), rgba(10,8,32,0.6) 55%, rgba(212,175,55,0.10))", border: "1px solid rgba(6,182,212,0.28)" }}>
-            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: "linear-gradient(180deg, #06b6d4, #d4af37)", boxShadow: "0 0 18px #06b6d4" }} />
+            style={claro ? letreiroSecaoClaro : { background: "linear-gradient(120deg, rgba(6,182,212,0.16), rgba(10,8,32,0.6) 55%, rgba(212,175,55,0.10))", border: "1px solid rgba(6,182,212,0.28)" }}>
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: claro ? "#2ecc9b" : "linear-gradient(180deg, #06b6d4, #d4af37)", boxShadow: claro ? undefined : "0 0 18px #06b6d4" }} />
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">🚀</span>
               <div>
                 <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dcTitulo}
                 </h2>
-                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#67e8f9" }}>{tt.dcSub}</p>
+                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: claro ? "#2ecc9b" : "#67e8f9" }}>{tt.dcSub}</p>
               </div>
             </div>
           </div>
@@ -282,18 +296,18 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ MÓDULOS — estilo Frontend/API/Backend da referência ══════ */}
-          <GC cor={COR.indigo}>
+          <GC cor={COR.indigo} claro={claro}>
             <div className="p-4">
-              <p className="text-sm font-black mb-3" style={{ color: "#f1f5f9" }}>⚡ {tt.modulos}</p>
+              <p className="text-sm font-black mb-3" style={{ color: claro ? "#101b3d" : "#f1f5f9" }}>⚡ {tt.modulos}</p>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-12 gap-2">
                 {mods.map((m, i) => (
                   <button key={i} onClick={() => router.push(m.p)}
                     className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl transition-all duration-200 hover:translate-y-[-4px]"
-                    style={{ background: `${m.c}06`, border: `1px solid ${m.c}12` }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = `${m.c}18`; e.currentTarget.style.borderColor = `${m.c}40`; e.currentTarget.style.boxShadow = `0 6px 20px ${m.c}15`; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = `${m.c}06`; e.currentTarget.style.borderColor = `${m.c}12`; e.currentTarget.style.boxShadow = "none"; }}>
+                    style={claro ? { background: "rgba(255,255,255,0.5)", border: "1px solid rgba(16,27,61,0.12)" } : { background: `${m.c}06`, border: `1px solid ${m.c}12` }}
+                    onMouseEnter={(e) => { if (claro) { e.currentTarget.style.borderColor = "#2ecc9b"; return; } e.currentTarget.style.background = `${m.c}18`; e.currentTarget.style.borderColor = `${m.c}40`; e.currentTarget.style.boxShadow = `0 6px 20px ${m.c}15`; }}
+                    onMouseLeave={(e) => { if (claro) { e.currentTarget.style.borderColor = "rgba(16,27,61,0.12)"; return; } e.currentTarget.style.background = `${m.c}06`; e.currentTarget.style.borderColor = `${m.c}12`; e.currentTarget.style.boxShadow = "none"; }}>
                     <span className="text-xl">{m.i}</span>
-                    <span className="text-[8px] md:text-[9px] font-bold leading-tight text-center" style={{ color: m.c }}>{m.l}</span>
+                    <span className="text-[8px] md:text-[9px] font-bold leading-tight text-center" style={{ color: claro ? "#101b3d" : m.c }}>{m.l}</span>
                   </button>
                 ))}
               </div>

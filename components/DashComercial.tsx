@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling } from "../lib/cfoCore";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
-import ReactECharts from "echarts-for-react";
-import { AnimatedNumber } from "./AnimatedNumber";
+import { fBRL, tip, tipClaro, EIXO, barrasV, rosca, fK } from "../lib/dashGraficos";
+import { useDashClaro, BotaoDemo, BannerDemo, KpisDash, LetreiroDash, PainelDash, ChartDash, type KpiDash } from "./DashBlocos";
 
 const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 
@@ -71,8 +70,6 @@ const C = {
   rosa: "#ec4899", rosaC: "#f9a8d4", azul: "#3b82f6", azulC: "#93c5fd", indigo: "#6366f1", teal: "#14b8a6",
 };
 
-const fBRL = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0);
-const fK = (n: number) => Math.abs(n) >= 1000 ? `R$ ${(n / 1000).toFixed(0)}k` : `R$ ${Math.round(n)}`;
 
 // Dados de exemplo — só aparecem quando o usuário liga "Ver demonstração".
 const D = {
@@ -105,97 +102,47 @@ const REAL_VAZIO: RealCom = {
   inadTotal: 0, inadSerie: Array(12).fill(0), investTotal: 0, investCategorias: [], novosClientesSerie: Array(12).fill(0),
 };
 
-const tip = {
-  backgroundColor: "rgba(10,8,30,0.97)", borderWidth: 1, padding: [10, 14],
-  textStyle: { color: "#e2e8f0", fontSize: 13 },
-  extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);",
-};
-
-function barrasV(dados: number[], meses: string[], cor: string, corC: string) {
-  return {
-    backgroundColor: "transparent", animationDuration: 900,
-    grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
-    tooltip: { ...tip, trigger: "item", borderColor: cor,
-      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
-    xAxis: { type: "category", data: meses,
-      axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
-    yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
-      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
-    series: [{
-      type: "bar", barWidth: "60%",
-      itemStyle: {
-        borderRadius: [8, 8, 2, 2],
-        color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
-        shadowColor: cor + "60", shadowBlur: 12,
-      },
-      label: { show: true, position: "top", distance: 6, color: "#f1f5f9", fontSize: 10, fontWeight: 800, formatter: (p: any) => fK(p.value) },
-      emphasis: { itemStyle: { shadowBlur: 24 } },
-      data: dados,
-    }],
-  };
-}
-
-function linhaMetas(tt: any) {
+function linhaMetas(tt: any, claro = false) {
+  const e = EIXO(claro);
+  // Claro: realizado azul-marinho, meta verde-menta tracejada, projeção cinza pontilhada (chart-2/1/4)
+  const [corReal, corMeta, corProj] = claro ? ["#101b3d", "#2ecc9b", "#6b7280"] : [C.roxo, C.ouro, C.cyan];
   return {
     backgroundColor: "transparent", animationDuration: 1100,
     grid: { left: 58, right: 24, top: 40, bottom: 30, containLabel: false },
     legend: { top: 2, right: 0, itemWidth: 16, itemHeight: 10, itemGap: 18, icon: "roundRect",
-      textStyle: { color: "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: [tt.realizado, tt.meta, tt.projecao] },
-    tooltip: { ...tip, trigger: "axis", borderColor: C.roxo,
+      textStyle: { color: e.rotulo, fontSize: 12, fontWeight: 700 }, data: [tt.realizado, tt.meta, tt.projecao] },
+    tooltip: { ...(claro ? tipClaro : tip), trigger: "axis", borderColor: corReal,
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.filter(p => p.value != null).map(p => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", boundaryGap: false, data: tt.meses,
-      axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: "#94a3b8", fontSize: 11, fontWeight: 700 } },
+      axisLine: { lineStyle: { color: e.linhaTempo } }, axisTick: { show: false },
+      axisLabel: { color: e.rotuloTempo, fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
-      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+      splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
+      axisLabel: { color: e.rotuloFraco, fontSize: 10, formatter: (v: number) => fK(v) } },
     series: [
       { name: tt.realizado, type: "line", smooth: true, symbol: "circle", symbolSize: 8,
-        lineStyle: { width: 4, color: C.roxo, shadowColor: C.roxo + "90", shadowBlur: 14 },
-        itemStyle: { color: C.roxo, borderColor: "#0a0820", borderWidth: 2 },
-        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(139,92,246,0.38)" }, { offset: 1, color: "rgba(139,92,246,0)" }] } },
+        lineStyle: { width: 4, color: corReal, shadowColor: corReal + "90", shadowBlur: claro ? 4 : 14 },
+        itemStyle: { color: corReal, borderColor: e.bordaPonto, borderWidth: 2 },
+        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: claro ? [{ offset: 0, color: "rgba(16,27,61,0.22)" }, { offset: 1, color: "rgba(16,27,61,0)" }] : [{ offset: 0, color: "rgba(139,92,246,0.38)" }, { offset: 1, color: "rgba(139,92,246,0)" }] } },
         data: D.realizado },
       { name: tt.meta, type: "line", smooth: false, symbol: "none",
-        lineStyle: { width: 2.5, color: C.ouro, type: "dashed", shadowColor: C.ouro + "70", shadowBlur: 8 },
-        itemStyle: { color: C.ouro }, data: D.meta },
+        lineStyle: { width: 2.5, color: corMeta, type: "dashed", shadowColor: corMeta + "70", shadowBlur: claro ? 0 : 8 },
+        itemStyle: { color: corMeta }, data: D.meta },
       { name: tt.projecao, type: "line", smooth: true, symbol: "emptyCircle", symbolSize: 7,
-        lineStyle: { width: 3, color: C.cyan, type: "dotted", shadowColor: C.cyan + "70", shadowBlur: 10 },
-        itemStyle: { color: C.cyan, borderColor: "#0a0820", borderWidth: 2 }, data: D.projecao },
-    ],
-  };
-}
-
-function rosca(dados: { name: string; value: number; color: string }[], cor: string, centro: string) {
-  const total = dados.reduce((a, b) => a + b.value, 0);
-  return {
-    backgroundColor: "transparent", animationDuration: 1000,
-    tooltip: { ...tip, trigger: "item", borderColor: cor,
-      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${cor}">${p.percent}%</span>` },
-    legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle",
-      textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 600 },
-      formatter: (name: string) => { const d = dados.find(x => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name}  ${pct}%`; } },
-    series: [{ type: "pie", radius: ["54%", "80%"], center: ["34%", "52%"], avoidLabelOverlap: false,
-      itemStyle: { borderColor: "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
-      label: { show: false }, labelLine: { show: false },
-      emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 26, shadowColor: cor + "80" } },
-      data: dados.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })) }],
-    graphic: [
-      { type: "text", left: "34%", top: "45%", style: { text: fK(total), textAlign: "center", fill: "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
-      { type: "text", left: "34%", top: "55%", style: { text: centro, textAlign: "center", fill: "#64748b", fontSize: 9, fontWeight: 700 }, z: 10 },
+        lineStyle: { width: 3, color: corProj, type: "dotted", shadowColor: corProj + "70", shadowBlur: claro ? 0 : 10 },
+        itemStyle: { color: corProj, borderColor: e.bordaPonto, borderWidth: 2 }, data: D.projecao },
     ],
   };
 }
 
 export default function DashComercial() {
-  const router = useRouter();
   const { idioma } = useLanguage();
   const lang = (idioma as "pt" | "en" | "es") || "pt";
   const tt = T[lang];
 
   const [demo, setDemo] = useState(false);
   const [real, setReal] = useState<RealCom>(REAL_VAZIO);
+  const claro = useDashClaro();
 
   useEffect(() => {
     let ativo = true;
@@ -263,7 +210,7 @@ export default function DashComercial() {
     criptomoeda: tt.investCripto, imovel: tt.investImovel, outro: tt.investOutro,
   };
 
-  const kpis = demo ? [
+  const kpis: KpiDash[] = demo ? [
     { l: tt.metaAnual, v: `${pctMetaDemo}%`, c: C.roxo, i: "🎯", p: "/metas", d: "▲ 6,2%", up: true },
     { l: tt.clientesAtivos, v: "128", c: C.azul, i: "👥", p: "/clientes", d: "▲ 14,8%", up: true },
     { l: tt.aReceber, v: fBRL(totalReceberDemo), c: C.verde, i: "📥", p: "/contas-receber", d: "▲ 9,4%", up: true },
@@ -293,98 +240,24 @@ export default function DashComercial() {
     `${tt.investimentos} ${fBRL(real.investTotal)}`,
   ];
 
-  const Chart = ({ titulo, cor, path, option, altura, vazio }: { titulo: string; cor: string; path: string; option?: any; altura: number; vazio?: string }) => (
-    <div className="rounded-xl p-4 relative" style={{ background: "rgba(8,6,24,0.55)", border: `1px solid ${cor}20` }}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-          <p className="text-[13px] font-black" style={{ color: "#f1f5f9" }}>{titulo}</p>
-          {demo && <span className="text-[9px] px-2 py-0.5 rounded font-black tracking-wider" style={{ background: `${C.ouro}30`, color: C.ouro, border: `1px solid ${C.ouro}60` }}>🎭 {tt.demo}</span>}
-        </div>
-        <button onClick={() => router.push(path)} className="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all hover:scale-105"
-          style={{ background: `${cor}15`, border: `1px solid ${cor}38`, color: cor }}>{tt.verModulo} →</button>
-      </div>
-      {option ? (
-        <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
-      ) : (
-        <div className="flex items-center justify-center text-center px-4" style={{ height: altura, color: "#5a6a85", fontSize: 12, fontWeight: 600 }}>{vazio}</div>
-      )}
-    </div>
-  );
+  const chartBase = { demo, claro, rotuloDemo: tt.demo, rotuloVerModulo: tt.verModulo };
 
   return (
     <div className="space-y-4 w-full">
 
-      {/* TOGGLE demo/real */}
-      <div className="flex items-center justify-end gap-2">
-        <button onClick={() => setDemo(v => !v)}
-          className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
-          style={{ background: demo ? `${C.ouro}25` : "rgba(255,255,255,0.05)", border: `1px solid ${demo ? C.ouro : "rgba(148,163,184,0.3)"}`, color: demo ? C.ouroC : "#94a3b8" }}>
-          🎭 {demo ? tt.verMeusDados : tt.verDemo}
-        </button>
-      </div>
-
-      {demo && (
-        <div className="w-full rounded-xl px-4 py-2.5 text-center" style={{ background: `${C.ouro}18`, border: `1px dashed ${C.ouro}` }}>
-          <span className="text-[11px] font-black tracking-widest uppercase" style={{ color: C.ouroC }}>🎭 {tt.modoDemoAtivo}</span>
-        </div>
-      )}
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {kpis.map((k, i) => (
-          <div key={i} onClick={() => router.push(k.p)}
-            className="rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px] relative"
-            style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: `1px solid ${k.c}22`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${k.c}60`; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.5), 0 0 26px ${k.c}22`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${k.c}22`; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}>
-            {demo && <span className="absolute top-2 right-2 text-[7px] px-1.5 py-0.5 rounded font-black tracking-wider" style={{ background: `${C.ouro}30`, color: C.ouro }}>🎭 {tt.demo}</span>}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-lg">{k.i}</span>
-              {"d" in k && (k as any).d && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={{ background: (k as any).up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: (k as any).up ? C.verde : C.vermelho }}>{(k as any).d}</span>
-              )}
-            </div>
-            <p className="text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
-            <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* LETREIRO EM LOOP */}
-      <div className="relative rounded-xl overflow-hidden" style={{ background: demo ? `linear-gradient(90deg, ${C.ouro}22, ${C.ouro}12)` : "linear-gradient(90deg, rgba(6,182,212,0.12), rgba(212,175,55,0.10))", border: demo ? `1px solid ${C.ouro}55` : "1px solid rgba(6,182,212,0.22)" }}>
-        <div className="marquee-com py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
-          <span className="text-sm font-bold tracking-wide">
-            {marquee.map((t, i) => (<span key={i} style={{ color: i === 0 ? "#67e8f9" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#06b6d4" }}>{"  •  "}</span></span>))}
-          </span>
-          <span className="text-sm font-bold tracking-wide" aria-hidden>
-            {marquee.map((t, i) => (<span key={`b${i}`} style={{ color: i === 0 ? "#67e8f9" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#06b6d4" }}>{"  •  "}</span></span>))}
-          </span>
-        </div>
-        <style>{`
-          .marquee-com { animation: marqueeCom 32s linear infinite; }
-          @keyframes marqueeCom { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-          .marquee-com:hover { animation-play-state: paused; }
-        `}</style>
-      </div>
+      <BotaoDemo demo={demo} onToggle={() => setDemo(v => !v)} claro={claro} rotulo={demo ? tt.verMeusDados : tt.verDemo} />
+      {demo && <BannerDemo claro={claro} texto={tt.modoDemoAtivo} />}
+      <KpisDash kpis={kpis} demo={demo} claro={claro} rotuloDemo={tt.demo} />
+      <LetreiroDash itens={marquee} demo={demo} claro={claro}
+        escuro={{ primeiro: "#67e8f9", separador: "#06b6d4", fundo: "linear-gradient(90deg, rgba(6,182,212,0.12), rgba(212,175,55,0.10))", borda: "1px solid rgba(6,182,212,0.22)" }} />
 
       {/* MODAL ÚNICO */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
-        <div className="p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#06b6d4,#d4af37)", boxShadow: "0 0 12px #06b6d4" }} />
-            <div>
-              <p className="text-base font-black" style={{ color: "#f1f5f9" }}>{tt.painelTitulo}</p>
-              <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{tt.painelSub}</p>
-            </div>
-          </div>
-
+      <PainelDash titulo={tt.painelTitulo} sub={tt.painelSub} claro={claro} barraEscuro={{ fundo: "linear-gradient(180deg,#06b6d4,#d4af37)", brilho: "#06b6d4" }}>
           <div className="mb-4">
             {demo ? (
-              <Chart titulo={tt.metasT} cor={C.roxo} path="/metas" option={linhaMetas(tt)} altura={280} />
+              <ChartDash {...chartBase} titulo={tt.metasT} cor={C.roxo} path="/metas" option={linhaMetas(tt, claro)} altura={280} />
             ) : (
-              <Chart titulo={tt.metasT} cor={C.roxo} path="/metas" altura={280}
+              <ChartDash {...chartBase} titulo={tt.metasT} cor={C.roxo} path="/metas" altura={280}
                 vazio={real.metasCount > 0 ? `${real.metasCount} ${tt.metasCadastradasMsg}` : tt.semMeta} />
             )}
           </div>
@@ -392,34 +265,33 @@ export default function DashComercial() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {demo ? (
               <>
-                <Chart titulo={tt.clientes} cor={C.azul} path="/clientes" option={barrasV(D.novosClientes, tt.meses, C.azul, C.azulC)} altura={260} />
-                <Chart titulo={tt.inad} cor={C.rosa} path="/inadimplencia" option={barrasV(D.inadimplencia, tt.meses, C.rosa, C.rosaC)} altura={260} />
-                <Chart titulo={tt.receber} cor={C.verde} path="/contas-receber" option={rosca(D.receber.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.verde, tt.total)} altura={220} />
-                <Chart titulo={tt.invest} cor={C.ouro} path="/investimentos" option={rosca(D.invest.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total)} altura={220} />
+                <ChartDash {...chartBase} titulo={tt.clientes} cor={C.azul} path="/clientes" option={barrasV(D.novosClientes, tt.meses, C.azul, C.azulC, claro)} altura={260} />
+                <ChartDash {...chartBase} titulo={tt.inad} cor={C.rosa} path="/inadimplencia" option={barrasV(D.inadimplencia, tt.meses, C.rosa, C.rosaC, claro)} altura={260} />
+                <ChartDash {...chartBase} titulo={tt.receber} cor={C.verde} path="/contas-receber" option={rosca(D.receber.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.verde, tt.total, claro)} altura={220} />
+                <ChartDash {...chartBase} titulo={tt.invest} cor={C.ouro} path="/investimentos" option={rosca(D.invest.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total, claro)} altura={220} />
               </>
             ) : (
               <>
-                <Chart titulo={tt.clientes} cor={C.azul} path="/clientes" altura={260}
-                  option={real.novosClientesSerie.some(v => v > 0) ? barrasV(real.novosClientesSerie, tt.meses, C.azul, C.azulC) : undefined}
+                <ChartDash {...chartBase} titulo={tt.clientes} cor={C.azul} path="/clientes" altura={260}
+                  option={real.novosClientesSerie.some(v => v > 0) ? barrasV(real.novosClientesSerie, tt.meses, C.azul, C.azulC, claro) : undefined}
                   vazio={tt.semCliente} />
-                <Chart titulo={tt.inad} cor={C.rosa} path="/inadimplencia" altura={260}
-                  option={real.inadSerie.some(v => v > 0) ? barrasV(real.inadSerie, tt.meses, C.rosa, C.rosaC) : undefined}
+                <ChartDash {...chartBase} titulo={tt.inad} cor={C.rosa} path="/inadimplencia" altura={260}
+                  option={real.inadSerie.some(v => v > 0) ? barrasV(real.inadSerie, tt.meses, C.rosa, C.rosaC, claro) : undefined}
                   vazio={tt.semInadimplencia} />
-                <Chart titulo={tt.receber} cor={C.verde} path="/contas-receber" altura={220}
+                <ChartDash {...chartBase} titulo={tt.receber} cor={C.verde} path="/contas-receber" altura={220}
                   option={real.receberTotal > 0 ? rosca([
                     { name: tt.aVencer, value: real.receberAVencer, color: C.verde },
                     { name: tt.vence30, value: real.receberVence30, color: C.cyan },
                     { name: tt.atraso, value: real.receberAtraso, color: C.vermelho },
-                  ].filter(b => b.value > 0), C.verde, tt.total) : undefined}
+                  ].filter(b => b.value > 0), C.verde, tt.total, claro) : undefined}
                   vazio={tt.semReceber} />
-                <Chart titulo={tt.invest} cor={C.ouro} path="/investimentos" altura={220}
-                  option={real.investCategorias.length ? rosca(real.investCategorias.map((c, i) => ({ name: mapaCatInvest[c.categoria] || c.categoria, value: c.value, color: [C.ouro, C.roxo, C.cyan, C.teal, C.rosa][i % 5] })), C.ouro, tt.total) : undefined}
+                <ChartDash {...chartBase} titulo={tt.invest} cor={C.ouro} path="/investimentos" altura={220}
+                  option={real.investCategorias.length ? rosca(real.investCategorias.map((c, i) => ({ name: mapaCatInvest[c.categoria] || c.categoria, value: c.value, color: [C.ouro, C.roxo, C.cyan, C.teal, C.rosa][i % 5] })), C.ouro, tt.total, claro) : undefined}
                   vazio={tt.semInvestimento} />
               </>
             )}
           </div>
-        </div>
-      </div>
+      </PainelDash>
     </div>
   );
 }
