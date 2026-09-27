@@ -189,3 +189,27 @@ export async function obterLeiturasRecentes(lang: "pt" | "en" | "es", limite = 5
     return { titulo: l.title as string, data: (l.published_at as string | null)?.slice(0, 10) ?? null, leitura: analises[lang]?.leitura ?? analises.pt?.leitura ?? null };
   });
 }
+
+// Manchetes recentes coletadas (fonte jornalística) — contexto do chat do José
+// sobre o mundo (conflitos, acordos, mercados), sempre marcadas como não oficiais.
+export async function obterManchetesRecentes(dias = 5, limite = 16): Promise<{ titulo: string; canal: string | null; data: string | null }[]> {
+  const desde = new Date(Date.now() - dias * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("nexus_news")
+    .select("title, canal, publication_date")
+    .gte("publication_date", desde)
+    .order("publication_date", { ascending: false })
+    .limit(limite);
+  if (error) return [];
+  return (data ?? []).map((n) => ({ titulo: n.title as string, canal: (n.canal as string | null) ?? null, data: (n.publication_date as string | null)?.slice(0, 10) ?? null }));
+}
+
+// Horizontes do painel executivo mais recente (12m/3a/5a/10a) — o chat usa como base
+// pras perguntas "como a economia afeta minha empresa em N anos".
+export async function obterHorizontesPainel(lang: "pt" | "en" | "es"): Promise<{ data: string; texto: string } | null> {
+  const { data, error } = await supabase.from("nexus_briefing").select("data, conteudo").eq("lang", lang).order("data", { ascending: false }).limit(1).maybeSingle();
+  if (error || !data) return null;
+  const c = data.conteudo as Record<string, { titulo?: string; texto?: string; confianca?: number } | undefined>;
+  const linha = (k: string, rot: string) => (c[k]?.texto ? `- ${rot} (confiança ${c[k]?.confianca ?? "?"}/100): ${c[k]?.titulo ?? ""} — ${c[k]?.texto}` : "");
+  return { data: data.data as string, texto: [linha("horizonte_12m", "12 meses"), linha("horizonte_3a", "3 anos"), linha("horizonte_5a", "5 anos"), linha("horizonte_10a", "10 anos")].filter(Boolean).join("\n") };
+}

@@ -13,7 +13,7 @@ import { Cinzel } from 'next/font/google'
 import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
-import { obterLeiturasRecentes, type EventoNexus, type IndicadorNexus } from '../../../lib/nexusHelpers'
+import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, type EventoNexus, type IndicadorNexus } from '../../../lib/nexusHelpers'
 import { textoEvento } from '../../../lib/nexusEventDetector'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 
@@ -40,6 +40,14 @@ const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right
 const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
 const MAX_HISTORICO = 10
 
+// Perguntas de futuro: 1 a 10 anos — o objetivo do José (pedido do Elias).
+const ANOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+const perguntaHorizonte = (n: number, lang: Lang) => lang === 'en'
+  ? `How can the Brazilian and world economy affect my company in ${n} year${n > 1 ? 's' : ''}?`
+  : lang === 'es'
+    ? `¿Cómo puede la economía de Brasil y del mundo afectar a mi empresa en ${n} año${n > 1 ? 's' : ''}?`
+    : `Como a economia do Brasil e do mundo pode afetar minha empresa em ${n} ano${n > 1 ? 's' : ''}?`
+
 const SUGESTOES: [string, string, string][] = [
   ['O que o último corte da Selic muda para a minha empresa?', 'What does the latest Selic cut change for my company?', '¿Qué cambia el último recorte de la Selic para mi empresa?'],
   ['Devo me preocupar com o dólar agora?', 'Should I worry about the dollar now?', '¿Debo preocuparme por el dólar ahora?'],
@@ -55,10 +63,14 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos }: { lang: La
   const [pensando, setPensando] = useState(false)
   const [leituras, setLeituras] = useState<{ titulo: string; data: string | null; leitura: string | null }[]>([])
   const [ponto, setPonto] = useState<PontoPartida | null>(null)
+  const [manchetes, setManchetes] = useState<{ titulo: string; canal: string | null; data: string | null }[]>([])
+  const [horizontes, setHorizontes] = useState<{ data: string; texto: string } | null>(null)
   const fimRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     obterLeiturasRecentes(lang).then(setLeituras)
+    obterManchetesRecentes().then(setManchetes)
+    obterHorizontesPainel(lang).then(setHorizontes)
     carregarPontoPartida().then((r) => setPonto(r.ponto)).catch(() => setPonto(null))
   }, [lang])
 
@@ -82,6 +94,9 @@ Regras:
 - Não recomende compra ou venda de investimento específico.
 - Respostas curtas (até 3 parágrafos curtos), linguagem simples, e termine com uma ação prática para a empresa.
 - Pode usar a imagem de José do Egito (celeiros, anos de fartura e de seca) de vez em quando, sem exagero.
+- Manchetes são "relatado por fonte jornalística": use para citar conflitos, acordos comerciais, sanções ou movimentos de mercado no mundo, sempre dizendo que é notícia, não dado oficial.
+- PERGUNTAS DE FUTURO ("como a economia pode afetar minha empresa em N anos"): responda em até 5 parágrafos curtos, nesta ordem: (1) cenário mais provável para o período; (2) o que isso tende a fazer com o caixa e o lucro DESTA empresa, usando os números dela (direção e ordem de grandeza — sem inventar número exato); (3) fatores do mundo e do Brasil que mais pesam (câmbio, juros, inflação, conflitos, acordos comerciais), só os que aparecem nos dados; (4) o que fazer agora para chegar bem lá; (5) "Confiança: X/100" — cai com o prazo (cerca de 70 em 1 ano, 50 em 3, 35 em 5, 20 em 10) — e o que falta na base para enxergar melhor (ex.: preço do petróleo, dados de outros países).
+- Para prazos de 5 anos ou mais, fale de tendências estruturais como hipótese, nunca como previsão.
 - Nunca diga que é uma IA, modelo de linguagem, OpenAI, ChatGPT, Claude ou Anthropic. Você é o José, do Axioma.
 - Responda em ${lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'}.
 
@@ -93,6 +108,12 @@ ${evs || '- nenhum'}
 
 LEITURAS QUE VOCÊ JÁ FEZ:
 ${leit || '- nenhuma ainda'}
+
+MANCHETES RECENTES (fonte jornalística, não confirmado oficialmente):
+${manchetes.map((m) => `- ${m.data ?? ''} (${m.canal ?? 'geral'}): ${m.titulo}`).join('\n') || '- nenhuma'}
+
+HORIZONTES DO PAINEL EXECUTIVO DE HOJE${horizontes ? ` (${horizontes.data})` : ''}:
+${horizontes?.texto || '- ainda não gerado'}
 
 EMPRESA DO USUÁRIO (média dos últimos 12 meses):
 ${emp}
@@ -216,6 +237,21 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
               ))}
             </div>
           )}
+
+          <div className="mt-3 rounded-xl p-3" style={{ background: temaClaro ? 'rgba(46,204,155,0.10)' : 'rgba(46,204,155,0.07)', border: '1px solid rgba(46,204,155,0.35)' }}>
+            <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>
+              🔮 {L('Pergunte ao José: como a economia pode afetar sua empresa em…', 'Ask José: how can the economy affect your company in…', 'Pregunte a José: ¿cómo puede la economía afectar a su empresa en…')}
+            </p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {ANOS.map((n) => (
+                <button key={n} onClick={() => enviar(perguntaHorizonte(n, lang))} disabled={pensando}
+                  className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 transition-colors"
+                  style={temaClaro ? { background: '#ffffff', color: '#101b3d', border: '1px solid rgba(16,27,61,0.15)' } : { background: 'rgba(255,255,255,0.05)', color: TEXTO, border: '1px solid rgba(255,255,255,0.12)' }}>
+                  {n} {n === 1 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="flex items-end gap-2 mt-3">
             <textarea
