@@ -18,3 +18,17 @@ assert.equal(avaliarPrevisao('432', 'estavel', 15, 14.75), 'errou')
 assert.equal(segundaDaSemana(new Date('2026-09-27T12:00:00Z')), '2026-09-21')
 assert.equal(segundaDaSemana(new Date('2026-09-21T00:00:00Z')), '2026-09-21')
 console.log('ok — previsões')
+
+// Placar resumido
+import { resumirPlacar } from '../lib/nexusPrevisoes.ts'
+assert.match(resumirPlacar([]), /nenhuma previsão conferida/)
+const r = resumirPlacar([
+  { serie_codigo: '432', horizonte_dias: 30, status: 'acertou' },
+  { serie_codigo: '432', horizonte_dias: 30, status: 'errou' },
+  { serie_codigo: '1', horizonte_dias: 90, status: 'acertou' },
+  { serie_codigo: '1', horizonte_dias: 90, status: 'aberta' },
+])
+assert.match(r, /Geral: 2 de 3 \(67%\)/)
+assert.match(r, /Selic, 30 dias: 1 de 2 \(50%\)/)
+assert.match(r, /Dólar, 90 dias: 1 de 1 \(100%\)/)
+console.log('ok — placar resumido')

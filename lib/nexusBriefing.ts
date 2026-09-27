@@ -12,7 +12,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
 import { CANAL_GEOPOLITICA } from './nexusFontesMundo'
-import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, type PrevisaoIA } from './nexusPrevisoes'
+import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, textoPlacar, type PrevisaoIA } from './nexusPrevisoes'
 
 type Bloco = { titulo: string; texto: string }
 type Item = { titulo: string; texto: string; gravidade: 'alta' | 'media' | 'baixa' }
@@ -71,10 +71,10 @@ const PREVISAO = {
 const SCHEMA_PT = { ...SCHEMA, required: [...SCHEMA.required, 'previsoes'], properties: { ...SCHEMA.properties, previsoes: { type: 'array', items: PREVISAO } } }
 
 async function pedidoPrevisoes(supabase: SupabaseClient): Promise<string> {
-  const ultimos = await ultimosValoresPrevisao(supabase)
+  const [ultimos, placar] = await Promise.all([ultimosValoresPrevisao(supabase), textoPlacar(supabase)])
   const linhas = SERIES_PREVISAO.filter((x) => ultimos.has(x.codigo))
     .map((x) => `- ${x.codigo} | ${x.nome.pt}: ${ultimos.get(x.codigo)!.valor} (ref. ${ultimos.get(x.codigo)!.data}) — ${x.regra}`).join('\n')
-  return `\n\nPREVISÕES CONFERÍVEIS ("previsoes"): para CADA série abaixo, uma previsão em 30 e outra em 90 dias: direção do último dado publicado na data-alvo em relação ao valor atual (sobe/cai/estavel, pela regra de estável de cada série), confiança 0-100 honesta e motivo em até 25 palavras escrito em português (pt), inglês (en) e espanhol (es). Elas serão conferidas com o dado oficial e viram o seu placar público de acertos — prefira "estavel" quando não houver sinal claro.\n${linhas}`
+  return `\n\nPREVISÕES CONFERÍVEIS ("previsoes"): para CADA série abaixo, uma previsão em 30 e outra em 90 dias: direção do último dado publicado na data-alvo em relação ao valor atual (sobe/cai/estavel, pela regra de estável de cada série), confiança 0-100 honesta e motivo em até 25 palavras escrito em português (pt), inglês (en) e espanhol (es). Elas serão conferidas com o dado oficial e viram o seu placar público de acertos — prefira "estavel" quando não houver sinal claro.\n${linhas}\n\nSEU PLACAR ATÉ AQUI (previsões já conferidas com o dado oficial):\n${placar}\nCalibre: onde você errou mais, use confiança menor e prefira "estavel"; nunca dê confiança acima da sua taxa de acerto naquela série quando já houver 5 ou mais conferidas.`
 }
 
 const NOME_IDIOMA: Record<IdiomaJoseph, string> = { pt: 'português do Brasil', en: 'English', es: 'español' }

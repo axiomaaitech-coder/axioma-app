@@ -12,6 +12,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+import { resumirPlacar } from "./nexusPrevisoes";
 import { calcularFreshness, calcularSaudeFonte, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
 export type { FreshnessStatus };
 
@@ -298,4 +299,11 @@ export async function obterPlacarJose(): Promise<PlacarJose> {
       valorReal: l.valor_real == null ? null : Number(l.valor_real),
     })),
   };
+}
+
+// Placar em texto pro chat do José (mesma régua do painel — lib/nexusPrevisoes.ts).
+export async function obterResumoPlacar(): Promise<string> {
+  const { data, error } = await supabase.from("nexus_previsao").select("serie_codigo, horizonte_dias, status").in("status", ["acertou", "errou"]).limit(5000);
+  if (error) return "- placar indisponível";
+  return resumirPlacar(data ?? []);
 }

@@ -13,7 +13,7 @@ import { cinzel } from './fonteJose'
 import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
-import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, type EventoNexus, type IndicadorNexus, type EconomiaMundial } from '../../../lib/nexusHelpers'
+import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, obterResumoPlacar, type EventoNexus, type IndicadorNexus, type EconomiaMundial } from '../../../lib/nexusHelpers'
 import { textoEvento } from '../../../lib/nexusEventDetector'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 import { PlanoJose } from './PlanoJose'
@@ -58,12 +58,14 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
   const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [manchetes, setManchetes] = useState<{ titulo: string; canal: string | null; data: string | null }[]>([])
   const [horizontes, setHorizontes] = useState<{ data: string; texto: string } | null>(null)
+  const [placar, setPlacar] = useState('')
   const fimRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     obterLeiturasRecentes(lang).then(setLeituras)
     obterManchetesRecentes().then(setManchetes)
     obterHorizontesPainel(lang).then(setHorizontes)
+    obterResumoPlacar().then(setPlacar)
     carregarPontoPartida().then((r) => { setPonto(r.ponto); setEmpresaId(r.empresaId) }).catch(() => setPonto(null))
   }, [lang])
 
@@ -90,6 +92,7 @@ Regras:
 - Manchetes são "relatado por fonte jornalística": use para citar conflitos, acordos comerciais, sanções ou movimentos de mercado no mundo, sempre dizendo que é notícia, não dado oficial.
 - PERGUNTAS DE FUTURO ("como a economia pode afetar minha empresa em N anos"): responda em até 5 parágrafos curtos, nesta ordem: (1) cenário mais provável para o período; (2) o que isso tende a fazer com o caixa e o lucro DESTA empresa, usando os números dela (direção e ordem de grandeza — sem inventar número exato); (3) fatores do mundo e do Brasil que mais pesam (câmbio, juros, inflação, conflitos, acordos comerciais), só os que aparecem nos dados; (4) o que fazer agora para chegar bem lá; (5) "Confiança: X/100" — cai com o prazo (cerca de 70 em 1 ano, 50 em 3, 35 em 5, 20 em 10) — e o que falta na base para enxergar melhor (ex.: preço do petróleo, dados de outros países).
 - Para prazos de 5 anos ou mais, fale de tendências estruturais como hipótese, nunca como previsão.
+- Se perguntarem se dá pra confiar em você ou quanto você acerta, responda com o SEU PLACAR abaixo, com honestidade (inclusive os erros).
 - Nunca diga que é uma IA, modelo de linguagem, OpenAI, ChatGPT, Claude ou Anthropic. Você é o José, do Axioma.
 - Responda em ${lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'}.
 
@@ -111,6 +114,9 @@ ${manchetes.map((m) => `- ${m.data ?? ''} (${m.canal ?? 'geral'}): ${m.titulo}`)
 
 HORIZONTES DO PAINEL EXECUTIVO DE HOJE${horizontes ? ` (${horizontes.data})` : ''}:
 ${horizontes?.texto || '- ainda não gerado'}
+
+SEU PLACAR DE PREVISÕES (conferido com o dado oficial):
+${placar || '- carregando'}
 
 EMPRESA DO USUÁRIO (média dos últimos 12 meses):
 ${emp}

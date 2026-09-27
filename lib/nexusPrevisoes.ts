@@ -118,3 +118,32 @@ export async function conferirPrevisoes(supabase: SupabaseClient, hoje = new Dat
     return { conferidas: 0, erro: err instanceof Error ? err.message : String(err) }
   }
 }
+
+// Placar resumido por série × prazo, em texto pro José (painel e chat) calibrar
+// a própria confiança. Só conta as já conferidas (acertou/errou).
+export function resumirPlacar(linhas: { serie_codigo: string; horizonte_dias: number; status: string }[]): string {
+  const grupos = new Map<string, { a: number; t: number }>()
+  for (const l of linhas) {
+    if (l.status !== 'acertou' && l.status !== 'errou') continue
+    const k = `${l.serie_codigo}|${l.horizonte_dias}`
+    const g = grupos.get(k) ?? { a: 0, t: 0 }
+    g.t++; if (l.status === 'acertou') g.a++
+    grupos.set(k, g)
+  }
+  if (!grupos.size) return '- nenhuma previsão conferida ainda (placar começa quando vencer o 1º prazo de 30 dias)'
+  const total = [...grupos.values()].reduce((s, g) => ({ a: s.a + g.a, t: s.t + g.t }), { a: 0, t: 0 })
+  const porSerie = [...grupos.entries()].map(([k, g]) => {
+    const [codigo, h] = k.split('|')
+    const nome = SERIES_PREVISAO.find((x) => x.codigo === codigo)?.nome.pt ?? codigo
+    return `- ${nome}, ${h} dias: ${g.a} de ${g.t} (${Math.round((g.a / g.t) * 100)}%)`
+  })
+  return `- Geral: ${total.a} de ${total.t} (${Math.round((total.a / total.t) * 100)}%)\n${porSerie.join('\n')}`
+}
+
+// ponytail: agrega no app (tabela pequena, ~12 linhas/semana); virar RPC com
+// GROUP BY se passar de alguns milhares de previsões conferidas.
+export async function textoPlacar(supabase: SupabaseClient): Promise<string> {
+  const { data, error } = await supabase.from('nexus_previsao').select('serie_codigo, horizonte_dias, status').in('status', ['acertou', 'errou']).limit(5000)
+  if (error) return '- placar indisponível'
+  return resumirPlacar(data ?? [])
+}
