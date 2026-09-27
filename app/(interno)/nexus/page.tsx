@@ -1,5 +1,6 @@
 'use client'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Globe2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactECharts from 'echarts-for-react'
@@ -181,6 +182,13 @@ export default function NexusPage() {
   const temaClaro = tema === 'xms'
   const { AZULC, CIANO, ROXOTV, CINZA, TEXTO, TITULO, PAINEL_BG, MODAL_BG, NESTED_BG, NESTED_BORDA } = PALETA[tema]
   const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  // Portal pro body mantendo o data-theme (fora da árvore do wrapper da página).
+  const [montado, setMontado] = useState(false)
+  useEffect(() => { setMontado(true) }, [])
+  const naRaiz = (conteudo: ReactNode) => !montado ? null : createPortal(
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>,
+    document.body,
+  )
   const hoverCard = temaClaro ? ' axi-card-premium3d' : ' hover:brightness-125'
   // Selo "DEMONSTRAÇÃO" / avisos neutros — no Claro, navy sobre bege translúcido.
   const seloNeutro: CSSProperties = temaClaro
@@ -644,6 +652,9 @@ export default function NexusPage() {
 
       {/* MODAL DO EVENTO — fato confirmado em cima, leitura do Joseph embaixo
           (Etapa 4: interpretação, cenários, o que fazer — ./JosephAnalise.tsx). */}
+      {/* Modais renderizados na raiz (portal): dentro do ModuloLayout eles ficam presos
+          no contexto de camadas da animação de entrada e o menu fixo do topo passa por cima. */}
+      {naRaiz(<>
       <AnimatePresence>
         {eventoAberto && (() => {
           const ev = eventoAberto
@@ -822,6 +833,7 @@ export default function NexusPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </>)}
 
       <CentroCompartilhamento
         aberto={shareAberto}
