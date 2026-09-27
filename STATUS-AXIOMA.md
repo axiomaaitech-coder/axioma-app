@@ -1296,6 +1296,13 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Anotado:** consultas ao Supabase levando 2-4s cada (inclusive as simples) — investigar desempenho do banco.
 **Próximo:** fontes mundiais gratuitas (Banco Mundial, petróleo IPEA, GDELT) pra o José cruzar mundo × empresa.
 
+## 3-BL. Nexus — auditoria/retenção, PDF sem corte, painel recolhível e fontes mundiais (2026-09-27)
+**Auditoria e retenção:** toda chamada de IA auditada em nexus_audit_log (sem conteúdo); prazos em lib/nexusRetencao.ts (plano 90d, painel 180d, auditoria 365d) aplicados no cron; "Meus planos salvos" com "apaga em X dias", aviso a 15 dias e PDF.
+**PDF:** gerarPdfTabela (~30 telas) não trunca mais nada (quebra de linha em tudo); plano do José tem PDF espelho do card (lib/gerarPdfRelatorio.ts, limpeza de caracteres sem fonte). Amostra conferida visualmente.
+**Visual:** cards do painel executivo recolhíveis ("Ler mais"), título do painel em Cinzel, faixa DivisorNexus (linha verde-menta com brilho e feixe de trigo) entre as partes do Nexus e de Simulações.
+**Fontes mundiais (grátis, sem cadastro):** Brent diário (IPEA) e PIB/inflação de 8 parceiros (Banco Mundial) no cron; faixa "Economia mundial" (Brent, China, EUA, Zona do Euro); alerta automático de petróleo (±8% em 5 pregões); José usa esses dados no chat/painel/plano. GDELT (conflitos/acordos) ainda não conectou — pendente.
+**Próximo:** memória de previsões (previsto × realizado) e painel técnico de saúde das fontes.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

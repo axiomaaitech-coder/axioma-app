@@ -9,7 +9,7 @@ import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { obterIndicadoresNexus, obterEventosNexus, obterEventoNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
+import { obterIndicadoresNexus, obterEventosNexus, obterEventoNexus, obterEconomiaMundial, type EconomiaMundial as TipoEconomiaMundial, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
 import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
@@ -18,6 +18,7 @@ import { FuncoesNexus } from './FuncoesNexus'
 import { JosephChat } from './JosephChat'
 import { PainelExecutivo } from './PainelExecutivo'
 import { DivisorNexus } from './DivisorNexus'
+import { EconomiaMundial } from './EconomiaMundial'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -196,6 +197,7 @@ export default function NexusPage() {
 
   const [loading, setLoading] = useState(true)
   const [indicadores, setIndicadores] = useState<IndicadorNexus[]>([])
+  const [mundo, setMundo] = useState<TipoEconomiaMundial | null>(null)
   const [avisoCarregamento, setAvisoCarregamento] = useState<string | null>(null)
   const [canalAtivo, setCanalAtivo] = useState(CANAIS_NEXUS_DEMO[0].id)
   const [exportando, setExportando] = useState(false)
@@ -220,6 +222,7 @@ export default function NexusPage() {
   useEffect(() => {
     (async () => {
       setLoading(true)
+      obterEconomiaMundial().then(setMundo).catch(() => setMundo(null))
       const { indicadores: dados, erro } = await obterIndicadoresNexus()
       setIndicadores(dados)
       if (erro) setAvisoCarregamento(tratarFalhaCarregamento('nexus.carregarIndicadores', new Error('falha ao ler nexus_economic_series'), lang))
@@ -398,6 +401,9 @@ export default function NexusPage() {
             })}
           </div>
 
+          {/* ECONOMIA MUNDIAL — petróleo (IPEA) e PIB/inflação dos parceiros (Banco Mundial) */}
+          <EconomiaMundial lang={lang} temaClaro={temaClaro} dados={mundo} />
+
           <DivisorNexus />
 
           {/* PAINEL EXECUTIVO DO JOSÉ — Etapa 7: síntese diária logo abaixo dos indicadores. */}
@@ -474,7 +480,7 @@ export default function NexusPage() {
           <DivisorNexus />
 
           {/* CHAT DO JOSÉ — logo acima da TV, à vista (pedido do Elias). */}
-          <JosephChat lang={lang} temaClaro={temaClaro} indicadores={indicadores} eventos={eventos} />
+          <JosephChat lang={lang} temaClaro={temaClaro} indicadores={indicadores} eventos={eventos} mundo={mundo} />
 
           <DivisorNexus />
 

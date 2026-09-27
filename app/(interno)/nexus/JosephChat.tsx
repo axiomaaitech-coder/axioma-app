@@ -13,7 +13,7 @@ import { cinzel } from './fonteJose'
 import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
-import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, type EventoNexus, type IndicadorNexus } from '../../../lib/nexusHelpers'
+import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, type EventoNexus, type IndicadorNexus, type EconomiaMundial } from '../../../lib/nexusHelpers'
 import { textoEvento } from '../../../lib/nexusEventDetector'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 import { PlanoJose } from './PlanoJose'
@@ -47,7 +47,7 @@ const SUGESTOES: [string, string, string][] = [
   ['Resuma o cenário econômico desta semana', "Summarize this week's economic picture", 'Resuma el panorama económico de esta semana'],
 ]
 
-export function JosephChat({ lang, temaClaro, indicadores, eventos }: { lang: Lang; temaClaro: boolean; indicadores: IndicadorNexus[]; eventos: EventoNexus[] }) {
+export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { lang: Lang; temaClaro: boolean; indicadores: IndicadorNexus[]; eventos: EventoNexus[]; mundo: EconomiaMundial | null }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const { CIANO, CINZA, TEXTO, TITULO, PAINEL_BG, NESTED_BG } = PALETA[temaClaro ? 'xms' : 'dark']
   const [mensagens, setMensagens] = useState<Msg[]>([])
@@ -95,6 +95,10 @@ Regras:
 
 INDICADORES OFICIAIS (Banco Central/IBGE):
 ${ind || '- indisponíveis'}
+
+ECONOMIA MUNDIAL (fontes oficiais gratuitas):
+${mundo?.brent?.valor != null ? `- Petróleo Brent: US$ ${mundo.brent.valor} (ref. ${mundo.brent.dataReferencia}; ~30 pregões antes: US$ ${mundo.brent.historico[0]?.valor ?? '?'}) — IPEA/EIA` : '- Petróleo: ainda sem dado'}
+${(mundo?.paises ?? []).filter((p) => p.ano).map((p) => `- ${p.iso}: PIB ${p.pib ?? '?'}% e inflação ${p.inflacao ?? '?'}% em ${p.ano} — Banco Mundial`).join('\n') || '- Parceiros: ainda sem dado'}
 
 EVENTOS DETECTADOS PELO RADAR GLOBAL:
 ${evs || '- nenhum'}

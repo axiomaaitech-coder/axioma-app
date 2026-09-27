@@ -226,3 +226,32 @@ export async function listarPlanosSalvos(empresaId: string, limite = 12): Promis
   if (error) return [];
   return (data ?? []).map((l) => ({ id: l.id as string, horizonte: l.horizonte as string, lang: l.lang as string, data: l.data as string, geradoEm: l.gerado_em as string, conteudo: l.conteudo }));
 }
+
+// ─── Economia mundial (IPEA Brent + Banco Mundial) — cards e contexto do José ───
+export type PaisMundo = { iso: string; pib: number | null; inflacao: number | null; ano: string | null };
+export type EconomiaMundial = { brent: IndicadorNexus | null; paises: PaisMundo[] };
+
+const ISOS_MUNDO = ["USA", "CHN", "EMU", "ARG", "JPN", "GBR", "IND", "MEX"];
+
+export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
+  const [brentRes, bmRes] = await Promise.all([
+    supabase.from("nexus_economic_series").select("valor, data_referencia, frequencia").eq("serie_codigo", "IPEA:BRENT").order("data_referencia", { ascending: false }).limit(30),
+    supabase.from("nexus_economic_series").select("serie_codigo, valor, data_referencia").like("serie_codigo", "WB:%").order("data_referencia", { ascending: false }).limit(200),
+  ]);
+  const pontos = (brentRes.data ?? []).filter((l) => l.valor != null);
+  const brent: IndicadorNexus | null = pontos.length ? {
+    codigo: "IPEA:BRENT", nome: { pt: "Petróleo Brent", en: "Brent crude", es: "Petróleo Brent" }, emoji: "🛢️",
+    valor: Number(pontos[0].valor), dataReferencia: pontos[0].data_referencia as string,
+    freshness: calcularFreshness(pontos[0].data_referencia as string, pontos[0].frequencia as string | null),
+    formato: "indice", casas: 2,
+    historico: [...pontos].reverse().map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) })),
+  } : null;
+  // Mais recente por série (a lista já vem do mais novo pro mais antigo).
+  const ultimo = new Map<string, { valor: number; ano: string }>();
+  for (const l of bmRes.data ?? []) if (!ultimo.has(l.serie_codigo as string)) ultimo.set(l.serie_codigo as string, { valor: Number(l.valor), ano: (l.data_referencia as string).slice(0, 4) });
+  const paises = ISOS_MUNDO.map((iso) => {
+    const pib = ultimo.get(`WB:${iso}:NY.GDP.MKTP.KD.ZG`), inf = ultimo.get(`WB:${iso}:FP.CPI.TOTL.ZG`);
+    return { iso, pib: pib?.valor ?? null, inflacao: inf?.valor ?? null, ano: pib?.ano ?? inf?.ano ?? null };
+  });
+  return { brent, paises };
+}
