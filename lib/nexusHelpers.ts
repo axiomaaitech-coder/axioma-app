@@ -22,18 +22,25 @@ export type IndicadorNexus = {
   valor: number | null;
   dataReferencia: string | null;
   freshness: FreshnessStatus | null;
-  formatoPercentual: boolean;
+  formato: "moeda" | "percentual" | "indice";
+  casas: number; // casas decimais na tela (iene precisa de 4, o resto 2)
   historico: PontoSerie[]; // ascendente por data, pro mini-gráfico
 };
 
-// Catálogo fixo dos 4 códigos já semeados em nexus_series_catalog (Comitê 02) —
+// Catálogo dos códigos semeados em nexus_series_catalog (Comitê 02 + Etapa 2:
+// euro/libra/iene/desemprego/IBC-Br, SQL em NEXUS-ETAPA2-SERIES-SQL.txt) —
 // nome amigável e formato de exibição não vêm do banco (banco guarda o
 // dado bruto), a tela decide como cada um aparece.
 const CATALOGO: Omit<IndicadorNexus, "valor" | "dataReferencia" | "freshness" | "historico">[] = [
-  { codigo: "1", nome: { pt: "Dólar", en: "US Dollar", es: "Dólar" }, emoji: "💵", formatoPercentual: false },
-  { codigo: "432", nome: { pt: "Selic", en: "Selic Rate", es: "Tasa Selic" }, emoji: "🏦", formatoPercentual: true },
-  { codigo: "433", nome: { pt: "IPCA", en: "IPCA (Inflation)", es: "IPCA (Inflación)" }, emoji: "📈", formatoPercentual: true },
-  { codigo: "12", nome: { pt: "CDI", en: "CDI Rate", es: "Tasa CDI" }, emoji: "💰", formatoPercentual: true },
+  { codigo: "1", nome: { pt: "Dólar", en: "US Dollar", es: "Dólar" }, emoji: "💵", formato: "moeda", casas: 2 },
+  { codigo: "21619", nome: { pt: "Euro", en: "Euro", es: "Euro" }, emoji: "💶", formato: "moeda", casas: 2 },
+  { codigo: "21623", nome: { pt: "Libra", en: "British Pound", es: "Libra" }, emoji: "💷", formato: "moeda", casas: 2 },
+  { codigo: "21621", nome: { pt: "Iene", en: "Japanese Yen", es: "Yen" }, emoji: "💴", formato: "moeda", casas: 4 },
+  { codigo: "432", nome: { pt: "Selic", en: "Selic Rate", es: "Tasa Selic" }, emoji: "🏦", formato: "percentual", casas: 2 },
+  { codigo: "12", nome: { pt: "CDI", en: "CDI Rate", es: "Tasa CDI" }, emoji: "💰", formato: "percentual", casas: 2 },
+  { codigo: "433", nome: { pt: "IPCA", en: "IPCA (Inflation)", es: "IPCA (Inflación)" }, emoji: "📈", formato: "percentual", casas: 2 },
+  { codigo: "24369", nome: { pt: "Desemprego", en: "Unemployment", es: "Desempleo" }, emoji: "👷", formato: "percentual", casas: 1 },
+  { codigo: "24363", nome: { pt: "Atividade Econômica (IBC-Br)", en: "Economic Activity (IBC-Br)", es: "Actividad Económica (IBC-Br)" }, emoji: "🏭", formato: "indice", casas: 1 },
 ];
 
 // 30 pontos bastam pro mini-gráfico e já trazem o valor mais recente (primeira

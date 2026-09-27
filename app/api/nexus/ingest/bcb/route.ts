@@ -78,14 +78,16 @@ function dataBRparaISO(dataBR: string): string {
 // exatamente o dado mais novo na segunda metade do ciclo. Piso aplicado
 // aqui, no código — não depende de o valor no catálogo estar "certo".
 function janelaEfetivaDias(janelaCatalogo: number, frequencia: string | null): number {
-  const piso = frequencia === 'mensal' ? 70 : 35
+  // mensal_defasada = série mensal publicada ~2-3 meses depois do mês de
+  // referência (desemprego/PNAD, IBC-Br) — precisa de janela maior ainda.
+  const piso = frequencia === 'mensal_defasada' ? 130 : frequencia === 'mensal' ? 70 : 35
   return Math.max(janelaCatalogo || 35, piso)
 }
 
 function calcularFreshness(dataReferenciaISO: string, frequencia: string | null): string {
   const hoje = new Date()
   const ref = new Date(`${dataReferenciaISO}T00:00:00Z`)
-  const dias = Math.floor((Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()) - ref.getTime()) / 86400000)
+  let dias = Math.floor((Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()) - ref.getTime()) / 86400000)
   const ehDiaria = frequencia === 'diaria' || frequencia === 'event_driven'
   if (ehDiaria) {
     if (dias <= 1) return 'live'
@@ -94,6 +96,10 @@ function calcularFreshness(dataReferenciaISO: string, frequencia: string | null)
     if (dias <= 30) return 'stale'
     return 'expired'
   }
+  // Mesma régua da mensal, deslocada pelo atraso normal de publicação (~60
+  // dias) — o dado mais novo que existe nunca aparece como "desatualizado".
+  const atraso = frequencia === 'mensal_defasada' ? 60 : 0
+  dias -= atraso
   if (dias <= 35) return 'live'
   if (dias <= 45) return 'fresh'
   if (dias <= 60) return 'recent'

@@ -1,0 +1,38 @@
+-- ============================================================================
+-- AXIOMA NEXUS — ETAPA 2: 5 SÉRIES NOVAS NO CATÁLOGO (só INSERT, zero schema)
+-- Rodar UMA VEZ no SQL Editor do Supabase. Idempotente (ON CONFLICT DO NOTHING).
+-- Depende de NEXUS-PUSH02-CATALOGO-SQL.txt já aplicado (confirmado 2026-09-26:
+-- nexus_series_catalog existe em produção).
+--
+-- Códigos conferidos AO VIVO na API oficial do BCB SGS em 2026-09-26:
+--   21619 — Euro (venda), diária — 5,928 em 25/09/2026 (bate com PTAX EUR)
+--   21623 — Libra esterlina (venda), diária — 6,890 em 25/09/2026
+--   21621 — Iene (venda), diária — 0,0331 em 25/09/2026
+--   24369 — Taxa de desocupação PNAD Contínua/IBGE (%), mensal — 5,3 (jul/26)
+--   24363 — IBC-Br, prévia mensal do PIB (índice), mensal — 114,4 (jul/26)
+-- Yuan (CNY) NÃO existe no BCB (nem SGS nem PTAX) — virá do BCE depois.
+--
+-- frequencia 'mensal_defasada' = publicada ~2-3 meses após o mês de
+-- referência; a ingestão usa janela de 130 dias e régua de atualidade
+-- deslocada em 60 dias (app/api/nexus/ingest/bcb/route.ts).
+-- ============================================================================
+
+BEGIN;
+
+INSERT INTO public.nexus_series_catalog (source_id, serie_codigo, serie_nome, categoria, country, frequencia, active)
+SELECT source_id, v.codigo, v.nome, v.categoria, 'BR', v.freq, true
+FROM public.nexus_source
+CROSS JOIN (VALUES
+  ('21619', 'Euro (venda)',                            'exchange_rate', 'diaria'),
+  ('21623', 'Libra esterlina (venda)',                 'exchange_rate', 'diaria'),
+  ('21621', 'Iene (venda)',                            'exchange_rate', 'diaria'),
+  ('24369', 'Taxa de desocupação — PNAD Contínua (%)', 'unemployment',  'mensal_defasada'),
+  ('24363', 'IBC-Br — prévia mensal do PIB (índice)',  'economic_activity', 'mensal_defasada')
+) AS v(codigo, nome, categoria, freq)
+WHERE source_name = 'BCB SGS'
+ON CONFLICT (source_id, serie_codigo) DO NOTHING;
+
+COMMIT;
+
+-- VERIFICAÇÃO — deve listar 9 séries
+SELECT serie_codigo, serie_nome, frequencia, active FROM public.nexus_series_catalog ORDER BY serie_codigo;

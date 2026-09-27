@@ -12,7 +12,6 @@ import { obterIndicadoresNexus, traduzirFreshness, type IndicadorNexus, type Pon
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
-import { fBRL2 } from '../../../lib/cfoCore'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
@@ -52,7 +51,9 @@ function mapDemoParaExibicao(n: NoticiaNexus, lang: Idioma3): NoticiaExibicao {
 
 function formatarValorIndicador(ind: IndicadorNexus): string {
   if (ind.valor == null) return '—'
-  return ind.formatoPercentual ? `${ind.valor.toFixed(2)}%` : `R$ ${fBRL2(ind.valor)}`
+  const n = ind.valor.toLocaleString('pt-BR', { minimumFractionDigits: ind.casas, maximumFractionDigits: ind.casas })
+  if (ind.formato === 'percentual') return `${n}%`
+  return ind.formato === 'moeda' ? `R$ ${n}` : n
 }
 
 function formatarDataNoticia(iso: string, lang: Idioma3, localeData: string): string {
@@ -249,7 +250,7 @@ export default function NexusPage() {
       ) : (
         <div className="space-y-6">
 
-          {/* LETREIRO PADRÃO DO MÓDULO — mesmo componente/lugar dos demais módulos, com dado real deste módulo (os 4 indicadores) */}
+          {/* LETREIRO PADRÃO DO MÓDULO — mesmo componente/lugar dos demais módulos, com dado real deste módulo (os indicadores) */}
           <LetreiroAxioma id="nexus" cor={CIANO} itens={indicadores.map((ind) => `${ind.nome[lang]}: ${formatarValorIndicador(ind)}`)} />
 
           {avisoCarregamento && (
@@ -258,8 +259,8 @@ export default function NexusPage() {
             </div>
           )}
 
-          {/* 4 INDICADORES — dado real de nexus_economic_series, com mini-histórico */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 9 INDICADORES — dado real de nexus_economic_series, com mini-histórico (grade 3x3) */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {indicadores.map((ind) => {
               const fresh = traduzirFreshness(ind.freshness, lang)
               return (
