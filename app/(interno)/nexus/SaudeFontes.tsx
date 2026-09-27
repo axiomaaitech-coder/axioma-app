@@ -86,8 +86,9 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {ativas.map((f) => (
                   <a key={f.nome} href={SITE[f.nome]} target="_blank" rel="noopener noreferrer"
-                    className={`block rounded-xl p-3 transition-all ${SITE[f.nome] ? 'hover:scale-[1.02] cursor-pointer' : 'pointer-events-none'}`}
+                    className={`relative overflow-hidden block rounded-xl p-3 axi-card-premium3d ${SITE[f.nome] ? 'cursor-pointer' : 'pointer-events-none'}`}
                     style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                    <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-bold break-words flex items-center gap-1" style={{ color: TITULO }}>{f.nome}{SITE[f.nome] && <ExternalLink size={12} style={{ color: CINZA }} aria-hidden />}</p>
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro

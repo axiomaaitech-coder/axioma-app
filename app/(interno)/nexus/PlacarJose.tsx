@@ -65,7 +65,8 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
           { rotulo: L('Aguardando prazo', 'Awaiting deadline', 'Esperando plazo'), valor: placar ? String(placar.abertas) : '—', sub: proxima ? L(`próxima em ${data(proxima)}`, `next on ${data(proxima)}`, `próxima el ${data(proxima)}`) : '' },
           { rotulo: L('Erros', 'Wrong', 'Errores'), valor: placar ? String(placar.erros) : '—', sub: L('mostrados sem esconder', 'shown, never hidden', 'mostrados sin ocultar') },
         ].map((c) => (
-          <div key={c.rotulo} className="rounded-xl p-3" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+          <div key={c.rotulo} className="relative overflow-hidden rounded-xl p-3 axi-card-premium3d" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
             <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: CINZA }}>{c.rotulo}</p>
             <p className="text-xl font-black leading-tight" style={{ color: TITULO }}>{c.valor}</p>
             <p className="text-[10px]" style={{ color: CINZA }}>{c.sub}</p>
@@ -81,7 +82,8 @@ export function PlacarJose({ lang, temaClaro }: { lang: Lang; temaClaro: boolean
           {placar.previsoes.map((p) => {
             const st = STATUS[p.status]
             return (
-              <div key={p.id} className="rounded-xl p-3" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+              <div key={p.id} className="relative overflow-hidden rounded-xl p-3 axi-card-premium3d" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-bold" style={{ color: TITULO }}>{nomeSerie(p.serie)} <span className="text-[11px] font-normal" style={{ color: CINZA }}>· {p.horizonte} {L('dias', 'days', 'días')}</span></p>
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro ? { background: st.cor, color: st.sobre } : { background: `${st.cor}20`, color: st.cor }}>{L(...st.rotulo)}</span>

@@ -105,7 +105,9 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
         )}
       </div>
 
-      {estado === 'carregando' && (
+      {/* Troca de idioma: mantém o painel anterior na tela até o novo chegar (sem
+          encolher/crescer a página = sem tremida); o aviso só aparece na 1ª carga. */}
+      {estado === 'carregando' && !painel && (
         <div className="relative overflow-hidden rounded-2xl p-5 flex items-center gap-4 axi-card-premium3d" style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
           {BARRA}
           <JosephAvatar tamanho={56} estado="pensando" />
@@ -127,7 +129,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
         </div>
       )}
 
-      {estado === 'ok' && painel && (() => {
+      {estado !== 'erro' && painel && (() => {
         const c = painel.conteudo
         const bloco = (b: { titulo: string; texto: string }) => (
           <>
@@ -144,7 +146,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
           </>
         )
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start transition-opacity duration-300" style={{ opacity: estado === 'carregando' ? 0.55 : 1 }}>
             <Card emoji="🌎" rotulo={L('O Mundo', 'The World', 'El Mundo')} cores={cores}>{bloco(c.mundo)}</Card>
             <Card emoji="🇧🇷" rotulo={L('Brasil', 'Brazil', 'Brasil')} cores={cores}>{bloco(c.brasil)}</Card>
             <Card emoji="🚨" rotulo={L('Alertas', 'Alerts', 'Alertas')} cores={cores}><Lista itens={c.alertas} cores={cores} /></Card>
