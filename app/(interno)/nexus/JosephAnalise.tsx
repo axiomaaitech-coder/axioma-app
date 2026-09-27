@@ -1,9 +1,10 @@
 'use client'
-// Seção "Leitura do Joseph" dentro do modal do evento (Etapa 4). Busca a
+// Seção "Joseph · Radar Global Axioma" dentro do modal do evento (Etapa 4). Busca a
 // análise em /api/nexus/joseph (guardada por evento/idioma; gera na 1ª vez).
 // Visualmente separada do fato acima: é INTERPRETAÇÃO, nunca fato (Push 03).
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Brain, RotateCcw } from 'lucide-react'
+import { Brain, RotateCcw, Globe2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { AnaliseJoseph } from '../../../lib/nexusJoseph'
 
 type Lang = 'pt' | 'en' | 'es'
@@ -24,6 +25,89 @@ const DIRECAO: Record<string, { simbolo: string; escuro: string; claro: string }
   positivo: { simbolo: '▲', escuro: '#34d399', claro: '#16a97d' },
   negativo: { simbolo: '▼', escuro: '#f87171', claro: '#dc3545' },
   misto: { simbolo: '◆', escuro: '#fbbf24', claro: '#b45309' },
+}
+
+
+// ─── Microinteração enquanto o Joseph gera a leitura ───
+// As etapas descrevem o que acontece de verdade (evento oficial → indicadores
+// → reflexos em outras economias → cenários → ações). "Analisando reflexos",
+// nunca "pesquisando em outros países": o Joseph não consulta fonte
+// estrangeira, ele interpreta o impacto global a partir dos dados oficiais.
+const ETAPAS: { texto: Nome3; ms: number; paises?: boolean }[] = [
+  { texto: ['Joseph lendo o evento oficial do Banco Central', 'Joseph reading the official Central Bank event', 'Joseph leyendo el evento oficial del Banco Central'], ms: 3000 },
+  { texto: ['Joseph cruzando dados com os indicadores do Brasil', 'Joseph cross-checking with Brazil\u2019s indicators', 'Joseph cruzando datos con los indicadores de Brasil'], ms: 3500 },
+  { texto: ['Joseph reunindo informações', 'Joseph gathering information', 'Joseph reuniendo información'], ms: 3000 },
+  { texto: ['Joseph analisando reflexos em', 'Joseph analyzing ripple effects in', 'Joseph analizando reflejos en'], ms: 7200, paises: true },
+  { texto: ['Joseph montando os cenários', 'Joseph building the scenarios', 'Joseph armando los escenarios'], ms: 6000 },
+  { texto: ['Joseph preparando o que fazer', 'Joseph preparing what to do', 'Joseph preparando qué hacer'], ms: 0 }, // fica até o resultado chegar
+]
+const PAISES: Nome3[] = [
+  ['🇺🇸 Estados Unidos', '🇺🇸 United States', '🇺🇸 Estados Unidos'],
+  ['🇨🇳 China', '🇨🇳 China', '🇨🇳 China'],
+  ['🇪🇺 Zona do Euro', '🇪🇺 Euro Area', '🇪🇺 Zona Euro'],
+  ['🇦🇷 Argentina', '🇦🇷 Argentina', '🇦🇷 Argentina'],
+  ['🇯🇵 Japão', '🇯🇵 Japan', '🇯🇵 Japón'],
+  ['🇬🇧 Reino Unido', '🇬🇧 United Kingdom', '🇬🇧 Reino Unido'],
+  ['🇲🇽 México', '🇲🇽 Mexico', '🇲🇽 México'],
+  ['🇮🇳 Índia', '🇮🇳 India', '🇮🇳 India'],
+]
+
+function JosephPensando({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
+  const L3 = (n: Nome3) => (lang === 'en' ? n[1] : lang === 'es' ? n[2] : n[0])
+  const [etapa, setEtapa] = useState(0)
+  const [pais, setPais] = useState(0)
+  const atual = ETAPAS[etapa]
+
+  useEffect(() => {
+    if (!atual.ms) return
+    const t = setTimeout(() => setEtapa((e) => Math.min(e + 1, ETAPAS.length - 1)), atual.ms)
+    return () => clearTimeout(t)
+  }, [etapa, atual.ms])
+
+  useEffect(() => {
+    if (!atual.paises) return
+    const t = setInterval(() => setPais((p) => (p + 1) % PAISES.length), 900)
+    return () => clearInterval(t)
+  }, [atual.paises])
+
+  const ACENTO = temaClaro ? '#16a97d' : '#22d3ee'
+  const TXT = temaClaro ? '#101b3d' : '#c8d8f0'
+  const SEC = temaClaro ? '#374151' : '#8aa4c2'
+  return (
+    <div className="flex items-center gap-3 py-2" role="status">
+      <motion.span
+        className="shrink-0 flex items-center justify-center rounded-full"
+        style={{ width: 36, height: 36, background: ACENTO + '1f', border: '1px solid ' + ACENTO + '60' }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+      >
+        <Globe2 size={18} style={{ color: ACENTO }} aria-hidden />
+      </motion.span>
+      <div className="min-w-0 flex-1">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={atual.paises ? etapa + '-' + pais : String(etapa)}
+            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+            className="text-sm font-bold"
+            style={{ color: TXT }}
+          >
+            {L3(atual.texto)}{atual.paises ? <> <span style={{ color: ACENTO }}>{L3(PAISES[pais])}</span></> : null}
+            <motion.span animate={{ opacity: [0.2, 1, 0.2] }} transition={{ duration: 1.2, repeat: Infinity }}>…</motion.span>
+          </motion.p>
+        </AnimatePresence>
+        <div className="flex gap-1 mt-2" aria-hidden>
+          {ETAPAS.map((_, i) => (
+            <span key={i} className="h-1 rounded-full transition-all duration-300"
+              style={{ width: i === etapa ? 18 : 6, background: i <= etapa ? ACENTO : SEC + '40' }} />
+          ))}
+        </div>
+        <p className="text-[10px] mt-1.5" style={{ color: SEC }}>
+          {lang === 'en' ? 'First time takes up to a minute — then it is saved for everyone.' : lang === 'es' ? 'La primera vez tarda hasta un minuto — luego queda guardado para todos.' : 'Na primeira vez leva até 1 minuto — depois fica guardado para todos.'}
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; lang: Lang; temaClaro: boolean }) {
@@ -68,20 +152,13 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
     <section className="mt-5 rounded-2xl p-4" style={{ border: `1px dashed ${ACENTO}80` }} aria-live="polite">
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <Brain size={16} style={{ color: ACENTO }} aria-hidden />
-        <h4 className="text-sm font-black" style={{ color: TIT }}>{L('Leitura do Joseph', "Joseph's reading", 'Lectura de Joseph')}</h4>
+        <h4 className="text-sm font-black" style={{ color: TIT }}>Joseph · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}</h4>
         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: SEC, border: `1px solid ${SEC}60` }}>
           {L('Interpretação — não é fato', 'Interpretation — not a fact', 'Interpretación — no es un hecho')}
         </span>
       </div>
 
-      {estado === 'carregando' && (
-        <div className="space-y-2">
-          <p className="text-xs" style={{ color: TXT }}>
-            {L('O Joseph está analisando este evento. Na primeira vez leva até 1 minuto — depois fica guardado.', 'Joseph is analyzing this event. The first time takes up to a minute — then it is saved.', 'Joseph está analizando este evento. La primera vez tarda hasta un minuto — luego queda guardado.')}
-          </p>
-          {[0, 1, 2].map((i) => <div key={i} className="h-3 rounded animate-pulse" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(255,255,255,0.06)', width: `${90 - i * 15}%` }} />)}
-        </div>
-      )}
+      {estado === 'carregando' && <JosephPensando lang={lang} temaClaro={temaClaro} />}
 
       {estado === 'erro' && (
         <div className="flex flex-wrap items-center gap-3">

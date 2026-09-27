@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Globe2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactECharts from 'echarts-for-react'
 import ModuloLayout from '../../../components/ModuloLayout'
@@ -393,9 +393,12 @@ export default function NexusPage() {
               indicadores e das notícias — mesma largura e altura (CARD_NEXUS). */}
           <section>
             <div className="mb-3 px-1">
-              <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('Eventos detectados', 'Detected events', 'Eventos detectados')}</h2>
-              <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.75 }}>
-                {L('Mudanças relevantes nos indicadores oficiais, percebidas automaticamente pelo Joseph, a inteligência do Nexus.', 'Relevant changes in official indicators, picked up automatically by Joseph, the Nexus intelligence.', 'Cambios relevantes en los indicadores oficiales, detectados automáticamente por Joseph, la inteligencia de Nexus.')}
+              <h2 className="flex items-center gap-2 text-base font-bold" style={{ color: TITULO }}>
+                <Globe2 size={17} style={{ color: temaClaro ? '#16a97d' : CIANO }} aria-hidden />
+                Joseph · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}
+              </h2>
+              <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
+                {L('A inteligência mundial do seu CFO — mudanças relevantes nos indicadores oficiais, percebidas automaticamente. Clique num evento para ver a leitura do Joseph.', "Your CFO's global intelligence — relevant changes in official indicators, picked up automatically. Click an event to see Joseph's reading.", 'La inteligencia mundial de su CFO — cambios relevantes en los indicadores oficiales, detectados automáticamente. Haga clic en un evento para ver la lectura de Joseph.')}
               </p>
             </div>
 
