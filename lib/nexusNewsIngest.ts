@@ -32,7 +32,7 @@ import { XMLParser } from 'fast-xml-parser'
 // problema, trocar por um lock (SELECT ... FOR UPDATE numa linha de controle).
 // ═══════════════════════════════════════════════════════════════
 
-export const LIMITE_POR_CANAL = 8
+export const LIMITE_POR_CANAL = 9 // 1 no player da TV + 8 cards (2x4) embaixo
 
 // Curto de propósito — vira aviso genérico traduzido na tela, nunca aparece
 // cru pro usuário. Serve pra diagnosticar sem adivinhar.

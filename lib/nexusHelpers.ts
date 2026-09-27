@@ -28,6 +28,8 @@ export type IndicadorNexus = {
   historico: PontoSerie[]; // ascendente por data, pro mini-gráfico
 };
 
+// CDI (12) continua no catálogo/ingestão, mas fora da tela: repete a Selic
+// e fecha a grade em 8 (2x4, mesmo tamanho dos cards de notícia da TV).
 // Catálogo dos códigos semeados em nexus_series_catalog (Comitê 02 + Etapa 2:
 // euro/libra/iene/desemprego/IBC-Br, SQL em NEXUS-ETAPA2-SERIES-SQL.txt) —
 // nome amigável e formato de exibição não vêm do banco (banco guarda o
@@ -38,7 +40,6 @@ const CATALOGO: Omit<IndicadorNexus, "valor" | "dataReferencia" | "freshness" | 
   { codigo: "21623", nome: { pt: "Libra", en: "British Pound", es: "Libra" }, emoji: "💷", formato: "moeda", casas: 2 },
   { codigo: "21621", nome: { pt: "Iene", en: "Japanese Yen", es: "Yen" }, emoji: "💴", formato: "moeda", casas: 4 },
   { codigo: "432", nome: { pt: "Selic", en: "Selic Rate", es: "Tasa Selic" }, emoji: "🏦", formato: "percentual", casas: 2 },
-  { codigo: "12", nome: { pt: "CDI", en: "CDI Rate", es: "Tasa CDI" }, emoji: "💰", formato: "percentual", casas: 2 },
   { codigo: "433", nome: { pt: "IPCA", en: "IPCA (Inflation)", es: "IPCA (Inflación)" }, emoji: "📈", formato: "percentual", casas: 2 },
   { codigo: "24369", nome: { pt: "Desemprego", en: "Unemployment", es: "Desempleo" }, emoji: "👷", formato: "percentual", casas: 1 },
   { codigo: "24363", nome: { pt: "Atividade Econômica (IBC-Br)", en: "Economic Activity (IBC-Br)", es: "Actividad Económica (IBC-Br)" }, emoji: "🏭", formato: "indice", casas: 1 },

@@ -89,31 +89,23 @@ function sparklineOption(historico: PontoSerie[], cor: string) {
 // Card compacto reaproveitado nos dois lugares que listam "mais notícias"
 // (grade abaixo da TV e o modal da lista ampliada de Reforma Tributária) —
 // mesmo visual, sem duplicar JSX.
+// Mesma caixa dos cards de indicador (CARD_NEXUS) — as duas grades 2x4 da
+// tela ficam com a mesma largura e altura.
+const CARD_NEXUS = 'rounded-2xl p-4 h-40 flex flex-col'
+
 function CardMiniNoticia({ noticia, lang, localeData, onClick }: { noticia: NoticiaExibicao; lang: Idioma3; localeData: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex gap-3 rounded-xl p-3 text-left transition-all hover:scale-[1.01] w-full"
-      style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}20` }}
+      className={`${CARD_NEXUS} text-left w-full transition-colors hover:brightness-125 focus-visible:outline focus-visible:outline-2`}
+      style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}
     >
-      <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 84, height: 60, background: 'rgba(255,255,255,0.05)' }}>
-        {noticia.imagem_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={noticia.imagem_url} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Newspaper size={18} style={{ color: ROXOTV }} />
-          </div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <h4 className="text-xs font-bold leading-snug line-clamp-2 mb-1" style={{ color: TITULO }}>{noticia.titulo}</h4>
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: CINZA }}>
-          <span className="truncate">{noticia.fonte}</span>
-          <span>•</span>
-          <span className="shrink-0">{formatarDataNoticia(noticia.data, lang, localeData)}</span>
-        </div>
-      </div>
+      <p className="flex items-center gap-1.5 text-xs font-bold mb-2 min-w-0" style={{ color: CINZA }}>
+        <Newspaper size={13} className="shrink-0" style={{ color: ROXOTV }} aria-hidden />
+        <span className="truncate">{noticia.fonte}</span>
+      </p>
+      <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{noticia.titulo}</h4>
+      <span className="text-[10px] mt-auto pt-2" style={{ color: CINZA }}>{formatarDataNoticia(noticia.data, lang, localeData)}</span>
     </button>
   )
 }
@@ -136,7 +128,7 @@ function impactoEvento(severity: number | null): { cor: string; nome: Nome3 } {
 }
 
 const INTERVALO_TROCA_MS = 6000
-const MAX_CARDS_REFORMA_INLINE = 5
+const MAX_CARDS_INLINE = 8 // 2x4 embaixo da TV, igual à grade de indicadores (Reforma: resto no "Ver mais")
 
 export default function NexusPage() {
   const { idioma } = useLanguage()
@@ -288,12 +280,12 @@ export default function NexusPage() {
             </div>
           )}
 
-          {/* 9 INDICADORES — dado real de nexus_economic_series, com mini-histórico (grade 3x3) */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {/* 8 INDICADORES — dado real de nexus_economic_series, com mini-histórico (grade 2x4, mesma caixa dos cards de notícia) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {indicadores.map((ind) => {
               const fresh = traduzirFreshness(ind.freshness, lang)
               return (
-                <div key={ind.codigo} className="rounded-2xl p-4" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}>
+                <div key={ind.codigo} className={CARD_NEXUS} style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{ind.emoji} {ind.nome[lang]}</p>
                   </div>
@@ -303,7 +295,7 @@ export default function NexusPage() {
                       <ReactECharts option={sparklineOption(ind.historico, CIANO)} style={{ height: 40, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'svg' }} />
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-auto">
                     <span className="text-[10px]" style={{ color: CINZA }}>
                       {ind.dataReferencia ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData) : '—'}
                     </span>
@@ -322,14 +314,14 @@ export default function NexusPage() {
             <div className="mb-4">
               <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('Eventos detectados', 'Detected events', 'Eventos detectados')}</h2>
               <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.75 }}>
-                {L('Mudanças relevantes nos indicadores oficiais, percebidas automaticamente pelo Nexus.', 'Relevant changes in official indicators, picked up automatically by Nexus.', 'Cambios relevantes en los indicadores oficiales, detectados automáticamente por Nexus.')}
+                {L('Mudanças relevantes nos indicadores oficiais, percebidas automaticamente pelo Joseph, a inteligência do Nexus.', 'Relevant changes in official indicators, picked up automatically by Joseph, the Nexus intelligence.', 'Cambios relevantes en los indicadores oficiales, detectados automáticamente por Joseph, la inteligencia de Nexus.')}
               </p>
             </div>
 
             {erroEventos && eventos.length === 0 ? (
               <p className="text-sm" style={{ color: TEXTO }}>{L('Não foi possível carregar os eventos agora. Recarregue a página em instantes.', 'Could not load events right now. Reload the page in a moment.', 'No fue posible cargar los eventos ahora. Recargue la página en unos instantes.')}</p>
             ) : !carregandoEventos && eventos.length === 0 ? (
-              <p className="text-sm" style={{ color: TEXTO }}>{L('Nenhuma mudança relevante nos indicadores oficiais por enquanto. O Nexus verifica todos os dias e avisa aqui quando algo se mover.', 'No relevant changes in official indicators yet. Nexus checks every day and will flag it here when something moves.', 'Ningún cambio relevante en los indicadores oficiales por ahora. Nexus revisa todos los días y avisará aquí cuando algo se mueva.')}</p>
+              <p className="text-sm" style={{ color: TEXTO }}>{L('Nenhuma mudança relevante nos indicadores oficiais por enquanto. O Joseph verifica todos os dias e avisa aqui quando algo se mover.', 'No relevant changes in official indicators yet. Joseph checks every day and will flag it here when something moves.', 'Ningún cambio relevante en los indicadores oficiales por ahora. Joseph revisa todos los días y avisará aquí cuando algo se mueva.')}</p>
             ) : (
               <ul className="space-y-2.5">
                 {eventos.map((ev) => {
@@ -512,18 +504,18 @@ export default function NexusPage() {
           {/* CARDS ABAIXO DA TV — demais manchetes do canal ativo (além da que
               está no player), pro módulo não ficar vazio embaixo. Mesmo modal
               da TV ao clicar; mesmo padrão visual (cartão escuro/ciano). No
-              canal reforma-tributaria a lista inline fica curta de propósito
-              (MAX_CARDS_REFORMA_INLINE) — o resto mora no botão "Ver mais"
+              canal reforma-tributaria a lista inline para em MAX_CARDS_INLINE
+              — o resto mora no botão "Ver mais"
               abaixo, que abre a lista ampliada dentro do próprio Axioma. */}
           {!carregandoNoticias && noticiasCanal.length > 1 && (() => {
             const outras = noticiasCanal.filter((_, i) => i !== indiceAtivo)
-            const cardsInline = canalAtivo === 'reforma-tributaria' ? outras.slice(0, MAX_CARDS_REFORMA_INLINE) : outras
+            const cardsInline = outras.slice(0, MAX_CARDS_INLINE)
             return (
-              <div className="max-w-3xl mx-auto space-y-3">
+              <div className="space-y-3">
                 <p className="text-xs font-bold uppercase tracking-wide px-1" style={{ color: CINZA }}>
                   {L('Mais notícias deste canal', 'More headlines in this channel', 'Más noticias de este canal')}
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {cardsInline.map((n) => (
                     <CardMiniNoticia key={n.id} noticia={n} lang={lang} localeData={localeData} onClick={() => setNoticiaAberta(n)} />
                   ))}
