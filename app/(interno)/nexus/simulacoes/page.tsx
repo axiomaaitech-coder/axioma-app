@@ -15,6 +15,7 @@ import { ThemeToggle } from '../../../../components/ThemeToggle'
 import { useLanguage } from '../../../../lib/LanguageContext'
 import { useThemeAxioma } from '../../../../lib/ThemeContext'
 import { PALETA, VERDE_SOLIDO } from '../../../../lib/nexusTema'
+import { DivisorNexus } from '../DivisorNexus'
 import { VARIAVEIS_ZERO, PRESETS_MACRO, variaveisDoEvento, type VariaveisMacro } from '../../../../lib/nexusSimulacaoMotor'
 import {
   carregarPontoPartida, rodarSimulacao, listarSimulacoes, salvarSimulacao, mudarStatusSimulacao, favoritarSimulacao,
@@ -261,6 +262,8 @@ export default function NexusSimulacoesPage() {
               </div>
             </section>
 
+            <DivisorNexus />
+
             {/* CONSTRUTOR "E SE...?" */}
             <section className={`relative overflow-hidden rounded-2xl p-4 sm:p-5${premium}`} style={caixa}>
 <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
@@ -362,6 +365,8 @@ export default function NexusSimulacoesPage() {
                 </div>
               </section>
             )}
+
+            <DivisorNexus />
 
             {/* MINHAS SIMULAÇÕES */}
             <section id="salvas" className="scroll-mt-28">

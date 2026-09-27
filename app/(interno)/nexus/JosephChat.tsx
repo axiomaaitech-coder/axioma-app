@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Cinzel } from 'next/font/google'
+import { cinzel } from './fonteJose'
 import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
@@ -22,7 +22,6 @@ type Lang = 'pt' | 'en' | 'es'
 
 // Fonte de personagem, SÓ na apresentação do José (pedido do Elias): letra de
 // forma de inscrição antiga (Cinzel). O resto do Axioma continua em Geist.
-const cinzel = Cinzel({ subsets: ['latin'], weight: ['600', '700'], display: 'swap' })
 
 // "Grifado" animado: marca-texto verde-menta que corre por baixo do texto.
 function Grifo({ children, cor }: { children: React.ReactNode; cor: string }) {

@@ -5,22 +5,34 @@
 // guardado pra todos). Horizontes longos mostram a confiança baixa declarada.
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import type { BriefingJose } from '../../../lib/nexusBriefing'
+import { cinzel } from './fonteJose'
 
 type Lang = 'pt' | 'en' | 'es'
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 
-type Cores = { titulo: string; texto: string; cinza: string; fundo: string; borda: string; claro: boolean }
+type Cores = { titulo: string; texto: string; cinza: string; fundo: string; fundoSolido: string; borda: string; acento: string; claro: boolean; lang: Lang }
 
 function Card({ emoji, rotulo, cores, children }: { emoji: string; rotulo: string; cores: Cores; children: ReactNode }) {
+  const [aberto, setAberto] = useState(false)
+  const L = (pt: string, en: string, es: string) => (cores.lang === 'en' ? en : cores.lang === 'es' ? es : pt)
   return (
-    <div className="relative overflow-hidden rounded-2xl p-4 flex flex-col h-full axi-card-premium3d" style={{ background: cores.fundo, border: `1px solid ${cores.borda}` }}>
+    <div className="relative overflow-hidden rounded-2xl p-4 flex flex-col axi-card-premium3d" style={{ background: cores.fundo, border: `1px solid ${cores.borda}` }}>
       {BARRA}
       <p className="text-[11px] font-bold mb-1.5" style={{ color: cores.cinza }}>{emoji} {rotulo}</p>
-      {children}
+      {/* Recolhido: mesma altura dos outros cards do Nexus, com esmaecido no fim do texto. */}
+      <div className="relative" style={aberto ? undefined : { maxHeight: 118, overflow: 'hidden' }}>
+        {children}
+        {!aberto && <div className="absolute inset-x-0 bottom-0 h-8 pointer-events-none" style={{ background: `linear-gradient(to bottom, transparent, ${cores.fundoSolido})` }} aria-hidden />}
+      </div>
+      <button onClick={() => setAberto((v) => !v)} aria-expanded={aberto}
+        className="self-end mt-2 flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md"
+        style={{ color: cores.acento, border: `1px solid ${cores.acento}55` }}>
+        {aberto ? <>{L('Recolher', 'Collapse', 'Contraer')}<ChevronUp size={12} aria-hidden /></> : <>{L('Ler mais', 'Read more', 'Leer más')}<ChevronDown size={12} aria-hidden /></>}
+      </button>
     </div>
   )
 }
@@ -46,7 +58,8 @@ function Lista({ itens, cores }: { itens: { titulo: string; texto: string; gravi
 export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: boolean }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const { CIANO, CINZA, TEXTO, TITULO, PAINEL_BG } = PALETA[temaClaro ? 'xms' : 'dark']
-  const cores: Cores = { titulo: TITULO, texto: TEXTO, cinza: CINZA, fundo: PAINEL_BG, borda: `${CIANO}30`, claro: temaClaro }
+  // fundoSolido: cor opaca do card pro esmaecido do texto recolhido (PAINEL_BG do Escuro é translúcido).
+  const cores: Cores = { titulo: TITULO, texto: TEXTO, cinza: CINZA, fundo: PAINEL_BG, fundoSolido: temaClaro ? '#f6f7c4' : '#0b1626', borda: `${CIANO}30`, acento: temaClaro ? '#16a97d' : CIANO, claro: temaClaro, lang }
   const [painel, setPainel] = useState<{ data: string; conteudo: BriefingJose } | null>(null)
   const [estado, setEstado] = useState<'carregando' | 'ok' | 'erro'>('carregando')
   const [tentativa, setTentativa] = useState(0)
@@ -77,7 +90,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
     <section>
       <div className="flex flex-wrap items-end justify-between gap-2 mb-3 px-1">
         <div>
-          <h2 className="flex items-center gap-2 text-base font-bold" style={{ color: TITULO }}>
+          <h2 className={`${cinzel.className} flex items-center gap-2 text-lg md:text-xl font-bold tracking-wide`} style={{ color: TITULO }}>
             <JosephAvatar tamanho={26} estado={estado === 'carregando' ? 'pensando' : 'parado'} />
             {L('Painel executivo do José', "José's executive briefing", 'Panel ejecutivo de José')}
           </h2>
@@ -131,7 +144,7 @@ export function PainelExecutivo({ lang, temaClaro }: { lang: Lang; temaClaro: bo
           </>
         )
         return (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
             <Card emoji="🌎" rotulo={L('O Mundo', 'The World', 'El Mundo')} cores={cores}>{bloco(c.mundo)}</Card>
             <Card emoji="🇧🇷" rotulo={L('Brasil', 'Brazil', 'Brasil')} cores={cores}>{bloco(c.brasil)}</Card>
             <Card emoji="🚨" rotulo={L('Alertas', 'Alerts', 'Alertas')} cores={cores}><Lista itens={c.alertas} cores={cores} /></Card>

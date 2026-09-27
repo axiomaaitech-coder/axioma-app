@@ -17,6 +17,7 @@ import { JosephAnalise } from './JosephAnalise'
 import { FuncoesNexus } from './FuncoesNexus'
 import { JosephChat } from './JosephChat'
 import { PainelExecutivo } from './PainelExecutivo'
+import { DivisorNexus } from './DivisorNexus'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -397,8 +398,12 @@ export default function NexusPage() {
             })}
           </div>
 
+          <DivisorNexus />
+
           {/* PAINEL EXECUTIVO DO JOSÉ — Etapa 7: síntese diária logo abaixo dos indicadores. */}
           <PainelExecutivo lang={lang} temaClaro={temaClaro} />
+
+          <DivisorNexus />
 
           {/* EVENTOS DETECTADOS — Etapa 3: o que mudou de verdade nas séries
               oficiais, com natureza (fato/sinal/decisão) e Trava da Verdade. */}
@@ -466,8 +471,12 @@ export default function NexusPage() {
             )}
           </section>
 
+          <DivisorNexus />
+
           {/* CHAT DO JOSÉ — logo acima da TV, à vista (pedido do Elias). */}
           <JosephChat lang={lang} temaClaro={temaClaro} indicadores={indicadores} eventos={eventos} />
+
+          <DivisorNexus />
 
           {/* TV — player grande de notícia em destaque, com canais */}
           {/* No Claro a moldura da TV vira card creme; a "tela" (player) segue
@@ -656,6 +665,8 @@ export default function NexusPage() {
               </button>
             </div>
           )}
+
+          <DivisorNexus />
 
           {/* O QUE O NEXUS FAZ POR VOCÊ — vitrine das funções que moram atrás de um
               clique; sem ela ninguém descobre o José, o E se...? e o Radar. */}
