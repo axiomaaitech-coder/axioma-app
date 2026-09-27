@@ -364,7 +364,7 @@ export default function NexusSimulacoesPage() {
             )}
 
             {/* MINHAS SIMULAÇÕES */}
-            <section>
+            <section id="salvas" className="scroll-mt-28">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('Simulações salvas', 'Saved simulations', 'Simulaciones guardadas')}</h2>
                 <div className="flex gap-2">

@@ -14,6 +14,7 @@ import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
+import { FuncoesNexus } from './FuncoesNexus'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -647,6 +648,10 @@ export default function NexusPage() {
               </button>
             </div>
           )}
+
+          {/* O QUE O NEXUS FAZ POR VOCÊ — vitrine das funções que moram atrás de um
+              clique; sem ela ninguém descobre o Joseph, o E se...? e o Radar. */}
+          <FuncoesNexus lang={lang} temaClaro={temaClaro} eventoRecente={eventos[0] ?? null} onAbrirEvento={setEventoAberto} />
 
         </div>
       )}

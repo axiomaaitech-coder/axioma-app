@@ -171,3 +171,10 @@ export async function autoArquivarAntigas(empresaId: string): Promise<void> {
     .update({ status: "archived", archived_at: new Date().toISOString() })
     .eq("empresa_id", empresaId).eq("status", "completed").eq("favorita", false).lt("updated_at", limite);
 }
+
+// Quantas simulações ativas a empresa tem — pro card "Minhas Simulações" em /nexus.
+export async function contarSimulacoes(empresaId: string): Promise<number> {
+  const { count } = await supabase.from("nexus_simulation").select("id", { count: "exact", head: true })
+    .eq("empresa_id", empresaId).eq("status", "completed");
+  return count ?? 0;
+}

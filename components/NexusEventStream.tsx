@@ -26,6 +26,13 @@ const ATRASO_MS = 5000
 
 const ler = (armazem: Storage | undefined, chave: string): string | null => { try { return armazem?.getItem(chave) ?? null } catch { return null } }
 const gravar = (armazem: Storage | undefined, chave: string, valor: string) => { try { armazem?.setItem(chave, valor) } catch { /* navegador sem armazenamento: só não lembra */ } }
+// Ligar/desligar o Radar — usado aqui ("Não mostrar avisos") e no card
+// "Radar Global" da seção "O que o Nexus faz por você" (/nexus).
+export const radarLigado = (): boolean => ler(globalThis.localStorage, CHAVE_DESLIGADO) !== '1'
+export const definirRadar = (ligado: boolean) => {
+  gravar(globalThis.localStorage, CHAVE_DESLIGADO, ligado ? '0' : '1')
+  if (ligado) { try { globalThis.sessionStorage?.removeItem(CHAVE_DEPOIS) } catch { /* sem armazenamento */ } }
+}
 const vistos = (): string[] => { try { return JSON.parse(ler(globalThis.localStorage, CHAVE_VISTOS) || '[]') } catch { return [] } }
 
 export default function NexusEventStream() {
@@ -43,7 +50,7 @@ export default function NexusEventStream() {
 
   useEffect(() => {
     if (foraDeAlcance || evento) return
-    if (ler(globalThis.localStorage, CHAVE_DESLIGADO) === '1' || ler(globalThis.sessionStorage, CHAVE_DEPOIS) === '1') return
+    if (!radarLigado() || ler(globalThis.sessionStorage, CHAVE_DEPOIS) === '1') return
     let cancelado = false
     const t = setTimeout(async () => {
       const lista = await obterEventosDestaque()
@@ -57,7 +64,7 @@ export default function NexusEventStream() {
   const marcarVisto = (id: string) => gravar(globalThis.localStorage, CHAVE_VISTOS, JSON.stringify([...vistos(), id].slice(-100)))
   const fechar = () => { if (evento) marcarVisto(evento.id); setEvento(null) }
   const verDepois = () => { gravar(globalThis.sessionStorage, CHAVE_DEPOIS, '1'); setEvento(null) }
-  const desligar = () => { gravar(globalThis.localStorage, CHAVE_DESLIGADO, '1'); setEvento(null) }
+  const desligar = () => { definirRadar(false); setEvento(null) }
   const abrir = () => { if (!evento) return; marcarVisto(evento.id); router.push(`/nexus?evento=${evento.id}`); setEvento(null) }
 
   const texto = evento ? (evento.payload ? textoEvento(evento.payload, lang) : { titulo: evento.tituloPt, descricao: '' }) : null
