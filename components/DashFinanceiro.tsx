@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { useLanguage } from "../lib/LanguageContext";
 import { serieRolling } from "../lib/cfoCore";
+import { useThemeAxioma } from "../lib/ThemeContext";
 import { obterEmpresaAtiva } from "../lib/empresaHelpers";
 import ReactECharts from "echarts-for-react";
 import { AnimatedNumber } from "./AnimatedNumber";
@@ -105,79 +106,99 @@ const tip = {
   extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);",
 };
 
-function barrasV(dados: number[], meses: string[], cor: string, corC: string) {
+// Tema Claro (tema-tokens.md): sequência oficial de gráfico pras roscas (cada
+// fatia distinta — o mapa central corTema viraria quase tudo verde-menta),
+// barra de valor em R$ azul-marinho (mesmo padrão dos módulos Financeiro),
+// eixos/legendas #374151, tooltip branco com texto azul-marinho.
+const SEQ_CLARO = ["#2ecc9b", "#101b3d", "#34d399", "#6b7280", "#122b54"];
+const tipClaro = { ...tip, backgroundColor: "#ffffff", textStyle: { color: "#101b3d", fontSize: 13 }, extraCssText: "border-radius:12px;box-shadow:0 8px 30px rgba(16,27,61,0.18);" };
+const EIXO = (claro: boolean) => ({
+  linha: claro ? "rgba(16,27,61,0.15)" : "rgba(148,163,184,0.18)",
+  grade: claro ? "rgba(16,27,61,0.08)" : "rgba(148,163,184,0.06)",
+  rotulo: claro ? "#374151" : "#cbd5e1",
+  rotuloFraco: claro ? "#374151" : "#64748b",
+  valor: claro ? "#101b3d" : "#f1f5f9",
+});
+
+function barrasV(dados: number[], meses: string[], corEscuro: string, corCEscuro: string, claro = false) {
+  const cor = claro ? "#101b3d" : corEscuro, corC = claro ? "#122b54" : corCEscuro, e = EIXO(claro);
   return {
     backgroundColor: "transparent", animationDuration: 900,
     grid: { left: 52, right: 16, top: 34, bottom: 28, containLabel: false },
-    tooltip: { ...tip, trigger: "item", borderColor: cor,
+    tooltip: { ...(claro ? tipClaro : tip), trigger: "item", borderColor: cor,
       formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px;color:${corC}">${fBRL(p.value)}</b>` },
     xAxis: { type: "category", data: meses,
-      axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } }, axisTick: { show: false },
-      axisLabel: { color: "#cbd5e1", fontSize: 11, fontWeight: 700 } },
+      axisLine: { lineStyle: { color: e.linha } }, axisTick: { show: false },
+      axisLabel: { color: e.rotulo, fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
-      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+      splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
+      axisLabel: { color: e.rotuloFraco, fontSize: 10, formatter: (v: number) => fK(v) } },
     series: [{
       type: "bar", barWidth: "60%",
       itemStyle: {
         borderRadius: [8, 8, 2, 2],
         color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: corC }, { offset: 1, color: cor }] },
-        shadowColor: cor + "60", shadowBlur: 12,
+        shadowColor: cor + "60", shadowBlur: claro ? 4 : 12,
       },
-      label: { show: true, position: "top", distance: 6, color: "#f1f5f9", fontSize: 10, fontWeight: 800, formatter: (p: any) => fK(p.value) },
+      label: { show: true, position: "top", distance: 6, color: e.valor, fontSize: 10, fontWeight: 800, formatter: (p: any) => fK(p.value) },
       emphasis: { itemStyle: { shadowBlur: 24 } },
       data: dados,
     }],
   };
 }
 
-function linhaEndiv(tt: any) {
+function linhaEndiv(tt: any, claro = false) {
+  const e = EIXO(claro);
+  const [corSaldo, corAmort, corJuros] = claro ? ["#101b3d", "#2ecc9b", "#6b7280"] : [C.rosa, C.verde, C.ouro];
+  const borda = claro ? "#f6f7c4" : "#0a0820";
   return {
     backgroundColor: "transparent", animationDuration: 1100,
     grid: { left: 58, right: 24, top: 40, bottom: 30, containLabel: false },
     legend: { top: 2, right: 0, itemWidth: 16, itemHeight: 10, itemGap: 18, icon: "roundRect",
-      textStyle: { color: "#cbd5e1", fontSize: 12, fontWeight: 700 }, data: [tt.saldoDevedor, tt.amortizacao, tt.juros] },
-    tooltip: { ...tip, trigger: "axis", borderColor: C.rosa,
+      textStyle: { color: e.rotulo, fontSize: 12, fontWeight: 700 }, data: [tt.saldoDevedor, tt.amortizacao, tt.juros] },
+    tooltip: { ...(claro ? tipClaro : tip), trigger: "axis", borderColor: corSaldo,
       formatter: (ps: any[]) => `<b>${ps[0].axisValue}</b><br/>` + ps.map(p => `${p.marker} ${p.seriesName}: <b>${fBRL(p.value)}</b>`).join("<br/>") },
     xAxis: { type: "category", boundaryGap: false, data: tt.meses,
-      axisLine: { lineStyle: { color: "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
-      axisLabel: { color: "#94a3b8", fontSize: 11, fontWeight: 700 } },
+      axisLine: { lineStyle: { color: claro ? e.linha : "rgba(148,163,184,0.2)" } }, axisTick: { show: false },
+      axisLabel: { color: claro ? e.rotulo : "#94a3b8", fontSize: 11, fontWeight: 700 } },
     yAxis: { type: "value", axisLine: { show: false }, axisTick: { show: false },
-      splitLine: { lineStyle: { color: "rgba(148,163,184,0.06)", type: "dashed" } },
-      axisLabel: { color: "#64748b", fontSize: 10, formatter: (v: number) => fK(v) } },
+      splitLine: { lineStyle: { color: e.grade, type: "dashed" } },
+      axisLabel: { color: e.rotuloFraco, fontSize: 10, formatter: (v: number) => fK(v) } },
     series: [
       { name: tt.saldoDevedor, type: "line", smooth: true, symbol: "circle", symbolSize: 8,
-        lineStyle: { width: 4, color: C.rosa, shadowColor: C.rosa + "90", shadowBlur: 14 },
-        itemStyle: { color: C.rosa, borderColor: "#0a0820", borderWidth: 2 },
-        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: "rgba(236,72,153,0.35)" }, { offset: 1, color: "rgba(236,72,153,0)" }] } },
+        lineStyle: { width: 4, color: corSaldo, shadowColor: corSaldo + "90", shadowBlur: claro ? 4 : 14 },
+        itemStyle: { color: corSaldo, borderColor: borda, borderWidth: 2 },
+        areaStyle: { color: { type: "linear", x: 0, y: 0, x2: 0, y2: 1, colorStops: claro ? [{ offset: 0, color: "rgba(16,27,61,0.22)" }, { offset: 1, color: "rgba(16,27,61,0)" }] : [{ offset: 0, color: "rgba(236,72,153,0.35)" }, { offset: 1, color: "rgba(236,72,153,0)" }] } },
         data: D.saldoDevedor },
       { name: tt.amortizacao, type: "line", smooth: true, symbol: "circle", symbolSize: 7,
-        lineStyle: { width: 3, color: C.verde, shadowColor: C.verde + "80", shadowBlur: 10 },
-        itemStyle: { color: C.verde, borderColor: "#0a0820", borderWidth: 2 }, data: D.amortizacao },
+        lineStyle: { width: 3, color: corAmort, shadowColor: corAmort + "80", shadowBlur: claro ? 4 : 10 },
+        itemStyle: { color: corAmort, borderColor: borda, borderWidth: 2 }, data: D.amortizacao },
       { name: tt.juros, type: "line", smooth: true, symbol: "circle", symbolSize: 6,
-        lineStyle: { width: 2.5, color: C.ouro, type: "dashed", shadowColor: C.ouro + "70", shadowBlur: 8 },
-        itemStyle: { color: C.ouro, borderColor: "#0a0820", borderWidth: 2 }, data: D.juros },
+        lineStyle: { width: 2.5, color: corJuros, type: "dashed", shadowColor: corJuros + "70", shadowBlur: claro ? 0 : 8 },
+        itemStyle: { color: corJuros, borderColor: borda, borderWidth: 2 }, data: D.juros },
     ],
   };
 }
 
-function rosca(dados: { name: string; value: number; color: string }[], cor: string, centro: string) {
+function rosca(dadosEscuro: { name: string; value: number; color: string }[], corEscuro: string, centro: string, claro = false) {
+  const dados = claro ? dadosEscuro.map((d, i) => ({ ...d, color: SEQ_CLARO[i % SEQ_CLARO.length] })) : dadosEscuro;
+  const cor = claro ? "#2ecc9b" : corEscuro, e = EIXO(claro);
   const total = dados.reduce((a, b) => a + b.value, 0);
   return {
     backgroundColor: "transparent", animationDuration: 1000,
-    tooltip: { ...tip, trigger: "item", borderColor: cor,
-      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${cor}">${p.percent}%</span>` },
+    tooltip: { ...(claro ? tipClaro : tip), trigger: "item", borderColor: cor,
+      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> <span style="color:${claro ? "#16a97d" : cor}">${p.percent}%</span>` },
     legend: { orient: "vertical", right: 4, top: "center", itemWidth: 11, itemHeight: 11, itemGap: 12, icon: "circle",
-      textStyle: { color: "#cbd5e1", fontSize: 11, fontWeight: 600 },
+      textStyle: { color: e.rotulo, fontSize: 11, fontWeight: 600 },
       formatter: (name: string) => { const d = dados.find(x => x.name === name); const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0; return `${name}  ${pct}%`; } },
     series: [{ type: "pie", radius: ["54%", "80%"], center: ["34%", "52%"], avoidLabelOverlap: false,
-      itemStyle: { borderColor: "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
+      itemStyle: { borderColor: claro ? "#ffffff" : "rgba(10,8,32,0.95)", borderWidth: 3, borderRadius: 5 },
       label: { show: false }, labelLine: { show: false },
       emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 26, shadowColor: cor + "80" } },
       data: dados.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })) }],
     graphic: [
-      { type: "text", left: "34%", top: "45%", style: { text: fK(total), textAlign: "center", fill: "#f1f5f9", fontSize: 18, fontWeight: 900 }, z: 10 },
-      { type: "text", left: "34%", top: "55%", style: { text: centro, textAlign: "center", fill: "#64748b", fontSize: 9, fontWeight: 700 }, z: 10 },
+      { type: "text", left: "34%", top: "45%", style: { text: fK(total), textAlign: "center", fill: e.valor, fontSize: 18, fontWeight: 900 }, z: 10 },
+      { type: "text", left: "34%", top: "55%", style: { text: centro, textAlign: "center", fill: e.rotuloFraco, fontSize: 9, fontWeight: 700 }, z: 10 },
     ],
   };
 }
@@ -190,6 +211,15 @@ export default function DashFinanceiro() {
 
   const [demo, setDemo] = useState(false);
   const [real, setReal] = useState<RealFin>(REAL_VAZIO);
+  const { tema } = useThemeAxioma();
+  const claro = tema === "xms";
+  const premium = claro ? " axi-card-premium3d" : "";
+  // Tema Claro: card de seção creme + premium3d, caixinha interna bege,
+  // texto azul-marinho/#374151, sem dourado (demo vira verde-menta).
+  const CARD_CLARO = { background: "#f6f7c4", border: "1px solid rgba(16,27,61,0.12)" };
+  const NESTED_CLARO = { background: "rgba(255,255,255,0.5)", border: "1px solid rgba(16,27,61,0.12)" };
+  const TXT = claro ? "#101b3d" : "#f1f5f9";
+  const TXT2 = claro ? "#374151" : "#64748b";
 
   useEffect(() => {
     let ativo = true;
@@ -277,20 +307,20 @@ export default function DashFinanceiro() {
   ];
 
   const Chart = ({ titulo, cor, path, option, altura, vazio }: { titulo: string; cor: string; path: string; option?: any; altura: number; vazio?: string }) => (
-    <div className="rounded-xl p-4 relative" style={{ background: "rgba(8,6,24,0.55)", border: `1px solid ${cor}20` }}>
+    <div className="rounded-xl p-4 relative" style={claro ? NESTED_CLARO : { background: "rgba(8,6,24,0.55)", border: `1px solid ${cor}20` }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="w-1 h-4 rounded-full" style={{ background: cor, boxShadow: `0 0 8px ${cor}` }} />
-          <p className="text-[13px] font-black" style={{ color: "#f1f5f9" }}>{titulo}</p>
-          {demo && <span className="text-[9px] px-2 py-0.5 rounded font-black tracking-wider" style={{ background: `${C.ouro}30`, color: C.ouro, border: `1px solid ${C.ouro}60` }}>🎭 {tt.demo}</span>}
+          <span className="w-1 h-4 rounded-full" style={{ background: claro ? "#2ecc9b" : cor, boxShadow: claro ? undefined : `0 0 8px ${cor}` }} />
+          <p className="text-[13px] font-black" style={{ color: TXT }}>{titulo}</p>
+          {demo && <span className="text-[9px] px-2 py-0.5 rounded font-black tracking-wider" style={claro ? { background: "#2ecc9b", color: "#101b3d" } : { background: `${C.ouro}30`, color: C.ouro, border: `1px solid ${C.ouro}60` }}>🎭 {tt.demo}</span>}
         </div>
         <button onClick={() => router.push(path)} className="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all hover:scale-105"
-          style={{ background: `${cor}15`, border: `1px solid ${cor}38`, color: cor }}>{tt.verModulo} →</button>
+          style={claro ? { background: "linear-gradient(135deg, #16a97d, #2ecc9b)", color: "#fff" } : { background: `${cor}15`, border: `1px solid ${cor}38`, color: cor }}>{tt.verModulo} →</button>
       </div>
       {option ? (
         <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
       ) : (
-        <div className="flex items-center justify-center text-center px-4" style={{ height: altura, color: "#5a6a85", fontSize: 12, fontWeight: 600 }}>{vazio}</div>
+        <div className="flex items-center justify-center text-center px-4" style={{ height: altura, color: claro ? "#374151" : "#5a6a85", fontSize: 12, fontWeight: 600 }}>{vazio}</div>
       )}
     </div>
   );
@@ -302,14 +332,16 @@ export default function DashFinanceiro() {
       <div className="flex items-center justify-end gap-2">
         <button onClick={() => setDemo(v => !v)}
           className="text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
-          style={{ background: demo ? `${C.ouro}25` : "rgba(255,255,255,0.05)", border: `1px solid ${demo ? C.ouro : "rgba(148,163,184,0.3)"}`, color: demo ? C.ouroC : "#94a3b8" }}>
+          style={claro
+            ? (demo ? { background: "#2ecc9b", border: "1px solid #2ecc9b", color: "#101b3d" } : { background: "rgba(16,27,61,0.06)", border: "1px solid rgba(16,27,61,0.15)", color: "#374151" })
+            : { background: demo ? `${C.ouro}25` : "rgba(255,255,255,0.05)", border: `1px solid ${demo ? C.ouro : "rgba(148,163,184,0.3)"}`, color: demo ? C.ouroC : "#94a3b8" }}>
           🎭 {demo ? tt.verMeusDados : tt.verDemo}
         </button>
       </div>
 
       {demo && (
-        <div className="w-full rounded-xl px-4 py-2.5 text-center" style={{ background: `${C.ouro}18`, border: `1px dashed ${C.ouro}` }}>
-          <span className="text-[11px] font-black tracking-widest uppercase" style={{ color: C.ouroC }}>🎭 {tt.modoDemoAtivo}</span>
+        <div className="w-full rounded-xl px-4 py-2.5 text-center" style={claro ? { background: "rgba(46,204,155,0.15)", border: "1px dashed #16a97d" } : { background: `${C.ouro}18`, border: `1px dashed ${C.ouro}` }}>
+          <span className="text-[11px] font-black tracking-widest uppercase" style={{ color: claro ? "#101b3d" : C.ouroC }}>🎭 {tt.modoDemoAtivo}</span>
         </div>
       )}
 
@@ -317,31 +349,35 @@ export default function DashFinanceiro() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {kpis.map((k, i) => (
           <div key={i} onClick={() => router.push(k.p)}
-            className="rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px] relative"
-            style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: `1px solid ${k.c}22`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = `${k.c}60`; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.5), 0 0 26px ${k.c}22`; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${k.c}22`; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}>
-            {demo && <span className="absolute top-2 right-2 text-[7px] px-1.5 py-0.5 rounded font-black tracking-wider" style={{ background: `${C.ouro}30`, color: C.ouro }}>🎭 {tt.demo}</span>}
+            className={`rounded-2xl p-4 cursor-pointer transition-all duration-300 hover:translate-y-[-4px] relative${premium}`}
+            style={claro ? CARD_CLARO : { background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: `1px solid ${k.c}22`, boxShadow: "0 4px 24px rgba(0,0,0,0.4)" }}
+            onMouseEnter={claro ? undefined : (e) => { e.currentTarget.style.borderColor = `${k.c}60`; e.currentTarget.style.boxShadow = `0 12px 40px rgba(0,0,0,0.5), 0 0 26px ${k.c}22`; }}
+            onMouseLeave={claro ? undefined : (e) => { e.currentTarget.style.borderColor = `${k.c}22`; e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.4)"; }}>
+            {demo && <span className="absolute top-2 right-2 text-[7px] px-1.5 py-0.5 rounded font-black tracking-wider" style={claro ? { background: "#2ecc9b", color: "#101b3d" } : { background: `${C.ouro}30`, color: C.ouro }}>🎭 {tt.demo}</span>}
             <div className="flex items-center justify-between mb-2">
               <span className="text-lg">{k.i}</span>
               {"d" in k && (k as any).d && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={{ background: (k as any).up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: (k as any).up ? C.verde : C.vermelho }}>{(k as any).d}</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-black" style={claro
+                  ? { background: (k as any).up ? "#16a97d" : "#ff5a6b", color: (k as any).up ? "#ffffff" : "#2b0007" }
+                  : { background: (k as any).up ? "rgba(16,185,129,0.16)" : "rgba(239,68,68,0.16)", color: (k as any).up ? C.verde : C.vermelho }}>{(k as any).d}</span>
               )}
             </div>
-            <p className="text-lg font-black tracking-tight" style={{ color: k.c }}><AnimatedNumber value={k.v} /></p>
-            <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: "#64748b" }}>{k.l}</p>
+            {/* Claro: número em azul-marinho (legível no creme); a cor da categoria fica no Escuro */}
+            <p className="text-lg font-black tracking-tight" style={{ color: claro ? "#101b3d" : k.c }}><AnimatedNumber value={k.v} /></p>
+            <p className="text-[9px] uppercase tracking-wider font-bold mt-0.5" style={{ color: TXT2 }}>{k.l}</p>
           </div>
         ))}
       </div>
 
       {/* LETREIRO EM LOOP */}
-      <div className="relative rounded-xl overflow-hidden" style={{ background: demo ? `linear-gradient(90deg, ${C.ouro}22, ${C.ouro}12)` : "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", border: demo ? `1px solid ${C.ouro}55` : "1px solid rgba(139,92,246,0.22)" }}>
+      {/* Claro: letreiro SÓLIDO azul-marinho, texto branco, destaque verde-menta (regra de todos os letreiros) */}
+      <div className="relative rounded-xl overflow-hidden" style={claro ? { background: "#101b3d", border: "1px solid #101b3d" } : { background: demo ? `linear-gradient(90deg, ${C.ouro}22, ${C.ouro}12)` : "linear-gradient(90deg, rgba(139,92,246,0.12), rgba(6,182,212,0.10))", border: demo ? `1px solid ${C.ouro}55` : "1px solid rgba(139,92,246,0.22)" }}>
         <div className="marquee-fin py-2.5 whitespace-nowrap" style={{ display: "inline-block" }}>
           <span className="text-sm font-bold tracking-wide">
-            {marquee.map((t, i) => (<span key={i} style={{ color: i === 0 ? "#c4b5fd" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#8b5cf6" }}>{"  •  "}</span></span>))}
+            {marquee.map((t, i) => (<span key={i} style={{ color: claro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? "#c4b5fd" : demo ? C.ouroC : "#e2e8f0") }}>{t}<span style={{ color: claro ? "#2ecc9b" : demo ? C.ouro : "#8b5cf6" }}>{"  •  "}</span></span>))}
           </span>
           <span className="text-sm font-bold tracking-wide" aria-hidden>
-            {marquee.map((t, i) => (<span key={`b${i}`} style={{ color: i === 0 ? "#c4b5fd" : demo ? C.ouroC : "#e2e8f0" }}>{t}<span style={{ color: demo ? C.ouro : "#8b5cf6" }}>{"  •  "}</span></span>))}
+            {marquee.map((t, i) => (<span key={`b${i}`} style={{ color: claro ? (i === 0 ? "#2ecc9b" : "#ffffff") : (i === 0 ? "#c4b5fd" : demo ? C.ouroC : "#e2e8f0") }}>{t}<span style={{ color: claro ? "#2ecc9b" : demo ? C.ouro : "#8b5cf6" }}>{"  •  "}</span></span>))}
           </span>
         </div>
         <style>{`
@@ -352,23 +388,23 @@ export default function DashFinanceiro() {
       </div>
 
       {/* MODAL ÚNICO com TODOS os gráficos */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{ background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
+      <div className={`rounded-2xl overflow-hidden${premium}`}
+        style={claro ? CARD_CLARO : { background: "linear-gradient(160deg, rgba(20,15,55,0.94), rgba(10,8,32,0.97))", border: "1px solid rgba(99,102,241,0.15)", boxShadow: "0 4px 30px rgba(0,0,0,0.4)" }}>
         <div className="p-5">
           <div className="flex items-center gap-2 mb-4">
-            <span className="w-1.5 h-6 rounded-full" style={{ background: "linear-gradient(180deg,#8b5cf6,#06b6d4)", boxShadow: "0 0 12px #8b5cf6" }} />
+            <span className="w-1.5 h-6 rounded-full" style={{ background: claro ? "linear-gradient(180deg,#101b3d,#2ecc9b)" : "linear-gradient(180deg,#8b5cf6,#06b6d4)", boxShadow: claro ? undefined : "0 0 12px #8b5cf6" }} />
             <div>
-              <p className="text-base font-black" style={{ color: "#f1f5f9" }}>{tt.painelTitulo}</p>
-              <p className="text-[10px] font-medium" style={{ color: "#64748b" }}>{tt.painelSub}</p>
+              <p className="text-base font-black" style={{ color: TXT }}>{tt.painelTitulo}</p>
+              <p className="text-[10px] font-medium" style={{ color: TXT2 }}>{tt.painelSub}</p>
             </div>
           </div>
 
           <div className="mb-4">
             {demo ? (
-              <Chart titulo={tt.endivid} cor={C.rosa} path="/endividamento" option={linhaEndiv(tt)} altura={280} />
+              <Chart titulo={tt.endivid} cor={C.rosa} path="/endividamento" option={linhaEndiv(tt, claro)} altura={280} />
             ) : (
               <Chart titulo={tt.endivid} cor={C.rosa} path="/endividamento" altura={280}
-                option={real.temDivida ? rosca([{ name: tt.jaPago, value: real.dividaPaga, color: C.verde }, { name: tt.saldoDevedor, value: real.dividaTotal, color: C.rosa }], C.rosa, tt.total) : undefined}
+                option={real.temDivida ? rosca([{ name: tt.jaPago, value: real.dividaPaga, color: C.verde }, { name: tt.saldoDevedor, value: real.dividaTotal, color: C.rosa }], C.rosa, tt.total, claro) : undefined}
                 vazio={tt.semDivida} />
             )}
           </div>
@@ -376,24 +412,24 @@ export default function DashFinanceiro() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {demo ? (
               <>
-                <Chart titulo={tt.cf} cor={C.vermelho} path="/custos-fixos" option={barrasV(D.custosFixos, tt.meses, C.vermelho, C.vermelhoC)} altura={260} />
-                <Chart titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" option={barrasV(D.custosVar, tt.meses, C.laranja, C.laranjaC)} altura={260} />
-                <Chart titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" option={rosca(D.fluxo.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.cyan, tt.total)} altura={220} />
-                <Chart titulo={tt.receita} cor={C.ouro} path="/receitas" option={rosca(D.receita.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total)} altura={220} />
+                <Chart titulo={tt.cf} cor={C.vermelho} path="/custos-fixos" option={barrasV(D.custosFixos, tt.meses, C.vermelho, C.vermelhoC, claro)} altura={260} />
+                <Chart titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" option={barrasV(D.custosVar, tt.meses, C.laranja, C.laranjaC, claro)} altura={260} />
+                <Chart titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" option={rosca(D.fluxo.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.cyan, tt.total, claro)} altura={220} />
+                <Chart titulo={tt.receita} cor={C.ouro} path="/receitas" option={rosca(D.receita.map(d => ({ name: (tt as any)[d.k], value: d.v, color: d.c })), C.ouro, tt.total, claro)} altura={220} />
               </>
             ) : (
               <>
                 <Chart titulo={tt.cf} cor={C.vermelho} path="/custos-fixos" altura={260}
-                  option={real.custosFixosCategorias.length ? barrasV(real.custosFixosCategorias.map(c => c.value), real.custosFixosCategorias.map(c => c.name), C.vermelho, C.vermelhoC) : undefined}
+                  option={real.custosFixosCategorias.length ? barrasV(real.custosFixosCategorias.map(c => c.value), real.custosFixosCategorias.map(c => c.name), C.vermelho, C.vermelhoC, claro) : undefined}
                   vazio={tt.semCustoFixo} />
                 <Chart titulo={tt.cv} cor={C.laranja} path="/custos-variaveis" altura={260}
-                  option={real.custosVarSerie.some(v => v > 0) ? barrasV(real.custosVarSerie, tt.meses, C.laranja, C.laranjaC) : undefined}
+                  option={real.custosVarSerie.some(v => v > 0) ? barrasV(real.custosVarSerie, tt.meses, C.laranja, C.laranjaC, claro) : undefined}
                   vazio={tt.semCustoVariavel} />
                 <Chart titulo={tt.fluxo} cor={C.cyan} path="/fluxo-caixa" altura={220}
-                  option={real.receitaTotal > 0 || real.custosFixosTotal > 0 ? rosca([{ name: tt.entradas, value: real.receitaTotal, color: C.verde }, { name: tt.saidas, value: Math.max(0, real.receitaTotal - real.saldoCaixa), color: C.vermelho }], C.cyan, tt.total) : undefined}
+                  option={real.receitaTotal > 0 || real.custosFixosTotal > 0 ? rosca([{ name: tt.entradas, value: real.receitaTotal, color: C.verde }, { name: tt.saidas, value: Math.max(0, real.receitaTotal - real.saldoCaixa), color: C.vermelho }], C.cyan, tt.total, claro) : undefined}
                   vazio={tt.semReceita} />
                 <Chart titulo={tt.receita} cor={C.ouro} path="/receitas" altura={220}
-                  option={real.receitaCategorias.length ? rosca(real.receitaCategorias.map((c, i) => ({ name: c.name, value: c.value, color: [C.ouro, C.roxo, C.cyan, C.teal, C.rosa][i % 5] })), C.ouro, tt.total) : undefined}
+                  option={real.receitaCategorias.length ? rosca(real.receitaCategorias.map((c, i) => ({ name: c.name, value: c.value, color: [C.ouro, C.roxo, C.cyan, C.teal, C.rosa][i % 5] })), C.ouro, tt.total, claro) : undefined}
                   vazio={tt.semReceita} />
               </>
             )}
