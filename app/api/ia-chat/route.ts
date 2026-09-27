@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import * as Sentry from '@sentry/nextjs'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { registrarAuditoria } from '@/lib/nexusAuditoria'
 
 // Modelo vem do navegador — só aceita os da lista, qualquer outro cai no
 // padrão (impede alguém de forçar um modelo caro e gastar o crédito).
@@ -32,7 +33,28 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
 
   try {
-    const { mensagem, historico, contexto, modelo, provedor } = await request.json()
+    const { mensagem, historico, contexto, modelo, provedor, empresa_id } = await request.json()
+
+    // Auditoria de TODA chamada de IA (vários módulos mandam dados da empresa no
+    // contexto): quem, de qual tela, qual IA e quanto texto saiu — nunca o conteúdo.
+    // empresa_id só é gravado se o usuário realmente pertence à empresa (RLS).
+    // Roda DEPOIS da resposta (after): o usuário não espera a gravação da auditoria.
+    let origem = 'desconhecida'
+    try { origem = new URL(request.headers.get('referer') || '').pathname || origem } catch { /* sem referer */ }
+    const parametrosAuditoria = {
+      origem, provedor: provedor === 'openai' ? 'openai' : 'anthropic',
+      caracteres_contexto: typeof contexto === 'string' ? contexto.length : 0,
+      caracteres_pergunta: typeof mensagem === 'string' ? mensagem.length : 0,
+      mensagens_historico: Array.isArray(historico) ? historico.length : 0,
+    }
+    after(async () => {
+      let empresaAuditada: string | null = null
+      if (typeof empresa_id === 'string' && empresa_id) {
+        const { data: emp } = await supabase.from('empresas').select('id').eq('id', empresa_id).maybeSingle()
+        empresaAuditada = emp?.id ?? null
+      }
+      await registrarAuditoria({ empresaId: empresaAuditada, ator: user.id, acao: 'ia.chat', entidade: 'ia-chat', parametros: parametrosAuditoria })
+    })
 
     if (!mensagem) {
       return NextResponse.json({ error: 'Mensagem não fornecida' }, { status: 400 })

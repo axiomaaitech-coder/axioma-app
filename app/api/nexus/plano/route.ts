@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import * as Sentry from '@sentry/nextjs'
 import { obterOuGerarPlano, FalhaPlano, type HorizontePlano } from '@/lib/nexusPlanoEmpresa'
-import type { IdiomaJoseph } from '@/lib/nexusJoseph'
+import { MODELO_JOSEPH, type IdiomaJoseph } from '@/lib/nexusJoseph'
+import { registrarAuditoria } from '@/lib/nexusAuditoria'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Etapa 8: POST /api/nexus/plano { empresa_id, horizonte, lang, aliquota_pct }
@@ -37,7 +38,13 @@ export async function POST(request: NextRequest) {
   if (!UUID.test(empresaId) || !horizonte) return NextResponse.json({ error: 'parametros invalidos' }, { status: 400 })
 
   try {
-    const plano = await obterOuGerarPlano(supabase, empresaId, horizonte, lang, user.id, aliquota)
+    const { origem, caracteresEnviados, ...plano } = await obterOuGerarPlano(supabase, empresaId, horizonte, lang, user.id, aliquota)
+    // Auditoria: quem pediu, qual empresa, se a IA foi acionada e quanto dado saiu (nunca o conteúdo).
+    after(() => registrarAuditoria({
+      empresaId, ator: user.id, acao: 'jose.plano', entidade: 'nexus_plano_empresa',
+      parametros: { horizonte, lang, origem, provedor: origem === 'gerado' ? 'anthropic' : null, caracteres_enviados: caracteresEnviados },
+      versaoMotor: MODELO_JOSEPH,
+    }))
     return NextResponse.json({ plano })
   } catch (err) {
     const motivo = err instanceof Error ? err.message : String(err)

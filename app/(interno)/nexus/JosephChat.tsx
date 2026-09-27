@@ -125,7 +125,7 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
     try {
       const res = await fetch('/api/ia-chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mensagem: p, historico, contexto: montarContexto(), provedor: 'openai' }),
+        body: JSON.stringify({ mensagem: p, historico, contexto: montarContexto(), provedor: 'openai', empresa_id: empresaId }),
       })
       const json = await res.json().catch(() => null)
       const resposta = res.ok && typeof json?.resposta === 'string' && json.resposta.trim()

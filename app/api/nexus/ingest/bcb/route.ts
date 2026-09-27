@@ -7,6 +7,7 @@ import { detectarEventosSerie, textoEvento, type EventoDetectado } from '@/lib/n
 import { calcularFreshness } from '@/lib/nexusFreshness'
 import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
+import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -299,8 +300,10 @@ export async function GET(request: NextRequest) {
   try { painel = (await obterOuGerarBriefing(supabase, 'pt'))?.data ?? 'sem dados' }
   catch (err) { painel = err instanceof Error ? err.message : String(err); console.error('[nexus/ingest/bcb] Falha no painel executivo:', painel) }
   const noticias = await ingestaoNoticias(supabase)
+  // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
+  const limpeza = await limparDadosVencidos(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, eventos, joseph, painel, noticias })
+  return NextResponse.json({ sucesso, falha, detalhes, eventos, joseph, painel, noticias, limpeza })
 }
 
 // Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)
