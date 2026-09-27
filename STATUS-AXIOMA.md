@@ -1285,6 +1285,12 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Nome visível Joseph → José** em todo o Nexus (nomes internos de código/banco mantidos).
 **Próximo:** Etapa 7 — painel executivo do José (síntese diária: Mundo, Brasil, Alertas, Riscos, Oportunidades, 12m/3a/5a/10a, "O que eu não estou vendo?", "O que o José faria?").
 
+## 3-BJ. Nexus Etapa 7 — Painel executivo do José + perguntas de 1 a 10 anos (2026-09-27)
+**Painel executivo** (app/(interno)/nexus/PainelExecutivo.tsx, logo abaixo dos indicadores): síntese diária em 12 cards (O Mundo, Brasil, Alertas, Riscos, Oportunidades, 12m, 3a, 5a, 10a com confiança declarada, O que você pode não estar vendo, O que o José faria, De onde veio e limites). lib/nexusBriefing.ts (claude-opus-5, 1 por dia/idioma em nexus_briefing — **SQL NEXUS-ETAPA7-BRIEFING-SQL.txt precisa ser rodado pelo Elias**), POST /api/nexus/briefing, cron gera o de PT.
+**Chat do José:** apresentação em card de destaque ("Olá! Eu sou o José." grifado animado, Cinzel — fonte de personagem autorizada só aqui); 10 botões "como a economia pode afetar sua empresa em 1…10 anos" sempre visíveis; contexto ganhou manchetes (jornalísticas) e horizontes do painel.
+**Fontes mundiais gratuitas testadas (sem mensalidade, sem cadastro):** Banco Mundial (PIB/inflação por país — OK), IPEA/EIA Brent diário (OK, US$ 114,89 em 22/09). GDELT (conflitos/acordos) não conectou do ambiente local — testar do servidor.
+**Próximo:** ligar Banco Mundial + petróleo (IPEA) + GDELT na coleta, pra o José cruzar mundo × Brasil × empresa.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
