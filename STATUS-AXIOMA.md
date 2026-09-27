@@ -1279,6 +1279,12 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Efeito premium3d** (borda/glow verde-menta + faixa verde no topo no hover) em todos os cards do Nexus e de Minhas Simulações, nos 2 temas. **Cabeçalho de todos os módulos** (ModuloLayout, 49 telas + PdvLayout 6 telas + letreiros do Dashboard) virou cartão azul com o nome do módulo e o mesmo efeito, nos 2 temas — primeiro passo da padronização do Escuro. Modais do Nexus em portal no body (o menu não cobre mais o topo).
 **Próximo:** Etapa 7 — painel executivo do Joseph (O Mundo, Brasil, Alertas, Riscos, Oportunidades, 12m/3a/5a/10a, "O que eu não estou vendo?", "O que o Joseph faria?") e memória de previsões.
 
+## 3-BI. Nexus — funções visíveis + chat "Converse com o José" + nome José (2026-09-27)
+**Regra nova (Elias):** toda função precisa de entrada visível — seção "O que o Nexus faz por você" (embaixo de "Mais notícias deste canal") com 4 cards: José lê cada evento, E se...?, Minhas Simulações (com contagem) e Radar Global (liga/desliga ali).
+**Chat do José** acima da TV (app/(interno)/nexus/JosephChat.tsx): personagem SVG próprio inspirado em José do Egito (components/JosephAvatar.tsx — nemes navy/verde-menta, colar em faixas coloridas, feixe de trigo no lugar da cobra), painel "o que o José está vendo", sugestões, bolhas, animação de espigas enquanto pensa. OpenAI (uso frequente) com contexto só de dados do Axioma (indicadores, eventos, leituras, números da empresa). **Testado no ar:** respondeu à pergunta sobre a Selic usando o evento, a leitura e o lucro negativo da empresa.
+**Nome visível Joseph → José** em todo o Nexus (nomes internos de código/banco mantidos).
+**Próximo:** Etapa 7 — painel executivo do José (síntese diária: Mundo, Brasil, Alertas, Riscos, Oportunidades, 12m/3a/5a/10a, "O que eu não estou vendo?", "O que o José faria?").
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
