@@ -590,7 +590,7 @@ export default function NexusPage() {
                 letreiro padrão do módulo acima (ciano); mesmas manchetes do
                 canal ativo, real ou demo (nunca uma fonte diferente do player). */}
             <div className="px-4 py-4">
-              <LetreiroExecutivo cor={ROXOTV} solido={temaClaro} corDestaque="#2ecc9b" textoBase={temaClaro ? '#ffffff' : undefined} itens={noticiasCanal.map((n) => n.titulo)} />
+              <LetreiroExecutivo cor={temaClaro ? '#101b3d' : ROXOTV} solido={temaClaro} corDestaque="#2ecc9b" textoBase={temaClaro ? '#ffffff' : undefined} itens={noticiasCanal.map((n) => n.titulo)} />
             </div>
           </div>
 
