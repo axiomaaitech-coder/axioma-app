@@ -183,6 +183,17 @@ export default function NexusPage() {
   }
   useEffect(() => { carregarEventos(0) }, [])
 
+  // Esc fecha qualquer modal aberto da tela (evento, notícia, lista ampliada).
+  useEffect(() => {
+    if (!eventoAberto && !noticiaAberta && !listaAmpliadaAberta) return
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setEventoAberto(null); setNoticiaAberta(null); setListaAmpliadaAberta(false)
+    }
+    window.addEventListener('keydown', aoTeclar)
+    return () => window.removeEventListener('keydown', aoTeclar)
+  }, [eventoAberto, noticiaAberta, listaAmpliadaAberta])
+
   // Notícia do canal ativo — API própria (cache-aside em nexus_news); cai
   // pro demo local sozinha se a API/banco não tiverem nada ainda (nunca
   // fica sem conteúdo, nunca mistura demo com selo de real).
