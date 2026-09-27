@@ -50,3 +50,13 @@ assert.equal(travaDaVerdade('official', 'pt').nivel, 'oficial')
 assert.equal(travaDaVerdade(null, 'es').nivel, 'nao_confirmado')
 
 console.log('OK — detector de eventos do Nexus')
+
+// Régua de atualidade (lib/nexusFreshness.ts)
+const { calcularFreshness } = await import('../lib/nexusFreshness.ts')
+const hoje = new Date('2026-09-26T12:00:00Z')
+assert.equal(calcularFreshness('2026-09-25', 'diaria', hoje), 'live')
+assert.equal(calcularFreshness('2026-09-10', 'diaria', hoje), 'stale')
+assert.equal(calcularFreshness('2026-07-01', 'mensal_defasada', hoje), 'live') // desemprego de julho, publicado em setembro
+assert.equal(calcularFreshness('2026-07-01', 'mensal', hoje), 'stale')
+assert.equal(calcularFreshness('lixo', 'diaria', hoje), 'unknown')
+console.log('OK — régua de atualidade')

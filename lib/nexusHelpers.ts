@@ -12,7 +12,8 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export type FreshnessStatus = "live" | "fresh" | "recent" | "stale" | "expired" | "unknown";
+import { calcularFreshness, type FreshnessStatus } from "./nexusFreshness";
+export type { FreshnessStatus };
 
 export type PontoSerie = { data: string; valor: number };
 
@@ -56,7 +57,7 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
       CATALOGO.map((c) =>
         supabase
           .from("nexus_economic_series")
-          .select("valor, data_referencia, freshness_status")
+          .select("valor, data_referencia, frequencia")
           .eq("serie_codigo", c.codigo)
           .order("data_referencia", { ascending: false })
           .limit(PONTOS_HISTORICO)
@@ -75,7 +76,8 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
         ...c,
         valor: maisRecente?.valor ?? null,
         dataReferencia: maisRecente?.data_referencia ?? null,
-        freshness: (maisRecente?.freshness_status as FreshnessStatus) ?? null,
+        // recalculado agora, não o valor gravado na coleta (ver lib/nexusFreshness.ts)
+        freshness: maisRecente?.data_referencia ? calcularFreshness(maisRecente.data_referencia as string, maisRecente.frequencia as string | null) : null,
         historico,
       };
     });
@@ -108,7 +110,9 @@ const COR_FRESHNESS: Record<FreshnessStatus, string> = {
 };
 
 export function traduzirFreshness(status: FreshnessStatus | null, lang: "pt" | "en" | "es"): { texto: string; cor: string } {
-  if (!status) return { texto: TEXTO_FRESHNESS.unknown[lang], cor: COR_FRESHNESS.unknown };
+  // null = série ainda sem nenhum ponto (acabou de entrar no catálogo) — não é
+  // dado velho, é dado que ainda não chegou.
+  if (!status) return { texto: { pt: "aguardando 1ª coleta", en: "awaiting first update", es: "esperando 1ª actualización" }[lang], cor: "#7f9bb8" };
   return { texto: TEXTO_FRESHNESS[status][lang], cor: COR_FRESHNESS[status] };
 }
 

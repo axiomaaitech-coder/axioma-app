@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs'
 import crypto from 'crypto'
 import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIngest'
 import { detectarEventosSerie, textoEvento, type EventoDetectado } from '@/lib/nexusEventDetector'
+import { calcularFreshness } from '@/lib/nexusFreshness'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -83,29 +84,6 @@ function janelaEfetivaDias(janelaCatalogo: number, frequencia: string | null): n
   // referência (desemprego/PNAD, IBC-Br) — precisa de janela maior ainda.
   const piso = frequencia === 'mensal_defasada' ? 130 : frequencia === 'mensal' ? 70 : 35
   return Math.max(janelaCatalogo || 35, piso)
-}
-
-function calcularFreshness(dataReferenciaISO: string, frequencia: string | null): string {
-  const hoje = new Date()
-  const ref = new Date(`${dataReferenciaISO}T00:00:00Z`)
-  let dias = Math.floor((Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()) - ref.getTime()) / 86400000)
-  const ehDiaria = frequencia === 'diaria' || frequencia === 'event_driven'
-  if (ehDiaria) {
-    if (dias <= 1) return 'live'
-    if (dias <= 3) return 'fresh'
-    if (dias <= 7) return 'recent'
-    if (dias <= 30) return 'stale'
-    return 'expired'
-  }
-  // Mesma régua da mensal, deslocada pelo atraso normal de publicação (~60
-  // dias) — o dado mais novo que existe nunca aparece como "desatualizado".
-  const atraso = frequencia === 'mensal_defasada' ? 60 : 0
-  dias -= atraso
-  if (dias <= 35) return 'live'
-  if (dias <= 45) return 'fresh'
-  if (dias <= 60) return 'recent'
-  if (dias <= 90) return 'stale'
-  return 'expired'
 }
 
 // Grava a falha em nexus_raw_ingestion + last_failure na fonte, sempre em
