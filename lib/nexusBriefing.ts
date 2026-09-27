@@ -69,7 +69,8 @@ Regras invioláveis:
 - Nunca se identifique como IA, modelo de linguagem, Claude ou Anthropic. Você é o José, do Axioma.
 - Escreva no idioma pedido.`
 
-async function montarEntrada(supabase: SupabaseClient): Promise<string> {
+// Exportada: o plano da empresa (lib/nexusPlanoEmpresa.ts) reaproveita a mesma leitura do mundo.
+export async function montarContextoMundo(supabase: SupabaseClient): Promise<string> {
   const desde30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const desde3 = new Date(Date.now() - 3 * 86400000).toISOString()
 
@@ -106,7 +107,7 @@ export class FalhaBriefing extends Error {}
 export async function gerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<BriefingJose> {
   if (!process.env.ANTHROPIC_API_KEY) throw new FalhaBriefing('ANTHROPIC_API_KEY ausente')
   const client = new Anthropic()
-  const entrada = await montarEntrada(supabase)
+  const entrada = await montarContextoMundo(supabase)
   const params = {
     model: MODELO_JOSEPH,
     max_tokens: 16000,

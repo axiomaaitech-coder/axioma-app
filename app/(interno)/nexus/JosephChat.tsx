@@ -16,6 +16,7 @@ import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, type EventoNexus, type IndicadorNexus } from '../../../lib/nexusHelpers'
 import { textoEvento } from '../../../lib/nexusEventDetector'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
+import { PlanoJose } from './PlanoJose'
 
 type Lang = 'pt' | 'en' | 'es'
 
@@ -40,14 +41,6 @@ const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right
 const fBRL = (n: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(n || 0)
 const MAX_HISTORICO = 10
 
-// Perguntas de futuro: 1 a 10 anos — o objetivo do José (pedido do Elias).
-const ANOS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-const perguntaHorizonte = (n: number, lang: Lang) => lang === 'en'
-  ? `How can the Brazilian and world economy affect my company in ${n} year${n > 1 ? 's' : ''}?`
-  : lang === 'es'
-    ? `¿Cómo puede la economía de Brasil y del mundo afectar a mi empresa en ${n} año${n > 1 ? 's' : ''}?`
-    : `Como a economia do Brasil e do mundo pode afetar minha empresa em ${n} ano${n > 1 ? 's' : ''}?`
-
 const SUGESTOES: [string, string, string][] = [
   ['O que o último corte da Selic muda para a minha empresa?', 'What does the latest Selic cut change for my company?', '¿Qué cambia el último recorte de la Selic para mi empresa?'],
   ['Devo me preocupar com o dólar agora?', 'Should I worry about the dollar now?', '¿Debo preocuparme por el dólar ahora?'],
@@ -63,6 +56,7 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos }: { lang: La
   const [pensando, setPensando] = useState(false)
   const [leituras, setLeituras] = useState<{ titulo: string; data: string | null; leitura: string | null }[]>([])
   const [ponto, setPonto] = useState<PontoPartida | null>(null)
+  const [empresaId, setEmpresaId] = useState<string | null>(null)
   const [manchetes, setManchetes] = useState<{ titulo: string; canal: string | null; data: string | null }[]>([])
   const [horizontes, setHorizontes] = useState<{ data: string; texto: string } | null>(null)
   const fimRef = useRef<HTMLDivElement>(null)
@@ -71,7 +65,7 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos }: { lang: La
     obterLeiturasRecentes(lang).then(setLeituras)
     obterManchetesRecentes().then(setManchetes)
     obterHorizontesPainel(lang).then(setHorizontes)
-    carregarPontoPartida().then((r) => setPonto(r.ponto)).catch(() => setPonto(null))
+    carregarPontoPartida().then((r) => { setPonto(r.ponto); setEmpresaId(r.empresaId) }).catch(() => setPonto(null))
   }, [lang])
 
   useEffect(() => { fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) }, [mensagens, pensando])
@@ -238,20 +232,8 @@ Hoje: ${new Date().toISOString().slice(0, 10)}.`
             </div>
           )}
 
-          <div className="mt-3 rounded-xl p-3" style={{ background: temaClaro ? 'rgba(46,204,155,0.10)' : 'rgba(46,204,155,0.07)', border: '1px solid rgba(46,204,155,0.35)' }}>
-            <p className="text-xs font-bold mb-2" style={{ color: TITULO }}>
-              🔮 {L('Pergunte ao José: como a economia pode afetar sua empresa em…', 'Ask José: how can the economy affect your company in…', 'Pregunte a José: ¿cómo puede la economía afectar a su empresa en…')}
-            </p>
-            <div className="grid grid-cols-5 gap-1.5">
-              {ANOS.map((n) => (
-                <button key={n} onClick={() => enviar(perguntaHorizonte(n, lang))} disabled={pensando}
-                  className="px-2 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 transition-colors"
-                  style={temaClaro ? { background: '#ffffff', color: '#101b3d', border: '1px solid rgba(16,27,61,0.15)' } : { background: 'rgba(255,255,255,0.05)', color: TEXTO, border: '1px solid rgba(255,255,255,0.12)' }}>
-                  {n} {n === 1 ? L('ano', 'year', 'año') : L('anos', 'years', 'años')}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Plano do José pra empresa: 1-3, 4-7, 8-10 anos (análise completa, Etapa 8) */}
+          <PlanoJose lang={lang} temaClaro={temaClaro} empresaId={empresaId} aliquotaPct={ponto?.aliquotaEfetivaPct ?? 0} />
 
           <div className="flex items-end gap-2 mt-3">
             <textarea
