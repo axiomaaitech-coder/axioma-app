@@ -174,3 +174,18 @@ export async function obterEventosDestaque(diasJanela = 14, severidadeMin = 70, 
     .limit(limite);
   return error ? [] : ((data ?? []) as LinhaEvento[]).map(paraEvento);
 }
+
+// Leituras do Joseph já geradas (eventos recentes) — contexto do chat do Joseph.
+// Só o essencial de cada análise, pra não inflar o prompt.
+export async function obterLeiturasRecentes(lang: "pt" | "en" | "es", limite = 5): Promise<{ titulo: string; data: string | null; leitura: string | null }[]> {
+  const { data, error } = await supabase
+    .from("nexus_global_event")
+    .select("title, published_at, joseph_analise")
+    .order("published_at", { ascending: false })
+    .limit(limite);
+  if (error) return [];
+  return (data ?? []).map((l) => {
+    const analises = (l.joseph_analise ?? {}) as Record<string, { leitura?: string } | undefined>;
+    return { titulo: l.title as string, data: (l.published_at as string | null)?.slice(0, 10) ?? null, leitura: analises[lang]?.leitura ?? analises.pt?.leitura ?? null };
+  });
+}

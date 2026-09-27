@@ -15,6 +15,7 @@ import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
 import { FuncoesNexus } from './FuncoesNexus'
+import { JosephChat } from './JosephChat'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -403,17 +404,17 @@ export default function NexusPage() {
             <div className="mb-3 px-1">
               <h2 className="flex items-center gap-2 text-base font-bold" style={{ color: TITULO }}>
                 <Globe2 size={17} style={{ color: temaClaro ? '#16a97d' : CIANO }} aria-hidden />
-                Joseph · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}
+                José · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}
               </h2>
               <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.8 }}>
-                {L('A inteligência mundial do seu CFO — mudanças relevantes nos indicadores oficiais, percebidas automaticamente. Clique num evento para ver a leitura do Joseph.', "Your CFO's global intelligence — relevant changes in official indicators, picked up automatically. Click an event to see Joseph's reading.", 'La inteligencia mundial de su CFO — cambios relevantes en los indicadores oficiales, detectados automáticamente. Haga clic en un evento para ver la lectura de Joseph.')}
+                {L('A inteligência mundial do seu CFO — mudanças relevantes nos indicadores oficiais, percebidas automaticamente. Clique num evento para ver a leitura do José.', "Your CFO's global intelligence — relevant changes in official indicators, picked up automatically. Click an event to see José's reading.", 'La inteligencia mundial de su CFO — cambios relevantes en los indicadores oficiales, detectados automáticamente. Haga clic en un evento para ver la lectura de José.')}
               </p>
             </div>
 
             {erroEventos && eventos.length === 0 ? (
               <p className="text-sm" style={{ color: TEXTO }}>{L('Não foi possível carregar os eventos agora. Recarregue a página em instantes.', 'Could not load events right now. Reload the page in a moment.', 'No fue posible cargar los eventos ahora. Recargue la página en unos instantes.')}</p>
             ) : !carregandoEventos && eventos.length === 0 ? (
-              <p className="text-sm" style={{ color: TEXTO }}>{L('Nenhuma mudança relevante nos indicadores oficiais por enquanto. O Joseph verifica todos os dias e avisa aqui quando algo se mover.', 'No relevant changes in official indicators yet. Joseph checks every day and will flag it here when something moves.', 'Ningún cambio relevante en los indicadores oficiales por ahora. Joseph revisa todos los días y avisará aquí cuando algo se mueva.')}</p>
+              <p className="text-sm" style={{ color: TEXTO }}>{L('Nenhuma mudança relevante nos indicadores oficiais por enquanto. O José verifica todos os dias e avisa aqui quando algo se mover.', 'No relevant changes in official indicators yet. José checks every day and will flag it here when something moves.', 'Ningún cambio relevante en los indicadores oficiales por ahora. José revisa todos los días y avisará aquí cuando algo se mueva.')}</p>
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {eventos.map((ev) => {
@@ -460,6 +461,9 @@ export default function NexusPage() {
               </button>
             )}
           </section>
+
+          {/* CHAT DO JOSÉ — logo acima da TV, à vista (pedido do Elias). */}
+          <JosephChat lang={lang} temaClaro={temaClaro} indicadores={indicadores} eventos={eventos} />
 
           {/* TV — player grande de notícia em destaque, com canais */}
           {/* No Claro a moldura da TV vira card creme; a "tela" (player) segue
@@ -650,13 +654,13 @@ export default function NexusPage() {
           )}
 
           {/* O QUE O NEXUS FAZ POR VOCÊ — vitrine das funções que moram atrás de um
-              clique; sem ela ninguém descobre o Joseph, o E se...? e o Radar. */}
+              clique; sem ela ninguém descobre o José, o E se...? e o Radar. */}
           <FuncoesNexus lang={lang} temaClaro={temaClaro} eventoRecente={eventos[0] ?? null} onAbrirEvento={setEventoAberto} />
 
         </div>
       )}
 
-      {/* MODAL DO EVENTO — fato confirmado em cima, leitura do Joseph embaixo
+      {/* MODAL DO EVENTO — fato confirmado em cima, leitura do José embaixo
           (Etapa 4: interpretação, cenários, o que fazer — ./JosephAnalise.tsx). */}
       {/* Modais renderizados na raiz (portal): dentro do ModuloLayout eles ficam presos
           no contexto de camadas da animação de entrada e o menu fixo do topo passa por cima. */}

@@ -1,7 +1,7 @@
 'use client'
 // ═══════════════════════════════════════════════════════════════
 // "O que o Nexus faz por você" — vitrine das funções que moram atrás de um
-// clique (leitura do Joseph, E se...?, Minhas Simulações, Radar Global).
+// clique (leitura do José, E se...?, Minhas Simulações, Radar Global).
 // Sem isso ninguém descobre que elas existem: cada card diz o que a função
 // faz, como usar, e leva direto até ela. Mesmo tamanho/efeito dos cards do
 // Nexus (grade de 4, altura igual por linha).
@@ -73,7 +73,7 @@ export function FuncoesNexus({ lang, temaClaro, eventoRecente, onAbrirEvento }: 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
         <div className={card} style={estiloCard}>
           {BARRA}
-          <TopoCard cores={cores} icone={<Brain size={16} style={{ color: ACENTO }} aria-hidden />} titulo={L('Joseph lê cada evento', 'Joseph reads every event', 'Joseph lee cada evento')} />
+          <TopoCard cores={cores} icone={<Brain size={16} style={{ color: ACENTO }} aria-hidden />} titulo={L('José lê cada evento', 'José reads every event', 'José lee cada evento')} />
           <TextoCard cores={cores} rotuloComo={rotuloComo}
             oque={L('Explica o que mudou, o impacto no Brasil e na sua empresa, os cenários com probabilidade e o que fazer — e mostra por que pensa assim.', 'Explains what changed, the impact on Brazil and on your company, scenarios with probabilities and what to do — and why.', 'Explica qué cambió, el impacto en Brasil y en su empresa, escenarios con probabilidad y qué hacer — y por qué.')}
             como={L('clique em qualquer card do Radar Global acima.', 'click any Global Radar card above.', 'haga clic en cualquier tarjeta del Radar Global arriba.')}

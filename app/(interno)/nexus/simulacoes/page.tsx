@@ -112,7 +112,7 @@ export default function NexusSimulacoesPage() {
       setPonto(r.ponto); setEmpresaId(r.empresaId)
       if (r.erro) setAviso(L('Parte dos dados da empresa não carregou — os números podem estar incompletos.', 'Some company data failed to load — numbers may be incomplete.', 'Parte de los datos no cargó — los números pueden estar incompletos.'))
       if (r.empresaId) await autoArquivarAntigas(r.empresaId)
-      // Vindo do evento do Joseph: /nexus/simulacoes?serie=432&variacao=-0.25&titulo=...
+      // Vindo do evento do José: /nexus/simulacoes?serie=432&variacao=-0.25&titulo=...
       const q = new URLSearchParams(window.location.search)
       const serie = q.get('serie'), variacao = Number(q.get('variacao'))
       if (serie && Number.isFinite(variacao)) {
@@ -143,7 +143,7 @@ export default function NexusSimulacoesPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provedor: 'openai', historico: [],
-          contexto: `Você é Joseph, a inteligência do Axioma Nexus. Explique para um dono de pequena empresa, em no máximo 3 frases curtas e em ${lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'}, o resultado de uma simulação "E se". Use SÓ os números fornecidos, não invente nada, não afirme certeza e termine com uma ação prática.`,
+          contexto: `Você é José, a inteligência do Axioma Nexus. Explique para um dono de pequena empresa, em no máximo 3 frases curtas e em ${lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'}, o resultado de uma simulação "E se". Use SÓ os números fornecidos, não invente nada, não afirme certeza e termine com uma ação prática.`,
           mensagem: `Choque simulado: ${JSON.stringify(variaveis)}. Lucro mensal atual: ${fBRL(r.lucroAtualMensal)}. Cenário base: lucro mensal ${fBRL(base?.lucroLiquidoMensal ?? 0)}, caixa em ${horizonte} meses ${fBRL(base?.saldoCaixaProjetado ?? 0)}. Adverso: lucro ${fBRL(r.cenarios.find((c) => c.nome === 'adverso')?.lucroLiquidoMensal ?? 0)}.`,
         }),
       })
@@ -355,9 +355,9 @@ export default function NexusSimulacoesPage() {
                   </div>
                 )}
                 <div className="rounded-xl p-3" style={aninhada}>
-                  <p className="text-xs font-bold mb-1" style={{ color: CINZA }}>{L('O Joseph explica', 'Joseph explains', 'Joseph explica')}</p>
+                  <p className="text-xs font-bold mb-1" style={{ color: CINZA }}>{L('O José explica', 'José explains', 'José explica')}</p>
                   <p className="text-sm leading-relaxed" style={{ color: TEXTO }}>
-                    {explicando ? L('Joseph lendo os números...', 'Joseph reading the numbers...', 'Joseph leyendo los números...') : resultado.explicacao || explicacaoPorRegra(resultado, lang)}
+                    {explicando ? L('José lendo os números...', 'José reading the numbers...', 'José leyendo los números...') : resultado.explicacao || explicacaoPorRegra(resultado, lang)}
                   </p>
                 </div>
               </section>

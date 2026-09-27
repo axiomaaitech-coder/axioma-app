@@ -1,5 +1,5 @@
 'use client'
-// Seção "Joseph · Radar Global Axioma" dentro do modal do evento (Etapa 4). Busca a
+// Seção "José · Radar Global Axioma" dentro do modal do evento (Etapa 4). Busca a
 // análise em /api/nexus/joseph (guardada por evento/idioma; gera na 1ª vez).
 // Visualmente separada do fato acima: é INTERPRETAÇÃO, nunca fato (Push 03).
 import { useEffect, useState, type CSSProperties } from 'react'
@@ -28,18 +28,18 @@ const DIRECAO: Record<string, { simbolo: string; escuro: string; claro: string }
 }
 
 
-// ─── Microinteração enquanto o Joseph gera a leitura ───
+// ─── Microinteração enquanto o José gera a leitura ───
 // As etapas descrevem o que acontece de verdade (evento oficial → indicadores
 // → reflexos em outras economias → cenários → ações). "Analisando reflexos",
-// nunca "pesquisando em outros países": o Joseph não consulta fonte
+// nunca "pesquisando em outros países": o José não consulta fonte
 // estrangeira, ele interpreta o impacto global a partir dos dados oficiais.
 const ETAPAS: { texto: Nome3; ms: number; paises?: boolean }[] = [
-  { texto: ['Joseph lendo o evento oficial do Banco Central', 'Joseph reading the official Central Bank event', 'Joseph leyendo el evento oficial del Banco Central'], ms: 3000 },
-  { texto: ['Joseph cruzando dados com os indicadores do Brasil', 'Joseph cross-checking with Brazil\u2019s indicators', 'Joseph cruzando datos con los indicadores de Brasil'], ms: 3500 },
-  { texto: ['Joseph reunindo informações', 'Joseph gathering information', 'Joseph reuniendo información'], ms: 3000 },
-  { texto: ['Joseph analisando reflexos em', 'Joseph analyzing ripple effects in', 'Joseph analizando reflejos en'], ms: 7200, paises: true },
-  { texto: ['Joseph montando os cenários', 'Joseph building the scenarios', 'Joseph armando los escenarios'], ms: 6000 },
-  { texto: ['Joseph preparando o que fazer', 'Joseph preparing what to do', 'Joseph preparando qué hacer'], ms: 0 }, // fica até o resultado chegar
+  { texto: ['José lendo o evento oficial do Banco Central', 'José reading the official Central Bank event', 'José leyendo el evento oficial del Banco Central'], ms: 3000 },
+  { texto: ['José cruzando dados com os indicadores do Brasil', 'José cross-checking with Brazil\u2019s indicators', 'José cruzando datos con los indicadores de Brasil'], ms: 3500 },
+  { texto: ['José reunindo informações', 'José gathering information', 'José reuniendo información'], ms: 3000 },
+  { texto: ['José analisando reflexos em', 'José analyzing ripple effects in', 'José analizando reflejos en'], ms: 7200, paises: true },
+  { texto: ['José montando os cenários', 'José building the scenarios', 'José armando los escenarios'], ms: 6000 },
+  { texto: ['José preparando o que fazer', 'José preparing what to do', 'José preparando qué hacer'], ms: 0 }, // fica até o resultado chegar
 ]
 const PAISES: Nome3[] = [
   ['🇺🇸 Estados Unidos', '🇺🇸 United States', '🇺🇸 Estados Unidos'],
@@ -152,7 +152,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
     <section className="mt-5 rounded-2xl p-4" style={{ border: `1px dashed ${ACENTO}80` }} aria-live="polite">
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <Brain size={16} style={{ color: ACENTO }} aria-hidden />
-        <h4 className="text-sm font-black" style={{ color: TIT }}>Joseph · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}</h4>
+        <h4 className="text-sm font-black" style={{ color: TIT }}>José · {L('Radar Global Axioma', 'Axioma Global Radar', 'Radar Global Axioma')}</h4>
         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ color: SEC, border: `1px solid ${SEC}60` }}>
           {L('Interpretação — não é fato', 'Interpretation — not a fact', 'Interpretación — no es un hecho')}
         </span>
@@ -252,7 +252,7 @@ export function JosephAnalise({ eventId, lang, temaClaro }: { eventId: string; l
 
           <details className="rounded-xl p-3" style={caixa}>
             <summary className="cursor-pointer text-xs font-bold" style={{ color: TIT }}>
-              {L('Confiança da leitura', 'Reading confidence', 'Confianza de la lectura')}: {Math.round(analise.confianca)}/100 — {L('por que o Joseph acha isso?', 'why does Joseph think so?', '¿por qué Joseph piensa esto?')}
+              {L('Confiança da leitura', 'Reading confidence', 'Confianza de la lectura')}: {Math.round(analise.confianca)}/100 — {L('por que o José acha isso?', 'why does José think so?', '¿por qué José piensa esto?')}
             </summary>
             <div className="mt-2 space-y-2">
               <ul className="list-disc pl-4 space-y-0.5">{analise.porque_confianca.map((m, i) => <li key={i} className="text-xs" style={{ color: TXT }}>{m}</li>)}</ul>

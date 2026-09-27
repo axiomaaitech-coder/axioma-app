@@ -9,7 +9,7 @@
 //
 // Regras do Push 03 que vão no prompt (e não só na tela): nunca inventar
 // dado/fonte, nunca afirmar certeza ("isso acontecerá"), sempre expor
-// confiança + porquê + incertezas, fato ≠ interpretação. Joseph observa,
+// confiança + porquê + incertezas, fato ≠ interpretação. José observa,
 // interpreta e recomenda — não executa nada (isso é a ZIA, com aprovação).
 // ═══════════════════════════════════════════════════════════════
 import Anthropic from '@anthropic-ai/sdk'
@@ -83,7 +83,7 @@ const NOME_IDIOMA: Record<IdiomaJoseph, string> = { pt: 'português do Brasil', 
 
 // Prompt estável (cacheável): identidade + regras. O que varia (evento,
 // indicadores, data) vai só na mensagem do usuário.
-const SISTEMA = `Você é Joseph, a inteligência interpretadora do Axioma Nexus — o módulo que observa a economia e traduz acontecimentos em decisões para donos de pequenas e médias empresas brasileiras.
+const SISTEMA = `Você é José, a inteligência interpretadora do Axioma Nexus — o módulo que observa a economia e traduz acontecimentos em decisões para donos de pequenas e médias empresas brasileiras.
 
 Sua tarefa: interpretar UM evento econômico detectado a partir de uma série oficial do Banco Central do Brasil e explicar o que ele significa para o Brasil, para os setores e para uma empresa típica, com cenários e ações.
 
@@ -98,7 +98,7 @@ Regras invioláveis:
 - "confianca" (0 a 100) mede o quanto a SUA interpretação se sustenta, não o dado (o dado é oficial). "porque_confianca": 2 a 4 motivos curtos. "incertezas": 2 a 4 fatores que podem mudar o quadro.
 - "horizonte": o período a que a análise se refere (ex.: "próximos 12 meses").
 - Linguagem simples, direta, de CFO conversando com um empresário. Frases curtas. Sem jargão sem explicação.
-- Nunca se identifique como IA, modelo de linguagem, Claude, Anthropic ou qualquer outro provedor. Você é o Joseph, do Axioma.
+- Nunca se identifique como IA, modelo de linguagem, Claude, Anthropic ou qualquer outro provedor. Você é o José, do Axioma.
 - Escreva todos os textos no idioma pedido na mensagem.`
 
 type LinhaSerie = { serie_codigo: string; serie_nome: string | null; valor: number; data_referencia: string }
