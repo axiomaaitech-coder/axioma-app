@@ -29,8 +29,15 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
   const margin = 14;
   const usableW = pageW - margin * 2;
 
+  // Nada é cortado: título, subtítulo, resumo e TODA célula quebram em várias
+  // linhas dentro da largura (splitTextToSize) e a linha da tabela cresce na
+  // altura necessária. Antes o texto longo era truncado com "…" e título/
+  // subtítulo passavam da borda da folha — PDF incompleto pro cliente.
+  const ALTURA_LINHA = 4.2
+  const quebrar = (texto: string, largura: number): string[] => pdf.splitTextToSize(texto, largura) as string[]
+
   // ---- Cabeçalho ----
-  function desenharCabecalho() {
+  function desenharCabecalho(): number {
     pdf.setTextColor(0, 0, 0);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(16);
@@ -41,25 +48,27 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
     pdf.setTextColor(90, 90, 90);
     pdf.text(new Date().toLocaleDateString("pt-BR") + "  " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), pageW - margin, 16, { align: "right" });
 
+    let yc = 24;
     pdf.setTextColor(0, 0, 0);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(13);
-    pdf.text(titulo, margin, 24);
+    for (const l of quebrar(titulo, usableW)) { pdf.text(l, margin, yc); yc += 5.5; }
 
     if (subtitulo) {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
       pdf.setTextColor(110, 110, 110);
-      pdf.text(subtitulo, margin, 29);
+      for (const l of quebrar(subtitulo, usableW)) { pdf.text(l, margin, yc); yc += ALTURA_LINHA; }
     }
 
+    yc += 1.5;
     pdf.setDrawColor(0, 0, 0);
     pdf.setLineWidth(0.3);
-    pdf.line(margin, 32, pageW - margin, 32);
+    pdf.line(margin, yc, pageW - margin, yc);
+    return yc + 8;
   }
 
-  desenharCabecalho();
-  let y = 40;
+  let y = desenharCabecalho();
 
   // ---- Resumo (KPIs) ----
   if (resumo && resumo.length > 0) {
@@ -67,11 +76,13 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
     resumo.forEach((r) => {
       pdf.setTextColor(0, 0, 0);
       pdf.setFont("helvetica", "bold");
-      pdf.text(`${r.label}:`, margin, y);
-      const w = pdf.getTextWidth(`${r.label}:`);
+      const rotulo = `${r.label}:`;
+      const w = pdf.getTextWidth(rotulo + " ");
+      pdf.text(rotulo, margin, y);
       pdf.setFont("helvetica", "normal");
-      pdf.text(` ${r.valor}`, margin + w, y);
-      y += 6;
+      const linhasValor = quebrar(r.valor, usableW - w);
+      linhasValor.forEach((l, k) => pdf.text(l, margin + w, y + k * 5));
+      y += Math.max(1, linhasValor.length) * 5 + 1;
     });
     y += 3;
   }
@@ -88,16 +99,18 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
 
   // ---- Cabeçalho da tabela ----
   function desenharCabecalhoTabela() {
-    pdf.setFillColor(235, 235, 235);
-    pdf.rect(margin, y - 5, usableW, 8, "F");
-    pdf.setTextColor(0, 0, 0);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
+    const cabecalhos = colunas.map((c, i) => quebrar(c.header, larguras[i] - 4));
+    const alt = Math.max(...cabecalhos.map((l) => l.length)) * ALTURA_LINHA + 3;
+    pdf.setFillColor(235, 235, 235);
+    pdf.rect(margin, y - 5, usableW, alt + 1, "F");
+    pdf.setTextColor(0, 0, 0);
     colunas.forEach((c, i) => {
       const tx = c.align === "right" ? xPos[i] + larguras[i] - 2 : xPos[i] + 2;
-      pdf.text(c.header, tx, y, { align: c.align === "right" ? "right" : "left" });
+      cabecalhos[i].forEach((l, k) => pdf.text(l, tx, y + k * ALTURA_LINHA, { align: c.align === "right" ? "right" : "left" }));
     });
-    y += 6;
+    y += alt + 1;
   }
 
   desenharCabecalhoTabela();
@@ -112,8 +125,13 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
   }
 
   linhas.forEach((linha) => {
-    // quebra de página
-    if (y > pageH - 18) {
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    const celulas = colunas.map((c, i) => quebrar(String(linha[c.key] ?? ""), larguras[i] - 4));
+    const altLinha = Math.max(1, ...celulas.map((l) => l.length)) * ALTURA_LINHA + 2;
+
+    // quebra de página considerando a altura real da linha
+    if (y + altLinha > pageH - 16) {
       pdf.addPage();
       y = 20;
       desenharCabecalhoTabela();
@@ -123,14 +141,10 @@ function montarDocumentoPdf({ titulo, subtitulo, colunas, linhas, resumo }: Args
 
     pdf.setTextColor(20, 20, 20);
     colunas.forEach((c, i) => {
-      let texto = String(linha[c.key] ?? "");
-      // trunca textos muito longos para caber na coluna
-      const maxChars = Math.floor(larguras[i] / 1.8);
-      if (texto.length > maxChars && maxChars > 3) texto = texto.slice(0, maxChars - 1) + "…";
       const tx = c.align === "right" ? xPos[i] + larguras[i] - 2 : xPos[i] + 2;
-      pdf.text(texto, tx, y, { align: c.align === "right" ? "right" : "left" });
+      celulas[i].forEach((l, k) => pdf.text(l, tx, y + k * ALTURA_LINHA, { align: c.align === "right" ? "right" : "left" }));
     });
-    y += 6;
+    y += altLinha;
 
     // linha separadora clara
     pdf.setDrawColor(225, 225, 225);

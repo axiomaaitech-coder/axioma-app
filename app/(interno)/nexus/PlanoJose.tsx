@@ -15,7 +15,7 @@ import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import type { HorizontePlano, PlanoJose as TipoPlano, NumerosEmpresa } from '../../../lib/nexusPlanoEmpresa'
 import { listarPlanosSalvos } from '../../../lib/nexusHelpers'
 import { DIAS_GUARDA_PLANO, DIAS_AVISO_ANTES, diasParaApagar } from '../../../lib/nexusRetencao'
-import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { gerarPdfRelatorio } from '../../../lib/gerarPdfRelatorio'
 
 type Lang = 'pt' | 'en' | 'es'
 type Nome3 = [string, string, string]
@@ -39,38 +39,39 @@ const ETAPAS: Nome3[] = [
 type Resultado = { data: string; plano: TipoPlano; numeros: NumerosEmpresa }
 type Salvo = { id: string; horizonte: string; lang: string; data: string; geradoEm: string; conteudo: unknown }
 
-// PDF do plano (formato relatório, mesmo motor dos demais PDFs do Axioma) — o
-// jeito de guardar o plano depois que o banco apagar (prazo em nexusRetencao).
+// PDF do plano = ESPELHO do modal: mesmas seções, mesma ordem, mesmos títulos
+// e todo o texto (nada cortado — lib/gerarPdfRelatorio.ts quebra e vira página).
 function baixarPdfPlano(r: Resultado, rotuloHorizonte: string, lang: Lang) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const p = r.plano, n = r.numeros
-  const linhas: Record<string, string>[] = [
-    { secao: L('Veredito', 'Verdict', 'Veredicto'), conteudo: p.veredito },
-    { secao: L('Situação hoje', 'Situation today', 'Situación hoy'), conteudo: p.situacao_hoje },
-    { secao: L('Cenário do período', 'Period outlook', 'Escenario del período'), conteudo: p.cenario_periodo },
-    { secao: `${L('Sobrevivência', 'Survival', 'Supervivencia')} (${p.sobrevivencia.risco})`, conteudo: p.sobrevivencia.texto },
-    ...p.economizar.map((a) => ({ secao: L('Economizar', 'Save', 'Ahorrar'), conteudo: `${a.titulo} — ${a.detalhe} (impacto: ${a.impacto}; ${a.prioridade})` })),
-    ...p.cortar.map((a) => ({ secao: L('Cortar', 'Cut', 'Recortar'), conteudo: `${a.titulo} — ${a.detalhe} (impacto: ${a.impacto}; ${a.prioridade})` })),
-    ...p.crescer.map((a) => ({ secao: L('Crescer', 'Grow', 'Crecer'), conteudo: `${a.titulo} — ${a.detalhe} (impacto: ${a.impacto}; ${a.prioridade})` })),
-    ...p.metas.map((m) => ({ secao: L('Meta', 'Goal', 'Meta'), conteudo: `${m.indicador}: ${m.hoje} → ${m.meta} (${m.prazo})` })),
-    ...p.gatilhos.map((g) => ({ secao: L('Gatilho', 'Trigger', 'Disparador'), conteudo: `${L('Se', 'If', 'Si')} ${g.se} — ${L('então', 'then', 'entonces')} ${g.entao}` })),
-    ...p.limitacoes.map((l) => ({ secao: L('Limitação', 'Limitation', 'Limitación'), conteudo: l })),
-  ]
-  gerarPdfTabela({
-    titulo: `${L('Plano do José', "José's plan", 'Plan de José')} — ${rotuloHorizonte}`,
-    subtitulo: `${L('Gerado em', 'Generated on', 'Generado el')} ${r.data} · ${L('confiança', 'confidence', 'confianza')} ${Math.round(p.confianca)}/100 · Axioma Nexus`,
-    colunas: [
-      { header: L('Seção', 'Section', 'Sección'), key: 'secao', width: 2 },
-      { header: L('Conteúdo', 'Content', 'Contenido'), key: 'conteudo', width: 7 },
+  const prio = (x: string) => x === 'alta' ? L('prioridade alta', 'high priority', 'prioridad alta') : x === 'media' ? L('prioridade média', 'medium priority', 'prioridad media') : L('prioridade baixa', 'low priority', 'prioridad baja')
+  const risco = p.sobrevivencia.risco === 'alto' ? L('alto', 'high', 'alto') : p.sobrevivencia.risco === 'medio' ? L('médio', 'medium', 'medio') : L('baixo', 'low', 'bajo')
+  const acoes = (itens: TipoPlano['economizar']) => itens.map((a) => ({ titulo: a.titulo, texto: a.detalhe, nota: `${prio(a.prioridade)} · ${L('impacto', 'impact', 'impacto')}: ${a.impacto}` }))
+  const dataFmt = new Date(r.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')
+  gerarPdfRelatorio({
+    titulo: `${L('Plano do José para sua empresa', "José's plan for your company", 'Plan de José para su empresa')} — ${rotuloHorizonte}`,
+    subtitulo: `${L('Gerado em', 'Generated on', 'Generado el')} ${dataFmt} · ${L('confiança', 'confidence', 'confianza')} ${Math.round(p.confianca)}/100 · ${L('não é recomendação de investimento', 'not investment advice', 'no es recomendación de inversión')}`,
+    numeros: [
+      { rotulo: L('Receita por mês', 'Revenue per month', 'Ingresos por mes'), valor: fBRL(n.receitaMensal) },
+      { rotulo: L('Lucro por mês', 'Profit per month', 'Beneficio por mes'), valor: `${fBRL(n.lucroMensal)}${n.margemPct != null ? ` (${n.margemPct.toFixed(1)}%)` : ''}` },
+      { rotulo: L('Caixa disponível', 'Available cash', 'Caja disponible'), valor: fBRL(n.caixa) },
+      { rotulo: L('Fôlego de caixa', 'Cash runway', 'Autonomía de caja'), valor: n.folegoMeses != null ? `${n.folegoMeses} ${L('meses', 'months', 'meses')}` : n.lucroMensal >= 0 ? L('no azul', 'profitable', 'en positivo') : '—' },
     ],
-    linhas,
-    resumo: [
-      { label: L('Receita/mês', 'Revenue/mo', 'Ingresos/mes'), valor: fBRL(n.receitaMensal) },
-      { label: L('Lucro/mês', 'Profit/mo', 'Beneficio/mes'), valor: fBRL(n.lucroMensal) },
-      { label: L('Caixa', 'Cash', 'Caja'), valor: fBRL(n.caixa) },
+    secoes: [
+      { titulo: L('Veredito', 'Verdict', 'Veredicto'), paragrafo: p.veredito, destaque: true },
+      { titulo: L('Onde a empresa está hoje', 'Where the company stands today', 'Dónde está la empresa hoy'), paragrafo: p.situacao_hoje },
+      { titulo: L('O que a economia sinaliza no período', 'What the economy signals for the period', 'Lo que la economía señala en el período'), paragrafo: p.cenario_periodo },
+      { titulo: `${L('Sobrevivência', 'Survival', 'Supervivencia')} — ${L('risco', 'risk', 'riesgo')} ${risco}`, paragrafo: p.sobrevivencia.texto },
+      { titulo: L('Onde economizar', 'Where to save', 'Dónde ahorrar'), itens: acoes(p.economizar) },
+      { titulo: L('O que cortar', 'What to cut', 'Qué recortar'), itens: acoes(p.cortar) },
+      { titulo: L('Como crescer', 'How to grow', 'Cómo crecer'), itens: acoes(p.crescer) },
+      { titulo: L('Metas de indicadores', 'Indicator goals', 'Metas de indicadores'), itens: p.metas.map((m) => ({ titulo: m.indicador, texto: `${m.hoje} → ${m.meta} (${m.prazo})` })) },
+      { titulo: L('Gatilhos para vigiar', 'Triggers to watch', 'Disparadores a vigilar'), itens: p.gatilhos.map((g) => ({ texto: `${L('Se', 'If', 'Si')} ${g.se} — ${L('então', 'then', 'entonces')} ${g.entao}` })) },
+      { titulo: L('O que ainda falta para o José enxergar melhor', 'What José still needs to see better', 'Lo que aún le falta a José para ver mejor'), itens: p.limitacoes.map((l) => ({ texto: l })) },
     ],
-    nomeArquivo: `plano-jose-${r.data}.pdf`,
-  }, undefined, lang)
+    rodape: L('Axioma Nexus — Plano do José. Documento para guardar: no Axioma, planos ficam salvos por 90 dias.', 'Axioma Nexus — José plan. Keep this document: Axioma stores plans for 90 days.', 'Axioma Nexus — Plan de José. Guarde este documento: Axioma conserva los planes por 90 días.'),
+    nomeArquivo: `plano-jose-${rotuloHorizonte.replace(/\s+/g, '-')}-${r.data}.pdf`,
+  })
 }
 
 export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: Lang; temaClaro: boolean; empresaId: string | null; aliquotaPct: number }) {
