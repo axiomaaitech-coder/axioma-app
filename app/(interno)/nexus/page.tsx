@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Globe2 } from 'lucide-react'
+import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert, Globe2, FlaskConical } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactECharts from 'echarts-for-react'
 import ModuloLayout from '../../../components/ModuloLayout'
@@ -11,34 +11,18 @@ import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/C
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterIndicadoresNexus, obterEventosNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
 import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
+import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
+import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import { ThemeToggle } from '../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-// dark = valores de sempre (fundação, intocada). xms = tema Claro, valores de
-// public/referencias/tema-tokens.md: verde-menta no lugar de ciano/roxo (roxo
-// não é da paleta), texto azul-marinho, secundário #374151 sobre o creme,
-// card creme #f6f7c4 (aprovado no rollout MEI).
-const PALETA = {
-  dark: {
-    AZULC: '#6ab0ff', CIANO: '#22d3ee', ROXOTV: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
-    PAINEL_BG: 'rgba(10,20,36,0.7)', MODAL_BG: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)',
-    NESTED_BG: 'rgba(255,255,255,0.04)', NESTED_BORDA: 'transparent',
-  },
-  xms: {
-    AZULC: '#2ecc9b', CIANO: '#2ecc9b', ROXOTV: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
-    PAINEL_BG: '#f6f7c4', MODAL_BG: '#f6f7c4',
-    NESTED_BG: 'rgba(255,255,255,0.5)', NESTED_BORDA: 'rgba(16,27,61,0.12)',
-  },
-} as const
-
-// Botão de utilidade no Claro = mesmo degradê sólido do Exportar PDF (regra fixa).
-const VERDE_SOLIDO = { background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', border: 'none', color: '#fff' }
 
 // Formato único de exibição — pra tela não precisar saber se a notícia veio
 // do RSS real (já em português, string plana) ou do demo (Texto3 pt/en/es)
@@ -349,6 +333,10 @@ export default function NexusPage() {
       botaoExtra={
         <>
           <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={CIANO} corTexto={CIANO} solido={temaClaro} />
+          <Link href="/nexus/simulacoes" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold"
+            style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}26`, border: `1px solid ${CIANO}66`, color: CIANO }}>
+            <FlaskConical size={16} aria-hidden />{L('Minhas Simulações', 'My Simulations', 'Mis Simulaciones')}
+          </Link>
           <ThemeToggle />
         </>
       }
@@ -700,6 +688,15 @@ export default function NexusPage() {
                     <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>
                   )}
                 </div>
+                {ev.payload && variaveisDoEvento(ev.payload.serie, ev.payload.variacao) && (
+                  <Link
+                    href={`/nexus/simulacoes?serie=${encodeURIComponent(ev.payload.serie)}&variacao=${ev.payload.variacao}&titulo=${encodeURIComponent(texto.titulo)}`}
+                    className="mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold"
+                    style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}18`, border: `1px solid ${CIANO}50`, color: CIANO }}
+                  >
+                    <FlaskConical size={15} aria-hidden />{L('Simular este evento na minha empresa', 'Simulate this event on my company', 'Simular este evento en mi empresa')}
+                  </Link>
+                )}
                 <JosephAnalise eventId={ev.id} lang={lang} temaClaro={temaClaro} />
               </motion.div>
             </motion.div>
