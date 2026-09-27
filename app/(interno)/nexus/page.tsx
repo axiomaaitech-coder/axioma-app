@@ -10,6 +10,7 @@ import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/C
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterIndicadoresNexus, obterEventosNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
 import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
+import { JosephAnalise } from './JosephAnalise'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -638,8 +639,8 @@ export default function NexusPage() {
         </div>
       )}
 
-      {/* MODAL DO EVENTO — base do modal executivo do Joseph (Etapa 4 soma a
-          leitura interpretada, cenários e "o que fazer" aqui dentro). */}
+      {/* MODAL DO EVENTO — fato confirmado em cima, leitura do Joseph embaixo
+          (Etapa 4: interpretação, cenários, o que fazer — ./JosephAnalise.tsx). */}
       <AnimatePresence>
         {eventoAberto && (() => {
           const ev = eventoAberto
@@ -658,7 +659,7 @@ export default function NexusPage() {
                 role="dialog" aria-modal="true" aria-labelledby="nexus-evento-titulo"
                 initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
                 transition={{ duration: 0.22 }}
-                className="w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
+                className="w-full max-w-2xl rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
                 style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${nat.cor}50`}`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -679,12 +680,13 @@ export default function NexusPage() {
                     {trava.texto}
                   </p>
                   {ev.confidence != null && (
-                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiança', 'Confidence', 'Confianza')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial do Banco Central, uma fonte.', 'official Central Bank series, single source.', 'serie oficial del Banco Central, una fuente.')}`}</p>
+                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiabilidade do dado', 'Data reliability', 'Fiabilidad del dato')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial do Banco Central, uma fonte.', 'official Central Bank series, single source.', 'serie oficial del Banco Central, una fuente.')}`}</p>
                   )}
                   {ev.publicadoEm && (
                     <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>
                   )}
                 </div>
+                <JosephAnalise eventId={ev.id} lang={lang} temaClaro={temaClaro} />
               </motion.div>
             </motion.div>
           )
