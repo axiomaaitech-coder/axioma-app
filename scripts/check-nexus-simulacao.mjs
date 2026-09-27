@@ -32,4 +32,5 @@ assert.deepEqual(variaveisDoEvento('1', 3.1), { dolarPct: 3.1 })
 assert.equal(variaveisDoEvento('21621', 3.1), null)
 assert.equal(variaveisDoEvento('24369', 0.3), null)
 
+assert.deepEqual(variaveisDoEvento('IPEA:BRENT', -10.1), { petroleoPct: -10.1 })
 console.log('OK — E se...? do Nexus')

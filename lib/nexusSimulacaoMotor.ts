@@ -66,6 +66,7 @@ export function variaveisDoEvento(serie: string, variacao: number): Partial<Vari
   if (serie === '432') return { selicPontos: arred(variacao) }
   if (serie === '1') return { dolarPct: arred(variacao) } // euro/libra/iene ≠ dólar: sem tradução direta
   if (serie === '433') return { ipcaPontos: arred(variacao) }
+  if (serie === 'IPEA:BRENT') return { petroleoPct: arred(variacao) }
   if (serie === '24363') return { receitaPct: arred(variacao) }
   return null
 }

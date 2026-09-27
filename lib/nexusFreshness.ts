@@ -16,6 +16,13 @@ export function calcularFreshness(dataReferenciaISO: string, frequencia: string 
     if (dias <= 30) return "stale"
     return "expired"
   }
+  // anual (Banco Mundial): o dado de um ano sai só no meio do ano seguinte —
+  // referência de até ~2 anos atrás ainda é o mais recente disponível.
+  if (frequencia === "anual") {
+    if (dias <= 730) return "live"
+    if (dias <= 1095) return "recent"
+    return "stale"
+  }
   // mensal_defasada: mesma régua da mensal, deslocada pelo atraso normal de
   // publicação (~60 dias) — o dado mais novo que existe nunca aparece como
   // "desatualizado".

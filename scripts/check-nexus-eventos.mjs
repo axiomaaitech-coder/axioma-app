@@ -60,3 +60,12 @@ assert.equal(calcularFreshness('2026-07-01', 'mensal_defasada', hoje), 'live') /
 assert.equal(calcularFreshness('2026-07-01', 'mensal', hoje), 'stale')
 assert.equal(calcularFreshness('lixo', 'diaria', hoje), 'unknown')
 console.log('OK — régua de atualidade')
+
+// Petróleo: ±8% em 5 pregões vira sinal de energia; oscilação menor não
+const brentForte = detectarEventosSerie('IPEA:BRENT', dias([127.8, 124, 121, 119.7, 116, 114.9]))
+assert.equal(brentForte.length, 1)
+assert.equal(brentForte[0].category, 'energy')
+assert.equal(brentForte[0].payload.direcao, 'queda')
+assert.match(textoEvento(brentForte[0].payload, 'pt').titulo, /Petróleo despenca/)
+assert.equal(detectarEventosSerie('IPEA:BRENT', dias([100, 101, 102, 101, 103, 104])).length, 0)
+console.log('OK — alerta de petróleo')

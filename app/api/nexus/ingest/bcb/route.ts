@@ -8,6 +8,7 @@ import { calcularFreshness } from '@/lib/nexusFreshness'
 import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
+import { ingerirBrent, ingerirBancoMundial, SERIE_BRENT } from '@/lib/nexusFontesMundo'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -293,6 +294,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Fontes mundiais gratuitas (antes do detector, pra ele já ver o petróleo do dia).
+  const mundo: Record<string, string> = {}
+  try { mundo.brent = await ingerirBrent(supabase) } catch (err) { mundo.brent = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  try { mundo.bancoMundial = await ingerirBancoMundial(supabase) } catch (err) { mundo.bancoMundial = `erro: ${err instanceof Error ? err.message : String(err)}` }
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
   const joseph = await preGerarAnalisesJoseph(supabase)
   // Etapa 7 — painel executivo do José de hoje (PT), depois das análises.
@@ -303,7 +308,7 @@ export async function GET(request: NextRequest) {
   // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
   const limpeza = await limparDadosVencidos(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, eventos, joseph, painel, noticias, limpeza })
+  return NextResponse.json({ sucesso, falha, detalhes, mundo, eventos, joseph, painel, noticias, limpeza })
 }
 
 // Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)
@@ -366,6 +371,24 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
         .map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) }))
       detectados.push(...detectarEventosSerie(serie.serie_codigo, historico))
     }
+
+    // Petróleo Brent (IPEA) — outra fonte, mesmo detector; evento e evidência apontam pro IPEA.
+    const { data: brent } = await supabase
+      .from('nexus_economic_series')
+      .select('data_referencia, valor, source_id')
+      .eq('serie_codigo', SERIE_BRENT)
+      .order('data_referencia', { ascending: false })
+      .limit(PONTOS_DETECCAO)
+    const fonteBrent = (brent?.[0]?.source_id as string | undefined) ?? null
+    if (fonteBrent) {
+      const hist = (brent ?? []).filter((l) => l.valor != null).map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) }))
+      detectados.push(...detectarEventosSerie(SERIE_BRENT, hist))
+    }
+    const fonteDoEvento = (e: EventoDetectado) => (e.subcategory === SERIE_BRENT && fonteBrent ? fonteBrent : sourceId)
+    const urlEvidencia = (e: EventoDetectado) => e.subcategory === SERIE_BRENT
+      ? "http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='EIA366_PBRENT366')"
+      : `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${e.subcategory}/dados?formato=json`
+
     if (detectados.length === 0) return { detectados: 0, novos: 0 }
 
     const refs = detectados.map((e) => e.source_event_ref)
@@ -386,7 +409,7 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
         category: e.category,
         subcategory: e.subcategory,
         country: 'BR',
-        source_id: sourceId,
+        source_id: fonteDoEvento(e),
         source_event_ref: e.source_event_ref,
         natureza: e.natureza,
         published_at: `${e.data_ref}T00:00:00Z`,
@@ -414,9 +437,9 @@ async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string
         const e = porRef.get(g.source_event_ref)!
         return {
           event_id: g.event_id,
-          source_id: sourceId,
+          source_id: fonteDoEvento(e),
           evidence_type: 'official_series',
-          referencia: `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${e.subcategory}/dados?formato=json`,
+          referencia: urlEvidencia(e),
           excerpt: `${e.payload.data_ref_anterior}: ${e.payload.valor_anterior} → ${e.payload.data_ref}: ${e.payload.valor_atual}`,
           published_at: `${e.data_ref}T00:00:00Z`,
           retrieved_at: agora,

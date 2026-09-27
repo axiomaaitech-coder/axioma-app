@@ -16,7 +16,7 @@
 
 export type PontoSerieEvento = { data: string; valor: number } // data ISO yyyy-mm-dd
 
-export type RegraEvento = "fx_5d" | "selic_mudanca" | "ipca_forte" | "ipca_deflacao" | "desemprego_variacao" | "atividade_variacao"
+export type RegraEvento = "fx_5d" | "petroleo_5d" | "selic_mudanca" | "ipca_forte" | "ipca_deflacao" | "desemprego_variacao" | "atividade_variacao"
 
 export type PayloadEvento = {
   serie: string
@@ -32,7 +32,7 @@ export type PayloadEvento = {
 export type EventoDetectado = {
   source_event_ref: string
   natureza: "fact" | "signal" | "official_decision"
-  category: "financial" | "economic"
+  category: "financial" | "economic" | "energy"
   event_type: RegraEvento
   subcategory: string // código da série
   severity: number // 0-100
@@ -49,9 +49,11 @@ export const LIMIARES = {
   ipcaForte: 0.5, // % no mês
   desempregoPp: 0.3, // pontos percentuais
   atividadePct: 1, // %
+  petroleoVariacao5d: 8, // % — petróleo é bem mais volátil que câmbio
 }
 
 const SERIES_CAMBIO = ["1", "21619", "21623", "21621"]
+const BRENT = "IPEA:BRENT"
 const SELIC = "432"
 const IPCA = "433"
 const DESEMPREGO = "24369"
@@ -116,6 +118,22 @@ export function detectarEventosSerie(serie: string, historico: PontoSerieEvento[
     out.push(...porChave.values())
   }
 
+  if (serie === BRENT) {
+    const porChave = new Map<string, EventoDetectado>()
+    for (let i = LIMIARES.fxJanela; i < h.length; i++) {
+      const base = h[i - LIMIARES.fxJanela]
+      if (!base.valor) continue
+      const pct = ((h[i].valor - base.valor) / base.valor) * 100
+      if (Math.abs(pct) < LIMIARES.petroleoVariacao5d) continue
+      const ref = `ipea:brent:petroleo_5d:${semanaIso(h[i].data)}:${pct >= 0 ? "alta" : "queda"}`
+      const atual = porChave.get(ref)
+      if (!atual || Math.abs(pct) > Math.abs(atual.payload.variacao)) {
+        porChave.set(ref, evento(serie, "petroleo_5d", "signal", "energy", Math.abs(pct) * 7, h[i], base, pct, ref))
+      }
+    }
+    out.push(...porChave.values())
+  }
+
   for (let i = 1; i < h.length; i++) {
     const atual = h[i], anterior = h[i - 1]
     const dif = atual.valor - anterior.valor
@@ -163,6 +181,7 @@ const NOME_SERIE: Record<string, Record<Lang, string>> = {
   "433": { pt: "IPCA", en: "IPCA inflation", es: "Inflación IPCA" },
   "24369": { pt: "Desemprego", en: "Unemployment", es: "Desempleo" },
   "24363": { pt: "Atividade econômica (IBC-Br)", en: "Economic activity (IBC-Br)", es: "Actividad económica (IBC-Br)" },
+  "IPEA:BRENT": { pt: "Petróleo Brent", en: "Brent crude", es: "Petróleo Brent" },
 }
 
 const num = (n: number, casas: number, lang: Lang) =>
@@ -188,6 +207,17 @@ export function textoEvento(p: PayloadEvento, lang: Lang): { titulo: string; des
         ),
       }
     }
+    case "petroleo_5d":
+      return {
+        titulo: sobe
+          ? T(`Petróleo dispara ${num(abs, 1, lang)}% em 5 dias`, `Oil jumps ${num(abs, 1, lang)}% in 5 days`, `El petróleo sube ${num(abs, 1, lang)}% en 5 días`)
+          : T(`Petróleo despenca ${num(abs, 1, lang)}% em 5 dias`, `Oil drops ${num(abs, 1, lang)}% in 5 days`, `El petróleo cae ${num(abs, 1, lang)}% en 5 días`),
+        descricao: T(
+          `Barril Brent foi de US$ ${num(p.valor_anterior, 2, lang)} para US$ ${num(p.valor_atual, 2, lang)} em 5 pregões (fonte: IPEA/EIA). Mexe com combustível, frete e insumos.`,
+          `Brent went from US$ ${num(p.valor_anterior, 2, lang)} to US$ ${num(p.valor_atual, 2, lang)} over 5 sessions (source: IPEA/EIA). Affects fuel, freight and inputs.`,
+          `El Brent pasó de US$ ${num(p.valor_anterior, 2, lang)} a US$ ${num(p.valor_atual, 2, lang)} en 5 sesiones (fuente: IPEA/EIA). Afecta combustible, flete e insumos.`,
+        ),
+      }
     case "selic_mudanca":
       return {
         titulo: sobe
