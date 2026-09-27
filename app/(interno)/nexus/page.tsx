@@ -19,6 +19,7 @@ import { JosephChat } from './JosephChat'
 import { PainelExecutivo } from './PainelExecutivo'
 import { DivisorNexus } from './DivisorNexus'
 import { EconomiaMundial } from './EconomiaMundial'
+import { SaudeFontes } from './SaudeFontes'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -677,6 +678,9 @@ export default function NexusPage() {
           {/* O QUE O NEXUS FAZ POR VOCÊ — vitrine das funções que moram atrás de um
               clique; sem ela ninguém descobre o José, o E se...? e o Radar. */}
           <FuncoesNexus lang={lang} temaClaro={temaClaro} eventoRecente={eventos[0] ?? null} onAbrirEvento={setEventoAberto} />
+
+          {/* SAÚDE DAS FONTES — se a coleta diária de cada fonte oficial deu certo. */}
+          <SaudeFontes lang={lang} temaClaro={temaClaro} />
 
         </div>
       )}

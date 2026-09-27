@@ -1303,6 +1303,10 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Fontes mundiais (grátis, sem cadastro):** Brent diário (IPEA) e PIB/inflação de 8 parceiros (Banco Mundial) no cron; faixa "Economia mundial" (Brent, China, EUA, Zona do Euro); alerta automático de petróleo (±8% em 5 pregões); José usa esses dados no chat/painel/plano. GDELT (conflitos/acordos) ainda não conectou — pendente.
 **Próximo:** memória de previsões (previsto × realizado) e painel técnico de saúde das fontes.
 
+## 3-BM. Nexus — Saúde das fontes (2026-09-27)
+Faixa "Saúde das fontes" no fim do /nexus (SaudeFontes.tsx): card sempre visível explicando a função + "Ver fontes" abre lista com cada fonte (Funcionando / Falhou na última tentativa / Sem atualizar há mais de 1 dia / Ainda não coletou / Desligada), último sucesso e última falha. Lê nexus_source (last_success/last_failure já existiam — sem SQL novo). Régua pura calcularSaudeFonte em lib/nexusFreshness.ts (36h de tolerância pro cron diário), self-check `node scripts/check-nexus-saude-fontes.mjs`. Notícias passaram a gravar last_success/last_failure por fonte (antes só BCB/IPEA/Banco Mundial gravavam). Elias confirmou que a faixa Economia mundial aparece após refresh.
+**Próximo:** memória de previsões (previsto × realizado) — vai precisar de SQL.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

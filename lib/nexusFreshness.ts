@@ -33,3 +33,16 @@ export function calcularFreshness(dataReferenciaISO: string, frequencia: string 
   if (dias <= 90) return "stale"
   return "expired"
 }
+
+// Saúde de uma fonte (painel "Saúde das fontes"): o cron roda 1x/dia, então
+// até 36h sem sucesso ainda é normal. Falha mais nova que o último sucesso =
+// a última tentativa quebrou (amanhã o cron tenta de novo sozinho).
+export type SaudeFonte = "ok" | "falhou" | "parada" | "nunca" | "desligada"
+
+export function calcularSaudeFonte(ativa: boolean, ultimoSucesso: string | null, ultimaFalha: string | null, agora = new Date()): SaudeFonte {
+  if (!ativa) return "desligada"
+  if (!ultimoSucesso) return ultimaFalha ? "falhou" : "nunca"
+  const ok = new Date(ultimoSucesso).getTime()
+  if (ultimaFalha && new Date(ultimaFalha).getTime() > ok) return "falhou"
+  return agora.getTime() - ok <= 36 * 3600000 ? "ok" : "parada"
+}

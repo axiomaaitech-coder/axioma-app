@@ -12,7 +12,7 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-import { calcularFreshness, type FreshnessStatus } from "./nexusFreshness";
+import { calcularFreshness, calcularSaudeFonte, type FreshnessStatus, type SaudeFonte } from "./nexusFreshness";
 export type { FreshnessStatus };
 
 export type PontoSerie = { data: string; valor: number };
@@ -254,4 +254,17 @@ export async function obterEconomiaMundial(): Promise<EconomiaMundial> {
     return { iso, pib: pib?.valor ?? null, inflacao: inf?.valor ?? null, ano: pib?.ano ?? inf?.ano ?? null };
   });
   return { brent, paises };
+}
+
+// ─── Saúde das fontes (nexus_source, pública, só leitura) ───
+export type FonteSaude = { nome: string; tipo: string; ultimoSucesso: string | null; ultimaFalha: string | null; saude: SaudeFonte };
+
+export async function obterSaudeFontes(): Promise<FonteSaude[]> {
+  const { data, error } = await supabase.from("nexus_source").select("source_name, source_type, active, last_success, last_failure").order("source_name");
+  if (error) throw error;
+  return (data ?? []).map((f) => ({
+    nome: f.source_name as string, tipo: f.source_type as string,
+    ultimoSucesso: f.last_success as string | null, ultimaFalha: f.last_failure as string | null,
+    saude: calcularSaudeFonte(f.active as boolean, f.last_success as string | null, f.last_failure as string | null),
+  }));
 }

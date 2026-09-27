@@ -181,6 +181,9 @@ async function garantirFonte(supabase: SupabaseClient, nomeFonte: string): Promi
         auth_type: 'none',
         update_frequency: 'hourly',
         active: true,
+        // só chega aqui fonte que devolveu manchete neste lote — alimenta o
+        // painel "Saúde das fontes" do Nexus.
+        last_success: new Date().toISOString(),
       },
       { onConflict: 'source_name' },
     )
@@ -213,6 +216,8 @@ export async function buscarEGravarFeeds(supabase: SupabaseClient, canal: string
       for (const it of itens) brutos.push({ ...it, fonte: feed.fonte })
     } catch (err) {
       // Isolado por feed — um feed fora do ar não derruba o canal inteiro.
+      // Melhor-esforço: marca a falha pro painel "Saúde das fontes".
+      await supabase.from('nexus_source').update({ last_failure: new Date().toISOString() }).eq('source_name', feed.fonte).then(() => {}, () => {})
       console.error(`[nexusNewsIngest] Falha lendo feed ${feed.fonte} (${feed.url}) pro canal ${canal}:`, err instanceof Error ? err.message : err)
     }
   }
