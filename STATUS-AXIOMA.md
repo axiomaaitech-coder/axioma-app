@@ -1313,6 +1313,10 @@ Saúde das fontes: cada fonte abre o site oficial (testado e aprovado pelo Elias
 **Pendente: Elias rodar `NEXUS-ETAPA9-PREVISOES-SQL.txt`.** Sem ele o painel segue normal e o placar mostra aviso.
 **Próximo:** GDELT (conflitos/acordos) testado do servidor; investigar lentidão do banco (2-4s por consulta).
 
+## 3-BO. Nexus — GDELT ligado + Banco Mundial chegando ao José (2026-09-27)
+Troca de idioma sem tremida (painel do José e TV mantêm conteúdo até o novo chegar) e hover de card interno isolado (globals.css) — conferidos no Chrome logado. **GDELT** no cron (lib/nexusFontesMundo.ts ingerirGdelt): 2 consultas (Brasil × tarifas/sanções/acordos; mundo × tarifas/sanções/guerras/petróleo/rotas), 6s entre elas (limite 1/5s), manchetes em inglês no canal `geopolitica` — não vão pra TV, só pro José (painel, plano e chat, em consulta separada pra não tomar as vagas das brasileiras). **Bug antigo corrigido:** painel/plano do José não recebiam o Banco Mundial (janela de 140 dias cortava o dado anual) — agora recebem. Do computador local o GDELT deu 429/timeout; conferir amanhã em Saúde das fontes se o servidor conectou.
+**Próximo:** lentidão do banco (2-4s por consulta).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

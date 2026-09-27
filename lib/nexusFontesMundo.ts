@@ -106,3 +106,54 @@ export async function ingerirBancoMundial(supabase: SupabaseClient): Promise<str
   await marcar(supabase, sourceId, erros.length === 0)
   return erros.length ? `${total} pontos; erros: ${erros.join(' | ')}` : `${total} pontos`
 }
+
+// ─── GDELT (conflitos, sanções, tarifas, acordos comerciais) ───
+// DOC API gratuita, sem cadastro. Limite: 1 consulta a cada 5s — por isso só
+// 2 consultas, com 6s entre elas. Manchetes em inglês, canal 'geopolitica':
+// NÃO vão pra TV (os canais da TV são outros); servem de contexto pro José,
+// que escreve a leitura dele no idioma de quem lê.
+export const CANAL_GEOPOLITICA = 'geopolitica'
+const CONSULTAS_GDELT = [
+  '(brazil OR brazilian) (tariff OR sanctions OR "trade agreement" OR "trade deal" OR embargo OR "trade war")',
+  '(tariff OR sanctions OR embargo OR "trade war" OR "oil supply" OR "shipping route" OR ceasefire OR invasion)',
+]
+const urlGdelt = (q: string) => `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(`${q} sourcelang:english`)}&mode=artlist&maxrecords=12&format=json&timespan=2d&sort=hybridrel`
+
+// "20260927T120000Z" → ISO
+const dataGdelt = (s: string) => s.length >= 15 ? `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}Z` : null
+
+export async function ingerirGdelt(supabase: SupabaseClient): Promise<string> {
+  const sourceId = await garantirFonte(supabase, {
+    nome: 'GDELT', tipo: 'news_source', provedor: 'The GDELT Project',
+    endpoint: 'https://api.gdeltproject.org/api/v2/doc/doc', frequencia: 'daily', licenca: 'uso livre com citação (GDELT)',
+  })
+  const vistos = new Map<string, Record<string, unknown>>()
+  const erros: string[] = []
+  for (const [i, q] of CONSULTAS_GDELT.entries()) {
+    if (i > 0) await new Promise((r) => setTimeout(r, 6000))
+    try {
+      const res = await fetch(urlGdelt(q), { cache: 'no-store', signal: AbortSignal.timeout(20000) })
+      const texto = await res.text()
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      // Estourou o limite ou não achou nada: GDELT devolve texto/objeto vazio, não erro HTTP.
+      const json = texto.trim().startsWith('{') ? JSON.parse(texto) as { articles?: { url: string; title: string; seendate: string; socialimage?: string }[] } : null
+      if (!json) throw new Error(`resposta não-JSON: ${texto.slice(0, 80)}`)
+      for (const a of json.articles ?? []) {
+        if (!a.url || !a.title || vistos.has(a.url)) continue
+        vistos.set(a.url, {
+          source_id: sourceId, title: a.title, original_title: a.title, original_language: 'en',
+          publication_date: dataGdelt(a.seendate), canonical_url: a.url, imagem_url: a.socialimage || null, canal: CANAL_GEOPOLITICA,
+        })
+      }
+    } catch (err) {
+      erros.push(err instanceof Error ? err.message : String(err))
+    }
+  }
+  const linhas = [...vistos.values()]
+  if (linhas.length) {
+    const { error } = await supabase.from('nexus_news').upsert(linhas, { onConflict: 'canonical_url' })
+    if (error) erros.push(error.message)
+  }
+  await marcar(supabase, sourceId, linhas.length > 0 && erros.length < CONSULTAS_GDELT.length)
+  return erros.length ? `${linhas.length} manchetes; erros: ${erros.join(' | ')}` : `${linhas.length} manchetes`
+}

@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
+import { CANAL_GEOPOLITICA } from './nexusFontesMundo'
 import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, type PrevisaoIA } from './nexusPrevisoes'
 
 type Bloco = { titulo: string; texto: string }
@@ -82,7 +83,7 @@ const SISTEMA = `Você é José, a inteligência do Radar Global do Axioma Nexus
 
 Regras invioláveis:
 - Use SOMENTE os dados fornecidos na mensagem. Nunca invente número, data, lei, declaração de autoridade ou notícia. Manchetes são "relatado por fonte jornalística" — nunca trate como fato oficial confirmado.
-- Não há dado oficial de outros países na base: em "mundo", diga o que as manchetes coletadas mostram e deixe claro quando o quadro global é limitado.
+- Dado oficial de outros países na base: petróleo Brent (diário) e PIB/inflação anuais dos parceiros (Banco Mundial). Manchetes brasileiras e internacionais (GDELT) são fonte jornalística. Em "mundo", cruze os dois, deixe claro o que é oficial e o que é relatado, e diga quando o quadro global é limitado.
 - Nunca afirme certeza sobre o futuro. 12 meses: cenário mais provável com base nos dados. 3 anos: tendências prováveis. 5 e 10 anos: só transformações estruturais plausíveis, com confiança baixa (abaixo de 40) e escrito como hipótese.
 - "confianca" de cada horizonte (0-100) cai quanto mais longe o horizonte.
 - "alertas" = o que pede atenção agora (1 a 3). "riscos" e "oportunidades" = 2 a 3 cada. Se não houver algo relevante, diga isso num item honesto em vez de inventar.
@@ -98,10 +99,14 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
   const desde30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
   const desde3 = new Date(Date.now() - 3 * 86400000).toISOString()
 
-  const [{ data: series }, { data: eventos }, { data: noticias }] = await Promise.all([
+  const [{ data: series }, { data: eventos }, { data: noticias }, { data: bm }, { data: geo }] = await Promise.all([
     supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia').gte('data_referencia', new Date(Date.now() - 140 * 86400000).toISOString().slice(0, 10)).order('data_referencia', { ascending: true }).limit(2000),
     supabase.from('nexus_global_event').select('title, description, natureza, published_at, joseph_analise').gte('published_at', desde30).order('published_at', { ascending: false }).limit(15),
-    supabase.from('nexus_news').select('title, publication_date, canal, nexus_source(source_name)').gte('publication_date', desde3).order('publication_date', { ascending: false }).limit(14),
+    supabase.from('nexus_news').select('title, publication_date, canal, nexus_source(source_name)').gte('publication_date', desde3).or(`canal.is.null,canal.neq.${CANAL_GEOPOLITICA}`).order('publication_date', { ascending: false }).limit(14),
+    // GDELT separado: senão as manchetes de geopolítica (muitas) tomam o lugar das brasileiras.
+    // Banco Mundial é anual (referência 31/12) — fica fora da janela de 140 dias acima.
+    supabase.from('nexus_economic_series').select('serie_codigo, serie_nome, valor, data_referencia').like('serie_codigo', 'WB:%').order('data_referencia', { ascending: false }).limit(200),
+    supabase.from('nexus_news').select('title, publication_date').eq('canal', CANAL_GEOPOLITICA).gte('publication_date', desde3).order('publication_date', { ascending: false }).limit(10),
   ])
 
   // Indicador: valor mais recente e o de ~30 dias antes (mesma série).
@@ -123,7 +128,15 @@ export async function montarContextoMundo(supabase: SupabaseClient): Promise<str
   const news = ((noticias ?? []) as unknown as { title: string; publication_date: string; canal: string | null; nexus_source: { source_name: string } | null }[])
     .map((n) => `- ${n.publication_date?.slice(0, 10)} (${n.canal ?? 'geral'}, ${n.nexus_source?.source_name ?? 'fonte jornalística'}): ${n.title}`).join('\n')
 
-  return `INDICADORES OFICIAIS (Banco Central / IBGE):\n${indicadores || '- indisponíveis'}\n\nEVENTOS DETECTADOS (últimos 30 dias):\n${evs || '- nenhum'}\n\nMANCHETES COLETADAS (últimos 3 dias — fonte jornalística, não confirmado oficialmente):\n${news || '- nenhuma'}`
+  // Mais recente de cada série do Banco Mundial (lista já vem do mais novo pro mais antigo).
+  const bmUltimo = new Map<string, string>()
+  for (const l of (bm ?? []) as { serie_codigo: string; serie_nome: string | null; valor: number; data_referencia: string }[])
+    if (!bmUltimo.has(l.serie_codigo)) bmUltimo.set(l.serie_codigo, `- ${l.serie_nome ?? l.serie_codigo}: ${Number(l.valor).toFixed(1)}% (ano ${l.data_referencia.slice(0, 4)})`)
+  const bancoMundial = [...bmUltimo.values()].join('\n')
+
+  const geopolitica = ((geo ?? []) as { title: string; publication_date: string }[]).map((n) => `- ${n.publication_date?.slice(0, 10)}: ${n.title}`).join('\n')
+
+  return `INDICADORES OFICIAIS (Banco Central / IBGE):\n${indicadores || '- indisponíveis'}\n\nEVENTOS DETECTADOS (últimos 30 dias):\n${evs || '- nenhum'}\n\nMANCHETES COLETADAS (últimos 3 dias — fonte jornalística, não confirmado oficialmente):\n${news || '- nenhuma'}\n\nECONOMIA DOS PARCEIROS (Banco Mundial, oficial, anual):\n${bancoMundial || '- indisponível'}\n\nGEOPOLÍTICA E COMÉRCIO MUNDIAL (GDELT — manchetes internacionais em inglês dos últimos 3 dias, fonte jornalística, não confirmado oficialmente):\n${geopolitica || '- nenhuma'}`
 }
 
 export class FalhaBriefing extends Error {}

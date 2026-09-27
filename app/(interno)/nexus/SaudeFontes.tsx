@@ -22,6 +22,7 @@ const SITE: Record<string, string> = {
   'Money Times': 'https://www.moneytimes.com.br/',
   'Agência Senado': 'https://www12.senado.leg.br/noticias',
   'Currents': 'https://currentsapi.services/',
+  'GDELT': 'https://www.gdeltproject.org/',
 }
 
 const ROTULO: Record<SaudeFonte, [string, string, string]> = {

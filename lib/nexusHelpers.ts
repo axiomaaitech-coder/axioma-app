@@ -194,14 +194,15 @@ export async function obterLeiturasRecentes(lang: "pt" | "en" | "es", limite = 5
 // sobre o mundo (conflitos, acordos, mercados), sempre marcadas como não oficiais.
 export async function obterManchetesRecentes(dias = 5, limite = 16): Promise<{ titulo: string; canal: string | null; data: string | null }[]> {
   const desde = new Date(Date.now() - dias * 86400000).toISOString();
-  const { data, error } = await supabase
-    .from("nexus_news")
-    .select("title, canal, publication_date")
-    .gte("publication_date", desde)
-    .order("publication_date", { ascending: false })
-    .limit(limite);
-  if (error) return [];
-  return (data ?? []).map((n) => ({ titulo: n.title as string, canal: (n.canal as string | null) ?? null, data: (n.publication_date as string | null)?.slice(0, 10) ?? null }));
+  const colunas = "title, canal, publication_date";
+  // GDELT (canal geopolitica, em inglês) em consulta separada — senão toma
+  // todas as vagas das manchetes brasileiras.
+  const [br, geo] = await Promise.all([
+    supabase.from("nexus_news").select(colunas).gte("publication_date", desde).or("canal.is.null,canal.neq.geopolitica").order("publication_date", { ascending: false }).limit(limite),
+    supabase.from("nexus_news").select(colunas).gte("publication_date", desde).eq("canal", "geopolitica").order("publication_date", { ascending: false }).limit(6),
+  ]);
+  if (br.error) return [];
+  return [...(br.data ?? []), ...(geo.data ?? [])].map((n) => ({ titulo: n.title as string, canal: (n.canal as string | null) ?? null, data: (n.publication_date as string | null)?.slice(0, 10) ?? null }));
 }
 
 // Horizontes do painel executivo mais recente (12m/3a/5a/10a) — o chat usa como base

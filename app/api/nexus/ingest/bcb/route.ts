@@ -9,7 +9,7 @@ import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
 import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
-import { ingerirBrent, ingerirBancoMundial, SERIE_BRENT } from '@/lib/nexusFontesMundo'
+import { ingerirBrent, ingerirBancoMundial, ingerirGdelt, SERIE_BRENT } from '@/lib/nexusFontesMundo'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -299,6 +299,7 @@ export async function GET(request: NextRequest) {
   const mundo: Record<string, string> = {}
   try { mundo.brent = await ingerirBrent(supabase) } catch (err) { mundo.brent = `erro: ${err instanceof Error ? err.message : String(err)}` }
   try { mundo.bancoMundial = await ingerirBancoMundial(supabase) } catch (err) { mundo.bancoMundial = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  try { mundo.gdelt = await ingerirGdelt(supabase) } catch (err) { mundo.gdelt = `erro: ${err instanceof Error ? err.message : String(err)}` }
   // Etapa 9 — confere as previsões do José com prazo vencido (dado do dia já coletado).
   const previsoes = await conferirPrevisoes(supabase)
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
