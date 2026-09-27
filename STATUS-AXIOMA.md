@@ -1262,6 +1262,13 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Anotado pra depois:** menu do topo fica por cima do fundo escurecido dos modais em todos os 18 módulos com modal — correção geral no TopNav, com teste em cada módulo (inclui PDV).
 **Próximo:** Etapa 4 do Nexus — Joseph (IA real) interpretando cada evento.
 
+## 3-BF. Nexus Etapa 4 — Joseph (IA real) no ar e testado (2026-09-27)
+**Joseph · Radar Global Axioma** ("a inteligência mundial do seu CFO"): ao abrir um evento, o modal mostra o fato (oficial) e, separado e marcado "Interpretação — não é fato", a leitura do Joseph — leitura, impacto Brasil/global/setores/empresa típica, 3-4 cenários com probabilidade (somam 100), 3 ações com prioridade, risco × oportunidade, "por que o Joseph acha isso?" (confiança, motivos, incertezas, horizonte).
+**Como funciona:** lib/nexusJoseph.ts (claude-opus-5 + fallbacks server-side "default", structured outputs json_schema, prompt proíbe inventar dado/fonte e afirmar certeza, só usa evento + indicadores oficiais). Guardado em nexus_global_event.joseph_analise por idioma (1x, lido por todos) — SQL NEXUS-ETAPA4-JOSEPH-SQL.txt **rodado pelo Elias**. POST /api/nexus/joseph (só logado) gera sob demanda; cron diário adianta até 3 em PT. Microinteração em etapas durante a geração ("analisando reflexos em 🇺🇸 Estados Unidos…" — texto fiel, Joseph não consulta fonte estrangeira).
+**Testado em produção:** evento "Copom reduz a Selic para 13,75%" gerou leitura coerente com os dados reais (IPCA -0,32%, dólar R$ 5,20, desemprego 5,3%).
+**Regra nova de IA:** frequente/simples → OpenAI; complexo/raro → Anthropic.
+**Próximo:** Etapa 5 — Minhas Simulações + "E se...?" com os números reais da empresa.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
