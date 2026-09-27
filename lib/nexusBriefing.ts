@@ -130,7 +130,10 @@ const hoje = () => new Date().toISOString().slice(0, 10)
 // Devolve o painel de hoje; se não existir, gera e grava (upsert por data+idioma).
 // Se a geração falhar, devolve o último painel disponível (marcado com a data dele).
 export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<{ data: string; conteudo: BriefingJose } | null> {
-  const { data: ultimo } = await supabase.from('nexus_briefing').select('data, conteudo').eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle()
+  const { data: ultimo, error: erroLeitura } = await supabase.from('nexus_briefing').select('data, conteudo').eq('lang', lang).order('data', { ascending: false }).limit(1).maybeSingle()
+  // Sem conseguir ler a tabela (ex.: SQL da Etapa 7 ainda não rodado), NÃO gera:
+  // geraria na IA e não conseguiria guardar — gasto repetido a cada abertura.
+  if (erroLeitura) throw new FalhaBriefing(`leitura de nexus_briefing: ${erroLeitura.message}`)
   if (ultimo?.data === hoje()) return { data: ultimo.data as string, conteudo: ultimo.conteudo as BriefingJose }
   try {
     const conteudo = await gerarBriefing(supabase, lang)
