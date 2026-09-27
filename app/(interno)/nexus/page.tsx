@@ -9,7 +9,7 @@ import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { obterIndicadoresNexus, obterEventosNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
+import { obterIndicadoresNexus, obterEventosNexus, obterEventoNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
 import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
@@ -233,6 +233,13 @@ export default function NexusPage() {
     setCarregandoEventos(false)
   }
   useEffect(() => { carregarEventos(0) }, [])
+
+  // Vindo do card flutuante (Radar Global): /nexus?evento=<id> abre direto no modal.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('evento')
+    if (!id) return
+    obterEventoNexus(id).then((ev) => { if (ev) setEventoAberto(ev) })
+  }, [])
 
   // Esc fecha qualquer modal aberto da tela (evento, notícia, lista ampliada).
   useEffect(() => {

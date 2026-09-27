@@ -132,29 +132,45 @@ export type EventoNexus = {
   payload: PayloadEvento | null;
 };
 
+const COLUNAS_EVENTO = "event_id, natureza, severity, confidence, evidence_level, published_at, title, description, payload";
+
+type LinhaEvento = {
+  event_id: string; natureza: string; severity: number | null; confidence: number | null; evidence_level: string | null;
+  published_at: string | null; title: string; description: string | null; payload: PayloadEvento | null;
+};
+const paraEvento = (l: LinhaEvento): EventoNexus => ({
+  id: l.event_id, natureza: l.natureza, severity: l.severity, confidence: l.confidence, evidenceLevel: l.evidence_level,
+  publicadoEm: l.published_at, tituloPt: l.title, descricaoPt: l.description, payload: l.payload ?? null,
+});
+
 // Paginação real (.range), nunca a tabela inteira — ela cresce todo dia.
 export async function obterEventosNexus(pagina = 0, porPagina = 8): Promise<{ eventos: EventoNexus[]; temMais: boolean; erro: boolean }> {
   const inicio = pagina * porPagina;
   const { data, error } = await supabase
     .from("nexus_global_event")
-    .select("event_id, natureza, severity, confidence, evidence_level, published_at, title, description, payload")
+    .select(COLUNAS_EVENTO)
     .order("published_at", { ascending: false })
     .range(inicio, inicio + porPagina); // pede 1 a mais só pra saber se existe próxima página
   if (error) return { eventos: [], temMais: false, erro: true };
-  const linhas = data ?? [];
-  return {
-    eventos: linhas.slice(0, porPagina).map((l) => ({
-      id: l.event_id as string,
-      natureza: l.natureza as string,
-      severity: l.severity as number | null,
-      confidence: l.confidence as number | null,
-      evidenceLevel: l.evidence_level as string | null,
-      publicadoEm: l.published_at as string | null,
-      tituloPt: l.title as string,
-      descricaoPt: l.description as string | null,
-      payload: (l.payload as PayloadEvento | null) ?? null,
-    })),
-    temMais: linhas.length > porPagina,
-    erro: false,
-  };
+  const linhas = (data ?? []) as LinhaEvento[];
+  return { eventos: linhas.slice(0, porPagina).map(paraEvento), temMais: linhas.length > porPagina, erro: false };
+}
+
+// Um evento pelo id — abrir o modal direto via /nexus?evento=<id> (card flutuante).
+export async function obterEventoNexus(id: string): Promise<EventoNexus | null> {
+  const { data, error } = await supabase.from("nexus_global_event").select(COLUNAS_EVENTO).eq("event_id", id).maybeSingle();
+  return error || !data ? null : paraEvento(data as LinhaEvento);
+}
+
+// Eventos de impacto alto recentes pro card flutuante (filtro no banco, poucos por vez).
+export async function obterEventosDestaque(diasJanela = 14, severidadeMin = 70, limite = 5): Promise<EventoNexus[]> {
+  const desde = new Date(Date.now() - diasJanela * 86400000).toISOString();
+  const { data, error } = await supabase
+    .from("nexus_global_event")
+    .select(COLUNAS_EVENTO)
+    .gte("severity", severidadeMin)
+    .gte("published_at", desde)
+    .order("published_at", { ascending: false })
+    .limit(limite);
+  return error ? [] : ((data ?? []) as LinhaEvento[]).map(paraEvento);
 }

@@ -1,4 +1,5 @@
 import TopNav from "../../components/TopNav";
+import NexusEventStream from "../../components/NexusEventStream";
 
 export default function InternoLayout({
   children,
@@ -11,6 +12,7 @@ export default function InternoLayout({
       <main className="flex-1 overflow-auto min-w-0">
         {children}
       </main>
+      <NexusEventStream />
     </div>
   );
 }
