@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactECharts from 'echarts-for-react'
@@ -13,15 +13,30 @@ import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
+import { useThemeAxioma } from '../../../lib/ThemeContext'
+import { ThemeToggle } from '../../../components/ThemeToggle'
 
 type Idioma3 = 'pt' | 'en' | 'es'
 
-const AZULC = '#6ab0ff'
-const CIANO = '#22d3ee'
-const ROXOTV = '#a78bfa'
-const CINZA = '#5a7a9a'
-const TEXTO = '#c8d8f0'
-const TITULO = '#e2ecf7'
+// dark = valores de sempre (fundação, intocada). xms = tema Claro, valores de
+// public/referencias/tema-tokens.md: verde-menta no lugar de ciano/roxo (roxo
+// não é da paleta), texto azul-marinho, secundário #374151 sobre o creme,
+// card creme #f6f7c4 (aprovado no rollout MEI).
+const PALETA = {
+  dark: {
+    AZULC: '#6ab0ff', CIANO: '#22d3ee', ROXOTV: '#a78bfa', CINZA: '#5a7a9a', TEXTO: '#c8d8f0', TITULO: '#e2ecf7',
+    PAINEL_BG: 'rgba(10,20,36,0.7)', MODAL_BG: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)',
+    NESTED_BG: 'rgba(255,255,255,0.04)', NESTED_BORDA: 'transparent',
+  },
+  xms: {
+    AZULC: '#2ecc9b', CIANO: '#2ecc9b', ROXOTV: '#2ecc9b', CINZA: '#374151', TEXTO: '#101b3d', TITULO: '#101b3d',
+    PAINEL_BG: '#f6f7c4', MODAL_BG: '#f6f7c4',
+    NESTED_BG: 'rgba(255,255,255,0.5)', NESTED_BORDA: 'rgba(16,27,61,0.12)',
+  },
+} as const
+
+// Botão de utilidade no Claro = mesmo degradê sólido do Exportar PDF (regra fixa).
+const VERDE_SOLIDO = { background: 'linear-gradient(135deg, #16a97d, #2ecc9b)', border: 'none', color: '#fff' }
 
 // Formato único de exibição — pra tela não precisar saber se a notícia veio
 // do RSS real (já em português, string plana) ou do demo (Texto3 pt/en/es)
@@ -66,16 +81,16 @@ function formatarDataNoticia(iso: string, lang: Idioma3, localeData: string): st
 
 // Sparkline minimalista (sem eixo/legenda) reaproveitando o ECharts já usado
 // em DashFinanceiro/DashComercial — nada de lib nova.
-function sparklineOption(historico: PontoSerie[], cor: string) {
+function sparklineOption(historico: PontoSerie[], cor: string, temaClaro: boolean) {
   return {
     grid: { left: 0, right: 0, top: 4, bottom: 0 },
     xAxis: { type: 'category', show: false, data: historico.map((p) => p.data) },
     yAxis: { type: 'value', show: false, scale: true },
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(10,20,36,0.95)',
+      backgroundColor: temaClaro ? '#ffffff' : 'rgba(10,20,36,0.95)',
       borderColor: cor,
-      textStyle: { color: '#e2ecf7', fontSize: 10 },
+      textStyle: { color: temaClaro ? '#101b3d' : '#e2ecf7', fontSize: 10 },
       formatter: (p: any) => `${p[0].axisValueLabel}<br/>${Number(p[0].value).toLocaleString()}`,
     },
     series: [{
@@ -93,12 +108,15 @@ function sparklineOption(historico: PontoSerie[], cor: string) {
 // tela ficam com a mesma largura e altura.
 const CARD_NEXUS = 'rounded-2xl p-4 h-40 flex flex-col'
 
-function CardMiniNoticia({ noticia, lang, localeData, onClick }: { noticia: NoticiaExibicao; lang: Idioma3; localeData: string; onClick: () => void }) {
+// compacto = versão da lista ampliada (modal), sem a altura fixa da grade.
+function CardMiniNoticia({ noticia, lang, localeData, onClick, temaClaro, compacto }: { noticia: NoticiaExibicao; lang: Idioma3; localeData: string; onClick: () => void; temaClaro: boolean; compacto?: boolean }) {
+  const { CIANO, ROXOTV, CINZA, TITULO, PAINEL_BG } = PALETA[temaClaro ? 'xms' : 'dark']
+  const caixa = compacto ? 'rounded-2xl p-4 flex flex-col' : CARD_NEXUS
   return (
     <button
       onClick={onClick}
-      className={`${CARD_NEXUS} text-left w-full transition-colors hover:brightness-125 focus-visible:outline focus-visible:outline-2`}
-      style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}
+      className={`${caixa} text-left w-full transition-colors focus-visible:outline focus-visible:outline-2${temaClaro ? ' axi-card-premium3d' : ' hover:brightness-125'}`}
+      style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}
     >
       <p className="flex items-center gap-1.5 text-xs font-bold mb-2 min-w-0" style={{ color: CINZA }}>
         <Newspaper size={13} className="shrink-0" style={{ color: ROXOTV }} aria-hidden />
@@ -112,19 +130,42 @@ function CardMiniNoticia({ noticia, lang, localeData, onClick }: { noticia: Noti
 
 // Natureza do evento — cor e nome fixos por tipo, pra Fato/Sinal/Decisão
 // nunca se confundirem visualmente (regra do Push 03: "não misturar").
+// No Claro o selo é preenchido (fundo sólido + texto escuro/branco) — o pill
+// translúcido do Escuro some sobre o creme. Pares fundo/texto de
+// tema-tokens.md: sucesso #16a97d/#fff, alerta #f5a623/#2b1900, bloco
+// estrutural #101b3d/#fff (decisão oficial = institucional).
 type Nome3 = [string, string, string]
-const NATUREZA_EVENTO: Record<string, { cor: string; nome: Nome3 }> = {
-  fact: { cor: AZULC, nome: ['Fato', 'Fact', 'Hecho'] },
-  signal: { cor: '#fbbf24', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
-  official_decision: { cor: ROXOTV, nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
+type EstiloSelo = { cor: string; claroFundo: string; claroTexto: string; nome: Nome3 }
+const NATUREZA_EVENTO: Record<string, EstiloSelo> = {
+  fact: { cor: '#6ab0ff', claroFundo: '#16a97d', claroTexto: '#ffffff', nome: ['Fato', 'Fact', 'Hecho'] },
+  signal: { cor: '#fbbf24', claroFundo: '#f5a623', claroTexto: '#2b1900', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
+  official_decision: { cor: '#a78bfa', claroFundo: '#101b3d', claroTexto: '#ffffff', nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
 }
-const NATUREZA_DESCONHECIDA = { cor: CINZA, nome: ['Não classificado', 'Unclassified', 'No clasificado'] as Nome3 }
+const NATUREZA_DESCONHECIDA: EstiloSelo = { cor: '#5a7a9a', claroFundo: '#6b7280', claroTexto: '#ffffff', nome: ['Não classificado', 'Unclassified', 'No clasificado'] }
 
-function impactoEvento(severity: number | null): { cor: string; nome: Nome3 } {
+// Impacto no Claro fica contornado (não preenchido) pra não competir com o
+// selo de natureza ao lado; tons escuros o bastante pra ler sobre o creme.
+function impactoEvento(severity: number | null): EstiloSelo {
   const s = severity ?? 0
-  if (s >= 70) return { cor: '#f87171', nome: ['Impacto alto', 'High impact', 'Impacto alto'] }
-  if (s >= 45) return { cor: '#fbbf24', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
-  return { cor: '#34d399', nome: ['Impacto baixo', 'Low impact', 'Impacto bajo'] }
+  if (s >= 70) return { cor: '#f87171', claroFundo: 'transparent', claroTexto: '#dc3545', nome: ['Impacto alto', 'High impact', 'Impacto alto'] }
+  if (s >= 45) return { cor: '#fbbf24', claroFundo: 'transparent', claroTexto: '#b45309', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
+  return { cor: '#34d399', claroFundo: 'transparent', claroTexto: '#374151', nome: ['Impacto baixo', 'Low impact', 'Impacto bajo'] }
+}
+
+function estiloSelo(s: EstiloSelo, temaClaro: boolean, alpha = '1f'): CSSProperties {
+  if (!temaClaro) return { background: `${s.cor}${alpha}`, color: s.cor }
+  return s.claroFundo === 'transparent'
+    ? { background: 'transparent', color: s.claroTexto, border: `1px solid ${s.claroTexto}` }
+    : { background: s.claroFundo, color: s.claroTexto }
+}
+
+// Selo de atualidade do indicador: no Claro, preenchido com par de tema-tokens.
+function estiloFreshness(status: string | null, corEscuro: string, temaClaro: boolean): CSSProperties {
+  if (!temaClaro) return { background: `${corEscuro}20`, color: corEscuro }
+  if (status === 'live' || status === 'fresh') return { background: '#2ecc9b', color: '#101b3d' }
+  if (status === 'recent') return { background: '#f5a623', color: '#2b1900' }
+  if (status) return { background: '#ff5a6b', color: '#2b0007' }
+  return { background: 'rgba(16,27,61,0.08)', color: '#374151' } // aguardando 1ª coleta
 }
 
 const INTERVALO_TROCA_MS = 6000
@@ -135,6 +176,23 @@ export default function NexusPage() {
   const lang = (['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt') as Idioma3
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
   const localeData = lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR'
+  const { tema } = useThemeAxioma()
+  const temaClaro = tema === 'xms'
+  const { AZULC, CIANO, ROXOTV, CINZA, TEXTO, TITULO, PAINEL_BG, MODAL_BG, NESTED_BG, NESTED_BORDA } = PALETA[tema]
+  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const hoverCard = temaClaro ? ' axi-card-premium3d' : ' hover:brightness-125'
+  // Selo "DEMONSTRAÇÃO" / avisos neutros — no Claro, navy sobre bege translúcido.
+  const seloNeutro: CSSProperties = temaClaro
+    ? { background: 'rgba(16,27,61,0.08)', color: '#101b3d', border: '1px solid rgba(16,27,61,0.15)' }
+    : { background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }
+  const avisoNeutro: CSSProperties = temaClaro
+    ? { background: NESTED_BG, border: `1px solid ${NESTED_BORDA}`, color: '#101b3d' }
+    : { background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }
+  const corTrava = (nivel: string) => ({
+    // Claro: ícone colorido + texto azul-marinho (verde-menta em texto miúdo não lê no creme).
+    icone: nivel === 'oficial' ? (temaClaro ? '#16a97d' : '#34d399') : (temaClaro ? '#b45309' : '#fbbf24'),
+    texto: temaClaro ? '#101b3d' : (nivel === 'oficial' ? '#34d399' : '#fbbf24'),
+  })
 
   const [loading, setLoading] = useState(true)
   const [indicadores, setIndicadores] = useState<IndicadorNexus[]>([])
@@ -271,12 +329,20 @@ export default function NexusPage() {
   }
 
   return (
+    <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>
     <ModuloLayout
       titulo={L('Nexus', 'Nexus', 'Nexus')}
       subtitulo={L('Inteligência econômica que atravessa toda a empresa — câmbio, juros e o cenário que move suas decisões.', "Economic intelligence that cuts across your whole company — FX, rates, and the backdrop shaping your decisions.", 'Inteligencia económica que atraviesa toda la empresa — cambio, tasas y el escenario que mueve sus decisiones.')}
       onExportarPDF={exportarPDF}
       exportando={exportando}
-      botaoExtra={<BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={CIANO} corTexto={CIANO} />}
+      headerFundo={temaClaro ? 'linear-gradient(180deg, #0a1628 0%, #101b3d 55%, #17406e 100%)' : undefined}
+      corExportar={temaClaro ? 'linear-gradient(135deg, #16a97d, #2ecc9b)' : undefined}
+      botaoExtra={
+        <>
+          <BotaoCompartilhar onClick={() => setShareAberto(true)} texto={L('Compartilhar', 'Share', 'Compartir')} cor={CIANO} corTexto={CIANO} solido={temaClaro} />
+          <ThemeToggle />
+        </>
+      }
     >
       {loading ? (
         <p className="text-sm" style={{ color: CINZA }}>{L('Carregando...', 'Loading...', 'Cargando...')}</p>
@@ -284,10 +350,10 @@ export default function NexusPage() {
         <div className="space-y-6">
 
           {/* LETREIRO PADRÃO DO MÓDULO — mesmo componente/lugar dos demais módulos, com dado real deste módulo (os indicadores) */}
-          <LetreiroAxioma id="nexus" cor={CIANO} itens={indicadores.map((ind) => `${ind.nome[lang]}: ${formatarValorIndicador(ind)}`)} />
+          <LetreiroAxioma id="nexus" cor={CIANO} solido={temaClaro} corDestaque="#2ecc9b" itens={indicadores.map((ind) => `${ind.nome[lang]}: ${formatarValorIndicador(ind)}`)} />
 
           {avisoCarregamento && (
-            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}>
+            <div className="rounded-xl px-4 py-2.5 text-xs font-semibold" style={temaClaro ? avisoNeutro : { background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}>
               {avisoCarregamento}
             </div>
           )}
@@ -297,21 +363,21 @@ export default function NexusPage() {
             {indicadores.map((ind) => {
               const fresh = traduzirFreshness(ind.freshness, lang)
               return (
-                <div key={ind.codigo} className={CARD_NEXUS} style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}>
+                <div key={ind.codigo} className={`${CARD_NEXUS}${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{ind.emoji} {ind.nome[lang]}</p>
                   </div>
                   <p className="text-2xl font-black leading-none mb-2" style={{ color: TITULO }}>{formatarValorIndicador(ind)}</p>
                   {ind.historico.length >= 2 && (
                     <div className="mb-2" style={{ height: 40 }}>
-                      <ReactECharts option={sparklineOption(ind.historico, CIANO)} style={{ height: 40, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'svg' }} />
+                      <ReactECharts option={sparklineOption(ind.historico, CIANO, temaClaro)} style={{ height: 40, width: '100%' }} notMerge lazyUpdate opts={{ renderer: 'svg' }} />
                     </div>
                   )}
                   <div className="flex items-center justify-between mt-auto">
                     <span className="text-[10px]" style={{ color: CINZA }}>
                       {ind.dataReferencia ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData) : '—'}
                     </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${fresh.cor}20`, color: fresh.cor }}>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloFreshness(ind.freshness, fresh.cor, temaClaro)}>
                       {fresh.texto}
                     </span>
                   </div>
@@ -347,17 +413,17 @@ export default function NexusPage() {
                     <button
                       key={ev.id}
                       onClick={() => setEventoAberto(ev)}
-                      className={`${CARD_NEXUS} text-left w-full transition-colors hover:brightness-125 focus-visible:outline focus-visible:outline-2`}
-                      style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30`, borderTop: `3px solid ${nat.cor}` }}
+                      className={`${CARD_NEXUS} text-left w-full transition-colors focus-visible:outline focus-visible:outline-2${hoverCard}`}
+                      style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
                     >
                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${nat.cor}1f`, color: nat.cor }}>{L(...nat.nome)}</span>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: `${imp.cor}1a`, color: imp.cor }}>{L(...imp.nome)}</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
                       </div>
                       <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{texto.titulo}</h4>
                       <div className="flex items-center justify-between gap-2 mt-auto pt-2">
-                        <span className="flex items-center gap-1 text-[10px] font-semibold min-w-0" style={{ color: trava.nivel === 'oficial' ? '#34d399' : '#fbbf24' }}>
-                          {trava.nivel === 'oficial' ? <ShieldCheck size={12} className="shrink-0" aria-hidden /> : <ShieldAlert size={12} className="shrink-0" aria-hidden />}
+                        <span className="flex items-center gap-1 text-[10px] font-semibold min-w-0" style={{ color: corTrava(trava.nivel).texto }}>
+                          {trava.nivel === 'oficial' ? <ShieldCheck size={12} className="shrink-0" style={{ color: corTrava(trava.nivel).icone }} aria-hidden /> : <ShieldAlert size={12} className="shrink-0" style={{ color: corTrava(trava.nivel).icone }} aria-hidden />}
                           <span className="truncate">{trava.texto}</span>
                         </span>
                         {ev.publicadoEm && (
@@ -375,7 +441,7 @@ export default function NexusPage() {
                 onClick={() => carregarEventos(paginaEventos + 1)}
                 disabled={carregandoEventos}
                 className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg focus-visible:outline focus-visible:outline-2"
-                style={{ color: CIANO, background: `${CIANO}14`, border: `1px solid ${CIANO}40`, opacity: carregandoEventos ? 0.6 : 1 }}
+                style={{ ...(temaClaro ? VERDE_SOLIDO : { color: CIANO, background: `${CIANO}14`, border: `1px solid ${CIANO}40` }), opacity: carregandoEventos ? 0.6 : 1 }}
               >
                 {carregandoEventos ? L('Carregando...', 'Loading...', 'Cargando...') : L('Ver eventos anteriores', 'Show earlier events', 'Ver eventos anteriores')}
               </button>
@@ -383,7 +449,9 @@ export default function NexusPage() {
           </section>
 
           {/* TV — player grande de notícia em destaque, com canais */}
-          <div className="max-w-3xl mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(6,15,30,0.85)', border: `1px solid ${CIANO}35`, boxShadow: `0 0 40px ${CIANO}10` }}>
+          {/* No Claro a moldura da TV vira card creme; a "tela" (player) segue
+              escura de propósito — é vídeo/foto com tarja de telejornal. */}
+          <div className={`max-w-3xl mx-auto rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: temaClaro ? PAINEL_BG : 'rgba(6,15,30,0.85)', border: `1px solid ${CIANO}35`, boxShadow: temaClaro ? undefined : `0 0 40px ${CIANO}10` }}>
             <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Radio size={16} style={{ color: CIANO }} />
@@ -391,7 +459,7 @@ export default function NexusPage() {
               </div>
               {/* só depois de carregar — senão o selo pisca em toda abertura, mesmo com notícia real */}
               {noticiasIsDemo && !carregandoNoticias && (
-                <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
+                <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
                   {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                 </span>
               )}
@@ -403,7 +471,12 @@ export default function NexusPage() {
                   key={c.id}
                   onClick={() => setCanalAtivo(c.id)}
                   className="px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all"
-                  style={{
+                  style={temaClaro ? {
+                    // Claro: ativo = verde-menta sólido (regra 2), inativo = neutro navy.
+                    background: canalAtivo === c.id ? '#2ecc9b' : 'rgba(16,27,61,0.06)',
+                    color: canalAtivo === c.id ? '#101b3d' : '#374151',
+                    border: canalAtivo === c.id ? '1px solid #2ecc9b' : '1px solid rgba(16,27,61,0.12)',
+                  } : {
                     background: canalAtivo === c.id ? `${CIANO}25` : 'rgba(255,255,255,0.05)',
                     color: canalAtivo === c.id ? CIANO : CINZA,
                     border: canalAtivo === c.id ? `1px solid ${CIANO}50` : '1px solid rgba(255,255,255,0.08)',
@@ -415,7 +488,7 @@ export default function NexusPage() {
             </div>
 
             {precisaAvisoDemo && (
-              <div className="mx-4 mb-3 rounded-xl px-4 py-2.5 text-xs font-semibold" style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}>
+              <div className="mx-4 mb-3 rounded-xl px-4 py-2.5 text-xs font-semibold" style={avisoNeutro}>
                 {L('Notícia em tempo real ainda não disponível — mostrando conteúdo de demonstração.', 'Real-time news not available yet — showing demo content.', 'Noticia en tiempo real aún no disponible — mostrando contenido de demostración.')}
               </div>
             )}
@@ -423,9 +496,9 @@ export default function NexusPage() {
             {/* PLAYER — 16:9, uma manchete em destaque por vez */}
             <div className="px-4">
               {carregandoNoticias ? (
-                <div className="w-full aspect-video rounded-xl animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />
+                <div className="w-full aspect-video rounded-xl animate-pulse" style={{ background: temaClaro ? 'rgba(16,27,61,0.08)' : 'rgba(255,255,255,0.05)' }} />
               ) : !noticiaAtual ? (
-                <div className="w-full aspect-video rounded-xl flex items-center justify-center text-xs font-semibold" style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}>
+                <div className="w-full aspect-video rounded-xl flex items-center justify-center text-xs font-semibold" style={avisoNeutro}>
                   {L('Nenhuma notícia neste canal no momento.', 'No news on this channel right now.', 'No hay noticias en este canal por el momento.')}
                 </div>
               ) : (
@@ -517,7 +590,7 @@ export default function NexusPage() {
                 letreiro padrão do módulo acima (ciano); mesmas manchetes do
                 canal ativo, real ou demo (nunca uma fonte diferente do player). */}
             <div className="px-4 py-4">
-              <LetreiroExecutivo cor={ROXOTV} itens={noticiasCanal.map((n) => n.titulo)} />
+              <LetreiroExecutivo cor={ROXOTV} solido={temaClaro} corDestaque="#2ecc9b" textoBase={temaClaro ? '#ffffff' : undefined} itens={noticiasCanal.map((n) => n.titulo)} />
             </div>
           </div>
 
@@ -537,7 +610,7 @@ export default function NexusPage() {
                 </p>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {cardsInline.map((n) => (
-                    <CardMiniNoticia key={n.id} noticia={n} lang={lang} localeData={localeData} onClick={() => setNoticiaAberta(n)} />
+                    <CardMiniNoticia key={n.id} noticia={n} lang={lang} localeData={localeData} temaClaro={temaClaro} onClick={() => setNoticiaAberta(n)} />
                   ))}
                 </div>
               </div>
@@ -554,7 +627,7 @@ export default function NexusPage() {
               <button
                 onClick={() => setListaAmpliadaAberta(true)}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
-                style={{ background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}
+                style={temaClaro ? VERDE_SOLIDO : { background: `${CIANO}15`, border: `1px solid ${CIANO}35`, color: CIANO }}
               >
                 <Newspaper size={13} />
                 {L('Ver mais / Reforma Tributária', 'See more / Tax Reform', 'Ver más / Reforma Tributaria')}
@@ -586,23 +659,23 @@ export default function NexusPage() {
                 initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
                 transition={{ duration: 0.22 }}
                 className="w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
-                style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)', border: `1px solid ${nat.cor}50`, borderTop: `3px solid ${nat.cor}` }}
+                style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${nat.cor}50`}`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${nat.cor}1f`, color: nat.cor }}>{L(...nat.nome)}</span>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${imp.cor}1a`, color: imp.cor }}>{L(...imp.nome)}</span>
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
                   </div>
-                  <button onClick={() => setEventoAberto(null)} aria-label={L('Fechar', 'Close', 'Cerrar')} className="p-1 rounded-lg hover:bg-white/10 shrink-0">
+                  <button onClick={() => setEventoAberto(null)} aria-label={L('Fechar', 'Close', 'Cerrar')} className={`p-1 rounded-lg shrink-0 ${temaClaro ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}>
                     <X size={18} style={{ color: CINZA }} />
                   </button>
                 </div>
                 <h3 id="nexus-evento-titulo" className="text-lg font-black leading-snug mb-2" style={{ color: TITULO }}>{texto.titulo}</h3>
                 {texto.descricao && <p className="text-sm leading-relaxed mb-4" style={{ color: TEXTO }}>{texto.descricao}</p>}
-                <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: trava.nivel === 'oficial' ? '#34d399' : '#fbbf24' }}>
-                    {trava.nivel === 'oficial' ? <ShieldCheck size={14} aria-hidden /> : <ShieldAlert size={14} aria-hidden />}
+                <div className="rounded-xl p-3 space-y-1.5" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                  <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: corTrava(trava.nivel).texto }}>
+                    {trava.nivel === 'oficial' ? <ShieldCheck size={14} style={{ color: corTrava(trava.nivel).icone }} aria-hidden /> : <ShieldAlert size={14} style={{ color: corTrava(trava.nivel).icone }} aria-hidden />}
                     {trava.texto}
                   </p>
                   {ev.confidence != null && (
@@ -631,14 +704,14 @@ export default function NexusPage() {
               initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
               transition={{ duration: 0.22 }}
               className="w-full max-w-lg rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
-              style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)', border: `1px solid ${ROXOTV}40` }}
+              style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${ROXOTV}40`}` }}
               onClick={(e) => e.stopPropagation()}
             >
               {noticiaAberta.imagem_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={noticiaAberta.imagem_url} alt="" className="w-full h-40 object-cover" />
               ) : (
-                <div className="w-full h-32 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${ROXOTV}30, rgba(6,15,30,0.95))` }}>
+                <div className="w-full h-32 flex items-center justify-center" style={{ background: temaClaro ? 'linear-gradient(135deg, #101b3d, #17406e)' : `linear-gradient(135deg, ${ROXOTV}30, rgba(6,15,30,0.95))` }}>
                   <Newspaper size={34} style={{ color: ROXOTV }} />
                 </div>
               )}
@@ -654,7 +727,7 @@ export default function NexusPage() {
                   <span>•</span>
                   <span>{formatarDataNoticia(noticiaAberta.data, lang, localeData)}</span>
                   {noticiaAberta.isDemo && (
-                    <span className="ml-auto text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
+                    <span className="ml-auto text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={seloNeutro}>
                       {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                     </span>
                   )}
@@ -667,7 +740,7 @@ export default function NexusPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
-                  style={{ background: `${ROXOTV}18`, border: `1px solid ${ROXOTV}55`, color: ROXOTV }}
+                  style={temaClaro ? VERDE_SOLIDO : { background: `${ROXOTV}18`, border: `1px solid ${ROXOTV}55`, color: ROXOTV }}
                 >
                   <ExternalLink size={15} />
                   {L('Ler matéria completa', 'Read full article', 'Leer la noticia completa')}
@@ -696,7 +769,7 @@ export default function NexusPage() {
               initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
               transition={{ duration: 0.22 }}
               className="w-full max-w-lg rounded-2xl overflow-hidden max-h-[85vh] flex flex-col"
-              style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)', border: `1px solid ${CIANO}40` }}
+              style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${CIANO}40`}` }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-start gap-3 p-5 pb-3 shrink-0">
@@ -721,6 +794,8 @@ export default function NexusPage() {
                         noticia={n}
                         lang={lang}
                         localeData={localeData}
+                        temaClaro={temaClaro}
+                        compacto
                         onClick={() => { setListaAmpliadaAberta(false); setNoticiaAberta(n) }}
                       />
                     ))}
@@ -732,7 +807,7 @@ export default function NexusPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition-all hover:scale-[1.01]"
-                  style={{ background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}
+                  style={temaClaro ? VERDE_SOLIDO : { background: `${ROXOTV}15`, border: `1px solid ${ROXOTV}35`, color: ROXOTV }}
                 >
                   <ExternalLink size={13} />
                   {L('Página oficial do Senado sobre a Reforma Tributária', "Senate's official Tax Reform page", 'Página oficial del Senado sobre la Reforma Tributaria')}
@@ -755,5 +830,6 @@ export default function NexusPage() {
         cor={CIANO}
       />
     </ModuloLayout>
+    </div>
   )
 }
