@@ -92,7 +92,9 @@ export async function obterIndicadoresNexus(): Promise<{ indicadores: IndicadorN
 }
 
 const TEXTO_FRESHNESS: Record<FreshnessStatus, { pt: string; en: string; es: string }> = {
-  live: { pt: "atualizado hoje", en: "updated today", es: "actualizado hoy" },
+  // "em dia" e não "atualizado hoje": vale também pra série mensal cujo dado
+  // mais novo é de meses atrás (desemprego/IBC-Br) — é o último publicado.
+  live: { pt: "em dia", en: "up to date", es: "al día" },
   fresh: { pt: "atualizado", en: "updated", es: "actualizado" },
   recent: { pt: "recente", en: "recent", es: "reciente" },
   stale: { pt: "desatualizado", en: "outdated", es: "desactualizado" },

@@ -370,7 +370,8 @@ export default function NexusPage() {
                 <Radio size={16} style={{ color: CIANO }} />
                 <p className="text-sm font-black tracking-wide" style={{ color: TITULO }}>{L('Central Nexus', 'Nexus Center', 'Central Nexus')}</p>
               </div>
-              {noticiasIsDemo && (
+              {/* só depois de carregar — senão o selo pisca em toda abertura, mesmo com notícia real */}
+              {noticiasIsDemo && !carregandoNoticias && (
                 <span className="text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full" style={{ background: `${AZULC}20`, color: AZULC, border: `1px solid ${AZULC}40` }}>
                   {L('DEMONSTRAÇÃO', 'DEMO', 'DEMOSTRACIÓN')}
                 </span>
