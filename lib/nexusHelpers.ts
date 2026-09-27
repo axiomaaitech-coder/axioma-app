@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import type { PayloadEvento } from "./nexusEventDetector";
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 03, Parte 1: leitura dos 4 indicadores reais
@@ -108,4 +109,45 @@ const COR_FRESHNESS: Record<FreshnessStatus, string> = {
 export function traduzirFreshness(status: FreshnessStatus | null, lang: "pt" | "en" | "es"): { texto: string; cor: string } {
   if (!status) return { texto: TEXTO_FRESHNESS.unknown[lang], cor: COR_FRESHNESS.unknown };
   return { texto: TEXTO_FRESHNESS[status][lang], cor: COR_FRESHNESS[status] };
+}
+
+// ─── Etapa 3: eventos detectados (nexus_global_event, pública, só leitura) ───
+
+export type EventoNexus = {
+  id: string;
+  natureza: string; // fact | signal | official_decision | ... (lista fechada no CHECK do banco)
+  severity: number | null;
+  confidence: number | null;
+  evidenceLevel: string | null;
+  publicadoEm: string | null;
+  tituloPt: string; // fallback quando não houver payload
+  descricaoPt: string | null;
+  payload: PayloadEvento | null;
+};
+
+// Paginação real (.range), nunca a tabela inteira — ela cresce todo dia.
+export async function obterEventosNexus(pagina = 0, porPagina = 8): Promise<{ eventos: EventoNexus[]; temMais: boolean; erro: boolean }> {
+  const inicio = pagina * porPagina;
+  const { data, error } = await supabase
+    .from("nexus_global_event")
+    .select("event_id, natureza, severity, confidence, evidence_level, published_at, title, description, payload")
+    .order("published_at", { ascending: false })
+    .range(inicio, inicio + porPagina); // pede 1 a mais só pra saber se existe próxima página
+  if (error) return { eventos: [], temMais: false, erro: true };
+  const linhas = data ?? [];
+  return {
+    eventos: linhas.slice(0, porPagina).map((l) => ({
+      id: l.event_id as string,
+      natureza: l.natureza as string,
+      severity: l.severity as number | null,
+      confidence: l.confidence as number | null,
+      evidenceLevel: l.evidence_level as string | null,
+      publicadoEm: l.published_at as string | null,
+      tituloPt: l.title as string,
+      descricaoPt: l.description as string | null,
+      payload: (l.payload as PayloadEvento | null) ?? null,
+    })),
+    temMais: linhas.length > porPagina,
+    erro: false,
+  };
 }

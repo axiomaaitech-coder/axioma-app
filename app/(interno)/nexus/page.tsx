@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Radio, Newspaper, X, ExternalLink, ChevronLeft, ChevronRight, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactECharts from 'echarts-for-react'
 import ModuloLayout from '../../../components/ModuloLayout'
@@ -8,7 +8,8 @@ import { LetreiroAxioma } from '../../../components/LetreiroAxioma'
 import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
-import { obterIndicadoresNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie } from '../../../lib/nexusHelpers'
+import { obterIndicadoresNexus, obterEventosNexus, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
+import { textoEvento, travaDaVerdade } from '../../../lib/nexusEventDetector'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -117,6 +118,23 @@ function CardMiniNoticia({ noticia, lang, localeData, onClick }: { noticia: Noti
   )
 }
 
+// Natureza do evento — cor e nome fixos por tipo, pra Fato/Sinal/Decisão
+// nunca se confundirem visualmente (regra do Push 03: "não misturar").
+type Nome3 = [string, string, string]
+const NATUREZA_EVENTO: Record<string, { cor: string; nome: Nome3 }> = {
+  fact: { cor: AZULC, nome: ['Fato', 'Fact', 'Hecho'] },
+  signal: { cor: '#fbbf24', nome: ['Sinal de mercado', 'Market signal', 'Señal de mercado'] },
+  official_decision: { cor: ROXOTV, nome: ['Decisão oficial', 'Official decision', 'Decisión oficial'] },
+}
+const NATUREZA_DESCONHECIDA = { cor: CINZA, nome: ['Não classificado', 'Unclassified', 'No clasificado'] as Nome3 }
+
+function impactoEvento(severity: number | null): { cor: string; nome: Nome3 } {
+  const s = severity ?? 0
+  if (s >= 70) return { cor: '#f87171', nome: ['Impacto alto', 'High impact', 'Impacto alto'] }
+  if (s >= 45) return { cor: '#fbbf24', nome: ['Impacto médio', 'Medium impact', 'Impacto medio'] }
+  return { cor: '#34d399', nome: ['Impacto baixo', 'Low impact', 'Impacto bajo'] }
+}
+
 const INTERVALO_TROCA_MS = 6000
 const MAX_CARDS_REFORMA_INLINE = 5
 
@@ -140,6 +158,12 @@ export default function NexusPage() {
   const [precisaAvisoDemo, setPrecisaAvisoDemo] = useState(false)
   const [carregandoNoticias, setCarregandoNoticias] = useState(true)
   const [indiceAtivo, setIndiceAtivo] = useState(0)
+
+  const [eventos, setEventos] = useState<EventoNexus[]>([])
+  const [paginaEventos, setPaginaEventos] = useState(0)
+  const [temMaisEventos, setTemMaisEventos] = useState(false)
+  const [carregandoEventos, setCarregandoEventos] = useState(true)
+  const [erroEventos, setErroEventos] = useState(false)
   const [pausado, setPausado] = useState(false)
 
   useEffect(() => {
@@ -149,17 +173,22 @@ export default function NexusPage() {
       setIndicadores(dados)
       if (erro) setAvisoCarregamento(tratarFalhaCarregamento('nexus.carregarIndicadores', new Error('falha ao ler nexus_economic_series'), lang))
       setLoading(false)
-      // GANCHO FUTURO (JOSEPH) — quando a camada interpretadora existir, é
-      // aqui que ela entraria: leria nexus_global_event/nexus_causal_relation
-      // pra gerar uma leitura textual cruzando os indicadores acima (ex:
-      // "Selic subindo + dólar em alta reforça pressão de custo"). Não
-      // implementado agora — só nexus_economic_series (indicador bruto) e
-      // nexus_news (manchete RSS) alimentam esta tela; nexus_global_event/
-      // nexus_entity/nexus_causal_relation/nexus_simulation seguem inertes.
-      // const leituraJoseph = await obterLeituraJoseph(dados)
+      // GANCHO FUTURO (JOSEPH, Etapa 4) — a leitura interpretada entra em
+      // cima dos eventos já detectados (seção "Eventos detectados", abaixo).
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function carregarEventos(pagina: number) {
+    setCarregandoEventos(true)
+    const r = await obterEventosNexus(pagina)
+    setErroEventos(r.erro)
+    setEventos((atual) => (pagina === 0 ? r.eventos : [...atual, ...r.eventos]))
+    setTemMaisEventos(r.temMais)
+    setPaginaEventos(pagina)
+    setCarregandoEventos(false)
+  }
+  useEffect(() => { carregarEventos(0) }, [])
 
   // Notícia do canal ativo — API própria (cache-aside em nexus_news); cai
   // pro demo local sozinha se a API/banco não tiverem nada ainda (nunca
@@ -286,6 +315,61 @@ export default function NexusPage() {
               )
             })}
           </div>
+
+          {/* EVENTOS DETECTADOS — Etapa 3: o que mudou de verdade nas séries
+              oficiais, com natureza (fato/sinal/decisão) e Trava da Verdade. */}
+          <section className="rounded-2xl p-4 sm:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}>
+            <div className="mb-4">
+              <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('Eventos detectados', 'Detected events', 'Eventos detectados')}</h2>
+              <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.75 }}>
+                {L('Mudanças relevantes nos indicadores oficiais, percebidas automaticamente pelo Nexus.', 'Relevant changes in official indicators, picked up automatically by Nexus.', 'Cambios relevantes en los indicadores oficiales, detectados automáticamente por Nexus.')}
+              </p>
+            </div>
+
+            {erroEventos && eventos.length === 0 ? (
+              <p className="text-sm" style={{ color: TEXTO }}>{L('Não foi possível carregar os eventos agora. Recarregue a página em instantes.', 'Could not load events right now. Reload the page in a moment.', 'No fue posible cargar los eventos ahora. Recargue la página en unos instantes.')}</p>
+            ) : !carregandoEventos && eventos.length === 0 ? (
+              <p className="text-sm" style={{ color: TEXTO }}>{L('Nenhuma mudança relevante nos indicadores oficiais por enquanto. O Nexus verifica todos os dias e avisa aqui quando algo se mover.', 'No relevant changes in official indicators yet. Nexus checks every day and will flag it here when something moves.', 'Ningún cambio relevante en los indicadores oficiales por ahora. Nexus revisa todos los días y avisará aquí cuando algo se mueva.')}</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {eventos.map((ev) => {
+                  const nat = NATUREZA_EVENTO[ev.natureza] ?? NATUREZA_DESCONHECIDA
+                  const imp = impactoEvento(ev.severity)
+                  const trava = travaDaVerdade(ev.evidenceLevel, lang)
+                  const texto = ev.payload ? textoEvento(ev.payload, lang) : { titulo: ev.tituloPt, descricao: ev.descricaoPt ?? '' }
+                  return (
+                    <li key={ev.id} className="rounded-xl pl-4 pr-3 py-3" style={{ background: 'rgba(255,255,255,0.03)', borderLeft: `3px solid ${nat.cor}` }}>
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${nat.cor}1f`, color: nat.cor }}>{L(...nat.nome)}</span>
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${imp.cor}1a`, color: imp.cor }}>{L(...imp.nome)}</span>
+                        {ev.publicadoEm && (
+                          <span className="text-[11px] ml-auto" style={{ color: TEXTO, opacity: 0.7 }}>{new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</span>
+                        )}
+                      </div>
+                      <p className="text-sm font-bold leading-snug" style={{ color: TITULO }}>{texto.titulo}</p>
+                      {texto.descricao && <p className="text-xs mt-1 leading-relaxed" style={{ color: TEXTO }}>{texto.descricao}</p>}
+                      <p className="flex flex-wrap items-center gap-1.5 text-[11px] mt-2 font-semibold" style={{ color: trava.nivel === 'oficial' ? '#34d399' : '#fbbf24' }}>
+                        {trava.nivel === 'oficial' ? <ShieldCheck size={13} aria-hidden /> : <ShieldAlert size={13} aria-hidden />}
+                        {trava.texto}
+                        {ev.confidence != null && <span style={{ color: TEXTO, opacity: 0.7, fontWeight: 400 }}>({L('confiança', 'confidence', 'confianza')} {Math.round(ev.confidence)}/100)</span>}
+                      </p>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+
+            {temMaisEventos && (
+              <button
+                onClick={() => carregarEventos(paginaEventos + 1)}
+                disabled={carregandoEventos}
+                className="mt-3 text-xs font-semibold px-3 py-1.5 rounded-lg focus-visible:outline focus-visible:outline-2"
+                style={{ color: CIANO, background: `${CIANO}14`, border: `1px solid ${CIANO}40`, opacity: carregandoEventos ? 0.6 : 1 }}
+              >
+                {carregandoEventos ? L('Carregando...', 'Loading...', 'Cargando...') : L('Ver eventos anteriores', 'Show earlier events', 'Ver eventos anteriores')}
+              </button>
+            )}
+          </section>
 
           {/* TV — player grande de notícia em destaque, com canais */}
           <div className="max-w-3xl mx-auto rounded-2xl overflow-hidden" style={{ background: 'rgba(6,15,30,0.85)', border: `1px solid ${CIANO}35`, boxShadow: `0 0 40px ${CIANO}10` }}>
