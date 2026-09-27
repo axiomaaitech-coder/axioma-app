@@ -402,6 +402,8 @@ export default function NexusPage() {
             })}
           </div>
 
+          <DivisorNexus />
+
           {/* ECONOMIA MUNDIAL — petróleo (IPEA) e PIB/inflação dos parceiros (Banco Mundial) */}
           <EconomiaMundial lang={lang} temaClaro={temaClaro} dados={mundo} />
 
@@ -678,6 +680,8 @@ export default function NexusPage() {
           {/* O QUE O NEXUS FAZ POR VOCÊ — vitrine das funções que moram atrás de um
               clique; sem ela ninguém descobre o José, o E se...? e o Radar. */}
           <FuncoesNexus lang={lang} temaClaro={temaClaro} eventoRecente={eventos[0] ?? null} onAbrirEvento={setEventoAberto} />
+
+          <DivisorNexus />
 
           {/* SAÚDE DAS FONTES — se a coleta diária de cada fonte oficial deu certo. */}
           <SaudeFontes lang={lang} temaClaro={temaClaro} />

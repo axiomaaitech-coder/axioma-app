@@ -34,6 +34,10 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
     ? new Date(iso).toLocaleString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
     : '—'
   const comProblema = fontes?.filter((f) => f.saude === 'falhou' || f.saude === 'parada').length ?? 0
+  // Fonte que nunca rodou (cadastro antigo sem uso, ou notícia antes da 1ª
+  // coleta) não vira card — só uma linha no fim, pra não parecer defeito.
+  const ativas = fontes?.filter((f) => f.saude !== 'nunca') ?? []
+  const semColeta = fontes?.filter((f) => f.saude === 'nunca') ?? []
 
   return (
     <section className="relative overflow-hidden rounded-2xl p-4 axi-card-premium3d" style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
@@ -65,7 +69,7 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
                   : L('Todas as fontes ativas estão funcionando.', 'All active sources are working.', 'Todas las fuentes activas funcionan.')}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {fontes.map((f) => (
+                {ativas.map((f) => (
                   <div key={f.nome} className="rounded-xl p-3" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-bold break-words" style={{ color: TITULO }}>{f.nome}</p>
@@ -78,6 +82,11 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
                   </div>
                 ))}
               </div>
+              {semColeta.length > 0 && (
+                <p className="text-[11px] mt-3" style={{ color: CINZA }}>
+                  {L('Cadastradas, ainda sem nenhuma coleta', 'Registered, no collection yet', 'Registradas, aún sin recolección')}: <span style={{ color: TEXTO }}>{semColeta.map((f) => f.nome).join(', ')}</span>
+                </p>
+              )}
             </>
           )}
         </div>
