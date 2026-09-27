@@ -57,6 +57,11 @@ export default function ModuloLayout({
   titulo, subtitulo, onExportarPDF, exportando, labelBotao, onNovo, children, botaoExtra, aurora,
   headerFundo, corExportar, corNovo
 }: ModuloLayoutProps) {
+  // Cabeçalho = cartão azul com o nome do módulo em TODOS os módulos e nos 2
+  // temas (padronização 2026-09-27): no Claro vem o degradê do módulo
+  // (headerFundo); no Escuro, o mesmo azul-marinho profundo. Sempre com o
+  // efeito do card creme — borda/glow verde-menta + faixa verde no topo no hover.
+  const fundoCabecalho = headerFundo ?? "linear-gradient(180deg, #0a1628 0%, #0f2346 100%)";
   return (
     <div className="min-h-screen p-4 md:p-8" style={{ background: "var(--axi-bg)" }}>
 
@@ -65,16 +70,12 @@ export default function ModuloLayout({
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
-        className={`mb-6 md:mb-8${headerFundo ? " relative overflow-hidden rounded-2xl p-5 md:p-7 axi-card-premium3d" : ""}`}
-        style={headerFundo ? { background: headerFundo, border: BORDA_3D, boxShadow: SOMBRA_3D } : undefined}
+        className="mb-6 md:mb-8 relative overflow-hidden rounded-2xl p-5 md:p-7 axi-card-premium3d"
+        style={{ background: fundoCabecalho, border: BORDA_3D, boxShadow: SOMBRA_3D }}
       >
-        {/* Cabeçalho azul (tema Claro) com o mesmo efeito do card creme:
-            borda/glow verde-menta + faixa verde mais grossa no topo no hover. */}
-        {headerFundo && (
-          <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />
-        )}
-        <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: headerFundo ? "#fff" : "var(--axi-text-heading)" }}>{titulo}</h2>
-        <p className="text-sm" style={{ color: headerFundo ? "rgba(255,255,255,0.75)" : "var(--axi-text-secondary)" }}>{subtitulo}</p>
+        <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />
+        <h2 className="text-xl md:text-2xl font-bold mb-1" style={{ color: "#fff" }}>{titulo}</h2>
+        <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)" }}>{subtitulo}</p>
         <div className="flex gap-2 mt-4 flex-wrap">
           {onExportarPDF && (
             <motion.button

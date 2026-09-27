@@ -156,6 +156,8 @@ export default function DashboardPage() {
   // Letreiro de seção no Claro: bloco SÓLIDO azul-marinho (cor de bloco
   // estrutural da referência), título branco, subtítulo verde-menta.
   const letreiroSecaoClaro = { background: "#101b3d", border: "1px solid #101b3d" };
+  // Escuro: mesmo cartão azul-marinho do cabeçalho dos módulos (padronização 2026-09-27).
+  const letreiroSecaoEscuro = { background: "linear-gradient(180deg, #0a1628 0%, #0f2346 100%)", border: "1px solid rgba(46,204,155,0.45)" };
 
   const [carregando, setCarregando] = useState(true);
   const [exportando, setExportando] = useState(false);
@@ -256,17 +258,17 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ LETREIRO — DASHBOARD FINANCEIRO ══════ */}
-          <div className={"relative rounded-2xl overflow-hidden mt-2" + (claro ? " axi-card-premium3d" : "")}
-            style={claro ? letreiroSecaoClaro : { background: "linear-gradient(120deg, rgba(139,92,246,0.16), rgba(10,8,32,0.6) 55%, rgba(6,182,212,0.10))", border: "1px solid rgba(139,92,246,0.28)" }}>
-            {claro && <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />}
-            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: claro ? "#2ecc9b" : "linear-gradient(180deg, #8b5cf6, #06b6d4)", boxShadow: claro ? undefined : "0 0 18px #8b5cf6" }} />
+          <div className={"relative rounded-2xl overflow-hidden mt-2" + " axi-card-premium3d"}
+            style={claro ? letreiroSecaoClaro : letreiroSecaoEscuro}>
+            {<div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: "#2ecc9b" }} />
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">💼</span>
               <div>
                 <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dfTitulo}
                 </h2>
-                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: claro ? "#2ecc9b" : "#a5b4fc" }}>{tt.dfSub}</p>
+                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dfSub}</p>
               </div>
             </div>
           </div>
@@ -277,17 +279,17 @@ export default function DashboardPage() {
           </div>
 
           {/* ══════ LETREIRO — DASHBOARD COMERCIAL ══════ */}
-          <div className={"relative rounded-2xl overflow-hidden mt-4" + (claro ? " axi-card-premium3d" : "")}
-            style={claro ? letreiroSecaoClaro : { background: "linear-gradient(120deg, rgba(6,182,212,0.16), rgba(10,8,32,0.6) 55%, rgba(212,175,55,0.10))", border: "1px solid rgba(6,182,212,0.28)" }}>
-            {claro && <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />}
-            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: claro ? "#2ecc9b" : "linear-gradient(180deg, #06b6d4, #d4af37)", boxShadow: claro ? undefined : "0 0 18px #06b6d4" }} />
+          <div className={"relative rounded-2xl overflow-hidden mt-4" + " axi-card-premium3d"}
+            style={claro ? letreiroSecaoClaro : letreiroSecaoEscuro}>
+            {<div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: "#2ecc9b" }} />
             <div className="px-7 py-5 flex items-center gap-4">
               <span className="text-3xl">🚀</span>
               <div>
                 <h2 className="text-2xl md:text-[28px] font-black tracking-tight" style={{ fontFamily: "'Georgia','Times New Roman',serif", color: "#f8fafc", letterSpacing: "0.5px" }}>
                   {tt.dcTitulo}
                 </h2>
-                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: claro ? "#2ecc9b" : "#67e8f9" }}>{tt.dcSub}</p>
+                <p className="text-[11px] md:text-xs font-semibold mt-1 tracking-[0.18em] uppercase" style={{ color: "#2ecc9b" }}>{tt.dcSub}</p>
               </div>
             </div>
           </div>

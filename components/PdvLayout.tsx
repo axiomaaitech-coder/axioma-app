@@ -16,6 +16,7 @@ import { ReactNode, createContext, useContext, useEffect, useState } from "react
 import Link from "next/link";
 import { ArrowLeft, Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
+import { BORDA_3D, SOMBRA_3D } from "./CanvasBox";
 
 export type TemaPdv = "escuro" | "claro";
 
@@ -173,7 +174,10 @@ export default function PdvLayout({ titulo, subtitulo, voltarPara, aoVoltar, bot
         style={{ background: tokens.fundo }}
       >
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: "easeOut" }}
-          className={telaCheia ? "shrink-0 mb-3 rounded-2xl p-3 md:p-4" : "mb-6 md:mb-8 rounded-2xl p-4 md:p-6"} style={{ background: tokens.barraBg }}>
+          className={(telaCheia ? "shrink-0 mb-3 rounded-2xl p-3 md:p-4" : "mb-6 md:mb-8 rounded-2xl p-4 md:p-6") + " relative overflow-hidden axi-card-premium3d"}
+          style={{ background: tokens.barraBg, border: BORDA_3D, boxShadow: SOMBRA_3D }}>
+          {/* Mesmo efeito do cabeçalho de todos os módulos (ModuloLayout): borda/glow verde-menta + faixa no topo no hover. */}
+          <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: "#2ecc9b" }} />
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-start gap-3 min-w-0">
               {aoVoltar ? (
