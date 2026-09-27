@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import * as Sentry from '@sentry/nextjs'
 import crypto from 'crypto'
 import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIngest'
+import { detectarEventosSerie, textoEvento, type EventoDetectado } from '@/lib/nexusEventDetector'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -30,7 +31,7 @@ import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIng
 // ═══════════════════════════════════════════════════════════════
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60 // catálogo BCB (4 séries) + refresh dos 4 canais de notícia
+export const maxDuration = 60 // catálogo BCB (9 séries) + detector de eventos + refresh dos 4 canais de notícia
 
 type BcbPonto = { data: string; valor: string }
 
@@ -311,9 +312,107 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
   const noticias = await ingestaoNoticias(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, noticias })
+  return NextResponse.json({ sucesso, falha, detalhes, eventos, noticias })
+}
+
+// Etapa 3 — roda o detector (lib/nexusEventDetector.ts) em cima do histórico
+// JÁ gravado de cada série e faz upsert em nexus_global_event pela chave
+// determinística source_event_ref (índice único, NEXUS-ETAPA3-EVENTOS-SQL.txt).
+// Evidência (URL oficial do BCB) só é gravada pra evento novo — re-rodar o
+// cron não duplica prova. Melhor-esforço: falha aqui não derruba a resposta
+// da ingestão, só vira log/Sentry e aparece no resumo.
+const PONTOS_DETECCAO = 60
+
+async function detectarEGravarEventos(supabase: SupabaseClient, sourceId: string, catalogo: SerieCatalogo[]): Promise<{ detectados: number; novos: number; erro?: string }> {
+  try {
+    const detectados: EventoDetectado[] = []
+    for (const serie of catalogo) {
+      const { data, error } = await supabase
+        .from('nexus_economic_series')
+        .select('data_referencia, valor')
+        .eq('source_id', sourceId)
+        .eq('serie_codigo', serie.serie_codigo)
+        .order('data_referencia', { ascending: false })
+        .limit(PONTOS_DETECCAO)
+      if (error) throw new Error(`leitura da série ${serie.serie_codigo}: ${error.message}`)
+      const historico = (data ?? [])
+        .filter((l) => l.valor != null)
+        .map((l) => ({ data: l.data_referencia as string, valor: Number(l.valor) }))
+      detectados.push(...detectarEventosSerie(serie.serie_codigo, historico))
+    }
+    if (detectados.length === 0) return { detectados: 0, novos: 0 }
+
+    const refs = detectados.map((e) => e.source_event_ref)
+    const { data: existentes, error: erroExistentes } = await supabase
+      .from('nexus_global_event')
+      .select('source_event_ref')
+      .in('source_event_ref', refs)
+    if (erroExistentes) throw new Error(`leitura de eventos existentes: ${erroExistentes.message}`)
+    const jaExiste = new Set((existentes ?? []).map((e) => e.source_event_ref))
+
+    const agora = new Date().toISOString()
+    const linhas = detectados.map((e) => {
+      const texto = textoEvento(e.payload, 'pt')
+      return {
+        title: texto.titulo,
+        description: texto.descricao,
+        event_type: e.event_type,
+        category: e.category,
+        subcategory: e.subcategory,
+        country: 'BR',
+        source_id: sourceId,
+        source_event_ref: e.source_event_ref,
+        natureza: e.natureza,
+        published_at: `${e.data_ref}T00:00:00Z`,
+        observed_at: agora,
+        severity: e.severity,
+        relevance: e.severity,
+        confidence: e.confidence,
+        evidence_level: e.evidence_level,
+        status: 'active',
+        payload: e.payload,
+        updated_at: agora,
+      }
+    })
+
+    const { data: gravados, error: erroUpsert } = await supabase
+      .from('nexus_global_event')
+      .upsert(linhas, { onConflict: 'source_event_ref' })
+      .select('event_id, source_event_ref')
+    if (erroUpsert) throw new Error(`upsert de eventos: ${erroUpsert.message}`)
+
+    const porRef = new Map(detectados.map((e) => [e.source_event_ref, e]))
+    const evidencias = (gravados ?? [])
+      .filter((g) => !jaExiste.has(g.source_event_ref))
+      .map((g) => {
+        const e = porRef.get(g.source_event_ref)!
+        return {
+          event_id: g.event_id,
+          source_id: sourceId,
+          evidence_type: 'official_series',
+          referencia: `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${e.subcategory}/dados?formato=json`,
+          excerpt: `${e.payload.data_ref_anterior}: ${e.payload.valor_anterior} → ${e.payload.data_ref}: ${e.payload.valor_atual}`,
+          published_at: `${e.data_ref}T00:00:00Z`,
+          retrieved_at: agora,
+          confidence: e.confidence,
+          verification_status: 'official',
+        }
+      })
+    if (evidencias.length > 0) {
+      const { error: erroEvidencia } = await supabase.from('nexus_event_evidence').insert(evidencias)
+      if (erroEvidencia) throw new Error(`gravação de evidências: ${erroEvidencia.message}`)
+    }
+
+    return { detectados: detectados.length, novos: evidencias.length }
+  } catch (err) {
+    const motivo = err instanceof Error ? err.message : String(err)
+    console.error('[nexus/ingest/bcb] Falha no detector de eventos:', motivo)
+    Sentry.captureException(new Error(`[nexus/ingest/bcb] Falha no detector de eventos: ${motivo}`))
+    return { detectados: 0, novos: 0, erro: motivo }
+  }
 }
 
 // Força o refresh dos 4 canais de notícia (ignora cache) — melhor-esforço,
@@ -342,4 +441,4 @@ async function ingestaoNoticias(supabase: SupabaseClient): Promise<Record<string
 // Se o catálogo crescer muito (dezenas/centenas de séries), 30s de
 // maxDuration deixa de ser confortável — aí vira processamento em lote
 // (ex: cron dispara N chamadas menores, ou fila), não mais um loop único
-// aqui dentro. Não implementado agora porque hoje são 4 séries.
+// aqui dentro. Não implementado agora porque hoje são 9 séries.

@@ -1,0 +1,37 @@
+-- ============================================================================
+-- AXIOMA NEXUS — ETAPA 3: DETECTOR DE EVENTOS (2 ajustes em nexus_global_event)
+-- Rodar UMA VEZ no SQL Editor do Supabase. Idempotente (IF NOT EXISTS).
+-- Tabela está vazia hoje (nada gravava nela até esta etapa) — zero risco a dado.
+--
+-- 1) payload jsonb — números do evento (valor anterior/atual, variação, datas).
+--    A tela monta o texto em PT/EN/ES a partir daqui (lib/nexusEventDetector.ts
+--    → textoEvento), e o Joseph (Etapa 4) interpreta sem precisar reparsear
+--    título. title/description continuam gravados em PT como leitura humana.
+-- 2) índice ÚNICO em source_event_ref — chave determinística do detector
+--    (ex: bcb:432:selic_mudanca:2026-09-17). Permite o upsert idempotente:
+--    rodar o cron 2x no mesmo dia nunca duplica evento.
+-- 3) índice em published_at DESC — a tela lista "eventos mais recentes".
+-- ============================================================================
+
+BEGIN;
+
+ALTER TABLE public.nexus_global_event ADD COLUMN IF NOT EXISTS payload jsonb;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_nexus_global_event_source_event_ref
+  ON public.nexus_global_event (source_event_ref);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_global_event_published_desc
+  ON public.nexus_global_event (published_at DESC);
+
+COMMIT;
+
+-- VERIFICAÇÃO — deve listar a coluna payload e os 2 índices novos
+SELECT column_name, data_type FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'nexus_global_event' AND column_name = 'payload';
+SELECT indexname FROM pg_indexes
+  WHERE schemaname = 'public' AND tablename = 'nexus_global_event' ORDER BY indexname;
+
+-- ROLLBACK (só referência)
+-- DROP INDEX IF EXISTS public.idx_nexus_global_event_published_desc;
+-- DROP INDEX IF EXISTS public.uq_nexus_global_event_source_event_ref;
+-- ALTER TABLE public.nexus_global_event DROP COLUMN IF EXISTS payload;
