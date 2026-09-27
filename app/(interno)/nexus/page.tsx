@@ -92,18 +92,21 @@ function sparklineOption(historico: PontoSerie[], cor: string, temaClaro: boolea
 // mesmo visual, sem duplicar JSX.
 // Mesma caixa dos cards de indicador (CARD_NEXUS) — as duas grades 2x4 da
 // tela ficam com a mesma largura e altura.
-const CARD_NEXUS = 'rounded-2xl p-4 h-40 flex flex-col'
+const CARD_NEXUS = 'relative overflow-hidden rounded-2xl p-4 h-40 flex flex-col'
+// Faixa verde do efeito premium3d (aparece no hover) — em TODO card do Nexus, nos 2 temas.
+const BARRA_EFEITO = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 
 // compacto = versão da lista ampliada (modal), sem a altura fixa da grade.
 function CardMiniNoticia({ noticia, lang, localeData, onClick, temaClaro, compacto }: { noticia: NoticiaExibicao; lang: Idioma3; localeData: string; onClick: () => void; temaClaro: boolean; compacto?: boolean }) {
   const { CIANO, ROXOTV, CINZA, TITULO, PAINEL_BG } = PALETA[temaClaro ? 'xms' : 'dark']
-  const caixa = compacto ? 'rounded-2xl p-4 flex flex-col' : CARD_NEXUS
+  const caixa = compacto ? 'relative overflow-hidden rounded-2xl p-4 flex flex-col' : CARD_NEXUS
   return (
     <button
       onClick={onClick}
-      className={`${caixa} text-left w-full transition-colors focus-visible:outline focus-visible:outline-2${temaClaro ? ' axi-card-premium3d' : ' hover:brightness-125'}`}
+      className={`${caixa} text-left w-full transition-colors focus-visible:outline focus-visible:outline-2 axi-card-premium3d`}
       style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}
     >
+      {BARRA_EFEITO}
       <p className="flex items-center gap-1.5 text-xs font-bold mb-2 min-w-0" style={{ color: CINZA }}>
         <Newspaper size={13} className="shrink-0" style={{ color: ROXOTV }} aria-hidden />
         <span className="truncate">{noticia.fonte}</span>
@@ -165,7 +168,7 @@ export default function NexusPage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const { AZULC, CIANO, ROXOTV, CINZA, TEXTO, TITULO, PAINEL_BG, MODAL_BG, NESTED_BG, NESTED_BORDA } = PALETA[tema]
-  const classePremium3d = temaClaro ? ' axi-card-premium3d' : ''
+  const classePremium3d = ' axi-card-premium3d' // efeito nos 2 temas (pedido 2026-09-27)
   // Portal pro body mantendo o data-theme (fora da árvore do wrapper da página).
   const [montado, setMontado] = useState(false)
   useEffect(() => { setMontado(true) }, [])
@@ -173,7 +176,7 @@ export default function NexusPage() {
     <div data-theme={tema} style={{ fontFamily: 'var(--font-geist-sans), Arial, sans-serif' }}>{conteudo}</div>,
     document.body,
   )
-  const hoverCard = temaClaro ? ' axi-card-premium3d' : ' hover:brightness-125'
+  const hoverCard = ' axi-card-premium3d'
   // Selo "DEMONSTRAÇÃO" / avisos neutros — no Claro, navy sobre bege translúcido.
   const seloNeutro: CSSProperties = temaClaro
     ? { background: 'rgba(16,27,61,0.08)', color: '#101b3d', border: '1px solid rgba(16,27,61,0.15)' }
@@ -368,6 +371,7 @@ export default function NexusPage() {
               const fresh = traduzirFreshness(ind.freshness, lang)
               return (
                 <div key={ind.codigo} className={`${CARD_NEXUS}${classePremium3d}`} style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30` }}>
+                  {BARRA_EFEITO}
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-bold uppercase tracking-wide" style={{ color: CINZA }}>{ind.emoji} {ind.nome[lang]}</p>
                   </div>
@@ -423,6 +427,7 @@ export default function NexusPage() {
                       className={`${CARD_NEXUS} text-left w-full transition-colors focus-visible:outline focus-visible:outline-2${hoverCard}`}
                       style={{ background: PAINEL_BG, border: `1px solid ${CIANO}30`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
                     >
+                      {BARRA_EFEITO}
                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
@@ -458,7 +463,8 @@ export default function NexusPage() {
           {/* TV — player grande de notícia em destaque, com canais */}
           {/* No Claro a moldura da TV vira card creme; a "tela" (player) segue
               escura de propósito — é vídeo/foto com tarja de telejornal. */}
-          <div className={`max-w-3xl mx-auto rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: temaClaro ? PAINEL_BG : 'rgba(6,15,30,0.85)', border: `1px solid ${CIANO}35`, boxShadow: temaClaro ? undefined : `0 0 40px ${CIANO}10` }}>
+          <div className={`relative max-w-3xl mx-auto rounded-2xl overflow-hidden${classePremium3d}`} style={{ background: temaClaro ? PAINEL_BG : 'rgba(6,15,30,0.85)', border: `1px solid ${CIANO}35`, boxShadow: temaClaro ? undefined : `0 0 40px ${CIANO}10` }}>
+            {BARRA_EFEITO}
             <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <Radio size={16} style={{ color: CIANO }} />

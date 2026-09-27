@@ -69,7 +69,7 @@ export default function NexusSimulacoesPage() {
   const { tema } = useThemeAxioma()
   const temaClaro = tema === 'xms'
   const { CIANO, CINZA, TEXTO, TITULO, PAINEL_BG, MODAL_BG, NESTED_BG, NESTED_BORDA } = PALETA[tema]
-  const premium = temaClaro ? ' axi-card-premium3d' : ''
+  const premium = ' axi-card-premium3d' // efeito nos 2 temas (pedido 2026-09-27)
   const caixa: CSSProperties = { background: PAINEL_BG, border: `1px solid ${CIANO}30` }
   const aninhada: CSSProperties = { background: NESTED_BG, border: `1px solid ${NESTED_BORDA === 'transparent' ? 'rgba(255,255,255,0.06)' : NESTED_BORDA}` }
   const botaoUtil: CSSProperties = temaClaro ? VERDE_SOLIDO : { background: `${CIANO}18`, border: `1px solid ${CIANO}50`, color: CIANO }
@@ -252,7 +252,8 @@ export default function NexusSimulacoesPage() {
                   { l: L('Lucro por mês', 'Profit per month', 'Beneficio por mes'), v: ponto.lucroMensal },
                   { l: L('Caixa disponível', 'Available cash', 'Caja disponible'), v: ponto.caixaDisponivel },
                 ].map((k) => (
-                  <div key={k.l} className={`rounded-2xl p-4${premium}`} style={caixa}>
+                  <div key={k.l} className={`relative overflow-hidden rounded-2xl p-4${premium}`} style={caixa}>
+<div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                     <p className="text-xs font-bold mb-1" style={{ color: CINZA }}>{k.l}</p>
                     <p className="text-xl font-black" style={{ color: TITULO }}>{fBRL(k.v)}</p>
                   </div>
@@ -261,7 +262,8 @@ export default function NexusSimulacoesPage() {
             </section>
 
             {/* CONSTRUTOR "E SE...?" */}
-            <section className={`rounded-2xl p-4 sm:p-5${premium}`} style={caixa}>
+            <section className={`relative overflow-hidden rounded-2xl p-4 sm:p-5${premium}`} style={caixa}>
+<div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
               <h2 className="text-base font-bold mb-3" style={{ color: TITULO }}>
                 {editandoId ? L('Editando simulação', 'Editing simulation', 'Editando simulación') : L('E se...?', 'What if...?', '¿Y si...?')}
               </h2>
@@ -317,7 +319,8 @@ export default function NexusSimulacoesPage() {
 
             {/* RESULTADO */}
             {resultado && (
-              <section className={`rounded-2xl p-4 sm:p-5${premium}`} style={caixa}>
+              <section className={`relative overflow-hidden rounded-2xl p-4 sm:p-5${premium}`} style={caixa}>
+<div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                   <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('Resultado', 'Result', 'Resultado')}</h2>
                   {resultadoDesatualizado && <span className="text-xs font-semibold" style={{ color: NEG }}>{L('Você mudou os números — clique em Simular para atualizar antes de salvar.', 'You changed the numbers — click Simulate to update before saving.', 'Cambió los números — haga clic en Simular para actualizar antes de guardar.')}</span>}
@@ -388,7 +391,8 @@ export default function NexusSimulacoesPage() {
                     const d = deltaBase(s)
                     const icone = 'p-1.5 rounded-lg transition-colors ' + (temaClaro ? 'hover:bg-black/5' : 'hover:bg-white/10')
                     return (
-                      <div key={s.id} className={`rounded-2xl p-4 flex flex-col${premium}`} style={caixa}>
+                      <div key={s.id} className={`relative overflow-hidden rounded-2xl p-4 flex flex-col${premium}`} style={caixa}>
+<div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
                         <div className="flex items-start justify-between gap-2 mb-2">
                           <p className="text-sm font-bold leading-snug line-clamp-2" style={{ color: TITULO }}>{s.nome}</p>
                           <button onClick={() => alternarFavorita(s)} aria-label={L('Favoritar', 'Favorite', 'Favorito')} className={icone}>

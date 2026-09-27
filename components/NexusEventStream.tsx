@@ -70,9 +70,10 @@ export default function NexusEventStream() {
           initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.97 }}
           transition={{ duration: 0.35, ease: 'easeOut' }}
           role="status" aria-live="polite"
-          className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[340px] z-[65] rounded-2xl p-4${temaClaro ? ' axi-card-premium3d' : ''}`}
+          className={`fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[340px] z-[65] rounded-2xl p-4 overflow-hidden axi-card-premium3d`}
           style={{ background: PAINEL_BG, border: `1px solid ${ACENTO}55`, boxShadow: temaClaro ? '0 16px 40px -12px rgba(16,27,61,0.45)' : '0 16px 40px -12px rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
         >
+          <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
           <div className="flex items-start justify-between gap-2 mb-2">
             <p className="flex items-center gap-1.5 text-[11px] font-bold" style={{ color: ACENTO }}>
               <Globe2 size={13} aria-hidden /> Joseph · {L('Radar Global', 'Global Radar', 'Radar Global')}
