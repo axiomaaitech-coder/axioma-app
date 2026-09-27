@@ -156,6 +156,7 @@ export default function NexusPage() {
   const [temMaisEventos, setTemMaisEventos] = useState(false)
   const [carregandoEventos, setCarregandoEventos] = useState(true)
   const [erroEventos, setErroEventos] = useState(false)
+  const [eventoAberto, setEventoAberto] = useState<EventoNexus | null>(null)
   const [pausado, setPausado] = useState(false)
 
   useEffect(() => {
@@ -310,8 +311,10 @@ export default function NexusPage() {
 
           {/* EVENTOS DETECTADOS — Etapa 3: o que mudou de verdade nas séries
               oficiais, com natureza (fato/sinal/decisão) e Trava da Verdade. */}
-          <section className="rounded-2xl p-4 sm:p-5" style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30` }}>
-            <div className="mb-4">
+          {/* Sem caixa em volta: os cards ficam soltos na mesma grade 2x4 dos
+              indicadores e das notícias — mesma largura e altura (CARD_NEXUS). */}
+          <section>
+            <div className="mb-3 px-1">
               <h2 className="text-base font-bold" style={{ color: TITULO }}>{L('Eventos detectados', 'Detected events', 'Eventos detectados')}</h2>
               <p className="text-xs mt-0.5" style={{ color: TEXTO, opacity: 0.75 }}>
                 {L('Mudanças relevantes nos indicadores oficiais, percebidas automaticamente pelo Joseph, a inteligência do Nexus.', 'Relevant changes in official indicators, picked up automatically by Joseph, the Nexus intelligence.', 'Cambios relevantes en los indicadores oficiales, detectados automáticamente por Joseph, la inteligencia de Nexus.')}
@@ -323,32 +326,37 @@ export default function NexusPage() {
             ) : !carregandoEventos && eventos.length === 0 ? (
               <p className="text-sm" style={{ color: TEXTO }}>{L('Nenhuma mudança relevante nos indicadores oficiais por enquanto. O Joseph verifica todos os dias e avisa aqui quando algo se mover.', 'No relevant changes in official indicators yet. Joseph checks every day and will flag it here when something moves.', 'Ningún cambio relevante en los indicadores oficiales por ahora. Joseph revisa todos los días y avisará aquí cuando algo se mueva.')}</p>
             ) : (
-              <ul className="space-y-2.5">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {eventos.map((ev) => {
                   const nat = NATUREZA_EVENTO[ev.natureza] ?? NATUREZA_DESCONHECIDA
                   const imp = impactoEvento(ev.severity)
                   const trava = travaDaVerdade(ev.evidenceLevel, lang)
                   const texto = ev.payload ? textoEvento(ev.payload, lang) : { titulo: ev.tituloPt, descricao: ev.descricaoPt ?? '' }
                   return (
-                    <li key={ev.id} className="rounded-xl pl-4 pr-3 py-3" style={{ background: 'rgba(255,255,255,0.03)', borderLeft: `3px solid ${nat.cor}` }}>
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${nat.cor}1f`, color: nat.cor }}>{L(...nat.nome)}</span>
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${imp.cor}1a`, color: imp.cor }}>{L(...imp.nome)}</span>
+                    <button
+                      key={ev.id}
+                      onClick={() => setEventoAberto(ev)}
+                      className={`${CARD_NEXUS} text-left w-full transition-colors hover:brightness-125 focus-visible:outline focus-visible:outline-2`}
+                      style={{ background: 'rgba(10,20,36,0.7)', border: `1px solid ${CIANO}30`, borderTop: `3px solid ${nat.cor}` }}
+                    >
+                      <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: `${nat.cor}1f`, color: nat.cor }}>{L(...nat.nome)}</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: `${imp.cor}1a`, color: imp.cor }}>{L(...imp.nome)}</span>
+                      </div>
+                      <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{texto.titulo}</h4>
+                      <div className="flex items-center justify-between gap-2 mt-auto pt-2">
+                        <span className="flex items-center gap-1 text-[10px] font-semibold min-w-0" style={{ color: trava.nivel === 'oficial' ? '#34d399' : '#fbbf24' }}>
+                          {trava.nivel === 'oficial' ? <ShieldCheck size={12} className="shrink-0" aria-hidden /> : <ShieldAlert size={12} className="shrink-0" aria-hidden />}
+                          <span className="truncate">{trava.texto}</span>
+                        </span>
                         {ev.publicadoEm && (
-                          <span className="text-[11px] ml-auto" style={{ color: TEXTO, opacity: 0.7 }}>{new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</span>
+                          <span className="text-[10px] shrink-0" style={{ color: CINZA }}>{new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</span>
                         )}
                       </div>
-                      <p className="text-sm font-bold leading-snug" style={{ color: TITULO }}>{texto.titulo}</p>
-                      {texto.descricao && <p className="text-xs mt-1 leading-relaxed" style={{ color: TEXTO }}>{texto.descricao}</p>}
-                      <p className="flex flex-wrap items-center gap-1.5 text-[11px] mt-2 font-semibold" style={{ color: trava.nivel === 'oficial' ? '#34d399' : '#fbbf24' }}>
-                        {trava.nivel === 'oficial' ? <ShieldCheck size={13} aria-hidden /> : <ShieldAlert size={13} aria-hidden />}
-                        {trava.texto}
-                        {ev.confidence != null && <span style={{ color: TEXTO, opacity: 0.7, fontWeight: 400 }}>({L('confiança', 'confidence', 'confianza')} {Math.round(ev.confidence)}/100)</span>}
-                      </p>
-                    </li>
+                    </button>
                   )
                 })}
-              </ul>
+              </div>
             )}
 
             {temMaisEventos && (
@@ -545,6 +553,59 @@ export default function NexusPage() {
 
         </div>
       )}
+
+      {/* MODAL DO EVENTO — base do modal executivo do Joseph (Etapa 4 soma a
+          leitura interpretada, cenários e "o que fazer" aqui dentro). */}
+      <AnimatePresence>
+        {eventoAberto && (() => {
+          const ev = eventoAberto
+          const nat = NATUREZA_EVENTO[ev.natureza] ?? NATUREZA_DESCONHECIDA
+          const imp = impactoEvento(ev.severity)
+          const trava = travaDaVerdade(ev.evidenceLevel, lang)
+          const texto = ev.payload ? textoEvento(ev.payload, lang) : { titulo: ev.tituloPt, descricao: ev.descricaoPt ?? '' }
+          return (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+              onClick={() => setEventoAberto(null)}
+            >
+              <motion.div
+                role="dialog" aria-modal="true" aria-labelledby="nexus-evento-titulo"
+                initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
+                transition={{ duration: 0.22 }}
+                className="w-full max-w-lg rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
+                style={{ background: 'linear-gradient(135deg, #0a1628 0%, #060f1e 100%)', border: `1px solid ${nat.cor}50`, borderTop: `3px solid ${nat.cor}` }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${nat.cor}1f`, color: nat.cor }}>{L(...nat.nome)}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${imp.cor}1a`, color: imp.cor }}>{L(...imp.nome)}</span>
+                  </div>
+                  <button onClick={() => setEventoAberto(null)} aria-label={L('Fechar', 'Close', 'Cerrar')} className="p-1 rounded-lg hover:bg-white/10 shrink-0">
+                    <X size={18} style={{ color: CINZA }} />
+                  </button>
+                </div>
+                <h3 id="nexus-evento-titulo" className="text-lg font-black leading-snug mb-2" style={{ color: TITULO }}>{texto.titulo}</h3>
+                {texto.descricao && <p className="text-sm leading-relaxed mb-4" style={{ color: TEXTO }}>{texto.descricao}</p>}
+                <div className="rounded-xl p-3 space-y-1.5" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: trava.nivel === 'oficial' ? '#34d399' : '#fbbf24' }}>
+                    {trava.nivel === 'oficial' ? <ShieldCheck size={14} aria-hidden /> : <ShieldAlert size={14} aria-hidden />}
+                    {trava.texto}
+                  </p>
+                  {ev.confidence != null && (
+                    <p className="text-xs" style={{ color: TEXTO }}>{L('Confiança', 'Confidence', 'Confianza')}: {Math.round(ev.confidence)}/100{trava.nivel === 'oficial' && ` — ${L('série oficial do Banco Central, uma fonte.', 'official Central Bank series, single source.', 'serie oficial del Banco Central, una fuente.')}`}</p>
+                  )}
+                  {ev.publicadoEm && (
+                    <p className="text-xs" style={{ color: TEXTO }}>{L('Data de referência', 'Reference date', 'Fecha de referencia')}: {new Date(ev.publicadoEm).toLocaleDateString(localeData, { timeZone: 'UTC' })}</p>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )
+        })()}
+      </AnimatePresence>
 
       {/* MODAL DA NOTÍCIA — mesmo padrão de overlay do Centro de Compartilhamento */}
       <AnimatePresence>
