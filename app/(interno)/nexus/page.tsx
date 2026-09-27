@@ -654,7 +654,7 @@ export default function NexusPage() {
           return (
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 flex items-center justify-center z-[70] p-4"
               style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
               onClick={() => setEventoAberto(null)}
             >
@@ -662,7 +662,7 @@ export default function NexusPage() {
                 role="dialog" aria-modal="true" aria-labelledby="nexus-evento-titulo"
                 initial={{ scale: 0.95, opacity: 0, y: 16 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 16 }}
                 transition={{ duration: 0.22 }}
-                className="w-full max-w-2xl rounded-2xl p-5 max-h-[90vh] overflow-y-auto"
+                className="w-full max-w-2xl rounded-2xl p-5 h-[85vh] overflow-y-auto"
                 style={{ background: MODAL_BG, border: `1px solid ${temaClaro ? 'rgba(16,27,61,0.12)' : `${nat.cor}50`}`, borderTop: `3px solid ${temaClaro ? nat.claroFundo : nat.cor}` }}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -701,7 +701,7 @@ export default function NexusPage() {
         {noticiaAberta && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 flex items-center justify-center z-[70] p-4"
             style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
             onClick={() => setNoticiaAberta(null)}
           >
@@ -766,7 +766,7 @@ export default function NexusPage() {
         {listaAmpliadaAberta && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 flex items-center justify-center z-[70] p-4"
             style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
             onClick={() => setListaAmpliadaAberta(false)}
           >
