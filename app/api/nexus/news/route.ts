@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -83,8 +83,14 @@ export async function GET(request: NextRequest) {
 
     const cacheExpirado = forcarRefresh || !ultima || Date.now() - new Date(ultima.created_at as string).getTime() > CACHE_HORAS * 3600000
 
+    // Cache vencido mas já tem manchete guardada: responde na hora com o que
+    // tem e atualiza por trás (after) — ninguém espera os sites de notícia.
+    // Só a 1ª busca do canal (nada guardado) ou ?refresh=1 esperam.
+    // ponytail: sem manchete nova nos feeds o created_at não muda e o cache
+    // segue "vencido" — cada abertura dispara 1 atualização em 2º plano;
+    // guardar a hora da última busca por canal se isso pesar.
     let motivoBusca: MotivoDemo | undefined
-    if (cacheExpirado) {
+    const buscar = async () => {
       try {
         await buscarEGravarFeeds(supabase, canal)
       } catch (err) {
@@ -96,6 +102,8 @@ export async function GET(request: NextRequest) {
         }
       }
     }
+    if (cacheExpirado && (forcarRefresh || !ultima)) await buscar()
+    else if (cacheExpirado) after(buscar)
 
     return NextResponse.json(await lerDoBanco(supabase, canal, motivoBusca))
   } catch (err) {
