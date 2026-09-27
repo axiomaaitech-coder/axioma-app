@@ -1291,6 +1291,11 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Fontes mundiais gratuitas testadas (sem mensalidade, sem cadastro):** Banco Mundial (PIB/inflação por país — OK), IPEA/EIA Brent diário (OK, US$ 114,89 em 22/09). GDELT (conflitos/acordos) não conectou do ambiente local — testar do servidor.
 **Próximo:** ligar Banco Mundial + petróleo (IPEA) + GDELT na coleta, pra o José cruzar mundo × Brasil × empresa.
 
+## 3-BK. Nexus Etapa 8 — Plano do José para a empresa (1-3, 4-7, 8-10 anos) — testado e aprovado (2026-09-27)
+3 cards dentro do painel do José → /api/nexus/plano (Claude, sessão do usuário + RLS por empresa) lê caixa, receitas, cada custo pelo nome, dívidas, fôlego e margem (lucro pelo mesmo montarDRE das Simulações), cruza com a economia do Brasil e do mundo e devolve: veredito, sobrevivência, economizar, cortar, crescer, metas, gatilhos, confiança, limites. SQLs NEXUS-ETAPA7 (nexus_briefing) e NEXUS-ETAPA8 (nexus_plano_empresa) rodados e verificados pelo Elias. **Testado no ar e aprovado pelo Elias**: painel executivo gerado (honesto sobre falta de dado estrangeiro); plano 1-3 anos citou custos pelo nome e apontou possível aluguel duplicado.
+**Anotado:** consultas ao Supabase levando 2-4s cada (inclusive as simples) — investigar desempenho do banco.
+**Próximo:** fontes mundiais gratuitas (Banco Mundial, petróleo IPEA, GDELT) pra o José cruzar mundo × empresa.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
