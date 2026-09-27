@@ -129,6 +129,12 @@ body {
   opacity: 1;
   height: 4px !important;
 }
+/* Card dentro de card: hover no de fora não acende a barra dos de dentro —
+   cada card interno acende só no próprio hover. */
+.axi-card-premium3d:hover .axi-card-premium3d:not(:hover) .axi-card-premium3d-bar {
+  opacity: 0;
+  height: 3px !important;
+}
 @media (prefers-reduced-motion: reduce) {
   .axi-card-premium3d, .axi-card-premium3d .axi-card-premium3d-bar { transition: none; }
 }
