@@ -1,0 +1,36 @@
+-- ============================================================================
+-- AXIOMA NEXUS — ETAPA 7: PAINEL EXECUTIVO DO JOSÉ (tabela nova nexus_briefing)
+-- Rodar UMA VEZ no SQL Editor do Supabase. Idempotente. Não mexe em nada existente.
+-- Uma síntese por dia e idioma, gerada 1x (cron/rota com service_role) e lida
+-- por todos os usuários logados. Dado público (não é da empresa): sem empresa_id,
+-- leitura pra authenticated, nenhuma policy de escrita (só service_role grava).
+-- ============================================================================
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.nexus_briefing (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  data        date NOT NULL,
+  lang        text NOT NULL CHECK (lang IN ('pt','en','es')),
+  conteudo    jsonb NOT NULL,
+  modelo      text,
+  gerado_em   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (data, lang)
+);
+
+ALTER TABLE public.nexus_briefing ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_briefing_select ON public.nexus_briefing;
+CREATE POLICY nexus_briefing_select ON public.nexus_briefing
+  FOR SELECT TO authenticated
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_nexus_briefing_lang_data ON public.nexus_briefing (lang, data DESC);
+
+COMMIT;
+
+-- VERIFICAÇÃO
+SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='nexus_briefing' ORDER BY ordinal_position;
+
+-- ROLLBACK (só referência)
+-- DROP TABLE IF EXISTS public.nexus_briefing;

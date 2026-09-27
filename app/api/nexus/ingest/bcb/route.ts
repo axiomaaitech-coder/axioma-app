@@ -6,6 +6,7 @@ import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIng
 import { detectarEventosSerie, textoEvento, type EventoDetectado } from '@/lib/nexusEventDetector'
 import { calcularFreshness } from '@/lib/nexusFreshness'
 import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
+import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -293,16 +294,20 @@ export async function GET(request: NextRequest) {
 
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
   const joseph = await preGerarAnalisesJoseph(supabase)
+  // Etapa 7 — painel executivo do José de hoje (PT), depois das análises.
+  let painel: string
+  try { painel = (await obterOuGerarBriefing(supabase, 'pt'))?.data ?? 'sem dados' }
+  catch (err) { painel = err instanceof Error ? err.message : String(err); console.error('[nexus/ingest/bcb] Falha no painel executivo:', painel) }
   const noticias = await ingestaoNoticias(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, eventos, joseph, noticias })
+  return NextResponse.json({ sucesso, falha, detalhes, eventos, joseph, painel, noticias })
 }
 
 // Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)
 // dos eventos mais recentes ainda sem análise, pra ninguém esperar ao abrir.
 // Teto de 3 por rodada: custo e tempo previsíveis; o resto é gerado sob
 // demanda por /api/nexus/joseph. Melhor-esforço, evento a evento.
-const MAX_ANALISES_POR_RODADA = 3
+const MAX_ANALISES_POR_RODADA = 2 // cabe no maxDuration de 300s junto com o painel executivo (Etapa 7)
 
 async function preGerarAnalisesJoseph(supabase: SupabaseClient): Promise<{ geradas: number; erro?: string }> {
   try {
