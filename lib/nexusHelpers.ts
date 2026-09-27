@@ -268,3 +268,33 @@ export async function obterSaudeFontes(): Promise<FonteSaude[]> {
     saude: calcularSaudeFonte(f.active as boolean, f.last_success as string | null, f.last_failure as string | null),
   }));
 }
+
+// ─── Placar do José (nexus_previsao, pública, só leitura — Etapa 9) ───
+export type PrevisaoJose = {
+  id: string; serie: string; horizonte: number; direcao: "sobe" | "cai" | "estavel"; confianca: number | null;
+  motivo: { pt: string; en: string; es: string } | null; valorBase: number; dataBase: string; dataAlvo: string;
+  status: "aberta" | "acertou" | "errou" | "sem_dado"; valorReal: number | null;
+};
+export type PlacarJose = { acertos: number; erros: number; abertas: number; previsoes: PrevisaoJose[] };
+
+export async function obterPlacarJose(): Promise<PlacarJose> {
+  // Contagens no banco (head: true), lista só das 24 mais recentes (2 semanas).
+  const conta = (status: string) => supabase.from("nexus_previsao").select("id", { count: "exact", head: true }).eq("status", status);
+  const [a, e, ab, lista] = await Promise.all([
+    conta("acertou"), conta("errou"), conta("aberta"),
+    supabase.from("nexus_previsao").select("id, serie_codigo, horizonte_dias, direcao, confianca, motivo, valor_base, data_base, data_alvo, status, valor_real")
+      .order("semana", { ascending: false }).order("serie_codigo").order("horizonte_dias").limit(24),
+  ]);
+  const erro = a.error ?? e.error ?? ab.error ?? lista.error;
+  if (erro) throw erro;
+  return {
+    acertos: a.count ?? 0, erros: e.count ?? 0, abertas: ab.count ?? 0,
+    previsoes: (lista.data ?? []).map((l) => ({
+      id: l.id as string, serie: l.serie_codigo as string, horizonte: l.horizonte_dias as number,
+      direcao: l.direcao as PrevisaoJose["direcao"], confianca: l.confianca as number | null,
+      motivo: l.motivo as PrevisaoJose["motivo"], valorBase: Number(l.valor_base), dataBase: l.data_base as string,
+      dataAlvo: l.data_alvo as string, status: l.status as PrevisaoJose["status"],
+      valorReal: l.valor_real == null ? null : Number(l.valor_real),
+    })),
+  };
+}

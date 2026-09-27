@@ -1307,6 +1307,12 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 Faixa "Saúde das fontes" no fim do /nexus (SaudeFontes.tsx): card sempre visível explicando a função + "Ver fontes" abre lista com cada fonte (Funcionando / Falhou na última tentativa / Sem atualizar há mais de 1 dia / Ainda não coletou / Desligada), último sucesso e última falha. Lê nexus_source (last_success/last_failure já existiam — sem SQL novo). Régua pura calcularSaudeFonte em lib/nexusFreshness.ts (36h de tolerância pro cron diário), self-check `node scripts/check-nexus-saude-fontes.mjs`. Notícias passaram a gravar last_success/last_failure por fonte (antes só BCB/IPEA/Banco Mundial gravavam). Elias confirmou que a faixa Economia mundial aparece após refresh.
 **Próximo:** memória de previsões (previsto × realizado) — vai precisar de SQL.
 
+## 3-BN. Nexus Etapa 9 — Placar do José (previsto × realizado) (2026-09-27)
+Saúde das fontes: cada fonte abre o site oficial (testado e aprovado pelo Elias); divisórias antes de Economia mundial e Saúde das fontes.
+**Placar do José:** o painel diário em PT passa a devolver também 12 previsões conferíveis (dólar, euro, Selic, IPCA mensal, desemprego, Brent × 30/90 dias: sobe/cai/estável, confiança, motivo em pt/en/es). Gravadas 1x por semana em nexus_previsao (valor de partida vem do banco, não da IA); o cron diário confere as vencidas com o dado oficial (acertou/errou; sem dado novo em 60 dias após o prazo = sem_dado). Regra de "estável" por série em lib/nexusPrevisoes.ts, self-check `node scripts/check-nexus-previsoes.mjs`. Card "Placar do José" logo abaixo do painel executivo: % de acertos, aguardando, erros, lista das previsões. Tudo em 3 idiomas (regra inegociável do Elias).
+**Pendente: Elias rodar `NEXUS-ETAPA9-PREVISOES-SQL.txt`.** Sem ele o painel segue normal e o placar mostra aviso.
+**Próximo:** GDELT (conflitos/acordos) testado do servidor; investigar lentidão do banco (2-4s por consulta).
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 

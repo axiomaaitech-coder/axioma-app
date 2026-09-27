@@ -20,6 +20,7 @@ import { PainelExecutivo } from './PainelExecutivo'
 import { DivisorNexus } from './DivisorNexus'
 import { EconomiaMundial } from './EconomiaMundial'
 import { SaudeFontes } from './SaudeFontes'
+import { PlacarJose } from './PlacarJose'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
 import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
@@ -411,6 +412,11 @@ export default function NexusPage() {
 
           {/* PAINEL EXECUTIVO DO JOSÉ — Etapa 7: síntese diária logo abaixo dos indicadores. */}
           <PainelExecutivo lang={lang} temaClaro={temaClaro} />
+
+          <DivisorNexus />
+
+          {/* PLACAR DO JOSÉ — Etapa 9: previsto × realizado, conferido com dado oficial. */}
+          <PlacarJose lang={lang} temaClaro={temaClaro} />
 
           <DivisorNexus />
 

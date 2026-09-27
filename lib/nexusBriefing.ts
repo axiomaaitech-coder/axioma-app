@@ -11,6 +11,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
+import { SERIES_PREVISAO, HORIZONTES_PREVISAO, ultimosValoresPrevisao, registrarPrevisoes, type PrevisaoIA } from './nexusPrevisoes'
 
 type Bloco = { titulo: string; texto: string }
 type Item = { titulo: string; texto: string; gravidade: 'alta' | 'media' | 'baixa' }
@@ -31,6 +32,7 @@ export type BriefingJose = {
   confianca_geral: number
   base_usada: string[]
   limitacoes: string[]
+  previsoes?: PrevisaoIA[] // só no PT (Etapa 9 — memória de previsões)
 }
 
 const s = { type: 'string' }
@@ -50,6 +52,28 @@ const SCHEMA = {
     base_usada: { type: 'array', items: s },
     limitacoes: { type: 'array', items: s },
   },
+}
+
+// PT ganha as previsões conferíveis (direção em 30/90 dias) — uma lista só, não
+// uma por idioma, pra o placar não contar a mesma previsão 3 vezes. O motivo
+// já vem nos 3 idiomas (sistema trilíngue, regra inegociável).
+const PREVISAO = {
+  type: 'object', additionalProperties: false, required: ['serie_codigo', 'horizonte_dias', 'direcao', 'confianca', 'motivo'],
+  properties: {
+    serie_codigo: { type: 'string', enum: SERIES_PREVISAO.map((x) => x.codigo) },
+    horizonte_dias: { type: 'integer', enum: [...HORIZONTES_PREVISAO] },
+    direcao: { type: 'string', enum: ['sobe', 'cai', 'estavel'] },
+    confianca: { type: 'integer' },
+    motivo: { type: 'object', additionalProperties: false, required: ['pt', 'en', 'es'], properties: { pt: s, en: s, es: s } },
+  },
+}
+const SCHEMA_PT = { ...SCHEMA, required: [...SCHEMA.required, 'previsoes'], properties: { ...SCHEMA.properties, previsoes: { type: 'array', items: PREVISAO } } }
+
+async function pedidoPrevisoes(supabase: SupabaseClient): Promise<string> {
+  const ultimos = await ultimosValoresPrevisao(supabase)
+  const linhas = SERIES_PREVISAO.filter((x) => ultimos.has(x.codigo))
+    .map((x) => `- ${x.codigo} | ${x.nome.pt}: ${ultimos.get(x.codigo)!.valor} (ref. ${ultimos.get(x.codigo)!.data}) — ${x.regra}`).join('\n')
+  return `\n\nPREVISÕES CONFERÍVEIS ("previsoes"): para CADA série abaixo, uma previsão em 30 e outra em 90 dias: direção do último dado publicado na data-alvo em relação ao valor atual (sobe/cai/estavel, pela regra de estável de cada série), confiança 0-100 honesta e motivo em até 25 palavras escrito em português (pt), inglês (en) e espanhol (es). Elas serão conferidas com o dado oficial e viram o seu placar público de acertos — prefira "estavel" quando não houver sinal claro.\n${linhas}`
 }
 
 const NOME_IDIOMA: Record<IdiomaJoseph, string> = { pt: 'português do Brasil', en: 'English', es: 'español' }
@@ -107,14 +131,14 @@ export class FalhaBriefing extends Error {}
 export async function gerarBriefing(supabase: SupabaseClient, lang: IdiomaJoseph): Promise<BriefingJose> {
   if (!process.env.ANTHROPIC_API_KEY) throw new FalhaBriefing('ANTHROPIC_API_KEY ausente')
   const client = new Anthropic()
-  const entrada = await montarContextoMundo(supabase)
+  const entrada = await montarContextoMundo(supabase) + (lang === 'pt' ? await pedidoPrevisoes(supabase) : '')
   const params = {
     model: MODELO_JOSEPH,
     max_tokens: 16000,
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
     system: [{ type: 'text', text: SISTEMA, cache_control: { type: 'ephemeral' } }],
-    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
+    output_config: { format: { type: 'json_schema', schema: lang === 'pt' ? SCHEMA_PT : SCHEMA } },
     messages: [{ role: 'user', content: `Idioma da resposta: ${NOME_IDIOMA[lang]}.\nData de hoje: ${new Date().toISOString().slice(0, 10)}.\n\n${entrada}` }],
   }
   // `fallbacks` ainda não está nos tipos do SDK instalado (0.104) — cast só aqui.
@@ -140,6 +164,8 @@ export async function obterOuGerarBriefing(supabase: SupabaseClient, lang: Idiom
     const conteudo = await gerarBriefing(supabase, lang)
     const { error } = await supabase.from('nexus_briefing').upsert({ data: hoje(), lang, conteudo, modelo: MODELO_JOSEPH, gerado_em: new Date().toISOString() }, { onConflict: 'data,lang' })
     if (error) throw new FalhaBriefing(`gravação: ${error.message}`)
+    // Melhor-esforço: sem a tabela da Etapa 9 (SQL não rodado) o painel segue normal.
+    if (conteudo.previsoes?.length) await registrarPrevisoes(supabase, conteudo.previsoes).catch((e) => console.error('[nexusBriefing] previsões não gravadas:', e instanceof Error ? e.message : e))
     return { data: hoje(), conteudo }
   } catch (err) {
     if (ultimo) return { data: ultimo.data as string, conteudo: ultimo.conteudo as BriefingJose }

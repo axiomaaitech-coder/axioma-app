@@ -1,0 +1,49 @@
+-- ============================================================================
+-- AXIOMA NEXUS — ETAPA 9: MEMÓRIA DE PREVISÕES DO JOSÉ (tabela nova nexus_previsao)
+-- Rodar UMA VEZ no SQL Editor do Supabase. Idempotente. Não mexe em nada existente.
+-- O José registra 1x por semana a direção que espera (sobe/cai/estável) de 6
+-- indicadores em 30 e 90 dias; o cron diário confere quando o prazo vence e
+-- marca acertou/errou com o valor oficial. Dado público (não é da empresa):
+-- sem empresa_id, leitura pra authenticated, só service_role grava.
+-- ============================================================================
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS public.nexus_previsao (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  semana          date NOT NULL,              -- segunda-feira da semana em que foi feita
+  serie_codigo    text NOT NULL,
+  horizonte_dias  int  NOT NULL CHECK (horizonte_dias IN (30, 90)),
+  direcao         text NOT NULL CHECK (direcao IN ('sobe','cai','estavel')),
+  confianca       int,
+  motivo          jsonb,                      -- {pt, en, es}
+  valor_base      numeric NOT NULL,
+  data_base       date NOT NULL,              -- data de referência do valor_base
+  data_alvo       date NOT NULL,
+  status          text NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta','acertou','errou','sem_dado')),
+  valor_real      numeric,
+  data_real       date,
+  conferida_em    timestamptz,
+  criada_em       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (semana, serie_codigo, horizonte_dias)
+);
+
+ALTER TABLE public.nexus_previsao ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS nexus_previsao_select ON public.nexus_previsao;
+CREATE POLICY nexus_previsao_select ON public.nexus_previsao
+  FOR SELECT TO authenticated
+  USING (true);
+
+-- conferência diária: só as abertas com prazo vencido
+CREATE INDEX IF NOT EXISTS idx_nexus_previsao_aberta_alvo ON public.nexus_previsao (data_alvo) WHERE status = 'aberta';
+-- tela: mais recentes primeiro
+CREATE INDEX IF NOT EXISTS idx_nexus_previsao_semana ON public.nexus_previsao (semana DESC);
+
+COMMIT;
+
+-- VERIFICAÇÃO (deve listar as colunas acima)
+SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='nexus_previsao' ORDER BY ordinal_position;
+
+-- ROLLBACK (só referência)
+-- DROP TABLE IF EXISTS public.nexus_previsao;

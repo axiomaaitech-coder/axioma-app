@@ -8,6 +8,7 @@ import { calcularFreshness } from '@/lib/nexusFreshness'
 import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 import { obterOuGerarBriefing } from '@/lib/nexusBriefing'
 import { limparDadosVencidos } from '@/lib/nexusAuditoria'
+import { conferirPrevisoes } from '@/lib/nexusPrevisoes'
 import { ingerirBrent, ingerirBancoMundial, SERIE_BRENT } from '@/lib/nexusFontesMundo'
 
 // ═══════════════════════════════════════════════════════════════
@@ -298,6 +299,8 @@ export async function GET(request: NextRequest) {
   const mundo: Record<string, string> = {}
   try { mundo.brent = await ingerirBrent(supabase) } catch (err) { mundo.brent = `erro: ${err instanceof Error ? err.message : String(err)}` }
   try { mundo.bancoMundial = await ingerirBancoMundial(supabase) } catch (err) { mundo.bancoMundial = `erro: ${err instanceof Error ? err.message : String(err)}` }
+  // Etapa 9 — confere as previsões do José com prazo vencido (dado do dia já coletado).
+  const previsoes = await conferirPrevisoes(supabase)
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
   const joseph = await preGerarAnalisesJoseph(supabase)
   // Etapa 7 — painel executivo do José de hoje (PT), depois das análises.
@@ -308,7 +311,7 @@ export async function GET(request: NextRequest) {
   // Prazos de guarda (lib/nexusRetencao.ts): apaga plano > 90d, painel > 180d, auditoria > 365d.
   const limpeza = await limparDadosVencidos(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, mundo, eventos, joseph, painel, noticias, limpeza })
+  return NextResponse.json({ sucesso, falha, detalhes, mundo, previsoes, eventos, joseph, painel, noticias, limpeza })
 }
 
 // Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)
