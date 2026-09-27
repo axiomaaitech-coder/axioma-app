@@ -234,13 +234,13 @@ export default function DashboardPage() {
               <img src="/logo-aitech.png" alt="Axioma AI.Tech" style={{ width: 56, height: 56, objectFit: "contain" }} />
               <div>
                 <p className="text-xl md:text-2xl font-black tracking-wide" style={{ color: "#f1f5f9" }}>AXIOMA</p>
-                <p className="text-[10px] md:text-xs font-bold tracking-[0.3em]" style={{ color: "#c4b5fd" }}>AI.TECH</p>
+                <p className="text-[10px] md:text-xs font-bold tracking-[0.3em]" style={{ color: claro ? "#2ecc9b" : "#c4b5fd" }}>AI.TECH</p>
               </div>
             </div>
             <div className="absolute inset-0 z-10 flex items-end justify-between px-8 md:px-14 pb-8">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black" style={{ color: "#f1f5f9" }}>
-                  {saudacao}, <span style={{ color: "#c4b5fd" }}>{nomeUsuario}</span>
+                  {saudacao}, <span style={{ color: claro ? "#2ecc9b" : "#c4b5fd" }}>{nomeUsuario}</span>
                 </h1>
                 {empresaNome && <p className="text-base mt-2 font-semibold" style={{ color: "#e2e8f0" }}>🏢 {empresaNome}</p>}
                 <p className="text-sm mt-3 font-medium" style={{ color: "#94a3b8" }}>{tt.tagline}</p>
