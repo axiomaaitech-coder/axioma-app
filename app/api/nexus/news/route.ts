@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { buscarEGravarFeeds, FeedError, CANAIS_FONTES, FONTES_RSS_ATIVAS, limiteDoCanal, type MotivoDemo } from '@/lib/nexusNewsIngest'
 
 // ═══════════════════════════════════════════════════════════════
@@ -46,6 +48,17 @@ type RespostaRota = {
 const CACHE_HORAS = 4
 
 export async function GET(request: NextRequest) {
+  // Só usuário logado — a rota grava no banco com service_role (?refresh=1),
+  // não pode ficar aberta pra qualquer um na internet.
+  const cookieStore = await cookies()
+  const auth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookieStore.getAll() }, setAll() { /* rota só de leitura, não precisa renovar sessão */ } } }
+  )
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
   const canal = request.nextUrl.searchParams.get('canal') || ''
   if (!CANAIS_FONTES[canal]) {
     return NextResponse.json({ error: `canal inválido: ${canal}` }, { status: 400 })

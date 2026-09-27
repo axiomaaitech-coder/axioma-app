@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import * as Sentry from '@sentry/nextjs'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+// Modelo vem do navegador — só aceita os da lista, qualquer outro cai no
+// padrão (impede alguém de forçar um modelo caro e gastar o crédito).
+const MODELOS_CLAUDE = ['claude-sonnet-5', 'claude-haiku-4-5-20251001']
+const MODELOS_OPENAI = ['gpt-4o-mini', 'gpt-5.6-luna']
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -13,6 +20,17 @@ const AVISO_IDENTIDADE = 'Nunca se identifique como uma IA, como Claude, como An
 type Mensagem = { role: 'user' | 'assistant'; content: string }
 
 export async function POST(request: NextRequest) {
+  // Só usuário logado — sem isso qualquer pessoa na internet gastava o
+  // crédito de IA chamando esta rota direto (mesmo padrão das rotas de /api/produto).
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll() { return cookieStore.getAll() }, setAll() { /* rota só de leitura, não precisa renovar sessão */ } } }
+  )
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+
   try {
     const { mensagem, historico, contexto, modelo, provedor } = await request.json()
 
@@ -37,7 +55,9 @@ export async function POST(request: NextRequest) {
 
     // Claude — provedor padrão, comportamento idêntico ao de antes pra quem
     // não passa "provedor" (ex.: MEI IA Advisor).
-    const modeloUsado = modelo || 'claude-sonnet-4-20250514'
+    // Padrão era claude-sonnet-4-20250514 (aposentado) — IA Financeira, IA
+    // Tributária e Centro de Custos não passam modelo e caíam sempre na regra.
+    const modeloUsado = MODELOS_CLAUDE.includes(modelo) ? modelo : 'claude-sonnet-5'
     const response = await client.messages.create({
       model: modeloUsado,
       max_tokens: 1024,
@@ -72,7 +92,7 @@ export async function POST(request: NextRequest) {
 // dependência só pra isso. Nunca lança: falha vira resposta vazia, e quem
 // chama esta rota já trata resposta vazia como "cai pro fallback por regra".
 async function responderComOpenAI(messages: Mensagem[], contexto: string | undefined, modelo: string | undefined): Promise<string> {
-  const modeloUsado = modelo || 'gpt-4o-mini'
+  const modeloUsado = modelo && MODELOS_OPENAI.includes(modelo) ? modelo : 'gpt-4o-mini'
   const systemPrompt = (contexto || 'Você é a inteligência financeira do Axioma. Responda sempre em português, de forma clara, prática e objetiva.') + '\n\n' + AVISO_IDENTIDADE
 
   try {
