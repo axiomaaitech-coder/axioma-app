@@ -3,19 +3,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../../lib/LanguageContext";
 import { createBrowserClient } from "@supabase/ssr";
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, LineChart, Line,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-} from "recharts";
 import { gerarPdfTabela } from "../../../lib/gerarPdfTabela";
-import { reportarFalhaLeitura, tratarFalhaCarregamento, tratarFalhaExportacao, mensagemFalhaCarregamento } from "../../../lib/erroUiHelpers";
-import ReactECharts from "echarts-for-react";
+import { tratarFalhaCarregamento, tratarFalhaExportacao } from "../../../lib/erroUiHelpers";
 import DashFinanceiro from "../../../components/DashFinanceiro";
 import DashComercial from "../../../components/DashComercial";
 import {
-  carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias, gerarPlanoAcao,
-  type SnapshotFinanceiro, type Score360, type Anomalia, type AcaoSugerida,
+  carregarSnapshot, carregarBenchmark, calcularScore360,
+  type SnapshotFinanceiro, type Score360,
 } from "../../../lib/iaFinanceiraHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
 import { CentroCompartilhamento } from "../../../components/CentroCompartilhamento";
@@ -126,14 +120,9 @@ const T = {
 
 // Cores exatas da referência (roxa/azul/cyan/rosa/verde)
 const COR = { roxo: "#8b5cf6", indigo: "#6366f1", azul: "#3b82f6", cyan: "#06b6d4", teal: "#14b8a6", rosa: "#ec4899", verde: "#10b981", laranja: "#f97316", vermelho: "#ef4444", amarelo: "#eab308" };
-const CORES_DIST = [COR.roxo, COR.azul, COR.cyan, COR.rosa, COR.teal, COR.indigo, COR.laranja, COR.amarelo];
-const CORES_COMP = [COR.verde, COR.vermelho, COR.laranja, COR.roxo];
-const ttip = { background: "rgba(10,8,30,0.97)", border: "1px solid rgba(139,92,246,0.4)", borderRadius: "14px", color: "#e2e8f0", fontSize: "12px", padding: "8px 12px" };
 
-function fBRL(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n || 0); }
 // Versão com centavos exatos — usar em cópia/compartilhamento/PDF (nunca arredondar valor monetário fora da tela).
 function fBRL2(n: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0); }
-function fData(iso: string, l: string) { if (!iso) return "—"; try { return new Date(iso + "T00:00:00").toLocaleDateString(l === "en" ? "en-US" : l === "es" ? "es-ES" : "pt-BR"); } catch { return iso; } }
 
 // Glass Card — estilo referência com borda sutil e hover glow
 function GC({ children, cor = COR.roxo, onClick, className = "" }: { children: React.ReactNode; cor?: string; onClick?: () => void; className?: string }) {
@@ -144,214 +133,6 @@ function GC({ children, cor = COR.roxo, onClick, className = "" }: { children: R
       onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 12px 50px rgba(0,0,0,0.5), 0 0 25px ${cor}12, inset 0 1px 0 rgba(255,255,255,0.06)`; e.currentTarget.style.borderColor = `${cor}35`; }}
       onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(99,102,241,0.12)"; }}>
       {children}
-    </div>
-  );
-}
-
-// Sparkline
-function Spark({ data, cor = COR.roxo, h = 40 }: { data: number[]; cor?: string; h?: number }) {
-  if (!data || data.length < 2) return null;
-  return (<ResponsiveContainer width="100%" height={h}><AreaChart data={data.map(v => ({ v }))}>
-    <defs><linearGradient id={`s${cor.slice(1)}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={cor} stopOpacity={0.5}/><stop offset="95%" stopColor={cor} stopOpacity={0}/></linearGradient></defs>
-    <Area type="monotone" dataKey="v" stroke={cor} fill={`url(#s${cor.slice(1)})`} strokeWidth={2} dot={false} />
-  </AreaChart></ResponsiveContainer>);
-}
-
-// Mini bars
-function MBars({ data, cor = COR.roxo, h = 40 }: { data: number[]; cor?: string; h?: number }) {
-  if (!data || data.length < 2) return null;
-  return (<ResponsiveContainer width="100%" height={h}><BarChart data={data.map(v => ({ v: Math.max(0, v) }))}>
-    <Bar dataKey="v" fill={cor} radius={[3, 3, 0, 0]} opacity={0.8} />
-  </BarChart></ResponsiveContainer>);
-}
-
-// Barras GROSSAS estilo Power BI/Excel premium — para o Painel de Módulos
-function fmtCompact(v: number): string {
-  if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(1).replace(".0", "")}k`;
-  return `${Math.round(v)}`;
-}
-
-// Rótulo customizado em cima de cada barra — valor formatado em R$
-function ValueLabel(props: any) {
-  const { x, y, width, value, cor } = props;
-  return (
-    <text x={x + width / 2} y={y - 8} textAnchor="middle" fill={cor || "#f1f5f9"} fontSize={12} fontWeight={800}>
-      {typeof value === "number" ? fBRL(value) : value}
-    </text>
-  );
-}
-
-// ══════ PAINEL GROSSO ESTILO POWER BI — barras vivas, multicoloridas, com valores ══════
-function BigBarPanel({ titulo, icone, cor, subtitulo, dados, path, router, altura = 340, horizontal = false }: {
-  titulo: string; icone: string; cor: string; subtitulo: string;
-  dados: { label: string; value: number; color: string }[]; path: string; router: any; altura?: number; horizontal?: boolean;
-}) {
-  const grad = (c: string) => ({
-    type: "linear", x: 0, y: horizontal ? 0 : 0, x2: horizontal ? 1 : 0, y2: horizontal ? 0 : 1,
-    colorStops: [{ offset: 0, color: c }, { offset: 1, color: c + "70" }],
-  });
-
-  const eixoCat = {
-    type: "category" as const,
-    data: dados.map(d => d.label),
-    axisLine: { lineStyle: { color: "rgba(148,163,184,0.18)" } },
-    axisTick: { show: false },
-    axisLabel: { color: "#cbd5e1", fontSize: 12, fontWeight: 700 },
-  };
-  const eixoVal = {
-    type: "value" as const,
-    axisLine: { show: false },
-    axisTick: { show: false },
-    splitLine: { lineStyle: { color: "rgba(148,163,184,0.07)", type: "dashed" } },
-    axisLabel: { color: "#64748b", fontSize: 11, formatter: (v: number) => fBRL(v) },
-  };
-
-  const option = {
-    backgroundColor: "transparent",
-    animationDuration: 800,
-    animationEasing: "cubicOut",
-    grid: horizontal
-      ? { left: 130, right: 90, top: 16, bottom: 24, containLabel: false }
-      : { left: 74, right: 24, top: 42, bottom: 34, containLabel: false },
-    tooltip: {
-      trigger: "item",
-      backgroundColor: "rgba(10,8,30,0.97)",
-      borderColor: cor,
-      borderWidth: 1,
-      padding: [8, 12],
-      textStyle: { color: "#e2e8f0", fontSize: 13 },
-      formatter: (p: any) => `<b style="color:${p.color?.colorStops?.[0]?.color || cor}">${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b>`,
-    },
-    xAxis: horizontal ? eixoVal : eixoCat,
-    yAxis: horizontal ? eixoCat : eixoVal,
-    series: [{
-      type: "bar",
-      barWidth: horizontal ? 30 : 64,
-      data: dados.map(d => ({
-        value: d.value,
-        name: d.label,
-        itemStyle: {
-          color: grad(d.color),
-          borderRadius: horizontal ? [0, 8, 8, 0] : [8, 8, 0, 0],
-          shadowColor: d.color + "60",
-          shadowBlur: 14,
-          shadowOffsetY: horizontal ? 0 : -2,
-        },
-      })),
-      label: {
-        show: true,
-        position: horizontal ? "right" : "top",
-        distance: 8,
-        color: "#f1f5f9",
-        fontSize: 12,
-        fontWeight: 800,
-        formatter: (p: any) => fBRL(p.value),
-      },
-      emphasis: { itemStyle: { shadowBlur: 26 }, scale: false },
-    }],
-  };
-
-  return (
-    <GC cor={cor}>
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-base font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
-              <span className="text-xl">{icone}</span>{titulo}
-            </p>
-            <p className="text-[11px] font-medium mt-0.5" style={{ color: "#64748b" }}>{subtitulo}</p>
-          </div>
-          <button onClick={() => router.push(path)}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 flex-shrink-0"
-            style={{ background: `${cor}18`, border: `1px solid ${cor}40`, color: cor }}>
-            {`Ver módulo →`}
-          </button>
-        </div>
-        <ReactECharts option={option} style={{ height: altura, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
-      </div>
-    </GC>
-  );
-}
-
-// ══ DONUT ECharts estilo Power BI — aro grosso, % no centro, legenda lateral ══
-function DonutPanel({ titulo, icone, cor, subtitulo, dados, path, router, centroLabel, centroValor, tag }: {
-  titulo: string; icone: string; cor: string; subtitulo: string;
-  dados: { name: string; value: number; color: string; pct?: number }[];
-  path: string; router: any; centroLabel: string; centroValor: string; tag?: string;
-}) {
-  const total = dados.reduce((a, b) => a + b.value, 0);
-  const option = {
-    backgroundColor: "transparent",
-    animationDuration: 900,
-    tooltip: {
-      trigger: "item",
-      backgroundColor: "rgba(10,8,30,0.97)",
-      borderColor: cor, borderWidth: 1, padding: [8, 12],
-      textStyle: { color: "#e2e8f0", fontSize: 13 },
-      formatter: (p: any) => `<b>${p.name}</b><br/><b style="font-size:15px">${fBRL(p.value)}</b> &nbsp;<span style="color:${cor}">${p.percent}%</span>`,
-    },
-    legend: {
-      orient: "vertical", right: "4%", top: "center",
-      itemWidth: 14, itemHeight: 14, itemGap: 16, icon: "roundRect",
-      textStyle: { color: "#cbd5e1", fontSize: 13, fontWeight: 600 },
-      formatter: (name: string) => {
-        const d = dados.find(x => x.name === name);
-        const pct = d && total > 0 ? Math.round((d.value / total) * 100) : 0;
-        return `${name}  ${pct}%`;
-      },
-    },
-    series: [{
-      type: "pie",
-      radius: ["58%", "82%"],
-      center: ["32%", "50%"],
-      avoidLabelOverlap: false,
-      itemStyle: { borderColor: "rgba(10,8,32,0.9)", borderWidth: 3, borderRadius: 6 },
-      label: { show: false },
-      labelLine: { show: false },
-      emphasis: { scale: true, scaleSize: 8, itemStyle: { shadowBlur: 24, shadowColor: cor + "80" } },
-      data: dados.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })),
-    }],
-    graphic: [
-      { type: "text", left: "32%", top: "46%", style: { text: centroValor, textAlign: "center", fill: "#f1f5f9", fontSize: 22, fontWeight: 900 }, z: 10 },
-      { type: "text", left: "32%", top: "55%", style: { text: centroLabel, textAlign: "center", fill: "#64748b", fontSize: 11, fontWeight: 700 }, z: 10 },
-    ],
-  };
-  return (
-    <GC cor={cor}>
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-base font-black flex items-center gap-2" style={{ color: "#f1f5f9" }}>
-              <span className="text-xl">{icone}</span>{titulo}
-              {tag && <span className="text-[9px] px-2 py-0.5 rounded-md font-bold" style={{ background: `${cor}25`, color: cor }}>{tag}</span>}
-            </p>
-            <p className="text-[11px] font-medium mt-0.5" style={{ color: "#64748b" }}>{subtitulo}</p>
-          </div>
-          <button onClick={() => router.push(path)}
-            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:scale-105 flex-shrink-0"
-            style={{ background: `${cor}18`, border: `1px solid ${cor}40`, color: cor }}>
-            {`Ver módulo →`}
-          </button>
-        </div>
-        <ReactECharts option={option} style={{ height: 320, width: "100%" }} notMerge lazyUpdate opts={{ renderer: "canvas" }} />
-      </div>
-    </GC>
-  );
-}
-
-// Caixa hexagonal de KPI — estilo dos cards da referência (129 / 641 / 770)
-function StatHex({ valor, label, cor, onClick }: { valor: string; label: string; cor: string; onClick?: () => void }) {
-  return (
-    <div onClick={onClick} className={`flex flex-col items-center justify-center text-center transition-all duration-300 hover:scale-105 ${onClick ? "cursor-pointer" : ""}`}
-      style={{
-        clipPath: "polygon(25% 4%, 75% 4%, 96% 50%, 75% 96%, 25% 96%, 4% 50%)",
-        background: `linear-gradient(160deg, ${cor}30, ${cor}10)`,
-        border: `1px solid ${cor}50`,
-        width: "128px", height: "128px",
-        boxShadow: `0 0 25px ${cor}20`,
-      }}>
-      <p className="text-2xl font-black" style={{ color: cor }}>{valor}</p>
-      <p className="text-[9px] font-bold uppercase tracking-wide mt-1 px-2" style={{ color: "#cbd5e1" }}>{label}</p>
     </div>
   );
 }
@@ -369,13 +150,6 @@ export default function DashboardPage() {
   const [empresaNome, setEmpresaNome] = useState("");
   const [snap, setSnap] = useState<SnapshotFinanceiro | null>(null);
   const [score360, setScore360] = useState<Score360 | null>(null);
-  const [anomalias, setAnomalias] = useState<Anomalia[]>([]);
-  const [acoes, setAcoes] = useState<AcaoSugerida[]>([]);
-  const [evolucao, setEvolucao] = useState<any[]>([]);
-  const [topCustos, setTopCustos] = useState<any[]>([]);
-  const [distribuicao, setDistribuicao] = useState<any[]>([]);
-  const [obrigacoes, setObrigacoes] = useState<any[]>([]);
-  const [modulosData, setModulosData] = useState<any>(null);
   const [shareAberto, setShareAberto] = useState(false);
   const [toast, setToast] = useState<{ msg: string; tipo: string } | null>(null);
   function showToast(m: string, t: string = "info") { setToast({ msg: m, tipo: t }); setTimeout(() => setToast(null), 3000); }
@@ -398,111 +172,15 @@ export default function DashboardPage() {
       const s = await carregarSnapshot(user.id, empresaId);
       const b = await carregarBenchmark(s.setor);
       const sc = calcularScore360(s, b);
-      setSnap(s); setScore360(sc); setAnomalias(detectarAnomalias(s, b)); setAcoes(gerarPlanoAcao(s, sc, detectarAnomalias(s, b)));
-
-      const nm = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-      const evolReal = s.total_receitas_6m.map((r, i) => ({ mes: nm[(new Date().getMonth() - 5 + i + 12) % 12], receita: r, custos: s.total_custos_6m[i] || 0, lucro: r - (s.total_custos_6m[i] || 0) }));
-      const temDadosEvolucao = s.total_receitas_6m.some(r => r > 0);
-
-      const evolExemplo = [
-        { mes: "Jan", receita: 8500, custos: 5200, lucro: 3300 },
-        { mes: "Fev", receita: 9200, custos: 5500, lucro: 3700 },
-        { mes: "Mar", receita: 11000, custos: 6100, lucro: 4900 },
-        { mes: "Abr", receita: 10500, custos: 5900, lucro: 4600 },
-        { mes: "Mai", receita: 12800, custos: 6400, lucro: 6400 },
-        { mes: "Jun", receita: 14200, custos: 6800, lucro: 7400 },
-      ];
-
-      setEvolucao(temDadosEvolucao ? evolReal : evolExemplo);
-
-      const { data: cv } = empresaId ? await supabase.from("custos_variaveis").select("valor, categoria").eq("empresa_id", empresaId) : { data: [] };
-      const { data: cf } = empresaId ? await supabase.from("custos_fixos").select("valor_mensal, categoria").eq("empresa_id", empresaId) : { data: [] };
-      const m = new Map<string, number>();
-      (cv || []).forEach((r: any) => { const c = r.categoria || "Variáveis"; m.set(c, (m.get(c) || 0) + Number(r.valor || 0)); });
-      (cf || []).forEach((r: any) => { const c = r.categoria || "Fixos"; m.set(c, (m.get(c) || 0) + Number(r.valor_mensal || 0)); });
-      const sorted = Array.from(m.entries()).map(([name, value], i) => ({ name, value: Math.round(value), color: CORES_DIST[i % CORES_DIST.length], pct: 0 })).sort((a, b) => b.value - a.value);
-      const totalD = sorted.reduce((s, d) => s + d.value, 0);
-      sorted.forEach(d => d.pct = totalD > 0 ? Math.round((d.value / totalD) * 100) : 0);
-
-      // Se não tem dados reais, usa exemplo pra o Dashboard não ficar vazio
-      const exemploDistribuicao = [
-        { name: lang === "en" ? "Rent" : lang === "es" ? "Alquiler" : "Aluguel", value: 3500, color: CORES_DIST[0], pct: 28 },
-        { name: lang === "en" ? "Payroll" : lang === "es" ? "Nómina" : "Folha", value: 5200, color: CORES_DIST[1], pct: 41 },
-        { name: lang === "en" ? "Suppliers" : lang === "es" ? "Proveedores" : "Fornecedores", value: 2400, color: CORES_DIST[2], pct: 19 },
-        { name: "Marketing", value: 1100, color: CORES_DIST[3], pct: 9 },
-        { name: lang === "en" ? "Others" : lang === "es" ? "Otros" : "Outros", value: 380, color: CORES_DIST[4], pct: 3 },
-      ];
-
-      setTopCustos(sorted.length > 0 ? sorted.slice(0, 5) : exemploDistribuicao);
-      setDistribuicao(sorted.length > 0 ? sorted.slice(0, 6) : exemploDistribuicao);
-
-      const { data: ob } = empresaId ? await supabase.from("empresa_obrigacoes").select("nome, data_vencimento, status, valor_estimado")
-        .eq("empresa_id", empresaId).eq("status", "pendente").order("data_vencimento", { ascending: true }).limit(4) : { data: [] };
-      setObrigacoes(ob || []);
-
-      // Dados extras pro Painel de Módulos (barras grossas estilo Power BI)
-      // Cada query tem seu próprio .catch pra uma falha isolada (ex.: só
-      // investimentos) não derrubar o Painel de Módulos inteiro — mas antes
-      // o .catch devolvia [] em silêncio total, nem o Sentry ficava sabendo.
-      // Agora cada falha é reportada com o nome do módulo, e falhasModulos
-      // vira um único toast (a tela nunca trava, só avisa).
-      const falhasModulos: string[] = [];
-      const catchModulo = (nome: string) => (err: unknown) => {
-        falhasModulos.push(nome);
-        reportarFalhaLeitura(`dashboard.modulos.${nome}`, err);
-        return { data: [] };
-      };
-      const [
-        { data: clientesRows },
-        { data: fornecedoresRows },
-        { data: crAbertas },
-        { data: cpAbertas },
-        { data: metasRows },
-        { data: investRows },
-      ] = await Promise.all([
-        Promise.resolve(empresaId ? supabase.from("clientes").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("clientes")),
-        Promise.resolve(empresaId ? supabase.from("fornecedores").select("id").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("fornecedores")),
-        Promise.resolve(empresaId ? supabase.from("contas_receber").select("valor, valor_recebido, status").eq("empresa_id", empresaId).neq("status", "recebido") : { data: [] }).catch(catchModulo("contas_receber")),
-        Promise.resolve(empresaId ? supabase.from("contas_pagar").select("valor_total, valor_pago, status").eq("empresa_id", empresaId).neq("status", "pago") : { data: [] }).catch(catchModulo("contas_pagar")),
-        Promise.resolve(empresaId ? supabase.from("metas").select("id, valor_meta, valor_atual").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("metas")),
-        Promise.resolve(empresaId ? supabase.from("investimentos").select("id, valor").eq("empresa_id", empresaId) : { data: [] }).catch(catchModulo("investimentos")),
-      ]);
-      if (falhasModulos.length > 0) showToast(mensagemFalhaCarregamento(lang), "erro");
-
-      setModulosData({
-        clientesCount: (clientesRows || []).length,
-        fornecedoresCount: (fornecedoresRows || []).length,
-        crCount: (crAbertas || []).length,
-        crTotal: (crAbertas || []).reduce((sm: number, r: any) => sm + (Number(r.valor || 0) - Number(r.valor_recebido || 0)), 0),
-        cpCount: (cpAbertas || []).length,
-        cpTotal: (cpAbertas || []).reduce((sm: number, r: any) => sm + (Number(r.valor_total || 0) - Number(r.valor_pago || 0)), 0),
-        metasCount: (metasRows || []).length,
-        metasProgresso: (metasRows || []).length > 0 ? Math.round(((metasRows || []).reduce((sm: number, r: any) => sm + (Number(r.valor_meta) > 0 ? Math.min(1, Number(r.valor_atual || 0) / Number(r.valor_meta)) : 0), 0) / (metasRows || []).length) * 100) : 0,
-        investTotal: (investRows || []).reduce((sm: number, r: any) => sm + Number(r.valor || 0), 0),
-        investCount: (investRows || []).length,
-      });
+      // Só o que a tela usa: Score 360 + snapshot pro Compartilhar/PDF. Os
+      // gráficos visíveis vêm de DashFinanceiro/DashComercial (buscam os
+      // próprios dados) — as 8 consultas extras que moravam aqui (custos,
+      // obrigações, clientes, contas, metas, investimentos) alimentavam
+      // painéis antigos que não são mais renderizados.
+      setSnap(s); setScore360(sc);
     } catch (err) { showToast(tratarFalhaCarregamento("dashboard.init", err, lang), "erro"); }
     setCarregando(false);
   }
-
-  const mom = snap && snap.total_receitas_6m.length >= 2
-    ? ((snap.total_receitas_6m[5] - snap.total_receitas_6m[4]) / Math.max(snap.total_receitas_6m[4], 1)) * 100 : 0;
-
-  // Composição financeira (pra 2o donut)
-  const composicaoReal = snap ? [
-    { name: tt.lucroPct, value: Math.max(0, snap.lucro_liquido), color: COR.verde, pct: snap.receita_bruta > 0 ? Math.round((Math.max(0, snap.lucro_liquido) / snap.receita_bruta) * 100) : 0 },
-    { name: tt.custoFixoPct, value: snap.custos_fixos, color: COR.vermelho, pct: snap.receita_bruta > 0 ? Math.round((snap.custos_fixos / snap.receita_bruta) * 100) : 0 },
-    { name: tt.custoVarPct, value: snap.custos_variaveis, color: COR.laranja, pct: snap.receita_bruta > 0 ? Math.round((snap.custos_variaveis / snap.receita_bruta) * 100) : 0 },
-  ].filter(d => d.value > 0) : [];
-
-  const exemploComposicao = [
-    { name: tt.lucroPct, value: 4200, color: COR.verde, pct: 35 },
-    { name: tt.custoFixoPct, value: 4800, color: COR.vermelho, pct: 40 },
-    { name: tt.custoVarPct, value: 3000, color: COR.laranja, pct: 25 },
-  ];
-
-  const composicao = composicaoReal.length > 0 ? composicaoReal : exemploComposicao;
-  const usandoExemplo = composicaoReal.length === 0;
 
   // Share
   function mSh() { if (!snap || !score360) return "Axioma"; return [`🦅 *AXIOMA AI.TECH*`, empresaNome ? `🏢 *${empresaNome}*` : "", `🏆 Score: *${score360.total}/100*`, `💰 ${tt.receita}: ${fBRL2(snap.receita_bruta)}`, `✅ ${tt.lucro}: ${fBRL2(snap.lucro_liquido)}`, `📊 ${tt.margem}: ${snap.margem_liquida.toFixed(1)}%`, ``, `_axiomaai.com.br_`].filter(Boolean).join("\n"); }
@@ -515,10 +193,6 @@ export default function DashboardPage() {
       resumo: [{ label: "Score 360°", valor: `${score360.total}/100` }], nomeArquivo: "axioma-dashboard.pdf" }, (msg) => showToast(msg, "erro"), lang);
     } catch (err) { showToast(tratarFalhaExportacao("dashboard.exportarPDF", err, lang), "erro"); } setExportando(false);
   }
-
-  const dN = (d: any) => lang === "en" ? d.nome_en : lang === "es" ? d.nome_es : d.nome;
-  const aN = (a: Anomalia) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
-  const acN = (a: AcaoSugerida) => lang === "en" ? a.titulo_en : lang === "es" ? a.titulo_es : a.titulo;
 
   const mods = [
     { l: tt.mReceitas, i: "💰", p: "/receitas", c: COR.verde }, { l: tt.mCustosF, i: "📌", p: "/custos-fixos", c: COR.vermelho },
