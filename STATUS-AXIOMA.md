@@ -1271,7 +1271,7 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 
 ## 3-BG. Nexus Etapa 5 — Minhas Simulações + "E se...?" (2026-09-27)
 /nexus/simulacoes: ponto de partida real (12 meses, mesmas fórmulas do módulo Simulações), choques macro (dólar, Selic, inflação, petróleo, receita) traduzidos no MESMO motor (lib/nexusSimulacaoMotor.ts → simularCenariosExecutivos), exposição sempre informada pelo usuário, horizonte 1/3/5/10 anos, 4 cenários, "Por que alguma parte não mudou?", explicação curta via OpenAI (reserva por regra). Salvas em nexus_simulation (SQL NEXUS-ETAPA5 rodado): editar, duplicar, favoritar, arquivar, excluir com confirmação (soft delete), filtros, paginação, auto-arquivar 90 dias. Botão "Simular este evento na minha empresa" no modal do Joseph. **Testado no ar** (preset do evento, simular, salvar, favoritar, arquivar, excluir).
-**Pendente de dívida técnica:** módulo /simulacoes ainda calcula o ponto de partida dentro da própria página — dá pra trocar por carregarPontoPartida (lib/nexusSimulacaoHelpers.ts) numa rodada futura.
+~~**Pendente de dívida técnica:** /simulacoes calculava o ponto de partida na própria página~~ — conferido 2026-09-27: já usa carregarPontoPartida (lib/nexusSimulacaoHelpers.ts).
 **Próximo:** Etapa 6 — cards flutuantes de evento durante a navegação + painel executivo (Mundo, Brasil, Alertas, Riscos, Oportunidades, horizontes).
 
 ## 3-BH. Nexus Etapa 6 — Radar Global flutuante + efeito nos cards + cabeçalho padronizado (2026-09-27)
@@ -1319,6 +1319,9 @@ Troca de idioma sem tremida (painel do José e TV mantêm conteúdo até o novo 
 
 ## 3-BP. Lentidão investigada — causa achada e 1ª correção no ar (2026-09-27)
 Medido no Chrome logado: (1) funções da Vercel rodavam em Washington (iad1) com o banco no Brasil — toda rota/middleware ia e voltava dos EUA a cada consulta. **Corrigido: vercel.json regions ["gru1"] (São Paulo)**, confirmado pelo header x-vercel-id (gru1 → gru1); TV caiu de 1,2-2,5s pra 0,3-0,5s com o banco acordado. (2) TV não espera mais os feeds RSS: responde com o que tem e atualiza em 2º plano (after). (3) **Restante:** Supabase no plano Free, compute NANO (0,5 GB, CPU compartilhada) — depois de alguns minutos sem uso, a 1ª abertura trava todas as consultas por ~4-5s (todas terminam juntas); logo depois cada consulta leva 30-80ms. Código não resolve; solução é plano Pro do Supabase (também evita pausa do projeto após 7 dias sem uso e dá backup diário) — decisão do Elias, recomendado antes de cliente real.
+
+## 3-BQ. Nexus — José calibra pelo próprio placar (2026-09-27)
+Painel diário (PT) recebe "SEU PLACAR ATÉ AQUI" por série × prazo e regra de calibração (confiança nunca acima da taxa de acerto com 5+ conferidas). Chat recebe o mesmo placar e responde "dá pra confiar?" com os números, inclusive erros. Régua resumirPlacar em lib/nexusPrevisoes.ts (self-check no mesmo script). Elias decidiu: Supabase Pro antes dos primeiros clientes.
 
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
