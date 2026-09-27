@@ -3,11 +3,26 @@
 // deu certo (Banco Central, IPEA, Banco Mundial, notícias...). Card visível
 // sempre; a lista abre no clique pra não pesar a tela.
 import { useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import { obterSaudeFontes, type FonteSaude } from '../../../lib/nexusHelpers'
 import type { SaudeFonte } from '../../../lib/nexusFreshness'
 
 type Lang = 'pt' | 'en' | 'es'
+
+// Site oficial de cada fonte (o endpoint gravado no banco é de API/RSS, não
+// serve pra pessoa abrir).
+const SITE: Record<string, string> = {
+  'BCB SGS': 'https://www3.bcb.gov.br/sgspub/',
+  'IBGE Dados Abertos': 'https://servicodados.ibge.gov.br/api/docs/',
+  'IPEA Data': 'http://www.ipeadata.gov.br/',
+  'Banco Mundial': 'https://data.worldbank.org/',
+  'Agência Brasil': 'https://agenciabrasil.ebc.com.br/',
+  'InfoMoney': 'https://www.infomoney.com.br/',
+  'Money Times': 'https://www.moneytimes.com.br/',
+  'Agência Senado': 'https://www12.senado.leg.br/noticias',
+  'Currents': 'https://currentsapi.services/',
+}
 
 const ROTULO: Record<SaudeFonte, [string, string, string]> = {
   ok: ['Funcionando', 'Working', 'Funcionando'],
@@ -70,16 +85,18 @@ export function SaudeFontes({ lang, temaClaro }: { lang: Lang; temaClaro: boolea
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {ativas.map((f) => (
-                  <div key={f.nome} className="rounded-xl p-3" style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
+                  <a key={f.nome} href={SITE[f.nome]} target="_blank" rel="noopener noreferrer"
+                    className={`block rounded-xl p-3 transition-all ${SITE[f.nome] ? 'hover:scale-[1.02] cursor-pointer' : 'pointer-events-none'}`}
+                    style={{ background: NESTED_BG, border: `1px solid ${NESTED_BORDA}` }}>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-bold break-words" style={{ color: TITULO }}>{f.nome}</p>
+                      <p className="text-sm font-bold break-words flex items-center gap-1" style={{ color: TITULO }}>{f.nome}{SITE[f.nome] && <ExternalLink size={12} style={{ color: CINZA }} aria-hidden />}</p>
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={temaClaro
                         ? { background: COR[f.saude], color: TEXTO_SOBRE[f.saude] }
                         : { background: `${COR[f.saude]}20`, color: COR[f.saude] }}>{L(...ROTULO[f.saude])}</span>
                     </div>
                     <p className="text-[11px] mt-1.5" style={{ color: CINZA }}>{L('Último sucesso', 'Last success', 'Último éxito')}: <span style={{ color: TEXTO }}>{quando(f.ultimoSucesso)}</span></p>
                     {f.ultimaFalha && <p className="text-[11px]" style={{ color: CINZA }}>{L('Última falha', 'Last failure', 'Último fallo')}: <span style={{ color: TEXTO }}>{quando(f.ultimaFalha)}</span></p>}
-                  </div>
+                  </a>
                 ))}
               </div>
               {semColeta.length > 0 && (
