@@ -1,0 +1,6 @@
+-- AXIOMA NEXUS — ETAPA 5: Minhas Simulações (só ADD COLUMN + índice, idempotente)
+BEGIN;
+ALTER TABLE public.nexus_simulation ADD COLUMN IF NOT EXISTS favorita boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_nexus_simulation_lista
+  ON public.nexus_simulation (empresa_id, status, favorita DESC, updated_at DESC);
+COMMIT;
