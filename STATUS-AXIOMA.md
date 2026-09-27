@@ -1274,6 +1274,11 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Pendente de dívida técnica:** módulo /simulacoes ainda calcula o ponto de partida dentro da própria página — dá pra trocar por carregarPontoPartida (lib/nexusSimulacaoHelpers.ts) numa rodada futura.
 **Próximo:** Etapa 6 — cards flutuantes de evento durante a navegação + painel executivo (Mundo, Brasil, Alertas, Riscos, Oportunidades, horizontes).
 
+## 3-BH. Nexus Etapa 6 — Radar Global flutuante + efeito nos cards + cabeçalho padronizado (2026-09-27)
+**Nexus Event Stream** (components/NexusEventStream.tsx, montado em app/(interno)/layout.tsx): card discreto no canto, 5s após abrir qualquer tela interna (menos /nexus e /pdv), com o evento de impacto alto mais recente não visto — Ver análise (abre /nexus?evento=<id> direto no modal), Ver depois, fechar (não repete), Não mostrar avisos. **Testado no ar** (apareceu em Receitas, "Ver análise" abriu o modal do Joseph).
+**Efeito premium3d** (borda/glow verde-menta + faixa verde no topo no hover) em todos os cards do Nexus e de Minhas Simulações, nos 2 temas. **Cabeçalho de todos os módulos** (ModuloLayout, 49 telas + PdvLayout 6 telas + letreiros do Dashboard) virou cartão azul com o nome do módulo e o mesmo efeito, nos 2 temas — primeiro passo da padronização do Escuro. Modais do Nexus em portal no body (o menu não cobre mais o topo).
+**Próximo:** Etapa 7 — painel executivo do Joseph (O Mundo, Brasil, Alertas, Riscos, Oportunidades, 12m/3a/5a/10a, "O que eu não estou vendo?", "O que o Joseph faria?") e memória de previsões.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
