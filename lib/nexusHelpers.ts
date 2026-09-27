@@ -213,3 +213,16 @@ export async function obterHorizontesPainel(lang: "pt" | "en" | "es"): Promise<{
   const linha = (k: string, rot: string) => (c[k]?.texto ? `- ${rot} (confiança ${c[k]?.confianca ?? "?"}/100): ${c[k]?.titulo ?? ""} — ${c[k]?.texto}` : "");
   return { data: data.data as string, texto: [linha("horizonte_12m", "12 meses"), linha("horizonte_3a", "3 anos"), linha("horizonte_5a", "5 anos"), linha("horizonte_10a", "10 anos")].filter(Boolean).join("\n") };
 }
+
+// Planos do José já guardados da empresa (RLS por empresa) — lista "Meus planos
+// salvos" com o prazo até a limpeza automática (lib/nexusRetencao.ts).
+export async function listarPlanosSalvos(empresaId: string, limite = 12): Promise<{ id: string; horizonte: string; lang: string; data: string; geradoEm: string; conteudo: unknown }[]> {
+  const { data, error } = await supabase
+    .from("nexus_plano_empresa")
+    .select("id, horizonte, lang, data, gerado_em, conteudo")
+    .eq("empresa_id", empresaId)
+    .order("gerado_em", { ascending: false })
+    .limit(limite);
+  if (error) return [];
+  return (data ?? []).map((l) => ({ id: l.id as string, horizonte: l.horizonte as string, lang: l.lang as string, data: l.data as string, geradoEm: l.gerado_em as string, conteudo: l.conteudo }));
+}

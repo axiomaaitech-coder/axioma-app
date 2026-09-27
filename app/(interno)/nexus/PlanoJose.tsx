@@ -9,10 +9,13 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { X, RotateCcw } from 'lucide-react'
+import { X, RotateCcw, FileDown, FolderOpen, AlertTriangle } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import type { HorizontePlano, PlanoJose as TipoPlano, NumerosEmpresa } from '../../../lib/nexusPlanoEmpresa'
+import { listarPlanosSalvos } from '../../../lib/nexusHelpers'
+import { DIAS_GUARDA_PLANO, DIAS_AVISO_ANTES, diasParaApagar } from '../../../lib/nexusRetencao'
+import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
 
 type Lang = 'pt' | 'en' | 'es'
 type Nome3 = [string, string, string]
@@ -34,6 +37,41 @@ const ETAPAS: Nome3[] = [
 ]
 
 type Resultado = { data: string; plano: TipoPlano; numeros: NumerosEmpresa }
+type Salvo = { id: string; horizonte: string; lang: string; data: string; geradoEm: string; conteudo: unknown }
+
+// PDF do plano (formato relatório, mesmo motor dos demais PDFs do Axioma) — o
+// jeito de guardar o plano depois que o banco apagar (prazo em nexusRetencao).
+function baixarPdfPlano(r: Resultado, rotuloHorizonte: string, lang: Lang) {
+  const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
+  const p = r.plano, n = r.numeros
+  const linhas: Record<string, string>[] = [
+    { secao: L('Veredito', 'Verdict', 'Veredicto'), conteudo: p.veredito },
+    { secao: L('Situação hoje', 'Situation today', 'Situación hoy'), conteudo: p.situacao_hoje },
+    { secao: L('Cenário do período', 'Period outlook', 'Escenario del período'), conteudo: p.cenario_periodo },
+    { secao: `${L('Sobrevivência', 'Survival', 'Supervivencia')} (${p.sobrevivencia.risco})`, conteudo: p.sobrevivencia.texto },
+    ...p.economizar.map((a) => ({ secao: L('Economizar', 'Save', 'Ahorrar'), conteudo: `${a.titulo} — ${a.detalhe} (impacto: ${a.impacto}; ${a.prioridade})` })),
+    ...p.cortar.map((a) => ({ secao: L('Cortar', 'Cut', 'Recortar'), conteudo: `${a.titulo} — ${a.detalhe} (impacto: ${a.impacto}; ${a.prioridade})` })),
+    ...p.crescer.map((a) => ({ secao: L('Crescer', 'Grow', 'Crecer'), conteudo: `${a.titulo} — ${a.detalhe} (impacto: ${a.impacto}; ${a.prioridade})` })),
+    ...p.metas.map((m) => ({ secao: L('Meta', 'Goal', 'Meta'), conteudo: `${m.indicador}: ${m.hoje} → ${m.meta} (${m.prazo})` })),
+    ...p.gatilhos.map((g) => ({ secao: L('Gatilho', 'Trigger', 'Disparador'), conteudo: `${L('Se', 'If', 'Si')} ${g.se} — ${L('então', 'then', 'entonces')} ${g.entao}` })),
+    ...p.limitacoes.map((l) => ({ secao: L('Limitação', 'Limitation', 'Limitación'), conteudo: l })),
+  ]
+  gerarPdfTabela({
+    titulo: `${L('Plano do José', "José's plan", 'Plan de José')} — ${rotuloHorizonte}`,
+    subtitulo: `${L('Gerado em', 'Generated on', 'Generado el')} ${r.data} · ${L('confiança', 'confidence', 'confianza')} ${Math.round(p.confianca)}/100 · Axioma Nexus`,
+    colunas: [
+      { header: L('Seção', 'Section', 'Sección'), key: 'secao', width: 2 },
+      { header: L('Conteúdo', 'Content', 'Contenido'), key: 'conteudo', width: 7 },
+    ],
+    linhas,
+    resumo: [
+      { label: L('Receita/mês', 'Revenue/mo', 'Ingresos/mes'), valor: fBRL(n.receitaMensal) },
+      { label: L('Lucro/mês', 'Profit/mo', 'Beneficio/mes'), valor: fBRL(n.lucroMensal) },
+      { label: L('Caixa', 'Cash', 'Caja'), valor: fBRL(n.caixa) },
+    ],
+    nomeArquivo: `plano-jose-${r.data}.pdf`,
+  }, undefined, lang)
+}
 
 export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: Lang; temaClaro: boolean; empresaId: string | null; aliquotaPct: number }) {
   const L = (pt: string, en: string, es: string) => (lang === 'en' ? en : lang === 'es' ? es : pt)
@@ -46,6 +84,9 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [etapa, setEtapa] = useState(0)
   const [montado, setMontado] = useState(false)
+  const [salvos, setSalvos] = useState<Salvo[]>([])
+  const carregarSalvos = () => { if (empresaId) listarPlanosSalvos(empresaId).then(setSalvos) }
+  useEffect(carregarSalvos, [empresaId])
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMontado(true) }, [])
 
@@ -58,7 +99,7 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
         body: JSON.stringify({ empresa_id: empresaId, horizonte: h, lang, aliquota_pct: aliquotaPct }),
       })
       const json = await res.json().catch(() => null)
-      if (res.ok && json?.plano) { setResultado(json.plano); setEstado('ok') } else setEstado('erro')
+      if (res.ok && json?.plano) { setResultado(json.plano); setEstado('ok'); carregarSalvos() } else setEstado('erro')
     } catch { setEstado('erro') }
   }
 
@@ -82,6 +123,9 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
   const corRisco = (r: string) => r === 'alto' ? (temaClaro ? '#dc3545' : '#f87171') : r === 'medio' ? (temaClaro ? '#b45309' : '#fbbf24') : (temaClaro ? '#16a97d' : '#34d399')
   const titulo = (t: string) => <p className="text-xs font-bold mb-2" style={{ color: CINZA }}>{t}</p>
   const horizonteAtual = HORIZONTES.find((x) => x.id === aberto)
+  const nomeHorizonte = (id: string) => { const h = HORIZONTES.find((x) => x.id === id); return h ? L3(h.titulo) : id }
+  const vencendo = salvos.filter((p) => diasParaApagar(p.geradoEm, DIAS_GUARDA_PLANO) <= DIAS_AVISO_ANTES)
+  const abrirSalvo = (p: Salvo) => { setAberto(p.horizonte as HorizontePlano); setResultado({ data: p.data, ...(p.conteudo as { plano: TipoPlano; numeros: NumerosEmpresa }) }); setEstado('ok') }
 
   const listaAcoes = (itens: TipoPlano['economizar'], emoji: string, rotulo: string): ReactNode => (
     <div className="rounded-xl p-3" style={caixa}>
@@ -118,6 +162,45 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
           </button>
         ))}
       </div>
+      {vencendo.length > 0 && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg p-2.5" style={{ background: temaClaro ? 'rgba(245,166,35,0.15)' : 'rgba(251,191,36,0.10)', border: `1px solid ${temaClaro ? '#b45309' : '#fbbf24'}` }} role="alert">
+          <AlertTriangle size={15} className="shrink-0 mt-0.5" style={{ color: temaClaro ? '#b45309' : '#fbbf24' }} aria-hidden />
+          <p className="text-xs font-semibold" style={{ color: TITULO }}>
+            {L(`${vencendo.length} plano(s) serão apagados em até ${DIAS_AVISO_ANTES} dias. Salve em PDF para guardar — o Axioma mantém os planos por ${DIAS_GUARDA_PLANO} dias.`, `${vencendo.length} plan(s) will be deleted within ${DIAS_AVISO_ANTES} days. Save as PDF to keep them — Axioma keeps plans for ${DIAS_GUARDA_PLANO} days.`, `${vencendo.length} plan(es) se borrarán en hasta ${DIAS_AVISO_ANTES} días. Guárdelos en PDF — Axioma mantiene los planes por ${DIAS_GUARDA_PLANO} días.`)}
+          </p>
+        </div>
+      )}
+
+      {salvos.length > 0 && (
+        <div className="mt-3">
+          <p className="flex items-center gap-1.5 text-xs font-bold mb-1.5" style={{ color: TITULO }}>
+            <FolderOpen size={13} aria-hidden />{L('Meus planos salvos', 'My saved plans', 'Mis planes guardados')}
+            <span className="font-normal" style={{ color: CINZA }}>— {L(`guardados por ${DIAS_GUARDA_PLANO} dias`, `kept for ${DIAS_GUARDA_PLANO} days`, `guardados por ${DIAS_GUARDA_PLANO} días`)}</span>
+          </p>
+          <ul className="space-y-1.5">
+            {salvos.map((p) => {
+              const dias = diasParaApagar(p.geradoEm, DIAS_GUARDA_PLANO)
+              const urgente = dias <= DIAS_AVISO_ANTES
+              const r = { data: p.data, ...(p.conteudo as { plano: TipoPlano; numeros: NumerosEmpresa }) }
+              return (
+                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-1.5" style={temaClaro ? { background: '#ffffff', border: '1px solid rgba(16,27,61,0.12)' } : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span className="text-xs font-bold" style={{ color: TITULO }}>{nomeHorizonte(p.horizonte)}</span>
+                  <span className="text-[11px]" style={{ color: CINZA }}>{new Date(p.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')}</span>
+                  <span className="text-[11px] font-semibold" style={{ color: urgente ? (temaClaro ? '#dc3545' : '#f87171') : CINZA }}>
+                    {L(`apaga em ${dias} dia(s)`, `deleted in ${dias} day(s)`, `se borra en ${dias} día(s)`)}
+                  </span>
+                  <span className="ml-auto flex gap-1.5">
+                    <button onClick={() => abrirSalvo(p)} className="text-[11px] font-bold px-2 py-1 rounded-md" style={{ color: ACENTO, border: `1px solid ${ACENTO}60` }}>{L('Abrir', 'Open', 'Abrir')}</button>
+                    <button onClick={() => baixarPdfPlano(r, nomeHorizonte(p.horizonte), lang)} className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md" style={VERDE_SOLIDO}>
+                      <FileDown size={11} aria-hidden />PDF
+                    </button>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
       {!empresaId && <p className="text-[11px] mt-2" style={{ color: CINZA }}>{L('Cadastre sua empresa para receber o plano.', 'Register your company to get the plan.', 'Registre su empresa para recibir el plan.')}</p>}
 
       {montado && createPortal(
@@ -139,6 +222,13 @@ export function PlanoJose({ lang, temaClaro, empresaId, aliquotaPct }: { lang: L
                         <h3 id="plano-jose-titulo" className="text-lg font-black" style={{ color: TITULO }}>
                           {L('Plano do José para sua empresa', "José's plan for your company", 'Plan de José para su empresa')} — {horizonteAtual ? L3(horizonteAtual.titulo) : ''}
                         </h3>
+                        {resultado && estado === 'ok' && (
+                          <button onClick={() => horizonteAtual && baixarPdfPlano(resultado, L3(horizonteAtual.titulo), lang)}
+                            className="mt-1.5 mb-1 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg" style={VERDE_SOLIDO}>
+                            <FileDown size={13} aria-hidden />{L('Salvar em PDF', 'Save as PDF', 'Guardar en PDF')}
+                          </button>
+                        )}
+                        {resultado && <p className="text-[11px]" style={{ color: CINZA }}>{L(`Fica guardado no Axioma por ${DIAS_GUARDA_PLANO} dias — salve em PDF para manter depois disso.`, `Kept in Axioma for ${DIAS_GUARDA_PLANO} days — save as PDF to keep it longer.`, `Se guarda en Axioma por ${DIAS_GUARDA_PLANO} días — guárdelo en PDF para conservarlo.`)}</p>}
                         {resultado && <p className="text-[11px]" style={{ color: CINZA }}>{L('Gerado em', 'Generated on', 'Generado el')} {new Date(resultado.data + 'T12:00:00').toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'es' ? 'es-ES' : 'pt-BR')} · {L('confiança', 'confidence', 'confianza')} {Math.round(resultado.plano.confianca)}/100 · {L('não é recomendação de investimento', 'not investment advice', 'no es recomendación de inversión')}</p>}
                       </div>
                     </div>
