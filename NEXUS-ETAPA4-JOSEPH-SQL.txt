@@ -1,0 +1,29 @@
+-- ============================================================================
+-- AXIOMA NEXUS — ETAPA 4: JOSEPH (3 colunas novas em nexus_global_event)
+-- Rodar UMA VEZ no SQL Editor do Supabase. Idempotente (IF NOT EXISTS).
+-- Só ADD COLUMN — nenhum dado existente é alterado.
+--
+-- joseph_analise   jsonb       — análise por idioma: { "pt": {...}, "en": {...} }
+--                                (gerada 1x por evento/idioma, lida por todos)
+-- joseph_gerado_em timestamptz — quando a última análise foi gravada
+-- joseph_modelo    text        — modelo que gerou (auditoria / reprocessar)
+--
+-- Escrita só via service_role (rota /api/nexus/joseph e cron), leitura pela
+-- mesma policy pública já existente da tabela — nada muda em RLS.
+-- ============================================================================
+
+BEGIN;
+
+ALTER TABLE public.nexus_global_event ADD COLUMN IF NOT EXISTS joseph_analise jsonb;
+ALTER TABLE public.nexus_global_event ADD COLUMN IF NOT EXISTS joseph_gerado_em timestamptz;
+ALTER TABLE public.nexus_global_event ADD COLUMN IF NOT EXISTS joseph_modelo text;
+
+COMMIT;
+
+-- VERIFICAÇÃO — deve listar as 3 colunas
+SELECT column_name, data_type FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'nexus_global_event' AND column_name LIKE 'joseph_%'
+  ORDER BY column_name;
+
+-- ROLLBACK (só referência)
+-- ALTER TABLE public.nexus_global_event DROP COLUMN IF EXISTS joseph_analise, DROP COLUMN IF EXISTS joseph_gerado_em, DROP COLUMN IF EXISTS joseph_modelo;

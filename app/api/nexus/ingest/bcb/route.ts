@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { buscarEGravarFeeds, FeedError, CANAIS_FONTES } from '@/lib/nexusNewsIngest'
 import { detectarEventosSerie, textoEvento, type EventoDetectado } from '@/lib/nexusEventDetector'
 import { calcularFreshness } from '@/lib/nexusFreshness'
+import { obterOuGerarAnalise } from '@/lib/nexusJoseph'
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 02, Parte 2: ingestão diária do BCB SGS
@@ -32,7 +33,7 @@ import { calcularFreshness } from '@/lib/nexusFreshness'
 // ═══════════════════════════════════════════════════════════════
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60 // catálogo BCB (9 séries) + detector de eventos + refresh dos 4 canais de notícia
+export const maxDuration = 300 // catálogo BCB (9 séries) + detector + até 3 análises do Joseph + 4 canais de notícia
 
 type BcbPonto = { data: string; valor: string }
 
@@ -291,9 +292,45 @@ export async function GET(request: NextRequest) {
   }
 
   const eventos = await detectarEGravarEventos(supabase, fonte.source_id, catalogo as SerieCatalogo[])
+  const joseph = await preGerarAnalisesJoseph(supabase)
   const noticias = await ingestaoNoticias(supabase)
 
-  return NextResponse.json({ sucesso, falha, detalhes, eventos, noticias })
+  return NextResponse.json({ sucesso, falha, detalhes, eventos, joseph, noticias })
+}
+
+// Etapa 4 — adianta a análise do Joseph (em português, idioma da maioria)
+// dos eventos mais recentes ainda sem análise, pra ninguém esperar ao abrir.
+// Teto de 3 por rodada: custo e tempo previsíveis; o resto é gerado sob
+// demanda por /api/nexus/joseph. Melhor-esforço, evento a evento.
+const MAX_ANALISES_POR_RODADA = 3
+
+async function preGerarAnalisesJoseph(supabase: SupabaseClient): Promise<{ geradas: number; erro?: string }> {
+  try {
+    const { data, error } = await supabase
+      .from('nexus_global_event')
+      .select('event_id')
+      .is('joseph_analise', null)
+      .not('payload', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(MAX_ANALISES_POR_RODADA)
+    if (error) throw new Error(error.message)
+    let geradas = 0
+    for (const ev of data ?? []) {
+      try {
+        await obterOuGerarAnalise(supabase, ev.event_id as string, 'pt')
+        geradas++
+      } catch (err) {
+        const motivo = err instanceof Error ? err.message : String(err)
+        console.error(`[nexus/ingest/bcb] Joseph falhou no evento ${ev.event_id}:`, motivo)
+        Sentry.captureException(new Error(`[nexus/ingest/bcb] Joseph falhou: ${motivo}`), { extra: { eventId: ev.event_id } })
+      }
+    }
+    return { geradas }
+  } catch (err) {
+    const motivo = err instanceof Error ? err.message : String(err)
+    console.error('[nexus/ingest/bcb] Falha na pré-geração do Joseph:', motivo)
+    return { geradas: 0, erro: motivo }
+  }
 }
 
 // Etapa 3 — roda o detector (lib/nexusEventDetector.ts) em cima do histórico
