@@ -1256,6 +1256,12 @@ Antes de construir a tela de venda em si (carrinho, frente de caixa), faltava fe
 **Regras novas:** Nexus só usa fonte 100% gratuita (sem mensalidade/paywall). Travas por plano e limites de gasto de IA ficam pra fase final (depois de terminar o Axioma + landing page).
 **Próximo:** Etapa 4 — Joseph (IA real) interpretando cada evento 1x (análise guardada e compartilhada), confiança explicada, cenários, modal executivo.
 
+## 3-BE. Tema Claro no Nexus e no Dashboard principal + limpeza do Dashboard (2026-09-26)
+**Nexus:** tema Claro completo (paleta por tema, creme+premium3d, letreiros sólidos navy, selos de natureza preenchidos, modais creme). Grades padronizadas 2x4 (indicadores, eventos, notícias) com o mesmo card. Eventos com modal (base do modal do Joseph). Esc fecha modais. Selo de atualidade recalculado na leitura (lib/nexusFreshness.ts).
+**Dashboard:** removidas 8 consultas ao banco e 5 gráficos que não eram renderizados (641→315 linhas). DashFinanceiro/DashComercial passaram a compartilhar lib/dashGraficos.ts + components/DashBlocos.tsx (eram cópias). Tema Claro completo nos dois painéis e na moldura (ThemeToggle no topo). Conferido no Chrome nos 2 temas; Escuro intocado.
+**Anotado pra depois:** menu do topo fica por cima do fundo escurecido dos modais em todos os 18 módulos com modal — correção geral no TopNav, com teste em cada módulo (inclui PDV).
+**Próximo:** Etapa 4 do Nexus — Joseph (IA real) interpretando cada evento.
+
 ## 4. PRÓXIMO PASSO
 **Elias rodou `MIGRACAO-MULTITENANT.sql` em 2026-07-23** — confirmado: função criada, 24 tabelas com `empresa_id`, 48 políticas multi-tenant, zero nulos, `empresa_usuarios` semeada. 8 políticas ficaram na forma antiga (`alertas, categorias, chat_ia, dre_mensal, relatorios, riscos, score_historico, simulacoes` — fora da lista original, resolver depois). Ver seção 11 pro detalhe técnico completo.
 
