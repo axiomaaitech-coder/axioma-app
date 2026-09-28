@@ -26,6 +26,7 @@ export type PontoPartida = {
   caixaDisponivel: number;
   lucroMensal: number;
   temDados: boolean;
+  cnae: string | null; // "código - descrição", do cadastro da Empresa
 };
 
 const MESES_JANELA = 12;
@@ -43,7 +44,7 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
     supabase.from("custos_variaveis").select("valor").eq("empresa_id", empresaId).gte("data", inicio).lte("data", fim),
     supabase.from("dividas").select("valor_total, valor_pago, taxa_juros").eq("empresa_id", empresaId),
     supabase.from("fluxo_caixa").select("tipo, valor, status").eq("empresa_id", empresaId),
-    supabase.from("empresas").select("regime_tributario").eq("id", empresaId).maybeSingle(),
+    supabase.from("empresas").select("regime_tributario, cnae_principal, cnae_descricao").eq("id", empresaId).maybeSingle(),
   ]);
   const erro = [rec, cf, cv, dv, fc].some((r) => r.error);
 
@@ -71,6 +72,7 @@ export async function carregarPontoPartida(): Promise<{ ponto: PontoPartida | nu
     ponto: {
       receitaMensal, custoFixoMensal, custoVariavelMensal, dividaTotal, despesasFinanceirasMensal,
       aliquotaEfetivaPct, caixaDisponivel, lucroMensal, temDados: receitaMensal > 0 || custoFixoMensal > 0,
+      cnae: emp.data?.cnae_principal ? `${emp.data.cnae_principal}${emp.data.cnae_descricao ? ` - ${emp.data.cnae_descricao}` : ""}` : null,
     },
   };
 }
@@ -177,4 +179,12 @@ export async function contarSimulacoes(empresaId: string): Promise<number> {
   const { count } = await supabase.from("nexus_simulation").select("id", { count: "exact", head: true })
     .eq("empresa_id", empresaId).eq("status", "completed");
   return count ?? 0;
+}
+
+// CNAE da empresa ativa, pro selo "seu ramo" nos eventos do Nexus (1 SELECT leve).
+export async function carregarCnaeEmpresa(): Promise<string | null> {
+  const empresaId = await obterEmpresaAtiva();
+  if (!empresaId) return null;
+  const { data } = await supabase.from("empresas").select("cnae_principal").eq("id", empresaId).maybeSingle();
+  return data?.cnae_principal ?? null;
 }

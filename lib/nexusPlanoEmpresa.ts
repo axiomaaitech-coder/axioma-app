@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { MODELO_JOSEPH, type IdiomaJoseph } from './nexusJoseph'
 import { montarContextoMundo } from './nexusBriefing'
 import { montarDRE } from './cfoCore'
+import { ramoDoCnae, nomeSerie } from './nexusEventDetector'
 
 export type HorizontePlano = '1-3' | '4-7' | '8-10'
 
@@ -75,6 +76,7 @@ Regras invioláveis:
 - Nunca afirme certeza sobre o futuro. Horizonte longo = tendência estrutural e hipótese.
 - "economizar": 2 a 4 ações (gastar melhor sem cortar o essencial). "cortar": 1 a 3 itens concretos da lista de custos (ou diga honestamente que não há corte óbvio). "crescer": 2 a 4 ações realistas para o porte da empresa.
 - "metas": 3 a 5 indicadores com valor de hoje e meta (ex.: margem líquida, custo fixo/receita, fôlego de caixa, dívida/receita).
+- PESO POR RAMO: priorize nos gatilhos, no cenário e nas ações os indicadores listados em RAMO — são os que mais mexem com custo e venda desse tipo de negócio.
 - "gatilhos": 3 a 5 regras "se X acontecer na economia/no caixa, então faça Y" (câmbio, juros, inflação, petróleo, vendas) — só com o que está nos dados.
 - "sobrevivencia.risco": alto se o caixa acaba no horizonte mantido o ritmo, médio se aperta, baixo se folgado. Explique em "texto".
 - "confianca" (0-100) cai com o prazo (1-3 anos ~65, 4-7 ~45, 8-10 ~25) e com a falta de dados da empresa. "limitacoes": 2 a 4 itens do que falta.
@@ -124,7 +126,9 @@ export async function coletarEmpresa(supabase: SupabaseClient, empresaId: string
     return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `  - ${k}: ${fBRL(v)}/mês`).join('\n')
   }
   const e = emp.data as Record<string, unknown>
-  const texto = `EMPRESA: ${e.nome_fantasia || e.razao_social || e.nome || 'sem nome'}${e.regime_tributario ? ` — regime ${e.regime_tributario}` : ''}${e.setor ? ` — setor ${e.setor}` : ''}${e.cnae ? ` — CNAE ${e.cnae}` : ''}
+  const ramo = ramoDoCnae(e.cnae_principal as string | null)
+  const texto = `EMPRESA: ${e.nome_fantasia || e.razao_social || e.nome || 'sem nome'}${e.regime_tributario ? ` — regime ${e.regime_tributario}` : ''}${e.porte ? ` — porte ${e.porte}` : ''}${e.cnae_principal ? ` — CNAE ${e.cnae_principal}${e.cnae_descricao ? ` (${e.cnae_descricao})` : ''}` : ''}
+${ramo ? `RAMO: ${ramo.nome} — indicadores que mais pesam nele: ${ramo.series.map((c) => nomeSerie(c, 'pt')).join(', ')}` : 'RAMO: CNAE não cadastrado — trate como empresa típica e liste isso nas limitações'}
 NÚMEROS CALCULADOS (médias dos últimos 12 meses):
 - Receita média: ${fBRL(receitaMensal)}/mês
 - Custos fixos: ${fBRL(custoFixoMensal)}/mês${numeros.custoFixoSobreReceitaPct != null ? ` (${numeros.custoFixoSobreReceitaPct.toFixed(1)}% da receita)` : ''}

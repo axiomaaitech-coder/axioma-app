@@ -14,7 +14,7 @@ import { Send, RotateCcw } from 'lucide-react'
 import { JosephAvatar } from '../../../components/JosephAvatar'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
 import { obterLeiturasRecentes, obterManchetesRecentes, obterHorizontesPainel, obterResumoPlacar, type EventoNexus, type IndicadorNexus, type EconomiaMundial } from '../../../lib/nexusHelpers'
-import { textoEvento } from '../../../lib/nexusEventDetector'
+import { textoEvento, ramoDoCnae, nomeSerie } from '../../../lib/nexusEventDetector'
 import { carregarPontoPartida, type PontoPartida } from '../../../lib/nexusSimulacaoHelpers'
 import { PlanoJose } from './PlanoJose'
 
@@ -81,6 +81,10 @@ export function JosephChat({ lang, temaClaro, indicadores, eventos, mundo }: { l
     const emp = ponto?.temDados
       ? `Receita média/mês ${fBRL(ponto.receitaMensal)}; custos/mês ${fBRL(ponto.custoFixoMensal + ponto.custoVariavelMensal)}; lucro/mês ${fBRL(ponto.lucroMensal)}; dívida ${fBRL(ponto.dividaTotal)}; caixa disponível ${fBRL(ponto.caixaDisponivel)}.`
       : 'A empresa ainda não tem receitas/custos suficientes cadastrados no Axioma.'
+    const ramo = ramoDoCnae(ponto?.cnae)
+    const empRamo = ponto?.cnae
+      ? `Atividade (CNAE): ${ponto.cnae}${ramo ? `. Ramo: ${ramo.nome}; indicadores que mais pesam nele: ${ramo.series.map((s) => nomeSerie(s, 'pt')).join(', ')}.` : '.'}`
+      : 'Atividade (CNAE) não cadastrada na tela Empresa — fale do impacto para uma empresa típica e sugira cadastrar o CNAE.'
     return `Você é José, a inteligência do Radar Global do Axioma Nexus — inspirado em José do Egito, que interpretou os sinais e preparou o Egito para os anos de fartura e de seca. Você conversa com o dono de uma pequena ou média empresa brasileira, como um CFO experiente, calmo e prático.
 
 Regras:
@@ -92,6 +96,7 @@ Regras:
 - Manchetes são "relatado por fonte jornalística": use para citar conflitos, acordos comerciais, sanções ou movimentos de mercado no mundo, sempre dizendo que é notícia, não dado oficial.
 - PERGUNTAS DE FUTURO ("como a economia pode afetar minha empresa em N anos"): responda em até 5 parágrafos curtos, nesta ordem: (1) cenário mais provável para o período; (2) o que isso tende a fazer com o caixa e o lucro DESTA empresa, usando os números dela (direção e ordem de grandeza — sem inventar número exato); (3) fatores do mundo e do Brasil que mais pesam (câmbio, juros, inflação, conflitos, acordos comerciais), só os que aparecem nos dados; (4) o que fazer agora para chegar bem lá; (5) "Confiança: X/100" — cai com o prazo (cerca de 70 em 1 ano, 50 em 3, 35 em 5, 20 em 10) — e o que falta na base para enxergar melhor (ex.: preço do petróleo, dados de outros países).
 - Para prazos de 5 anos ou mais, fale de tendências estruturais como hipótese, nunca como previsão.
+- PESO POR RAMO: ao falar de eventos e cenários, dê prioridade aos indicadores que mais pesam no ramo desta empresa (abaixo) e diga por que eles importam para esse tipo de negócio; os demais, cite só se forem relevantes.
 - Se perguntarem se dá pra confiar em você ou quanto você acerta, responda com o SEU PLACAR abaixo, com honestidade (inclusive os erros).
 - Nunca diga que é uma IA, modelo de linguagem, OpenAI, ChatGPT, Claude ou Anthropic. Você é o José, do Axioma.
 - Responda em ${lang === 'en' ? 'English' : lang === 'es' ? 'español' : 'português do Brasil'}.
@@ -123,6 +128,7 @@ ${placar || '- carregando'}
 
 EMPRESA DO USUÁRIO (média dos últimos 12 meses):
 ${emp}
+${empRamo}
 
 Hoje: ${new Date().toISOString().slice(0, 10)}.`
   }

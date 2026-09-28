@@ -10,7 +10,8 @@ import { LetreiroExecutivo } from '../../../components/LetreiroExecutivo'
 import { CentroCompartilhamento, BotaoCompartilhar } from '../../../components/CentroCompartilhamento'
 import { useLanguage } from '../../../lib/LanguageContext'
 import { obterIndicadoresNexus, obterEventosNexus, obterEventoNexus, obterEconomiaMundial, type EconomiaMundial as TipoEconomiaMundial, traduzirFreshness, type IndicadorNexus, type PontoSerie, type EventoNexus } from '../../../lib/nexusHelpers'
-import { textoEvento, travaDaVerdade, fonteDaSerie } from '../../../lib/nexusEventDetector'
+import { textoEvento, travaDaVerdade, fonteDaSerie, ramoDoCnae } from '../../../lib/nexusEventDetector'
+import { carregarCnaeEmpresa } from '../../../lib/nexusSimulacaoHelpers'
 import { variaveisDoEvento } from '../../../lib/nexusSimulacaoMotor'
 import Link from 'next/link'
 import { JosephAnalise } from './JosephAnalise'
@@ -251,6 +252,8 @@ export default function NexusPage() {
     setCarregandoEventos(false)
   }
   useEffect(() => { carregarEventos(0) }, [])
+  const [seriesDoRamo, setSeriesDoRamo] = useState<string[]>([])
+  useEffect(() => { carregarCnaeEmpresa().then((c) => setSeriesDoRamo(ramoDoCnae(c)?.series ?? [])).catch(() => {}) }, [])
 
   // Coleta pela visita: se a última tem mais de 3h, o servidor coleta de novo
   // (sem IA) e a tela recarrega os números em silêncio quando termina.
@@ -484,6 +487,9 @@ export default function NexusPage() {
                       <div className="flex flex-wrap items-center gap-1.5 mb-2">
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={estiloSelo(nat, temaClaro)}>{L(...nat.nome)}</span>
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={estiloSelo(imp, temaClaro, '1a')}>{L(...imp.nome)}</span>
+                        {ev.payload && seriesDoRamo.includes(ev.payload.serie) && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={temaClaro ? { background: '#101b3d', color: '#ffffff' } : { background: `${CIANO}22`, color: TEXTO, border: `1px solid ${CIANO}55` }}>{L('Mexe com o seu ramo', 'Affects your industry', 'Afecta a su sector')}</span>
+                        )}
                       </div>
                       <h4 className="text-sm font-bold leading-snug line-clamp-3" style={{ color: TITULO }}>{texto.titulo}</h4>
                       {ev.payload && <CorrenteMini payload={ev.payload} lang={lang} temaClaro={temaClaro} />}

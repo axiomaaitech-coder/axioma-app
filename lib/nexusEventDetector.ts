@@ -233,6 +233,9 @@ const NOME_SERIE: Record<string, Record<Lang, string>> = {
   "IBGE:INDUSTRIA": { pt: "Produção industrial", en: "Industrial output", es: "Producción industrial" },
   "ANP:GASOLINA": { pt: "Gasolina", en: "Gasoline", es: "Gasolina" },
   "ANP:DIESEL": { pt: "Diesel", en: "Diesel", es: "Diésel" },
+  "ANP:GLP": { pt: "Gás de cozinha", en: "Cooking gas", es: "Gas de cocina" },
+  "COMEX:EXPORT": { pt: "Exportações", en: "Exports", es: "Exportaciones" },
+  "COMEX:IMPORT": { pt: "Importações", en: "Imports", es: "Importaciones" },
 }
 export const nomeSerie = (serie: string, lang: Lang) => NOME_SERIE[serie]?.[lang] ?? serie
 // Quem publica a série (pelo prefixo do código; sem prefixo = SGS do Banco Central).
@@ -247,6 +250,26 @@ export function fonteDaSerie(serie: string, lang: Lang): string {
   if (serie.startsWith("OCDE:")) return T("OCDE", "OECD", "OCDE")
   return T("Banco Central do Brasil", "Central Bank of Brazil", "Banco Central de Brasil")
 }
+// Peso por ramo: pela divisão do CNAE (2 primeiros dígitos, tabela IBGE), as
+// séries que mais mexem com custo ou venda daquele ramo. Regra fixa, sem IA.
+// ponytail: faixas largas de CNAE; refinar por classe (4-5 dígitos) se um ramo reclamar.
+const RAMOS: { de: number; ate: number; nome: string; series: string[] }[] = [
+  { de: 1, ate: 3, nome: "agropecuária", series: ["FMI:SOJA", "FMI:MILHO", "FMI:CAFE", "ANP:DIESEL", "1", "COMEX:EXPORT"] },
+  { de: 5, ate: 9, nome: "extração mineral e petróleo", series: ["FMI:MINERIO", "IPEA:BRENT", "1", "BCE:CNY", "COMEX:EXPORT"] },
+  { de: 10, ate: 33, nome: "indústria", series: ["IBGE:INDUSTRIA", "1", "BCE:CNY", "IPEA:BRENT", "COMEX:IMPORT", "432"] },
+  { de: 35, ate: 39, nome: "energia, água e saneamento", series: ["IPEA:BRENT", "433", "432"] },
+  { de: 41, ate: 43, nome: "construção", series: ["432", "433", "24363", "ANP:DIESEL"] },
+  { de: 45, ate: 47, nome: "comércio", series: ["IBGE:VAREJO", "433", "432", "24369", "1", "BCE:CNY"] },
+  { de: 49, ate: 53, nome: "transporte e logística", series: ["ANP:DIESEL", "ANP:GASOLINA", "IPEA:BRENT", "IBGE:SERVICOS"] },
+  { de: 55, ate: 56, nome: "alimentação e hospedagem", series: ["IBGE:SERVICOS", "433", "ANP:GLP", "24369"] },
+  { de: 64, ate: 66, nome: "serviços financeiros", series: ["432", "433", "24369"] },
+  { de: 58, ate: 99, nome: "serviços", series: ["IBGE:SERVICOS", "433", "432", "24369"] },
+]
+export function ramoDoCnae(cnae: string | null | undefined): { nome: string; series: string[] } | null {
+  const div = Number(String(cnae ?? "").replace(/\D/g, "").slice(0, 2))
+  return (div && RAMOS.find((r) => div >= r.de && div <= r.ate)) || null
+}
+
 // Unidade de preço das matérias-primas do FMI, pro texto do evento.
 const UNIDADE_FMI: Record<string, string> = { "FMI:SOJA": "US$/t", "FMI:MILHO": "US$/t", "FMI:CAFE": "US¢/lb", "FMI:MINERIO": "US$/t" }
 
