@@ -10,7 +10,7 @@ type Lang = 'pt' | 'en' | 'es'
 const BARRA = <div className="axi-card-premium3d-bar absolute top-0 left-0 right-0 h-[3px] pointer-events-none" style={{ background: '#2ecc9b' }} aria-hidden />
 const CARD = 'relative overflow-hidden rounded-2xl p-4 min-h-40 flex flex-col axi-card-premium3d'
 
-const PAISES_CARD: { iso: string; bandeira: string; nome: [string, string, string] }[] = [
+export const PAISES_CARD: { iso: string; bandeira: string; nome: [string, string, string] }[] = [
   { iso: 'CHN', bandeira: '🇨🇳', nome: ['China', 'China', 'China'] },
   { iso: 'USA', bandeira: '🇺🇸', nome: ['EUA', 'United States', 'EE. UU.'] },
   { iso: 'EMU', bandeira: '🇪🇺', nome: ['Zona do Euro', 'Euro Area', 'Zona Euro'] },

@@ -24,7 +24,7 @@ import { EconomiaMundial } from './EconomiaMundial'
 import { SaudeFontes } from './SaudeFontes'
 import { PlacarJose } from './PlacarJose'
 import { CANAIS_NEXUS_DEMO, obterNoticiasNexusDemo, type NoticiaNexus } from '../../../lib/nexusNewsDemo'
-import { gerarPdfTabela } from '../../../lib/gerarPdfTabela'
+import { exportarPdfNexus } from './pdfNexus'
 import { tratarFalhaExportacao, tratarFalhaCarregamento } from '../../../lib/erroUiHelpers'
 import { useThemeAxioma } from '../../../lib/ThemeContext'
 import { PALETA, VERDE_SOLIDO } from '../../../lib/nexusTema'
@@ -342,23 +342,8 @@ export default function NexusPage() {
   async function exportarPDF() {
     setExportando(true)
     try {
-      gerarPdfTabela({
-        titulo: L('Nexus — Inteligência Econômica', 'Nexus — Economic Intelligence', 'Nexus — Inteligencia Económica'),
-        subtitulo: L('Indicadores econômicos reais, atualizados diariamente pelo Banco Central', 'Real economic indicators, updated daily by the Central Bank', 'Indicadores económicos reales, actualizados diariamente por el Banco Central'),
-        colunas: [
-          { header: L('Indicador', 'Indicator', 'Indicador'), key: 'nome', width: 3 },
-          { header: L('Valor', 'Value', 'Valor'), key: 'valor', width: 2, align: 'right' },
-          { header: L('Data de referência', 'Reference date', 'Fecha de referencia'), key: 'data', width: 2 },
-          { header: L('Status', 'Status', 'Estado'), key: 'status', width: 2 },
-        ],
-        linhas: indicadores.map((ind) => ({
-          nome: ind.nome[lang],
-          valor: formatarValorIndicador(ind),
-          data: ind.dataReferencia ? new Date(ind.dataReferencia + 'T00:00:00').toLocaleDateString(localeData) : '—',
-          status: traduzirFreshness(ind.freshness, lang).texto,
-        })),
-        nomeArquivo: `axioma-nexus-${new Date().toISOString().slice(0, 10)}.pdf`,
-      }, (msg) => setAvisoCarregamento(msg), lang)
+      const ok = await exportarPdfNexus({ lang, indicadores, mundo, eventos, seriesDoRamo, formatarIndicador: formatarValorIndicador, rotuloImpacto: (s) => L(...impactoEvento(s).nome) })
+      if (!ok) throw new Error('falha ao montar o PDF do Nexus')
     } catch (err) {
       setAvisoCarregamento(tratarFalhaExportacao('nexus.exportarPDF', err, lang))
     }

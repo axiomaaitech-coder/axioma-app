@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { PayloadEvento } from "./nexusEventDetector";
+import type { BriefingJose } from "./nexusBriefing";
 
 // ═══════════════════════════════════════════════════════════════
 // AXIOMA NEXUS — Comitê 03, Parte 1: leitura dos 4 indicadores reais
@@ -228,9 +229,9 @@ export async function obterManchetesRecentes(dias = 5, limite = 16): Promise<{ t
 // Horizontes do painel executivo mais recente (12m/3a/5a/10a) — o chat usa como base
 // pras perguntas "como a economia afeta minha empresa em N anos".
 export async function obterHorizontesPainel(lang: "pt" | "en" | "es"): Promise<{ data: string; texto: string } | null> {
-  const { data, error } = await supabase.from("nexus_briefing").select("data, conteudo").eq("lang", lang).order("data", { ascending: false }).limit(1).maybeSingle();
-  if (error || !data) return null;
-  const c = data.conteudo as Record<string, { titulo?: string; texto?: string; confianca?: number } | undefined>;
+  const data = await obterPainelSalvo(lang);
+  if (!data) return null;
+  const c = data.conteudo as unknown as Record<string, { titulo?: string; texto?: string; confianca?: number } | undefined>;
   const linha = (k: string, rot: string) => (c[k]?.texto ? `- ${rot} (confiança ${c[k]?.confianca ?? "?"}/100): ${c[k]?.titulo ?? ""} — ${c[k]?.texto}` : "");
   return { data: data.data as string, texto: [linha("horizonte_12m", "12 meses"), linha("horizonte_3a", "3 anos"), linha("horizonte_5a", "5 anos"), linha("horizonte_10a", "10 anos")].filter(Boolean).join("\n") };
 }
@@ -369,4 +370,10 @@ export async function obterResumoPlacar(): Promise<string> {
   const { data, error } = await supabase.from("nexus_previsao").select("serie_codigo, horizonte_dias, status").in("status", ["acertou", "errou"]).limit(5000);
   if (error) return "- placar indisponível";
   return resumirPlacar(data ?? []);
+}
+
+// Painel executivo mais recente já gravado (só leitura, sem gerar) — horizontes do chat e PDF do Nexus.
+export async function obterPainelSalvo(lang: "pt" | "en" | "es"): Promise<{ data: string; conteudo: BriefingJose } | null> {
+  const { data, error } = await supabase.from("nexus_briefing").select("data, conteudo").eq("lang", lang).order("data", { ascending: false }).limit(1).maybeSingle();
+  return error || !data ? null : { data: data.data as string, conteudo: data.conteudo as BriefingJose };
 }

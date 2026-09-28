@@ -15,6 +15,7 @@ export type ArgsRelatorio = {
   numeros?: { rotulo: string; valor: string }[];
   secoes: SecaoRelatorio[];
   rodape?: string;
+  lang?: "pt" | "en" | "es"; // só pro "Página X de Y"
   nomeArquivo: string;
 };
 
@@ -107,7 +108,7 @@ export function montarPdfRelatorio(a: ArgsRelatorio): jsPDF {
     pdf.setPage(p);
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(7.5); pdf.setTextColor(140, 140, 140);
     pdf.text(quebrar(a.rodape ?? "Axioma AI.Tech — relatório gerado automaticamente", U - 30)[0], M, H - 8);
-    pdf.text(`Página ${p} de ${total}`, W - M, H - 8, { align: "right" });
+    pdf.text(a.lang === "en" ? `Page ${p} of ${total}` : `Página ${p} de ${total}`, W - M, H - 8, { align: "right" });
   }
   return pdf;
 }
