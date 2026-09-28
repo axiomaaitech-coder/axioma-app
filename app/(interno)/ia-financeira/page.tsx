@@ -15,7 +15,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import {
   carregarSnapshot, carregarBenchmark, calcularScore360, detectarAnomalias,
   gerarProjecoes, simularWhatIf, gerarPlanoAcao, gerarResumoNarrado,
-  montarPromptCFO, respostaPorRegras, salvarMensagem, carregarHistorico, limparHistorico,
+  respostaPorRegras, salvarMensagem, carregarHistorico, limparHistorico,
   type SnapshotFinanceiro, type Score360, type Anomalia, type Projecao, type AcaoSugerida, type BenchmarkSetor,
 } from "../../../lib/iaFinanceiraHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -365,28 +365,28 @@ export default function IAFinanceiraPage() {
 
     await salvarMensagem(userId, empresaId, "user", texto);
 
-    // Tentar Claude API primeiro, fallback pra regras
+    // Motor de IA do Axioma (docs/MOTOR-IA.md): lê o retrato completo da empresa no
+    // servidor e escolhe sozinho o nível (rotina → OpenAI; análise/estratégia → Anthropic).
+    // A tela só manda a pergunta; histórico sem a pergunta atual (ela vai uma vez só).
     let resposta = "";
     let modelo = "regras";
 
-    try {
-      const res = await fetch("/api/ia-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          // A rota (app/api/ia-chat/route.ts) espera {mensagem, historico, contexto} — antes
-          // este fetch mandava {prompt, mensagens} e nunca acertava o contrato real, então
-          // sempre caía no fallback de regras mesmo com ANTHROPIC_API_KEY ativa.
-          mensagem: montarPromptCFO(snap, score360, bench, texto, lang),
-          historico: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })),
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        resposta = data.resposta || "";
-        modelo = "claude";
-      }
-    } catch {}
+    if (empresaId) {
+      try {
+        const res = await fetch("/api/ia/motor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pergunta: texto, empresa_id: empresaId, tela: "ia-financeira", lang,
+            historico: mensagens.slice(-8).map(m => ({ role: m.role, content: m.texto })),
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; }
+        }
+      } catch {}
+    }
 
     // Fallback: resposta por regras
     if (!resposta) {

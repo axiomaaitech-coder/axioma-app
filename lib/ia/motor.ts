@@ -18,7 +18,7 @@
 // ═══════════════════════════════════════════════════════════════
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { montarRetrato, textoSetor, type Retrato } from './retratoEmpresa'
+import { montarRetrato, textoSetor, textoFiscal, type Retrato } from './retratoEmpresa'
 import { escolherManuais } from './manuais'
 import { montarContextoMundo } from '../nexusBriefing'
 
@@ -175,7 +175,9 @@ export async function perguntarAoMotor(args: {
     montarRetrato(args.supabase, args.empresaId),
     precisaMundo ? montarContextoMundo(args.supabase).catch(() => null) : Promise.resolve(null),
   ])
-  const ctx: Contexto = { retrato, manuais: manuais.map((m) => m.texto).join('\n') || 'nenhum específico — responda como CFO generalista', mundo }
+  // Pergunta tributária leva a comparação de regimes (mesma simulação da tela IA Tributária).
+  const fiscal = manuais.some((m) => m.id === 'tributario') ? `\n${textoFiscal(retrato)}` : ''
+  const ctx: Contexto = { retrato, manuais: (manuais.map((m) => m.texto).join('\n') || 'nenhum específico — responda como CFO generalista') + fiscal, mundo }
   // Histórico: só texto, últimas 8 falas, sem a pergunta atual (vai no fim, uma vez só).
   const msgs: MensagemHistorico[] = [...(args.historico ?? []).filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim()).slice(-8), { role: 'user', content: pergunta }]
   const base = { triagem, setor: retrato.setor?.nome.pt ?? null } as const

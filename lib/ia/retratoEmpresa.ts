@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { montarDRE } from '../cfoCore'
-import { calcularImpostoRegime } from '../iaTributariaHelpers'
+import { calcularImpostoRegime, simularRegimes } from '../iaTributariaHelpers'
 import { setorDaEmpresa, type Setor } from './setores'
 import { nomeSerie } from '../nexusEventDetector'
 
@@ -203,4 +203,21 @@ export function textoSetor(setor: Setor | null): string {
   if (!setor) return 'MANUAL DO SETOR: CNAE não cadastrado — responda para uma empresa típica e cite nas limitações que cadastrar o CNAE na tela Empresa deixa a análise mais precisa.'
   return `MANUAL DO SETOR (${setor.nome.pt}): ${setor.foco}
 INDICADORES QUE MAIS PESAM NESTE SETOR: ${setor.series.map((c) => nomeSerie(c, 'pt')).join(', ')}.`
+}
+
+// Comparação de regimes (mesma simulação da tela IA Tributária) — entra no prompt
+// quando o manual tributário é escolhido. Estimativa pelas regras vigentes hoje.
+export function textoFiscal(r: Retrato): string {
+  const x = r.numeros
+  if (x.receitaMensal <= 0) return 'COMPARAÇÃO DE REGIMES: sem receita cadastrada — não dá para comparar.'
+  const sims = simularRegimes({
+    receita_bruta_12m: x.receitaMensal * 12, receita_bruta_mensal: x.receitaMensal,
+    custos_fixos_mensal: x.custoFixoMensal, custos_variaveis_mensal: x.custoVariavelMensal,
+    folha_pagamento_mensal: x.custoFixoMensal * 0.4, // mesma estimativa da tela IA Tributária
+    lucro_bruto_mensal: x.receitaMensal - x.custoVariavelMensal,
+    regime_atual: r.regime ?? '', setor: r.setor?.id ?? '', cnae: r.cnae ?? '',
+    obrigacoes_pendentes: 0, obrigacoes_vencidas: x.obrigacoesAtrasadas, total_obrigacoes: 0,
+  })
+  const linhas = sims.map((s) => `${s.regime_label}: ${fBRL(s.imposto_mensal)}/mês (${s.aliquota_efetiva.toFixed(1)}%)${s.elegivel ? '' : ` — não elegível: ${s.motivo_inelegivel ?? ''}`}${s.elegivel && s.economia_vs_atual > 0 ? ` — economia estimada de ${fBRL(s.economia_vs_atual)}/ano vs atual` : ''}`)
+  return `COMPARAÇÃO DE REGIMES (estimativa pelas regras vigentes em ${new Date().toISOString().slice(0, 10)}; Reforma Tributária em transição 2026-2033, pode mudar; folha estimada em 40% do custo fixo):\n- ${linhas.join('\n- ')}`
 }

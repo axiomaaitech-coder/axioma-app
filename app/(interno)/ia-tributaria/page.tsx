@@ -11,7 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import {
   carregarDadosFiscais, simularRegimes, calcularCargaTributaria, calcularScoreFiscal,
   calcularEconomiaTributaria, gerarAlertasReforma, gerarDiagnosticoFiscal,
-  montarPromptTributario, respostaTributariaPorRegras, salvarMensagemTrib, carregarHistoricoTrib, limparHistoricoTrib,
+  respostaTributariaPorRegras, salvarMensagemTrib, carregarHistoricoTrib, limparHistoricoTrib,
   type DadosFiscais, type SimulacaoRegime, type ScoreFiscal, type AlertaReforma, type AtividadeFiscal,
 } from "../../../lib/iaTributariaHelpers";
 import { obterEmpresaAtiva } from "../../../lib/empresaHelpers";
@@ -271,16 +271,17 @@ export default function IATributariaPage() {
     setMensagens(novas); setInputChat(""); setChatCarregando(true);
     await salvarMensagemTrib(userId, empresaId, "user", texto);
 
+    // Motor de IA do Axioma (docs/MOTOR-IA.md) — manual tributário entra pela tela de origem.
     let resposta = "", modelo = "regras";
-    try {
-      const res = await fetch("/api/ia-chat", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        // A rota espera {mensagem, historico, contexto} — antes mandava {prompt, mensagens} e
-        // nunca acertava o contrato real, então sempre caía no fallback de regras.
-        body: JSON.stringify({ mensagem: montarPromptTributario(dados, scoreFiscal, carga, texto, lang), historico: novas.slice(-10).map(m => ({ role: m.role, content: m.texto })) }),
-      });
-      if (res.ok) { const data = await res.json(); resposta = data.resposta || ""; modelo = "claude"; }
-    } catch {}
+    if (empresaId) {
+      try {
+        const res = await fetch("/api/ia/motor", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pergunta: texto, empresa_id: empresaId, tela: "ia-tributaria", lang, historico: mensagens.slice(-8).map(m => ({ role: m.role, content: m.texto })) }),
+        });
+        if (res.ok) { const data = await res.json(); if (data.resposta) { resposta = data.resposta; modelo = `motor:${data.nivel}`; } }
+      } catch {}
+    }
     if (!resposta) resposta = respostaTributariaPorRegras(dados, scoreFiscal, carga, texto, lang);
 
     setMensagens([...novas, { role: "assistant", texto: resposta }]);
